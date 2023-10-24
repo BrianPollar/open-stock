@@ -21,4 +21,10 @@ export declare const jobCardSelect: {
     cost: number;
 };
 /** */
+/**
+ * Creates a job card model with the given database URL, main connection and lean connection.
+ * @param dbUrl The URL of the database to connect to.
+ * @param main Whether to create a main connection or not. Defaults to true.
+ * @param lean Whether to create a lean connection or not. Defaults to true.
+ */
 export declare const createJobCardModel: (dbUrl: string, main?: boolean, lean?: boolean) => Promise<void>;

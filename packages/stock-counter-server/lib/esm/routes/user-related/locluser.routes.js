@@ -5,6 +5,13 @@ import { staffLean } from '../../models/user-related/staff.model';
 import { getLogger } from 'log4js';
 import { deleteFiles, requireAuth, roleAuthorisation, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import { user } from '@open-stock/stock-auth-server';
+/**
+ * Removes one user from the database.
+ * @param req - Express Request object.
+ * @param res - Express Response object.
+ * @param next - Express NextFunction object.
+ * @returns Promise<void>
+ */
 export const removeOneUser = async (req, res, next) => {
     const { credential } = req.body;
     const isValid = verifyObjectId(credential.userId);
@@ -22,6 +29,13 @@ export const removeOneUser = async (req, res, next) => {
     }
     next();
 };
+/**
+ * Removes multiple users from the database.
+ * @param req - Express Request object.
+ * @param res - Express Response object.
+ * @param next - Express NextFunction object.
+ * @returns Promise<void>
+ */
 export const removeManyUsers = async (req, res, next) => {
     const { credentials } = req.body;
     const isValid = verifyObjectIds(credentials.map(val => val.userId));
@@ -53,6 +67,11 @@ export const removeManyUsers = async (req, res, next) => {
     }
     next();
 };
+/**
+ * Checks if a user can be removed from the database.
+ * @param id - The ID of the user to check.
+ * @returns Promise<IuserLinkedInMoreModels>
+ */
 export const canRemoveOneUser = async (id) => {
     const hasInvRelated = await invoiceRelatedLean.findOne({ billingUserId: id });
     if (hasInvRelated) {
@@ -80,9 +99,9 @@ export const canRemoveOneUser = async (id) => {
         msg: 'user is not linked to anything'
     };
 };
-/** */
+/** Logger for local user routes. */
 const localUserRoutesLogger = getLogger('routes/customerRoutes');
-/** */
+/** Express Router for local user routes. */
 export const localUserRoutes = express.Router();
 localUserRoutes.put('/deleteone', requireAuth, roleAuthorisation('users'), removeOneUser, deleteFiles, (req, res) => {
     return res.status(200).send({ success: true });

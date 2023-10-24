@@ -4,10 +4,21 @@ import express from 'express';
 import { getLogger } from 'log4js';
 import { itemOfferLean, itemOfferMain } from '../models/itemoffer.model';
 import { itemLean } from '../models/item.model';
-/** */
+/** Logger for item offer routes */
 const itemOfferRoutesLogger = getLogger('routes/itemOfferRoutes');
-/** */
+/** Express router for item offer routes */
 export const itemOfferRoutes = express.Router();
+/**
+ * Route for creating a new item offer
+ * @name POST /create
+ * @function
+ * @memberof module:routes/itemOfferRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @param {callback} middleware - Express middleware
+ * @returns {Promise<void>} - Promise representing the result of the HTTP request
+ */
 itemOfferRoutes.post('/create', requireAuth, roleAuthorisation('items'), async (req, res) => {
     const { itemoffer } = req.body;
     const count = await itemOfferMain
@@ -37,6 +48,16 @@ itemOfferRoutes.post('/create', requireAuth, roleAuthorisation('items'), async (
     }
     return res.status(200).send({ success: Boolean(saved) });
 });
+/**
+ * Route for getting all item offers
+ * @name GET /getall/:type/:offset/:limit
+ * @function
+ * @memberof module:routes/itemOfferRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @returns {Promise<void>} - Promise representing the result of the HTTP request
+ */
 itemOfferRoutes.get('/getall/:type/:offset/:limit', async (req, res) => {
     const { type } = req.params;
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
@@ -52,6 +73,16 @@ itemOfferRoutes.get('/getall/:type/:offset/:limit', async (req, res) => {
         .lean();
     return res.status(200).send(items);
 });
+/**
+ * Route for getting a single item offer by ID
+ * @name GET /getone/:id
+ * @function
+ * @memberof module:routes/itemOfferRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @returns {Promise<void>} - Promise representing the result of the HTTP request
+ */
 itemOfferRoutes.get('/getone/:id', async (req, res) => {
     const { id } = req.params;
     const isValid = verifyObjectId(id);
@@ -64,6 +95,17 @@ itemOfferRoutes.get('/getone/:id', async (req, res) => {
         .lean();
     return res.status(200).send(items);
 });
+/**
+ * Route for deleting a single item offer by ID
+ * @name DELETE /deleteone/:id
+ * @function
+ * @memberof module:routes/itemOfferRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @param {callback} middleware - Express middleware
+ * @returns {Promise<void>} - Promise representing the result of the HTTP request
+ */
 itemOfferRoutes.delete('/deleteone/:id', requireAuth, roleAuthorisation('items'), async (req, res) => {
     const { id } = req.params;
     const isValid = verifyObjectId(id);
@@ -78,6 +120,17 @@ itemOfferRoutes.delete('/deleteone/:id', requireAuth, roleAuthorisation('items')
         return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
+/**
+ * Route for deleting multiple item offers by ID
+ * @name PUT /deletemany
+ * @function
+ * @memberof module:routes/itemOfferRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @param {callback} middleware - Express middleware
+ * @returns {Promise<void>} - Promise representing the result of the HTTP request
+ */
 itemOfferRoutes.put('/deletemany', requireAuth, roleAuthorisation('items'), async (req, res) => {
     const { ids } = req.body;
     const isValid = verifyObjectIds(ids);

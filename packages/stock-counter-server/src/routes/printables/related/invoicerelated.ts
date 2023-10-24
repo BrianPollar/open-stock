@@ -246,6 +246,7 @@ export const relegateInvRelatedCreation = async(
 // eslint-disable-next-line @typescript-eslint/no-shadow
 /** */
 export const makeInvoiceRelatedPdct = (invoiceRelated: Required<IinvoiceRelated>, user: Iuser, createdAt?: Date, extras = {}) => {
+  console.log(';taht billing user SHIIIIIIIIIIT', user);
   let names = user.salutation + ' ' + user.fname + ' ' + user.lname;
   if (user.userDispNameFormat) {
     switch (user.userDispNameFormat) {

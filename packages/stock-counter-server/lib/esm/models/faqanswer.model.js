@@ -28,6 +28,12 @@ export let faqanswerLean;
 /** */
 export const faqanswerSelect = faqanswerselect;
 /** */
+/**
+ * Creates a Faqanswer model with the specified database URL, main connection and lean connection.
+ * @param dbUrl The URL of the database to connect to.
+ * @param main Whether to create the Faqanswer model for the main connection.
+ * @param lean Whether to create the Faqanswer model for the lean connection.
+ */
 export const createFaqanswerModel = async (dbUrl, main = true, lean = true) => {
     if (!isStockDbConnected) {
         await connectStockDatabase(dbUrl);

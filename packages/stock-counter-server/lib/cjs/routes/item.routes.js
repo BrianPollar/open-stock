@@ -1,8 +1,34 @@
 "use strict";
+/**
+ * @file item.routes.ts
+ * @description This file contains the express routes for handling CRUD operations on item and review data.
+ * @requires express
+ * @requires Request
+ * @requires Response
+ * @requires itemLean
+ * @requires itemMain
+ * @requires reviewLean
+ * @requires getLogger
+ * @requires Icustomrequest
+ * @requires Ifilewithdir
+ * @requires Isuccess
+ * @requires makeRandomString
+ * @requires appendBody
+ * @requires deleteFiles
+ * @requires makeUrId
+ * @requires offsetLimitRelegator
+ * @requires requireAuth
+ * @requires roleAuthorisation
+ * @requires stringifyMongooseErr
+ * @requires uploadFiles
+ * @requires verifyObjectId
+ * @requires verifyObjectIds
+ * @requires itemOfferMain
+ * @requires itemDecoyMain
+ */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.removeReview = exports.addReview = exports.itemRoutes = void 0;
 const tslib_1 = require("tslib");
-/* eslint-disable @typescript-eslint/no-misused-promises */
 const express_1 = tslib_1.__importDefault(require("express"));
 const item_model_1 = require("../models/item.model");
 const review_model_1 = require("../models/review.model");
@@ -11,11 +37,21 @@ const stock_universal_1 = require("@open-stock/stock-universal");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const itemoffer_model_1 = require("../models/itemoffer.model");
 const itemdecoy_model_1 = require("../models/itemdecoy.model");
-/** */
+/** The logger for the item routes */
 const itemRoutesLogger = (0, log4js_1.getLogger)('routes/itemRoutes');
-/** */
+/** The express router for handling item routes */
 exports.itemRoutes = express_1.default.Router();
-/** */
+/**
+ * Adds a review for an item
+ * @function
+ * @async
+ * @param {Request} req - The express request object
+ * @param {Icustomrequest} req.user - The custom request object with user data
+ * @param {string} req.body.review.itemId - The id of the item being reviewed
+ * @param {number} req.body.review.rating - The rating given to the item in the review
+ * @param {Response} res - The express response object
+ * @returns {Promise<Response>} - The express response object with a success status and saved item data
+ */
 const addReview = async (req, res) => {
     const { userId } = req.user;
     const itemId = req.body.review.itemId;
@@ -56,7 +92,17 @@ const addReview = async (req, res) => {
     return res.status(200).send({ success: Boolean(saved) });
 };
 exports.addReview = addReview;
-/** */
+/**
+ * Removes a review for an item
+ * @function
+ * @async
+ * @param {Request} req - The express request object
+ * @param {Icustomrequest} req.user - The custom request object with user data
+ * @param {string} req.params.itemId - The id of the item being reviewed
+ * @param {string} req.params.rating - The rating given to the item in the review
+ * @param {Response} res - The express response object
+ * @returns {Promise<Response>} - The express response object with a success status
+ */
 const removeReview = async (req, res) => {
     const { userId } = req.user;
     const { itemId, rating } = req.params;
@@ -102,6 +148,17 @@ const removeReview = async (req, res) => {
     return res.status(200).send({ success: true });
 };
 exports.removeReview = removeReview;
+/**
+ * Creates a new item
+ * @function
+ * @async
+ * @param {Request} req - The express request object
+ * @param {Icustomrequest} req.user - The custom request object with user data
+ * @param {Object} req.body.item - The item data to create
+ * @param {Array<Ifilewithdir>} req.body.newFiles - The files to upload with the item
+ * @param {Response} res - The express response object
+ * @returns {Promise<Response>} - The express response object with a success status and saved item data
+ */
 exports.itemRoutes.post('/create', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('items'), stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, async (req, res) => {
     const item = req.body.item;
     const count = await item_model_1.itemMain
@@ -132,6 +189,16 @@ exports.itemRoutes.post('/create', stock_universal_server_1.requireAuth, (0, sto
     }
     return res.status(200).send({ success: Boolean(saved) });
 });
+/**
+ * Updates an existing item
+ * @function
+ * @async
+ * @param {Request} req - The express request object
+ * @param {Icustomrequest} req.user - The custom request object with user data
+ * @param {Object} req.body.item - The item data to update
+ * @param {Response} res - The express response object
+ * @returns {Promise<Response>} - The express response object with a success status
+ */
 exports.itemRoutes.put('/update', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('items'), async (req, res) => {
     const updatedProduct = req.body.item;
     // eslint-disable-next-line @typescript-eslint/naming-convention

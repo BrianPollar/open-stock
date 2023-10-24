@@ -7,10 +7,21 @@ const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
 const log4js_1 = require("log4js");
 const itemlimitted_model_1 = require("../models/itemlimitted.model");
-/** */
+/** Logger for itemLimittedRoutes */
 const itemLimittedRoutesLogger = (0, log4js_1.getLogger)('routes/itemLimittedRoutes');
-/** */
+/** Express router for itemLimitted */
 exports.itemLimittedRoutes = express_1.default.Router();
+/**
+ * Create a new itemlimitted
+ * @name POST /create
+ * @function
+ * @memberof module:routes/itemLimittedRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @param {callback} middleware - Express middleware
+ * @returns {Isuccess} - Success status and error message if applicable
+ */
 exports.itemLimittedRoutes.post('/create', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('items'), async (req, res) => {
     const { itemlimitted } = req.body;
     const count = await itemlimitted_model_1.itemLimittedMain
@@ -41,6 +52,16 @@ exports.itemLimittedRoutes.post('/create', stock_universal_server_1.requireAuth,
     }
     return res.status(200).send({ success: Boolean(saved) });
 });
+/**
+ * Get all itemlimitteds
+ * @name GET /getall/:offset/:limit
+ * @function
+ * @memberof module:routes/itemLimittedRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @returns {Object[]} - Array of itemlimitted objects
+ */
 exports.itemLimittedRoutes.get('/getall/:offset/:limit', async (req, res) => {
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const items = await itemlimitted_model_1.itemLimittedLean
@@ -50,6 +71,16 @@ exports.itemLimittedRoutes.get('/getall/:offset/:limit', async (req, res) => {
         .lean();
     return res.status(200).send(items);
 });
+/**
+ * Get a single itemlimitted by ID
+ * @name GET /getone/:id
+ * @function
+ * @memberof module:routes/itemLimittedRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @returns {Object} - itemlimitted object
+ */
 exports.itemLimittedRoutes.get('/getone/:id', async (req, res) => {
     const { id } = req.params;
     const isValid = (0, stock_universal_server_1.verifyObjectId)(id);
@@ -61,6 +92,16 @@ exports.itemLimittedRoutes.get('/getone/:id', async (req, res) => {
         .lean();
     return res.status(200).send(items);
 });
+/**
+ * Delete a single itemlimitted by ID
+ * @name DELETE /deleteone/:id
+ * @function
+ * @memberof module:routes/itemLimittedRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @returns {Isuccess} - Success status and error message if applicable
+ */
 exports.itemLimittedRoutes.delete('/deleteone/:id', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('items'), async (req, res) => {
     const { id } = req.params;
     const isValid = (0, stock_universal_server_1.verifyObjectId)(id);
@@ -75,6 +116,16 @@ exports.itemLimittedRoutes.delete('/deleteone/:id', stock_universal_server_1.req
         return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
+/**
+ * Update a single itemlimitted by ID
+ * @name PUT /updateone
+ * @function
+ * @memberof module:routes/itemLimittedRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @returns {Isuccess} - Success status and error message if applicable
+ */
 exports.itemLimittedRoutes.put('/updateone', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('items'), async (req, res) => {
     const isValid = (0, stock_universal_server_1.verifyObjectId)(req.body._id);
     if (!isValid) {
@@ -85,6 +136,16 @@ exports.itemLimittedRoutes.put('/updateone', stock_universal_server_1.requireAut
     await item.save();
     return res.status(200).send({ success: true });
 });
+/**
+ * Delete multiple itemlimitteds by ID
+ * @name PUT /deletemany
+ * @function
+ * @memberof module:routes/itemLimittedRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @returns {Isuccess} - Success status and error message if applicable
+ */
 exports.itemLimittedRoutes.put('/deletemany', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('items'), async (req, res) => {
     const { ids } = req.body;
     const isValid = (0, stock_universal_server_1.verifyObjectIds)(ids);

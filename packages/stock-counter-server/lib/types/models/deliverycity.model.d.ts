@@ -20,4 +20,10 @@ export declare const deliverycitySelect: {
     deliversInDays: number;
 };
 /** */
+/**
+ * Creates a delivery city model with the specified database URL, main connection and lean connection.
+ * @param dbUrl The database URL to connect to.
+ * @param main Whether to create a main connection or not.
+ * @param lean Whether to create a lean connection or not.
+ */
 export declare const createDeliverycityModel: (dbUrl: string, main?: boolean, lean?: boolean) => Promise<void>;

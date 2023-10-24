@@ -4,7 +4,7 @@ import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectio
 const uniqueValidator = require('mongoose-unique-validator');
 
 /** Interface for the expense report document. */
-export interface TexpenseReport extends Document, IexpenseReport {}
+export type TexpenseReport = Document & IexpenseReport;
 
 /** Mongoose schema for the expense report document. */
 const expenseReportSchema: Schema<TexpenseReport> = new Schema({

@@ -1,6 +1,7 @@
 import mongoose, { Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../controllers/database.controller';
 const uniqueValidator = require('mongoose-unique-validator');
+/** Defines the schema for the staff model. */
 const staffSchema = new Schema({
     user: { type: mongoose.Types.ObjectId, unique: true, required: [true, 'cannot be empty.'], index: true },
     startDate: { type: Date, required: [true, 'cannot be empty.'] },
@@ -11,9 +12,7 @@ const staffSchema = new Schema({
 }, { timestamps: true });
 // Apply the uniqueValidator plugin to staffSchema.
 staffSchema.plugin(uniqueValidator);
-/** primary selection object
- * for staff
- */
+/** Defines the primary selection object for staff. */
 const staffselect = {
     user: 1,
     startDate: 1,
@@ -22,16 +21,18 @@ const staffselect = {
     employmentType: 1,
     salary: 1
 };
-/** main connection for staffs Operations*/
+/** The main connection for staff operations. */
 export let staffMain;
-/** lean connection for staffs Operations*/
+/** The lean connection for staff operations. */
 export let staffLean;
-/** primary selection object
- * for staff
- */
-/** */
+/** Defines the primary selection object for staff. */
 export const staffSelect = staffselect;
-/** */
+/**
+ * Creates a new staff model with the given database URL.
+ * @param dbUrl The URL of the database to connect to.
+ * @param main Whether to create the main connection for staff operations.
+ * @param lean Whether to create the lean connection for staff operations.
+ */
 export const createStaffModel = async (dbUrl, main = true, lean = true) => {
     if (!isStockDbConnected) {
         await connectStockDatabase(dbUrl);

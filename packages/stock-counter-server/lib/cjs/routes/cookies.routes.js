@@ -9,10 +9,17 @@ const cookies_service_1 = require("../controllers/cookies.service");
 const item_model_1 = require("../models/item.model");
 const log4js_1 = require("log4js");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
-/** */
+/** Logger for the cookiesRoutes module */
 const cookiesRoutesLogger = (0, log4js_1.getLogger)('routes/cookiesRoutes');
-/** */
+/** Express router for handling cookie-related requests */
 exports.cookiesRoutes = express_1.default.Router();
+/**
+ * GET request handler for retrieving settings cookie.
+ * If the cookie does not exist, a default cookie is created and returned.
+ * @param req - Express request object
+ * @param res - Express response object
+ * @param next - Express next function
+ */
 exports.cookiesRoutes.get('/getsettings', (req, res, next) => {
     let stnCookie = req.signedCookies['settings'];
     if (!stnCookie) {
@@ -26,6 +33,13 @@ exports.cookiesRoutes.get('/getsettings', (req, res, next) => {
     cookiesRoutesLogger.info('getsettings - stnCookie: ', stnCookie);
     return res.send(stnCookie);
 }, cookies_service_1.makeSettingsCookie);
+/**
+ * PUT request handler for updating settings cookie.
+ * The existing settings cookie is cleared and replaced with the new cookie.
+ * @param req - Express request object
+ * @param res - Express response object
+ * @param next - Express next function
+ */
 exports.cookiesRoutes.put('/updatesettings', (req, res, next) => {
     res.clearCookie('settings');
     const stnCookie = req.body.settings;
@@ -33,6 +47,13 @@ exports.cookiesRoutes.put('/updatesettings', (req, res, next) => {
     cookiesRoutesLogger.info('updatesettings - stnCookie: ', stnCookie);
     return next();
 }, cookies_service_1.makeSettingsCookie);
+/**
+ * PUT request handler for adding an item to the cart cookie.
+ * If the cart cookie does not exist, a new empty array is created.
+ * @param req - Express request object
+ * @param res - Express response object
+ * @param next - Express next function
+ */
 exports.cookiesRoutes.put('/addcartitem', (req, res, next) => {
     const { cartItemId, totalCostwithNoShipping } = req.body;
     let cartCookie = req.signedCookies.cart;
@@ -45,6 +66,13 @@ exports.cookiesRoutes.put('/addcartitem', (req, res, next) => {
     cookiesRoutesLogger.info('addcartitem - cartCookie: ', cartCookie);
     return next();
 }, cookies_service_1.makeCartCookie);
+/**
+ * PUT request handler for adding an item to the recent cookie.
+ * If the recent cookie does not exist, a new empty array is created.
+ * @param req - Express request object
+ * @param res - Express response object
+ * @param next - Express next function
+ */
 exports.cookiesRoutes.put('/addrecentitem', (req, res, next) => {
     const recentItemId = req.body.recentItemId;
     let recentCookie = req.signedCookies.recent;
@@ -57,6 +85,13 @@ exports.cookiesRoutes.put('/addrecentitem', (req, res, next) => {
     cookiesRoutesLogger.info('addrecentitem - recentCookie: ', recentCookie);
     return next();
 }, cookies_service_1.makeRecentCookie);
+/**
+ * PUT request handler for deleting an item from the cart cookie.
+ * If the cart cookie does not exist, a success response is returned.
+ * @param req - Express request object
+ * @param res - Express response object
+ * @param next - Express next function
+ */
 exports.cookiesRoutes.put('/deletecartitem/:id', (req, res, next) => {
     const cartItemId = req.params.id;
     let cartCookie = req.signedCookies.cart;
@@ -69,10 +104,22 @@ exports.cookiesRoutes.put('/deletecartitem/:id', (req, res, next) => {
     cookiesRoutesLogger.info('deletecartitem - cartCookie', cartCookie);
     return next();
 }, cookies_service_1.makeCartCookie);
+/**
+ * PUT request handler for clearing the cart cookie.
+ * The cart cookie is cleared and a success response is returned.
+ * @param req - Express request object
+ * @param res - Express response object
+ */
 exports.cookiesRoutes.put('/clearcart', (req, res) => {
     res.clearCookie('cart');
     return res.status(200).send({ success: true });
 });
+/**
+ * GET request handler for appending items in the cart cookie to the response.
+ * The cart cookie is verified and the corresponding items are retrieved from the database.
+ * @param req - Express request object
+ * @param res - Express response object
+ */
 exports.cookiesRoutes.get('/appendtocart', async (req, res) => {
     const cartCookie = req.signedCookies.cart;
     cookiesRoutesLogger.info('appendtocart - cartCookie: ', cartCookie);
@@ -99,6 +146,12 @@ exports.cookiesRoutes.get('/appendtocart', async (req, res) => {
     }));
     return res.status(200).send(newProds);
 });
+/**
+ * GET request handler for appending items in the recent cookie to the response.
+ * The recent cookie is verified and the corresponding items are retrieved from the database.
+ * @param req - Express request object
+ * @param res - Express response object
+ */
 exports.cookiesRoutes.get('/appendtorecent', async (req, res) => {
     const recentCookie = req.signedCookies['recent'];
     cookiesRoutesLogger.info('appendtorecent - recentCookie: ', recentCookie);

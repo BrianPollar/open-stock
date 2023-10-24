@@ -3,24 +3,41 @@
 import { getLogger } from 'log4js';
 import { orderMain } from '../models/order.model';
 import { paymentMain } from '../models/payment.model';
-// import Collections from 'mtn-momo/lib/collections';
-// import got from 'got';
-// const got;
-// const got: any = null;
 import { promocodeLean } from '../models/promocode.model';
 import { makePaymentInstall, relegatePaymentRelatedCreation } from '../routes/paymentrelated/paymentrelated';
 import { saveInvoice } from '../routes/printables/invoice.routes';
 import { createNotifications, makeNotfnBody } from '@open-stock/stock-notif-server';
 import { paymentRelatedMain } from '../models/printables/paymentrelated/paymentrelated.model';
 import { stringifyMongooseErr, verifyObjectId } from '@open-stock/stock-universal-server';
-/** */
+/** Logger for the payment controller */
 const paymentControllerLogger = getLogger('paymentController');
-/** */
+/**
+ * Allows payment on delivery
+ * @param paymentRelated - The payment related information
+ * @param invoiceRelated - The invoice related information
+ * @param order - The order information
+ * @param payment - The payment information
+ * @param userId - The user ID
+ * @param notifRedirectUrl - The notification redirect URL
+ * @param locaLMailHandler - The email handler
+ * @returns A promise that resolves to an Isuccess object
+ */
 export const payOnDelivery = async (paymentRelated, invoiceRelated, order, payment, userId, notifRedirectUrl, locaLMailHandler) => {
     order.status = 'pending';
     return appendAll(paymentRelated, invoiceRelated, order, payment, userId, notifRedirectUrl, locaLMailHandler, false);
 };
-/** */
+/**
+ * Appends all payment related information
+ * @param paymentRelated - The payment related information
+ * @param invoiceRelated - The invoice related information
+ * @param order - The order information
+ * @param payment - The payment information
+ * @param userId - The user ID
+ * @param notifRedirectUrl - The notification redirect URL
+ * @param locaLMailHandler - The email handler
+ * @param paid - Whether the payment has been made
+ * @returns A promise that resolves to an Isuccess object with additional properties
+ */
 const appendAll = async (paymentRelated, invoiceRelated, order, payment, userId, notifRedirectUrl, locaLMailHandler, paid = true) => {
     paymentControllerLogger.debug('appendAll - userId:', userId);
     const saved = await addOrder(paymentRelated, invoiceRelated, order, userId, notifRedirectUrl, locaLMailHandler);
@@ -36,7 +53,16 @@ const appendAll = async (paymentRelated, invoiceRelated, order, payment, userId,
         return { success: saved.success, status: saved.status, err: saved.err };
     }
 };
-/** */
+/**
+ * Adds an order to the database
+ * @param paymentRelated - The payment related information
+ * @param invoiceRelated - The invoice related information
+ * @param order - The order information
+ * @param userId - The user ID
+ * @param notifRedirectUrl - The notification redirect URL
+ * @param locaLMailHandler - The email handler
+ * @returns A promise that resolves to an Isuccess object with additional properties
+ */
 const addOrder = async (paymentRelated, invoiceRelated, order, userId, notifRedirectUrl, locaLMailHandler) => {
     paymentControllerLogger.info('addOrder');
     const extraNotifDesc = 'New Order';
@@ -106,7 +132,12 @@ const addOrder = async (paymentRelated, invoiceRelated, order, userId, notifRedi
     // eslint-disable-next-line @typescript-eslint/naming-convention
     return { success: true, status: 200, _id: withId._id, paymentRelated: (order).paymentRelated, invoiceRelated: invoiceRelatedId };
 };
-/** */
+/**
+ * Adds a payment to the database
+ * @param payment - The payment information
+ * @param userId - The user ID
+ * @param paid - Whether the payment has been made
+ */
 const addPayment = async (payment, userId, paid = false) => {
     paymentControllerLogger.info('addPayment');
     let errResponse;

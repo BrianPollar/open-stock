@@ -2,26 +2,43 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.invoiceRoutes = exports.saveInvoice = void 0;
 const tslib_1 = require("tslib");
-/* eslint-disable @typescript-eslint/no-misused-promises */
 const express_1 = tslib_1.__importDefault(require("express"));
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const invoice_model_1 = require("../../models/printables/invoice.model");
-// import { paymentInstallsLean, paymentInstallsMain } from '../../models/printables/paymentrelated/paymentsinstalls.model';
 const invoicerelated_model_1 = require("../../models/printables/related/invoicerelated.model");
 const invoicerelated_1 = require("./related/invoicerelated");
 const log4js_1 = require("log4js");
 const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const receipt_model_1 = require("../../models/printables/receipt.model");
-/** */
+/** Logger for invoice routes */
 const invoiceRoutesLogger = (0, log4js_1.getLogger)('routes/invoiceRoutes');
+/**
+ * Generates a new invoice ID by incrementing the highest existing invoice ID.
+ * @returns A promise that resolves to the new invoice ID.
+ */
 const makeinvoiceId = async () => {
     const count = await invoicerelated_model_1.invoiceRelatedMain
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        .find({}).sort({ _id: -1 }).limit(1).lean().select({ invoiceId: 1 });
+        .find({ invoiceId: { $exists: true, $ne: null } }).sort({ _id: -1 }).limit(1).lean().select({ invoiceId: 1 });
     let incCount = count[0]?.invoiceId || 0;
     return ++incCount;
 };
-/** */
+/**
+ * Saves an invoice and its related information to the database.
+ * @param invoice - The invoice to be saved.
+ * @param invoiceRelated - The related information of the invoice.
+ * @param notifRedirectUrl - The URL to redirect to after sending a notification.
+ * @param localMailHandler - The email handler to use for sending notifications.
+ * @returns A promise that resolves to an object containing the success status and the IDs of the saved invoice and related information.
+ */
+/**
+ * Saves an invoice and its related information to the database.
+ * @param invoice - The invoice object to be saved.
+ * @param invoiceRelated - The related information of the invoice.
+ * @param notifRedirectUrl - The URL to redirect to after notification.
+ * @param localMailHandler - The email handler to use for local emails.
+ * @returns A promise that resolves to an object containing the success status, the ID of the saved invoice, and the ID of the related information.
+ */
 const saveInvoice = async (invoice, invoiceRelated, notifRedirectUrl, localMailHandler) => {
     invoiceRelated.invoiceId = await makeinvoiceId();
     console.log('1111111 inv');
@@ -60,13 +77,25 @@ const saveInvoice = async (invoice, invoiceRelated, notifRedirectUrl, localMailH
     return { success: true, status: 200, id: saved._id, invoiceRelatedId: relatedId.id };
 };
 exports.saveInvoice = saveInvoice;
-/** */
+/** Router for invoice routes */
 exports.invoiceRoutes = express_1.default.Router();
+/**
+ * Endpoint for creating a new invoice.
+ * @param req - The request object.
+ * @param res - The response object.
+ * @returns A response indicating the success status of the operation.
+ */
 exports.invoiceRoutes.post('/create', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables'), async (req, res) => {
     const { invoice, invoiceRelated } = req.body;
     const response = await (0, exports.saveInvoice)(invoice, invoiceRelated, req.app.locals.stockCounterServer.notifRedirectUrl, req.app.locals.stockCounterServer.locaLMailHandler);
     return res.status(response.status).send({ success: response.success });
 });
+/**
+ * Endpoint for updating an existing invoice.
+ * @param req - The request object.
+ * @param res - The response object.
+ * @returns A response indicating the success status of the operation.
+ */
 exports.invoiceRoutes.put('/update', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables'), async (req, res) => {
     const { updatedInvoice, invoiceRelated } = req.body.invoice;
     // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -105,6 +134,12 @@ exports.invoiceRoutes.put('/update', stock_universal_server_1.requireAuth, (0, s
     }
     return res.status(200).send({ success: Boolean(updated) });
 });
+/**
+ * Endpoint for retrieving a single invoice by ID.
+ * @param req - The request object.
+ * @param res - The response object.
+ * @returns A response containing the requested invoice and its related information.
+ */
 exports.invoiceRoutes.get('/getone/:invoiceId', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables'), async (req, res) => {
     const { invoiceId } = req.params;
     const invoiceRelated = await invoicerelated_model_1.invoiceRelatedLean

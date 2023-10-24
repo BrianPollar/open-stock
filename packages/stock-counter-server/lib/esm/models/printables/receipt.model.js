@@ -35,6 +35,12 @@ export let receiptLean;
 /** */
 export const receiptSelect = receiptselect;
 /** */
+/**
+ * Creates a new receipt model with the given database URL.
+ * @param dbUrl The URL of the database to connect to.
+ * @param main Whether to create the main connection model.
+ * @param lean Whether to create the lean connection model.
+ */
 export const createReceiptModel = async (dbUrl, main = true, lean = true) => {
     if (!isStockDbConnected) {
         await connectStockDatabase(dbUrl);

@@ -2,21 +2,29 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.invoicesReportRoutes = void 0;
 const tslib_1 = require("tslib");
-/* eslint-disable @typescript-eslint/no-misused-promises */
 const express_1 = tslib_1.__importDefault(require("express"));
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const payment_model_1 = require("../../../models/payment.model");
 const estimate_model_1 = require("../../../models/printables/estimate.model");
 const invoicereport_model_1 = require("../../../models/printables/report/invoicereport.model");
 const log4js_1 = require("log4js");
-/** */
+/** Logger for invoicesReportRoutes */
 const invoicesReportRoutesLogger = (0, log4js_1.getLogger)('routes/invoicesReportRoutes');
-/** */
+/** Express router for invoices report routes */
 exports.invoicesReportRoutes = express_1.default.Router();
+/**
+ * Route to create a new invoices report
+ *
+ * @name POST /create
+ * @function
+ * @memberof module:routes/invoicesReportRoutes~invoicesReportRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ */
 exports.invoicesReportRoutes.post('/create', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables'), async (req, res) => {
     const invoicesReport = req.body.invoicesReport;
     const count = await invoicereport_model_1.invoicesReportMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     invoicesReport.urId = (0, stock_universal_server_1.makeUrId)(Number(count[0]?.urId || '0'));
     const newInvoiceReport = new invoicereport_model_1.invoicesReportMain(invoicesReport);
@@ -40,6 +48,16 @@ exports.invoicesReportRoutes.post('/create', stock_universal_server_1.requireAut
     }
     return res.status(200).send({ success: true });
 });
+/**
+ * Route to get a single invoices report by urId
+ *
+ * @name GET /getone/:urId
+ * @function
+ * @memberof module:routes/invoicesReportRoutes~invoicesReportRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ */
 exports.invoicesReportRoutes.get('/getone/:urId', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables'), async (req, res) => {
     const { urId } = req.params;
     const invoicesReport = await invoicereport_model_1.invoicesReportLean
@@ -49,6 +67,16 @@ exports.invoicesReportRoutes.get('/getone/:urId', stock_universal_server_1.requi
         .populate({ path: 'payments', model: payment_model_1.paymentLean });
     return res.status(200).send(invoicesReport);
 });
+/**
+ * Route to get all invoices reports with pagination
+ *
+ * @name GET /getall/:offset/:limit
+ * @function
+ * @memberof module:routes/invoicesReportRoutes~invoicesReportRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ */
 exports.invoicesReportRoutes.get('/getall/:offset/:limit', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables'), async (req, res) => {
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const invoicesReports = await invoicereport_model_1.invoicesReportLean
@@ -60,6 +88,16 @@ exports.invoicesReportRoutes.get('/getall/:offset/:limit', stock_universal_serve
         .populate({ path: 'payments', model: payment_model_1.paymentLean });
     return res.status(200).send(invoicesReports);
 });
+/**
+ * Route to delete a single invoices report by id
+ *
+ * @name DELETE /deleteone/:id
+ * @function
+ * @memberof module:routes/invoicesReportRoutes~invoicesReportRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ */
 exports.invoicesReportRoutes.delete('/deleteone/:id', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables'), async (req, res) => {
     const { id } = req.params;
     const isValid = (0, stock_universal_server_1.verifyObjectId)(id);
@@ -74,6 +112,16 @@ exports.invoicesReportRoutes.delete('/deleteone/:id', stock_universal_server_1.r
         return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
+/**
+ * Route to search invoices reports by a search term and key with pagination
+ *
+ * @name POST /search/:offset/:limit
+ * @function
+ * @memberof module:routes/invoicesReportRoutes~invoicesReportRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ */
 exports.invoicesReportRoutes.post('/search/:offset/:limit', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables'), async (req, res) => {
     const { searchterm, searchKey } = req.body;
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
@@ -86,6 +134,16 @@ exports.invoicesReportRoutes.post('/search/:offset/:limit', stock_universal_serv
         .populate({ path: 'payments', model: payment_model_1.paymentLean });
     return res.status(200).send(invoicesReports);
 });
+/**
+ * Route to delete multiple invoices reports by ids
+ *
+ * @name PUT /deletemany
+ * @function
+ * @memberof module:routes/invoicesReportRoutes~invoicesReportRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ */
 exports.invoicesReportRoutes.put('/deletemany', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables'), async (req, res) => {
     const { ids } = req.body;
     const isValid = (0, stock_universal_server_1.verifyObjectIds)(ids);
@@ -93,7 +151,6 @@ exports.invoicesReportRoutes.put('/deletemany', stock_universal_server_1.require
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const deleted = await invoicereport_model_1.invoicesReportMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .deleteMany({ _id: { $in: ids } })
         .catch(err => {
         invoicesReportRoutesLogger.error('deletemany - err: ', err);

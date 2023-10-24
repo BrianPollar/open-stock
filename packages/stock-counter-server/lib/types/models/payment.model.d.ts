@@ -23,4 +23,10 @@ export declare const paymentSelect: {
     order: number;
 };
 /** */
+/**
+ * Creates a payment model with the specified database URL, main connection and lean connection.
+ * @param dbUrl The URL of the database to connect to.
+ * @param main Whether to create the payment model for the main connection.
+ * @param lean Whether to create the payment model for the lean connection.
+ */
 export declare const createPaymentModel: (dbUrl: string, main?: boolean, lean?: boolean) => Promise<void>;

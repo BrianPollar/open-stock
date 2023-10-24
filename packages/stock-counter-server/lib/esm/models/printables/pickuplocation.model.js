@@ -24,6 +24,12 @@ export let pickupLocationLean;
 /** */
 export const pickupLocationSelect = pickupLocationselect;
 /** */
+/**
+ * Creates a new PickupLocation model with the specified database URL, main connection and lean connection.
+ * @param dbUrl The database URL to connect to.
+ * @param main Whether to create the model for the main connection.
+ * @param lean Whether to create the model for the lean connection.
+ */
 export const createPickupLocationModel = async (dbUrl, main = true, lean = true) => {
     if (!isStockDbConnected) {
         await connectStockDatabase(dbUrl);

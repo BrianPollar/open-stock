@@ -22,6 +22,12 @@ export let invoiceLean;
 /** */
 export const invoiceSelect = invoiceselect;
 /** */
+/**
+ * Creates an invoice model with the given database URL, main flag, and lean flag.
+ * @param dbUrl The URL of the database to connect to.
+ * @param main Whether to create the main invoice model.
+ * @param lean Whether to create the lean invoice model.
+ */
 export const createInvoiceModel = async (dbUrl, main = true, lean = true) => {
     if (!isStockDbConnected) {
         await connectStockDatabase(dbUrl);

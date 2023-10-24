@@ -61,16 +61,29 @@ const review_model_1 = require("./models/review.model");
 const itemlimitted_routes_1 = require("./routes/itemlimitted.routes");
 const itemlimitted_model_1 = require("./models/itemlimitted.model");
 const locluser_routes_1 = require("./routes/user-related/locluser.routes");
-/** */
+/**
+ * Represents the Stock Counter Server.
+ */
 class StockCounterServer {
-    /** */
+    /**
+     * Constructor for the StockCounterServer class.
+     *
+     * @param notifRedirectUrl The URL for the notification redirect.
+     * @param pesapalPaymentInstance The PesaPal payment instance for the server.
+     * @param locaLMailHandler The mail handler for the server.
+     */
     constructor(notifRedirectUrl, pesapalPaymentInstance, locaLMailHandler) {
         this.notifRedirectUrl = notifRedirectUrl;
         this.pesapalPaymentInstance = pesapalPaymentInstance;
         this.locaLMailHandler = locaLMailHandler;
     }
 }
-/** */
+/**
+ * Connects to the Stock Counter database.
+ *
+ * @param databaseUrl The database URL for the server.
+ * @returns A promise with the database models.
+ */
 const connectStockCounterDatabase = (databaseUrl) => {
     return Promise.all([
         (0, paymentrelated_model_1.createPaymentRelatedModel)(databaseUrl),

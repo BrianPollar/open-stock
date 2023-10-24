@@ -7,9 +7,13 @@ import { invoiceRelatedLean, invoiceRelatedMain } from '../../../models/printabl
 import { getLogger } from 'log4js';
 import { createNotifications } from '@open-stock/stock-notif-server';
 import { user } from '@open-stock/stock-auth-server';
-/** */
+/** Logger for the InvoiceRelated routes */
 const invoiceRelatedLogger = getLogger('routes/InvoiceRelated');
-/** */
+/**
+ * Updates the payments for an invoice related document.
+ * @param payment - The payment to add to the invoice related document.
+ * @returns A promise that resolves with a success status and an optional ID.
+ */
 export const updateInvoiceRelatedPayments = async (payment) => {
     const isValid = verifyObjectId(payment.invoiceRelated);
     if (!isValid) {
@@ -49,7 +53,11 @@ export const updateInvoiceRelatedPayments = async (payment) => {
         return { success: true, id: saved._id };
     }
 };
-/** */
+/**
+ * Updates an invoice related document.
+ * @param invoiceRelated - The updated invoice related document.
+ * @returns A promise that resolves with a success status and an optional ID.
+ */
 export const updateInvoiceRelated = async (invoiceRelated) => {
     console.log('surely the update happens', invoiceRelated);
     const isValid = verifyObjectId(invoiceRelated.invoiceRelated);
@@ -106,7 +114,15 @@ export const updateInvoiceRelated = async (invoiceRelated) => {
         return { success: true, id: saved._idd };
     }
 };
-/** */
+/**
+ * Relocates an invoice related document.
+ * @param invoiceRelated - The invoice related document to relocate.
+ * @param extraNotifDesc - A description for the notification.
+ * @param notifRedirectUrl - The URL to redirect to after the notification is clicked.
+ * @param localMailHandler - The email handler to use for sending notifications.
+ * @param bypassNotif - Whether to bypass sending notifications.
+ * @returns A promise that resolves with a success status and an optional ID.
+ */
 export const relegateInvRelatedCreation = async (invoiceRelated, extraNotifDesc, notifRedirectUrl, localMailHandler, bypassNotif = false) => {
     console.log('222222222', invoiceRelated);
     invoiceRelatedLogger.debug('relegateInvRelatedCreation - invoiceRelated', invoiceRelated);
@@ -205,6 +221,7 @@ export const relegateInvRelatedCreation = async (invoiceRelated, extraNotifDesc,
 // eslint-disable-next-line @typescript-eslint/no-shadow
 /** */
 export const makeInvoiceRelatedPdct = (invoiceRelated, user, createdAt, extras = {}) => {
+    console.log(';taht billing user SHIIIIIIIIIIT', user);
     let names = user.salutation + ' ' + user.fname + ' ' + user.lname;
     if (user.userDispNameFormat) {
         switch (user.userDispNameFormat) {

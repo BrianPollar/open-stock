@@ -1,6 +1,26 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-type-arguments */
 import { Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../../controllers/database.controller';
+/**
+ * Represents the schema for the invoice related model.
+ * @typedef {Object} TinvoiceRelated
+ * @property {string} creationType - The type of creation.
+ * @property {number} estimateId - The ID of the estimate.
+ * @property {number} invoiceId - The ID of the invoice.
+ * @property {string} billingUser - The user who is being billed.
+ * @property {string} billingUserId - The ID of the user who is being billed.
+ * @property {Array} items - The items in the invoice.
+ * @property {Date} fromDate - The start date of the invoice.
+ * @property {Date} toDate - The end date of the invoice.
+ * @property {string} status - The status of the invoice.
+ * @property {string} stage - The stage of the invoice.
+ * @property {number} cost - The cost of the invoice.
+ * @property {number} tax - The tax of the invoice.
+ * @property {number} balanceDue - The balance due on the invoice.
+ * @property {number} subTotal - The subtotal of the invoice.
+ * @property {number} total - The total of the invoice.
+ * @property {Array} payments - The payments made on the invoice.
+ */
 const invoiceRelatedSchema = new Schema({
     creationType: { type: String },
     estimateId: { type: Number },

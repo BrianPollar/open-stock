@@ -1,18 +1,29 @@
 "use strict";
+/* eslint-disable @typescript-eslint/no-misused-promises */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.taxReportRoutes = void 0;
 const tslib_1 = require("tslib");
-/* eslint-disable @typescript-eslint/no-misused-promises */
 const express_1 = tslib_1.__importDefault(require("express"));
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const payment_model_1 = require("../../../models/payment.model");
 const estimate_model_1 = require("../../../models/printables/estimate.model");
 const taxreport_model_1 = require("../../../models/printables/report/taxreport.model");
 const log4js_1 = require("log4js");
-/** */
+/** Logger for tax report routes */
 const taxReportRoutesLogger = (0, log4js_1.getLogger)('routes/taxReportRoutes');
-/** */
+/** Express router for tax report routes */
 exports.taxReportRoutes = express_1.default.Router();
+/**
+ * Create a new tax report
+ * @name POST /create
+ * @function
+ * @memberof module:taxReportRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @param {callback} middleware - Express middleware
+ * @returns {Promise<void>} - Promise object representing the response
+ */
 exports.taxReportRoutes.post('/create', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables'), async (req, res) => {
     const taxReport = req.body.taxReport;
     const count = await taxreport_model_1.taxReportMain
@@ -42,6 +53,17 @@ exports.taxReportRoutes.post('/create', stock_universal_server_1.requireAuth, (0
     }
     return res.status(200).send({ success: Boolean(saved) });
 });
+/**
+ * Get a single tax report by UR ID
+ * @name GET /getone/:urId
+ * @function
+ * @memberof module:taxReportRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @param {callback} middleware - Express middleware
+ * @returns {Promise<void>} - Promise object representing the response
+ */
 exports.taxReportRoutes.get('/getone/:urId', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables'), async (req, res) => {
     const { urId } = req.params;
     const taxReport = await taxreport_model_1.taxReportLean
@@ -51,6 +73,17 @@ exports.taxReportRoutes.get('/getone/:urId', stock_universal_server_1.requireAut
         .populate({ path: 'payments', model: payment_model_1.paymentLean });
     return res.status(200).send(taxReport);
 });
+/**
+ * Get all tax reports with pagination
+ * @name GET /getall/:offset/:limit
+ * @function
+ * @memberof module:taxReportRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @param {callback} middleware - Express middleware
+ * @returns {Promise<void>} - Promise object representing the response
+ */
 exports.taxReportRoutes.get('/getall/:offset/:limit', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables'), async (req, res) => {
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const taxReports = await taxreport_model_1.taxReportLean
@@ -62,6 +95,17 @@ exports.taxReportRoutes.get('/getall/:offset/:limit', stock_universal_server_1.r
         .populate({ path: 'payments', model: payment_model_1.paymentLean });
     return res.status(200).send(taxReports);
 });
+/**
+ * Delete a single tax report by ID
+ * @name DELETE /deleteone/:id
+ * @function
+ * @memberof module:taxReportRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @param {callback} middleware - Express middleware
+ * @returns {Promise<void>} - Promise object representing the response
+ */
 exports.taxReportRoutes.delete('/deleteone/:id', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables'), async (req, res) => {
     const { id } = req.params;
     const isValid = (0, stock_universal_server_1.verifyObjectId)(id);
@@ -76,6 +120,17 @@ exports.taxReportRoutes.delete('/deleteone/:id', stock_universal_server_1.requir
         return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
+/**
+ * Search for tax reports with pagination
+ * @name POST /search/:limit/:offset
+ * @function
+ * @memberof module:taxReportRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @param {callback} middleware - Express middleware
+ * @returns {Promise<void>} - Promise object representing the response
+ */
 exports.taxReportRoutes.post('/search/:limit/:offset', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables'), async (req, res) => {
     const { searchterm, searchKey } = req.body;
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
@@ -88,6 +143,17 @@ exports.taxReportRoutes.post('/search/:limit/:offset', stock_universal_server_1.
         .populate({ path: 'payments', model: payment_model_1.paymentLean });
     return res.status(200).send(taxReports);
 });
+/**
+ * Delete multiple tax reports by ID
+ * @name PUT /deletemany
+ * @function
+ * @memberof module:taxReportRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @param {callback} middleware - Express middleware
+ * @returns {Promise<void>} - Promise object representing the response
+ */
 exports.taxReportRoutes.put('/deletemany', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables'), async (req, res) => {
     const { ids } = req.body;
     const isValid = (0, stock_universal_server_1.verifyObjectIds)(ids);

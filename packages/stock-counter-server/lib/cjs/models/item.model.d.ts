@@ -1,17 +1,13 @@
 /// <reference types="mongoose/types/document" />
 /// <reference types="mongoose/types/models" />
 import { Document, Model } from 'mongoose';
-/** model type for item by*/
-/** */
+/** Type representing an item document in the database */
 export type TitemModel = Document & any;
-/** main connection for items Operations*/
+/** Main connection for item operations */
 export declare let itemMain: Model<any>;
-/** lean connection for items Operations*/
+/** Lean connection for item operations */
 export declare let itemLean: Model<any>;
-/** primary selection object
- * for item
- */
-/** */
+/** Primary selection object for item */
 export declare const itemSelect: {
     urId: number;
     numbersInstock: number;
@@ -52,5 +48,10 @@ export declare const itemSelect: {
     withScreen: number;
     inventoryMeta: number;
 };
-/** */
+/**
+ * Creates the item model and connects to the database.
+ * @param dbUrl - The URL of the database to connect to
+ * @param main - Whether to create the main connection for item operations (default: true)
+ * @param lean - Whether to create the lean connection for item operations (default: true)
+ */
 export declare const createItemModel: (dbUrl: string, main?: boolean, lean?: boolean) => Promise<void>;

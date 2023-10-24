@@ -31,6 +31,12 @@ export let salesReportLean;
 /** */
 export const salesReportSelect = salesReportselect;
 /** */
+/**
+ * Creates a sales report model with the given database URL, main connection and lean connection.
+ * @param dbUrl The URL of the database to connect to.
+ * @param main Whether to create a main connection or not. Defaults to true.
+ * @param lean Whether to create a lean connection or not. Defaults to true.
+ */
 export const createSalesReportModel = async (dbUrl, main = true, lean = true) => {
     if (!isStockDbConnected) {
         await connectStockDatabase(dbUrl);

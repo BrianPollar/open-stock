@@ -3,10 +3,25 @@ import express from 'express';
 import { deliverycityLean, deliverycityMain } from '../models/deliverycity.model';
 import { getLogger } from 'log4js';
 import { offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
-/** */
+/**
+ * Logger for deliverycity routes
+ */
 const deliverycityRoutesLogger = getLogger('routes/deliverycityRoutes');
-/** */
+/**
+ * Express router for deliverycity routes
+ */
 export const deliverycityRoutes = express.Router();
+/**
+ * Route for creating a new delivery city
+ * @name POST /create
+ * @function
+ * @memberof module:deliverycityRoutes
+ * @inner
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Object} req.body.deliverycity - Delivery city object to create
+ * @returns {Object} - Returns a success object with a boolean indicating if the city was saved successfully
+ */
 deliverycityRoutes.post('/create', requireAuth, roleAuthorisation('items'), async (req, res) => {
     const deliverycity = req.body.deliverycity;
     const newDeliverycity = new deliverycityMain(deliverycity);
@@ -32,6 +47,17 @@ deliverycityRoutes.post('/create', requireAuth, roleAuthorisation('items'), asyn
     }
     return res.status(200).send({ success: Boolean(saved) });
 });
+/**
+ * Route for getting a delivery city by ID
+ * @name GET /getone/:id
+ * @function
+ * @memberof module:deliverycityRoutes
+ * @inner
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {string} req.params.id - ID of the delivery city to retrieve
+ * @returns {Object} - Returns the delivery city object
+ */
 deliverycityRoutes.get('/getone/:id', async (req, res) => {
     const { id } = req.params;
     const isValid = verifyObjectId(id);
@@ -43,6 +69,18 @@ deliverycityRoutes.get('/getone/:id', async (req, res) => {
         .lean();
     return res.status(200).send(deliverycity);
 });
+/**
+ * Route for getting all delivery cities with pagination
+ * @name GET /getall/:offset/:limit
+ * @function
+ * @memberof module:deliverycityRoutes
+ * @inner
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {string} req.params.offset - Offset for pagination
+ * @param {string} req.params.limit - Limit for pagination
+ * @returns {Object[]} - Returns an array of delivery city objects
+ */
 deliverycityRoutes.get('/getall/:offset/:limit', async (req, res) => {
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     const deliverycitys = await deliverycityLean
@@ -52,6 +90,17 @@ deliverycityRoutes.get('/getall/:offset/:limit', async (req, res) => {
         .lean();
     return res.status(200).send(deliverycitys);
 });
+/**
+ * Route for updating a delivery city by ID
+ * @name PUT /update
+ * @function
+ * @memberof module:deliverycityRoutes
+ * @inner
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Object} req.body - Updated delivery city object
+ * @returns {Object} - Returns a success object with a boolean indicating if the city was updated successfully
+ */
 deliverycityRoutes.put('/update', requireAuth, roleAuthorisation('items'), async (req, res) => {
     const updatedCity = req.body;
     const isValid = verifyObjectId(updatedCity._id);
@@ -90,6 +139,17 @@ deliverycityRoutes.put('/update', requireAuth, roleAuthorisation('items'), async
     }
     return res.status(200).send({ success: Boolean(updated) });
 });
+/**
+ * Route for deleting a delivery city by ID
+ * @name DELETE /deleteone/:id
+ * @function
+ * @memberof module:deliverycityRoutes
+ * @inner
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {string} req.params.id - ID of the delivery city to delete
+ * @returns {Object} - Returns a success object with a boolean indicating if the city was deleted successfully
+ */
 deliverycityRoutes.delete('/deleteone/:id', requireAuth, roleAuthorisation('items'), async (req, res) => {
     const { id } = req.params;
     const isValid = verifyObjectId(id);
@@ -104,6 +164,17 @@ deliverycityRoutes.delete('/deleteone/:id', requireAuth, roleAuthorisation('item
         return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
+/**
+ * Route for deleting multiple delivery cities by ID
+ * @name PUT /deletemany
+ * @function
+ * @memberof module:deliverycityRoutes
+ * @inner
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {string[]} req.body.ids - Array of IDs of the delivery cities to delete
+ * @returns {Object} - Returns a success object with a boolean indicating if the cities were deleted successfully
+ */
 deliverycityRoutes.put('/deletemany', requireAuth, roleAuthorisation('items'), async (req, res) => {
     const { ids } = req.body;
     const isValid = verifyObjectIds(ids);

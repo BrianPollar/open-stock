@@ -3,10 +3,19 @@ import express from 'express';
 import { expenseLean, expenseMain } from '../models/expense.model';
 import { getLogger } from 'log4js';
 import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
-/** */
+/** Logger for expense routes */
 const expenseRoutesLogger = getLogger('routes/expenseRoutes');
-/** */
+/** Router for expense routes */
 export const expenseRoutes = express.Router();
+/**
+ * Create a new expense
+ * @name POST /create
+ * @function
+ * @memberof module:expenseRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ */
 expenseRoutes.post('/create', requireAuth, roleAuthorisation('printables'), async (req, res) => {
     const expense = req.body;
     const count = await expenseMain
@@ -36,6 +45,15 @@ expenseRoutes.post('/create', requireAuth, roleAuthorisation('printables'), asyn
     }
     return res.status(200).send({ success: Boolean(saved) });
 });
+/**
+ * Update an existing expense
+ * @name PUT /update
+ * @function
+ * @memberof module:expenseRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ */
 expenseRoutes.put('/update', requireAuth, roleAuthorisation('printables'), async (req, res) => {
     const updatedExpense = req.body;
     const isValid = verifyObjectId(updatedExpense._id);
@@ -76,6 +94,15 @@ expenseRoutes.put('/update', requireAuth, roleAuthorisation('printables'), async
     }
     return res.status(200).send({ success: Boolean(updated) });
 });
+/**
+ * Get a single expense by ID
+ * @name GET /getone/:id
+ * @function
+ * @memberof module:expenseRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ */
 expenseRoutes.get('/getone/:id', requireAuth, roleAuthorisation('printables'), async (req, res) => {
     const { id } = req.params;
     const isValid = verifyObjectId(id);
@@ -87,6 +114,15 @@ expenseRoutes.get('/getone/:id', requireAuth, roleAuthorisation('printables'), a
         .lean();
     return res.status(200).send(expense);
 });
+/**
+ * Get all expenses with pagination
+ * @name GET /getall/:offset/:limit
+ * @function
+ * @memberof module:expenseRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ */
 expenseRoutes.get('/getall/:offset/:limit', requireAuth, roleAuthorisation('printables'), async (req, res) => {
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     const expenses = await expenseLean
@@ -96,6 +132,15 @@ expenseRoutes.get('/getall/:offset/:limit', requireAuth, roleAuthorisation('prin
         .lean();
     return res.status(200).send(expenses);
 });
+/**
+ * Delete a single expense by ID
+ * @name DELETE /deleteone/:id
+ * @function
+ * @memberof module:expenseRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ */
 expenseRoutes.delete('/deleteone/:id', requireAuth, async (req, res) => {
     const { id } = req.params;
     const isValid = verifyObjectId(id);
@@ -110,6 +155,15 @@ expenseRoutes.delete('/deleteone/:id', requireAuth, async (req, res) => {
         return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
+/**
+ * Search expenses by a search term and key
+ * @name POST /search/:limit/:offset
+ * @function
+ * @memberof module:expenseRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ */
 expenseRoutes.post('/search/:limit/:offset', requireAuth, roleAuthorisation('printables'), async (req, res) => {
     const { searchterm, searchKey } = req.body;
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
@@ -120,6 +174,15 @@ expenseRoutes.post('/search/:limit/:offset', requireAuth, roleAuthorisation('pri
         .lean();
     return res.status(200).send(expenses);
 });
+/**
+ * Delete multiple expenses by ID
+ * @name PUT /deletemany
+ * @function
+ * @memberof module:expenseRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ */
 expenseRoutes.put('/deletemany', requireAuth, roleAuthorisation('printables'), async (req, res) => {
     const { ids } = req.body;
     const isValid = verifyObjectIds(ids);

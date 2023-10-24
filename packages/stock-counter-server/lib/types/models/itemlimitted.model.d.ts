@@ -20,4 +20,10 @@ export declare const itemLimittedSelect: {
     name: number;
 };
 /** */
+/**
+ * Creates an ItemLimitted model with the specified database URL, main connection and lean connection.
+ * @param dbUrl The URL of the database to connect to.
+ * @param main Whether to create the model for the main connection.
+ * @param lean Whether to create the model for the lean connection.
+ */
 export declare const createItemLimittedModel: (dbUrl: string, main?: boolean, lean?: boolean) => Promise<void>;

@@ -1,6 +1,23 @@
 import { Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../../controllers/database.controller';
 const uniqueValidator = require('mongoose-unique-validator');
+/**
+ * Payment Related Schema
+ * @typedef {Object} PaymentRelatedSchema
+ * @property {string} pesaPalorderTrackingId - PesaPal order tracking ID
+ * @property {string} urId - Unique ID
+ * @property {Date} orderDate - Order date
+ * @property {Date} paymentDate - Payment date
+ * @property {Object} billingAddress - Billing address
+ * @property {Object} shippingAddress - Shipping address
+ * @property {string} currency - Currency
+ * @property {boolean} isBurgain - Is bargain
+ * @property {number} shipping - Shipping
+ * @property {boolean} manuallyAdded - Manually added
+ * @property {string} paymentMethod - Payment method
+ * @property {Date} createdAt - Timestamp of creation
+ * @property {Date} updatedAt - Timestamp of last update
+ */
 const paymentRelatedSchema = new Schema({
     pesaPalorderTrackingId: { type: String },
     urId: { type: String, unique: true, required: [true, 'cannot be empty.'] },

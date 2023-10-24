@@ -17,4 +17,10 @@ export declare const estimateSelect: {
     invoiceRelated: number;
 };
 /** */
+/**
+ * Creates an Estimate model with the given database URL, main flag, and lean flag.
+ * @param dbUrl - The URL of the database to connect to.
+ * @param main - A flag indicating whether to create the main connection model.
+ * @param lean - A flag indicating whether to create the lean connection model.
+ */
 export declare const createEstimateModel: (dbUrl: string, main?: boolean, lean?: boolean) => Promise<void>;

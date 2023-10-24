@@ -25,6 +25,12 @@ const orderselect = {
 /** */
 exports.orderSelect = orderselect;
 /** */
+/**
+ * Creates an order model with the given database URL, main flag, and lean flag.
+ * @param dbUrl The URL of the database to connect to.
+ * @param main Whether to create the main connection model.
+ * @param lean Whether to create the lean connection model.
+ */
 const createOrderModel = async (dbUrl, main = true, lean = true) => {
     if (!database_controller_1.isStockDbConnected) {
         await (0, database_controller_1.connectStockDatabase)(dbUrl);

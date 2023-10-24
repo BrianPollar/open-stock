@@ -1,33 +1,40 @@
-/* eslint-disable @typescript-eslint/no-misused-promises */
-import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { getLogger } from 'log4js';
+import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import { itemDecoyLean, itemDecoyMain } from '../models/itemdecoy.model';
 import { itemLean } from '../models/item.model';
-/** */
+/** Logger for item decoy routes */
 const itemDecoyRoutesLogger = getLogger('routes/itemDecoyRoutes');
-/** */
+/** Express router for item decoy routes */
 export const itemDecoyRoutes = express.Router();
+/**
+ * Create a new item decoy.
+ * @param {string} how - The type of decoy to create.
+ * @param {Object} itemdecoy - The decoy object to create.
+ * @returns {Promise<Isuccess>} A promise that resolves to a success object.
+ */
 itemDecoyRoutes.post('/create/:how', requireAuth, roleAuthorisation('items'), async (req, res) => {
     const { how } = req.params;
     const { itemdecoy } = req.body;
     console.log('ok decoy is', itemdecoy);
+    // Get the count of existing decoys and generate a new urId
     const count = await itemDecoyMain
         // eslint-disable-next-line @typescript-eslint/naming-convention
         .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     const urId = makeUrId(Number(count[0]?.urId || '0'));
     let decoy;
     if (how === 'automatic') {
+        // If creating an automatic decoy, verify the item ID and find the item
         const isValid = verifyObjectId(itemdecoy.items[0]);
         if (!isValid) {
             return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
         }
         const found = await itemLean.findById(itemdecoy.items[0])
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             .lean();
         if (!found) {
             return res.status(404).send({ success: false });
         }
+        // Find the items with the minimum and maximum selling prices
         const minItem = await itemLean.find({})
             .lte('costMeta.sellingPrice', Number(found.costMeta.sellingPrice))
             .sort({ createdAt: -1 })
@@ -36,6 +43,7 @@ itemDecoyRoutes.post('/create/:how', requireAuth, roleAuthorisation('items'), as
             .gte('costMeta.sellingPrice', Number(found.costMeta.sellingPrice))
             .sort({ createdAt: 1 })
             .limit(1);
+        // Create the decoy object
         decoy = {
             type: how,
             urId,
@@ -47,12 +55,14 @@ itemDecoyRoutes.post('/create/:how', requireAuth, roleAuthorisation('items'), as
         };
     }
     else {
+        // If creating a manual decoy, simply use the provided item ID
         decoy = {
             urId,
             type: how,
             items: itemdecoy.items[0]
         };
     }
+    // Save the new decoy to the database
     const newDecoy = new itemDecoyMain(decoy);
     let errResponse;
     const saved = await newDecoy.save()
@@ -76,6 +86,12 @@ itemDecoyRoutes.post('/create/:how', requireAuth, roleAuthorisation('items'), as
     }
     return res.status(200).send({ success: Boolean(saved) });
 });
+/**
+ * Get a list of all item decoys.
+ * @param {string} offset - The offset to start at.
+ * @param {string} limit - The maximum number of items to return.
+ * @returns {Promise<Object[]>} A promise that resolves to an array of item decoys.
+ */
 itemDecoyRoutes.get('/getall/:offset/:limit', async (req, res) => {
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     const items = await itemDecoyLean
@@ -86,6 +102,11 @@ itemDecoyRoutes.get('/getall/:offset/:limit', async (req, res) => {
         .lean();
     return res.status(200).send(items);
 });
+/**
+ * Get a single item decoy by ID.
+ * @param {string} id - The ID of the item decoy to retrieve.
+ * @returns {Promise<Object>} A promise that resolves to the requested item decoy.
+ */
 itemDecoyRoutes.get('/getone/:id', async (req, res) => {
     const { id } = req.params;
     const isValid = verifyObjectId(id);
@@ -98,6 +119,11 @@ itemDecoyRoutes.get('/getone/:id', async (req, res) => {
         .lean();
     return res.status(200).send(items);
 });
+/**
+ * Delete a single item decoy by ID.
+ * @param {string} id - The ID of the item decoy to delete.
+ * @returns {Promise<Object>} A promise that resolves to a success object.
+ */
 itemDecoyRoutes.delete('/deleteone/:id', requireAuth, roleAuthorisation('items'), async (req, res) => {
     const { id } = req.params;
     const isValid = verifyObjectId(id);
@@ -112,6 +138,11 @@ itemDecoyRoutes.delete('/deleteone/:id', requireAuth, roleAuthorisation('items')
         return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
+/**
+ * Delete multiple item decoys by ID.
+ * @param {string[]} ids - An array of IDs of the item decoys to delete.
+ * @returns {Promise<Object>} A promise that resolves to a success object.
+ */
 itemDecoyRoutes.put('/deletemany', requireAuth, roleAuthorisation('items'), async (req, res) => {
     const { ids } = req.body;
     const isValid = verifyObjectIds(ids);

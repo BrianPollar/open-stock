@@ -7,9 +7,13 @@ import { getLogger } from 'log4js';
 import { createNotifications, smsHandler } from '@open-stock/stock-notif-server';
 import { user } from '@open-stock/stock-auth-server';
 import { receiptMain } from '../../models/printables/receipt.model';
-/** */
+/** Logger for PaymentRelated routes */
 const paymentRelatedLogger = getLogger('routes/PaymentRelated');
-/** */
+/**
+ * Updates a payment related object in the database.
+ * @param paymentRelated - The payment related object to update.
+ * @returns A success object with an optional ID field.
+ */
 export const updatePaymentRelated = async (paymentRelated) => {
     console.log('okay here 111111', paymentRelated);
     const isValid = verifyObjectId(paymentRelated.paymentRelated);
@@ -60,7 +64,15 @@ export const updatePaymentRelated = async (paymentRelated) => {
         return { success: true, status: 200, id: saved._id };
     }
 };
-/** */
+/**
+ * Creates a payment related object in the database and creates an invoice related object if necessary.
+ * @param paymentRelated - The payment related object to create.
+ * @param invoiceRelated - The invoice related object to create.
+ * @param type - The type of object being created (either 'payment' or 'order').
+ * @param extraNotifDesc - A description to include in the notification.
+ * @param notifRedirectUrl - The URL to redirect to when the notification is clicked.
+ * @returns A success object with an optional ID field.
+ */
 export const relegatePaymentRelatedCreation = async (paymentRelated, invoiceRelated, type, // say payment or order
 extraNotifDesc, notifRedirectUrl) => {
     console.log('FUCK HERE 11111111', paymentRelated);

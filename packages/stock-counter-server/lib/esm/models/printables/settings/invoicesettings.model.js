@@ -23,6 +23,13 @@ export let invoiceSettingLean;
 /** */
 export const invoiceSettingSelect = invoiceSettingselect;
 /** */
+/**
+ * Creates an instance of the InvoiceSetting model.
+ * @param {string} dbUrl - The URL of the database to connect to.
+ * @param {boolean} [main=true] - Whether to create the main connection model.
+ * @param {boolean} [lean=true] - Whether to create the lean connection model.
+ * @returns {Promise<void>} - A promise that resolves when the model is created.
+ */
 export const createInvoiceSettingModel = async (dbUrl, main = true, lean = true) => {
     if (!isStockDbConnected) {
         await connectStockDatabase(dbUrl);

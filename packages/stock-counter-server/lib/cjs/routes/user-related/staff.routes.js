@@ -17,6 +17,11 @@ exports.staffRoutes.post('/create', stock_universal_server_1.requireAuth, (0, st
     const staff = req.body.staff;
     const newStaff = new staff_model_1.staffMain(staff);
     let errResponse;
+    /**
+     * Saves a new staff member to the database.
+     * @param {Staff} newStaff - The new staff member to be saved.
+     * @returns {Promise<Staff | ErrorResponse>} - A promise that resolves with the saved staff member or an error response.
+     */
     const saved = await newStaff.save()
         .catch(err => {
         staffRoutesLogger.error('create - err: ', err);

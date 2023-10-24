@@ -1,17 +1,29 @@
 "use strict";
+/* eslint-disable @typescript-eslint/no-misused-promises */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.faqRoutes = void 0;
 const tslib_1 = require("tslib");
-/* eslint-disable @typescript-eslint/no-misused-promises */
 const express_1 = tslib_1.__importDefault(require("express"));
 const faqanswer_model_1 = require("../models/faqanswer.model");
 const faq_model_1 = require("../models/faq.model");
 const log4js_1 = require("log4js");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
-/** */
+/** Logger for faqRoutes */
 const faqRoutesLogger = (0, log4js_1.getLogger)('routes/faqRoutes');
-/** */
+/** Express router for faqRoutes */
 exports.faqRoutes = express_1.default.Router();
+/**
+ * Create a new FAQ
+ * @name POST /create
+ * @function
+ * @memberof module:routes/faqRoutes
+ * @inner
+ * @param {Object} req - Express request object
+ * @param {Object} req.body - Request body
+ * @param {Object} req.body.faq - FAQ object to create
+ * @param {Object} res - Express response object
+ * @returns {Object} Success status and saved FAQ object
+ */
 exports.faqRoutes.post('/create', async (req, res) => {
     const faq = req.body.faq;
     const count = await faq_model_1.faqMain
@@ -41,6 +53,17 @@ exports.faqRoutes.post('/create', async (req, res) => {
     }
     return res.status(200).send({ success: Boolean(saved) });
 });
+/**
+ * Get a single FAQ by ID
+ * @name GET /getone/:id
+ * @function
+ * @memberof module:routes/faqRoutes
+ * @inner
+ * @param {Object} req - Express request object
+ * @param {string} req.params.id - ID of the FAQ to retrieve
+ * @param {Object} res - Express response object
+ * @returns {Object} The requested FAQ object
+ */
 exports.faqRoutes.get('/getone/:id', async (req, res) => {
     const { id } = req.params;
     const isValid = (0, stock_universal_server_1.verifyObjectId)(id);
@@ -52,6 +75,18 @@ exports.faqRoutes.get('/getone/:id', async (req, res) => {
         .lean();
     return res.status(200).send(faq);
 });
+/**
+ * Get all FAQs with pagination
+ * @name GET /getall/:offset/:limit
+ * @function
+ * @memberof module:routes/faqRoutes
+ * @inner
+ * @param {Object} req - Express request object
+ * @param {string} req.params.offset - Offset for pagination
+ * @param {string} req.params.limit - Limit for pagination
+ * @param {Object} res - Express response object
+ * @returns {Object[]} Array of FAQ objects
+ */
 exports.faqRoutes.get('/getall/:offset/:limit', async (req, res) => {
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const faqs = await faq_model_1.faqLean
@@ -61,6 +96,17 @@ exports.faqRoutes.get('/getall/:offset/:limit', async (req, res) => {
         .lean();
     return res.status(200).send(faqs);
 });
+/**
+ * Delete a single FAQ by ID
+ * @name DELETE /deleteone/:id
+ * @function
+ * @memberof module:routes/faqRoutes
+ * @inner
+ * @param {Object} req - Express request object
+ * @param {string} req.params.id - ID of the FAQ to delete
+ * @param {Object} res - Express response object
+ * @returns {Object} Success status and deleted FAQ object
+ */
 exports.faqRoutes.delete('/deleteone/:id', async (req, res) => {
     const { id } = req.params;
     const isValid = (0, stock_universal_server_1.verifyObjectId)(id);
@@ -75,6 +121,18 @@ exports.faqRoutes.delete('/deleteone/:id', async (req, res) => {
         return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
+/**
+ * Create a new FAQ answer
+ * @name POST /createans
+ * @function
+ * @memberof module:routes/faqRoutes
+ * @inner
+ * @param {Object} req - Express request object
+ * @param {Object} req.body - Request body
+ * @param {Object} req.body.faq - FAQ answer object to create
+ * @param {Object} res - Express response object
+ * @returns {Object} Success status and saved FAQ answer object
+ */
 exports.faqRoutes.post('/createans', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('faqs'), async (req, res) => {
     const faq = req.body.faq;
     const count = await faqanswer_model_1.faqanswerMain.countDocuments();
@@ -102,12 +160,34 @@ exports.faqRoutes.post('/createans', stock_universal_server_1.requireAuth, (0, s
     }
     return res.status(200).send({ success: Boolean(saved) });
 });
+/**
+ * Get all FAQ answers for a given FAQ ID
+ * @name GET /getallans/:faqId
+ * @function
+ * @memberof module:routes/faqRoutes
+ * @inner
+ * @param {Object} req - Express request object
+ * @param {string} req.params.faqId - ID of the FAQ to retrieve answers for
+ * @param {Object} res - Express response object
+ * @returns {Object[]} Array of FAQ answer objects
+ */
 exports.faqRoutes.get('/getallans/:faqId', async (req, res) => {
     const faqsAns = await faqanswer_model_1.faqanswerLean
         .find({ faq: req.params.faqId })
         .lean();
     return res.status(200).send(faqsAns);
 });
+/**
+ * Delete a single FAQ answer by ID
+ * @name DELETE /deleteoneans/:id
+ * @function
+ * @memberof module:routes/faqRoutes
+ * @inner
+ * @param {Object} req - Express request object
+ * @param {string} req.params.id - ID of the FAQ answer to delete
+ * @param {Object} res - Express response object
+ * @returns {Object} Success status and deleted FAQ answer object
+ */
 exports.faqRoutes.delete('/deleteoneans/:id', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('faqs'), async (req, res) => {
     const { id } = req.params;
     const isValid = (0, stock_universal_server_1.verifyObjectId)(id);

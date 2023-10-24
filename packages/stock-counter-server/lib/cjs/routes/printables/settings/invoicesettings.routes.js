@@ -2,15 +2,23 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.invoiceSettingRoutes = void 0;
 const tslib_1 = require("tslib");
-/* eslint-disable @typescript-eslint/no-misused-promises */
 const express_1 = tslib_1.__importDefault(require("express"));
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const invoicesettings_model_1 = require("../../../models/printables/settings/invoicesettings.model");
 const log4js_1 = require("log4js");
-/** */
+/** Logger for invoice setting routes */
 const invoiceSettingRoutesLogger = (0, log4js_1.getLogger)('routes/invoiceSettingRoutes');
-/** */
+/** Express router for invoice setting routes */
 exports.invoiceSettingRoutes = express_1.default.Router();
+/**
+ * Route for creating a new invoice setting
+ * @name POST /create
+ * @function
+ * @memberof module:routes/invoiceSettingRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ */
 exports.invoiceSettingRoutes.post('/create', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables'), async (req, res) => {
     const invoiceSetting = req.body.invoicesettings;
     const newJobCard = new invoicesettings_model_1.invoiceSettingMain(invoiceSetting);
@@ -36,6 +44,15 @@ exports.invoiceSettingRoutes.post('/create', stock_universal_server_1.requireAut
     }
     return res.status(200).send({ success: Boolean(saved) });
 });
+/**
+ * Route for creating a new invoice setting with image
+ * @name POST /createimg
+ * @function
+ * @memberof module:routes/invoiceSettingRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ */
 exports.invoiceSettingRoutes.post('/createimg', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables'), stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, async (req, res) => {
     const invoiceSetting = req.body.invoicesettings;
     if (req.body.newFiles) {
@@ -76,6 +93,15 @@ exports.invoiceSettingRoutes.post('/createimg', stock_universal_server_1.require
     }
     return res.status(200).send({ success: Boolean(saved) });
 });
+/**
+ * Route for updating an existing invoice setting
+ * @name PUT /update
+ * @function
+ * @memberof module:routes/invoiceSettingRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ */
 exports.invoiceSettingRoutes.put('/update', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables'), async (req, res) => {
     const updatedInvoiceSetting = req.body.invoicesettings;
     // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -116,6 +142,15 @@ exports.invoiceSettingRoutes.put('/update', stock_universal_server_1.requireAuth
     }
     return res.status(200).send({ success: Boolean(updated) });
 });
+/**
+ * Route for updating an existing invoice setting with image
+ * @name PUT /updateimg
+ * @function
+ * @memberof module:routes/invoiceSettingRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ */
 exports.invoiceSettingRoutes.put('/updateimg', stock_universal_server_1.requireAuth, stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.deleteFiles, async (req, res) => {
     const updatedInvoiceSetting = req.body.invoicesettings;
     // eslint-disable-next-line @typescript-eslint/naming-convention

@@ -1,6 +1,75 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = require("tslib");
+/**
+ * This file exports all the necessary modules, models, and routes for the stock-counter-server.
+ *
+ * @remarks
+ * This file exports the following:
+ * - Controllers:
+ *   - CookiesService
+ *   - PaymentController
+ * - Models:
+ *   - Printables:
+ *     - PaymentRelatedModel
+ *     - InvoicerelatedModel
+ *     - ExpenesreportModel
+ *     - InvoicereportModel
+ *     - ProfitandlossreportModel
+ *     - SalesreportModel
+ *     - TaxreportModel
+ *     - InvoicesettingsModel
+ *     - DeliverynoteModel
+ *     - EstimateModel
+ *     - InvoiceModel
+ *     - JobcardModel
+ *     - PickuplocationModel
+ *     - ReceiptModel
+ *   - User-related:
+ *     - CustomerModel
+ *     - StaffModel
+ *   - DeliverycityModel
+ *   - ExpenseModel
+ *   - FaqModel
+ *   - FaqanswerModel
+ *   - OrderModel
+ *   - PaymentModel
+ *   - ItemModel
+ *   - ItemdecoyModel
+ *   - ItemlimittedModel
+ *   - ItemofferModel
+ *   - PromocodeModel
+ *   - ReviewModel
+ * - Routes:
+ *   - Paymentrelated
+ *   - Invoicerelated
+ *   - Expensereport
+ *   - Invoicereport
+ *   - Profitandlossreport
+ *   - Salesreport
+ *   - Taxreport
+ *   - Invoicesettings
+ *   - Deliverynote
+ *   - Estimate
+ *   - Invoice
+ *   - Pickuplocation
+ *   - Receipt
+ *   - Customer
+ *   - Staff
+ *   - Cookies
+ *   - Deliverycity
+ *   - Expense
+ *   - Faq
+ *   - Order
+ *   - Payment
+ *   - Item
+ *   - Itemdecoy
+ *   - Itemlimitted
+ *   - Itemoffer
+ *   - Promo
+ *   - Review
+ * - Stock-counter-server
+ */
 tslib_1.__exportStar(require("./controllers/cookies.service"), exports);
 tslib_1.__exportStar(require("./controllers/payment.controller"), exports);
 tslib_1.__exportStar(require("./models/printables/paymentrelated/paymentrelated.model"), exports);

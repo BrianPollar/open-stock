@@ -1,6 +1,17 @@
 import { Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
 const uniqueValidator = require('mongoose-unique-validator');
+/**
+ * Defines the schema for the promocode model.
+ * @param {string} urId - The unique identifier for the promocode.
+ * @param {string} code - The unique code for the promocode.
+ * @param {string[]} items - The items associated with the promocode.
+ * @param {number} amount - The amount of the promocode.
+ * @param {string} roomId - The room identifier for the promocode.
+ * @param {string} state - The state of the promocode.
+ * @param {string} expireAt - The expiration date of the promocode.
+ * @param {boolean} timestamps - The timestamps for the promocode.
+ */
 const promocodeSchema = new Schema({
     urId: { type: String, unique: true },
     code: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },

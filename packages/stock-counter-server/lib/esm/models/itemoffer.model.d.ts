@@ -30,4 +30,11 @@ export declare const itemOfferSelect: {
     ammount: number;
 };
 /** */
+/**
+ * Creates an instance of the ItemOffer model with the specified database URL.
+ * @param {string} dbUrl - The URL of the database to connect to.
+ * @param {boolean} [main=true] - Whether to create the main connection model.
+ * @param {boolean} [lean=true] - Whether to create the lean connection model.
+ * @returns {Promise<void>} - A promise that resolves when the models have been created.
+ */
 export declare const createItemOfferModel: (dbUrl: string, main?: boolean, lean?: boolean) => Promise<void>;

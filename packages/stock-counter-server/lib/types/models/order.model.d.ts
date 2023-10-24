@@ -23,4 +23,10 @@ export declare const orderSelect: {
     deliveryDate: number;
 };
 /** */
+/**
+ * Creates an order model with the given database URL, main flag, and lean flag.
+ * @param dbUrl The URL of the database to connect to.
+ * @param main Whether to create the main connection model.
+ * @param lean Whether to create the lean connection model.
+ */
 export declare const createOrderModel: (dbUrl: string, main?: boolean, lean?: boolean) => Promise<void>;

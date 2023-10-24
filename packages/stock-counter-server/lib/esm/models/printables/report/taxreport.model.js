@@ -31,6 +31,12 @@ export let taxReportLean;
 /** */
 export const taxReportSelect = taxReportselect;
 /** */
+/**
+ * Creates a tax report model with the given database URL, main connection and lean connection.
+ * @param dbUrl The URL of the database to connect to.
+ * @param main Whether to create the main connection or not. Defaults to true.
+ * @param lean Whether to create the lean connection or not. Defaults to true.
+ */
 export const createTaxReportModel = async (dbUrl, main = true, lean = true) => {
     if (!isStockDbConnected) {
         await connectStockDatabase(dbUrl);

@@ -9,6 +9,13 @@ const staff_model_1 = require("../../models/user-related/staff.model");
 const log4js_1 = require("log4js");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const stock_auth_server_1 = require("@open-stock/stock-auth-server");
+/**
+ * Removes one user from the database.
+ * @param req - Express Request object.
+ * @param res - Express Response object.
+ * @param next - Express NextFunction object.
+ * @returns Promise<void>
+ */
 const removeOneUser = async (req, res, next) => {
     const { credential } = req.body;
     const isValid = (0, stock_universal_server_1.verifyObjectId)(credential.userId);
@@ -27,6 +34,13 @@ const removeOneUser = async (req, res, next) => {
     next();
 };
 exports.removeOneUser = removeOneUser;
+/**
+ * Removes multiple users from the database.
+ * @param req - Express Request object.
+ * @param res - Express Response object.
+ * @param next - Express NextFunction object.
+ * @returns Promise<void>
+ */
 const removeManyUsers = async (req, res, next) => {
     const { credentials } = req.body;
     const isValid = (0, stock_universal_server_1.verifyObjectIds)(credentials.map(val => val.userId));
@@ -59,6 +73,11 @@ const removeManyUsers = async (req, res, next) => {
     next();
 };
 exports.removeManyUsers = removeManyUsers;
+/**
+ * Checks if a user can be removed from the database.
+ * @param id - The ID of the user to check.
+ * @returns Promise<IuserLinkedInMoreModels>
+ */
 const canRemoveOneUser = async (id) => {
     const hasInvRelated = await invoicerelated_model_1.invoiceRelatedLean.findOne({ billingUserId: id });
     if (hasInvRelated) {
@@ -87,9 +106,9 @@ const canRemoveOneUser = async (id) => {
     };
 };
 exports.canRemoveOneUser = canRemoveOneUser;
-/** */
+/** Logger for local user routes. */
 const localUserRoutesLogger = (0, log4js_1.getLogger)('routes/customerRoutes');
-/** */
+/** Express Router for local user routes. */
 exports.localUserRoutes = express_1.default.Router();
 exports.localUserRoutes.put('/deleteone', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('users'), exports.removeOneUser, stock_universal_server_1.deleteFiles, (req, res) => {
     return res.status(200).send({ success: true });

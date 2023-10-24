@@ -8,6 +8,12 @@ export let mainConnectionLean;
 /** */
 export let isStockDbConnected = false;
 /** */
+/**
+ * Connects to the stock database using the provided database configuration URL.
+ * If the database is already connected, this function does nothing.
+ *
+ * @param databaseConfigUrl The URL of the database configuration.
+ */
 export const connectStockDatabase = async (databaseConfigUrl) => {
     if (isStockDbConnected) {
         return;

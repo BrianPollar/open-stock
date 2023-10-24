@@ -1,9 +1,21 @@
 import { IinvoiceRelated, IpaymentRelated, Ireceipt, Isuccess, Iuser, TpaymentRelatedType } from '@open-stock/stock-universal';
-/** */
+/**
+ * Updates a payment related object in the database.
+ * @param paymentRelated - The payment related object to update.
+ * @returns A success object with an optional ID field.
+ */
 export declare const updatePaymentRelated: (paymentRelated: Required<IpaymentRelated>) => Promise<Isuccess & {
     id?: string;
 }>;
-/** */
+/**
+ * Creates a payment related object in the database and creates an invoice related object if necessary.
+ * @param paymentRelated - The payment related object to create.
+ * @param invoiceRelated - The invoice related object to create.
+ * @param type - The type of object being created (either 'payment' or 'order').
+ * @param extraNotifDesc - A description to include in the notification.
+ * @param notifRedirectUrl - The URL to redirect to when the notification is clicked.
+ * @returns A success object with an optional ID field.
+ */
 export declare const relegatePaymentRelatedCreation: (paymentRelated: Required<IpaymentRelated>, invoiceRelated: Required<IinvoiceRelated>, type: 'payment' | 'order', extraNotifDesc: string, notifRedirectUrl: string) => Promise<Isuccess & {
     id?: string;
 }>;

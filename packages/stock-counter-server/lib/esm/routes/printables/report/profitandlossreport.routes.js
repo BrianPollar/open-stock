@@ -1,14 +1,18 @@
-/* eslint-disable @typescript-eslint/no-misused-promises */
 import express from 'express';
 import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import { expenseLean } from '../../../models/expense.model';
 import { paymentLean } from '../../../models/payment.model';
 import { profitandlossReportLean, profitandlossReportMain } from '../../../models/printables/report/profitandlossreport.model';
 import { getLogger } from 'log4js';
-/** */
+/** Logger for the profit and loss report routes */
 const profitAndLossReportRoutesLogger = getLogger('routes/profitAndLossReportRoutes');
-/** */
+/** Router for the profit and loss report routes */
 export const profitAndLossReportRoutes = express.Router();
+/**
+ * Create a new profit and loss report.
+ * @param req - The request object.
+ * @param res - The response object.
+ */
 profitAndLossReportRoutes.post('/create', requireAuth, roleAuthorisation('printables'), async (req, res) => {
     const profitAndLossReport = req.body.profitAndLossReport;
     const count = await profitandlossReportMain
@@ -38,6 +42,11 @@ profitAndLossReportRoutes.post('/create', requireAuth, roleAuthorisation('printa
     }
     return res.status(200).send({ success: Boolean(saved) });
 });
+/**
+ * Get a single profit and loss report by URID.
+ * @param req - The request object.
+ * @param res - The response object.
+ */
 profitAndLossReportRoutes.get('/getone/:urId', requireAuth, roleAuthorisation('printables'), async (req, res) => {
     const { urId } = req.params;
     const profitAndLossReport = await profitandlossReportLean
@@ -47,6 +56,11 @@ profitAndLossReportRoutes.get('/getone/:urId', requireAuth, roleAuthorisation('p
         .populate({ path: 'payments', model: paymentLean });
     return res.status(200).send(profitAndLossReport);
 });
+/**
+ * Get all profit and loss reports with pagination.
+ * @param req - The request object.
+ * @param res - The response object.
+ */
 profitAndLossReportRoutes.get('/getall/:offset/:limit', requireAuth, roleAuthorisation('printables'), async (req, res) => {
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     const profitAndLossReports = await profitandlossReportLean
@@ -58,6 +72,11 @@ profitAndLossReportRoutes.get('/getall/:offset/:limit', requireAuth, roleAuthori
         .populate({ path: 'payments', model: paymentLean });
     return res.status(200).send(profitAndLossReports);
 });
+/**
+ * Delete a single profit and loss report by ID.
+ * @param req - The request object.
+ * @param res - The response object.
+ */
 profitAndLossReportRoutes.delete('/deleteone/:id', requireAuth, roleAuthorisation('printables'), async (req, res) => {
     const { id } = req.params;
     const isValid = verifyObjectId(id);
@@ -72,6 +91,11 @@ profitAndLossReportRoutes.delete('/deleteone/:id', requireAuth, roleAuthorisatio
         return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
+/**
+ * Search for profit and loss reports by a search term and key with pagination.
+ * @param req - The request object.
+ * @param res - The response object.
+ */
 profitAndLossReportRoutes.post('/search/:limit/:offset', requireAuth, roleAuthorisation('printables'), async (req, res) => {
     const { searchterm, searchKey } = req.body;
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
@@ -84,6 +108,11 @@ profitAndLossReportRoutes.post('/search/:limit/:offset', requireAuth, roleAuthor
         .populate({ path: 'payments', model: paymentLean });
     return res.status(200).send(profitAndLossReports);
 });
+/**
+ * Delete multiple profit and loss reports by ID.
+ * @param req - The request object.
+ * @param res - The response object.
+ */
 profitAndLossReportRoutes.put('/deletemany', requireAuth, roleAuthorisation('printables'), async (req, res) => {
     const { ids } = req.body;
     const isValid = verifyObjectIds(ids);

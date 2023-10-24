@@ -1,30 +1,47 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.relegatePesaPalNotifications = exports.relegatePesapalPayment = exports.paymentMethodDelegator = exports.payOnDelivery = void 0;
 /* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable @typescript-eslint/naming-convention */
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.relegatePesaPalNotifications = exports.relegatePesapalPayment = exports.paymentMethodDelegator = exports.payOnDelivery = void 0;
 const log4js_1 = require("log4js");
 const order_model_1 = require("../models/order.model");
 const payment_model_1 = require("../models/payment.model");
-// import Collections from 'mtn-momo/lib/collections';
-// import got from 'got';
-// const got;
-// const got: any = null;
 const promocode_model_1 = require("../models/promocode.model");
 const paymentrelated_1 = require("../routes/paymentrelated/paymentrelated");
 const invoice_routes_1 = require("../routes/printables/invoice.routes");
 const stock_notif_server_1 = require("@open-stock/stock-notif-server");
 const paymentrelated_model_1 = require("../models/printables/paymentrelated/paymentrelated.model");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
-/** */
+/** Logger for the payment controller */
 const paymentControllerLogger = (0, log4js_1.getLogger)('paymentController');
-/** */
+/**
+ * Allows payment on delivery
+ * @param paymentRelated - The payment related information
+ * @param invoiceRelated - The invoice related information
+ * @param order - The order information
+ * @param payment - The payment information
+ * @param userId - The user ID
+ * @param notifRedirectUrl - The notification redirect URL
+ * @param locaLMailHandler - The email handler
+ * @returns A promise that resolves to an Isuccess object
+ */
 const payOnDelivery = async (paymentRelated, invoiceRelated, order, payment, userId, notifRedirectUrl, locaLMailHandler) => {
     order.status = 'pending';
     return appendAll(paymentRelated, invoiceRelated, order, payment, userId, notifRedirectUrl, locaLMailHandler, false);
 };
 exports.payOnDelivery = payOnDelivery;
-/** */
+/**
+ * Appends all payment related information
+ * @param paymentRelated - The payment related information
+ * @param invoiceRelated - The invoice related information
+ * @param order - The order information
+ * @param payment - The payment information
+ * @param userId - The user ID
+ * @param notifRedirectUrl - The notification redirect URL
+ * @param locaLMailHandler - The email handler
+ * @param paid - Whether the payment has been made
+ * @returns A promise that resolves to an Isuccess object with additional properties
+ */
 const appendAll = async (paymentRelated, invoiceRelated, order, payment, userId, notifRedirectUrl, locaLMailHandler, paid = true) => {
     paymentControllerLogger.debug('appendAll - userId:', userId);
     const saved = await addOrder(paymentRelated, invoiceRelated, order, userId, notifRedirectUrl, locaLMailHandler);
@@ -40,7 +57,16 @@ const appendAll = async (paymentRelated, invoiceRelated, order, payment, userId,
         return { success: saved.success, status: saved.status, err: saved.err };
     }
 };
-/** */
+/**
+ * Adds an order to the database
+ * @param paymentRelated - The payment related information
+ * @param invoiceRelated - The invoice related information
+ * @param order - The order information
+ * @param userId - The user ID
+ * @param notifRedirectUrl - The notification redirect URL
+ * @param locaLMailHandler - The email handler
+ * @returns A promise that resolves to an Isuccess object with additional properties
+ */
 const addOrder = async (paymentRelated, invoiceRelated, order, userId, notifRedirectUrl, locaLMailHandler) => {
     paymentControllerLogger.info('addOrder');
     const extraNotifDesc = 'New Order';
@@ -110,7 +136,12 @@ const addOrder = async (paymentRelated, invoiceRelated, order, userId, notifRedi
     // eslint-disable-next-line @typescript-eslint/naming-convention
     return { success: true, status: 200, _id: withId._id, paymentRelated: (order).paymentRelated, invoiceRelated: invoiceRelatedId };
 };
-/** */
+/**
+ * Adds a payment to the database
+ * @param payment - The payment information
+ * @param userId - The user ID
+ * @param paid - Whether the payment has been made
+ */
 const addPayment = async (payment, userId, paid = false) => {
     paymentControllerLogger.info('addPayment');
     let errResponse;

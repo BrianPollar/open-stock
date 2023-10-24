@@ -1,21 +1,33 @@
 "use strict";
+/* eslint-disable @typescript-eslint/no-misused-promises */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deliveryNoteRoutes = void 0;
 const tslib_1 = require("tslib");
-/* eslint-disable @typescript-eslint/no-misused-promises */
 const express_1 = tslib_1.__importDefault(require("express"));
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const deliverynote_model_1 = require("../../models/printables/deliverynote.model");
-// import { paymentInstallsLean } from '../../models/printables/paymentrelated/paymentsinstalls.model';
 const invoicerelated_model_1 = require("../../models/printables/related/invoicerelated.model");
 const invoicerelated_1 = require("./related/invoicerelated");
 const log4js_1 = require("log4js");
 const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const receipt_model_1 = require("../../models/printables/receipt.model");
-/** */
+/** Logger for delivery note routes */
 const deliveryNoteRoutesLogger = (0, log4js_1.getLogger)('routes/deliveryNoteRoutes');
-/** */
+/** Express router for delivery note routes */
 exports.deliveryNoteRoutes = express_1.default.Router();
+/**
+ * Route to create a delivery note
+ * @name POST /create
+ * @function
+ * @memberof module:deliveryNoteRoutes
+ * @inner
+ * @param {Object} req - Express request object
+ * @param {Object} req.body - Request body containing delivery note and invoice related data
+ * @param {Object} req.body.deliveryNote - Delivery note data
+ * @param {Object} req.body.invoiceRelated - Invoice related data
+ * @param {Object} res - Express response object
+ * @returns {Object} Success status and saved delivery note data
+ */
 exports.deliveryNoteRoutes.post('/create', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables'), async (req, res) => {
     const { deliveryNote, invoiceRelated } = req.body;
     const count = await deliverynote_model_1.deliveryNoteMain
@@ -54,6 +66,17 @@ exports.deliveryNoteRoutes.post('/create', stock_universal_server_1.requireAuth,
     await (0, invoicerelated_1.updateInvoiceRelated)(invoiceRelated);
     return res.status(200).send({ success: Boolean(saved) });
 });
+/**
+ * Route to get a delivery note by UR ID
+ * @name GET /getone/:urId
+ * @function
+ * @memberof module:deliveryNoteRoutes
+ * @inner
+ * @param {Object} req - Express request object
+ * @param {string} req.params.urId - UR ID of the delivery note to retrieve
+ * @param {Object} res - Express response object
+ * @returns {Object} Delivery note data with related invoice data
+ */
 exports.deliveryNoteRoutes.get('/getone/:urId', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables'), async (req, res) => {
     const { urId } = req.params;
     const deliveryNote = await deliverynote_model_1.deliveryNoteLean
@@ -79,6 +102,18 @@ exports.deliveryNoteRoutes.get('/getone/:urId', stock_universal_server_1.require
     }
     return res.status(200).send(returned);
 });
+/**
+ * Route to get all delivery notes with related invoice data
+ * @name GET /getall/:offset/:limit
+ * @function
+ * @memberof module:deliveryNoteRoutes
+ * @inner
+ * @param {Object} req - Express request object
+ * @param {string} req.params.offset - Offset for pagination
+ * @param {string} req.params.limit - Limit for pagination
+ * @param {Object} res - Express response object
+ * @returns {Array} Array of delivery note data with related invoice data
+ */
 exports.deliveryNoteRoutes.get('/getall/:offset/:limit', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables'), async (req, res) => {
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const deliveryNotes = await deliverynote_model_1.deliveryNoteLean
@@ -104,6 +139,20 @@ exports.deliveryNoteRoutes.get('/getall/:offset/:limit', stock_universal_server_
     }));
     return res.status(200).send(returned);
 });
+/**
+ * Route to delete a delivery note and its related invoice data
+ * @name PUT /deleteone
+ * @function
+ * @memberof module:deliveryNoteRoutes
+ * @inner
+ * @param {Object} req - Express request object
+ * @param {string} req.body.id - ID of the delivery note to delete
+ * @param {string} req.body.invoiceRelated - ID of the related invoice data to delete
+ * @param {string} req.body.creationType - Type of creation for the related invoice data
+ * @param {string} req.body.stage - Stage of the related invoice data
+ * @param {Object} res - Express response object
+ * @returns {Object} Success status of the deletion operation
+ */
 exports.deliveryNoteRoutes.put('/deleteone', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables'), async (req, res) => {
     const { id, invoiceRelated, creationType, stage } = req.body;
     const isValid = (0, stock_universal_server_1.verifyObjectId)(id);
@@ -118,6 +167,21 @@ exports.deliveryNoteRoutes.put('/deleteone', stock_universal_server_1.requireAut
         return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
+/**
+ * Route to search for delivery notes by search term and key
+ * @name POST /search/:limit/:offset
+ * @function
+ * @memberof module:deliveryNoteRoutes
+ * @inner
+ * @param {Object} req - Express request object
+ * @param {string} req.params.limit - Limit for pagination
+ * @param {string} req.params.offset - Offset for pagination
+ * @param {Object} req.body - Request body containing search term and key
+ * @param {string} req.body.searchterm - Search term
+ * @param {string} req.body.searchKey - Search key
+ * @param {Object} res - Express response object
+ * @returns {Array} Array of delivery note data with related invoice data
+ */
 exports.deliveryNoteRoutes.post('/search/:limit/:offset', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables'), async (req, res) => {
     const { searchterm, searchKey } = req.body;
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);

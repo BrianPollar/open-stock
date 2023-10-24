@@ -4,10 +4,27 @@ import { reviewLean, reviewMain } from '../models/review.model';
 import { addReview, removeReview } from './item.routes';
 import { getLogger } from 'log4js';
 import { makeUrId, offsetLimitRelegator, stringifyMongooseErr, verifyObjectId } from '@open-stock/stock-universal-server';
-/** */
+/**
+ * Logger for review routes
+ */
 const reviewRoutesLogger = getLogger('routes/reviewRoutes');
-/** */
+/**
+ * Express router for review routes
+ */
 export const reviewRoutes = express.Router();
+/**
+ * Route for creating a new review
+ * @name POST /create
+ * @function
+ * @memberof module:reviewRoutes
+ * @inner
+ * @param {Object} req - Express request object
+ * @param {Object} req.body - Request body containing the review to be created
+ * @param {Object} req.body.review - Review object to be created
+ * @param {Object} res - Express response object
+ * @param {Object} next - Express next middleware function
+ * @returns {void}
+ */
 reviewRoutes.post('/create', async (req, res, next) => {
     const review = req.body.review;
     const count = (await reviewMain
@@ -16,7 +33,6 @@ reviewRoutes.post('/create', async (req, res, next) => {
     review.urId = makeUrId(count);
     const newFaq = new reviewMain(review);
     let errResponse;
-    // const saved =
     await newFaq.save()
         .catch(err => {
         reviewRoutesLogger.error('create - err: ', err);
@@ -38,6 +54,18 @@ reviewRoutes.post('/create', async (req, res, next) => {
     }
     return next();
 }, addReview);
+/**
+ * Route for getting a single review by ID
+ * @name GET /getone/:id
+ * @function
+ * @memberof module:reviewRoutes
+ * @inner
+ * @param {Object} req - Express request object
+ * @param {Object} req.params - Request parameters containing the ID of the review to be retrieved
+ * @param {string} req.params.id - ID of the review to be retrieved
+ * @param {Object} res - Express response object
+ * @returns {Object} Review object
+ */
 reviewRoutes.get('/getone/:id', async (req, res) => {
     const { id } = req.params;
     const isValid = verifyObjectId(id);
@@ -49,6 +77,18 @@ reviewRoutes.get('/getone/:id', async (req, res) => {
         .lean();
     return res.status(200).send(review);
 });
+/**
+ * Route for getting all reviews for a specific item
+ * @name GET /getall/:id
+ * @function
+ * @memberof module:reviewRoutes
+ * @inner
+ * @param {Object} req - Express request object
+ * @param {Object} req.params - Request parameters containing the ID of the item to retrieve reviews for
+ * @param {string} req.params.id - ID of the item to retrieve reviews for
+ * @param {Object} res - Express response object
+ * @returns {Array} Array of review objects
+ */
 reviewRoutes.get('/getall/:id', async (req, res) => {
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     const reviews = await reviewLean
@@ -58,6 +98,21 @@ reviewRoutes.get('/getall/:id', async (req, res) => {
         .lean();
     return res.status(200).send(reviews);
 });
+/**
+ * Route for deleting a single review by ID
+ * @name DELETE /deleteone/:id/:itemId/:rating
+ * @function
+ * @memberof module:reviewRoutes
+ * @inner
+ * @param {Object} req - Express request object
+ * @param {Object} req.params - Request parameters containing the ID of the review to be deleted, the ID of the item the review belongs to, and the rating of the review
+ * @param {string} req.params.id - ID of the review to be deleted
+ * @param {string} req.params.itemId - ID of the item the review belongs to
+ * @param {string} req.params.rating - Rating of the review to be deleted
+ * @param {Object} res - Express response object
+ * @param {Object} next - Express next middleware function
+ * @returns {void}
+ */
 reviewRoutes.delete('/deleteone/:id/:itemId/:rating', async (req, res, next) => {
     const { id } = req.params;
     const isValid = verifyObjectId(id);

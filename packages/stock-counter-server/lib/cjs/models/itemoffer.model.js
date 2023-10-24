@@ -34,6 +34,13 @@ const itemOfferselect = {
 /** */
 exports.itemOfferSelect = itemOfferselect;
 /** */
+/**
+ * Creates an instance of the ItemOffer model with the specified database URL.
+ * @param {string} dbUrl - The URL of the database to connect to.
+ * @param {boolean} [main=true] - Whether to create the main connection model.
+ * @param {boolean} [lean=true] - Whether to create the lean connection model.
+ * @returns {Promise<void>} - A promise that resolves when the models have been created.
+ */
 const createItemOfferModel = async (dbUrl, main = true, lean = true) => {
     if (!database_controller_1.isStockDbConnected) {
         await (0, database_controller_1.connectStockDatabase)(dbUrl);

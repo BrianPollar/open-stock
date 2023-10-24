@@ -18,4 +18,10 @@ export declare const pickupLocationSelect: {
     contact: number;
 };
 /** */
+/**
+ * Creates a new PickupLocation model with the specified database URL, main connection and lean connection.
+ * @param dbUrl The database URL to connect to.
+ * @param main Whether to create the model for the main connection.
+ * @param lean Whether to create the model for the lean connection.
+ */
 export declare const createPickupLocationModel: (dbUrl: string, main?: boolean, lean?: boolean) => Promise<void>;

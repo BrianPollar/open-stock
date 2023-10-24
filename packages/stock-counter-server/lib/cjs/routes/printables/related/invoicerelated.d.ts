@@ -1,14 +1,30 @@
 import { IinvoiceRelated, Ireceipt, Isuccess, Iuser, TestimateStage, TinvoiceType } from '@open-stock/stock-universal';
 import { EmailHandler } from '@open-stock/stock-notif-server';
-/** */
+/**
+ * Updates the payments for an invoice related document.
+ * @param payment - The payment to add to the invoice related document.
+ * @returns A promise that resolves with a success status and an optional ID.
+ */
 export declare const updateInvoiceRelatedPayments: (payment: Ireceipt) => Promise<Isuccess & {
     id?: string;
 }>;
-/** */
+/**
+ * Updates an invoice related document.
+ * @param invoiceRelated - The updated invoice related document.
+ * @returns A promise that resolves with a success status and an optional ID.
+ */
 export declare const updateInvoiceRelated: (invoiceRelated: Required<IinvoiceRelated>) => Promise<Isuccess & {
     id?: string;
 }>;
-/** */
+/**
+ * Relocates an invoice related document.
+ * @param invoiceRelated - The invoice related document to relocate.
+ * @param extraNotifDesc - A description for the notification.
+ * @param notifRedirectUrl - The URL to redirect to after the notification is clicked.
+ * @param localMailHandler - The email handler to use for sending notifications.
+ * @param bypassNotif - Whether to bypass sending notifications.
+ * @returns A promise that resolves with a success status and an optional ID.
+ */
 export declare const relegateInvRelatedCreation: (invoiceRelated: Required<IinvoiceRelated>, extraNotifDesc: string, notifRedirectUrl: string, localMailHandler: EmailHandler, bypassNotif?: boolean) => Promise<Isuccess & {
     id?: string;
 }>;

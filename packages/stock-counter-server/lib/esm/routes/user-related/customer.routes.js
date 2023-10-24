@@ -1,18 +1,37 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
 import express from 'express';
 import { getLogger } from 'log4js';
-import { deleteFiles, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, } from '@open-stock/stock-universal-server';
+import { deleteFiles, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId } from '@open-stock/stock-universal-server';
 import { customerLean, customerMain } from '../../models/user-related/customer.model';
 import { userLean } from '@open-stock/stock-auth-server';
 import { removeManyUsers, removeOneUser } from './locluser.routes';
-/** */
+/** Logger for customer routes */
 const customerRoutesLogger = getLogger('routes/customerRoutes');
-/** */
+/** Express router for customer routes */
 export const customerRoutes = express.Router();
+/**
+ * Route for creating a new customer.
+ * @name POST /create
+ * @function
+ * @memberof module:customerRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @param {callback} middleware - Express middleware
+ * @returns {Promise} - Promise representing the HTTP response
+ */
 customerRoutes.post('/create', requireAuth, roleAuthorisation('users'), async (req, res) => {
     const customer = req.body.customer;
     const newCustomer = new customerMain(customer);
     let errResponse;
+    /**
+     * Saves a new customer to the database.
+     * @function
+     * @memberof module:customerRoutes
+     * @inner
+     * @param {Customer} newCustomer - The new customer to be saved.
+     * @returns {Promise} - Promise representing the saved customer
+     */
     const saved = await newCustomer.save()
         .catch(err => {
         customerRoutesLogger.error('create - err: ', err);
@@ -34,6 +53,16 @@ customerRoutes.post('/create', requireAuth, roleAuthorisation('users'), async (r
     }
     return res.status(200).send({ success: Boolean(saved) });
 });
+/**
+ * Route for getting a single customer by ID.
+ * @name GET /getone/:id
+ * @function
+ * @memberof module:customerRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @returns {Promise} - Promise representing the HTTP response
+ */
 customerRoutes.get('/getone/:id', async (req, res) => {
     const { id } = req.params;
     const isValid = verifyObjectId(id);
@@ -46,6 +75,16 @@ customerRoutes.get('/getone/:id', async (req, res) => {
         .lean();
     return res.status(200).send(customer);
 });
+/**
+ * Route for getting all customers with pagination.
+ * @name GET /getall/:offset/:limit
+ * @function
+ * @memberof module:customerRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @returns {Promise} - Promise representing the HTTP response
+ */
 customerRoutes.get('/getall/:offset/:limit', async (req, res) => {
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     const customers = await customerLean
@@ -57,6 +96,17 @@ customerRoutes.get('/getall/:offset/:limit', async (req, res) => {
     console.log('What to return is', customers);
     return res.status(200).send(customers);
 });
+/**
+ * Route for updating a customer.
+ * @name PUT /update
+ * @function
+ * @memberof module:customerRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @param {callback} middleware - Express middleware
+ * @returns {Promise} - Promise representing the HTTP response
+ */
 customerRoutes.put('/update', requireAuth, roleAuthorisation('users'), async (req, res) => {
     const updatedCustomer = req.body;
     const isValid = verifyObjectId(updatedCustomer._id);
@@ -95,6 +145,18 @@ customerRoutes.put('/update', requireAuth, roleAuthorisation('users'), async (re
     }
     return res.status(200).send({ success: Boolean(updated) });
 });
+/**
+ * Route for deleting a single customer.
+ * @name PUT /deleteone
+ * @function
+ * @memberof module:customerRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @param {callback} middleware - Express middleware
+ * @param {callback} middleware - Express middleware
+ * @returns {Promise} - Promise representing the HTTP response
+ */
 customerRoutes.put('/deleteone', requireAuth, roleAuthorisation('users'), removeOneUser, deleteFiles, async (req, res) => {
     const { id } = req.body;
     const isValid = verifyObjectId(id);
@@ -109,6 +171,18 @@ customerRoutes.put('/deleteone', requireAuth, roleAuthorisation('users'), remove
         return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
+/**
+ * Route for deleting multiple customers.
+ * @name PUT /deletemany
+ * @function
+ * @memberof module:customerRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @param {callback} middleware - Express middleware
+ * @param {callback} middleware - Express middleware
+ * @returns {Promise} - Promise representing the HTTP response
+ */
 customerRoutes.put('/deletemany', requireAuth, roleAuthorisation('users'), removeManyUsers, deleteFiles, async (req, res) => {
     const { ids } = req.body;
     const deleted = await customerMain

@@ -1,6 +1,7 @@
 import { Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
 const uniqueValidator = require('mongoose-unique-validator');
+/** Mongoose schema for the item model */
 const itemSchema = new Schema({
     urId: { type: String, unique: true },
     numbersInstock: { type: Number, required: [true, 'cannot be empty.'], index: true },
@@ -43,9 +44,7 @@ const itemSchema = new Schema({
 itemSchema.index({ createdAt: -1 });
 // Apply the uniqueValidator plugin to itemSchema.
 itemSchema.plugin(uniqueValidator);
-/** primary selection object
- * for item
- */
+/** Primary selection object for item */
 const itemselect = {
     urId: 1,
     numbersInstock: 1,
@@ -86,16 +85,18 @@ const itemselect = {
     withScreen: 1,
     inventoryMeta: 1
 };
-/** main connection for items Operations*/
+/** Main connection for item operations */
 export let itemMain;
-/** lean connection for items Operations*/
+/** Lean connection for item operations */
 export let itemLean;
-/** primary selection object
- * for item
- */
-/** */
+/** Primary selection object for item */
 export const itemSelect = itemselect;
-/** */
+/**
+ * Creates the item model and connects to the database.
+ * @param dbUrl - The URL of the database to connect to
+ * @param main - Whether to create the main connection for item operations (default: true)
+ * @param lean - Whether to create the lean connection for item operations (default: true)
+ */
 export const createItemModel = async (dbUrl, main = true, lean = true) => {
     if (!isStockDbConnected) {
         await connectStockDatabase(dbUrl);

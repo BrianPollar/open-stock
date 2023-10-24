@@ -18,4 +18,10 @@ export declare const deliveryNoteSelect: {
     invoiceRelated: number;
 };
 /** */
+/**
+ * Creates a delivery note model with the given database URL, main connection and lean connection.
+ * @param dbUrl The URL of the database to connect to.
+ * @param main Whether to create the main connection or not. Defaults to true.
+ * @param lean Whether to create the lean connection or not. Defaults to true.
+ */
 export declare const createDeliveryNoteModel: (dbUrl: string, main?: boolean, lean?: boolean) => Promise<void>;

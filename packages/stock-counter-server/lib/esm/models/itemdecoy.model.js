@@ -26,6 +26,12 @@ export let itemDecoyLean;
 /** */
 export const itemDecoySelect = itemDecoyselect;
 /** */
+/**
+ * Creates an ItemDecoy model with the specified database URL, main connection and lean connection.
+ * @param dbUrl The URL of the database to connect to.
+ * @param main Whether to create the main connection or not. Defaults to true.
+ * @param lean Whether to create the lean connection or not. Defaults to true.
+ */
 export const createItemDecoyModel = async (dbUrl, main = true, lean = true) => {
     if (!isStockDbConnected) {
         await connectStockDatabase(dbUrl);

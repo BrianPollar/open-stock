@@ -1,14 +1,23 @@
-/* eslint-disable @typescript-eslint/no-misused-promises */
 import express from 'express';
 import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import { estimateLean } from '../../../models/printables/estimate.model';
 import { salesReportLean, salesReportMain } from '../../../models/printables/report/salesreport.model';
 import { getLogger } from 'log4js';
 import { invoiceRelatedLean } from '../../../models/printables/related/invoicerelated.model';
-/** */
+/** Logger for sales report routes */
 const salesReportRoutesLogger = getLogger('routes/salesReportRoutes');
-/** */
+/** Router for sales report routes */
 export const salesReportRoutes = express.Router();
+/**
+ * Create a new sales report
+ * @name POST /create
+ * @function
+ * @memberof module:routers/salesReportRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @returns {Promise<void>} - Promise object represents the response
+ */
 salesReportRoutes.post('/create', requireAuth, roleAuthorisation('printables'), async (req, res) => {
     const salesReport = req.body.salesReport;
     const count = await salesReportMain
@@ -38,6 +47,16 @@ salesReportRoutes.post('/create', requireAuth, roleAuthorisation('printables'), 
     }
     return res.status(200).send({ success: Boolean(saved) });
 });
+/**
+ * Get a sales report by UR ID
+ * @name GET /getone/:urId
+ * @function
+ * @memberof module:routers/salesReportRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @returns {Promise<void>} - Promise object represents the response
+ */
 salesReportRoutes.get('/getone/:urId', requireAuth, roleAuthorisation('printables'), async (req, res) => {
     const { urId } = req.params;
     const salesReport = await salesReportLean
@@ -47,6 +66,16 @@ salesReportRoutes.get('/getone/:urId', requireAuth, roleAuthorisation('printable
         .populate({ path: 'invoiceRelateds', model: invoiceRelatedLean });
     return res.status(200).send(salesReport);
 });
+/**
+ * Get all sales reports with pagination
+ * @name GET /getall/:offset/:limit
+ * @function
+ * @memberof module:routers/salesReportRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @returns {Promise<void>} - Promise object represents the response
+ */
 salesReportRoutes.get('/getall/:offset/:limit', requireAuth, roleAuthorisation('printables'), async (req, res) => {
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     const salesReports = await salesReportLean
@@ -58,6 +87,16 @@ salesReportRoutes.get('/getall/:offset/:limit', requireAuth, roleAuthorisation('
         .populate({ path: 'invoiceRelateds', model: invoiceRelatedLean });
     return res.status(200).send(salesReports);
 });
+/**
+ * Delete a sales report by ID
+ * @name DELETE /deleteone/:id
+ * @function
+ * @memberof module:routers/salesReportRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @returns {Promise<void>} - Promise object represents the response
+ */
 salesReportRoutes.delete('/deleteone/:id', requireAuth, roleAuthorisation('printables'), async (req, res) => {
     const { id } = req.params;
     const isValid = verifyObjectId(id);
@@ -72,6 +111,16 @@ salesReportRoutes.delete('/deleteone/:id', requireAuth, roleAuthorisation('print
         return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
+/**
+ * Search for sales reports by search term and search key with pagination
+ * @name POST /search/:limit/:offset
+ * @function
+ * @memberof module:routers/salesReportRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @returns {Promise<void>} - Promise object represents the response
+ */
 salesReportRoutes.post('/search/:limit/:offset', requireAuth, roleAuthorisation('printables'), async (req, res) => {
     const { searchterm, searchKey } = req.body;
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
@@ -84,6 +133,16 @@ salesReportRoutes.post('/search/:limit/:offset', requireAuth, roleAuthorisation(
         .populate({ path: 'invoiceRelateds', model: invoiceRelatedLean });
     return res.status(200).send(salesReports);
 });
+/**
+ * Delete multiple sales reports by IDs
+ * @name PUT /deletemany
+ * @function
+ * @memberof module:routers/salesReportRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @returns {Promise<void>} - Promise object represents the response
+ */
 salesReportRoutes.put('/deletemany', requireAuth, roleAuthorisation('printables'), async (req, res) => {
     const { ids } = req.body;
     const isValid = verifyObjectIds(ids);

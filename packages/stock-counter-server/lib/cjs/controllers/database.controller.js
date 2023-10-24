@@ -8,6 +8,12 @@ const dbConnectionsLogger = (0, log4js_1.getLogger)('DbConnections');
 /** */
 exports.isStockDbConnected = false;
 /** */
+/**
+ * Connects to the stock database using the provided database configuration URL.
+ * If the database is already connected, this function does nothing.
+ *
+ * @param databaseConfigUrl The URL of the database configuration.
+ */
 const connectStockDatabase = async (databaseConfigUrl) => {
     if (exports.isStockDbConnected) {
         return;

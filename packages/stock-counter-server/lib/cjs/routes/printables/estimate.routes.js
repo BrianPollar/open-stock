@@ -2,26 +2,34 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.estimateRoutes = exports.updateEstimateUniv = void 0;
 const tslib_1 = require("tslib");
-/* eslint-disable @typescript-eslint/no-misused-promises */
 const express_1 = tslib_1.__importDefault(require("express"));
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const estimate_model_1 = require("../../models/printables/estimate.model");
-// import { paymentInstallsLean } from '../../models/printables/paymentrelated/paymentsinstalls.model';
 const invoicerelated_model_1 = require("../../models/printables/related/invoicerelated.model");
 const invoicerelated_1 = require("./related/invoicerelated");
 const log4js_1 = require("log4js");
 const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const receipt_model_1 = require("../../models/printables/receipt.model");
-/** */
+/** Logger for estimate routes */
 const estimateRoutesogger = (0, log4js_1.getLogger)('routes/estimateRoutes');
+/**
+ * Generates a new estimate ID by finding the highest existing estimate ID and incrementing it by 1.
+ * @returns The new estimate ID.
+ */
 const makeEstimateId = async () => {
     const count = await invoicerelated_model_1.invoiceRelatedMain
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        .find({}).sort({ _id: -1 }).limit(1).lean().select({ estimateId: 1 });
+        .find({ estimateId: { $exists: true, $ne: null } }).sort({ _id: -1 }).limit(1).lean().select({ estimateId: 1 });
     let incCount = count[0]?.estimateId || 0;
     return ++incCount;
 };
-/** /** */
+/**
+ * Updates an estimate's stage and/or invoice ID.
+ * @param estimateId The ID of the estimate to update.
+ * @param stage The new stage for the estimate.
+ * @param invoiceId (Optional) The new invoice ID for the estimate.
+ * @returns True if the update was successful, false otherwise.
+ */
 const updateEstimateUniv = async (estimateId, stage, invoiceId) => {
     const estimate = await estimate_model_1.estimateMain
         .findOneAndUpdate({ estimateId });
@@ -36,8 +44,14 @@ const updateEstimateUniv = async (estimateId, stage, invoiceId) => {
     return true;
 };
 exports.updateEstimateUniv = updateEstimateUniv;
-/** */
+/** Router for estimate routes */
 exports.estimateRoutes = express_1.default.Router();
+/**
+ * Creates a new estimate and invoice related object.
+ * @param req The request object.
+ * @param res The response object.
+ * @returns A success object with a boolean indicating whether the operation was successful.
+ */
 exports.estimateRoutes.post('/create', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables'), async (req, res) => {
     const { estimate, invoiceRelated } = req.body;
     invoiceRelated.estimateId = await makeEstimateId();
@@ -49,6 +63,11 @@ exports.estimateRoutes.post('/create', stock_universal_server_1.requireAuth, (0,
     estimate.invoiceRelated = invoiceRelatedRes.id;
     const newEstimate = new estimate_model_1.estimateMain(estimate);
     let errResponse;
+    /**
+     * Saves a new estimate and returns a response object.
+     * @param {Estimate} newEstimate - The new estimate to be saved.
+     * @returns {Promise<{success: boolean, status: number, err?: string}>} - A promise that resolves to an object with success, status, and err properties.
+     */
     const saved = await newEstimate.save()
         .catch(err => {
         estimateRoutesogger.error('create - err: ', err);
@@ -70,6 +89,12 @@ exports.estimateRoutes.post('/create', stock_universal_server_1.requireAuth, (0,
     }
     return res.status(200).send({ success: Boolean(saved) });
 });
+/**
+ * Gets an estimate and its associated invoice related object by estimate ID.
+ * @param req The request object.
+ * @param res The response object.
+ * @returns The invoice related object associated with the estimate.
+ */
 exports.estimateRoutes.get('/getone/:estimateId', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables'), async (req, res) => {
     const { estimateId } = req.params;
     const invoiceRelated = await invoicerelated_model_1.invoiceRelatedLean
@@ -84,6 +109,12 @@ exports.estimateRoutes.get('/getone/:estimateId', stock_universal_server_1.requi
     }
     return res.status(200).send(returned);
 });
+/**
+ * Gets all estimates and their associated invoice related objects.
+ * @param req The request object.
+ * @param res The response object.
+ * @returns An array of invoice related objects associated with the estimates.
+ */
 exports.estimateRoutes.get('/getall/:offset/:limit', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables'), async (req, res) => {
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const estimates = await estimate_model_1.estimateLean
@@ -105,6 +136,12 @@ exports.estimateRoutes.get('/getall/:offset/:limit', stock_universal_server_1.re
         .billingUserId));
     return res.status(200).send(returned);
 });
+/**
+ * Deletes an estimate and its associated invoice related object.
+ * @param req The request object.
+ * @param res The response object.
+ * @returns A success object with a boolean indicating whether the operation was successful.
+ */
 exports.estimateRoutes.put('/deleteone', stock_universal_server_1.requireAuth, async (req, res) => {
     const { id, invoiceRelated, creationType, stage } = req.body;
     const isValid = (0, stock_universal_server_1.verifyObjectId)(id);
@@ -119,6 +156,12 @@ exports.estimateRoutes.put('/deleteone', stock_universal_server_1.requireAuth, a
         return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
+/**
+ * Searches for estimates by a given search term and search key.
+ * @param req The request object.
+ * @param res The response object.
+ * @returns An array of invoice related objects associated with the matching estimates.
+ */
 exports.estimateRoutes.post('/search/:limit/:offset', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('estimates'), async (req, res) => {
     const { searchterm, searchKey } = req.body;
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);

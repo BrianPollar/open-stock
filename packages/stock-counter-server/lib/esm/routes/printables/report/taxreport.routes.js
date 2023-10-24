@@ -5,10 +5,21 @@ import { paymentLean } from '../../../models/payment.model';
 import { estimateLean } from '../../../models/printables/estimate.model';
 import { taxReportLean, taxReportMain } from '../../../models/printables/report/taxreport.model';
 import { getLogger } from 'log4js';
-/** */
+/** Logger for tax report routes */
 const taxReportRoutesLogger = getLogger('routes/taxReportRoutes');
-/** */
+/** Express router for tax report routes */
 export const taxReportRoutes = express.Router();
+/**
+ * Create a new tax report
+ * @name POST /create
+ * @function
+ * @memberof module:taxReportRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @param {callback} middleware - Express middleware
+ * @returns {Promise<void>} - Promise object representing the response
+ */
 taxReportRoutes.post('/create', requireAuth, roleAuthorisation('printables'), async (req, res) => {
     const taxReport = req.body.taxReport;
     const count = await taxReportMain
@@ -38,6 +49,17 @@ taxReportRoutes.post('/create', requireAuth, roleAuthorisation('printables'), as
     }
     return res.status(200).send({ success: Boolean(saved) });
 });
+/**
+ * Get a single tax report by UR ID
+ * @name GET /getone/:urId
+ * @function
+ * @memberof module:taxReportRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @param {callback} middleware - Express middleware
+ * @returns {Promise<void>} - Promise object representing the response
+ */
 taxReportRoutes.get('/getone/:urId', requireAuth, roleAuthorisation('printables'), async (req, res) => {
     const { urId } = req.params;
     const taxReport = await taxReportLean
@@ -47,6 +69,17 @@ taxReportRoutes.get('/getone/:urId', requireAuth, roleAuthorisation('printables'
         .populate({ path: 'payments', model: paymentLean });
     return res.status(200).send(taxReport);
 });
+/**
+ * Get all tax reports with pagination
+ * @name GET /getall/:offset/:limit
+ * @function
+ * @memberof module:taxReportRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @param {callback} middleware - Express middleware
+ * @returns {Promise<void>} - Promise object representing the response
+ */
 taxReportRoutes.get('/getall/:offset/:limit', requireAuth, roleAuthorisation('printables'), async (req, res) => {
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     const taxReports = await taxReportLean
@@ -58,6 +91,17 @@ taxReportRoutes.get('/getall/:offset/:limit', requireAuth, roleAuthorisation('pr
         .populate({ path: 'payments', model: paymentLean });
     return res.status(200).send(taxReports);
 });
+/**
+ * Delete a single tax report by ID
+ * @name DELETE /deleteone/:id
+ * @function
+ * @memberof module:taxReportRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @param {callback} middleware - Express middleware
+ * @returns {Promise<void>} - Promise object representing the response
+ */
 taxReportRoutes.delete('/deleteone/:id', requireAuth, roleAuthorisation('printables'), async (req, res) => {
     const { id } = req.params;
     const isValid = verifyObjectId(id);
@@ -72,6 +116,17 @@ taxReportRoutes.delete('/deleteone/:id', requireAuth, roleAuthorisation('printab
         return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
+/**
+ * Search for tax reports with pagination
+ * @name POST /search/:limit/:offset
+ * @function
+ * @memberof module:taxReportRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @param {callback} middleware - Express middleware
+ * @returns {Promise<void>} - Promise object representing the response
+ */
 taxReportRoutes.post('/search/:limit/:offset', requireAuth, roleAuthorisation('printables'), async (req, res) => {
     const { searchterm, searchKey } = req.body;
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
@@ -84,6 +139,17 @@ taxReportRoutes.post('/search/:limit/:offset', requireAuth, roleAuthorisation('p
         .populate({ path: 'payments', model: paymentLean });
     return res.status(200).send(taxReports);
 });
+/**
+ * Delete multiple tax reports by ID
+ * @name PUT /deletemany
+ * @function
+ * @memberof module:taxReportRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @param {callback} middleware - Express middleware
+ * @returns {Promise<void>} - Promise object representing the response
+ */
 taxReportRoutes.put('/deletemany', requireAuth, roleAuthorisation('printables'), async (req, res) => {
     const { ids } = req.body;
     const isValid = verifyObjectIds(ids);

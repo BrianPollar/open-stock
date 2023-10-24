@@ -57,17 +57,33 @@ import { createReviewModel } from './models/review.model';
 import { itemLimittedRoutes } from './routes/itemlimitted.routes';
 import { createItemLimittedModel } from './models/itemlimitted.model';
 import { localUserRoutes } from './routes/user-related/locluser.routes';
+/**
+ * The PesaPal payment instance for the server.
+ */
 export let pesapalPaymentInstance;
-/** */
+/**
+ * Represents the Stock Counter Server.
+ */
 class StockCounterServer {
-    /** */
+    /**
+     * Constructor for the StockCounterServer class.
+     *
+     * @param notifRedirectUrl The URL for the notification redirect.
+     * @param pesapalPaymentInstance The PesaPal payment instance for the server.
+     * @param locaLMailHandler The mail handler for the server.
+     */
     constructor(notifRedirectUrl, pesapalPaymentInstance, locaLMailHandler) {
         this.notifRedirectUrl = notifRedirectUrl;
         this.pesapalPaymentInstance = pesapalPaymentInstance;
         this.locaLMailHandler = locaLMailHandler;
     }
 }
-/** */
+/**
+ * Connects to the Stock Counter database.
+ *
+ * @param databaseUrl The database URL for the server.
+ * @returns A promise with the database models.
+ */
 export const connectStockCounterDatabase = (databaseUrl) => {
     return Promise.all([
         createPaymentRelatedModel(databaseUrl),

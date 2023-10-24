@@ -2,15 +2,28 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.pickupLocationRoutes = void 0;
 const tslib_1 = require("tslib");
-/* eslint-disable @typescript-eslint/no-misused-promises */
 const express_1 = tslib_1.__importDefault(require("express"));
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const pickuplocation_model_1 = require("../../models/printables/pickuplocation.model");
 const log4js_1 = require("log4js");
-/** */
+/**
+ * Logger for pickup location routes
+ */
 const pickupLocationRoutesLogger = (0, log4js_1.getLogger)('routes/pickupLocationRoutes');
-/** */
+/**
+ * Express router for pickup location routes
+ */
 exports.pickupLocationRoutes = express_1.default.Router();
+/**
+ * Route to create a new pickup location
+ * @name POST /create
+ * @function
+ * @memberof module:pickupLocationRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @returns {Promise<void>}
+ */
 exports.pickupLocationRoutes.post('/create', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables'), async (req, res) => {
     const pickupLocation = req.body;
     const newPickupLocation = new pickuplocation_model_1.pickupLocationMain(pickupLocation);
@@ -36,6 +49,16 @@ exports.pickupLocationRoutes.post('/create', stock_universal_server_1.requireAut
     }
     return res.status(200).send({ success: Boolean(saved) });
 });
+/**
+ * Route to update an existing pickup location
+ * @name PUT /update
+ * @function
+ * @memberof module:pickupLocationRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @returns {Promise<void>}
+ */
 exports.pickupLocationRoutes.put('/update', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables'), async (req, res) => {
     const updatedPickupLocation = req.body;
     const isValid = (0, stock_universal_server_1.verifyObjectId)(updatedPickupLocation._id);
@@ -72,6 +95,16 @@ exports.pickupLocationRoutes.put('/update', stock_universal_server_1.requireAuth
     }
     return res.status(200).send({ success: Boolean(updated) });
 });
+/**
+ * Route to get a single pickup location by ID
+ * @name GET /getone/:id
+ * @function
+ * @memberof module:pickupLocationRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @returns {Promise<void>}
+ */
 exports.pickupLocationRoutes.get('/getone/:id', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables'), async (req, res) => {
     const { id } = req.params;
     const isValid = (0, stock_universal_server_1.verifyObjectId)(id);
@@ -83,6 +116,16 @@ exports.pickupLocationRoutes.get('/getone/:id', stock_universal_server_1.require
         .lean();
     return res.status(200).send(pickupLocation);
 });
+/**
+ * Route to get all pickup locations with pagination
+ * @name GET /getall/:offset/:limit
+ * @function
+ * @memberof module:pickupLocationRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @returns {Promise<void>}
+ */
 exports.pickupLocationRoutes.get('/getall/:offset/:limit', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables'), async (req, res) => {
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const pickupLocations = await pickuplocation_model_1.pickupLocationLean
@@ -92,6 +135,16 @@ exports.pickupLocationRoutes.get('/getall/:offset/:limit', stock_universal_serve
         .lean();
     return res.status(200).send(pickupLocations);
 });
+/**
+ * Route to delete a single pickup location by ID
+ * @name DELETE /deleteone/:id
+ * @function
+ * @memberof module:pickupLocationRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @returns {Promise<void>}
+ */
 exports.pickupLocationRoutes.delete('/deleteone/:id', stock_universal_server_1.requireAuth, async (req, res) => {
     const { id } = req.params;
     const isValid = (0, stock_universal_server_1.verifyObjectId)(id);
@@ -106,6 +159,16 @@ exports.pickupLocationRoutes.delete('/deleteone/:id', stock_universal_server_1.r
         return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
+/**
+ * Route to search for pickup locations by a search term and key
+ * @name POST /search/:limit/:offset
+ * @function
+ * @memberof module:pickupLocationRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @returns {Promise<void>}
+ */
 exports.pickupLocationRoutes.post('/search/:limit/:offset', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables'), async (req, res) => {
     const { searchterm, searchKey } = req.body;
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
@@ -116,6 +179,16 @@ exports.pickupLocationRoutes.post('/search/:limit/:offset', stock_universal_serv
         .lean();
     return res.status(200).send(pickupLocations);
 });
+/**
+ * Route to delete multiple pickup locations by ID
+ * @name PUT /deletemany
+ * @function
+ * @memberof module:pickupLocationRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @returns {Promise<void>}
+ */
 exports.pickupLocationRoutes.put('/deletemany', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables'), async (req, res) => {
     const { ids } = req.body;
     const isValid = (0, stock_universal_server_1.verifyObjectIds)(ids);

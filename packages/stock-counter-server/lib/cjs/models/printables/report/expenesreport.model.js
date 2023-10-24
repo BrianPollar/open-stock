@@ -1,10 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createExpenseReportModel = exports.expenseReportSelect = exports.expenseReportLean = exports.expenseReportMain = void 0;
-/* eslint-disable @typescript-eslint/no-unnecessary-type-arguments */
 const mongoose_1 = require("mongoose");
 const database_controller_1 = require("../../../controllers/database.controller");
 const uniqueValidator = require('mongoose-unique-validator');
+/** Mongoose schema for the expense report document. */
 const expenseReportSchema = new mongoose_1.Schema({
     urId: { type: String, unique: true },
     totalAmount: { type: Number },
@@ -13,21 +13,21 @@ const expenseReportSchema = new mongoose_1.Schema({
 }, { timestamps: true });
 // Apply the uniqueValidator plugin to expenseReportSchema.
 expenseReportSchema.plugin(uniqueValidator);
-/** primary selection object
- * for expenseReport
- */
+/** Primary selection object for expense report document. */
 const expenseReportselect = {
     urId: 1,
     totalAmount: 1,
     date: 1,
     expenses: 1
 };
-/** primary selection object
- * for expenseReport
- */
-/** */
+/** Primary selection object for expense report document. */
 exports.expenseReportSelect = expenseReportselect;
-/** */
+/**
+ * Creates a new expense report model.
+ * @param dbUrl - The URL of the database to connect to.
+ * @param main - Whether to create a main connection for expense report operations.
+ * @param lean - Whether to create a lean connection for expense report operations.
+ */
 const createExpenseReportModel = async (dbUrl, main = true, lean = true) => {
     if (!database_controller_1.isStockDbConnected) {
         await (0, database_controller_1.connectStockDatabase)(dbUrl);

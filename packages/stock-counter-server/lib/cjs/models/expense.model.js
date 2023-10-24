@@ -31,6 +31,12 @@ const expenseselect = {
 /** */
 exports.expenseSelect = expenseselect;
 /** */
+/**
+ * Creates an expense model with the given database URL, main connection and lean connection.
+ * @param dbUrl The URL of the database to connect to.
+ * @param main Whether to create the model for the main connection.
+ * @param lean Whether to create the model for the lean connection.
+ */
 const createExpenseModel = async (dbUrl, main = true, lean = true) => {
     if (!database_controller_1.isStockDbConnected) {
         await (0, database_controller_1.connectStockDatabase)(dbUrl);

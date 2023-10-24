@@ -4,10 +4,22 @@ import { faqanswerLean, faqanswerMain } from '../models/faqanswer.model';
 import { faqLean, faqMain } from '../models/faq.model';
 import { getLogger } from 'log4js';
 import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId } from '@open-stock/stock-universal-server';
-/** */
+/** Logger for faqRoutes */
 const faqRoutesLogger = getLogger('routes/faqRoutes');
-/** */
+/** Express router for faqRoutes */
 export const faqRoutes = express.Router();
+/**
+ * Create a new FAQ
+ * @name POST /create
+ * @function
+ * @memberof module:routes/faqRoutes
+ * @inner
+ * @param {Object} req - Express request object
+ * @param {Object} req.body - Request body
+ * @param {Object} req.body.faq - FAQ object to create
+ * @param {Object} res - Express response object
+ * @returns {Object} Success status and saved FAQ object
+ */
 faqRoutes.post('/create', async (req, res) => {
     const faq = req.body.faq;
     const count = await faqMain
@@ -37,6 +49,17 @@ faqRoutes.post('/create', async (req, res) => {
     }
     return res.status(200).send({ success: Boolean(saved) });
 });
+/**
+ * Get a single FAQ by ID
+ * @name GET /getone/:id
+ * @function
+ * @memberof module:routes/faqRoutes
+ * @inner
+ * @param {Object} req - Express request object
+ * @param {string} req.params.id - ID of the FAQ to retrieve
+ * @param {Object} res - Express response object
+ * @returns {Object} The requested FAQ object
+ */
 faqRoutes.get('/getone/:id', async (req, res) => {
     const { id } = req.params;
     const isValid = verifyObjectId(id);
@@ -48,6 +71,18 @@ faqRoutes.get('/getone/:id', async (req, res) => {
         .lean();
     return res.status(200).send(faq);
 });
+/**
+ * Get all FAQs with pagination
+ * @name GET /getall/:offset/:limit
+ * @function
+ * @memberof module:routes/faqRoutes
+ * @inner
+ * @param {Object} req - Express request object
+ * @param {string} req.params.offset - Offset for pagination
+ * @param {string} req.params.limit - Limit for pagination
+ * @param {Object} res - Express response object
+ * @returns {Object[]} Array of FAQ objects
+ */
 faqRoutes.get('/getall/:offset/:limit', async (req, res) => {
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     const faqs = await faqLean
@@ -57,6 +92,17 @@ faqRoutes.get('/getall/:offset/:limit', async (req, res) => {
         .lean();
     return res.status(200).send(faqs);
 });
+/**
+ * Delete a single FAQ by ID
+ * @name DELETE /deleteone/:id
+ * @function
+ * @memberof module:routes/faqRoutes
+ * @inner
+ * @param {Object} req - Express request object
+ * @param {string} req.params.id - ID of the FAQ to delete
+ * @param {Object} res - Express response object
+ * @returns {Object} Success status and deleted FAQ object
+ */
 faqRoutes.delete('/deleteone/:id', async (req, res) => {
     const { id } = req.params;
     const isValid = verifyObjectId(id);
@@ -71,6 +117,18 @@ faqRoutes.delete('/deleteone/:id', async (req, res) => {
         return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
+/**
+ * Create a new FAQ answer
+ * @name POST /createans
+ * @function
+ * @memberof module:routes/faqRoutes
+ * @inner
+ * @param {Object} req - Express request object
+ * @param {Object} req.body - Request body
+ * @param {Object} req.body.faq - FAQ answer object to create
+ * @param {Object} res - Express response object
+ * @returns {Object} Success status and saved FAQ answer object
+ */
 faqRoutes.post('/createans', requireAuth, roleAuthorisation('faqs'), async (req, res) => {
     const faq = req.body.faq;
     const count = await faqanswerMain.countDocuments();
@@ -98,12 +156,34 @@ faqRoutes.post('/createans', requireAuth, roleAuthorisation('faqs'), async (req,
     }
     return res.status(200).send({ success: Boolean(saved) });
 });
+/**
+ * Get all FAQ answers for a given FAQ ID
+ * @name GET /getallans/:faqId
+ * @function
+ * @memberof module:routes/faqRoutes
+ * @inner
+ * @param {Object} req - Express request object
+ * @param {string} req.params.faqId - ID of the FAQ to retrieve answers for
+ * @param {Object} res - Express response object
+ * @returns {Object[]} Array of FAQ answer objects
+ */
 faqRoutes.get('/getallans/:faqId', async (req, res) => {
     const faqsAns = await faqanswerLean
         .find({ faq: req.params.faqId })
         .lean();
     return res.status(200).send(faqsAns);
 });
+/**
+ * Delete a single FAQ answer by ID
+ * @name DELETE /deleteoneans/:id
+ * @function
+ * @memberof module:routes/faqRoutes
+ * @inner
+ * @param {Object} req - Express request object
+ * @param {string} req.params.id - ID of the FAQ answer to delete
+ * @param {Object} res - Express response object
+ * @returns {Object} Success status and deleted FAQ answer object
+ */
 faqRoutes.delete('/deleteoneans/:id', requireAuth, roleAuthorisation('faqs'), async (req, res) => {
     const { id } = req.params;
     const isValid = verifyObjectId(id);

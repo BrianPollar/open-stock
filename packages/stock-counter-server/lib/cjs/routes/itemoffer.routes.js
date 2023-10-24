@@ -8,10 +8,21 @@ const express_1 = tslib_1.__importDefault(require("express"));
 const log4js_1 = require("log4js");
 const itemoffer_model_1 = require("../models/itemoffer.model");
 const item_model_1 = require("../models/item.model");
-/** */
+/** Logger for item offer routes */
 const itemOfferRoutesLogger = (0, log4js_1.getLogger)('routes/itemOfferRoutes');
-/** */
+/** Express router for item offer routes */
 exports.itemOfferRoutes = express_1.default.Router();
+/**
+ * Route for creating a new item offer
+ * @name POST /create
+ * @function
+ * @memberof module:routes/itemOfferRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @param {callback} middleware - Express middleware
+ * @returns {Promise<void>} - Promise representing the result of the HTTP request
+ */
 exports.itemOfferRoutes.post('/create', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('items'), async (req, res) => {
     const { itemoffer } = req.body;
     const count = await itemoffer_model_1.itemOfferMain
@@ -41,6 +52,16 @@ exports.itemOfferRoutes.post('/create', stock_universal_server_1.requireAuth, (0
     }
     return res.status(200).send({ success: Boolean(saved) });
 });
+/**
+ * Route for getting all item offers
+ * @name GET /getall/:type/:offset/:limit
+ * @function
+ * @memberof module:routes/itemOfferRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @returns {Promise<void>} - Promise representing the result of the HTTP request
+ */
 exports.itemOfferRoutes.get('/getall/:type/:offset/:limit', async (req, res) => {
     const { type } = req.params;
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
@@ -56,6 +77,16 @@ exports.itemOfferRoutes.get('/getall/:type/:offset/:limit', async (req, res) => 
         .lean();
     return res.status(200).send(items);
 });
+/**
+ * Route for getting a single item offer by ID
+ * @name GET /getone/:id
+ * @function
+ * @memberof module:routes/itemOfferRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @returns {Promise<void>} - Promise representing the result of the HTTP request
+ */
 exports.itemOfferRoutes.get('/getone/:id', async (req, res) => {
     const { id } = req.params;
     const isValid = (0, stock_universal_server_1.verifyObjectId)(id);
@@ -68,6 +99,17 @@ exports.itemOfferRoutes.get('/getone/:id', async (req, res) => {
         .lean();
     return res.status(200).send(items);
 });
+/**
+ * Route for deleting a single item offer by ID
+ * @name DELETE /deleteone/:id
+ * @function
+ * @memberof module:routes/itemOfferRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @param {callback} middleware - Express middleware
+ * @returns {Promise<void>} - Promise representing the result of the HTTP request
+ */
 exports.itemOfferRoutes.delete('/deleteone/:id', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('items'), async (req, res) => {
     const { id } = req.params;
     const isValid = (0, stock_universal_server_1.verifyObjectId)(id);
@@ -82,6 +124,17 @@ exports.itemOfferRoutes.delete('/deleteone/:id', stock_universal_server_1.requir
         return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
+/**
+ * Route for deleting multiple item offers by ID
+ * @name PUT /deletemany
+ * @function
+ * @memberof module:routes/itemOfferRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @param {callback} middleware - Express middleware
+ * @returns {Promise<void>} - Promise representing the result of the HTTP request
+ */
 exports.itemOfferRoutes.put('/deletemany', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('items'), async (req, res) => {
     const { ids } = req.body;
     const isValid = (0, stock_universal_server_1.verifyObjectIds)(ids);

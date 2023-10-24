@@ -19,4 +19,11 @@ export declare const invoiceSettingSelect: {
     bankSettings: number;
 };
 /** */
+/**
+ * Creates an instance of the InvoiceSetting model.
+ * @param {string} dbUrl - The URL of the database to connect to.
+ * @param {boolean} [main=true] - Whether to create the main connection model.
+ * @param {boolean} [lean=true] - Whether to create the lean connection model.
+ * @returns {Promise<void>} - A promise that resolves when the model is created.
+ */
 export declare const createInvoiceSettingModel: (dbUrl: string, main?: boolean, lean?: boolean) => Promise<void>;

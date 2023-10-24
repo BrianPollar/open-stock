@@ -1,3 +1,10 @@
+/**
+ * Express routes for payment related operations.
+ * @remarks
+ * This file contains the implementation of the payment routes for the stock-counter-server application.
+ * The payment routes include creating a payment, updating a payment, and getting a payment by ID.
+ * @packageDocumentation
+ */
 /* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 /* eslint-disable @typescript-eslint/no-misused-promises */
 import express from 'express';

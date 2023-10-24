@@ -23,6 +23,12 @@ const itemLimittedselect = {
 /** */
 exports.itemLimittedSelect = itemLimittedselect;
 /** */
+/**
+ * Creates an ItemLimitted model with the specified database URL, main connection and lean connection.
+ * @param dbUrl The URL of the database to connect to.
+ * @param main Whether to create the model for the main connection.
+ * @param lean Whether to create the model for the lean connection.
+ */
 const createItemLimittedModel = async (dbUrl, main = true, lean = true) => {
     if (!database_controller_1.isStockDbConnected) {
         await (0, database_controller_1.connectStockDatabase)(dbUrl);

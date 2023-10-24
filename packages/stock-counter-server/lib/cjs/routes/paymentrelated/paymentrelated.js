@@ -10,9 +10,13 @@ const log4js_1 = require("log4js");
 const stock_notif_server_1 = require("@open-stock/stock-notif-server");
 const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const receipt_model_1 = require("../../models/printables/receipt.model");
-/** */
+/** Logger for PaymentRelated routes */
 const paymentRelatedLogger = (0, log4js_1.getLogger)('routes/PaymentRelated');
-/** */
+/**
+ * Updates a payment related object in the database.
+ * @param paymentRelated - The payment related object to update.
+ * @returns A success object with an optional ID field.
+ */
 const updatePaymentRelated = async (paymentRelated) => {
     console.log('okay here 111111', paymentRelated);
     const isValid = (0, stock_universal_server_1.verifyObjectId)(paymentRelated.paymentRelated);
@@ -64,7 +68,15 @@ const updatePaymentRelated = async (paymentRelated) => {
     }
 };
 exports.updatePaymentRelated = updatePaymentRelated;
-/** */
+/**
+ * Creates a payment related object in the database and creates an invoice related object if necessary.
+ * @param paymentRelated - The payment related object to create.
+ * @param invoiceRelated - The invoice related object to create.
+ * @param type - The type of object being created (either 'payment' or 'order').
+ * @param extraNotifDesc - A description to include in the notification.
+ * @param notifRedirectUrl - The URL to redirect to when the notification is clicked.
+ * @returns A success object with an optional ID field.
+ */
 const relegatePaymentRelatedCreation = async (paymentRelated, invoiceRelated, type, // say payment or order
 extraNotifDesc, notifRedirectUrl) => {
     console.log('FUCK HERE 11111111', paymentRelated);

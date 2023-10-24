@@ -1,18 +1,26 @@
-/* eslint-disable @typescript-eslint/no-misused-promises */
 import express from 'express';
 import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import { paymentLean } from '../../../models/payment.model';
 import { estimateLean } from '../../../models/printables/estimate.model';
 import { invoicesReportLean, invoicesReportMain } from '../../../models/printables/report/invoicereport.model';
 import { getLogger } from 'log4js';
-/** */
+/** Logger for invoicesReportRoutes */
 const invoicesReportRoutesLogger = getLogger('routes/invoicesReportRoutes');
-/** */
+/** Express router for invoices report routes */
 export const invoicesReportRoutes = express.Router();
+/**
+ * Route to create a new invoices report
+ *
+ * @name POST /create
+ * @function
+ * @memberof module:routes/invoicesReportRoutes~invoicesReportRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ */
 invoicesReportRoutes.post('/create', requireAuth, roleAuthorisation('printables'), async (req, res) => {
     const invoicesReport = req.body.invoicesReport;
     const count = await invoicesReportMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     invoicesReport.urId = makeUrId(Number(count[0]?.urId || '0'));
     const newInvoiceReport = new invoicesReportMain(invoicesReport);
@@ -36,6 +44,16 @@ invoicesReportRoutes.post('/create', requireAuth, roleAuthorisation('printables'
     }
     return res.status(200).send({ success: true });
 });
+/**
+ * Route to get a single invoices report by urId
+ *
+ * @name GET /getone/:urId
+ * @function
+ * @memberof module:routes/invoicesReportRoutes~invoicesReportRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ */
 invoicesReportRoutes.get('/getone/:urId', requireAuth, roleAuthorisation('printables'), async (req, res) => {
     const { urId } = req.params;
     const invoicesReport = await invoicesReportLean
@@ -45,6 +63,16 @@ invoicesReportRoutes.get('/getone/:urId', requireAuth, roleAuthorisation('printa
         .populate({ path: 'payments', model: paymentLean });
     return res.status(200).send(invoicesReport);
 });
+/**
+ * Route to get all invoices reports with pagination
+ *
+ * @name GET /getall/:offset/:limit
+ * @function
+ * @memberof module:routes/invoicesReportRoutes~invoicesReportRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ */
 invoicesReportRoutes.get('/getall/:offset/:limit', requireAuth, roleAuthorisation('printables'), async (req, res) => {
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     const invoicesReports = await invoicesReportLean
@@ -56,6 +84,16 @@ invoicesReportRoutes.get('/getall/:offset/:limit', requireAuth, roleAuthorisatio
         .populate({ path: 'payments', model: paymentLean });
     return res.status(200).send(invoicesReports);
 });
+/**
+ * Route to delete a single invoices report by id
+ *
+ * @name DELETE /deleteone/:id
+ * @function
+ * @memberof module:routes/invoicesReportRoutes~invoicesReportRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ */
 invoicesReportRoutes.delete('/deleteone/:id', requireAuth, roleAuthorisation('printables'), async (req, res) => {
     const { id } = req.params;
     const isValid = verifyObjectId(id);
@@ -70,6 +108,16 @@ invoicesReportRoutes.delete('/deleteone/:id', requireAuth, roleAuthorisation('pr
         return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
+/**
+ * Route to search invoices reports by a search term and key with pagination
+ *
+ * @name POST /search/:offset/:limit
+ * @function
+ * @memberof module:routes/invoicesReportRoutes~invoicesReportRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ */
 invoicesReportRoutes.post('/search/:offset/:limit', requireAuth, roleAuthorisation('printables'), async (req, res) => {
     const { searchterm, searchKey } = req.body;
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
@@ -82,6 +130,16 @@ invoicesReportRoutes.post('/search/:offset/:limit', requireAuth, roleAuthorisati
         .populate({ path: 'payments', model: paymentLean });
     return res.status(200).send(invoicesReports);
 });
+/**
+ * Route to delete multiple invoices reports by ids
+ *
+ * @name PUT /deletemany
+ * @function
+ * @memberof module:routes/invoicesReportRoutes~invoicesReportRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ */
 invoicesReportRoutes.put('/deletemany', requireAuth, roleAuthorisation('printables'), async (req, res) => {
     const { ids } = req.body;
     const isValid = verifyObjectIds(ids);
@@ -89,7 +147,6 @@ invoicesReportRoutes.put('/deletemany', requireAuth, roleAuthorisation('printabl
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const deleted = await invoicesReportMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .deleteMany({ _id: { $in: ids } })
         .catch(err => {
         invoicesReportRoutesLogger.error('deletemany - err: ', err);

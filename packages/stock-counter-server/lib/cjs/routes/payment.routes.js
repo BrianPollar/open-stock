@@ -2,6 +2,13 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.updateInvoicerelatedStatus = exports.paymentRoutes = void 0;
 const tslib_1 = require("tslib");
+/**
+ * Express routes for payment related operations.
+ * @remarks
+ * This file contains the implementation of the payment routes for the stock-counter-server application.
+ * The payment routes include creating a payment, updating a payment, and getting a payment by ID.
+ * @packageDocumentation
+ */
 /* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 /* eslint-disable @typescript-eslint/no-misused-promises */
 const express_1 = tslib_1.__importDefault(require("express"));

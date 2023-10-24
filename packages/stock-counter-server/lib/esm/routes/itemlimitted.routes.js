@@ -3,10 +3,21 @@ import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringi
 import express from 'express';
 import { getLogger } from 'log4js';
 import { itemLimittedLean, itemLimittedMain } from '../models/itemlimitted.model';
-/** */
+/** Logger for itemLimittedRoutes */
 const itemLimittedRoutesLogger = getLogger('routes/itemLimittedRoutes');
-/** */
+/** Express router for itemLimitted */
 export const itemLimittedRoutes = express.Router();
+/**
+ * Create a new itemlimitted
+ * @name POST /create
+ * @function
+ * @memberof module:routes/itemLimittedRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @param {callback} middleware - Express middleware
+ * @returns {Isuccess} - Success status and error message if applicable
+ */
 itemLimittedRoutes.post('/create', requireAuth, roleAuthorisation('items'), async (req, res) => {
     const { itemlimitted } = req.body;
     const count = await itemLimittedMain
@@ -37,6 +48,16 @@ itemLimittedRoutes.post('/create', requireAuth, roleAuthorisation('items'), asyn
     }
     return res.status(200).send({ success: Boolean(saved) });
 });
+/**
+ * Get all itemlimitteds
+ * @name GET /getall/:offset/:limit
+ * @function
+ * @memberof module:routes/itemLimittedRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @returns {Object[]} - Array of itemlimitted objects
+ */
 itemLimittedRoutes.get('/getall/:offset/:limit', async (req, res) => {
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     const items = await itemLimittedLean
@@ -46,6 +67,16 @@ itemLimittedRoutes.get('/getall/:offset/:limit', async (req, res) => {
         .lean();
     return res.status(200).send(items);
 });
+/**
+ * Get a single itemlimitted by ID
+ * @name GET /getone/:id
+ * @function
+ * @memberof module:routes/itemLimittedRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @returns {Object} - itemlimitted object
+ */
 itemLimittedRoutes.get('/getone/:id', async (req, res) => {
     const { id } = req.params;
     const isValid = verifyObjectId(id);
@@ -57,6 +88,16 @@ itemLimittedRoutes.get('/getone/:id', async (req, res) => {
         .lean();
     return res.status(200).send(items);
 });
+/**
+ * Delete a single itemlimitted by ID
+ * @name DELETE /deleteone/:id
+ * @function
+ * @memberof module:routes/itemLimittedRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @returns {Isuccess} - Success status and error message if applicable
+ */
 itemLimittedRoutes.delete('/deleteone/:id', requireAuth, roleAuthorisation('items'), async (req, res) => {
     const { id } = req.params;
     const isValid = verifyObjectId(id);
@@ -71,6 +112,16 @@ itemLimittedRoutes.delete('/deleteone/:id', requireAuth, roleAuthorisation('item
         return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
+/**
+ * Update a single itemlimitted by ID
+ * @name PUT /updateone
+ * @function
+ * @memberof module:routes/itemLimittedRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @returns {Isuccess} - Success status and error message if applicable
+ */
 itemLimittedRoutes.put('/updateone', requireAuth, roleAuthorisation('items'), async (req, res) => {
     const isValid = verifyObjectId(req.body._id);
     if (!isValid) {
@@ -81,6 +132,16 @@ itemLimittedRoutes.put('/updateone', requireAuth, roleAuthorisation('items'), as
     await item.save();
     return res.status(200).send({ success: true });
 });
+/**
+ * Delete multiple itemlimitteds by ID
+ * @name PUT /deletemany
+ * @function
+ * @memberof module:routes/itemLimittedRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @returns {Isuccess} - Success status and error message if applicable
+ */
 itemLimittedRoutes.put('/deletemany', requireAuth, roleAuthorisation('items'), async (req, res) => {
     const { ids } = req.body;
     const isValid = verifyObjectIds(ids);

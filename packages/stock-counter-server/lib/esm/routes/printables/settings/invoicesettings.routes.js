@@ -1,12 +1,20 @@
-/* eslint-disable @typescript-eslint/no-misused-promises */
 import express from 'express';
 import { appendBody, deleteFiles, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, uploadFiles, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import { invoiceSettingLean, invoiceSettingMain } from '../../../models/printables/settings/invoicesettings.model';
 import { getLogger } from 'log4js';
-/** */
+/** Logger for invoice setting routes */
 const invoiceSettingRoutesLogger = getLogger('routes/invoiceSettingRoutes');
-/** */
+/** Express router for invoice setting routes */
 export const invoiceSettingRoutes = express.Router();
+/**
+ * Route for creating a new invoice setting
+ * @name POST /create
+ * @function
+ * @memberof module:routes/invoiceSettingRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ */
 invoiceSettingRoutes.post('/create', requireAuth, roleAuthorisation('printables'), async (req, res) => {
     const invoiceSetting = req.body.invoicesettings;
     const newJobCard = new invoiceSettingMain(invoiceSetting);
@@ -32,6 +40,15 @@ invoiceSettingRoutes.post('/create', requireAuth, roleAuthorisation('printables'
     }
     return res.status(200).send({ success: Boolean(saved) });
 });
+/**
+ * Route for creating a new invoice setting with image
+ * @name POST /createimg
+ * @function
+ * @memberof module:routes/invoiceSettingRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ */
 invoiceSettingRoutes.post('/createimg', requireAuth, roleAuthorisation('printables'), uploadFiles, appendBody, async (req, res) => {
     const invoiceSetting = req.body.invoicesettings;
     if (req.body.newFiles) {
@@ -72,6 +89,15 @@ invoiceSettingRoutes.post('/createimg', requireAuth, roleAuthorisation('printabl
     }
     return res.status(200).send({ success: Boolean(saved) });
 });
+/**
+ * Route for updating an existing invoice setting
+ * @name PUT /update
+ * @function
+ * @memberof module:routes/invoiceSettingRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ */
 invoiceSettingRoutes.put('/update', requireAuth, roleAuthorisation('printables'), async (req, res) => {
     const updatedInvoiceSetting = req.body.invoicesettings;
     // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -112,6 +138,15 @@ invoiceSettingRoutes.put('/update', requireAuth, roleAuthorisation('printables')
     }
     return res.status(200).send({ success: Boolean(updated) });
 });
+/**
+ * Route for updating an existing invoice setting with image
+ * @name PUT /updateimg
+ * @function
+ * @memberof module:routes/invoiceSettingRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ */
 invoiceSettingRoutes.put('/updateimg', requireAuth, uploadFiles, appendBody, deleteFiles, async (req, res) => {
     const updatedInvoiceSetting = req.body.invoicesettings;
     // eslint-disable-next-line @typescript-eslint/naming-convention

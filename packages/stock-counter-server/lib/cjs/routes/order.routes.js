@@ -1,13 +1,12 @@
 "use strict";
+/* eslint-disable @typescript-eslint/no-misused-promises */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.orderRoutes = void 0;
 const tslib_1 = require("tslib");
-/* eslint-disable @typescript-eslint/no-misused-promises */
 const express_1 = tslib_1.__importDefault(require("express"));
 const payment_controller_1 = require("../controllers/payment.controller");
 const order_model_1 = require("../models/order.model");
 const paymentrelated_model_1 = require("../models/printables/paymentrelated/paymentrelated.model");
-// import { paymentInstallsLean } from '../models/printables/paymentrelated/paymentsinstalls.model';
 const invoicerelated_model_1 = require("../models/printables/related/invoicerelated.model");
 const item_model_1 = require("../models/item.model");
 const paymentrelated_1 = require("./paymentrelated/paymentrelated");
@@ -17,17 +16,36 @@ const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const stock_counter_server_1 = require("../stock-counter-server");
 const receipt_model_1 = require("../models/printables/receipt.model");
-/** */
+/** Logger for order routes */
 const orderRoutesLogger = (0, log4js_1.getLogger)('routes/orderRoutes');
-/** */
+/** Express router for order routes */
 exports.orderRoutes = express_1.default.Router();
-// !! this is where it all boils to
+/**
+ * Route for creating an order
+ * @name POST /makeorder
+ * @function
+ * @memberof module:routes/orderRoutes
+ * @inner
+ * @param {Request} req - Express request object
+ * @param {Response} res - Express response object
+ * @returns {Promise} - Promise representing the result of the operation
+ */
 exports.orderRoutes.post('/makeorder', stock_universal_server_1.requireAuth, async (req, res) => {
     const { userId } = req.user;
     const { order, payment, bagainCred, paymentRelated, invoiceRelated } = req.body;
     const done = await (0, payment_controller_1.paymentMethodDelegator)(stock_counter_server_1.pesapalPaymentInstance, paymentRelated, invoiceRelated, order.paymentMethod, order, payment, userId, bagainCred, req.app.locals.stockCounterServer.notifRedirectUrl, req.app.locals.stockCounterServer.locaLMailHandler);
     return res.status(done.status).send({ success: done.success, data: done });
 });
+/**
+ * Route for creating an order
+ * @name POST /create
+ * @function
+ * @memberof module:routes/orderRoutes
+ * @inner
+ * @param {Request} req - Express request object
+ * @param {Response} res - Express response object
+ * @returns {Promise} - Promise representing the result of the operation
+ */
 exports.orderRoutes.post('/create', stock_universal_server_1.requireAuth, async (req, res) => {
     const { order, paymentRelated, invoiceRelated } = req.body;
     const extraNotifDesc = 'Newly created order';
@@ -68,6 +86,16 @@ exports.orderRoutes.post('/create', stock_universal_server_1.requireAuth, async 
     }
     return res.status(200).send({ success: Boolean(saved) });
 });
+/**
+ * Route for updating an order
+ * @name PUT /update
+ * @function
+ * @memberof module:routes/orderRoutes
+ * @inner
+ * @param {Request} req - Express request object
+ * @param {Response} res - Express response object
+ * @returns {Promise} - Promise representing the result of the operation
+ */
 exports.orderRoutes.put('/update', stock_universal_server_1.requireAuth, async (req, res) => {
     const { updatedOrder, paymentRelated } = req.body;
     // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -106,6 +134,16 @@ exports.orderRoutes.put('/update', stock_universal_server_1.requireAuth, async (
     }
     return res.status(200).send({ success: Boolean(updated) });
 });
+/**
+ * Route for getting a single order
+ * @name GET /getone/:id
+ * @function
+ * @memberof module:routes/orderRoutes
+ * @inner
+ * @param {Request} req - Express request object
+ * @param {Response} res - Express response object
+ * @returns {Promise} - Promise representing the result of the operation
+ */
 exports.orderRoutes.get('/getone/:id', stock_universal_server_1.requireAuth, async (req, res) => {
     const { id } = req.params;
     const isValid = (0, stock_universal_server_1.verifyObjectId)(id);

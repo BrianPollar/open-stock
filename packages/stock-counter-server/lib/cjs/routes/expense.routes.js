@@ -1,16 +1,25 @@
 "use strict";
+/* eslint-disable @typescript-eslint/no-misused-promises */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.expenseRoutes = void 0;
 const tslib_1 = require("tslib");
-/* eslint-disable @typescript-eslint/no-misused-promises */
 const express_1 = tslib_1.__importDefault(require("express"));
 const expense_model_1 = require("../models/expense.model");
 const log4js_1 = require("log4js");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
-/** */
+/** Logger for expense routes */
 const expenseRoutesLogger = (0, log4js_1.getLogger)('routes/expenseRoutes');
-/** */
+/** Router for expense routes */
 exports.expenseRoutes = express_1.default.Router();
+/**
+ * Create a new expense
+ * @name POST /create
+ * @function
+ * @memberof module:expenseRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ */
 exports.expenseRoutes.post('/create', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables'), async (req, res) => {
     const expense = req.body;
     const count = await expense_model_1.expenseMain
@@ -40,6 +49,15 @@ exports.expenseRoutes.post('/create', stock_universal_server_1.requireAuth, (0, 
     }
     return res.status(200).send({ success: Boolean(saved) });
 });
+/**
+ * Update an existing expense
+ * @name PUT /update
+ * @function
+ * @memberof module:expenseRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ */
 exports.expenseRoutes.put('/update', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables'), async (req, res) => {
     const updatedExpense = req.body;
     const isValid = (0, stock_universal_server_1.verifyObjectId)(updatedExpense._id);
@@ -80,6 +98,15 @@ exports.expenseRoutes.put('/update', stock_universal_server_1.requireAuth, (0, s
     }
     return res.status(200).send({ success: Boolean(updated) });
 });
+/**
+ * Get a single expense by ID
+ * @name GET /getone/:id
+ * @function
+ * @memberof module:expenseRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ */
 exports.expenseRoutes.get('/getone/:id', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables'), async (req, res) => {
     const { id } = req.params;
     const isValid = (0, stock_universal_server_1.verifyObjectId)(id);
@@ -91,6 +118,15 @@ exports.expenseRoutes.get('/getone/:id', stock_universal_server_1.requireAuth, (
         .lean();
     return res.status(200).send(expense);
 });
+/**
+ * Get all expenses with pagination
+ * @name GET /getall/:offset/:limit
+ * @function
+ * @memberof module:expenseRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ */
 exports.expenseRoutes.get('/getall/:offset/:limit', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables'), async (req, res) => {
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const expenses = await expense_model_1.expenseLean
@@ -100,6 +136,15 @@ exports.expenseRoutes.get('/getall/:offset/:limit', stock_universal_server_1.req
         .lean();
     return res.status(200).send(expenses);
 });
+/**
+ * Delete a single expense by ID
+ * @name DELETE /deleteone/:id
+ * @function
+ * @memberof module:expenseRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ */
 exports.expenseRoutes.delete('/deleteone/:id', stock_universal_server_1.requireAuth, async (req, res) => {
     const { id } = req.params;
     const isValid = (0, stock_universal_server_1.verifyObjectId)(id);
@@ -114,6 +159,15 @@ exports.expenseRoutes.delete('/deleteone/:id', stock_universal_server_1.requireA
         return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
+/**
+ * Search expenses by a search term and key
+ * @name POST /search/:limit/:offset
+ * @function
+ * @memberof module:expenseRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ */
 exports.expenseRoutes.post('/search/:limit/:offset', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables'), async (req, res) => {
     const { searchterm, searchKey } = req.body;
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
@@ -124,6 +178,15 @@ exports.expenseRoutes.post('/search/:limit/:offset', stock_universal_server_1.re
         .lean();
     return res.status(200).send(expenses);
 });
+/**
+ * Delete multiple expenses by ID
+ * @name PUT /deletemany
+ * @function
+ * @memberof module:expenseRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ */
 exports.expenseRoutes.put('/deletemany', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables'), async (req, res) => {
     const { ids } = req.body;
     const isValid = (0, stock_universal_server_1.verifyObjectIds)(ids);
