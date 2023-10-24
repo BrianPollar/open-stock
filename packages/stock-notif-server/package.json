@@ -1,0 +1,38 @@
+{
+  "name": "@open-stock/stock-notif-server",
+  "version": "2.1.2",
+  "description": "> TODO: description",
+  "main": "lib/cjs/index.js",
+  "module": "lib/esm/index.js",
+  "types": "lib/types/index.d.ts",
+  "scripts": {
+    "compileLib": "tsc -b ./tsconfig.cjs.json ./tsconfig.esm.json ./tsconfig.types.json",
+    "build:clean": "rm -rf ./build",
+    "build": "npm-run-all build:clean compile && node ./scripts/prepare-package-json",
+    "publishLib": "npm publish --access public lib",
+    "test:vite": "vitest"
+  },
+  "author": "BrianPollar <pollarbrian@hotmail.com>",
+  "license": "ISC",
+  "dependencies": {
+    "@sendgrid/mail": "^7.7.0",
+    "authy": "^1.4.0",
+    "log4js": "^6.9.1",
+    "mongoose-unique-validator": "^4.0.0",
+    "twilio": "^4.11.0",
+    "web-push": "^3.6.1"
+  },
+  "homepage": "",
+  "peerDependencies": {
+    "mongoose": "^7.5.0",
+    "@open-stock/stock-universal": "*",
+    "@open-stock/stock-universal-server": "*",
+    "pesapal3": "*",
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "supertest": "^6.3.3",
+    "vite": "^4.3.9",
+    "vitest": "^0.32.2"
+  }
+}

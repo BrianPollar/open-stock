@@ -1,0 +1,129 @@
+/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
+import { DatabaseAuto, Ideliverycity, Isuccess, TpriceCurrenncy } from '@open-stock/stock-universal';
+import { lastValueFrom } from 'rxjs';
+import { StockCounterClient } from '../stock-counter-client';
+
+/** The  DeliveryCity  class extends the  DatabaseAuto  class and has properties for name, shipping cost, currency, and delivery time. The constructor initializes these properties using the data provided. The class also provides static methods for retrieving delivery cities from the server, creating a new delivery city, deleting multiple delivery cities, updating a delivery city, and deleting a single delivery city. */
+/**
+ * Represents a delivery city with its properties.
+ */
+export class DeliveryCity extends DatabaseAuto {
+  /**
+   * The name of the delivery city.
+   */
+  name: string;
+
+  /**
+   * The shipping cost of the delivery city.
+   */
+  shippingCost: number;
+
+  /**
+   * The currency used for the shipping cost.
+   */
+  currency: TpriceCurrenncy;
+
+  /**
+   * The number of days it takes to make the delivery.
+   */
+  deliversInDays: number;
+
+  /**
+   * Creates a new instance of DeliveryCity.
+   * @param data An object containing the data to initialize the instance.
+   */
+  constructor(data: Ideliverycity) {
+    super(data);
+    this.name = data.name;
+    this.shippingCost = data.shippingCost;
+    this.currency = data.currency;
+    this.deliversInDays = data.deliversInDays;
+  }
+
+  /**
+   * Retrieves all delivery cities from the server.
+   * @param url The URL to retrieve the delivery cities from.
+   * @param offset The offset to start retrieving the delivery cities from.
+   * @param limit The maximum number of delivery cities to retrieve.
+   * @returns An array of DeliveryCity instances.
+   */
+  static async getDeliveryCitys(
+    url = 'getall',
+    offset = 0,
+    limit = 0
+  ): Promise<DeliveryCity[]> {
+    const observer$ = StockCounterClient.ehttp
+      .makeGet(`/deliverycity/${url}/${offset}/${limit}`);
+    const citys = await lastValueFrom(observer$) as Ideliverycity[];
+    return citys.map(val => new DeliveryCity(val));
+  }
+
+  /**
+   * Retrieves a single delivery city from the server.
+   * @param id The ID of the delivery city to retrieve.
+   * @returns A DeliveryCity instance.
+   */
+  static async getOneDeliveryCity(
+    id: string
+  ): Promise<DeliveryCity> {
+    const observer$ = StockCounterClient.ehttp.makeGet(`/deliverycity/getone/${id}`);
+    const city = await lastValueFrom(observer$) as Ideliverycity;
+    return new DeliveryCity(city);
+  }
+
+  /**
+   * Creates a new delivery city on the server.
+   * @param deliverycity An object containing the data for the new delivery city.
+   * @returns An object indicating whether the operation was successful.
+   */
+  static async createDeliveryCity(
+    deliverycity: Ideliverycity
+  ): Promise<Isuccess> {
+    const observer$ = StockCounterClient.ehttp
+      .makePost('/deliverycity/create', {
+        deliverycity
+      });
+    return await lastValueFrom(observer$) as Isuccess;
+  }
+
+  /**
+   * Deletes multiple delivery cities from the server.
+   * @param ids An array of IDs of the delivery cities to delete.
+   * @returns An object indicating whether the operation was successful.
+   */
+  static async deleteDeliveryCitys(
+    ids: string[]
+  ): Promise<Isuccess> {
+    const observer$ = StockCounterClient.ehttp
+      .makePut('/deliverycity/deletemany', { ids });
+    return await lastValueFrom(observer$) as Isuccess;
+  }
+
+  /**
+   * Updates the properties of the current instance with the provided values and sends a request to the server to update the corresponding delivery city.
+   * @param vals An object containing the new values for the delivery city.
+   * @returns An object indicating whether the operation was successful.
+   */
+  async updateDeliveryCity(vals: Ideliverycity): Promise<Isuccess> {
+    const observer$ = StockCounterClient.ehttp
+      .makePut('/deliverycity/update', vals);
+    const updated = await lastValueFrom(observer$) as Isuccess;
+    if (updated.success) {
+      this.name = vals.name || this.name;
+      this.shippingCost = vals.shippingCost || this.shippingCost;
+      this.currency = vals.currency || this.currency;
+      this.deliversInDays = vals.deliversInDays || this.deliversInDays;
+    }
+    return updated;
+  }
+
+  /**
+   * Sends a request to the server to delete the current delivery city.
+   * @returns An object indicating whether the operation was successful.
+   */
+  async deleteDeliveryCity(): Promise<Isuccess> {
+    const observer$ = StockCounterClient.ehttp
+      .makeDelete(`/deliverycity/deleteone/${this._id}`);
+    return await lastValueFrom(observer$) as Isuccess;
+  }
+}

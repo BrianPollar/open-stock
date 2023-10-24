@@ -1,0 +1,36 @@
+{
+  "name": "@open-stock/stock-universal-server",
+  "version": "2.1.2",
+  "description": "> TODO: description",
+  "main": "lib/cjs/index.js",
+  "module": "lib/esm/index.js",
+  "types": "lib/types/index.d.ts",
+  "scripts": {
+    "compileLib": "tsc -b ./tsconfig.cjs.json ./tsconfig.esm.json ./tsconfig.types.json",
+    "build:clean": "rm -rf ./build",
+    "build": "npm-run-all build:clean compile && node ./scripts/prepare-package-json",
+    "publishLib": "npm publish --access public lib",
+    "test:vite": "vitest"
+  },
+  "author": "BrianPollar <pollarbrian@hotmail.com>",
+  "license": "ISC",
+  "dependencies": {
+    "debug": "^4.3.4",
+    "log4js": "^6.9.1",
+    "multer": "^1.4.5-lts.1",
+    "passport": "^0.6.0",
+    "passport-google-oauth": "^2.0.0",
+    "passport-jwt": "^4.0.1"
+  },
+  "homepage": "",
+  "peerDependencies": {
+    "mongoose": "^7.5.0",
+    "@open-stock/stock-universal": "*",
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.4",
+    "vite": "^4.3.9",
+    "vitest": "^0.32.2"
+  }
+}

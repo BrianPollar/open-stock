@@ -1,0 +1,38 @@
+{
+  "name": "@open-stock/stock-counter-client",
+  "version": "2.2.2",
+  "description": "> TODO: description",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "compileLib": "tsc",
+    "publishLib": "npm publish --access public lib",
+    "test:vite": "vitest"
+  },
+  "author": "BrianPollar <pollarbrian@hotmail.com>",
+  "license": "ISC",
+  "dependencies": {},
+  "homepage": "",
+  "directories": {
+    "lib": "lib",
+    "test": "tests"
+  },
+  "files": [
+    "lib"
+  ],
+  "devDependencies": {
+    "@faker-js/faker": "^8.0.2",
+    "axios-mock-adapter": "^1.21.5",
+    "vite": "^4.3.9",
+    "vitest": "^0.32.2"
+  },
+  "peerDependencies": {
+    "axios": "^1.4.0",
+    "axios-observable": "^2.0.0",
+    "rxjs": "^7.8.0",
+    "@open-stock/stock-universal": "*",
+    "@open-stock/stock-notif-client": "*",
+    "@open-stock/stock-auth-client": "*"
+  }
+}

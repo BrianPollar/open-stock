@@ -1,0 +1,39 @@
+{
+  "name": "@open-stock/stock-auth-server",
+  "version": "2.1.2",
+  "description": "> TODO: description",
+  "main": "lib/cjs/index.js",
+  "module": "lib/esm/index.js",
+  "types": "lib/types/index.d.ts",
+  "scripts": {
+    "compileLib": "tsc -b ./tsconfig.cjs.json ./tsconfig.esm.json ./tsconfig.types.json",
+    "build:clean": "rm -rf ./build",
+    "build": "npm-run-all build:clean compile && node ./scripts/prepare-package-json",
+    "publishLib": "npm publish --access public lib",
+    "test:vite": "vitest"
+  },
+  "author": "BrianPollar <pollarbrian@hotmail.com>",
+  "license": "ISC",
+  "dependencies": {
+    "authy": "^1.4.0",
+    "bcrypt": "^5.1.1",
+    "jsonwebtoken": "^9.0.0",
+    "log4js": "^6.9.1",
+    "mongoose-unique-validator": "^4.0.0",
+    "passport": "^0.6.0",
+    "passport-google-oauth": "^2.0.0",
+    "passport-jwt": "^4.0.1"
+  },
+  "homepage": "",
+  "peerDependencies": {
+    "mongoose": "^7.5.0",
+    "@open-stock/stock-notif-server": "*",
+    "@open-stock/stock-universal": "*",
+    "@open-stock/stock-universal-server": "*",
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "supertest": "^6.3.3",
+    "ts-node": "^10.9.1"
+  }
+}

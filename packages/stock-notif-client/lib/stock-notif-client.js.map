@@ -1,0 +1,1 @@
+{"version":3,"file":"stock-notif-client.js","sourceRoot":"","sources":["../src/stock-notif-client.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,eAAe,EAAE,gBAAgB,EAAE,MAAM,6BAA6B,CAAC;AAGhF,MAAM;AACN,MAAM,OAAO,gBAAgB;IAI3B,YACE,aAAoB;QAEpB,gBAAgB,CAAC,KAAK,GAAG,IAAI,eAAe,CAAC,aAAa,CAAC,CAAC;IAC9D,CAAC;;AAPM,uBAAM,GAAG,IAAI,gBAAgB,EAAE,CAAC"}

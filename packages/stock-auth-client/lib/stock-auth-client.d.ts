@@ -1,0 +1,12 @@
+import { EhttpController, LoggerController } from '@open-stock/stock-universal';
+import Axios from 'axios-observable';
+/** This is a class definition for  StockAuthClient  that is exported. It represents a client for authenticating with a stock service.  */
+/** */
+export declare class StockAuthClient {
+    /** ehttp: A static property of type  EhttpController. It is used for making HTTP requests to the stock service. */
+    static ehttp: EhttpController;
+    /** logger : A static property of type  LoggerController . It is used for logging messages related to the stock authentication client. */
+    static logger: LoggerController;
+    /** constructor : A constructor method that initializes the  ehttp property with an instance of  EhttpController. It takes an  axiosInstance  parameter, which is an instance of Axios used for making HTTP requests. */
+    constructor(axiosInstance: Axios);
+}
