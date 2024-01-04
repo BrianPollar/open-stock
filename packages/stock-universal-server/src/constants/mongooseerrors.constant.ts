@@ -1,4 +1,8 @@
-/** */
+/**
+ * Converts a Mongoose error object into a string representation.
+ * @param errors - The Mongoose error object.
+ * @returns A string representation of the Mongoose errors.
+ */
 export const stringifyMongooseErr = (errors: object): string => {
   const errorsStrArr = Object.keys(errors).map(key => {
     let err = '';

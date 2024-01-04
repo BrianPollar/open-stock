@@ -1,14 +1,16 @@
 {
   "name": "@open-stock/stock-auth-client",
-  "version": "2.1.2",
+  "version": "2.4.8",
   "description": "> TODO: description",
-  "main": "lib/index.js",
-  "types": "lib/index.d.ts",
-  "type": "module",
+  "main": "lib/cjs/index.js",
+  "module": "lib/esm/index.js",
+  "types": "lib/types/index.d.ts",
   "scripts": {
-    "compileLib": "tsc",
+    "compileLib": "rm -rf ./lib && tsc -b ./tsconfig.cjs.json ./tsconfig.esm.json ./tsconfig.types.json",
     "publishLib": "npm publish --access public lib",
-    "test:vite": "vitest"
+    "test:vite": "vitest",
+    "lint": "eslint . --ext .ts",
+    "versionLib": "npm version"
   },
   "author": "BrianPollar <pollarbrian@hotmail.com>",
   "license": "ISC",

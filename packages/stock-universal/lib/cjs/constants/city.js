@@ -2,10 +2,17 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.defaultCitys = void 0;
 // This export variable defines an array of cities.
-/** */
+/**
+ * An array of default cities.
+ * @interface Icity
+ * @property {string} name - The name of the city.
+ */
 exports.defaultCitys = [
     {
-        // The name of the city.
+        /**
+         * The name of the city.
+         * @type {string}
+         */
         name: 'Kampala'
     },
     {
@@ -46,55 +53,6 @@ exports.defaultCitys = [
     },
     {
         name: 'Apac'
-    },
-    {
-        // This city is repeated 10 times.
-        name: 'Kampala'
-    },
-    {
-        name: 'Kampala'
-    },
-    {
-        name: 'Kampala'
-    },
-    {
-        name: 'Kampala'
-    },
-    {
-        name: 'Kampala'
-    },
-    {
-        name: 'Kampala'
-    },
-    {
-        name: 'Kampala'
-    },
-    {
-        name: 'Kampala'
-    },
-    {
-        name: 'Kampala'
-    },
-    {
-        name: 'Kampala'
-    },
-    {
-        name: 'Kampala'
-    },
-    {
-        name: 'Kampala'
-    },
-    {
-        name: 'Kampala'
-    },
-    {
-        name: 'Kampala'
-    },
-    {
-        name: 'Kampala'
-    },
-    {
-        name: 'Kampala'
     }
 ];
 // This comment explains why the `defaultCitys` array is commented out.

@@ -1,1 +1,0 @@
-{"version":3,"file":"stock-auth-client.js","sourceRoot":"","sources":["../src/stock-auth-client.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,eAAe,EAAE,gBAAgB,EAAE,MAAM,6BAA6B,CAAC;AAGhF,0IAA0I;AAC1I,MAAM;AACN,MAAM,OAAO,eAAe;IAO1B,wNAAwN;IACxN,YACE,aAAoB;QAEpB,eAAe,CAAC,KAAK,GAAG,IAAI,eAAe,CAAC,aAAa,CAAC,CAAC;IAC7D,CAAC;;AARD,yIAAyI;AAClI,sBAAM,GAAG,IAAI,gBAAgB,EAAE,CAAC"}

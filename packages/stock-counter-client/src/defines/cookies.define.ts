@@ -25,7 +25,7 @@ export class Cookies {
   async getSettings() {
     const observer$ = StockCounterClient.ehttp.makeGet('/cookies/getsettings');
     const response = await lastValueFrom(observer$);
-    const settings = (response as any).body;
+    const settings = (response as {body}).body;
     this.cartEnabled = settings?.cartEnabled;
     this.recentEnabled = settings?.recentEnabled;
   }
@@ -41,7 +41,7 @@ export class Cookies {
     const observer$ = StockCounterClient.ehttp
       .makePut('/cookies/updatesettings', { settings });
     const response = await lastValueFrom(observer$);
-    const updated = (response as any).body;
+    const updated = (response as {body}).body;
     if (updated.success) {
       this.cartEnabled = settings.cartEnabled;
       this.recentEnabled = settings.recentEnabled;
@@ -65,7 +65,7 @@ export class Cookies {
     const observer$ = StockCounterClient.ehttp
       .makePut('/cookies/addcartitem', { cartItemId, totalCostwithNoShipping });
     const response = await lastValueFrom(observer$);
-    return (response as any).body as Isuccess;
+    return (response as {body}).body as Isuccess;
   }
 
   /**
@@ -82,7 +82,7 @@ export class Cookies {
     const observer$ = StockCounterClient.ehttp
       .makePut('/cookies/addrecentitem', { recentItemId });
     const response = await lastValueFrom(observer$);
-    return (response as any).body as Isuccess;
+    return (response as {body}).body as Isuccess;
   }
 
   /**
@@ -99,7 +99,7 @@ export class Cookies {
     const observer$ = StockCounterClient.ehttp
       .makePut(`/cookies/deletecartitem/${recentItemId}`, {});
     const response = await lastValueFrom(observer$);
-    const deleted = (response as any).body as Isuccess;
+    const deleted = (response as {body}).body as Isuccess;
     return deleted;
   }
 
@@ -115,7 +115,7 @@ export class Cookies {
     const observer$ = StockCounterClient.ehttp
       .makePut('/cookies/clearcart', {});
     const response = await lastValueFrom(observer$) ;
-    return (response as any).body as Isuccess;
+    return (response as {body}).body as Isuccess;
   }
 
   /**
@@ -131,7 +131,7 @@ export class Cookies {
     const observer$ = StockCounterClient.ehttp
       .makeGet('/cookies/appendtocart');
     const response = await lastValueFrom(observer$);
-    const carts = (response as any).body as IcartInterface[];
+    const carts = (response as {body}).body as IcartInterface[];
     return carts;
   }
 
@@ -148,6 +148,6 @@ export class Cookies {
     const observer$ = StockCounterClient.ehttp
       .makeGet('/cookies/appendtorecent');
     const response = await lastValueFrom(observer$) as { body: Item[] };
-    return (response as any).body as Item[];
+    return (response as {body}).body as Item[];
   }
 }

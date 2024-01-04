@@ -23,43 +23,39 @@ import { invoiceSettingRoutes } from './routes/printables/settings/invoicesettin
 import { invoiceRelateRoutes } from './routes/printables/related/invoicerelated.route';
 import { itemDecoyRoutes } from './routes/itemdecoy.routes';
 import { itemOfferRoutes } from './routes/itemoffer.routes';
-import { IlAuth } from '@open-stock/stock-auth-server';
+import { IlAuth, isAuthServerRunning } from '@open-stock/stock-auth-server';
 import { runPassport } from '@open-stock/stock-universal-server';
 import { PesaPalController } from 'pesapal3';
 import { customerRoutes } from './routes/user-related/customer.routes';
 import { staffRoutes } from './routes/user-related/staff.routes';
-import { createPaymentRelatedModel } from './models/printables/paymentrelated/paymentrelated.model';
-// import { createPaymentInstallModel } from './models/printables/paymentrelated/paymentsinstalls.model';
-import { createInvoiceRelatedModel } from './models/printables/related/invoicerelated.model';
-import { createExpenseReportModel } from './models/printables/report/expenesreport.model';
-import { createInvoicesReportModel } from './models/printables/report/invoicereport.model';
-import { createProfitandlossReportModel } from './models/printables/report/profitandlossreport.model';
-import { createSalesReportModel } from './models/printables/report/salesreport.model';
-import { createTaxReportModel } from './models/printables/report/taxreport.model';
-import { createInvoiceSettingModel } from './models/printables/settings/invoicesettings.model';
-import { createDeliveryNoteModel } from './models/printables/deliverynote.model';
-import { createEstimateModel } from './models/printables/estimate.model';
-import { createInvoiceModel } from './models/printables/invoice.model';
-import { createJobCardModel } from './models/printables/jobcard.model';
-import { createPickupLocationModel } from './models/printables/pickuplocation.model';
-import { createReceiptModel } from './models/printables/receipt.model';
-import { createCustomerModel } from './models/user-related/customer.model';
-import { createStaffModel } from './models/user-related/staff.model';
-import { createDeliverycityModel } from './models/deliverycity.model';
-import { createExpenseModel } from './models/expense.model';
-import { createFaqModel } from './models/faq.model';
-import { createFaqanswerModel } from './models/faqanswer.model';
-import { createItemModel } from './models/item.model';
-import { createItemDecoyModel } from './models/itemdecoy.model';
-import { createItemOfferModel } from './models/itemoffer.model';
-import { createOrderModel } from './models/order.model';
-import { createPaymentModel } from './models/payment.model';
-import { createPromocodeModel } from './models/promocode.model';
-import { createReviewModel } from './models/review.model';
-import { EmailHandler } from '@open-stock/stock-notif-server';
-import { itemLimittedRoutes } from './routes/itemlimitted.routes';
-import { createItemLimittedModel } from './models/itemlimitted.model';
 import { localUserRoutes } from './routes/user-related/locluser.routes';
+import { connectStockCounterDatabase, createStockCounterServerLocals, isStockCounterServerRunning } from './stock-counter-local';
+import { reviewRoutesDummy } from './routes-dummy/review.routes';
+import { itemRoutesDummy } from './routes-dummy/item.routes';
+import { paymentRoutesDummy } from './routes-dummy/payment.routes';
+import { orderRoutesDummy } from './routes-dummy/order.routes';
+import { faqRoutesDummy } from './routes-dummy/faq.routes';
+import { deliverycityRoutesDummy } from './routes-dummy/deliverycity.routes';
+import { cookiesRoutesDummy } from './routes-dummy/cookies.routes';
+import { promocodeRoutesDummy } from './routes-dummy/promo.routes';
+import { deliveryNoteRoutesDummy } from './routes-dummy/printables/deliverynote.routes';
+import { estimateRoutesDummy } from './routes-dummy/printables/estimate.routes';
+import { invoiceRoutesDummy } from './routes-dummy/printables/invoice.routes';
+import { pickupLocationRoutesDummy } from './routes-dummy/printables/pickuplocation.routes';
+import { receiptRoutesDummy } from './routes-dummy/printables/receipt.routes';
+import { expenseRoutesDummy } from './routes-dummy/expense.routes';
+import { expenseReportRoutesDummy } from './routes-dummy/printables/report/expensereport.routes';
+import { profitAndLossReportRoutesDummy } from './routes-dummy/printables/report/profitandlossreport.routes';
+import { salesReportRoutesDummy } from './routes-dummy/printables/report/salesreport.routes';
+import { taxReportRoutesDummy } from './routes-dummy/printables/report/taxreport.routes';
+import { invoicesReportRoutesDummy } from './routes-dummy/printables/report/invoicereport.routes';
+import { invoiceSettingRoutesDummy } from './routes-dummy/printables/settings/invoicesettings.routes';
+import { invoiceRelateRoutesDummy } from './routes-dummy/printables/related/invoicerelated.route';
+import { itemDecoyRoutesDummy } from './routes-dummy/itemdecoy.routes';
+import { itemOfferRoutesDummy } from './routes-dummy/itemoffer.routes';
+import { customerRoutesDummy } from './routes-dummy/user-related/customer.routes';
+import { staffRoutesDummy } from './routes-dummy/user-related/staff.routes';
+import { localUserRoutesDummy } from './routes-dummy/user-related/locluser.routes';
 
 /**
  * Represents the configuration object for the StockCounterServer.
@@ -76,11 +72,12 @@ export interface IstockcounterServerConfig {
   /**
   * The URL for the notification redirect.
   */
-  notifRedirectUrl: string;
+  pesapalNotificationRedirectUrl: string;
   /**
   * The path configuration for the local server.
   */
   localPath: IlocalPath;
+  useDummyRoutes?: boolean;
 }
 
 /**
@@ -107,127 +104,123 @@ export interface IlocalPath {
 export let pesapalPaymentInstance: PesaPalController;
 
 /**
- * Represents the Stock Counter Server.
+ * The URL to redirect to when a notification is received.
  */
-class StockCounterServer {
-  /**
-   * Constructor for the StockCounterServer class.
-   *
-   * @param notifRedirectUrl The URL for the notification redirect.
-   * @param pesapalPaymentInstance The PesaPal payment instance for the server.
-   * @param locaLMailHandler The mail handler for the server.
-   */
-  constructor(
-    public notifRedirectUrl: string,
-    public pesapalPaymentInstance: PesaPalController,
-    public locaLMailHandler: EmailHandler
-  ) { }
-}
+export let notifRedirectUrl: string;
 
 /**
- * Connects to the Stock Counter database.
- *
- * @param databaseUrl The database URL for the server.
- * @returns A promise with the database models.
+ * Runs the Stock Counter server with the provided configuration and payment instance.
+ * @param config - The configuration for the Stock Counter server.
+ * @param paymentInstance - The payment instance for handling payments.
+ * @returns A promise that resolves to an object containing the Stock Counter router.
+ * @throws An error if the authentication server is not running.
  */
-export const connectStockCounterDatabase = (databaseUrl: string) => {
-  return Promise.all([
-    createPaymentRelatedModel(databaseUrl),
-    // createPaymentInstallModel(databaseUrl),
-    createInvoiceRelatedModel(databaseUrl),
-    createExpenseReportModel(databaseUrl),
-    createInvoicesReportModel(databaseUrl),
-    createProfitandlossReportModel(databaseUrl),
-    createSalesReportModel(databaseUrl),
-    createTaxReportModel(databaseUrl),
-    createInvoiceSettingModel(databaseUrl),
-    createDeliveryNoteModel(databaseUrl),
-    createEstimateModel(databaseUrl),
-    createInvoiceModel(databaseUrl),
-    createJobCardModel(databaseUrl),
-    createPickupLocationModel(databaseUrl),
-    createReceiptModel(databaseUrl),
-    createCustomerModel(databaseUrl),
-    createStaffModel(databaseUrl),
-    createDeliverycityModel(databaseUrl),
-    createExpenseModel(databaseUrl),
-    createFaqModel(databaseUrl),
-    createFaqanswerModel(databaseUrl),
-    createItemModel(databaseUrl),
-    createItemDecoyModel(databaseUrl),
-    createItemOfferModel(databaseUrl),
-    createOrderModel(databaseUrl),
-    createPaymentModel(databaseUrl),
-    createPromocodeModel(databaseUrl),
-    createReviewModel(databaseUrl),
-    createItemLimittedModel(databaseUrl)
-  ]);
-};
-
-/** */
 export const runStockCounterServer = async(
   config: IstockcounterServerConfig,
-  paymentInstance: PesaPalController,
-  emailHandler: EmailHandler, app) => {
-  app.locals.stockCounterRouter = true;
-  Object.keys(config.localPath).forEach(key => {
-    app.locals[key] = config.localPath[key];
-  });
-
+  paymentInstance: PesaPalController) => {
+  if (!isAuthServerRunning()) {
+    const error = new Error('Auth server is not running, please start by firing up that server');
+    throw error;
+  }
   // connect models
   await connectStockCounterDatabase(config.databaseConfigUrl);
 
   pesapalPaymentInstance = paymentInstance;
 
-  const stockCounterServer = new StockCounterServer(config.notifRedirectUrl, paymentInstance, emailHandler);
-
-  app.locals.stockCounterServer = stockCounterServer;
   runPassport(config.authSecrets.jwtSecret);
   const stockCounterRouter = express.Router();
-  stockCounterRouter.use('/review', reviewRoutes);
-  stockCounterRouter.use('/item', itemRoutes);
-  stockCounterRouter.use('/payment', paymentRoutes);
-  stockCounterRouter.use('/order', orderRoutes);
-  stockCounterRouter.use('/faq', faqRoutes);
-  stockCounterRouter.use('/deliverycity', deliverycityRoutes);
-  stockCounterRouter.use('/cookies', cookiesRoutes);
-  stockCounterRouter.use('/promo', promocodeRoutes);
 
-  stockCounterRouter.use('/deliverynote', deliveryNoteRoutes);
-  stockCounterRouter.use('/estimate', estimateRoutes);
-  stockCounterRouter.use('/invoice', invoiceRoutes);
-  stockCounterRouter.use('/pickuplocation', pickupLocationRoutes);
-  stockCounterRouter.use('/receipt', receiptRoutes);
+  if (!config.useDummyRoutes) {
+    stockCounterRouter.use('/review', reviewRoutes);
+    stockCounterRouter.use('/item', itemRoutes);
+    stockCounterRouter.use('/payment', paymentRoutes);
+    stockCounterRouter.use('/order', orderRoutes);
+    stockCounterRouter.use('/faq', faqRoutes);
+    stockCounterRouter.use('/deliverycity', deliverycityRoutes);
+    stockCounterRouter.use('/cookies', cookiesRoutes);
+    stockCounterRouter.use('/promo', promocodeRoutes);
 
-  stockCounterRouter.use('/expense', expenseRoutes);
+    stockCounterRouter.use('/deliverynote', deliveryNoteRoutes);
+    stockCounterRouter.use('/estimate', estimateRoutes);
+    stockCounterRouter.use('/invoice', invoiceRoutes);
+    stockCounterRouter.use('/pickuplocation', pickupLocationRoutes);
+    stockCounterRouter.use('/receipt', receiptRoutes);
 
-  // reports
-  stockCounterRouter.use('/expensereport', expenseReportRoutes);
-  stockCounterRouter.use('/profitandlossreport', profitAndLossReportRoutes);
-  stockCounterRouter.use('/salesreport', salesReportRoutes);
-  stockCounterRouter.use('/taxreport', taxReportRoutes);
-  stockCounterRouter.use('/invoicesreport', invoicesReportRoutes);
+    stockCounterRouter.use('/expense', expenseRoutes);
 
-  // settings
-  stockCounterRouter.use('/invoicesettings', invoiceSettingRoutes);
+    // reports
+    stockCounterRouter.use('/expensereport', expenseReportRoutes);
+    stockCounterRouter.use('/profitandlossreport', profitAndLossReportRoutes);
+    stockCounterRouter.use('/salesreport', salesReportRoutes);
+    stockCounterRouter.use('/taxreport', taxReportRoutes);
+    stockCounterRouter.use('/invoicesreport', invoicesReportRoutes);
 
-  // pay installs
-  // stockCounterRouter.use('/paymentinstalls', paymentInstallsRoutes);
-  stockCounterRouter.use('/invoicerelated', invoiceRelateRoutes);
+    // settings
+    stockCounterRouter.use('/invoicesettings', invoiceSettingRoutes);
 
-  // decoys
-  stockCounterRouter.use('/itemdecoy', itemDecoyRoutes);
+    // pay installs
+    // stockCounterRouter.use('/paymentinstalls', paymentInstallsRoutes);
+    stockCounterRouter.use('/invoicerelated', invoiceRelateRoutes);
 
-  // offers
-  stockCounterRouter.use('/itemoffer', itemOfferRoutes);
+    // decoys
+    stockCounterRouter.use('/itemdecoy', itemDecoyRoutes);
 
-  // limitted items
-  stockCounterRouter.use('/itemlimitted', itemLimittedRoutes);
+    // offers
+    stockCounterRouter.use('/itemoffer', itemOfferRoutes);
 
-  // user-related
-  stockCounterRouter.use('/customer', customerRoutes);
-  stockCounterRouter.use('/staff', staffRoutes);
-  stockCounterRouter.use('/localuser', localUserRoutes);
+    // user-related
+    stockCounterRouter.use('/customer', customerRoutes);
+    stockCounterRouter.use('/staff', staffRoutes);
+    stockCounterRouter.use('/localuser', localUserRoutes);
+  } else {
+    stockCounterRouter.use('/review', reviewRoutesDummy);
+    stockCounterRouter.use('/item', itemRoutesDummy);
+    stockCounterRouter.use('/payment', paymentRoutesDummy);
+    stockCounterRouter.use('/order', orderRoutesDummy);
+    stockCounterRouter.use('/faq', faqRoutesDummy);
+    stockCounterRouter.use('/deliverycity', deliverycityRoutesDummy);
+    stockCounterRouter.use('/cookies', cookiesRoutesDummy);
+    stockCounterRouter.use('/promo', promocodeRoutesDummy);
 
-  return stockCounterRouter;
+    stockCounterRouter.use('/deliverynote', deliveryNoteRoutesDummy);
+    stockCounterRouter.use('/estimate', estimateRoutesDummy);
+    stockCounterRouter.use('/invoice', invoiceRoutesDummy);
+    stockCounterRouter.use('/pickuplocation', pickupLocationRoutesDummy);
+    stockCounterRouter.use('/receipt', receiptRoutesDummy);
+
+    stockCounterRouter.use('/expense', expenseRoutesDummy);
+
+    // reports
+    stockCounterRouter.use('/expensereport', expenseReportRoutesDummy);
+    stockCounterRouter.use('/profitandlossreport', profitAndLossReportRoutesDummy);
+    stockCounterRouter.use('/salesreport', salesReportRoutesDummy);
+    stockCounterRouter.use('/taxreport', taxReportRoutesDummy);
+    stockCounterRouter.use('/invoicesreport', invoicesReportRoutesDummy);
+
+    // settings
+    stockCounterRouter.use('/invoicesettings', invoiceSettingRoutesDummy);
+
+    // pay installs
+    // stockCounterRouter.use('/paymentinstalls', express.Router());
+    stockCounterRouter.use('/invoicerelated', invoiceRelateRoutesDummy);
+
+    // decoys
+    stockCounterRouter.use('/itemdecoy', itemDecoyRoutesDummy);
+
+    // offers
+    stockCounterRouter.use('/itemoffer', itemOfferRoutesDummy);
+
+    // user-related
+    stockCounterRouter.use('/customer', customerRoutesDummy);
+    stockCounterRouter.use('/staff', staffRoutesDummy);
+    stockCounterRouter.use('/localuser', localUserRoutesDummy);
+  }
+  createStockCounterServerLocals(config.pesapalNotificationRedirectUrl);
+  return Promise.resolve({ stockCounterRouter });
 };
+
+/**
+ * Checks if the stock counter server is running.
+ * @returns {boolean} True if the stock counter server is running, false otherwise.
+ */
+export const isCounterServerRunning = () => isStockCounterServerRunning;

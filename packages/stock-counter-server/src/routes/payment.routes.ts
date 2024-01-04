@@ -24,24 +24,33 @@ import {
 import { getLogger } from 'log4js';
 import { relegateInvRelatedCreation } from './printables/related/invoicerelated';
 import { Icustomrequest, IinvoiceRelated, IpaymentRelated, Isuccess, Iuser } from '@open-stock/stock-universal';
-import { offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId } from '@open-stock/stock-universal-server';
+import { fileMetaLean, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import { userLean } from '@open-stock/stock-auth-server';
 import { pesapalPaymentInstance } from '../stock-counter-server';
 import { receiptLean } from '../models/printables/receipt.model';
 
-/** */
 const paymentRoutesLogger = getLogger('routes/paymentRoutes');
 
-/** */
+/**
+ * Express router for payment routes.
+ */
 export const paymentRoutes = express.Router();
 
-/** paymentRoutes.post('/braintreeclenttoken', requireAuth, async (req, res) => {
+/** paymentRoutes.post('/braintreeclenttoken/:companyIdParam', requireAuth, async (req, res) => {
   const token = await brainTreeInstance.generateToken();
   return res.status(200).send({ token, success: true });
 });**/
 
-paymentRoutes.post('/create', requireAuth, async(req, res) => {
+paymentRoutes.post('/create/:companyIdParam', requireAuth, async(req, res) => {
   let { payment } = req.body;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectId(queryId);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
+  payment.companyId = queryId;
   const { paymentRelated, invoiceRelated } = req.body;
   if (!payment) {
     payment = {
@@ -50,8 +59,7 @@ paymentRoutes.post('/create', requireAuth, async(req, res) => {
   }
   const extraNotifDesc = 'Newly created order';
   const paymentRelatedRes = await relegatePaymentRelatedCreation(
-    paymentRelated, invoiceRelated, 'order', extraNotifDesc, req.app.locals.stockCounterServer.notifRedirectUrl);
-  console.log('77777777', paymentRelatedRes);
+    paymentRelated, invoiceRelated, 'order', extraNotifDesc, queryId);
   if (!paymentRelatedRes.success) {
     return res.status(paymentRelatedRes.status).send(paymentRelatedRes);
   }
@@ -60,21 +68,19 @@ paymentRoutes.post('/create', requireAuth, async(req, res) => {
   const payments = invoiceRelated.payments.slice();
   invoiceRelated.payments.length = 0;
   invoiceRelated.payments = [];
-  const invoiceRelatedRes = await relegateInvRelatedCreation(invoiceRelated as Required<IinvoiceRelated>, extraNotifDesc, req.app.locals.stockCounterServer.notifRedirectUrl, req.app.locals.stockCounterServer.locaLMailHandler, true);
-  console.log('9999999999', invoiceRelatedRes);
+  const invoiceRelatedRes = await relegateInvRelatedCreation(invoiceRelated as Required<IinvoiceRelated>, companyId, extraNotifDesc, true);
   if (!invoiceRelatedRes.success) {
     return res.status(invoiceRelatedRes.status).send(invoiceRelatedRes);
   }
   payment.invoiceRelated = invoiceRelatedRes.id;
 
   if (payments && payments.length) {
-    await makePaymentInstall(payments, invoiceRelatedRes.id);
+    await makePaymentInstall(payments, invoiceRelatedRes.id, queryId);
   }
   const newPaymt = new paymentMain(payment);
   let errResponse: Isuccess;
   const saved = await newPaymt.save()
     .catch(err => {
-      console.log('this is ERROR SHIT', err);
       paymentRoutesLogger.error('create - err: ', err);
       errResponse = {
         success: false,
@@ -95,23 +101,28 @@ paymentRoutes.post('/create', requireAuth, async(req, res) => {
   return res.status(200).send({ success: Boolean(saved) });
 });
 
-paymentRoutes.put('/update', requireAuth, async(req, res) => {
+paymentRoutes.put('/update/:companyIdParam', requireAuth, async(req, res) => {
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const { updatedPayment, paymentRelated } = req.body;
+  updatedPayment.companyId = queryId;
+  paymentRelated.companyId = queryId;
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const { _id } = updatedPayment;
-  const isValid = verifyObjectId(_id);
+  const isValid = verifyObjectIds([_id, queryId]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
 
   const payment = await paymentMain
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    .findByIdAndUpdate(_id);
+    .findOneAndUpdate({ _id, companyId: queryId });
   if (!payment) {
     return res.status(404).send({ success: false });
   }
   payment.order = updatedPayment.order || payment.order;
-  await updatePaymentRelated(paymentRelated);
+  await updatePaymentRelated(paymentRelated, queryId);
 
   let errResponse: Isuccess;
   const updated = await payment.save()
@@ -137,14 +148,18 @@ paymentRoutes.put('/update', requireAuth, async(req, res) => {
 });
 
 
-paymentRoutes.get('/getone/:id', requireAuth, async(req, res) => {
+paymentRoutes.get('/getone/:id/:companyIdParam', requireAuth, async(req, res) => {
   const { id } = req.params;
-  const isValid = verifyObjectId(id);
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectIds([id, queryId]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const payment = await paymentLean
-    .findById(id)
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    .findOne({ _id: id, companyId: queryId })
     .lean()
     .populate({ path: 'paymentRelated', model: paymentRelatedLean })
     .populate({
@@ -156,7 +171,10 @@ paymentRoutes.get('/getone/:id', requireAuth, async(req, res) => {
         path: 'payments', model: receiptLean
       },
       {
-        path: 'items.item', model: itemLean
+        path: 'items.item', model: itemLean,
+        populate: [{
+          path: 'photos', model: fileMetaLean, transform: (doc) => doc.url
+        }]
       }
       ]
     });
@@ -172,10 +190,17 @@ paymentRoutes.get('/getone/:id', requireAuth, async(req, res) => {
   return res.status(200).send(returned);
 });
 
-paymentRoutes.get('/getall/:offset/:limit', requireAuth, roleAuthorisation('payments'), async(req, res) => {
+paymentRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, roleAuthorisation('payments', 'read'), async(req, res) => {
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectId(queryId);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   const payments = await paymentLean
-    .find({})
+    .find({ companyId: queryId })
     .skip(offset)
     .limit(limit)
     .lean()
@@ -189,7 +214,10 @@ paymentRoutes.get('/getall/:offset/:limit', requireAuth, roleAuthorisation('paym
         path: 'payments', model: receiptLean
       },
       {
-        path: 'items.item', model: itemLean
+        path: 'items.item', model: itemLean,
+        populate: [{
+          path: 'photos', model: fileMetaLean, transform: (doc) => doc.url
+        }]
       }]
     });
   const returned = payments
@@ -202,10 +230,13 @@ paymentRoutes.get('/getall/:offset/:limit', requireAuth, roleAuthorisation('paym
   return res.status(200).send(returned);
 });
 
-paymentRoutes.get('/getmypayments', requireAuth, async(req, res) => {
+paymentRoutes.get('/getmypayments/:companyIdParam', requireAuth, async(req, res) => {
   const { userId } = (req as unknown as Icustomrequest).user;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const payments = await paymentLean
-    .find({ user: userId })
+    .find({ user: userId, companyId: queryId })
     .lean()
     .populate({ path: 'paymentRelated', model: paymentRelatedLean })
     .populate({
@@ -217,7 +248,10 @@ paymentRoutes.get('/getmypayments', requireAuth, async(req, res) => {
         path: 'payments', model: receiptLean
       },
       {
-        path: 'items.item', model: itemLean
+        path: 'items.item', model: itemLean,
+        populate: [{
+          path: 'photos', model: fileMetaLean, transform: (doc) => doc.url
+        }]
       }]
     });
   const returned = payments
@@ -230,13 +264,16 @@ paymentRoutes.get('/getmypayments', requireAuth, async(req, res) => {
   return res.status(200).send(returned);
 });
 
-paymentRoutes.put('/deleteone', requireAuth, async(req, res) => {
+paymentRoutes.put('/deleteone/:companyIdParam', requireAuth, async(req, res) => {
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const { id, paymentRelated, invoiceRelated, creationType, where } = req.body;
-  const isValid = verifyObjectId(id);
+  const isValid = verifyObjectIds([id, queryId]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
-  const deleted = await deleteAllPayOrderLinked(paymentRelated, invoiceRelated, creationType, where);
+  const deleted = await deleteAllPayOrderLinked(paymentRelated, invoiceRelated, creationType, where, queryId);
   // await paymentMain.findByIdAndDelete(id);
   if (Boolean(deleted)) {
     return res.status(200).send({ success: Boolean(deleted) });
@@ -245,11 +282,14 @@ paymentRoutes.put('/deleteone', requireAuth, async(req, res) => {
   }
 });
 
-paymentRoutes.post('/search/:limit/:offset', requireAuth, roleAuthorisation('payments'), async(req, res) => {
+paymentRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, roleAuthorisation('payments', 'read'), async(req, res) => {
   const { searchterm, searchKey } = req.body;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
   const payments = await paymentLean
-    .find({ [searchKey]: { $regex: searchterm, $options: 'i' } })
+    .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
     .lean()
     .skip(offset)
     .limit(limit)
@@ -263,7 +303,10 @@ paymentRoutes.post('/search/:limit/:offset', requireAuth, roleAuthorisation('pay
         path: 'payments', model: receiptLean
       },
       {
-        path: 'items.item', model: itemLean
+        path: 'items.item', model: itemLean,
+        populate: [{
+          path: 'photos', model: fileMetaLean, transform: (doc) => doc.url
+        }]
       }]
     });
   const returned = payments
@@ -276,8 +319,15 @@ paymentRoutes.post('/search/:limit/:offset', requireAuth, roleAuthorisation('pay
   return res.status(200).send(returned);
 });
 
-paymentRoutes.put('/deletemany', requireAuth, roleAuthorisation('payments'), async(req, res) => {
+paymentRoutes.put('/deletemany/:companyIdParam', requireAuth, roleAuthorisation('payments', 'delete'), async(req, res) => {
   const { credentials } = req.body;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectId(queryId);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   if (!credentials || credentials?.length < 1) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -286,7 +336,7 @@ paymentRoutes.put('/deletemany', requireAuth, roleAuthorisation('payments'), asy
     .deleteMany({ _id: { $in: ids } });**/
   const promises = credentials
     .map(async val => {
-      await deleteAllPayOrderLinked(val.paymentRelated, val.invoiceRelated, val.creationType, val.where);
+      await deleteAllPayOrderLinked(val.paymentRelated, val.invoiceRelated, val.creationType, val.where, queryId);
       return new Promise(resolve => resolve(true));
     });
   await Promise.all(promises);
@@ -333,7 +383,7 @@ paymentRoutes.get('/paymentstatus/:orderTrackingId/:paymentRelated', async(req, 
   return response;
 });
 
-/** */
+
 export const updateInvoicerelatedStatus = async(orderTrackingId: string) => {
   const toUpdate = await invoiceRelatedMain
     .findOneAndUpdate({ pesaPalorderTrackingId: orderTrackingId });

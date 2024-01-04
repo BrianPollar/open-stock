@@ -5,6 +5,7 @@ import { staffLean } from '../../models/user-related/staff.model';
 import { getLogger } from 'log4js';
 import { deleteFiles, requireAuth, roleAuthorisation, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import { user } from '@open-stock/stock-auth-server';
+import { Icustomrequest } from '@open-stock/stock-universal';
 
 interface IuserLinkedInMoreModels {
   success: boolean;
@@ -20,6 +21,9 @@ interface IuserLinkedInMoreModels {
  */
 export const removeOneUser = async(req: Request, res: Response, next: NextFunction): Promise<void> => {
   const { credential } = req.body;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(credential.userId);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
@@ -28,7 +32,8 @@ export const removeOneUser = async(req: Request, res: Response, next: NextFuncti
   if (!canRemove.success) {
     return res.status(401).send({ ...canRemove, status: 401 });
   }
-  const deleted = await user.findByIdAndDelete(credential.userId);
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  const deleted = await user.findOneAndDelete({ _id: credential.userId, companyId: queryId });
   req.body.id = credential.id;
   if (!Boolean(deleted)) {
     return res.status(404).send({ success: Boolean(deleted), err: 'could not delete selected items, try again in a while' });
@@ -45,6 +50,9 @@ export const removeOneUser = async(req: Request, res: Response, next: NextFuncti
  */
 export const removeManyUsers = async(req: Request, res: Response, next: NextFunction): Promise<void> => {
   const { credentials } = req.body;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectIds(credentials.map(val => val.userId));
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
@@ -64,7 +72,7 @@ export const removeManyUsers = async(req: Request, res: Response, next: NextFunc
   req.body.newFilesWithDir = newFilesWithDir;
   const deleted = await user
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    .deleteMany({ _id: { $in: newUserIds } })
+    .deleteMany({ companyId: queryId, _id: { $in: newUserIds } })
     .catch(err => {
       localUserRoutesLogger.error('deletemany - err: ', err);
       return null;
@@ -117,10 +125,10 @@ const localUserRoutesLogger = getLogger('routes/customerRoutes');
 /** Express Router for local user routes. */
 export const localUserRoutes = express.Router();
 
-localUserRoutes.put('/deleteone', requireAuth, roleAuthorisation('users'), removeOneUser, deleteFiles, (req, res) => {
+localUserRoutes.put('/deleteone/:companyIdParam', requireAuth, roleAuthorisation('users', 'delete'), removeOneUser, deleteFiles, (req, res) => {
   return res.status(200).send({ success: true });
 });
 
-localUserRoutes.put('/deletemany', requireAuth, roleAuthorisation('users'), removeManyUsers, deleteFiles, (req, res) => {
+localUserRoutes.put('/deletemany/:companyIdParam', requireAuth, roleAuthorisation('users', 'delete'), removeManyUsers, deleteFiles, (req, res) => {
   return res.status(200).send({ success: true });
 });

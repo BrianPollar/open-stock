@@ -1,15 +1,17 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
 import express from 'express';
-import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectIds } from '@open-stock/stock-universal-server';
 import { expenseLean } from '../../../models/expense.model';
 import { expenseReportLean, expenseReportMain } from '../../../models/printables/report/expenesreport.model';
 import { getLogger } from 'log4js';
-import { Isuccess } from '@open-stock/stock-universal';
+import { Icustomrequest, Isuccess } from '@open-stock/stock-universal';
 
 /** Logger for expense report routes */
 const expenseReportRoutesLogger = getLogger('routes/expenseReportRoutes');
 
-/** Router for expense report routes */
+/**
+ * Expense report routes.
+ */
 export const expenseReportRoutes = express.Router();
 
 /**
@@ -23,11 +25,16 @@ export const expenseReportRoutes = express.Router();
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>} Promise representing the result of the operation
  */
-expenseReportRoutes.post('/create', requireAuth, roleAuthorisation('printables'), async(req, res) => {
+expenseReportRoutes.post('/create/:companyIdParam', requireAuth, roleAuthorisation('printables', 'create'), async(req, res) => {
   const expenseReport = req.body.expenseReport;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  expenseReport.companyId = queryId;
+  console.log('companyId is', queryId);
   const count = await expenseReportMain
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+    .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
   expenseReport.urId = makeUrId(Number(count[0]?.urId || '0'));
   const newExpenseReport = new expenseReportMain(expenseReport);
   let errResponse: Isuccess;
@@ -62,10 +69,13 @@ expenseReportRoutes.post('/create', requireAuth, roleAuthorisation('printables')
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>} Promise representing the result of the operation
  */
-expenseReportRoutes.get('/getone/:urId', requireAuth, roleAuthorisation('printables'), async(req, res) => {
+expenseReportRoutes.get('/getone/:urId/:companyIdParam', requireAuth, roleAuthorisation('printables', 'read'), async(req, res) => {
   const { urId } = req.params;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const expenseReport = await expenseReportLean
-    .findOne({ urId })
+    .findOne({ urId, queryId })
     .lean()
     .populate({ path: 'expenses', model: expenseLean });
   return res.status(200).send(expenseReport);
@@ -82,15 +92,18 @@ expenseReportRoutes.get('/getone/:urId', requireAuth, roleAuthorisation('printab
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>} Promise representing the result of the operation
  */
-expenseReportRoutes.get('/getall/:offset/:limit', requireAuth, roleAuthorisation('printables'), async(req, res) => {
+expenseReportRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, roleAuthorisation('printables', 'read'), async(req, res) => {
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const expenseReports = await expenseReportLean
-    .find({})
+    .find({ companyId: queryId })
     .skip(offset)
     .limit(limit)
     .lean()
     .populate({ path: 'expenses', model: expenseLean, strictPopulate: false })
-    .catch(err => {
+    .catch(() => {
       return [];
     });
   return res.status(200).send(expenseReports);
@@ -107,13 +120,17 @@ expenseReportRoutes.get('/getall/:offset/:limit', requireAuth, roleAuthorisation
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>} Promise representing the result of the operation
  */
-expenseReportRoutes.delete('/deleteone/:id', requireAuth, roleAuthorisation('printables'), async(req, res) => {
+expenseReportRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, roleAuthorisation('printables', 'delete'), async(req, res) => {
   const { id } = req.params;
-  const isValid = verifyObjectId(id);
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectIds([id, queryId]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
-  const deleted = await expenseReportMain.findByIdAndDelete(id);
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  const deleted = await expenseReportMain.findOneAndDelete({ _id: id, companyId: queryId });
   if (Boolean(deleted)) {
     return res.status(200).send({ success: Boolean(deleted) });
   } else {
@@ -132,11 +149,14 @@ expenseReportRoutes.delete('/deleteone/:id', requireAuth, roleAuthorisation('pri
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>} Promise representing the result of the operation
  */
-expenseReportRoutes.post('/search/:offset/:limit', requireAuth, roleAuthorisation('printables'), async(req, res) => {
+expenseReportRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, roleAuthorisation('printables', 'read'), async(req, res) => {
   const { searchterm, searchKey } = req.body;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
   const expenseReports = await expenseReportLean
-    .find({ [searchKey]: { $regex: searchterm, $options: 'i' } })
+    .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
     .lean()
     .skip(offset)
     .limit(limit)
@@ -155,16 +175,19 @@ expenseReportRoutes.post('/search/:offset/:limit', requireAuth, roleAuthorisatio
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>} Promise representing the result of the operation
  */
-expenseReportRoutes.put('/deletemany', requireAuth, roleAuthorisation('printables'), async(req, res) => {
+expenseReportRoutes.put('/deletemany/:companyIdParam', requireAuth, roleAuthorisation('printables', 'delete'), async(req, res) => {
   const { ids } = req.body;
-  const isValid = verifyObjectIds(ids);
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectIds([...ids, ...[queryId]]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
 
   const deleted = await expenseReportMain
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    .deleteMany({ _id: { $in: ids } })
+    .deleteMany({ companyId: queryId, _id: { $in: ids } })
     .catch(err => {
       expenseReportRoutesLogger.error('deletemany - err: ', err);
       return null;

@@ -1,7 +1,6 @@
 import { EhttpController, LoggerController } from '@open-stock/stock-universal';
 import Axios from 'axios-observable';
 
-/** */
 /**
  * StockNotifClient class is responsible for handling stock notifications.
  * It uses an instance of Axios to make HTTP requests and an instance of EhttpController to handle HTTP responses.

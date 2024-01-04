@@ -93,4 +93,19 @@ describe('CalculationsController', () => {
       expect(restrictedData[i]).toBe(data[i]);
     }
   });
+
+  it('#determineStars should return an array of stars based on weight and where', () => {
+    const weight = 5;
+    const where = 'full';
+    const stars = instance.determineStars(weight, where);
+    expect(stars).toEqual([0, 1]);
+  });
+
+  it('#taxValFromSubTotal should return the tax value based on the subTotal and tax percentage', () => {
+    const subTotal = 100;
+    const tax = 10;
+    const taxValue = instance.taxValFromSubTotal(subTotal, tax);
+    expect(taxValue).toBe(10);
+  });
 });
+

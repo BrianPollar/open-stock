@@ -1,9 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getExpressLocals = exports.getEnvVar = void 0;
-// This function gets the environment variable named `name` and sets it on the request object.
-// If `name` is an array of strings, then the function gets all of the environment variables in the array and sets them on the request object.
-/** */
+/**
+ * Middleware function to retrieve environment variables and store them in the request object.
+ * @param name - The name of the environment variable(s) to retrieve. Can be a string or an array of strings.
+ * @returns A middleware function that sets the environment variables on the request object and calls the next middleware.
+ */
 const getEnvVar = (name) => (req, res, next) => {
     // If `name` is a string, then push it onto an empty array.
     // Otherwise, just use the `name` array as-is.
@@ -33,8 +35,12 @@ const getEnvVar = (name) => (req, res, next) => {
     return next();
 };
 exports.getEnvVar = getEnvVar;
-// This function gets the Express locals variable named `name`.
-/** */
+/**
+ * Retrieves the Express locals variable with the specified name.
+ * @param app - The Express application instance.
+ * @param name - The name of the Express locals variable to retrieve.
+ * @returns The value of the Express locals variable.
+ */
 const getExpressLocals = (app, name) => {
     // Return the Express locals variable named `name`.
     return app.locals[name];

@@ -6,7 +6,7 @@ import { of } from 'rxjs';
 import { IcartInterface } from '../../../../stock-universal';
 import { Item } from '../../../../stock-counter-client/src/defines/item.define';
 import Axios from 'axios-observable';
-import { createMockItem, createMockItems } from '../../../../tests/mocks';
+import { createMockItem, createMockItems } from '../../../../tests/stock-counter-mocks';
 
 describe('Cookies', () => {
   let instance: Cookies;

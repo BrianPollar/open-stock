@@ -11,7 +11,7 @@ const APP_NAME = 'OPEN-STOCK';
 // localStorage['debug'] = 'for:* stock-counter:*';
 
 // This class is a logger controller.
-/** */
+
 /**
  * The LoggerController class provides logging functionality for the application.
  */

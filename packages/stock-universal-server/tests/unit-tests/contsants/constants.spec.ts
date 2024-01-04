@@ -41,5 +41,3 @@ describe('constants', () => {
     expect(offsetLimitRelegator(10, 10)).toStrictEqual({ offset: 10, limit: 10 });
   });
 });
-
-

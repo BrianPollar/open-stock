@@ -4,12 +4,14 @@ import { IprofitAndLossReport } from '@open-stock/stock-universal';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../../controllers/database.controller';
 const uniqueValidator = require('mongoose-unique-validator');
 
-/** model interface for profitandlossReport by */
-/** */
+/**
+ * Represents the type for the profit and loss report.
+ */
 export type TprofitandlossReport = Document & IprofitAndLossReport;
 
 const profitandlossReportSchema: Schema<TprofitandlossReport> = new Schema({
   urId: { type: String, unique: true },
+  companyId: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
   totalAmount: { type: Number },
   date: { type: Date },
   expenses: [],
@@ -24,23 +26,29 @@ profitandlossReportSchema.plugin(uniqueValidator);
  */
 const profitandlossReportselect = {
   urId: 1,
+  companyId: 1,
   totalAmount: 1,
   date: 1,
   expenses: 1,
   invoiceRelateds: 1
 };
 
-/** main connection for profitandlossReports Operations*/
-export let profitandlossReportMain: Model<TprofitandlossReport>;
-/** lean connection for profitandlossReports Operations*/
-export let profitandlossReportLean: Model<TprofitandlossReport>;
-/** primary selection object
- * for profitandlossReport
+/**
+ * Represents the main profit and loss report model.
  */
-/** */
+export let profitandlossReportMain: Model<TprofitandlossReport>;
+
+/**
+ * Represents the lean version of the profit and loss report model.
+ */
+export let profitandlossReportLean: Model<TprofitandlossReport>;
+
+/**
+ * Selects the profit and loss report.
+ */
 export const profitandlossReportSelect = profitandlossReportselect;
 
-/** */
+
 /**
  * Creates a Profit and Loss Report model.
  * @param dbUrl - The URL of the database to connect to.
@@ -60,3 +68,4 @@ export const createProfitandlossReportModel = async(dbUrl: string, main = true, 
     profitandlossReportLean = mainConnectionLean.model<TprofitandlossReport>('profitandlossReport', profitandlossReportSchema);
   }
 };
+

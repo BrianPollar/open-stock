@@ -3,12 +3,16 @@ import { IexpenseReport } from '@open-stock/stock-universal';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../../controllers/database.controller';
 const uniqueValidator = require('mongoose-unique-validator');
 
-/** Interface for the expense report document. */
+/**
+ * Represents a type for an expense report.
+ * Extends the Document interface and the IexpenseReport interface.
+ */
 export type TexpenseReport = Document & IexpenseReport;
 
 /** Mongoose schema for the expense report document. */
 const expenseReportSchema: Schema<TexpenseReport> = new Schema({
   urId: { type: String, unique: true },
+  companyId: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
   totalAmount: { type: Number },
   date: { type: Date },
   expenses: []
@@ -20,18 +24,25 @@ expenseReportSchema.plugin(uniqueValidator);
 /** Primary selection object for expense report document. */
 const expenseReportselect = {
   urId: 1,
+  companyId: 1,
   totalAmount: 1,
   date: 1,
   expenses: 1
 };
 
-/** Main connection for expense report operations. */
+/**
+ * Represents the main expense report model.
+ */
 export let expenseReportMain: Model<TexpenseReport>;
 
-/** Lean connection for expense report operations. */
+/**
+ * Represents the lean version of an expense report.
+ */
 export let expenseReportLean: Model<TexpenseReport>;
 
-/** Primary selection object for expense report document. */
+/**
+ * Represents the select statement for the expense report.
+ */
 export const expenseReportSelect = expenseReportselect;
 
 /**

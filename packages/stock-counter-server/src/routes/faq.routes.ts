@@ -4,13 +4,15 @@ import express from 'express';
 import { faqanswerLean, faqanswerMain } from '../models/faqanswer.model';
 import { faqLean, faqMain } from '../models/faq.model';
 import { getLogger } from 'log4js';
-import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId } from '@open-stock/stock-universal-server';
-import { Isuccess } from '@open-stock/stock-universal';
+import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { Icustomrequest, Isuccess } from '@open-stock/stock-universal';
 
 /** Logger for faqRoutes */
 const faqRoutesLogger = getLogger('routes/faqRoutes');
 
-/** Express router for faqRoutes */
+/**
+ * Router for FAQ routes.
+ */
 export const faqRoutes = express.Router();
 
 /**
@@ -25,11 +27,19 @@ export const faqRoutes = express.Router();
  * @param {Object} res - Express response object
  * @returns {Object} Success status and saved FAQ object
  */
-faqRoutes.post('/create', async(req, res) => {
+faqRoutes.post('/create/:companyIdParam', async(req, res) => {
   const faq = req.body.faq;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  faq.companyId = queryId;
+  const isValid = verifyObjectId(queryId);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   const count = await faqMain
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+    .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
   faq.urId = makeUrId(Number(count[0]?.urId || '0'));
   const newFaq = new faqMain(faq);
   let errResponse: Isuccess;
@@ -66,14 +76,19 @@ faqRoutes.post('/create', async(req, res) => {
  * @param {Object} res - Express response object
  * @returns {Object} The requested FAQ object
  */
-faqRoutes.get('/getone/:id', async(req, res) => {
+faqRoutes.get('/getone/:id/:companyIdParam', async(req, res) => {
   const { id } = req.params;
-  const isValid = verifyObjectId(id);
+  // const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  // const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const queryId = companyIdParam;
+  const isValid = verifyObjectIds([id, queryId]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const faq = await faqLean
-    .findById(id)
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    .findOne({ _id: id, companyId: queryId })
     .lean();
   return res.status(200).send(faq);
 });
@@ -90,10 +105,14 @@ faqRoutes.get('/getone/:id', async(req, res) => {
  * @param {Object} res - Express response object
  * @returns {Object[]} Array of FAQ objects
  */
-faqRoutes.get('/getall/:offset/:limit', async(req, res) => {
+faqRoutes.get('/getall/:offset/:limit/:companyIdParam', async(req, res) => {
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
+  // const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  // const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const queryId = companyIdParam;
   const faqs = await faqLean
-    .find({})
+    .find({ companyId: queryId })
     .skip(offset)
     .limit(limit)
     .lean();
@@ -111,13 +130,18 @@ faqRoutes.get('/getall/:offset/:limit', async(req, res) => {
  * @param {Object} res - Express response object
  * @returns {Object} Success status and deleted FAQ object
  */
-faqRoutes.delete('/deleteone/:id', async(req, res) => {
+faqRoutes.delete('/deleteone/:id/:companyIdParam', async(req, res) => {
   const { id } = req.params;
-  const isValid = verifyObjectId(id);
+  // const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  // const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const queryId = companyIdParam;
+  const isValid = verifyObjectIds([id, queryId]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
-  const deleted = await faqMain.findByIdAndDelete(id);
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  const deleted = await faqMain.findOneAndDelete({ _id: id, companyId: queryId });
   if (Boolean(deleted)) {
     return res.status(200).send({ success: Boolean(deleted) });
   } else {
@@ -137,8 +161,17 @@ faqRoutes.delete('/deleteone/:id', async(req, res) => {
  * @param {Object} res - Express response object
  * @returns {Object} Success status and saved FAQ answer object
  */
-faqRoutes.post('/createans', requireAuth, roleAuthorisation('faqs'), async(req, res) => {
+faqRoutes.post('/createans/:companyIdParam', requireAuth, roleAuthorisation('faqs', 'create'), async(req, res) => {
   const faq = req.body.faq;
+  // const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  // const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const queryId = companyIdParam;
+  faq.companyId = queryId;
+  const isValid = verifyObjectId(queryId);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   const count = await faqanswerMain.countDocuments();
   faq.urId = makeUrId(count);
   const newFaqAns = new faqanswerMain(faq);
@@ -176,9 +209,13 @@ faqRoutes.post('/createans', requireAuth, roleAuthorisation('faqs'), async(req, 
  * @param {Object} res - Express response object
  * @returns {Object[]} Array of FAQ answer objects
  */
-faqRoutes.get('/getallans/:faqId', async(req, res) => {
+faqRoutes.get('/getallans/:faqId/:companyIdParam', async(req, res) => {
+  // const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  // const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const queryId = companyIdParam;
   const faqsAns = await faqanswerLean
-    .find({ faq: req.params.faqId })
+    .find({ faq: req.params.faqId, companyId: queryId })
     .lean();
   return res.status(200).send(faqsAns);
 });
@@ -194,13 +231,18 @@ faqRoutes.get('/getallans/:faqId', async(req, res) => {
  * @param {Object} res - Express response object
  * @returns {Object} Success status and deleted FAQ answer object
  */
-faqRoutes.delete('/deleteoneans/:id', requireAuth, roleAuthorisation('faqs'), async(req, res) => {
+faqRoutes.delete('/deleteoneans/:id/:companyIdParam', requireAuth, roleAuthorisation('faqs', 'delete'), async(req, res) => {
   const { id } = req.params;
-  const isValid = verifyObjectId(id);
+  // const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  // const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const queryId = companyIdParam;
+  const isValid = verifyObjectIds([id, queryId]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
-  const deleted = await faqanswerMain.findByIdAndDelete(id)
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  const deleted = await faqanswerMain.findOneAndDelete({ _id: id, companyId: queryId })
     .catch(err => {
       faqRoutesLogger.error('deleteoneans - err: ', err);
       return null;

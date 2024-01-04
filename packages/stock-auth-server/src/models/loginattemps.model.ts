@@ -1,13 +1,29 @@
 import { Schema, Document, Model } from 'mongoose';
 import { connectAuthDatabase, isAuthDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
 
-/** a bunch of email tokens sent to users */
-/** */
+/**
+ * Represents a login attempt.
+ */
 export interface IloginAttempts extends Document {
+  /**
+   * The ID of the user attempting to login.
+   */
   userId: string;
+  /**
+   * The IP address from which the login attempt was made.
+   */
   ip: string;
+  /**
+   * Indicates whether the login attempt was successful or not.
+   */
   successful: boolean;
+  /**
+   * The date and time when the login attempt was last updated.
+   */
   updatedAt: string;
+  /**
+   * The date and time when the login attempt was created.
+   */
   createdAt: string;
 }
 
@@ -18,10 +34,17 @@ const loginAtempsSchema: Schema<IloginAttempts> = new Schema({
 }, { timestamps: true });
 
 
+/**
+ * Represents the login attempts model.
+ */
 export let loginAtempts: Model<IloginAttempts>;
+
+/**
+ * Represents a variable that holds a lean model of login attempts.
+ */
 export let loginAtemptsLean: Model<IloginAttempts>;
 
-/** */
+
 /**
  * Creates a login attempts model with the given database URL.
  * @param dbUrl The URL of the database to connect to.
@@ -41,3 +64,4 @@ export const createLoginAtemptsModel = async(dbUrl: string, main = true, lean = 
     loginAtemptsLean = mainConnectionLean.model<IloginAttempts>('loginAtempts', loginAtempsSchema);
   }
 };
+

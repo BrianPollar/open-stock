@@ -11,6 +11,8 @@ import { Item } from './item.define';
 export class Expense extends DatabaseAuto {
   /** The unique identifier of the expense. */
   urId: string;
+  /** The user's company ID. */
+  companyId: string;
 
   /** The name of the expense. */
   name: string;
@@ -36,7 +38,8 @@ export class Expense extends DatabaseAuto {
    */
   constructor(data: Iexpense) {
     super(data);
-    this.urId = data.urId as string;
+    this.urId = data.urId;
+    this.companyId = data.companyId;
     this.name = data.name;
     this.person = data.person;
     this.cost = data.cost;
@@ -51,13 +54,14 @@ export class Expense extends DatabaseAuto {
    * Retrieves a list of expenses from the server.
    * @static
    * @async
+   * @param companyId - The ID of the company
    * @param {string} [url='getall'] - The URL to retrieve the expenses from.
    * @param {number} [offset=0] - The offset to start retrieving expenses from.
    * @param {number} [limit=0] - The maximum number of expenses to retrieve.
    * @returns {Promise<Expense[]>} An array of Expense instances.
    */
-  static async getExpenses(url = 'getall', offset = 0, limit = 0) {
-    const observer$ = StockCounterClient.ehttp.makeGet(`/expense/${url}/${offset}/${limit}`);
+  static async getExpenses(companyId: string, url = 'getall', offset = 0, limit = 20) {
+    const observer$ = StockCounterClient.ehttp.makeGet(`/expense/${url}/${offset}/${limit}/${companyId}`);
     const expenses = await lastValueFrom(observer$) as Iexpense[];
     return expenses.map((val) => new Expense(val));
   }
@@ -66,11 +70,12 @@ export class Expense extends DatabaseAuto {
    * Retrieves a single expense from the server.
    * @static
    * @async
+   * @param companyId - The ID of the company
    * @param {string} urId - The unique identifier of the expense to retrieve.
    * @returns {Promise<Expense>} A single Expense instance.
    */
-  static async getOneExpense(urId: string) {
-    const observer$ = StockCounterClient.ehttp.makeGet(`/expense/getone/${urId}`);
+  static async getOneExpense(companyId: string, urId: string) {
+    const observer$ = StockCounterClient.ehttp.makeGet(`/expense/getone/${urId}/${companyId}`);
     const expense = await lastValueFrom(observer$) as Iexpense;
     return new Expense(expense);
   }
@@ -79,11 +84,12 @@ export class Expense extends DatabaseAuto {
    * Creates a new expense on the server.
    * @static
    * @async
+   * @param companyId - The ID of the company
    * @param {Iexpense} vals - The values to create the expense with.
    * @returns {Promise<Isuccess>} A success response.
    */
-  static async addExpense(vals: Iexpense) {
-    const observer$ = StockCounterClient.ehttp.makePost('/expense/create', vals);
+  static async addExpense(companyId: string, vals: Iexpense) {
+    const observer$ = StockCounterClient.ehttp.makePost(`/expense/create/${companyId}`, vals);
     return await lastValueFrom(observer$) as Isuccess;
   }
 
@@ -91,32 +97,35 @@ export class Expense extends DatabaseAuto {
    * Deletes multiple expenses from the server.
    * @static
    * @async
+   * @param companyId - The ID of the company
    * @param {string[]} ids - The unique identifiers of the expenses to delete.
    * @returns {Promise<Isuccess>} A success response.
    */
-  static async deleteExpenses(ids: string[]) {
-    const observer$ = StockCounterClient.ehttp.makePut('/expense/deletemany', { ids });
+  static async deleteExpenses(companyId: string, ids: string[]) {
+    const observer$ = StockCounterClient.ehttp.makePut(`/expense/deletemany/${companyId}`, { ids });
     return await lastValueFrom(observer$) as Isuccess;
   }
 
   /**
    * Updates the current expense on the server.
    * @async
+   * @param companyId - The ID of the company
    * @param {Iexpense} vals - The values to update the expense with.
    * @returns {Promise<Isuccess>} A success response.
    */
-  async updateExpense(vals: Iexpense) {
-    const observer$ = StockCounterClient.ehttp.makePut('/expense/update', vals);
+  async updateExpense(companyId: string, vals: Iexpense) {
+    const observer$ = StockCounterClient.ehttp.makePut(`/expense/update/${companyId}`, vals);
     return await lastValueFrom(observer$) as Isuccess;
   }
 
   /**
    * Deletes the current expense from the server.
    * @async
+   * @param companyId - The ID of the company
    * @returns {Promise<Isuccess>} A success response.
    */
-  async deleteExpense() {
-    const observer$ = StockCounterClient.ehttp.makeDelete(`/expense/deleteone/${this._id}`);
+  async deleteExpense(companyId: string) {
+    const observer$ = StockCounterClient.ehttp.makeDelete(`/expense/deleteone/${this._id}/${companyId}`);
     return await lastValueFrom(observer$) as Isuccess;
   }
 }

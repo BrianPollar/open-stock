@@ -3,11 +3,13 @@ import { Document, Model, Schema } from 'mongoose';
 import { IinvoiceRelatedRef } from '@open-stock/stock-universal';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../controllers/database.controller';
 
-/** model type for estimate by */
-/** */
+/**
+ * Represents a testimate, which is a document related to an invoice.
+ */
 export type Testimate = Document & IinvoiceRelatedRef;
 
 const estimateSchema: Schema<Testimate> = new Schema({
+  companyId: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
   invoiceRelated: { type: String }
 }, { timestamps: true });
 
@@ -15,20 +17,25 @@ const estimateSchema: Schema<Testimate> = new Schema({
  * for estimate
  */
 const estimateselect = {
+  companyId: 1,
   invoiceRelated: 1
 };
 
-/** main connection for estimates Operations*/
-export let estimateMain: Model<Testimate>;
-/** lean connection for estimates Operations*/
-export let estimateLean: Model<Testimate>;
-/** primary selection object
- * for estimate
+/**
+ * Represents the main estimate model.
  */
-/** */
+export let estimateMain: Model<Testimate>;
+
+/**
+ * Represents an estimateLean model.
+ */
+export let estimateLean: Model<Testimate>;
+
+/**
+ * Represents the estimate select function.
+ */
 export const estimateSelect = estimateselect;
 
-/** */
 /**
  * Creates an Estimate model with the given database URL, main flag, and lean flag.
  * @param dbUrl - The URL of the database to connect to.

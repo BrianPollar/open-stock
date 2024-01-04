@@ -3,11 +3,14 @@ import { Document, Model, Schema } from 'mongoose';
 import { IinvoiceRelatedRef } from '@open-stock/stock-universal';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../controllers/database.controller';
 
-/** model type for invoice by */
-/** */
+/**
+ * Represents a printable invoice.
+ * @typedef {Document & IinvoiceRelatedRef & { dueDate: Date }} Tinvoice
+ */
 export type Tinvoice = Document & IinvoiceRelatedRef & { dueDate: Date };
 
 const invoiceSchema: Schema<Tinvoice> = new Schema({
+  companyId: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
   invoiceRelated: { type: String },
   dueDate: { type: Date }
 }, { timestamps: true });
@@ -16,21 +19,26 @@ const invoiceSchema: Schema<Tinvoice> = new Schema({
  * for invoice
  */
 const invoiceselect = {
+  companyId: 1,
   invoiceRelated: 1,
   dueDate: 1
 };
 
-/** main connection for invoices Operations*/
-export let invoiceMain: Model<Tinvoice>;
-/** lean connection for invoices Operations*/
-export let invoiceLean: Model<Tinvoice>;
-/** primary selection object
- * for invoice
+/**
+ * Represents the main invoice model.
  */
-/** */
+export let invoiceMain: Model<Tinvoice>;
+
+/**
+ * Represents a lean invoice model.
+ */
+export let invoiceLean: Model<Tinvoice>;
+
+/**
+ * Represents the invoice select function.
+ */
 export const invoiceSelect = invoiceselect;
 
-/** */
 /**
  * Creates an invoice model with the given database URL, main flag, and lean flag.
  * @param dbUrl The URL of the database to connect to.

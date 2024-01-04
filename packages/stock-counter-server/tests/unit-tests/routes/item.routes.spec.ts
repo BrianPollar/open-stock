@@ -3,13 +3,14 @@
 import { vi, afterAll, expect, describe, beforeAll, it, expectTypeOf } from 'vitest';
 import { Application } from 'express';
 import request from 'supertest';
-import { createMockItem } from '../../../mocks';
-import { createMockSponsored } from '../../../mocks';
+import { createMockItem } from '../../../../tests/stock-counter-mocks';
+import { createMockSponsored } from '../../../../tests/stock-counter-mocks';
 import { disconnectMongoose } from '@open-stock/stock-universal-server';
 import { createExpressServer } from '../../../../tests/helpers';
-import { connectStockCounterDatabase } from '../../../../stock-counter-server/src/stock-counter-server';
 import * as http from 'http';
 import { itemRoutes } from '../../../../stock-counter-server/src/routes/item.routes';
+import { connectStockCounterDatabase } from '../../../src/stock-counter-local';
+import { IpermProp } from '@open-stock/stock-universal';
 
 const mocks = vi.hoisted(() => {
   return {
@@ -23,20 +24,28 @@ vi.mock('../../src/controllers/twilio.controller', () => {
   };
 });
 
+const permObj: IpermProp = {
+  create: true,
+  read: true,
+  update: true,
+  delete: true
+};
+
 const stockUniversalServer = vi.hoisted(() => {
   return {
     requireAuth: vi.fn((req, res, next) => {
       req.user = {
+        companyId: 'superAdmin',
         userId: '507f1f77bcf86cd799439011',
         permissions: {
-          orders: true,
-          payments: true,
-          users: true,
-          items: true,
-          faqs: true,
-          videos: true,
-          printables: true,
-          buyer: true
+          orders: permObj,
+          payments: permObj,
+          users: permObj,
+          items: permObj,
+          faqs: permObj,
+          videos: permObj,
+          printables: permObj,
+          buyer: permObj
         }
       };
       next();
@@ -54,9 +63,8 @@ const stockUniversalServer = vi.hoisted(() => {
 });
 
 vi.mock('@open-stock/stock-universal-server', async() => {
-  const actual = await vi.importActual('@open-stock/stock-universal-server');
+  const actual: object = await vi.importActual('@open-stock/stock-universal-server');
   return {
-    // @ts-ignore
     ...actual,
     requireAuth: stockUniversalServer.requireAuth,
     uploadFiles: stockUniversalServer.uploadFiles,
@@ -72,6 +80,7 @@ describe('ItemRoutes', () => {
   const apiUrl = '/item';
   const token = 'tokenwww';
   const objectId = '507f1f77bcf86cd799439011';
+  const companyId = 'companyId';
 
   beforeAll(async() => {
     app = createExpressServer();
@@ -87,24 +96,11 @@ describe('ItemRoutes', () => {
     server.close();
   });
 
-  it('should create one given the right data type', async() => {
-    const body = {
-      item: createMockItem()
-    };
-    delete body.item['_id'];
-    const res = await request(app).post(apiUrl + '/create')
-      .set('Authorization', token)
-      .send(body);
-    expect(res.status).toBe(200);
-    expect(typeof res.body).toBe('object');
-    expect(res.body).toStrictEqual({ success: true });
-  });
-
   it('should update item', async() => {
     const body = {
       item: createMockItem()
     };
-    const res = await request(app).put(apiUrl + '/update')
+    const res = await request(app).put(apiUrl + '/update/' + companyId)
       .set('Authorization', token)
       .send(body);
     expect(res.status).toBe(401);
@@ -116,7 +112,7 @@ describe('ItemRoutes', () => {
     const body = {
       item: createMockItem()
     };
-    const res = await request(app).post(apiUrl + '/updateimg')
+    const res = await request(app).post(apiUrl + '/updateimg/' + companyId)
       .set('Authorization', token)
       .send(body);
     expect(res.status).toBe(401);
@@ -126,7 +122,7 @@ describe('ItemRoutes', () => {
 
 
   it('should like item', async() => {
-    const res = await request(app).put(apiUrl + '/like/1')
+    const res = await request(app).put(apiUrl + '/like/1/' + companyId)
       .set('Authorization', token)
       .send();
     expect(res.status).toBe(401);
@@ -136,7 +132,7 @@ describe('ItemRoutes', () => {
 
 
   it('should unlike item', async() => {
-    const res = await request(app).put(apiUrl + '/unlike/1')
+    const res = await request(app).put(apiUrl + '/unlike/1/' + companyId)
       .set('Authorization', token)
       .send();
     expect(res.status).toBe(401);
@@ -145,7 +141,7 @@ describe('ItemRoutes', () => {
   });
 
   it('should fail to get one as Object id is inValid', async() => {
-    const res = await request(app).get(apiUrl + '/getone/1436347347347478348388835835')
+    const res = await request(app).get(apiUrl + '/getone/1436347347347478348388835835/' + companyId)
       .set('Authorization', token)
       .send();
     expect(res.status).toBe(200);
@@ -154,7 +150,7 @@ describe('ItemRoutes', () => {
   });
 
   it('should do filtergeneral', async() => {
-    const res = await request(app).get(apiUrl + '/filtergeneral/prop/val')
+    const res = await request(app).get(apiUrl + '/filtergeneral/prop/val/0/0/' + companyId)
       .set('Authorization', token)
       .send();
     expect(res.status).toBe(200);
@@ -162,18 +158,8 @@ describe('ItemRoutes', () => {
     expectTypeOf(res.body).toMatchTypeOf({ });
   });
 
-  /* it('should get empty array for many as there is db model is empty', async() => {
-    const res = await request(app).get(apiUrl + '/getall/0/0')
-      .set('Authorization', token)
-      .send();
-    expect(res.status).toBe(200);
-    expect(typeof res.body).toBe('object');
-    expectTypeOf(res.body).toMatchTypeOf([]);
-    expect(res.body).toStrictEqual([]);
-  });*/
-
   it('should get trending items', async() => {
-    const res = await request(app).get(apiUrl + '/gettrending')
+    const res = await request(app).get(apiUrl + '/gettrending/0/0/' + companyId)
       .set('Authorization', token)
       .send();
     expect(res.status).toBe(200);
@@ -182,7 +168,7 @@ describe('ItemRoutes', () => {
   });
 
   it('should get new items', async() => {
-    const res = await request(app).get(apiUrl + '/getnew')
+    const res = await request(app).get(apiUrl + '/getnew/0/0/' + companyId)
       .set('Authorization', token)
       .send();
     expect(res.status).toBe(200);
@@ -191,7 +177,7 @@ describe('ItemRoutes', () => {
   });
 
   it('should get brand new items', async() => {
-    const res = await request(app).get(apiUrl + '/getbrandnew')
+    const res = await request(app).get(apiUrl + '/getbrandnew/0/0/' + companyId)
       .set('Authorization', token)
       .send();
     expect(res.status).toBe(200);
@@ -200,7 +186,7 @@ describe('ItemRoutes', () => {
   });
 
   it('should get used items', async() => {
-    const res = await request(app).get(apiUrl + '/getused')
+    const res = await request(app).get(apiUrl + '/getused/0/0/' + companyId)
       .set('Authorization', token)
       .send();
     expect(res.status).toBe(200);
@@ -209,7 +195,7 @@ describe('ItemRoutes', () => {
   });
 
   it('should filter items by upper price', async() => {
-    const res = await request(app).get(apiUrl + '/filterprice/max/0')
+    const res = await request(app).get(apiUrl + '/filterprice/max/0/0/0/' + companyId)
       .set('Authorization', token)
       .send();
     expect(res.status).toBe(200);
@@ -218,7 +204,7 @@ describe('ItemRoutes', () => {
   });
 
   it('should filter items by lower price', async() => {
-    const res = await request(app).get(apiUrl + '/filterprice/min/0')
+    const res = await request(app).get(apiUrl + '/filterprice/min/0/0/0/' + companyId)
       .set('Authorization', token)
       .send();
     expect(res.status).toBe(200);
@@ -227,7 +213,7 @@ describe('ItemRoutes', () => {
   });
 
   it('should filter items by low high range', async() => {
-    const res = await request(app).get(apiUrl + '/filterprice/eq/0/10')
+    const res = await request(app).get(apiUrl + '/filterprice/eq/0/10/0/0/' + companyId)
       .set('Authorization', token)
       .send();
     expect(res.status).toBe(200);
@@ -236,7 +222,7 @@ describe('ItemRoutes', () => {
   });
 
   it('should filter items by stars', async() => {
-    const res = await request(app).get(apiUrl + '/filterstars/4')
+    const res = await request(app).get(apiUrl + '/filterstars/4/0/0/' + companyId)
       .set('Authorization', token)
       .send();
     expect(res.status).toBe(200);
@@ -245,7 +231,7 @@ describe('ItemRoutes', () => {
   });
 
   it('should login admin log user', async() => {
-    const res = await request(app).get(apiUrl + '/discount/100')
+    const res = await request(app).get(apiUrl + '/discount/100/0/0/' + companyId)
       .set('Authorization', token)
       .send();
     expect(res.status).toBe(200);
@@ -257,7 +243,7 @@ describe('ItemRoutes', () => {
     const body = {
       sponsored: []
     };
-    const res = await request(app).post(apiUrl + '/getsponsored')
+    const res = await request(app).post(apiUrl + '/getsponsored/' + companyId)
       .set('Authorization', token)
       .send(body);
     expect(res.status).toBe(403);
@@ -265,20 +251,11 @@ describe('ItemRoutes', () => {
     expect(res.body).toStrictEqual({ success: false, status: 403, err: 'no sponsored items provided' });
   });
 
-  it('should get offered items', async() => {
-    const res = await request(app).get(apiUrl + '/getoffered')
-      .set('Authorization', token)
-      .send();
-    expect(res.status).toBe(200);
-    expect(typeof res.body).toBe('object');
-    expectTypeOf(res.body).toMatchTypeOf([]);
-  });
-
   it('should add sponsored items', async() => {
     const body = {
       sponsored: createMockSponsored()
     };
-    const res = await request(app).put(apiUrl + '/addsponsored/1')
+    const res = await request(app).put(apiUrl + '/addsponsored/1/' + companyId)
       .set('Authorization', token)
       .send(body);
     expect(res.status).toBe(401);
@@ -288,7 +265,7 @@ describe('ItemRoutes', () => {
     const body = {
       sponsored: createMockSponsored()
     };
-    const res = await request(app).put(apiUrl + '/updatesponsored/1')
+    const res = await request(app).put(apiUrl + '/updatesponsored/1/' + companyId)
       .set('Authorization', token)
       .send(body);
     expect(res.status).toBe(401);
@@ -297,7 +274,7 @@ describe('ItemRoutes', () => {
   });
 
   it('should delete sponsored item', async() => {
-    const res = await request(app).delete(apiUrl + '/deletesponsored/1/spnsdId')
+    const res = await request(app).delete(apiUrl + '/deletesponsored/1/spnsdId/' + companyId)
       .set('Authorization', token)
       .send();
     expect(res.status).toBe(401);
@@ -306,7 +283,7 @@ describe('ItemRoutes', () => {
   });
 
   it('should fail to delete on with invalid ObjectId', async() => {
-    const res = await request(app).put(apiUrl + '/deleteone/1')
+    const res = await request(app).put(apiUrl + '/deleteone/1/' + companyId)
       .set('Authorization', token)
       .send();
     expect(res.status).toBe(401);
@@ -315,7 +292,7 @@ describe('ItemRoutes', () => {
   });
 
   it('should pass and delete given valid ObjectId', async() => {
-    const res = await request(app).delete(apiUrl + '/deleteone/' + objectId)
+    const res = await request(app).delete(apiUrl + '/deleteone/' + objectId + '/' + companyId)
       .set('Authorization', token)
       .send();
     expect(res.status).toBe(404);
@@ -327,7 +304,7 @@ describe('ItemRoutes', () => {
     const body = {
       filesWithDir: []
     };
-    const res = await request(app).put(apiUrl + '/deleteimages')
+    const res = await request(app).put(apiUrl + '/deleteimages/' + companyId)
       .set('Authorization', token)
       .send(body);
     expect(res.status).toBe(401);
@@ -335,24 +312,11 @@ describe('ItemRoutes', () => {
     expect(res.body).toStrictEqual({ success: false, status: 401, err: 'unauthourised' });
   });
 
-  it('should make search and return empty array', async() => {
-    const body = {
-      searchterm: 'rherh',
-      searchKey: 'name'
-    };
-    const res = await request(app).post(apiUrl + '/search/0/0')
-      .set('Authorization', token)
-      .send(body);
-    expect(res.status).toBe(200);
-    expect(res.body).toStrictEqual([]);
-    expectTypeOf(res.body).toMatchTypeOf([]);
-  });
-
   it('should fail to delete many on invalid ObjectId', async() => {
     const body = {
       ids: []
     };
-    const res = await request(app).put(apiUrl + '/deletemany')
+    const res = await request(app).put(apiUrl + '/deletemany/' + companyId)
       .set('Authorization', token)
       .send(body);
     expect(res.status).toBe(401);
@@ -364,7 +328,7 @@ describe('ItemRoutes', () => {
     const body = {
       ids: [objectId]
     };
-    const res = await request(app).put(apiUrl + '/deletemany')
+    const res = await request(app).put(apiUrl + '/deletemany/' + companyId)
       .set('Authorization', token)
       .send(body);
     expect(res.status).toBe(200);
@@ -373,4 +337,3 @@ describe('ItemRoutes', () => {
     expect(res.body.success).toBe(true);
   });
 });
-

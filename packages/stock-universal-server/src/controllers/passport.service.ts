@@ -1,5 +1,5 @@
 // This function imports the `Icustomrequest` interface from `@open-stock/stock-universal`.
-import { Icustomrequest } from '@open-stock/stock-universal';
+import { Icustomrequest, TroleAuth, TroleAuthProp } from '@open-stock/stock-universal';
 
 // This function imports the `getLogger()` function from `log4js`.
 import { getLogger } from 'log4js';
@@ -17,7 +17,11 @@ const jwtStrategy = require('passport-jwt').Strategy;
 const extractJwt = require('passport-jwt').ExtractJwt;
 
 // This function defines a function that sets up Passport with the given JWT secret.
-/** */
+
+/**
+ * Runs the Passport configuration for JWT authentication.
+ * @param jwtSecret - The secret key used to sign and verify JWT tokens.
+ */
 export const runPassport = (jwtSecret) => {
   // Create a JWT options object.
   const jwtOptions = {
@@ -35,8 +39,14 @@ export const runPassport = (jwtSecret) => {
 };
 
 // This function defines a function that checks the user's permissions for the given role.
-/** */
-export const roleAuthorisation = (nowRole) => {
+
+/**
+ * Middleware function for role-based authorization.
+ * @param nowRole - The current role to check.
+ * @param permProp - The permission property to check within the role.
+ * @returns A middleware function that checks the user's permissions and authorizes access based on the role and permission property.
+ */
+export const roleAuthorisation = (nowRole: TroleAuth, permProp: TroleAuthProp) => {
   // Log the role name.
   passportLogger.info(`roleAuthorisation - role: ${nowRole}`);
 
@@ -50,7 +60,8 @@ export const roleAuthorisation = (nowRole) => {
 
     // If the user has the required permission, then call the next middleware function.
     if (permissions[nowRole] &&
-        permissions[nowRole] === true) {
+        permissions[nowRole][permProp] &&
+        permissions[nowRole][permProp] === true) {
       passportLogger.debug('roleAuthorisation - permissions', permissions);
       return next();
     } else {
@@ -63,8 +74,30 @@ export const roleAuthorisation = (nowRole) => {
 };
 
 // This function defines a function that gets the JWT token from the request object.
-/** */
+
+/**
+ * Retrieves the token from the request.
+ * @param {Request} req - The request object.
+ * @param {Response} res - The response object.
+ * @param {NextFunction} next - The next middleware function.
+ * @returns {void}
+ */
 export const getToken = (req, res, next) => {
   // Return the next middleware function.
   return next();
 };
+
+/**
+ * Represents an array of super admin roles.
+ */
+export const roleSuperAdmin = [
+  { name: '' },
+  { name: '' },
+  { name: '' },
+  { name: '' },
+  { name: '' },
+  { name: '' },
+  { name: '' },
+  { name: '' },
+  { name: '' }
+];

@@ -5,11 +5,12 @@ import { StockCounterClient } from '../../../../stock-counter-client/src/stock-c
 import { of } from 'rxjs';
 import Axios from 'axios-observable';
 import { Ideliverycity } from '@open-stock/stock-universal';
-import { createMockDeliveryCity, createMockDeliveryCitys } from '../../../../tests/mocks';
+import { createMockDeliveryCity, createMockDeliveryCitys } from '../../../../tests/stock-counter-mocks';
 
 describe('DeliveryCity', () => {
   let instance: DeliveryCity;
   const axiosMock = { } as Axios;
+  const companyId = 'companyid';
 
   beforeEach(() => {
     new StockCounterClient(axiosMock);
@@ -35,7 +36,7 @@ describe('DeliveryCity', () => {
 
   it('#getDeliveryCitys static should get DeliveryCitys array', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makeGet').mockImplementationOnce(() => of(createMockDeliveryCitys(10)));
-    const list = await DeliveryCity.getDeliveryCitys('/', 0, 0);
+    const list = await DeliveryCity.getDeliveryCitys(companyId, '/', 0, 0);
     expect(typeof list).toEqual('object');
     expectTypeOf(list).toEqualTypeOf<DeliveryCity[]>([]);
     expect(lSpy).toHaveBeenCalled();
@@ -43,7 +44,7 @@ describe('DeliveryCity', () => {
 
   it('#getOneDeliveryCity static should get one DeliveryCity', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makeGet').mockImplementationOnce(() => of(createMockDeliveryCity()));
-    const one = await DeliveryCity.getOneDeliveryCity('urId');
+    const one = await DeliveryCity.getOneDeliveryCity(companyId, 'urId');
     expect(typeof one).toEqual('object');
     expect(one).toBeInstanceOf(DeliveryCity);
     expect(lSpy).toHaveBeenCalled();
@@ -51,7 +52,7 @@ describe('DeliveryCity', () => {
 
   it('#createDeliveryCity static should add one DeliveryCity', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makePost').mockImplementationOnce(() => of({ success: true }));
-    const added = await DeliveryCity.createDeliveryCity(createMockDeliveryCity() as Ideliverycity);
+    const added = await DeliveryCity.createDeliveryCity(companyId, createMockDeliveryCity() as Ideliverycity);
     expect(typeof added).toEqual('object');
     expect(added).toHaveProperty('success');
     expect(added.success).toEqual(true);
@@ -62,7 +63,7 @@ describe('DeliveryCity', () => {
 
   it('#deleteDeliveryCitys static should delete many DeliveryCitys', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makePut').mockImplementationOnce(() => of({ success: true }));
-    const deleted = await DeliveryCity.deleteDeliveryCitys(['ids']);
+    const deleted = await DeliveryCity.deleteDeliveryCitys(companyId, ['ids']);
     expect(typeof deleted).toEqual('object');
     expect(deleted).toHaveProperty('success');
     expect(deleted.success).toEqual(true);
@@ -73,7 +74,7 @@ describe('DeliveryCity', () => {
 
   it('#updateDeliveryCity should update DeliveryCity', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makePut').mockImplementationOnce(() => of({ success: true }));
-    const updated = await instance.updateDeliveryCity(createMockDeliveryCity());
+    const updated = await instance.updateDeliveryCity(companyId, createMockDeliveryCity());
     expect(typeof updated).toEqual('object');
     expect(updated).toHaveProperty('success');
     expect(updated.success).toEqual(true);
@@ -84,7 +85,7 @@ describe('DeliveryCity', () => {
 
   it('#deleteDeliveryCity should delete DeliveryCity', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makeDelete').mockImplementationOnce(() => of({ success: true }));
-    const deleted = await instance.deleteDeliveryCity();
+    const deleted = await instance.deleteDeliveryCity(companyId);
     expect(typeof deleted).toEqual('object');
     expect(deleted).toHaveProperty('success');
     expect(deleted.success).toEqual(true);
@@ -93,4 +94,3 @@ describe('DeliveryCity', () => {
     expect(lSpy).toHaveBeenCalled();
   });
 });
-

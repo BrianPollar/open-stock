@@ -1,14 +1,14 @@
-# stock-notif-client
+# @open-stock/stock-notif-client
 
 A simple notification library for Javascript on browser with user state management.
-This only works with (https://github.com/BrianPollar/stock-notif-server) the server library.
+This only works with (https://github.com/BrianPollar/@open-stock/stock-notif-server) the server library.
 
 ## Features
 
 stock-notif-client implements a full notifentication system. It consists of:
 
 - a Javascript client library (this repository)
-- a [Node Js Server](https://github.com/BrianPollar/stock-notif-server) for Node.js.
+- a [Node Js Server](https://github.com/BrianPollar/@open-stock/stock-notif-server) for Node.js.
 
 Its main features are:
 
@@ -21,7 +21,7 @@ The libarary uses standard encryption for data protection:
 Sample code:
 
 ```ts
-import { StockNotifClient } from "stock-notif-client";
+import { StockNotifClient } from "@open-stock/stock-notif-client";
 import Axios from "axios-observable";
 
 // then create an instance
@@ -41,10 +41,10 @@ const newNotifClient = new StockNotifClient(instance);
 
 ```bash
 // with npm
-npm install stock-notif-client
+npm install @open-stock/stock-notif-client
 
 // with yarn
-yarn add stock-notif-client
+yarn add @open-stock/stock-notif-client
 ```
 
 ## How to use
@@ -68,9 +68,30 @@ const instance = Axios.create({
 const newNotifClient = new StockNotifClient(instance);
 ```
 
+## Extra Features
+Some of the features of @open-stock/stock-notif-client are:
+
+## NOTE
+Most of the features below are automatically implememnted by the library. But If you want to use the classes and functions provided by the library, you can do so by importing them from the library.
+Some of them are elaborated below.
+
+## Notification Abstraction and Definition
+Notification Abstraction and Definition is a class that is used to define the notification and abstract the notification. It is used by the StockNotifClient to define the notification and abstract the notification
+
+# usage
+  ```ts
+import { NotificationMain, NotifSetting } from "@open-stock/stock-notif-client";
+
+// initialize the NotificationMain
+const notificationMain = new NotificationMain();
+
+// initialize the NotifSetting
+const notifSetting = new NotifSetting();
+```
+
 ## Documentation
 
-The source code of the website can be found [here](https://github.com/BrianPollar/stock-notif-client). Contributions are welcome!
+The source code of the website can be found [here](https://github.com/BrianPollar/@open-stock/stock-notif-client). Contributions are welcome!
 
 ## Sponsors
 

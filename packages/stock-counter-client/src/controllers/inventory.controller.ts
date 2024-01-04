@@ -128,7 +128,7 @@ export class InventoryController {
     return related
       .reduce((acc, val) => acc + val.items
         // eslint-disable-next-line max-len
-        .reduce((acc1, val1) => acc1 + (val.payments.reduce((acc3, val3) => val3.amount + acc3, 0) - this.findItem(val1.item, allItems)?.costMeta.costPrice || 0), 0), 0);
+        .reduce((acc1, val1) => acc1 + (val.payments?.reduce((acc3, val3) => val3.amount + acc3, 0) - this.findItem(val1.item, allItems)?.costMeta.costPrice || 0), 0), 0);
   }
 
   /**
@@ -166,7 +166,13 @@ export class InventoryController {
       .reduce((acc, val) => acc + val.cost, 0);
   }
 
-  /** deepDateComparison(date: Date, otherDate: Date, position: string): This method compares two dates based on a specified position (year, month, week, or day). It returns an object with properties indicating if the dates are equal, less than, or more than each other. */
+  /**
+   * Compares two dates deeply based on the specified position.
+   * @param date The first date to compare.
+   * @param otherDate The second date to compare.
+   * @param position The position to compare the dates on. Can be 'year', 'month', 'week', or 'day'.
+   * @returns An object indicating the comparison result, with properties 'equal', 'lessThan', and 'moreThan'.
+   */
   deepDateComparison(
     date: Date,
     otherDate: Date,
@@ -262,7 +268,12 @@ export class InventoryController {
     }
   }
 
-  /** getExpenseByDay(expenses: Expense[], date: Date): This method calculates the total expense for a specific day. It filters the expenses based on the year, month, and day of the expense date. */
+  /**
+   * Retrieves expenses and calculates the total cost for a specific day.
+   * @param expenses - The array of expenses.
+   * @param date - The date to filter the expenses by.
+   * @returns An object containing the filtered expenses and the total cost.
+   */
   getExpenseByDay(expenses: Expense[], date: Date) {
     const filtered = expenses
       .filter(val => {
@@ -280,7 +291,12 @@ export class InventoryController {
     };
   }
 
-  /** getExpenseByWeek(expenses: Expense[], date: Date): This method calculates the total expense for a specific week. It filters the expenses based on the year, month, and week of the expense date.*/
+  /**
+   * Retrieves expenses and calculates the total cost for a specific week.
+   * @param expenses - The array of expenses.
+   * @param date - The reference date to filter expenses by week.
+   * @returns An object containing the filtered expenses and the total cost.
+   */
   getExpenseByWeek(expenses: Expense[], date: Date) {
     const filtered = expenses
       .filter(val => {
@@ -298,7 +314,12 @@ export class InventoryController {
     };
   }
 
-  /** getExpenseByMonth(expenses: Expense[], date: Date): This method calculates the total expense for a specific month. It filters the expenses based on the year and month of the expense date. */
+  /**
+   * Retrieves expenses for a specific month.
+   * @param expenses - The array of expenses.
+   * @param date - The target month.
+   * @returns An object containing the filtered expenses and the total cost.
+   */
   getExpenseByMonth(expenses: Expense[], date: Date) {
     const filtered = expenses
       .filter(val => {
@@ -315,7 +336,12 @@ export class InventoryController {
     };
   }
 
-  /** getExpenseByYear(expenses: Expense[], date: Date): This method calculates the total expense for a specific year. It filters the expenses based on the year of the expense date.*/
+  /**
+   * Retrieves expenses for a specific year.
+   * @param expenses - The array of expenses.
+   * @param date - The date to filter expenses by year.
+   * @returns An object containing the filtered expenses and the total cost.
+   */
   getExpenseByYear(expenses: Expense[], date: Date) {
     const filtered = expenses
       .filter(val => {
@@ -331,7 +357,13 @@ export class InventoryController {
     };
   }
 
-  /** getExpenseByDates(expenses: Expense[], lowerDate: Date, upperDate: Date): This method calculates the total expense for a range of dates. It filters the expenses based on the year of the expense date and checks if it falls within the specified range. */
+  /**
+   * Retrieves expenses within a specified date range.
+   * @param expenses - The array of expenses to filter.
+   * @param lowerDate - The lower bound of the date range.
+   * @param upperDate - The upper bound of the date range.
+   * @returns An object containing the filtered expenses and the total cost.
+   */
   getExpenseByDates(expenses: Expense[], lowerDate: Date, upperDate: Date) {
     const filtered = expenses
       .filter(val => {
@@ -348,7 +380,12 @@ export class InventoryController {
     };
   }
 
-  /** getSalesByDay(invoiceRelateds: InvoiceRelated[], date: Date): This method calculates the total sales for a specific day. It filters the invoice-related items based on the year, month, and day of the creation date. */
+  /**
+   * Retrieves the sales made on a specific day.
+   * @param invoiceRelateds - An array of invoice related objects.
+   * @param date - The date to filter the sales by.
+   * @returns An object containing the filtered sales and the total amount of payments made on that day.
+   */
   getSalesByDay(invoiceRelateds: InvoiceRelatedWithReceipt[], date: Date) {
     const filtered = invoiceRelateds
       .filter(val => {
@@ -366,7 +403,12 @@ export class InventoryController {
     };
   }
 
-  /** getSalesByWeek(invoiceRelateds: InvoiceRelated[], date: Date): This method calculates the total sales for a specific week. It filters the invoice-related items based on the year and month of the creation date.*/
+  /**
+   * Retrieves sales by week based on the given invoice related data and date.
+   * @param invoiceRelateds - The array of invoice related data.
+   * @param date - The date used for filtering the sales.
+   * @returns An object containing the filtered sales and the total amount of payments.
+   */
   getSalesByWeek(invoiceRelateds: InvoiceRelatedWithReceipt[], date: Date) {
     const filtered = invoiceRelateds
       .filter(val => {
@@ -379,11 +421,16 @@ export class InventoryController {
       });
     return {
       sales: filtered,
-      total: filtered.reduce((acc, val) => acc + val.payments.reduce((acc1, val1) => acc1 + val1.amount, 0), 0)
+      total: filtered?.reduce((acc, val) => acc + val.payments?.reduce((acc1, val1) => acc1 + val1.amount, 0), 0)
     };
   }
 
-  /** getSalesByMonth(invoiceRelateds: InvoiceRelated[], date: Date): This method calculates the total sales for a specific month. It filters the invoice-related items based on the year and month of the creation date. */
+  /**
+   * Retrieves the sales for a specific month.
+   * @param invoiceRelateds - The array of invoice related objects.
+   * @param date - The date representing the month to filter the sales.
+   * @returns An object containing the filtered sales and the total amount of payments.
+   */
   getSalesByMonth(invoiceRelateds: InvoiceRelatedWithReceipt[], date: Date) {
     const filtered = invoiceRelateds
       .filter(val => {
@@ -396,11 +443,16 @@ export class InventoryController {
       });
     return {
       sales: filtered,
-      total: filtered.reduce((acc, val) => acc + val.payments.reduce((acc1, val1) => acc1 + val1.amount, 0), 0)
+      total: filtered?.reduce((acc, val) => acc + val.payments?.reduce((acc1, val1) => acc1 + val1.amount, 0), 0)
     };
   }
 
-  /** getSalesByYear(invoiceRelateds: InvoiceRelated[], date: Date): This method calculates the total sales for a specific year. It filters the invoice-related items based on the year of the creation date. */
+  /**
+   * Retrieves sales data for a specific year.
+   * @param invoiceRelateds - An array of invoice related objects.
+   * @param date - The target date to filter the sales by year.
+   * @returns An object containing the filtered sales and the total amount of payments.
+   */
   getSalesByYear(invoiceRelateds: InvoiceRelatedWithReceipt[], date: Date) {
     const filtered = invoiceRelateds
       .filter(val => {
@@ -412,11 +464,17 @@ export class InventoryController {
       });
     return {
       sales: filtered,
-      total: filtered.reduce((acc, val) => acc + val.payments.reduce((acc1, val1) => acc1 + val1.amount, 0), 0)
+      total: filtered?.reduce((acc, val) => acc + val.payments?.reduce((acc1, val1) => acc1 + val1.amount, 0), 0)
     };
   }
 
-  /** getSalesByDates(invoiceRelateds: InvoiceRelated[], lowerDate: Date, upperDate: Date): This method calculates the total sales for a range of dates. It filters the invoice-related items based on the year of the creation date and checks if it falls within the specified range.*/
+  /**
+   * Retrieves sales data from the given invoice related items within the specified date range.
+   * @param invoiceRelateds - The array of invoice related items.
+   * @param lowerDate - The lower bound of the date range.
+   * @param upperDate - The upper bound of the date range.
+   * @returns An object containing the filtered sales data and the total sales amount.
+   */
   getSalesByDates(invoiceRelateds: InvoiceRelatedWithReceipt[], lowerDate: Date, upperDate: Date) {
     const filtered = invoiceRelateds
       .filter(val => {
@@ -433,7 +491,12 @@ export class InventoryController {
     };
   }
 
-  /** getInvoicesByDay(invoices: Invoice[], date: Date): This method filters the invoices based on the year, month, and day of the creation date and returns the filtered invoices and the total cost.*/
+  /**
+   * Retrieves invoices and calculates the total cost for a specific day.
+   * @param invoices - The array of invoices to filter.
+   * @param date - The specific date to filter the invoices by.
+   * @returns An object containing the filtered invoices and the total cost.
+   */
   getInvoicesByDay(invoices: Invoice[], date: Date) {
     const filtered = invoices
       .filter(val => {
@@ -451,7 +514,12 @@ export class InventoryController {
     };
   }
 
-  /** getInvoicesByWeek(invoices: Invoice[], date: Date): This method filters the invoices based on the year and month of the creation date and returns the filtered invoices and the total cost. */
+  /**
+   * Retrieves invoices for a specific week based on the given date.
+   * @param invoices - The array of invoices to filter.
+   * @param date - The date used to determine the week.
+   * @returns An object containing the filtered invoices and the total cost.
+   */
   getInvoicesByWeek(invoices: Invoice[], date: Date) {
     const filtered = invoices
       .filter(val => {
@@ -468,7 +536,12 @@ export class InventoryController {
     };
   }
 
-  /** getInvoicesByMonth(invoices: Invoice[], date: Date): This method filters the invoices based on the year and month of the creation date and returns the filtered invoices and the total cost.*/
+  /**
+   * Retrieves invoices for a specific month.
+   * @param invoices - The list of invoices.
+   * @param date - The target month.
+   * @returns An object containing the filtered invoices and their total cost.
+   */
   getInvoicesByMonth(invoices: Invoice[], date: Date) {
     const filtered = invoices
       .filter(val => {
@@ -485,7 +558,12 @@ export class InventoryController {
     };
   }
 
-  /** getInvoicesYear(invoices: Invoice[], date: Date): This method filters the invoices based on the year of the creation date and returns the filtered invoices and the total cost. */
+  /**
+   * Retrieves the invoices and calculates the total cost for a specific year.
+   * @param invoices - The array of invoices to filter.
+   * @param date - The target year to filter the invoices.
+   * @returns An object containing the filtered invoices and the total cost.
+   */
   getInvoicesYear(invoices: Invoice[], date: Date) {
     const filtered = invoices
       .filter(val => {
@@ -501,7 +579,13 @@ export class InventoryController {
     };
   }
 
-  /** getInvoicesByDates(invoices: Invoice[], lowerDate: Date, upperDate): This method filters the invoices based on the year of the creation date and checks if it falls within the specified range. It returns the filtered invoices and the total cost. */
+  /**
+   * Retrieves invoices within a specified date range.
+   * @param invoices - The array of invoices to filter.
+   * @param lowerDate - The lower bound of the date range.
+   * @param upperDate - The upper bound of the date range.
+   * @returns An object containing the filtered invoices and the total cost.
+   */
   getInvoicesByDates(invoices: Invoice[], lowerDate: Date, upperDate) {
     const filtered = invoices
       .filter(val => {
@@ -518,7 +602,12 @@ export class InventoryController {
     };
   }
 
-  /** getEstimatesByMonth(estimates: Estimate[], date: Date): This method filters the estimates based on the year and month of the creation date and returns the filtered estimates and the total cost. */
+  /**
+   * Retrieves estimates by month.
+   * @param estimates - The array of estimates.
+   * @param date - The target date.
+   * @returns An object containing the filtered estimates and their total cost.
+   */
   getEstimatesByMonth(estimates: Estimate[], date: Date) {
     const filtered = estimates
       .filter(val => {
@@ -535,7 +624,12 @@ export class InventoryController {
     };
   }
 
-  /** getWeek(fromDate: Date): This method calculates the start and end dates of a week based on a given date. It returns an array of dates representing the days of the week. */
+  /**
+   * Returns an array of dates representing the week starting from the given date.
+   * The week starts from Sunday and ends on Saturday.
+   * @param fromDate - The starting date of the week.
+   * @returns An array of dates representing the week.
+   */
   getWeek(fromDate: Date) {
     const sunday = new Date(fromDate.setDate(fromDate.getDate() - fromDate.getDay()));
     const result = [new Date(sunday)];

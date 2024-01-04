@@ -1,8 +1,7 @@
 "use strict";
+// This file exports an array of expense categories.
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.expenseCategory = void 0;
-// This file exports an array of expense categories.
-/** */
 exports.expenseCategory = [
     // The category of expenses related to advertising.
     'advertising',

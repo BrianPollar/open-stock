@@ -3,12 +3,14 @@ import { Iexpense } from '@open-stock/stock-universal';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
 const uniqueValidator = require('mongoose-unique-validator');
 
-/** model type for expense by */
-/** */
+/**
+ * Represents a type that combines the Document interface with the Iexpense interface.
+ */
 export type Texpense = Document & Iexpense;
 
 const expenseSchema: Schema<Texpense> = new Schema({
   urId: { type: String, unique: true },
+  companyId: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
   name: { type: String, required: [true, 'cannot be empty.'], index: true },
   person: { type: String },
   cost: { type: Number, required: [true, 'cannot be empty.'], index: true },
@@ -24,6 +26,7 @@ expenseSchema.plugin(uniqueValidator);
  */
 const expenseselect = {
   urId: 1,
+  companyId: 1,
   name: 1,
   person: 1,
   cost: 1,
@@ -31,17 +34,22 @@ const expenseselect = {
   items: 1
 };
 
-/** main connection for expenses Operations*/
-export let expenseMain: Model<Texpense>;
-/** lean connection for expenses Operations*/
-export let expenseLean: Model<Texpense>;
-/** primary selection object
- * for expense
+/**
+ * Represents the main expense model.
  */
-/** */
+export let expenseMain: Model<Texpense>;
+
+/**
+ * Represents a lean expense model.
+ */
+export let expenseLean: Model<Texpense>;
+
+/**
+ * Represents the expense select function.
+ */
 export const expenseSelect = expenseselect;
 
-/** */
+
 /**
  * Creates an expense model with the given database URL, main connection and lean connection.
  * @param dbUrl The URL of the database to connect to.

@@ -23,4 +23,6 @@ tslib_1.__exportStar(require("./filemanager/filestorage"), exports);
 tslib_1.__exportStar(require("./filemanager/fs"), exports);
 // This function exports the `passport.service` class from the `controllers` directory.
 tslib_1.__exportStar(require("./controllers/passport.service"), exports);
+tslib_1.__exportStar(require("./stock-universal-server"), exports);
+tslib_1.__exportStar(require("./models/filemeta.model"), exports);
 //# sourceMappingURL=index.js.map

@@ -1,8 +1,6 @@
 import { TnotifType } from '../types/union.types';
 
 // This file imports the `TnotifType` type from the `union.types` file.
-
-/** */
 export interface Iaction {
   // The `action` property is the name of the action.
   action: string;
@@ -11,8 +9,6 @@ export interface Iaction {
 }
 
 // This interface defines the properties of an action.
-
-/** */
 export interface Iactionwithall
   extends Iaction {
   // The `operation` property is the operation that is performed when the action is clicked.
@@ -23,7 +19,7 @@ export interface Iactionwithall
 
 // This interface extends the `Iaction` interface and defines the properties of an action with all the details.
 
-/** */
+
 export interface Imainnotification {
   // The `_id` property is the ID of the notification.
   // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -50,7 +46,7 @@ export interface Imainnotification {
 
 // This interface defines the properties of a main notification.
 
-/** */
+
 export interface InotifSetting {
   // The `invoices` property indicates whether the user wants to receive notifications about invoices.
   invoices: boolean;

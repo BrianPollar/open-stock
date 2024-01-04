@@ -2,7 +2,7 @@
 import { Icity } from '../interfaces/general.interface';
 
 // This export variable defines an array of cities.
-/** */
+
 /**
  * An array of default cities.
  * @interface Icity
@@ -54,58 +54,6 @@ export const defaultCitys: Icity[] = [
   },
   {
     name: 'Apac'
-  },
-  {
-    /**
-     * This city is repeated 10 times.
-     * @type {string}
-     */
-    name: 'Kampala'
-  },
-  {
-    name: 'Kampala'
-  },
-  {
-    name: 'Kampala'
-  },
-  {
-    name: 'Kampala'
-  },
-  {
-    name: 'Kampala'
-  },
-  {
-    name: 'Kampala'
-  },
-  {
-    name: 'Kampala'
-  },
-  {
-    name: 'Kampala'
-  },
-  {
-    name: 'Kampala'
-  },
-  {
-    name: 'Kampala'
-  },
-  {
-    name: 'Kampala'
-  },
-  {
-    name: 'Kampala'
-  },
-  {
-    name: 'Kampala'
-  },
-  {
-    name: 'Kampala'
-  },
-  {
-    name: 'Kampala'
-  },
-  {
-    name: 'Kampala'
   }
 ];
 

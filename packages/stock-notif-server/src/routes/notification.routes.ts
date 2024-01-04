@@ -21,58 +21,80 @@
  */
 /* eslint-disable @typescript-eslint/no-misused-promises */
 import express from 'express';
-import { createNotifications, updateNotifnViewed } from '../controllers/notifications.controller';
+import { updateNotifnViewed } from '../controllers/notifications.controller';
 import { mainnotificationLean, mainnotificationMain } from '../models/mainnotification.model';
 import { subscriptionLean, subscriptionMain } from '../models/subscriptions.model';
 import { notifSettingLean, notifSettingMain } from '../models/notifsetting.model';
 import { Icustomrequest, Isuccess } from '@open-stock/stock-universal';
-import { requireAuth, stringifyMongooseErr, verifyObjectId } from '@open-stock/stock-universal-server';
+import { requireAuth, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 
-/** */
+
+/**
+ * Router for handling notification routes.
+ */
 export const notifnRoutes = express.Router();
 
-notifnRoutes.post('/create', async(req, res) => {
+// TODO for now, we are not using this route
+/* notifnRoutes.post('/create', async(req, res) => {
   await createNotifications(req.body);
   return res.status(200).send({ success: true });
-});
+});*/
 
-notifnRoutes.get('/getmynotifn', requireAuth, async(req, res) => {
+notifnRoutes.get('/getmynotifn/:companyIdParam', requireAuth, async(req, res) => {
   const { userId } = (req as unknown as Icustomrequest).user;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectId(queryId);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   const notifs = await mainnotificationLean
-    .find({ userId, active: true, viewed: { $nin: [userId] } })
+    .find({ userId, active: true, viewed: { $nin: [userId] }, companyId: queryId })
     .lean()
     .sort({ name: 'asc' });
   return res.status(200).send(notifs);
 });
 
-notifnRoutes.get('/getmyavailnotifn', requireAuth, async(req, res) => {
+notifnRoutes.get('/getmyavailnotifn/:companyIdParam', requireAuth, async(req, res) => {
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const notifs = await mainnotificationLean
-    .find({ active: true })
+    .find({ active: true, companyId: queryId })
     .lean()
     .sort({ name: 'asc' });
   return res.status(200).send(notifs);
 });
 
-notifnRoutes.get('/getone/:id', async(req, res) => {
+notifnRoutes.get('/getone/:id/:companyIdParam', requireAuth, async(req, res) => {
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const { id } = req.params;
-  const isValid = verifyObjectId(id);
+  const isValid = verifyObjectIds([id, queryId]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const notifs = await mainnotificationLean
-    .findById(id)
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    .findOne({ _id: id, companyId: queryId })
     .lean()
     .sort({ name: 'asc' });
   return res.status(200).send(notifs);
 });
 
-notifnRoutes.delete('/deleteone/:id', async(req, res) => {
+notifnRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, async(req, res) => {
   const id = req.params.id;
-  const isValid = verifyObjectId(id);
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectIds([id, queryId]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
-  const deleted = await mainnotificationMain.findByIdAndRemove(id);
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  const deleted = await mainnotificationMain.findOneAndRemove({ _id: id, companyId: queryId });
   if (Boolean(deleted)) {
     return res.status(200).send({ success: Boolean(deleted) });
   } else {
@@ -80,11 +102,18 @@ notifnRoutes.delete('/deleteone/:id', async(req, res) => {
   }
 });
 
-notifnRoutes.post('/subscription', requireAuth, async(req, res) => {
+notifnRoutes.post('/subscription/:companyIdParam', requireAuth, async(req, res) => {
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const { userId, permissions } = (req as Icustomrequest).user;
+  const isValid = verifyObjectIds([queryId]);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   const subscription = req.body;
   let sub = await subscriptionLean
-    .findOne({ userId });
+    .findOne({ userId, companyId: queryId });
   if (sub) {
     sub.subscription = subscription.subscription;
   } else {
@@ -123,18 +152,24 @@ notifnRoutes.post('/subscription', requireAuth, async(req, res) => {
   res.status(200).send({ success: true });
 });
 
-notifnRoutes.post('/updateviewed', requireAuth, async(req, res) => {
+notifnRoutes.post('/updateviewed/:companyIdParam', requireAuth, async(req, res) => {
   const user = (req as Icustomrequest).user;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const { id } = req.body;
-  const isValid = verifyObjectId(id);
+  const isValid = verifyObjectIds([id, queryId]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
-  await updateNotifnViewed(user, id);
+  await updateNotifnViewed(user, id); // TODO check if this is working
   return res.status(200).send({ success: true });
 });
 
-notifnRoutes.get('/unviewedlength', requireAuth, async(req, res) => {
+notifnRoutes.get('/unviewedlength/:companyIdParam', requireAuth, async(req, res) => {
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const { userId, permissions } = (req as Icustomrequest).user;
   let filter;
   if (permissions.users &&
@@ -151,16 +186,20 @@ notifnRoutes.get('/unviewedlength', requireAuth, async(req, res) => {
     };
   }
   const notifsCount = await mainnotificationLean
-    .find({ viewed: { $nin: [userId] }, ...filter })
+    .find({ companyId: queryId, viewed: { $nin: [userId] }, ...filter })
     .count();
   return res.status(200).send({ count: notifsCount });
 });
 
-notifnRoutes.put('/clearall', requireAuth, async(req, res) => {
+notifnRoutes.put('/clearall/:companyIdParam', requireAuth, async(req, res) => {
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  // TODO  chck if this is working
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const { userId } = (req as Icustomrequest).user;
 
   const all = await mainnotificationLean.find({
-    userId, active: true
+    userId, active: true, companyId
   });
   const promises = all.map(async val => {
     val.active = false;
@@ -194,8 +233,10 @@ notifnRoutes.put('/clearall', requireAuth, async(req, res) => {
 
 
 // settings
-notifnRoutes.post('/createstn', async(req, res) => {
+notifnRoutes.post('/createstn/:companyIdParam', async(req, res) => {
   const { stn } = req.body;
+  const { companyIdParam } = req.params;
+  stn.companyId = companyIdParam;
   const notifMain = new notifSettingMain(stn);
 
   let errResponse: Isuccess;
@@ -223,7 +264,7 @@ notifnRoutes.post('/createstn', async(req, res) => {
 notifnRoutes.put('/updatestn', async(req, res) => {
   const { stn } = req.body;
   const id = stn?._id;
-  const isValid = verifyObjectId(id);
+  const isValid = verifyObjectIds([id]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -261,9 +302,12 @@ notifnRoutes.put('/updatestn', async(req, res) => {
 });
 
 // settings
-notifnRoutes.post('/getstn', async(req, res) => {
+notifnRoutes.post('/getstn', requireAuth, async(req, res) => {
+  const { companyId } = (req as Icustomrequest).user;
+  // const { companyIdParam } = req.params;
+  // const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const stns = await notifSettingLean
-    .find({})
+    .find({ companyId })
     .lean();
   return res.status(200).send({ stns });
 });

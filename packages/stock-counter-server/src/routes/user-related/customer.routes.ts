@@ -7,17 +7,20 @@ import {
   requireAuth,
   roleAuthorisation,
   stringifyMongooseErr,
-  verifyObjectId
+  verifyObjectId,
+  verifyObjectIds
 } from '@open-stock/stock-universal-server';
 import { customerLean, customerMain } from '../../models/user-related/customer.model';
-import { Isuccess } from '@open-stock/stock-universal';
+import { Icustomrequest, Isuccess } from '@open-stock/stock-universal';
 import { userLean } from '@open-stock/stock-auth-server';
 import { removeManyUsers, removeOneUser } from './locluser.routes';
 
 /** Logger for customer routes */
 const customerRoutesLogger = getLogger('routes/customerRoutes');
 
-/** Express router for customer routes */
+/**
+ * Router for handling customer-related routes.
+ */
 export const customerRoutes = express.Router();
 
 /**
@@ -31,7 +34,7 @@ export const customerRoutes = express.Router();
  * @param {callback} middleware - Express middleware
  * @returns {Promise} - Promise representing the HTTP response
  */
-customerRoutes.post('/create', requireAuth, roleAuthorisation('users'), async(req, res) => {
+customerRoutes.post('/create/:companyIdParam', requireAuth, roleAuthorisation('users', 'create'), async(req, res) => {
   const customer = req.body.customer;
   const newCustomer = new customerMain(customer);
   let errResponse: Isuccess;
@@ -76,14 +79,18 @@ customerRoutes.post('/create', requireAuth, roleAuthorisation('users'), async(re
  * @param {callback} middleware - Express middleware
  * @returns {Promise} - Promise representing the HTTP response
  */
-customerRoutes.get('/getone/:id', async(req, res) => {
+customerRoutes.get('/getone/:id/:companyIdParam', async(req, res) => {
   const { id } = req.params;
-  const isValid = verifyObjectId(id);
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectIds([id, queryId]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const customer = await customerLean
-    .findById(id)
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    .findOne({ _id: id, companyId: queryId })
     .populate({ path: 'user', model: userLean })
     .lean();
   return res.status(200).send(customer);
@@ -99,15 +106,17 @@ customerRoutes.get('/getone/:id', async(req, res) => {
  * @param {callback} middleware - Express middleware
  * @returns {Promise} - Promise representing the HTTP response
  */
-customerRoutes.get('/getall/:offset/:limit', async(req, res) => {
+customerRoutes.get('/getall/:offset/:limit/:companyIdParam', async(req, res) => {
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const customers = await customerLean
-    .find({})
+    .find({ companyId: queryId })
     .populate({ path: 'user', model: userLean })
     .skip(offset)
     .limit(limit)
     .lean();
-  console.log('What to return is', customers);
   return res.status(200).send(customers);
 });
 
@@ -122,15 +131,19 @@ customerRoutes.get('/getall/:offset/:limit', async(req, res) => {
  * @param {callback} middleware - Express middleware
  * @returns {Promise} - Promise representing the HTTP response
  */
-customerRoutes.put('/update', requireAuth, roleAuthorisation('users'), async(req, res) => {
+customerRoutes.put('/update/:companyIdParam', requireAuth, roleAuthorisation('users', 'update'), async(req, res) => {
   const updatedCustomer = req.body;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  updatedCustomer.companyId = queryId;
   const isValid = verifyObjectId(updatedCustomer._id);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const customer = await customerMain
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    .findByIdAndUpdate(updatedCustomer._id);
+    .findOneAndUpdate({ _id: updatedCustomer._id, companyId: queryId });
   if (!customer) {
     return res.status(404).send({ success: false });
   }
@@ -173,13 +186,17 @@ customerRoutes.put('/update', requireAuth, roleAuthorisation('users'), async(req
  * @param {callback} middleware - Express middleware
  * @returns {Promise} - Promise representing the HTTP response
  */
-customerRoutes.put('/deleteone', requireAuth, roleAuthorisation('users'), removeOneUser, deleteFiles, async(req, res) => {
+customerRoutes.put('/deleteone/:companyIdParam', requireAuth, roleAuthorisation('users', 'delete'), removeOneUser, deleteFiles, async(req, res) => {
   const { id } = req.body;
-  const isValid = verifyObjectId(id);
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectIds([id, queryId]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
-  const deleted = await customerMain.findByIdAndDelete(id);
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  const deleted = await customerMain.findOneAndDelete({ _id: id, companyId: queryId });
   if (Boolean(deleted)) {
     return res.status(200).send({ success: Boolean(deleted) });
   } else {
@@ -199,11 +216,14 @@ customerRoutes.put('/deleteone', requireAuth, roleAuthorisation('users'), remove
  * @param {callback} middleware - Express middleware
  * @returns {Promise} - Promise representing the HTTP response
  */
-customerRoutes.put('/deletemany', requireAuth, roleAuthorisation('users'), removeManyUsers, deleteFiles, async(req, res) => {
+customerRoutes.put('/deletemany/:companyIdParam', requireAuth, roleAuthorisation('users', 'delete'), removeManyUsers, deleteFiles, async(req, res) => {
   const { ids } = req.body;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const deleted = await customerMain
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    .deleteMany({ _id: { $in: ids } })
+    .deleteMany({ companyId: queryId, _id: { $in: ids } })
     .catch(err => {
       customerRoutesLogger.error('deletemany - err: ', err);
       return null;

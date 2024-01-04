@@ -4,12 +4,14 @@ import express from 'express';
 import { expenseLean, expenseMain } from '../models/expense.model';
 import { getLogger } from 'log4js';
 import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
-import { Isuccess } from '@open-stock/stock-universal';
+import { Icustomrequest, Isuccess } from '@open-stock/stock-universal';
 
 /** Logger for expense routes */
 const expenseRoutesLogger = getLogger('routes/expenseRoutes');
 
-/** Router for expense routes */
+/**
+ * Router for handling expense routes.
+ */
 export const expenseRoutes = express.Router();
 
 /**
@@ -21,11 +23,20 @@ export const expenseRoutes = express.Router();
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware
  */
-expenseRoutes.post('/create', requireAuth, roleAuthorisation('printables'), async(req, res) => {
+expenseRoutes.post('/create/:companyIdParam', requireAuth, roleAuthorisation('printables', 'create'), async(req, res) => {
   const expense = req.body;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  expense.companyId = queryId;
+  const isValid = verifyObjectId(queryId);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
+
   const count = await expenseMain
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+    .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
   expense.urId = makeUrId(Number(count[0]?.urId || '0'));
   const newExpense = new expenseMain(expense);
   let errResponse: Isuccess;
@@ -60,16 +71,20 @@ expenseRoutes.post('/create', requireAuth, roleAuthorisation('printables'), asyn
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware
  */
-expenseRoutes.put('/update', requireAuth, roleAuthorisation('printables'), async(req, res) => {
+expenseRoutes.put('/update/:companyIdParam', requireAuth, roleAuthorisation('printables', 'update'), async(req, res) => {
   const updatedExpense = req.body;
-  const isValid = verifyObjectId(updatedExpense._id);
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  updatedExpense.companyId = queryId;
+  const isValid = verifyObjectIds([updatedExpense._id, queryId]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
 
   const expense = await expenseMain
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    .findByIdAndUpdate(updatedExpense._id);
+    .findOneAndUpdate({ _id: updatedExpense._id, companyId: queryId });
   if (!expense) {
     return res.status(404).send({ success: false });
   }
@@ -111,14 +126,18 @@ expenseRoutes.put('/update', requireAuth, roleAuthorisation('printables'), async
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware
  */
-expenseRoutes.get('/getone/:id', requireAuth, roleAuthorisation('printables'), async(req, res) => {
+expenseRoutes.get('/getone/:id/:companyIdParam', requireAuth, roleAuthorisation('printables', 'read'), async(req, res) => {
   const { id } = req.params;
-  const isValid = verifyObjectId(id);
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectIds([id, queryId]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const expense = await expenseLean
-    .findById(id)
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    .findOne({ _id: id, companyId: queryId })
     .lean();
   return res.status(200).send(expense);
 });
@@ -132,10 +151,13 @@ expenseRoutes.get('/getone/:id', requireAuth, roleAuthorisation('printables'), a
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware
  */
-expenseRoutes.get('/getall/:offset/:limit', requireAuth, roleAuthorisation('printables'), async(req, res) => {
+expenseRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, roleAuthorisation('printables', 'read'), async(req, res) => {
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const expenses = await expenseLean
-    .find({})
+    .find({ companyId: queryId })
     .skip(offset)
     .limit(limit)
     .lean();
@@ -151,13 +173,17 @@ expenseRoutes.get('/getall/:offset/:limit', requireAuth, roleAuthorisation('prin
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware
  */
-expenseRoutes.delete('/deleteone/:id', requireAuth, async(req, res) => {
+expenseRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, async(req, res) => {
   const { id } = req.params;
-  const isValid = verifyObjectId(id);
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectIds([id, queryId]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
-  const deleted = await expenseMain.findByIdAndDelete(id);
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  const deleted = await expenseMain.findOneAndDelete({ _id: id, companyId: queryId });
   if (Boolean(deleted)) {
     return res.status(200).send({ success: Boolean(deleted) });
   } else {
@@ -174,11 +200,18 @@ expenseRoutes.delete('/deleteone/:id', requireAuth, async(req, res) => {
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware
  */
-expenseRoutes.post('/search/:limit/:offset', requireAuth, roleAuthorisation('printables'), async(req, res) => {
+expenseRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, roleAuthorisation('printables', 'read'), async(req, res) => {
   const { searchterm, searchKey } = req.body;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectId(queryId);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
   const expenses = await expenseLean
-    .find({ [searchKey]: { $regex: searchterm, $options: 'i' } })
+    .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
     .skip(offset)
     .limit(limit)
     .lean();
@@ -194,16 +227,19 @@ expenseRoutes.post('/search/:limit/:offset', requireAuth, roleAuthorisation('pri
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware
  */
-expenseRoutes.put('/deletemany', requireAuth, roleAuthorisation('printables'), async(req, res) => {
+expenseRoutes.put('/deletemany/:companyIdParam', requireAuth, roleAuthorisation('printables', 'delete'), async(req, res) => {
   const { ids } = req.body;
-  const isValid = verifyObjectIds(ids);
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectIds([...ids, ...[queryId]]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
 
   const deleted = await expenseMain
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    .deleteMany({ _id: { $in: ids } })
+    .deleteMany({ _id: { $in: ids }, companyId: queryId })
     .catch(err => {
       expenseRoutesLogger.error('deletemany - err: ', err);
       return null;

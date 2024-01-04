@@ -8,208 +8,208 @@
 // } from 'web-push';
 import * as webPush from 'web-push';
 import { getLogger } from 'log4js';
-import { ISubscription, subscriptionLean } from '../models/subscriptions.model';
 import { notifSettingLean, notifSettingMain } from '../models/notifsetting.model';
 import { Iaction, Iactionwithall, Iauthtoken, InotifSetting, Isuccess, Iuser, TnotifType } from '@open-stock/stock-universal';
-import { stringifyMongooseErr, verifyObjectId } from '@open-stock/stock-universal-server';
-import { IMainnotification, mainnotificationLean, mainnotificationMain } from '../models/mainnotification.model';
+import { stringifyMongooseErr } from '@open-stock/stock-universal-server';
+import { mainnotificationMain } from '../models/mainnotification.model';
 // const sgMail = require('@sendgrid/mail');
 import * as sgMail from '@sendgrid/mail';
-import { emailHandler, smsHandler } from '../stock-notif-server';
+import { notificationSettings } from '../stock-notif-local';
 
-/** */
+
 const notificationsControllerLogger = getLogger('controllers/NotificationsController');
 
-/** */
-export class NotificationController {
-  /** */
-  stn: InotifSetting;
-
-  /** */
-  dispatchSinceOpen = 0;
-
-  /** */
-  smsDispatches = 0;
-
-  /** */
-  mailDispatches = 0;
-
-  /** */
-  constructor() {}
-
-  /** */
-  determineUserHasMail(user: Iuser) {
-    return Boolean(user.email);
-  }
-
-  /** */
-  async createSettings() {
-    const found = await notifSettingLean.find({}).lean();
-    if (found.length > 0) {
-      this.stn = found[0] as unknown as InotifSetting;
-      return;
-    }
-    await createNotifSetting({});
-    this.stn = {
-      invoices: true,
-      payments: true,
-      orders: true,
-      jobCards: true,
-      users: true
-    };
-  }
-}
-
-/** */
 /**
- * Handles sending SMS notifications using Twilio and Authy.
+ * Determines whether a user has an email address.
+ * @param user - The user object.
+ * @returns True if the user has an email address, false otherwise.
  */
-export class SmsHandler extends NotificationController {
-  /** The email address to use for Authy registration. */
-  email = 'pollarbrian@hotmail.com';
+export const determineUserHasMail = (user: Iuser) => {
+  return Boolean(user.email);
+};
 
-  /**
-   * Creates a new SmsHandler instance.
-   * @param authy - The Authy instance to use for registration and token requests.
-   * @param twilioClient - The Twilio client instance to use for sending SMS messages.
-   * @param twilioNumber - The Twilio phone number to use as the sender.
-   */
-  constructor(
-    public authy: any,
-    public twilioClient: any,
-    public twilioNumber: string | number
-  ) {
-    super();
+/**
+ * Creates notification settings.
+ * @returns {Promise<InotifSetting>} The created notification settings.
+ */
+export const createSettings = async() => {
+  let stn: InotifSetting;
+  const found = await notifSettingLean.find({}).lean();
+  if (found.length > 0) {
+    stn = found[0] as unknown as InotifSetting;
+    return;
   }
+  await createNotifSetting({});
+  stn = {
+    invoices: true,
+    payments: true,
+    orders: true,
+    jobCards: true,
+    users: true
+  };
+  return stn;
+};
 
-  /**
+/**
    * Registers a new user with Authy.
    * @param phone - The user's phone number.
    * @param countryCode - The user's country code.
    * @returns A promise that resolves with the Authy registration response.
    */
-  setUpUser(
-    phone: string | number,
-    countryCode: string | number
-  ): Promise<any> {
-    return new Promise((resolve, reject) => {
-      this.authy.register_user(
-        this.email,
-        phone,
-        countryCode,
-        (err, response) => {
-          if (err) {
-            reject(err);
-            return;
-          }
-
-          if (err || !response.user) {
-            reject(err);
-            return;
-          }
-          resolve(response);
+export const setUpUser = (
+  phone: string | number,
+  countryCode: string | number
+): Promise<any> => {
+  return new Promise((resolve, reject) => {
+    notificationSettings.authy.register_user(
+      notificationSettings.defaultAuthyMail,
+      phone,
+      countryCode,
+      (err, response) => {
+        if (err) {
+          reject(err);
+          return;
         }
-      );
-    });
-  }
 
-  /**
+        if (err || !response.user) {
+          reject(err);
+          return;
+        }
+        resolve(response);
+      }
+    );
+  });
+};
+
+/**
    * Requests an SMS token from Authy for the given user.
    * @param authyId - The user's Authy ID.
    * @returns A promise that resolves with the Authy token request response.
    */
-  sendToken(authyId: string): Promise<any> {
-    return new Promise((resolve, reject) => {
-      this.authy.request_sms(
-        authyId,
-        true,
-        (err, response) => {
-          if (response) {
-            resolve(response);
-          } else {
-            reject(err);
-          }
-        });
-    });
-  }
+export const sendToken = (
+  authyId: string
+): Promise<any> => {
+  return new Promise((resolve, reject) => {
+    notificationSettings.authy.request_sms(
+      authyId,
+      true,
+      (err, response) => {
+        if (response) {
+          resolve(response);
+        } else {
+          reject(err);
+        }
+      });
+  });
+};
 
-  /**
+/**
    * Sends an SMS message using Twilio.
    * @param phone - The recipient's phone number.
    * @param countryCode - The recipient's country code.
    * @param message - The message to send.
    * @returns A promise that resolves with the Twilio message send response.
    */
-  sendSms(
-    phone: string,
-    countryCode: string,
-    message: string
-  ): Promise<any> {
-    return new Promise((resolve, reject) => {
-      this.twilioClient.messages.create({
-        to: countryCode + phone,
-        from: this.twilioNumber,
-        body: message
-      }).then((response) => {
-        this.smsDispatches++;
+export const sendSms = (
+  phone: string,
+  countryCode: string,
+  message: string
+): Promise<any> => {
+  return new Promise((resolve, reject) => {
+    notificationSettings.twilioClient.messages.create({
+      to: countryCode + phone,
+      from: notificationSettings.twilioNumber,
+      body: message
+    }).then((response) => {
+      notificationSettings.smsDispatches++;
+      resolve({ response });
+    }).catch(err => {
+      if (err) {
+        reject(err);
+        return;
+      }
+    });
+  });
+};
+
+/**
+ * Verifies the Authy token for a given Authy ID.
+ * @param authyId - The Authy ID of the user.
+ * @param otp - The one-time password to be verified.
+ * @returns A promise that resolves with the verification response or rejects with an error.
+ */
+export const verifyAuthyToken = (authyId: string, otp) => {
+  return new Promise((resolve, reject) => {
+    notificationSettings.authy.verify(authyId, otp, (err, response) => {
+      if (err) {
+        reject(err);
+      } else {
         resolve(response);
-      })
-        .catch(err => {
-          if (err) {
-            reject(err);
-            return;
-          }
-        });
+      }
     });
-  }
-}
-
-/** */
-export class EmailHandler
-  extends NotificationController {
-  constructor() {
-    super();
-  }
-
-  /** */
-  constructMail(
-    to: string,
-    subject: string,
-    text: string,
-    html: string,
-    from = 'info@eagleinfosolutions.com'
-  ) {
-    return {
-      from,
-      to,
-      subject,
-      text,
-      html
-    };
-  }
-
-  /** */
-  sendMail(mailOptions) {
-    return new Promise((resolve, reject) => {
-      sgMail
-        .send(mailOptions)
-        .then((res) => {
-          this.mailDispatches++;
-          notificationsControllerLogger.info('message sent', res);
-          resolve(res);
-        }, error => {
-          notificationsControllerLogger.error('email verication with token error',
-            JSON.stringify(error));
-          reject(error);
-        });
-    });
-  }
-}
+  });
+};
 
 
-/** */
+/**
+ * Constructs an email object with the specified parameters.
+ * @param to - The recipient's email address.
+ * @param subject - The subject of the email.
+ * @param text - The plain text content of the email.
+ * @param html - The HTML content of the email.
+ * @param from - The sender's email address. Default is 'info@eagleinfosolutions.com'.
+ * @returns An email object with the specified parameters.
+ */
+export const constructMail = (
+  to: string,
+  subject: string,
+  text: string,
+  html: string,
+  from = 'info@eagleinfosolutions.com'
+) => {
+  return {
+    from,
+    to,
+    subject,
+    text,
+    html
+  };
+};
+
+
+/**
+ * Sends an email using the provided mail options.
+ * @param {object} mailOptions - The options for sending the email.
+ * @returns {Promise<object>} A promise that resolves with the response from sending the email.
+ */
+export const sendMail = async(mailOptions) => {
+  return new Promise((resolve, reject) => {
+    sgMail
+      .send(mailOptions)
+      .then((response) => {
+        notificationSettings.emailDispatches++;
+        notificationsControllerLogger.info('message sent', response);
+        resolve({ response });
+      }, error => {
+        notificationsControllerLogger.error('email verication with token error',
+          JSON.stringify(error));
+        reject(error);
+      });
+  });
+};
+
+
+/**
+ * Constructs a mail service with the provided SendGrid API key, public key, and private key.
+ * @param sendGridApiKey - The SendGrid API key.
+ * @param publicKey - The public key for VAPID authentication.
+ * @param privateKey - The private key for VAPID authentication.
+ */
 export const constructMailService = (
-  sendGridApiKey: string, publicKey: string, privateKey: string) => {
+  sendGridApiKey: string,
+  publicKey: string,
+  privateKey: string
+) => {
   sgMail.setApiKey(sendGridApiKey);
 
   // console.log(generateVAPIDKeys()); //generate key
@@ -237,45 +237,11 @@ export const constructMailService = (
   };*/
 };
 
-/** create unregistered */
-/** */
-export const createNotifications = async(body): Promise<Isuccess> => {
-  const options = body.options;
-  const filters = body.filters;
-  notificationsControllerLogger.info('createNotifications %body, %filters', body, filters);
-
-  const notifMain = new mainnotificationMain(options);
-  let errResponse: Isuccess;
-  await notifMain.save().catch(err => {
-    const errResponse: Isuccess = {
-      success: false,
-      status: 403
-    };
-    if (err && err.errors) {
-      errResponse.err = stringifyMongooseErr(err.errors);
-    } else {
-      errResponse.err = `we are having problems connecting to our databases, 
-      try again in a while`;
-    }
-    return errResponse;
-  });
-
-  if (errResponse) {
-    return errResponse;
-  }
-
-  const subscriptions = await subscriptionLean
-    .find({ active: true, ...filters })
-    .lean();
-  await ensureAllBulkNotifications(
-        subscriptions as unknown as ISubscription[],
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        [notifMain as unknown as any]
-  );
-  return { success: true, status: 200 };
-};
-
-/** */
+/**
+ * Creates a notification setting.
+ * @param stn - The notification setting to be created.
+ * @returns A promise that resolves to an object indicating the success status and HTTP status code.
+ */
 export const createNotifSetting = async(stn): Promise<Isuccess> => {
   let errResponse: Isuccess;
   const notifMain = new notifSettingMain(stn);
@@ -300,52 +266,14 @@ export const createNotifSetting = async(stn): Promise<Isuccess> => {
   return { success: true, status: 200 };
 };
 
-/** */
-export const sendAllNotifications = async(userLean) => {
-  notificationsControllerLogger.info('sendAllNotifications');
-  const all = await subscriptionLean
-    .find({ active: true })
-    .lean();
-  await ensureAllBulkNotifications(
-    userLean,
-      all as unknown as ISubscription[]);
-};
-
-/** */
-export const ensureAllBulkNotifications = async(
-  userLean,
-  subscriptions: ISubscription[],
-  notifications?: IMainnotification[]
-) => {
-  const now = Date.now();
-  const promises = subscriptions
-    .map(async sub => {
-      notificationsControllerLogger.debug('ensureAllBulkNotifications - subscriptions: ', sub);
-      if (!notifications) {
-        notifications = await mainnotificationLean
-          .find({
-            active: true
-          })
-          .gte('expireAt', now);
-      }
-      notifications
-        .map(notif => {
-          const payload = createPayload(
-            notif.title,
-            notif.body,
-            notif.icon,
-            notif.actions
-          );
-          sendLocalNotification(userLean, sub.subscription, payload);
-        });
-      return new Promise(resolve => {
-        resolve(true);
-      });
-    });
-  await Promise.all(promises);
-};
-
-/** */
+/**
+ * Creates a payload for a notification.
+ * @param title - The title of the notification.
+ * @param body - The body of the notification.
+ * @param icon - The icon of the notification.
+ * @param actions - An array of actions for the notification. Defaults to an array with two actions: "bar" and "baz".
+ * @returns The payload object for the notification.
+ */
 export const createPayload = (
   title: string,
   body: string,
@@ -386,45 +314,12 @@ export const createPayload = (
   return payload;
 };
 
-/** */
-export const sendLocalNotification = async(
-  userLean,
-  subscription, /** : webPush.PushSubscription //TODO */
-  payload,
-  options? /* : webPush.RequestOptions // TODO */
-) => {
-  notificationsControllerLogger.debug('sendLocalNotification - subscription', subscription);
-  const isValid = verifyObjectId(subscription.userId);
-  if (!isValid) {
-    return;// Promise.resolve(false);
-  }
-  const user = await userLean
-    .findById(subscription.userId).lean();
-  webPush.sendNotification(
-    subscription,
-    JSON.stringify(payload),
-    options
-  ).then(res => {
-    notificationsControllerLogger.debug('sendLocalNotification - res: ', res);
-    if (user) {
-      if (emailHandler.determineUserHasMail(user as Iuser)) {
-        const mailOptions = emailHandler.constructMail(
-          user.email,
-          payload.title,
-          payload.body,
-          ''
-        );
-        emailHandler.sendMail(mailOptions);
-      } else {
-        smsHandler.sendSms(user.phone, user.countryCode, payload.body);
-      }
-    }
-  }).catch(err => {
-    notificationsControllerLogger.error('sendLocalNotification - err: ', err);
-  });
-};
-
-/** */
+/**
+ * Updates the viewed status of a notification for a specific user.
+ * @param user - The authenticated user.
+ * @param id - The ID of the notification to update.
+ * @returns A boolean indicating whether the update was successful.
+ */
 export const updateNotifnViewed = async(user: Iauthtoken, id: string) => {
   notificationsControllerLogger.info('updateNotifnViewed - user: ', user);
   const { userId } = user;
@@ -434,7 +329,16 @@ export const updateNotifnViewed = async(user: Iauthtoken, id: string) => {
   return true;
 };
 
-/** */
+/**
+ * Creates a notification body object.
+ * @param userId - The ID of the user receiving the notification.
+ * @param title - The title of the notification.
+ * @param body - The body content of the notification.
+ * @param notifType - The type of the notification.
+ * @param actions - An array of actions associated with the notification.
+ * @param notifInvokerId - The ID of the entity that triggered the notification.
+ * @returns The created notification body object.
+ */
 export const makeNotfnBody = (
   userId: string,
   title: string,

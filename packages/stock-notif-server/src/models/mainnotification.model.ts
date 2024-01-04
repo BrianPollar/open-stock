@@ -67,9 +67,14 @@ const mainNotifselect = {
   createdAt: 1
 };
 
-/** Mongoose model for the main notification object. */
+/**
+ * Represents the main notification model.
+ */
 export let mainnotificationMain: Model<IMainnotification>;
-/** Lean Mongoose model for the main notification object. */
+
+/**
+ * Represents the mainnotificationLean variable.
+ */
 export let mainnotificationLean: Model<IMainnotification>;
 
 /**

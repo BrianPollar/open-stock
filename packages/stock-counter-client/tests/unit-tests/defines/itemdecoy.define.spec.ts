@@ -4,11 +4,12 @@ import { ItemDecoy } from '../../../../stock-counter-client/src/defines/itemdeco
 import { StockCounterClient } from '../../../../stock-counter-client/src/stock-counter-client';
 import { of } from 'rxjs';
 import Axios from 'axios-observable';
-import { createMockItemDecoys, createMockItemDecoy } from '../../../../tests/mocks';
+import { createMockItemDecoys, createMockItemDecoy } from '../../../../tests/stock-counter-mocks';
 
 describe('ItemDecoy', () => {
   let instance: ItemDecoy;
   const axiosMock = { } as Axios;
+  const companyId = 'companyid';
 
   beforeEach(() => {
     new StockCounterClient(axiosMock);
@@ -40,7 +41,7 @@ describe('ItemDecoy', () => {
 
   it('#getOneItemDecoy static should get one ItemDecoy', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makeGet').mockImplementationOnce(() => of(createMockItemDecoy()));
-    const one = await ItemDecoy.getOneItemDecoy('urId');
+    const one = await ItemDecoy.getOneItemDecoy(companyId, 'urId');
     expect(typeof one).toEqual('object');
     expect(one).toBeInstanceOf(ItemDecoy);
     expect(lSpy).toHaveBeenCalled();
@@ -48,7 +49,7 @@ describe('ItemDecoy', () => {
 
   it('#createItemDecoy static should add one ItemDecoy', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makePost').mockImplementationOnce(() => of({ success: true }));
-    const added = await ItemDecoy.createItemDecoy('manual', { items: [] });
+    const added = await ItemDecoy.createItemDecoy(companyId, 'manual', { items: [] });
     expect(typeof added).toEqual('object');
     expect(added).toHaveProperty('success');
     expect(added.success).toEqual(true);
@@ -59,7 +60,7 @@ describe('ItemDecoy', () => {
 
   it('#deleteItemDecoys static should delete many ItemDecoys', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makePut').mockImplementationOnce(() => of({ success: true }));
-    const deleted = await ItemDecoy.deleteItemDecoys(['ids']);
+    const deleted = await ItemDecoy.deleteItemDecoys(companyId, ['ids']);
     expect(typeof deleted).toEqual('object');
     expect(deleted).toHaveProperty('success');
     expect(deleted.success).toEqual(true);
@@ -70,7 +71,7 @@ describe('ItemDecoy', () => {
 
   it('#deleteItemDecoy should delete ItemDecoy', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makeDelete').mockImplementationOnce(() => of({ success: true }));
-    const deleted = await instance.deleteItemDecoy();
+    const deleted = await instance.deleteItemDecoy(companyId);
     expect(typeof deleted).toEqual('object');
     expect(deleted).toHaveProperty('success');
     expect(deleted.success).toEqual(true);
@@ -79,4 +80,3 @@ describe('ItemDecoy', () => {
     expect(lSpy).toHaveBeenCalled();
   });
 });
-

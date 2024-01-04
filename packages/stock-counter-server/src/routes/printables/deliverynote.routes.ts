@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
 
 import express from 'express';
-import { IinvoiceRelated, Isuccess, Iuser } from '@open-stock/stock-universal';
-import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId } from '@open-stock/stock-universal-server';
+import { Icustomrequest, IinvoiceRelated, Isuccess, Iuser } from '@open-stock/stock-universal';
+import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectIds } from '@open-stock/stock-universal-server';
 import { deliveryNoteLean, deliveryNoteMain } from '../../models/printables/deliverynote.model';
 import { invoiceRelatedLean } from '../../models/printables/related/invoicerelated.model';
 import {
@@ -18,7 +18,9 @@ import { receiptLean } from '../../models/printables/receipt.model';
 /** Logger for delivery note routes */
 const deliveryNoteRoutesLogger = getLogger('routes/deliveryNoteRoutes');
 
-/** Express router for delivery note routes */
+/**
+ * Express router for delivery note routes.
+ */
 export const deliveryNoteRoutes = express.Router();
 
 /**
@@ -34,15 +36,19 @@ export const deliveryNoteRoutes = express.Router();
  * @param {Object} res - Express response object
  * @returns {Object} Success status and saved delivery note data
  */
-deliveryNoteRoutes.post('/create', requireAuth, roleAuthorisation('printables'), async(req, res) => {
+deliveryNoteRoutes.post('/create/:companyIdParam', requireAuth, roleAuthorisation('printables', 'create'), async(req, res) => {
   const { deliveryNote, invoiceRelated } = req.body;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  deliveryNote.companyId = queryId;
+  invoiceRelated.companyId = queryId;
   const count = await deliveryNoteMain
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+    .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
   deliveryNote.urId = makeUrId(Number(count[0]?.urId || '0'));
   const extraNotifDesc = 'Newly generated delivery note';
-  const invoiceRelatedRes = await relegateInvRelatedCreation(invoiceRelated, extraNotifDesc, req.app.locals.stockCounterServernotifRedirectUrl, req.app.locals.stockCounterServer.locaLMailHandler);
-  console.log('About result', invoiceRelatedRes);
+  const invoiceRelatedRes = await relegateInvRelatedCreation(invoiceRelated, extraNotifDesc, companyId);
   if (!invoiceRelatedRes.success) {
     return res.status(invoiceRelatedRes.status).send(invoiceRelatedRes);
   }
@@ -51,7 +57,6 @@ deliveryNoteRoutes.post('/create', requireAuth, roleAuthorisation('printables'),
   let errResponse: Isuccess;
   const saved = await newDeliveryNote.save()
     .catch(err => {
-      console.log('that error is', err);
       deliveryNoteRoutesLogger.error('create - err: ', err);
       errResponse = {
         success: false,
@@ -69,7 +74,7 @@ deliveryNoteRoutes.post('/create', requireAuth, roleAuthorisation('printables'),
   if (errResponse) {
     return res.status(403).send(errResponse);
   }
-  await updateInvoiceRelated(invoiceRelated);
+  await updateInvoiceRelated(invoiceRelated, companyId);
   return res.status(200).send({ success: Boolean(saved) });
 });
 
@@ -84,10 +89,13 @@ deliveryNoteRoutes.post('/create', requireAuth, roleAuthorisation('printables'),
  * @param {Object} res - Express response object
  * @returns {Object} Delivery note data with related invoice data
  */
-deliveryNoteRoutes.get('/getone/:urId', requireAuth, roleAuthorisation('printables'), async(req, res) => {
+deliveryNoteRoutes.get('/getone/:urId/:companyIdParam', requireAuth, roleAuthorisation('printables', 'read'), async(req, res) => {
   const { urId } = req.params;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const deliveryNote = await deliveryNoteLean
-    .findOne({ urId })
+    .findOne({ urId, queryId })
     .lean()
     .populate({
       path: 'invoiceRelated', model: invoiceRelatedLean,
@@ -103,7 +111,7 @@ deliveryNoteRoutes.get('/getone/:urId', requireAuth, roleAuthorisation('printabl
     returned = makeInvoiceRelatedPdct(
       deliveryNote.invoiceRelated as Required<IinvoiceRelated>,
       (deliveryNote.invoiceRelated as IinvoiceRelated)
-        .billingUserId as unknown as Iuser, (deliveryNote as any).createdAt, {
+        .billingUserId as unknown as Iuser, (deliveryNote as IinvoiceRelated).createdAt, {
         // eslint-disable-next-line @typescript-eslint/naming-convention
         _id: deliveryNote._id,
         urId: deliveryNote.urId
@@ -124,10 +132,13 @@ deliveryNoteRoutes.get('/getone/:urId', requireAuth, roleAuthorisation('printabl
  * @param {Object} res - Express response object
  * @returns {Array} Array of delivery note data with related invoice data
  */
-deliveryNoteRoutes.get('/getall/:offset/:limit', requireAuth, roleAuthorisation('printables'), async(req, res) => {
+deliveryNoteRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, roleAuthorisation('printables', 'read'), async(req, res) => {
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const deliveryNotes = await deliveryNoteLean
-    .find({})
+    .find({ companyId: queryId })
     .skip(offset)
     .limit(limit)
     .lean()
@@ -165,13 +176,16 @@ deliveryNoteRoutes.get('/getall/:offset/:limit', requireAuth, roleAuthorisation(
  * @param {Object} res - Express response object
  * @returns {Object} Success status of the deletion operation
  */
-deliveryNoteRoutes.put('/deleteone', requireAuth, roleAuthorisation('printables'), async(req, res) => {
+deliveryNoteRoutes.put('/deleteone/:companyIdParam', requireAuth, roleAuthorisation('printables', 'delete'), async(req, res) => {
   const { id, invoiceRelated, creationType, stage } = req.body;
-  const isValid = verifyObjectId(id);
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectIds([id, queryId]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
-  const deleted = await deleteAllLinked(invoiceRelated, creationType, stage, 'deliverynote');
+  const deleted = await deleteAllLinked(invoiceRelated, creationType, stage, 'deliverynote', companyId);
   if (Boolean(deleted)) {
     return res.status(200).send({ success: Boolean(deleted) });
   } else {
@@ -194,11 +208,14 @@ deliveryNoteRoutes.put('/deleteone', requireAuth, roleAuthorisation('printables'
  * @param {Object} res - Express response object
  * @returns {Array} Array of delivery note data with related invoice data
  */
-deliveryNoteRoutes.post('/search/:limit/:offset', requireAuth, roleAuthorisation('printables'), async(req, res) => {
+deliveryNoteRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, roleAuthorisation('printables', 'read'), async(req, res) => {
   const { searchterm, searchKey } = req.body;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
   const deliveryNotes = await deliveryNoteLean
-    .find({ [searchKey]: { $regex: searchterm, $options: 'i' } })
+    .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
     .lean()
     .skip(offset)
     .limit(limit)
@@ -219,8 +236,11 @@ deliveryNoteRoutes.post('/search/:limit/:offset', requireAuth, roleAuthorisation
 });
 
 
-deliveryNoteRoutes.put('/deletemany', requireAuth, roleAuthorisation('printables'), async(req, res) => {
+deliveryNoteRoutes.put('/deletemany/:companyIdParam', requireAuth, roleAuthorisation('printables', 'delete'), async(req, res) => {
   const { credentials } = req.body;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   /** const ids = credentials
     .map(val => val.id);
   await deliveryNoteMain
@@ -228,7 +248,7 @@ deliveryNoteRoutes.put('/deletemany', requireAuth, roleAuthorisation('printables
     .deleteMany({ _id: { $in: ids } });**/
   const promises = credentials
     .map(async val => {
-      await deleteAllLinked(val.invoiceRelated, val.creationType, val.stage, 'deliverynote');
+      await deleteAllLinked(val.invoiceRelated, val.creationType, val.stage, 'deliverynote', queryId);
       return new Promise(resolve => resolve(true));
     });
   await Promise.all(promises);

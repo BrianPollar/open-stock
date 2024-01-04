@@ -2,7 +2,7 @@
 import { Tmkrandomstringhow } from '../types/union.types';
 
 // This function generates a random string of a specified length and type.
-/** */
+
 /**
  * Generates a random string of a specified length and type.
  * @param length - The length of the random string.

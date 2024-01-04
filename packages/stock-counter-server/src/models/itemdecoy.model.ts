@@ -3,16 +3,31 @@ import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectio
 const uniqueValidator = require('mongoose-unique-validator');
 
 /** model type for itemDecoy by */
-/** */
-export interface IitemDecoy
-extends Document {
+/**
+ * Represents an item decoy in the system.
+ */
+export interface IitemDecoy extends Document {
+  /**
+   * The unique identifier of the user.
+   */
   urId: string;
+  /**
+   * The user's company ID.
+   */
+  companyId: string;
+  /**
+   * The type of the item decoy.
+   */
   type: string;
+  /**
+   * The list of items associated with the decoy.
+   */
   items: string[];
 }
 
 const itemDecoySchema: Schema<IitemDecoy> = new Schema({
   urId: { type: String, unique: true },
+  companyId: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
   type: { type: String },
   items: []
 }, { timestamps: true });
@@ -25,21 +40,26 @@ itemDecoySchema.plugin(uniqueValidator);
  */
 const itemDecoyselect = {
   urId: 1,
+  companyId: 1,
   type: 1,
   items: 1
 };
 
-/** main connection for itemDecoys Operations*/
-export let itemDecoyMain: Model<IitemDecoy>;
-/** lean connection for itemDecoys Operations*/
-export let itemDecoyLean: Model<IitemDecoy>;
-/** primary selection object
- * for itemDecoy
+/**
+ * Represents the main item decoy model.
  */
-/** */
+export let itemDecoyMain: Model<IitemDecoy>;
+
+/**
+ * Represents the itemDecoyLean model.
+ */
+export let itemDecoyLean: Model<IitemDecoy>;
+
+/**
+ * Selects the item decoy.
+ */
 export const itemDecoySelect = itemDecoyselect;
 
-/** */
 /**
  * Creates an ItemDecoy model with the specified database URL, main connection and lean connection.
  * @param dbUrl The URL of the database to connect to.
@@ -59,3 +79,4 @@ export const createItemDecoyModel = async(dbUrl: string, main = true, lean = tru
     itemDecoyLean = mainConnectionLean.model<IitemDecoy>('ItemDecoy', itemDecoySchema);
   }
 };
+

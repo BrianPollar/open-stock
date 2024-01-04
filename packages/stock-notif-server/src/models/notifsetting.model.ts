@@ -7,7 +7,10 @@ import { Document, Schema, Model } from 'mongoose';
 import { InotifSetting } from '@open-stock/stock-universal';
 import { connectNotifDatabase, isNotifDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
 
-/** Model interface for notification settings */
+/**
+ * Represents the type for a notification setting.
+ * Extends the Document interface and the InotifSetting interface.
+ */
 export type TnotifSetting = Document & InotifSetting;
 
 /** Schema definition for notification settings */
@@ -28,13 +31,19 @@ const notifSettingselect = {
   users: 1
 };
 
-/** Main connection for notification settings operations */
+/**
+ * Represents the main notification setting model.
+ */
 export let notifSettingMain: Model<TnotifSetting>;
 
-/** Lean connection for notification settings operations */
+/**
+ * Represents a variable that holds a lean model of a notification setting.
+ */
 export let notifSettingLean: Model<TnotifSetting>;
 
-/** Primary selection object for notification */
+/**
+ * Selects the notifSettingselect constant from the notifSetting model.
+ */
 export const notifSettingSelect = notifSettingselect;
 
 /**

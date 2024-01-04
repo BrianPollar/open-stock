@@ -6,20 +6,33 @@ const adminLogger = getLogger('controllers/AdminauthController');
  * Defines an admin object with the name "admin" and sets its admin permissions for various actions.
  * @returns An admin object with the name "admin" and admin permissions for various actions.
  */
-export const defineAdmin = () => ({
-  name: 'admin',
-  admin: true,
-  permissions: {
-    orders: true,
-    payments: true,
-    users: true,
-    items: true,
-    faqs: true,
-    videos: true,
-    printables: true,
-    buyer: false
-  }
-});
+export const defineAdmin = () => {
+  const permProp = {
+    create: true,
+    read: true,
+    update: true,
+    delete: true
+  };
+  return {
+    name: 'admin',
+    admin: true,
+    permissions: {
+      orders: permProp,
+      payments: permProp,
+      users: permProp,
+      items: permProp,
+      faqs: permProp,
+      videos: permProp,
+      printables: permProp,
+      buyer: {
+        create: false,
+        read: false,
+        update: false,
+        delete: false
+      }
+    }
+  };
+};
 
 /**
  * Takes a password and adminServerPasswd as parameters and returns a promise that resolves to an admin login response object.
@@ -54,17 +67,17 @@ export const login = (
  * @param adminServerPasswd - The encrypted admin password.
  * @returns A promise that resolves to an admin login response object.
  */
-export const checkIfAdmin = async (
+export const checkIfAdmin = async(
   emailPhone: string,
   password: string,
-  processadminID: string,
+  processadminId: string,
   adminServerPasswd: string
 ): Promise<Iadminloginres> => {
   adminLogger.info('checking if admin');
   let response: Iadminloginres;
-  if (emailPhone !== processadminID) {
+  if (emailPhone !== processadminId) {
     response = { success: false };
-  } else if (emailPhone === processadminID) {
+  } else if (emailPhone === processadminId) {
     response = await login(password, adminServerPasswd);
   } else {
     response = { success: false };

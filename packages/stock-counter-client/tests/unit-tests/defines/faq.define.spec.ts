@@ -5,11 +5,12 @@ import { StockCounterClient } from '../../../../stock-counter-client/src/stock-c
 import { of } from 'rxjs';
 import Axios from 'axios-observable';
 import { Ifaq } from '@open-stock/stock-universal';
-import { createMockFaq, createMockFaqs } from '../../../../tests/mocks';
+import { createMockFaq, createMockFaqs } from '../../../../tests/stock-counter-mocks';
 
 describe('Faq', () => {
   let instance: Faq;
   const axiosMock = { } as Axios;
+  const companyId = 'companyid';
 
   beforeEach(() => {
     new StockCounterClient(axiosMock);
@@ -42,7 +43,7 @@ describe('Faq', () => {
 
   it('#getFaqs static should get Faqs array', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makeGet').mockImplementationOnce(() => of(createMockFaqs(10)));
-    const list = await Faq.getFaqs('/', 0, 0);
+    const list = await Faq.getFaqs(companyId, '/', 0, 0);
     expect(typeof list).toEqual('object');
     expectTypeOf(list).toEqualTypeOf<Faq[]>([]);
     expect(lSpy).toHaveBeenCalled();
@@ -50,7 +51,7 @@ describe('Faq', () => {
 
   it('#getOnefaq static should get one Faq', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makeGet').mockImplementationOnce(() => of(createMockFaq()));
-    const one = await Faq.getOnefaq('urId');
+    const one = await Faq.getOnefaq(companyId, 'urId');
     expect(typeof one).toEqual('object');
     expect(one).toBeInstanceOf(Faq);
     expect(lSpy).toHaveBeenCalled();
@@ -58,7 +59,7 @@ describe('Faq', () => {
 
   it('#createfaq static should add one Faq', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makePost').mockImplementationOnce(() => of({ success: true }));
-    const added = await Faq.createfaq(createMockFaq() as Ifaq);
+    const added = await Faq.createfaq(companyId, createMockFaq() as Ifaq);
     expect(typeof added).toEqual('object');
     expect(added).toHaveProperty('success');
     expect(added.success).toEqual(true);
@@ -69,7 +70,7 @@ describe('Faq', () => {
 
   it('#deleteFaqs static should delete many Faqs', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makePut').mockImplementationOnce(() => of({ success: true }));
-    const deleted = await Faq.deleteFaqs(['ids']);
+    const deleted = await Faq.deleteFaqs(companyId, ['ids']);
     expect(typeof deleted).toEqual('object');
     expect(deleted).toHaveProperty('success');
     expect(deleted.success).toEqual(true);
@@ -81,7 +82,7 @@ describe('Faq', () => {
   it('#changeApproved should approve faq', async() => {
     // const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makePut').mockImplementationOnce(() => of({ success: true }));
     const lpostSpy = vi.spyOn(StockCounterClient.ehttp, 'makePost').mockImplementationOnce(() => of({ success: true }));
-    const updated = await instance.changeApproved(true);
+    const updated = await instance.changeApproved(companyId, true);
     expect(typeof updated).toEqual('object');
     expect(updated).toHaveProperty('success');
     expect(updated.success).toEqual(true);
@@ -93,7 +94,7 @@ describe('Faq', () => {
 
   it('#deleteFaq should delete Faq', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makeDelete').mockImplementationOnce(() => of({ success: true }));
-    const deleted = await instance.deleteFaq();
+    const deleted = await instance.deleteFaq(companyId);
     expect(typeof deleted).toEqual('object');
     expect(deleted).toHaveProperty('success');
     expect(deleted.success).toEqual(true);

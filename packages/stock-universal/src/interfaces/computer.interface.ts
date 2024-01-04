@@ -14,7 +14,7 @@ import { Iitem } from './item.interface';
 // This file imports the `TcpuCoreThread`, `TgraphicsName`, `TkeyboradStandard`, `TprocessorName`, `TramSize`, `TramType`, `TscreenSize`, `TstorageDriveType`, `TstorageSizeHdd`, and `TstorageSizeSsd` types from the `union.types` file.
 // This file imports the `Iitem` interface from the `item.interface` file.
 
-/** */
+
 export interface IcpuModel {
   // The `name` property is the name of the CPU model.
   name: TprocessorName;
@@ -28,7 +28,7 @@ export interface IcpuModel {
 
 // This interface defines the properties of a CPU model.
 
-/** */
+
 export interface IramModel {
   // The `ramSize` property is the size of the RAM in GB.
   ramSize: TramSize;
@@ -38,7 +38,7 @@ export interface IramModel {
 
 // This interface defines the properties of a RAM model.
 
-/** */
+
 export interface IgraphicsSpec {
   // The `name` property is the name of the graphics card.
   name: TgraphicsName;
@@ -48,7 +48,7 @@ export interface IgraphicsSpec {
 
 // This interface defines the properties of a graphics card specification.
 
-/** */
+
 export interface IscreenSpec {
   // The `size` property is the size of the screen in inches.
   size: TscreenSize;
@@ -56,7 +56,7 @@ export interface IscreenSpec {
 
 // This interface defines the properties of a screen specification.
 
-/** */
+
 export interface IkeyboardSpec {
   // The `light` property indicates whether the keyboard has a backlight.
   light: boolean;
@@ -66,7 +66,7 @@ export interface IkeyboardSpec {
 
 // This interface defines the properties of a keyboard specification.
 
-/** */
+
 export interface IpheripheralSpec {
   // The `usbNo` property is the number of USB ports.
   usbNo: number;
@@ -80,7 +80,7 @@ export interface IpheripheralSpec {
 
 // This interface defines the properties of a peripheral specification.
 
-/** */
+
 export interface Icomputer
 extends Iitem {
   // The `brand` property is the brand of the computer.
@@ -101,7 +101,7 @@ extends Iitem {
   os: string;
 }
 
-/** */
+
 export interface IStorageDrive {
   // The `type` property is the type of storage drive.
   type: TstorageDriveType;
@@ -111,7 +111,7 @@ export interface IStorageDrive {
 
 // This interface defines the properties of a storage drive.
 
-/** */
+
 export interface Ilaptop
 extends Icomputer {
   // The `keyBoard` property is the keyboard specification of the laptop.
@@ -120,7 +120,7 @@ extends Icomputer {
 
 // This interface extends the `Icomputer` interface and defines the properties of a laptop.
 
-/** */
+
 export interface Idesktop
 extends Icomputer {
   // The `withScreen` property indicates whether the desktop has a screen.

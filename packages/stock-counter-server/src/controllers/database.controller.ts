@@ -2,16 +2,13 @@ import { makeNewConnection } from '@open-stock/stock-universal-server';
 import { getLogger } from 'log4js';
 import { Connection } from 'mongoose';
 
-/** */
 const dbConnectionsLogger = getLogger('DbConnections');
 
-/** */
 export let mainConnection: Connection;
 export let mainConnectionLean: Connection;
-/** */
 export let isStockDbConnected = false;
 
-/** */
+
 /**
  * Connects to the stock database using the provided database configuration URL.
  * If the database is already connected, this function does nothing.
@@ -27,7 +24,7 @@ export const connectStockDatabase = async(databaseConfigUrl: string) => {
   isStockDbConnected = true;
 };
 
-/** */
+
 process.on('SIGINT', () => {
   dbConnectionsLogger.info('PROCESS EXIT :: now disconnecting mongoose');
   (async() => {

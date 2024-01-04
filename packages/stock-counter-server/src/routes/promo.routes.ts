@@ -3,14 +3,16 @@
 import express from 'express';
 import { promocodeLean, promocodeMain } from '../models/promocode.model';
 import { getLogger } from 'log4js';
-import { Isuccess, makeRandomString } from '@open-stock/stock-universal';
-import { makeUrId, offsetLimitRelegator, roleAuthorisation, stringifyMongooseErr } from '@open-stock/stock-universal-server';
-import { requireAuth, verifyObjectId } from '@open-stock/stock-universal-server';
+import { Icustomrequest, Isuccess, makeRandomString } from '@open-stock/stock-universal';
+import { makeUrId, offsetLimitRelegator, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { requireAuth } from '@open-stock/stock-universal-server';
 
 /** Logger for promocode routes */
 const promocodeRoutesLogger = getLogger('routes/promocodeRoutes');
 
-/** Express router for promocode routes */
+/**
+ * Router for handling promo code routes.
+ */
 export const promocodeRoutes = express.Router();
 
 /**
@@ -24,15 +26,23 @@ export const promocodeRoutes = express.Router();
  * @param {string} roomId - ID of the room the promocode applies to
  * @returns {Promise<Isuccess>} - Promise representing the success or failure of the operation
  */
-promocodeRoutes.post('/create', requireAuth, roleAuthorisation('items'), async(req, res) => {
+promocodeRoutes.post('/create/:companyIdParam', requireAuth, roleAuthorisation('items', 'create'), async(req, res) => {
   const { items, amount, roomId } = req.body;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectId(queryId);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   const code = makeRandomString(8, 'combined');
   const count = await promocodeMain
   // eslint-disable-next-line @typescript-eslint/naming-convention
-    .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+    .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
   const urId = makeUrId(Number(count[0]?.urId || '0'));
   const promocode = {
     urId,
+    companyId,
     code,
     amount,
     items,
@@ -72,14 +82,18 @@ promocodeRoutes.post('/create', requireAuth, roleAuthorisation('items'), async(r
  * @param {string} id - ID of the promocode to retrieve
  * @returns {Promise<object>} - Promise representing the retrieved promocode
  */
-promocodeRoutes.get('/getone/:id', requireAuth, roleAuthorisation('items'), async(req, res) => {
+promocodeRoutes.get('/getone/:id/:companyIdParam', requireAuth, roleAuthorisation('items', 'read'), async(req, res) => {
   const { id } = req.params;
-  const isValid = verifyObjectId(id);
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectIds([id, queryId]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const promocode = await promocodeLean
-    .findById(id)
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    .findOne({ _id: id, companyId: queryId })
     .lean();
   return res.status(200).send(promocode);
 });
@@ -93,10 +107,13 @@ promocodeRoutes.get('/getone/:id', requireAuth, roleAuthorisation('items'), asyn
  * @param {string} code - Code of the promocode to retrieve
  * @returns {Promise<object>} - Promise representing the retrieved promocode
  */
-promocodeRoutes.get('/getonebycode/:code', requireAuth, async(req, res) => {
+promocodeRoutes.get('/getonebycode/:code/:companyIdParam', requireAuth, async(req, res) => {
   const { code } = req.params;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const promocode = await promocodeLean
-    .findOne({ code })
+    .findOne({ code, companyId: queryId })
     .lean();
   return res.status(200).send(promocode);
 });
@@ -111,10 +128,17 @@ promocodeRoutes.get('/getonebycode/:code', requireAuth, async(req, res) => {
  * @param {string} limit - Limit for pagination
  * @returns {Promise<object[]>} - Promise representing the retrieved promocodes
  */
-promocodeRoutes.get('/getall/:offset/:limit', requireAuth, roleAuthorisation('items'), async(req, res) => {
+promocodeRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, roleAuthorisation('items', 'read'), async(req, res) => {
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectId(queryId);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   const promocodes = await promocodeLean
-    .find({})
+    .find({ companyId: queryId })
     .skip(offset)
     .limit(limit)
     .lean();
@@ -130,13 +154,17 @@ promocodeRoutes.get('/getall/:offset/:limit', requireAuth, roleAuthorisation('it
  * @param {string} id - ID of the promocode to delete
  * @returns {Promise<Isuccess>} - Promise representing the success or failure of the operation
  */
-promocodeRoutes.delete('/deleteone/:id', requireAuth, roleAuthorisation('items'), async(req, res) => {
+promocodeRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, roleAuthorisation('items', 'delete'), async(req, res) => {
   const { id } = req.params;
-  const isValid = verifyObjectId(id);
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectIds([id, queryId]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
-  const deleted = await promocodeMain.findByIdAndDelete(id);
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  const deleted = await promocodeMain.findOneAndDelete({ _id: id, companyId: queryId });
   if (Boolean(deleted)) {
     return res.status(200).send({ success: Boolean(deleted) });
   } else {

@@ -3,7 +3,7 @@ import express from 'express';
 import { deliverycityLean, deliverycityMain } from '../models/deliverycity.model';
 import { getLogger } from 'log4js';
 import { offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
-import { Isuccess } from '@open-stock/stock-universal';
+import { Icustomrequest, Isuccess } from '@open-stock/stock-universal';
 
 /**
  * Logger for deliverycity routes
@@ -26,9 +26,18 @@ export const deliverycityRoutes = express.Router();
  * @param {Object} req.body.deliverycity - Delivery city object to create
  * @returns {Object} - Returns a success object with a boolean indicating if the city was saved successfully
  */
-deliverycityRoutes.post('/create', requireAuth, roleAuthorisation('items'), async(req, res) => {
+deliverycityRoutes.post('/create/:companyIdParam', requireAuth, roleAuthorisation('items', 'create'), async(req, res) => {
   const deliverycity = req.body.deliverycity;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  deliverycity.companyId = queryId;
   const newDeliverycity = new deliverycityMain(deliverycity);
+  newDeliverycity.companyId = queryId;
+  const isValid = verifyObjectId(queryId);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   let errResponse: Isuccess;
   const saved = await newDeliverycity.save()
     .catch(err => {
@@ -63,14 +72,18 @@ deliverycityRoutes.post('/create', requireAuth, roleAuthorisation('items'), asyn
  * @param {string} req.params.id - ID of the delivery city to retrieve
  * @returns {Object} - Returns the delivery city object
  */
-deliverycityRoutes.get('/getone/:id', async(req, res) => {
+deliverycityRoutes.get('/getone/:id/:companyIdParam', async(req, res) => {
   const { id } = req.params;
-  const isValid = verifyObjectId(id);
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectIds([id, queryId]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const deliverycity = await deliverycityLean
-    .findById(id)
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    .findOne({ _id: id, companyId: queryId })
     .lean();
   return res.status(200).send(deliverycity);
 });
@@ -87,10 +100,13 @@ deliverycityRoutes.get('/getone/:id', async(req, res) => {
  * @param {string} req.params.limit - Limit for pagination
  * @returns {Object[]} - Returns an array of delivery city objects
  */
-deliverycityRoutes.get('/getall/:offset/:limit', async(req, res) => {
+deliverycityRoutes.get('/getall/:offset/:limit/:companyIdParam', async(req, res) => {
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const deliverycitys = await deliverycityLean
-    .find({})
+    .find({ companyId: queryId })
     .skip(offset)
     .limit(limit)
     .lean();
@@ -108,15 +124,19 @@ deliverycityRoutes.get('/getall/:offset/:limit', async(req, res) => {
  * @param {Object} req.body - Updated delivery city object
  * @returns {Object} - Returns a success object with a boolean indicating if the city was updated successfully
  */
-deliverycityRoutes.put('/update', requireAuth, roleAuthorisation('items'), async(req, res) => {
+deliverycityRoutes.put('/update/:companyIdParam', requireAuth, roleAuthorisation('items', 'update'), async(req, res) => {
   const updatedCity = req.body;
-  const isValid = verifyObjectId(updatedCity._id);
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  updatedCity.companyId = queryId;
+  const isValid = verifyObjectIds([updatedCity._id, queryId]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const deliverycity = await deliverycityMain
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    .findByIdAndUpdate(updatedCity._id);
+    .findOneAndUpdate({ _id: updatedCity._id, companyId: queryId });
   if (!deliverycity) {
     return res.status(404).send({ success: false });
   }
@@ -158,13 +178,17 @@ deliverycityRoutes.put('/update', requireAuth, roleAuthorisation('items'), async
  * @param {string} req.params.id - ID of the delivery city to delete
  * @returns {Object} - Returns a success object with a boolean indicating if the city was deleted successfully
  */
-deliverycityRoutes.delete('/deleteone/:id', requireAuth, roleAuthorisation('items'), async(req, res) => {
+deliverycityRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, roleAuthorisation('items', 'delete'), async(req, res) => {
   const { id } = req.params;
-  const isValid = verifyObjectId(id);
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectIds([id, queryId]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
-  const deleted = await deliverycityMain.findByIdAndDelete(id);
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  const deleted = await deliverycityMain.findOneAndDelete({ _id: id, companyId: queryId });
   if (Boolean(deleted)) {
     return res.status(200).send({ success: Boolean(deleted) });
   } else {
@@ -183,16 +207,19 @@ deliverycityRoutes.delete('/deleteone/:id', requireAuth, roleAuthorisation('item
  * @param {string[]} req.body.ids - Array of IDs of the delivery cities to delete
  * @returns {Object} - Returns a success object with a boolean indicating if the cities were deleted successfully
  */
-deliverycityRoutes.put('/deletemany', requireAuth, roleAuthorisation('items'), async(req, res) => {
+deliverycityRoutes.put('/deletemany/:companyIdParam', requireAuth, roleAuthorisation('items', 'delete'), async(req, res) => {
   const { ids } = req.body;
-  const isValid = verifyObjectIds(ids);
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectIds([...ids, ...[queryId]]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
 
   const deleted = await deliverycityMain
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    .deleteMany({ _id: { $in: ids } })
+    .deleteMany({ _id: { $in: ids }, companyId: queryId })
     .catch(err => {
       deliverycityRoutesLogger.error('deletemany - err: ', err);
       return null;

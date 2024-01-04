@@ -1,16 +1,16 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import { afterAll, vi, beforeAll, describe, it, expect } from 'vitest';
 import { Application } from 'express';
-import { createMockUserperm } from '../../../mocks';
-import { faker } from '@faker-js/faker';
+import { faker } from '@faker-js/faker/locale/en_US';
 import { generateToken, sendTokenEmail, sendTokenPhone, setUserInfo, validateEmail, validatePhone } from '../../../../stock-auth-server/src/controllers/universial.controller';
 import { disconnectMongoose } from '@open-stock/stock-universal-server';
-import { createExpressServer } from '../../../helpers';
-import { createNotificationsDatabase } from '@open-stock/stock-notif-server/src/stock-notif-server';
-import { notifnRoutes } from '@open-stock/stock-notif-server';
+import { createExpressServer } from '../../../../tests/helpers';
 // import { updateNotifnViewed } from '../../../../stock-notif-server/src/controllers/notifications.controller';
 import * as http from 'http';
-import { authRoutes } from '../../../../stock-auth-server/src/routes/auth.routes';
+import { createNotificationsDatabase } from '@open-stock/stock-notif-server/src/stock-notif-local';
+import { authRoutes } from '../../../src/routes/user.routes';
+import { Iauthtoken, Iuser } from '@open-stock/stock-universal';
+import { createMockCompanyPerm, createMockUser, createMockUserperm } from '../../../../tests/stock-auth-mocks';
 
 // hoist authroutes some parts
 const universialControllerHoisted = vi.hoisted(() => {
@@ -59,18 +59,16 @@ vi.mock('../../src/controllers/twilio.controller', () => {
 });
 
 vi.mock('../../../../stock-notif-server/src/controllers/notifications.controller', async() => {
-  const actual = await vi.importActual('../../../../stock-notif-server/src/controllers/notifications.controller');
+  const actual: object = await vi.importActual('../../../../stock-notif-server/src/controllers/notifications.controller');
   return {
-    // @ts-ignore
     ...actual,
     updateNotifnViewed: vi.fn()
   };
 });
 
 vi.mock('../../../src/controllers/universial.controller', async() => {
-  const actual = await vi.importActual('../../../src/controllers/universial.controller');
+  const actual: object = await vi.importActual('../../../src/controllers/universial.controller');
   return {
-    // @ts-ignore
     ...actual,
     generateToken: universialControllerHoisted.generateToken,
     sendTokenEmail: universialControllerHoisted.sendTokenEmail,
@@ -93,7 +91,7 @@ describe('universial', () => {
     app = createExpressServer();
     await createNotificationsDatabase(dbUrl);
     app.use(apiUrl, authRoutes);
-    app.use(apiUrlNotif, notifnRoutes);
+    // app.use(apiUrlNotif, notifnRoutes); // TODO
     server = app.listen(4000, () => {
       console.log('Server has started!');
     });
@@ -105,12 +103,14 @@ describe('universial', () => {
   });
 
   it('#generateToken should return a success response if the verifycode is valid', () => {
-    const config = {
+    const config: Iauthtoken = {
       userId: faker.string.uuid(),
-      permissions: createMockUserperm()
+      companyId: faker.string.uuid(),
+      permissions: createMockUserperm(),
+      companyPermissions: createMockCompanyPerm()
     };
     const dateStr = '1d';
-    const madeToken = generateToken(config, dateStr, 'dsbsdbsdb');
+    const madeToken = generateToken(config, dateStr, new Date().toString());
     expect(madeToken).toBeDefined();
     expect(typeof madeToken).toBe('string');
   });
@@ -118,7 +118,9 @@ describe('universial', () => {
   it('#setUserInfo should return a success response if the verifycode is valid', () => {
     const id = faker.string.uuid();
     const perms = createMockUserperm();
-    const info = setUserInfo(id, perms);
+    const companyId = faker.string.uuid();
+    const companyPerm = createMockCompanyPerm();
+    const info = setUserInfo(id, perms, companyId, companyPerm);
     expect(info).toBeDefined();
     expect(typeof info).toBe('object');
     expect(info).toHaveProperty('userId');
@@ -126,6 +128,7 @@ describe('universial', () => {
     expect(typeof info.permissions).toBe('object');
   });
 
+  // TODO
   it('#validatePhone should return a success response if the verifycode is valid', async() => {
     const userId = faker.string.uuid();
     const nowCase = 'password';
@@ -139,6 +142,7 @@ describe('universial', () => {
     expect(typeof validateRes.response).toBe('object');
   });
 
+  // TODO
   it('#validateEmail should return a success response if the verifycode is valid', async() => {
     const userId = faker.string.uuid();
     const type = '_link';
@@ -165,8 +169,8 @@ describe('universial', () => {
 
   it('#sendTokenEmail should return a success response if the verifycode is valid', async() => {
     const foundUserMock = {
-
-    } as any;
+      findOne: vi.fn()
+    } as unknown as typeof user;
     const type = 'token';
     const appOfficialName = 'name';
     const sent = await sendTokenEmail(app, foundUserMock, type, appOfficialName);
@@ -176,3 +180,26 @@ describe('universial', () => {
   });
 });
 
+describe('sendTokenEmail', () => {
+  const app = {}; // Replace with your actual app object
+  const foundUserMock = createMockUser() as unknown as Iuser;
+  const type = 'token';
+  const appOfficialName = 'name';
+  const link = 'http://localhost:4200/verify?id=';
+
+  it('should send a verification email with token', async() => {
+    const response = await sendTokenEmail(app, foundUserMock, type, appOfficialName, link);
+    expect(response).toBeDefined();
+    expect(response.success).toBe(true);
+    // expect(response.status).toBe(200);
+    expect(response.msg).toBeTypeOf('string');
+  });
+
+  it('should send a verification email with link', async() => {
+    const response = await sendTokenEmail(app, foundUserMock, '_link', appOfficialName, link);
+    expect(response).toBeDefined();
+    expect(response.success).toBe(true);
+    // expect(response.status).toBe(200);
+    expect(response.msg).toBeTypeOf('string');
+  });
+});

@@ -9,7 +9,7 @@ import Axios from 'axios-observable';
 import { LoggerController } from './logger.controller';
 
 // This interface defines the properties of a file.
-/** */
+
 export interface Ifile {
   // The filename of the file.
   filename?: any;
@@ -22,7 +22,7 @@ export interface Ifile {
 }
 
 // This class is a controller for handling HTTP requests.
-/** */
+
 /**
  * A class that provides methods for making HTTP requests using Axios.
  */
@@ -122,6 +122,7 @@ export class EhttpController {
   /**
    * A method that uploads files to the specified URL.
    * @param files - An array of files to upload.
+   * @param companyId - The ID of the company
    * @param url - The URL to upload the files to.
    * @param extras - Any extra data to include in the request.
    * @returns An Observable that emits the response data.

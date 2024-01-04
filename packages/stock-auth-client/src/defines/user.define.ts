@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 
 import { lastValueFrom } from 'rxjs';
-import { DatabaseAuto, Iaddress, Ibilling, Ifile, Isuccess, Iuser, Iuserperm, TuserDispNameFormat } from '@open-stock/stock-universal';
+import { DatabaseAuto, Iaddress, Ibilling, Icompany, Ifile, IfileMeta, Isuccess, Iuser, Iuserperm, TuserDispNameFormat } from '@open-stock/stock-universal';
 import { StockAuthClient } from '../stock-auth-client';
+import { Company } from './company.define';
 
 /**
  * Represents a user and extends the DatabaseAuto class. It has properties that correspond to the fields in the user object, and methods for updating, deleting, and managing the user's profile, addresses, and permissions.
@@ -10,6 +11,8 @@ import { StockAuthClient } from '../stock-auth-client';
 export class User extends DatabaseAuto {
   /** The user's ID. */
   urId: string;
+  /** The user's company ID. */
+  companyId: Company;
   /** The user's full name. */
   names: string;
   /** The user's first name. */
@@ -30,8 +33,10 @@ export class User extends DatabaseAuto {
   did: string;
   /** The user's address ID. */
   aid: string;
-  /** The user's photo. */
-  photo: string;
+  /** The user's photos. */
+  photos: IfileMeta[];
+  profilePic: IfileMeta;
+  profileCoverPic: IfileMeta;
   /** Whether the user is an admin. */
   admin = false;
   /** Whether the user is a sub-admin. */
@@ -39,21 +44,61 @@ export class User extends DatabaseAuto {
   /** The user's permissions. */
   permissions: Iuserperm = {
     /** Whether the user has permission to view orders. */
-    orders: false,
+    orders: {
+      create: false,
+      read: false,
+      update: false,
+      delete: false
+    },
     /** Whether the user has permission to view payments. */
-    payments: false,
+    payments: {
+      create: false,
+      read: false,
+      update: false,
+      delete: false
+    },
     /** Whether the user has permission to view other users. */
-    users: false,
+    users: {
+      create: false,
+      read: false,
+      update: false,
+      delete: false
+    },
     /** Whether the user has permission to view items. */
-    items: false,
+    items: {
+      create: false,
+      read: false,
+      update: false,
+      delete: false
+    },
     /** Whether the user has permission to view FAQs. */
-    faqs: false,
+    faqs: {
+      create: false,
+      read: false,
+      update: false,
+      delete: false
+    },
     /** Whether the user has permission to view videos. */
-    videos: false,
+    videos: {
+      create: false,
+      read: false,
+      update: false,
+      delete: false
+    },
     /** Whether the user has permission to view printables. */
-    printables: false,
+    printables: {
+      create: false,
+      read: false,
+      update: false,
+      delete: false
+    },
     /** Whether the user is a buyer. */
-    buyer: false
+    buyer: {
+      create: true,
+      read: true,
+      update: true,
+      delete: true
+    }
   };
   /** The user's phone number. */
   phone: number;
@@ -81,44 +126,47 @@ export class User extends DatabaseAuto {
 
   /**
    * Retrieves multiple users from a specified URL, with optional offset and limit parameters.
+   * @param companyId - The ID of the company
    * @param url The URL to retrieve the users from.
    * @param offset The offset to start retrieving users from.
    * @param limit The maximum number of users to retrieve.
    * @returns An array of User instances created from the retrieved user objects.
    */
-  static async getUsers(url: string, offset = 0, limit = 0) {
-    const observer$ = StockAuthClient.ehttp.makeGet(`/auth/getusers/${url}/${offset}/${limit}`);
+  static async getUsers(companyId: string, url: string, offset = 0, limit = 20) {
+    const observer$ = StockAuthClient.ehttp.makeGet(`/user/getusers/${url}/${offset}/${limit}/${companyId}`);
     const users = await lastValueFrom(observer$) as Iuser[];
     return users.map(val => new User(val));
   }
 
   /**
    * Retrieves a single user based on the provided user ID.
+   * @param companyId - The ID of the company
    * @param urId The ID of the user to retrieve.
    * @returns A User instance created from the retrieved user object.
    */
-  static async getOneUser(urId: string) {
-    const observer$ = StockAuthClient.ehttp.makeGet(`/auth/getoneuser/${urId}`);
+  static async getOneUser(companyId: string, urId: string) {
+    const observer$ = StockAuthClient.ehttp.makeGet(`/user/getoneuser/${urId}/${companyId}`);
     const user = await lastValueFrom(observer$) as Iuser;
     return new User(user);
   }
 
   /**
    * Adds a new user with the provided values and optional files.
+   * @param companyId - The ID of the company
    * @param vals The values to add the user with.
    * @param files Optional files to upload with the user.
    * @returns A success object indicating whether the user was added successfully.
    */
-  static async addUser(vals: Iuser, files?: Ifile[]) {
+  static async addUser(companyId: string, vals: Iuser, files?: Ifile[]) {
     const details = {
       user: vals
     };
     let added: Isuccess;
     if (files && files[0]) {
-      const observer$ = StockAuthClient.ehttp.uploadFiles(files, '/auth/adduserimg', details);
+      const observer$ = StockAuthClient.ehttp.uploadFiles(files, `/user/adduserimg/${companyId}`, details);
       added = await lastValueFrom(observer$) as Isuccess;
     } else {
-      const observer$ = StockAuthClient.ehttp.makePost('/auth/adduser', details);
+      const observer$ = StockAuthClient.ehttp.makePost(`/user/adduser/${companyId}`, details);
       added = await lastValueFrom(observer$) as Isuccess;
     }
     return added;
@@ -126,22 +174,24 @@ export class User extends DatabaseAuto {
 
   /**
    * Deletes multiple users based on the provided user IDs and files with directories.
+   * @param companyId - The ID of the company
    * @param ids The IDs of the users to delete.
    * @param filesWithDir The files with directories to delete.
    * @returns A success object indicating whether the users were deleted successfully.
    */
-  static async deleteUsers(ids: string[], filesWithDir) {
-    const observer$ = StockAuthClient.ehttp.makePut('/auth/deletemany', { ids, filesWithDir });
+  static async deleteUsers(companyId: string, ids: string[], filesWithDir) {
+    const observer$ = StockAuthClient.ehttp.makePut(`/user/deletemany/${companyId}`, { ids, filesWithDir });
     return await lastValueFrom(observer$) as Isuccess;
   }
 
   /**
    * Updates the user's profile with the provided values and optional files.
+   * @param companyId - The ID of the company
    * @param vals The values to update the user's profile with.
    * @param files Optional files to upload with the user.
    * @returns A success object indicating whether the user was updated successfully.
    */
-  async updateUserBulk(vals: Iuser, files?: Ifile[]) {
+  async updateUserBulk(companyId: string, vals: Iuser, files?: Ifile[]) {
     const details = {
       user: {
         ...vals,
@@ -151,17 +201,21 @@ export class User extends DatabaseAuto {
     };
     let added: Isuccess;
     if (files && files[0]) {
-      const observer$ = StockAuthClient.ehttp.uploadFiles(files, '/auth/updateuserbulkimg', details);
+      const observer$ = StockAuthClient.ehttp.uploadFiles(files, `/user/updateuserbulkimg/${companyId}`, details);
       added = await lastValueFrom(observer$) as Isuccess;
     } else {
-      const observer$ = StockAuthClient.ehttp.makePut('/auth/updateuserbulk', details);
+      const observer$ = StockAuthClient.ehttp.makePut(`/user/updateuserbulk/${companyId}`, details);
       added = await lastValueFrom(observer$) as Isuccess;
     }
     return added;
   }
 
   /**
-   * Determines whether the user is an admin or sub-admin based on their permissions and updates the corresponding properties accordingly.
+   * Makes the user an admin based on their permissions.
+   * If the user has all permissions except 'buyer', they are considered a sub-admin.
+   * If the user has all permissions, they are considered an admin.
+   * Updates the user's admin and subAdmin properties accordingly.
+   * If the user becomes an admin, their urId, _id, fname, lname, and email properties are updated.
    */
   makeAdmin() {
     const keys = Object.keys(this.permissions);
@@ -187,8 +241,16 @@ export class User extends DatabaseAuto {
     }
   }
 
-  /** updateUser  method: This method updates the user's profile with the provided values and optional files. It returns a success object indicating whether the user was updated successfully.*/
+  /**
+   * Updates a user's profile information.
+   * @param companyId - The ID of the company.
+   * @param vals - The updated user data.
+   * @param formtype - The type of form being updated.
+   * @param files - Optional array of files to upload.
+   * @returns A promise that resolves to the updated user data.
+   */
   async updateUser(
+    companyId: string,
     vals,
     formtype: string,
     files?: Ifile[]) {
@@ -197,12 +259,12 @@ export class User extends DatabaseAuto {
       const observer$ = StockAuthClient.ehttp
         .uploadFiles(
           files,
-          '/auth/updateprofileimg',
+          '/user/updateprofileimg',
           vals);
       updated = await lastValueFrom(observer$) as Isuccess;
     } else {
       const observer$ = StockAuthClient.ehttp
-        .makePut(`/auth/updateprofile/${formtype}`, vals);
+        .makePut(`/user/updateprofile/${formtype}/${companyId}`, vals);
       updated = await lastValueFrom(observer$) as Isuccess;
     }
     if (updated.success) {
@@ -211,11 +273,17 @@ export class User extends DatabaseAuto {
     return updated;
   }
 
-  /** manageAddress  method: This method manages the user's addresses by adding, updating, or deleting an address based on the provided parameters. It returns a success object indicating whether the address was managed successfully.
- */
-  async manageAddress(address: Iaddress | Ibilling, how = 'update', type = 'billing') {
+  /**
+   * Manages the address for a user.
+   * @param companyId - The ID of the company.
+   * @param address - The address or billing information to manage.
+   * @param how - The operation to perform (update or create). Default is 'update'.
+   * @param type - The type of address to manage (billing or shipping). Default is 'billing'.
+   * @returns A promise that resolves to the updated success status.
+   */
+  async manageAddress(companyId: string, address: Iaddress | Ibilling, how = 'update', type = 'billing') {
     const observer$ = StockAuthClient.ehttp
-      .makePut(`/auth/addupdateaddr/${this._id}`, { address, how, type });
+      .makePut(`/user/addupdateaddr/${this._id}/${companyId}`, { address, how, type });
     const updated = await lastValueFrom(observer$) as Isuccess;
     if (updated.success) {
       if (how === 'create') {
@@ -243,33 +311,68 @@ export class User extends DatabaseAuto {
     return updated;
   }
 
-  /** managePermission  method: This method updates the user's permissions with the provided permissions object. It returns a success object indicating whether the permissions were updated successfully. */
-  async managePermission(permissions: Iuserperm) {
+  /**
+   * Updates the permissions for a user in a specific company.
+   * @param companyId - The ID of the company.
+   * @param permissions - The updated permissions for the user.
+   * @returns A promise that resolves to the updated user object.
+   */
+  async managePermission(companyId: string, permissions: Iuserperm) {
     const observer$ = StockAuthClient.ehttp
-      .makePut(`/auth/updatepermissions/${this._id}`, { permissions });
+      .makePut(`/user/updatepermissions/${this._id}/${companyId}`, { permissions });
     const updated = await lastValueFrom(observer$) as Isuccess;
     this.permissions = permissions;
     return updated;
   }
 
-  /** deleteUser  method: This method deletes the user. It returns a success object indicating whether the user was deleted successfully. */
-  async deleteUser() {
+  /**
+   * Deletes a user with the specified companyId.
+   * @param companyId - The ID of the company associated with the user.
+   * @returns A promise that resolves to the deleted user.
+   */
+  async deleteUser(companyId: string) {
     const observer$ = StockAuthClient.ehttp
-      .makePut('/auth/deleteone',
+      .makePut(`/user/deleteone/${companyId}`,
         {
           // eslint-disable-next-line @typescript-eslint/naming-convention
           _id: this._id,
           filesWithDir: [{
-            filename: this.photo
+            filename: this.profilePic
           }] });
     const deleted = await lastValueFrom(observer$) as Isuccess;
     return deleted;
   }
 
-  /** appendUpdate  method: This method updates the user object with the provided data and updates the admin and sub-admin properties based on the updated permissions. */
+  /**
+   * Deletes images associated with a company.
+   * @param companyId - The ID of the company.
+   * @param filesWithDir - An array of file metadata objects.
+   * @returns A promise that resolves to the success status of the deletion operation.
+   */
+  async deleteImages(companyId: string, filesWithDir: IfileMeta[]) {
+    const observer$ = StockAuthClient.ehttp
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+      .makePut(`/user/deleteimages/${companyId}`, { filesWithDir, user: { _id: this._id } });
+    const deleted = await lastValueFrom(observer$) as Isuccess;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    const toStrings = filesWithDir.map(val => val._id);
+    this.photos = this.photos.filter(val => !toStrings.includes(val._id));
+    return deleted;
+  }
+
+  /**
+   * Updates the user object with the provided data.
+   * If data is provided, the corresponding properties of the user object will be updated.
+   * If a property is not provided in the data, it will retain its current value.
+   * After updating the user object, it calls the makeAdmin() method.
+   * @param data - The data object containing the properties to update.
+   */
   appendUpdate(data: Iuser) {
     if (data) {
-      this.urId = data.urId || this.urId;
+      this.urId = data.urId;
+      if (data.companyId) {
+        this.companyId = new Company(data.companyId as Icompany);
+      }
       this.fname = data.fname || this.fname;
       this.lname = data.lname || this.lname;
       this.companyName = data.companyName || this.companyName;
@@ -279,7 +382,9 @@ export class User extends DatabaseAuto {
       this.uid = data.uid || this.uid;
       this.did = data.did || this.did;
       this.aid = data.aid || this.aid;
-      this.photo = data.photo || this.photo;
+      this.photos = data.photos || this.photos;
+      this.profilePic = data.profilePic || this.profilePic;
+      this.profileCoverPic = data.profileCoverPic || this.profileCoverPic;
       this.permissions = data.permissions || this.permissions;
       this.phone = data.phone || this.phone;
       this.amountDue = data.amountDue || this.amountDue;

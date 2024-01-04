@@ -1,4 +1,38 @@
-/** */
+import { LoggerController } from '@open-stock/stock-universal';
+
+/**
+ * Represents the response object for image size calculations.
+ */
+export interface Iimagesizeresponse {
+  success: boolean;
+  error: string;
+}
+
+/**
+ * Interface representing the allowed dimensions for a calculation.
+ */
+export interface Ialloweddimms {
+  maxHeight: number;
+  maxWidth: number;
+  minHeight: number;
+  minWidth: number;
+}
+
+/**
+ * Represents the target for the Iev calculation.
+ */
+export interface IevTarget {
+  size: number;
+  height: number;
+  width: number;
+  result;
+}
+
+
+/**
+ * Array of month names.
+ * @type {string[]}
+ */
 export const monthNames = [
   'January',
   'February',
@@ -14,15 +48,21 @@ export const monthNames = [
   'December'
 ]; // remember tis is manual and a better autou implementation is ewquired
 
-/** */
+
+/**
+ * Represents the return type for the calculation function.
+ * It can be one of the following values: 'fixed', 'ceil', 'floor', 'float'.
+ */
 export type TtypecalcReturn = 'fixed' | 'ceil' | 'floor' | 'float';
 
 /** The above code defines a class called CalculationsController that contains various methods for performing calculations. It also exports a constant called monthNames, which is an array of month names. Additionally, it exports a type called TtypecalcReturn, which is a union of four possible string values.   */
-/** */
+
 /**
  * The CalculationsController class contains methods for performing various calculations.
  */
 export class CalculationsController {
+  logger = new LoggerController();
+
   constructor() { }
 
   /**
@@ -78,5 +118,93 @@ export class CalculationsController {
   restrictArrayToLength(data: any[], restrictNoTo: number) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return data.filter((val, index) => index < restrictNoTo);
+  }
+
+  determineStars(weight: number, where: string) {
+    let long: number;
+    switch (where) {
+      case 'full':
+        long = Math.floor(weight / 2);
+        break;
+      case 'half':
+        long = weight % 2 ? 1 : 0;
+        break;
+      case 'empty': {
+        const left = 10 - weight;
+        long = Math.ceil(left / 2);
+        break;
+      }
+      default:
+        long = 0;
+        break;
+    }
+    return this.toArray(long);
+  }
+
+  /**
+   * Checks if the dimensions of an image are within the allowed limits.
+   * @param imageSrc - The source of the image.
+   * @param alloweddimms - The allowed dimensions for the image.
+   * @param expectedMaxSize - The expected maximum size of the image in bytes.
+   * @returns A promise that resolves to an object containing the success status and any error message.
+   */
+  isAllowedDimensionsSize(
+    imageSrc: string,
+    alloweddimms: Ialloweddimms,
+    expectedMaxSize?: number): Promise<Iimagesizeresponse> {
+    this.logger
+      .debug(
+        `imageSrc: ${imageSrc},
+        alloweddimms: ${alloweddimms},
+        expectedMaxSize: ${expectedMaxSize}`);
+    return new Promise(resolve => {
+      let fileError: string;
+      let nowsuccess = true;
+      const image = new Image();
+      image.src = imageSrc;
+      image.onload = rs => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const target = rs.currentTarget as unknown as IevTarget;
+        if (expectedMaxSize) {
+          const imgSize = target.size;
+          if (imgSize > expectedMaxSize) {
+            nowsuccess = false;
+            fileError = 'max file size allowed is ' + expectedMaxSize / 1000000 + 'Mb';
+          }
+        }
+        const imgHeight = target.height;
+        const imgWidth = target.width;
+
+        if ((imgHeight > alloweddimms.maxHeight) ||
+          (imgWidth > alloweddimms.maxWidth)) {
+          fileError = 'max file dimmensions allowed is ' +
+            alloweddimms.maxHeight +
+            '*' + alloweddimms.maxWidth + 'px';
+          nowsuccess = false;
+        }
+
+        if ((imgHeight < alloweddimms.minHeight) ||
+          (imgWidth < alloweddimms.minWidth)) {
+          fileError = 'min file dimmensions allowed is ' +
+            alloweddimms.minHeight +
+            '*' + alloweddimms.minWidth + 'px';
+          nowsuccess = false;
+        }
+        resolve({
+          success: nowsuccess,
+          error: fileError
+        });
+      };
+    });
+  }
+
+  /**
+   * Calculates the tax value from the given subTotal and tax rate.
+   * @param subTotal - The subTotal amount.
+   * @param tax - The tax rate percentage.
+   * @returns The tax value.
+   */
+  taxValFromSubTotal(subTotal: number, tax: number) {
+    return (tax / 100) * subTotal;
   }
 }

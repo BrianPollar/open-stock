@@ -1,17 +1,16 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
-import { smsHandler } from '@open-stock/stock-notif-server';
 import { Iuser } from '@open-stock/stock-universal';
 import { Schema, Document, Model } from 'mongoose';
 import { connectAuthDatabase, isAuthDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
 import bcrypt from 'bcrypt';
+import { sendSms, sendToken, setUpUser, verifyAuthyToken } from '@open-stock/stock-notif-server';
 // Create authenticated Authy and Twilio API clients
 // const authy = require('authy')(config.authyKey);
 // const twilioClient = require('twilio')(config.accountSid, config.authToken);
 const uniqueValidator = require('mongoose-unique-validator');
 
-/** */
-export type Tuser = Document & Iuser;
 
+export type Tuser = Document & Iuser;
 /**
  * User schema definition.
  * @typedef {Object} Tuser
@@ -27,9 +26,6 @@ export type Tuser = Document & Iuser;
  * @property {Array} [greenIps] - Green IPs.
  * @property {Array} [redIps] - Red IPs.
  * @property {Array} [unverifiedIps] - Unverified IPs.
- * @property {string} [uid] - User ID.
- * @property {string} [did] - Device ID.
- * @property {string} [aid] - Account ID.
  * @property {string} [photo] - User photo.
  * @property {string} [age] - User age.
  * @property {string} [gender] - User gender.
@@ -44,15 +40,15 @@ export type Tuser = Document & Iuser;
  * @property {boolean} [fromsocial] - User social media status.
  * @property {string} [socialframework] - User social media framework.
  * @property {string} [socialId] - User social media ID.
- * @property {Object} [blocked] - User blocked status.
  * @property {number} [countryCode=256] - User country code.
  * @property {number} [amountDue=0] - User amount due.
  * @property {boolean} [manuallyAdded=false] - User manually added status.
  * @property {Date} createdAt - User creation date.
  * @property {Date} updatedAt - User update date.
  */
-export const userSchema: Schema<Tuser> = new Schema({
+const userSchema: Schema<Tuser> = new Schema({
   urId: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
+  companyId: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
   fname: { type: String, required: [true, 'cannot be empty.'], index: true },
   lname: { type: String, required: [true, 'cannot be empty.'], index: true },
   companyName: { type: String, index: true },
@@ -61,13 +57,9 @@ export const userSchema: Schema<Tuser> = new Schema({
   userDispNameFormat: { type: String, default: 'firstLast' },
   address: [],
   billing: [],
-  greenIps: [],
-  redIps: [],
-  unverifiedIps: [],
-  uid: { type: String },
-  did: { type: String },
-  aid: { type: String },
-  photo: { type: String },
+  profilePic: { type: String },
+  profileCoverPic: { type: String },
+  photos: [{ type: String }],
   age: { type: String },
   gender: { type: String },
   admin: { type: String },
@@ -81,10 +73,10 @@ export const userSchema: Schema<Tuser> = new Schema({
   fromsocial: { type: Boolean },
   socialframework: { type: String },
   socialId: { type: String },
-  blocked: { },
   countryCode: { type: Number, default: +256 },
   amountDue: { type: Number, default: 0 },
-  manuallyAdded: { type: Boolean, default: false }
+  manuallyAdded: { type: Boolean, default: false },
+  userType: { type: String, default: 'user' }
 },
 { timestamps: true }
 );
@@ -97,7 +89,8 @@ userSchema.plugin(uniqueValidator);
 
 // dealing with hasing password
 userSchema.pre('save', function(next) {
-  var user = this;
+  // eslint-disable-next-line @typescript-eslint/no-this-alias
+  const user = this;
 
   // only hash the password if it has been modified (or is new)
   if (!user.isModified('password')) {
@@ -106,62 +99,70 @@ userSchema.pre('save', function(next) {
 
   // generate a salt
   bcrypt.genSalt(10, function(err, salt) {
-      if (err) return next(err);
+    if (err) {
+      return next(err);
+    }
 
-      // hash the password using our new salt
-      bcrypt.hash(user.password, salt, function(err, hash) {
-          if (err) return next(err);
-          // override the cleartext password with the hashed one
-          user.password = hash;
-          next();
-      });
+    // hash the password using our new salt
+    bcrypt.hash(user.password, salt, function(err, hash) {
+      if (err) {
+        return next(err);
+      }
+      // override the cleartext password with the hashed one
+      user.password = hash;
+      next();
+    });
   });
 });
 
 userSchema.methods['comparePassword'] = function(candidatePassword, cb) {
   bcrypt.compare(candidatePassword, this.password, function(err, isMatch) {
-      if (err) return cb(err);
-      cb(null, isMatch);
+    if (err) {
+      return cb(err);
+    }
+    cb(null, isMatch);
   });
 };
 
 // Send a verification token to the user (two step auth for login)
 userSchema.methods['sendAuthyToken'] = function(cb) {
-  
   if (!this.authyId) {
-    smsHandler.setUpUser(
+    setUpUser(
       this.phone,
-      this.countryCode).then((res: any) => {
+      this.countryCode
+    ).then((res: any) => {
       this.authyId = res.user.id;
       this.save((err1, doc) => {
         if (err1 || !doc) {
           return cb.call(this, err1);
         }
         // this = doc;
-        smsHandler.sendToken(this.authyId).then((resp) => cb.call(this, null, resp)).catch(err => cb.call(this, err));
+        sendToken(this.authyId).then((resp) => cb.call(this, null, resp)).catch(err => cb.call(this, err));
       });
     }).catch(err => cb.call(this, err));
   } else {
     // Otherwise send token to a known user
-    smsHandler.sendToken(this.authyId).then((resp) => cb.call(this, null, resp)).catch(err => cb.call(this, err));
+    sendToken(this.authyId).then((resp) => cb.call(this, null, resp)).catch(err => cb.call(this, err));
   }
 };
 
 // Test a 2FA token
 userSchema.methods['verifyAuthyToken'] = function(otp, cb) {
-  // const self = this;
-  smsHandler.authy.verify(this.authyId, otp, (err, response) => {
-    cb.call(this, err, response);
+  verifyAuthyToken(this.authyId, otp).then((resp) => {
+    cb.call(this, null, resp);
+  }).catch(err => {
+    cb.call(this, err);
   });
 };
 
 // Send a text message via twilio to this user
 userSchema.methods['sendMessage'] = function(message, cb) {
   // const self = this;
-  smsHandler.sendSms(
+  sendSms(
     this.phone,
     this.countryCode,
-    message).then(() => {
+    message
+  ).then(() => {
     cb.call(this, null);
   }).catch(err => {
     cb.call(this, err);
@@ -178,7 +179,9 @@ userSchema.methods['toAuthJSON'] = function() {
     phone: this.phone,
     permissions: this.permissions,
     gender: this.gender,
-    profilethumbnail: this.profilepic
+    profilethumbnail: this.profilepic,
+    profilePic: this.profilePic,
+    profileCoverPic: this.profileCoverPic
   };
 };
 
@@ -196,7 +199,9 @@ userSchema.methods['toProfileJSONFor'] = function() {
     gender: this.gender,
     // phone: this.phone,
     profilepic: this.profilepic,
-    createdAt: this.createdAt
+    createdAt: this.createdAt,
+    profilePic: this.profilePic,
+    profileCoverPic: this.profileCoverPic
   };
 };
 
@@ -204,7 +209,10 @@ userSchema.methods['toJSONFor'] = function() {
   return {
     id: this.id,
     name: this.name,
-    profilepic: this.profilepic
+    profilepic: this.profilepic,
+    photos: this.photos,
+    profilePic: this.profilePic,
+    profileCoverPic: this.profileCoverPic
   };
 };
 
@@ -217,10 +225,8 @@ const userAuthselect = {
   startDate: 1,
   address: 1,
   billing: 1,
-  uid: 1,
-  did: 1,
-  aid: 1,
-  photo: 1,
+  profilePic: 1,
+  profileCoverPic: 1,
   age: 1,
   gender: 1,
   admin: 1,
@@ -234,12 +240,13 @@ const userAuthselect = {
   fromsocial: 1,
   socialframework: 1,
   socialId: 1,
-  blocked: 1,
   countryCode: 1,
   amountDue: 1,
   manuallyAdded: 1,
   updatedAt: 1,
-  createdAt: 1
+  createdAt: 1,
+  userType: 1,
+  photos: 1
 };
 
 const useraboutSelect = {
@@ -259,17 +266,39 @@ const useraboutSelect = {
   socialframework: 1,
   socialId: 1,
   updatedAt: 1,
-  createdAt: 1
+  createdAt: 1,
+  userType: 1,
+  photos: 1,
+  profilePic: 1,
+  profileCoverPic: 1
 };
 
+/**
+ * Represents the user model.
+ */
 export let user: Model<Tuser>;
+
+/**
+ * Represents a lean user model.
+ */
 export let userLean: Model<Tuser>;
-/** */
+
+/**
+ * Represents the user authentication select function.
+ */
 export const userAuthSelect = userAuthselect;
-/** */
+
+/**
+ * Represents the userAboutSelect constant.
+ */
 export const userAboutSelect = useraboutSelect;
 
-/** */
+/**
+ * Creates a user model with the specified database URL.
+ * @param dbUrl The URL of the database.
+ * @param main Indicates whether to create the main user model.
+ * @param lean Indicates whether to create the lean user model.
+ */
 export const createUserModel = async(dbUrl: string, main = true, lean = true) => {
   if (!isAuthDbConnected) {
     await connectAuthDatabase(dbUrl);
@@ -283,3 +312,4 @@ export const createUserModel = async(dbUrl: string, main = true, lean = true) =>
     userLean = mainConnectionLean.model<Tuser>('User', userSchema);
   }
 };
+

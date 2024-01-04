@@ -7,11 +7,13 @@ import { paymentMain } from '../models/payment.model';
 import { promocodeLean } from '../models/promocode.model';
 import { makePaymentInstall, relegatePaymentRelatedCreation } from '../routes/paymentrelated/paymentrelated';
 import { saveInvoice } from '../routes/printables/invoice.routes';
-import { Iactionwithall, Iinvoice, IinvoiceRelated, Iorder, Ipayment, IpaymentRelated, Ireceipt, Isuccess } from '@open-stock/stock-universal';
-import { EmailHandler, createNotifications, makeNotfnBody } from '@open-stock/stock-notif-server';
-import { PesaPalController, IpayDetails, IorderResponse } from 'pesapal3';
+import { Iactionwithall, Iinvoice, IinvoiceRelated, Iorder, Ipayment, IpaymentRelated, Ireceipt, Isuccess, TpayType } from '@open-stock/stock-universal';
+import { makeNotfnBody } from '@open-stock/stock-notif-server';
+import { IpayDetails, IorderResponse } from 'pesapal3';
 import { paymentRelatedMain } from '../models/printables/paymentrelated/paymentrelated.model';
 import { stringifyMongooseErr, verifyObjectId } from '@open-stock/stock-universal-server';
+import { pesapalPaymentInstance } from '../stock-counter-server';
+import { companyMain } from '@open-stock/stock-auth-server';
 
 /** Interface for the response of the payOnDelivery function */
 export interface IpayResponse extends Isuccess {
@@ -29,7 +31,6 @@ const paymentControllerLogger = getLogger('paymentController');
  * @param order - The order information
  * @param payment - The payment information
  * @param userId - The user ID
- * @param notifRedirectUrl - The notification redirect URL
  * @param locaLMailHandler - The email handler
  * @returns A promise that resolves to an Isuccess object
  */
@@ -39,11 +40,10 @@ export const payOnDelivery = async(
   order: Iorder,
   payment: Ipayment,
   userId: string,
-  notifRedirectUrl: string,
-  locaLMailHandler: EmailHandler
+  companyId: string
 ): Promise<Isuccess> => {
   order.status = 'pending';
-  return appendAll(paymentRelated, invoiceRelated, order, payment, userId, notifRedirectUrl, locaLMailHandler, false);
+  return appendAll(paymentRelated, invoiceRelated, order, payment, userId, companyId, false);
 };
 
 /**
@@ -53,8 +53,6 @@ export const payOnDelivery = async(
  * @param order - The order information
  * @param payment - The payment information
  * @param userId - The user ID
- * @param notifRedirectUrl - The notification redirect URL
- * @param locaLMailHandler - The email handler
  * @param paid - Whether the payment has been made
  * @returns A promise that resolves to an Isuccess object with additional properties
  */
@@ -64,20 +62,19 @@ const appendAll = async(
   order: Iorder,
   payment: Ipayment,
   userId: string,
-  notifRedirectUrl: string,
-  locaLMailHandler: EmailHandler,
+  companyId: string,
   paid = true
 ): Promise<Isuccess & {status: number; paymentRelated?}> => {
   paymentControllerLogger.debug('appendAll - userId:', userId);
-  const saved = await addOrder(paymentRelated, invoiceRelated, order, userId, notifRedirectUrl, locaLMailHandler);
+  const saved = await addOrder(paymentRelated, invoiceRelated, order, userId, companyId);
   paymentControllerLogger.error('appendAll - saved:', saved);
   if (saved.success) {
-    payment.order = (saved as any)._id;
-    payment.paymentRelated = (saved as any).paymentRelated;
-    payment.invoiceRelated = (saved as any).invoiceRelated;
+    payment.order = (saved as {_id: string})._id;
+    payment.paymentRelated = (saved as { paymentRelated: string}).paymentRelated;
+    payment.invoiceRelated = (saved as unknown as { invoiceRelated: string}).invoiceRelated;
 
     await addPayment(payment, userId, paid);
-    return { success: saved.success, status: saved.status, paymentRelated: (saved as any).paymentRelated };
+    return { success: saved.success, status: saved.status, paymentRelated: (saved as {paymentRelated: string}).paymentRelated };
   } else {
     return { success: saved.success, status: saved.status, err: (saved as Isuccess).err };
   }
@@ -89,21 +86,19 @@ const appendAll = async(
  * @param invoiceRelated - The invoice related information
  * @param order - The order information
  * @param userId - The user ID
- * @param notifRedirectUrl - The notification redirect URL
- * @param locaLMailHandler - The email handler
  * @returns A promise that resolves to an Isuccess object with additional properties
  */
 const addOrder = async(
   paymentRelated: Required<IpaymentRelated>,
   invoiceRelated: Required<IinvoiceRelated>,
-  order: Iorder, userId: string,
-  notifRedirectUrl: string,
-  locaLMailHandler: EmailHandler
+  order: Iorder,
+  userId: string,
+  companyId: string
 ) => {
   paymentControllerLogger.info('addOrder');
   const extraNotifDesc = 'New Order';
   const paymentRelatedId = await relegatePaymentRelatedCreation(
-    paymentRelated, invoiceRelated, 'order', extraNotifDesc, notifRedirectUrl);
+    paymentRelated, invoiceRelated, 'order', extraNotifDesc, companyId);
   paymentControllerLogger.error('addOrder - paymentRelatedId', paymentRelatedId);
   if (!paymentRelatedId.success) {
     return paymentRelatedId;
@@ -119,7 +114,7 @@ const addOrder = async(
   invoiceRelated.payments.length = 0;
   invoiceRelated.payments = [];
 
-  const invoiceRelatedId = await saveInvoice(invoice as Iinvoice, invoiceRelated, notifRedirectUrl, locaLMailHandler);
+  const invoiceRelatedId = await saveInvoice(invoice as Iinvoice, invoiceRelated, companyId);
   paymentControllerLogger.error('invoiceRelatedId', invoiceRelatedId);
 
   if (!invoiceRelatedId.success) {
@@ -128,7 +123,7 @@ const addOrder = async(
   order.invoiceRelated = invoiceRelatedId.id;
 
   if (payments && payments.length) {
-    await makePaymentInstall(payments as unknown as Ireceipt, invoiceRelatedId.id);
+    await makePaymentInstall(payments as unknown as Ireceipt, invoiceRelatedId.id, companyId);
   }
 
   let errResponse: Isuccess;
@@ -171,7 +166,7 @@ const addOrder = async(
     }
   };
   body.options.orders = true;
-  await createNotifications(body);
+  // await createNotifications(body);
   // eslint-disable-next-line @typescript-eslint/naming-convention
   return { success: true, status: 200, _id: (withId as unknown as Iorder)._id, paymentRelated: (order).paymentRelated, invoiceRelated: invoiceRelatedId };
 };
@@ -229,27 +224,28 @@ const addPayment = async(
       }
     };
     body.options.payments = true;
-    await createNotifications(body);
+    // await createNotifications(body);
   }
   return true;
 };
 
-/** */
+
 export const paymentMethodDelegator = async(
-  paymentInstance: PesaPalController,
   paymentRelated: Required<IpaymentRelated>,
   invoiceRelated: Required<IinvoiceRelated>,
   type: string,
   order: Iorder,
   payment: Ipayment,
   userId: string,
+  companyId: string,
   burgain: {
     state: boolean;
     code: string;
   },
-  notifRedirectUrl: string,
-  locaLMailHandler: EmailHandler
+  payType: TpayType = 'nonSubscription'
 ): Promise<IpayResponse & {status?: number; errmsg?: string}> => {
+  paymentRelated.payType = payType;
+  invoiceRelated.payType = payType;
   paymentControllerLogger.debug('paymentMethodDelegator: type - ', type);
   if (burgain.state) {
     const bgainCode = await promocodeLean
@@ -295,20 +291,18 @@ export const paymentMethodDelegator = async(
   switch (type) {
     case 'pesapal':{
       response = await relegatePesapalPayment(
-        paymentInstance,
         paymentRelated,
         invoiceRelated,
         type,
         order,
         payment,
         userId,
-        burgain,
-        notifRedirectUrl,
-        locaLMailHandler);
+        companyId,
+        burgain);
       break;
     }
     default:
-      response = await payOnDelivery(paymentRelated, invoiceRelated, order, payment, userId, notifRedirectUrl, locaLMailHandler);
+      response = await payOnDelivery(paymentRelated, invoiceRelated, order, payment, userId, companyId);
       break;
   }
 
@@ -341,29 +335,43 @@ export const paymentMethodDelegator = async(
   return response;
 };
 
-/** */
+/**
+ * Submits a Pesapal payment order.
+ * @param paymentRelated - The required payment related information.
+ * @param invoiceRelated - The required invoice related information.
+ * @param type - The type of payment.
+ * @param order - The order details.
+ * @param payment - The payment details.
+ * @param userId - The ID of the user.
+ * @param companyId - The ID of the company.
+ * @param burgain - The burgain details.
+ * @returns A promise that resolves to an object containing the success status, status code, and the Pesapal order response.
+ */
 export const relegatePesapalPayment = async(
-  paymentInstance: PesaPalController,
   paymentRelated: Required<IpaymentRelated>,
   invoiceRelated: Required<IinvoiceRelated>,
   type: string,
   order: Iorder,
   payment: Ipayment,
   userId: string,
+  companyId: string,
   burgain: {
     state: boolean;
     code: string;
-  },
-  notifRedirectUrl: string,
-  locaLMailHandler: EmailHandler
+  }
 ) => {
-  const appended = await appendAll(paymentRelated, invoiceRelated, order, payment, userId, notifRedirectUrl, locaLMailHandler);
+  const company = await companyMain.findById(paymentRelated.companyId);
+  if (!company) {
+    return { success: false, status: 401, err: 'user must be of a company' };
+  }
+  const appended = await appendAll(paymentRelated, invoiceRelated, order, payment, userId, companyId);
   const payDetails = {
     id: appended.paymentRelated,
     currency: paymentRelated.currency || 'UGA',
     amount: (paymentRelated.payments[0] as Ireceipt).amount,
     description: 'Complet payments for the selected products',
-    callback_url: '',
+    callback_url: company.pesapalCallbackUrl,
+    cancellation_url: company.pesapalCancellationUrl || '',
     notification_id: '',
     billing_address: {
       email_address: paymentRelated.shippingAddress.email,
@@ -379,9 +387,9 @@ export const relegatePesapalPayment = async(
       // postal_code: paymentRelated.shippingAddress,
       zip_code: paymentRelated.shippingAddress.zipcode.toString()
     }
-  } as IpayDetails;
+  } as unknown as IpayDetails;
 
-  const response = await paymentInstance.submitOrder(payDetails, invoiceRelated._id, 'Complete product payment') as IorderResponse;
+  const response = await pesapalPaymentInstance.submitOrder(payDetails, invoiceRelated._id, 'Complete product payment') as IorderResponse;
   const isValid = verifyObjectId(appended.paymentRelated);
   if (!isValid) {
     return { success: false, status: 401, pesapalOrderRes: null, paymentRelated: null };
@@ -413,14 +421,4 @@ export const relegatePesapalPayment = async(
     }
   }
   return { success: true, status: 200, pesapalOrderRes: response, paymentRelated: appended.paymentRelated };
-};
-
-
-/**
-/** */
-export const relegatePesaPalNotifications = (
-  orderTrackingId: string,
-  orderNotificationType: string,
-  orderMerchantReference: string) => {
-// TODO make NOTIFS HERE
 };

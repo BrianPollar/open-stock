@@ -1,12 +1,12 @@
 
 import {
-  DatabaseAuto,
-  Ifile,
-  IinvoiceSetting,
-  IinvoiceSettingsBank,
-  IinvoiceSettingsGeneral,
-  IinvoiceSettingsTax,
-  Isuccess
+    DatabaseAuto,
+    Ifile,
+    IinvoiceSetting,
+    IinvoiceSettingsBank,
+    IinvoiceSettingsGeneral,
+    IinvoiceSettingsTax,
+    Isuccess
 } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
 import { StockCounterClient } from '../../stock-counter-client';
@@ -33,18 +33,20 @@ export class InvoiceSettings extends DatabaseAuto {
 
   /**
    * Retrieves all invoice settings from the server, with optional pagination parameters for offset and limit.
+   * @param companyId - The ID of the company
    * @param {string} [url='getall'] - The URL to retrieve the invoice settings from.
    * @param {number} [offset=0] - The offset to start retrieving the invoice settings from.
    * @param {number} [limit=0] - The maximum number of invoice settings to retrieve.
    * @returns {Promise<InvoiceSettings[]>} An array of InvoiceSettings objects.
    */
   static async getInvoiceSettings(
+    companyId: string,
     url = 'getall',
     offset = 0,
-    limit = 0
+    limit = 20
   ): Promise<InvoiceSettings[]> {
     const observer$ = StockCounterClient.ehttp
-      .makeGet(`/invoicesettings/${url}/${offset}/${limit}`);
+      .makeGet(`/invoicesettings/${url}/${offset}/${limit}/${companyId}`);
     const invoiceSettings = await lastValueFrom(observer$) as IinvoiceSetting[];
     return invoiceSettings
       .map(val => new InvoiceSettings(val));
@@ -52,10 +54,12 @@ export class InvoiceSettings extends DatabaseAuto {
 
   /**
    * Retrieves a specific invoice settings object from the server based on its ID.
+   * @param companyId - The ID of the company
    * @param {string} id - The ID of the invoice settings object to retrieve.
    * @returns {Promise<InvoiceSettings>} A single InvoiceSettings object.
    */
   static async getOneInvoiceSettings(
+    companyId: string,
     id: string
   ): Promise<InvoiceSettings> {
     const observer$ = StockCounterClient.ehttp
@@ -66,11 +70,13 @@ export class InvoiceSettings extends DatabaseAuto {
 
   /**
    * Adds a new invoice settings object to the server.
+   * @param companyId - The ID of the company
    * @param {IinvoiceSetting} vals - The settings values to add.
    * @param {Ifile[]} [files] - Optional files for uploading digital signatures and stamps.
    * @returns {Promise<Isuccess>} A success message.
    */
   static async addInvoiceSettings(
+    companyId: string,
     vals: IinvoiceSetting,
     files?: Ifile[]
   ): Promise<Isuccess> {
@@ -86,7 +92,7 @@ export class InvoiceSettings extends DatabaseAuto {
       added = await lastValueFrom(observer$) as Isuccess;
     } else {
       const observer$ = StockCounterClient.ehttp
-        .makePost('/invoicesettings/create', details);
+        .makePost(`/invoicesettings/create/${companyId}`, details);
       added = await lastValueFrom(observer$) as Isuccess;
     }
     return added;
@@ -94,28 +100,31 @@ export class InvoiceSettings extends DatabaseAuto {
 
   /**
    * Deletes multiple invoice settings objects from the server based on their IDs.
+   * @param companyId - The ID of the company
    * @param {string[]} ids - An array of IDs of the invoice settings objects to delete.
    * @returns {Promise<Isuccess>} A success message.
    */
   static deleteInvoiceSettings(
+    companyId: string,
     ids: string[]
   ): Promise<Isuccess> {
     const observer$ = StockCounterClient.ehttp
-      .makePut('/invoicesettings/deletemany', { ids });
+      .makePut(`/invoicesettings/deletemany/${companyId}`, { ids });
     return lastValueFrom(observer$) as Promise<Isuccess>;
   }
 
   /**
    * Updates an existing invoice settings object on the server.
+   * @param companyId - The ID of the company
    * @param {IinvoiceSetting} vals - The updated settings values.
    * @param {Ifile[]} [files] - Optional files for updating digital signatures and stamps.
    * @returns {Promise<Isuccess>} A success message.
    */
   async updateInvoiceSettings(
+    companyId: string,
     vals: IinvoiceSetting,
     files?: Ifile[]
   ): Promise<Isuccess> {
-    console.log('0000000', this.generalSettings);
     const details = {
       invoicesettings: {
         ...vals,
@@ -130,19 +139,16 @@ export class InvoiceSettings extends DatabaseAuto {
       }
       ]
     };
-    console.log('11111111');
     let added: Isuccess;
     if (files && files[0]) {
-      console.log('222222222');
       const observer$ = StockCounterClient.ehttp
         .uploadFiles(files,
           '/invoicesettings/updateimg',
           details);
       added = await lastValueFrom(observer$) as Isuccess;
     } else {
-      console.log('okay going to posting');
       const observer$ = StockCounterClient.ehttp
-        .makePut('/invoicesettings/update', details);
+        .makePut(`/invoicesettings/update/${companyId}`, details);
       added = await lastValueFrom(observer$) as Isuccess;
     }
     return added;

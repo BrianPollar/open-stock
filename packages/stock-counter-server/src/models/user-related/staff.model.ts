@@ -3,11 +3,15 @@ import { Istaff } from '@open-stock/stock-universal';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../controllers/database.controller';
 const uniqueValidator = require('mongoose-unique-validator');
 
-/** Represents a staff member in the system. */
-export interface Tstaff extends Document, Istaff {}
+/**
+ * Represents a staff member.
+ * @typedef {Document & Istaff} Tstaff
+ */
+export type Tstaff = Document & Istaff;
 
 /** Defines the schema for the staff model. */
 const staffSchema: Schema<Tstaff> = new Schema({
+  companyId: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
   user: { type: mongoose.Types.ObjectId, unique: true, required: [true, 'cannot be empty.'], index: true },
   startDate: { type: Date, required: [true, 'cannot be empty.'] },
   endDate: { type: Date, required: [true, 'cannot be empty.'] },
@@ -21,6 +25,7 @@ staffSchema.plugin(uniqueValidator);
 
 /** Defines the primary selection object for staff. */
 const staffselect = {
+  companyId: 1,
   user: 1,
   startDate: 1,
   endDate: 1,
@@ -29,12 +34,20 @@ const staffselect = {
   salary: 1
 };
 
-/** The main connection for staff operations. */
+/**
+ * The main staff model.
+ */
 export let staffMain: Model<Tstaff>;
-/** The lean connection for staff operations. */
+
+/**
+ * Represents a lean staff model.
+ */
 export let staffLean: Model<Tstaff>;
 
 /** Defines the primary selection object for staff. */
+/**
+ * The staffSelect constant represents the selection of staff members.
+ */
 export const staffSelect = staffselect;
 
 /**
@@ -56,3 +69,5 @@ export const createStaffModel = async(dbUrl: string, main = true, lean = true) =
     staffLean = mainConnectionLean.model<Tstaff>('Staff', staffSchema);
   }
 };
+
+

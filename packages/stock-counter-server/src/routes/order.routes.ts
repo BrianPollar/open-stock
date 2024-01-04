@@ -15,15 +15,16 @@ import {
 import { getLogger } from 'log4js';
 import { relegateInvRelatedCreation } from './printables/related/invoicerelated';
 import { Icustomrequest, IinvoiceRelated, IpaymentRelated, Isuccess, Iuser } from '@open-stock/stock-universal';
-import { offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId } from '@open-stock/stock-universal-server';
+import { fileMetaLean, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import { userAboutSelect, userLean } from '@open-stock/stock-auth-server';
-import { pesapalPaymentInstance } from '../stock-counter-server';
 import { receiptLean } from '../models/printables/receipt.model';
 
 /** Logger for order routes */
 const orderRoutesLogger = getLogger('routes/orderRoutes');
 
-/** Express router for order routes */
+/**
+ * Express router for handling order routes.
+ */
 export const orderRoutes = express.Router();
 
 /**
@@ -36,19 +37,55 @@ export const orderRoutes = express.Router();
  * @param {Response} res - Express response object
  * @returns {Promise} - Promise representing the result of the operation
  */
-orderRoutes.post('/makeorder', requireAuth, async(req, res) => {
+orderRoutes.post('/makeorder/:companyIdParam', requireAuth, async(req, res) => {
   const { userId } = (req as Icustomrequest).user;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectId(queryId);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   const { order, payment, bagainCred, paymentRelated, invoiceRelated } = req.body;
+  order.companyId = queryId;
+  payment.companyId = queryId;
+  paymentRelated.companyId = queryId;
+  invoiceRelated.companyId = queryId;
   const done = await paymentMethodDelegator(
-    pesapalPaymentInstance,
     paymentRelated,
     invoiceRelated,
     order.paymentMethod,
     order, payment,
     userId,
+    companyId,
+    bagainCred
+  );
+  return res.status(done.status).send({ success: done.success, data: done });
+});
+
+orderRoutes.post('/paysubscription/:companyIdParam', requireAuth, async(req, res) => {
+  // const { userId } = (req as Icustomrequest).user;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectId(queryId);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
+  const { order, payment, bagainCred, paymentRelated, invoiceRelated } = req.body;
+  order.companyId = queryId;
+  payment.companyId = queryId;
+  paymentRelated.companyId = queryId;
+  invoiceRelated.companyId = queryId;
+  const done = await paymentMethodDelegator(
+    paymentRelated,
+    invoiceRelated,
+    order.paymentMethod,
+    order, payment,
+    companyId,
+    companyId,
     bagainCred,
-    req.app.locals.stockCounterServer.notifRedirectUrl,
-    req.app.locals.stockCounterServer.locaLMailHandler
+    'subscription'
   );
   return res.status(done.status).send({ success: done.success, data: done });
 });
@@ -63,30 +100,37 @@ orderRoutes.post('/makeorder', requireAuth, async(req, res) => {
  * @param {Response} res - Express response object
  * @returns {Promise} - Promise representing the result of the operation
  */
-orderRoutes.post('/create', requireAuth, async(req, res) => {
+orderRoutes.post('/create/:companyIdParam', requireAuth, async(req, res) => {
   const { order, paymentRelated, invoiceRelated } = req.body;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectId(queryId);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
+  order.companyId = queryId;
+  paymentRelated.companyId = queryId;
+  invoiceRelated.companyId = queryId;
   const extraNotifDesc = 'Newly created order';
   const paymentRelatedRes = await relegatePaymentRelatedCreation(
-    paymentRelated, invoiceRelated, 'order', extraNotifDesc, req.app.locals.stockCounterServernotifRedirectUrl);
+    paymentRelated, invoiceRelated, 'order', extraNotifDesc, queryId);
   orderRoutesLogger.debug('Order route - paymentRelatedRes', paymentRelatedRes);
   if (!paymentRelatedRes.success) {
     return res.status(paymentRelatedRes.status || 403).send(paymentRelatedRes);
   }
   order.paymentRelated = paymentRelatedRes.id;
-  const invoiceRelatedRes = await relegateInvRelatedCreation(invoiceRelated as Required<IinvoiceRelated>, extraNotifDesc, req.app.locals.stockCounterServer.notifRedirectUrl, req.app.locals.stockCounterServer.locaLMailHandler, true);
+  const invoiceRelatedRes = await relegateInvRelatedCreation(invoiceRelated as Required<IinvoiceRelated>, companyId, extraNotifDesc, true);
   orderRoutesLogger.debug('Order route - invoiceRelatedRes', invoiceRelatedRes);
   if (!invoiceRelatedRes.success) {
     return res.status(invoiceRelatedRes.status || 403).send(invoiceRelatedRes);
   }
   order.invoiceRelated = invoiceRelatedRes.id;
 
-  console.log('past all okay', order.invoiceRelated);
-
   const newOrder = new orderMain(order);
   let errResponse: Isuccess;
   const saved = await newOrder.save()
     .catch(err => {
-      console.log('create order here ', err);
       orderRoutesLogger.error('create - err: ', err);
       errResponse = {
         success: false,
@@ -117,23 +161,28 @@ orderRoutes.post('/create', requireAuth, async(req, res) => {
  * @param {Response} res - Express response object
  * @returns {Promise} - Promise representing the result of the operation
  */
-orderRoutes.put('/update', requireAuth, async(req, res) => {
+orderRoutes.put('/update/:companyIdParam', requireAuth, async(req, res) => {
   const { updatedOrder, paymentRelated } = req.body;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  updatedOrder.companyId = queryId;
+  paymentRelated.companyId = queryId;
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const { _id } = updatedOrder;
-  const isValid = verifyObjectId(_id);
+  const isValid = verifyObjectIds([_id, queryId]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
 
   const order = await orderMain
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    .findByIdAndUpdate(_id);
+    .findOneAndUpdate({ _id, companyId: queryId });
   if (!order) {
     return res.status(404).send({ success: false });
   }
   order.deliveryDate = updatedOrder.deliveryDate || order.deliveryDate;
-  await updatePaymentRelated(paymentRelated);
+  await updatePaymentRelated(paymentRelated, queryId);
   let errResponse: Isuccess;
   const updated = await order.save()
     .catch(err => {
@@ -167,14 +216,18 @@ orderRoutes.put('/update', requireAuth, async(req, res) => {
  * @param {Response} res - Express response object
  * @returns {Promise} - Promise representing the result of the operation
  */
-orderRoutes.get('/getone/:id', requireAuth, async(req, res) => {
+orderRoutes.get('/getone/:id/:companyIdParam', requireAuth, async(req, res) => {
   const { id } = req.params;
-  const isValid = verifyObjectId(id);
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectIds([id, queryId]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const order = await orderLean
-    .findById(id)
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    .findOne({ _id: id, companyId: queryId })
     .lean()
     .populate({
       path: 'paymentRelated', model: paymentRelatedLean
@@ -188,7 +241,10 @@ orderRoutes.get('/getone/:id', requireAuth, async(req, res) => {
         path: 'payments', model: receiptLean
       },
       {
-        path: 'items.item', model: itemLean
+        path: 'items.item', model: itemLean,
+        populate: [{
+          path: 'photos', model: fileMetaLean, transform: (doc) => doc.url
+        }]
       }]
     });
   let returned;
@@ -204,10 +260,17 @@ orderRoutes.get('/getone/:id', requireAuth, async(req, res) => {
   return res.status(200).send(returned);
 });
 
-orderRoutes.get('/getall/:offset/:limit', requireAuth, roleAuthorisation('orders'), async(req, res) => {
+orderRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, roleAuthorisation('orders', 'read'), async(req, res) => {
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectId(queryId);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   const orders = await orderLean
-    .find({})
+    .find({ companyId: queryId })
     .skip(offset)
     .limit(limit)
     .lean()
@@ -221,7 +284,10 @@ orderRoutes.get('/getall/:offset/:limit', requireAuth, roleAuthorisation('orders
         path: 'payments', model: receiptLean
       },
       {
-        path: 'items.item', model: itemLean
+        path: 'items.item', model: itemLean,
+        populate: [{
+          path: 'photos', model: fileMetaLean, transform: (doc) => doc.url
+        }]
       }]
     });
   const returned = orders
@@ -234,10 +300,13 @@ orderRoutes.get('/getall/:offset/:limit', requireAuth, roleAuthorisation('orders
   return res.status(200).send(returned);
 });
 
-orderRoutes.get('/getmyorders', requireAuth, async(req, res) => {
+orderRoutes.get('/getmyorders/:companyIdParam', requireAuth, async(req, res) => {
   const { userId } = (req as unknown as Icustomrequest).user;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const orders = await orderLean
-    .find({ user: userId })
+    .find({ user: userId, companyId: queryId })
     .lean()
     .populate({ path: 'paymentRelated', model: paymentRelatedLean })
     .populate({
@@ -249,7 +318,10 @@ orderRoutes.get('/getmyorders', requireAuth, async(req, res) => {
         path: 'payments', model: receiptLean
       },
       {
-        path: 'items.item', model: itemLean
+        path: 'items.item', model: itemLean,
+        populate: [{
+          path: 'photos', model: fileMetaLean, transform: (doc) => doc.url
+        }]
       }]
     });
   const returned = orders
@@ -262,13 +334,16 @@ orderRoutes.get('/getmyorders', requireAuth, async(req, res) => {
   return res.status(200).send(returned);
 });
 
-orderRoutes.put('/deleteone', requireAuth, async(req, res) => {
+orderRoutes.put('/deleteone/:companyIdParam', requireAuth, async(req, res) => {
   const { id, paymentRelated, invoiceRelated, creationType, where } = req.body;
-  const isValid = verifyObjectId(id);
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectIds([id, queryId]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
-  const deleted = await deleteAllPayOrderLinked(paymentRelated, invoiceRelated, creationType, where);
+  const deleted = await deleteAllPayOrderLinked(paymentRelated, invoiceRelated, creationType, where, queryId);
   // await orderMain.findByIdAndDelete(id);
   if (Boolean(deleted)) {
     return res.status(200).send({ success: Boolean(deleted) });
@@ -277,14 +352,18 @@ orderRoutes.put('/deleteone', requireAuth, async(req, res) => {
   }
 });
 
-orderRoutes.put('/appendDelivery/:orderId/:status', requireAuth, roleAuthorisation('orders'), async(req, res) => {
+orderRoutes.put('/appendDelivery/:orderId/:status/:companyIdParam', requireAuth, roleAuthorisation('orders', 'update'), async(req, res) => {
   const { orderId } = req.params;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(orderId);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
 
-  const order = await orderMain.findByIdAndUpdate(orderId);
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  const order = await orderMain.findOneAndUpdate({ _id: orderId, companyId: queryId });
   if (!order) {
     return res.status(404).send({ success: false });
   }
@@ -310,11 +389,14 @@ orderRoutes.put('/appendDelivery/:orderId/:status', requireAuth, roleAuthorisati
   return res.status(200).send({ success: true });
 });
 
-orderRoutes.post('/search/:limit/:offset', requireAuth, roleAuthorisation('orders'), async(req, res) => {
+orderRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, roleAuthorisation('orders', 'read'), async(req, res) => {
   const { searchterm, searchKey } = req.body;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
   const orders = await orderLean
-    .find({ [searchKey]: { $regex: searchterm, $options: 'i' } })
+    .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
     .lean()
     .skip(offset)
     .limit(limit)
@@ -335,7 +417,10 @@ orderRoutes.post('/search/:limit/:offset', requireAuth, roleAuthorisation('order
         path: 'payments', model: receiptLean
       },
       {
-        path: 'items.item', model: itemLean
+        path: 'items.item', model: itemLean,
+        populate: [{
+          path: 'photos', model: fileMetaLean, transform: (doc) => doc.url
+        }]
       }]
     });
   const returned = orders
@@ -348,8 +433,15 @@ orderRoutes.post('/search/:limit/:offset', requireAuth, roleAuthorisation('order
   return res.status(200).send(returned);
 });
 
-orderRoutes.put('/deletemany', requireAuth, roleAuthorisation('orders'), async(req, res) => {
+orderRoutes.put('/deletemany/:companyIdParam', requireAuth, roleAuthorisation('orders', 'delete'), async(req, res) => {
   const { credentials } = req.body;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectId(queryId);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   if (!credentials || credentials?.length < 1) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -358,7 +450,7 @@ orderRoutes.put('/deletemany', requireAuth, roleAuthorisation('orders'), async(r
     .deleteMany({ _id: { $in: ids } });**/
   const promises = credentials
     .map(async val => {
-      await deleteAllPayOrderLinked(val.paymentRelated, val.invoiceRelated, val.creationType, val.where);
+      await deleteAllPayOrderLinked(val.paymentRelated, val.invoiceRelated, val.creationType, val.where, queryId);
       return new Promise(resolve => resolve(true));
     });
   await Promise.all(promises);

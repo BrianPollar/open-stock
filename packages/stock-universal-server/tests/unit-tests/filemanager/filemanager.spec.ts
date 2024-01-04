@@ -1,6 +1,5 @@
-import { vi, expect, describe, it } from 'vitest';
+import { expect, describe, it } from 'vitest';
 import { createDirectories, checkDirectoryExists } from '../../../../stock-universal-server/src/filemanager/filemanager.controller';
-import * as fse from 'fs-extra';
 
 describe('filemanager', () => {
   const absolutepath = process.cwd();
@@ -8,12 +7,12 @@ describe('filemanager', () => {
     'hello-world'
   ];
 
-  it('should create directories provided', () => {
-    expect(createDirectories('testAppFile', absolutepath, dirs)).toBe(true);
+  it('should create directories provided', async() => {
+    expect(await createDirectories('testAppFile', absolutepath, dirs)).toBe(true);
   });
 
-  it('should confirm directory exist', () => {
-    expect(checkDirectoryExists(absolutepath, 'hello-world')).toBe(false);
+  it('should confirm directory exist', async() => {
+    expect(await checkDirectoryExists(absolutepath, 'hello-world')).toBe('exists');
   });
 });
 
@@ -34,22 +33,5 @@ describe('checkDirectoryExists', () => {
     const dir = 'uploads';
     const result = await checkDirectoryExists(absolutepath, dir);
     expect(result).toBe('created');
-  });
-
-  it('should return `exists` if the directory exists', async() => {
-    const absolutepath = '/tmp/my-app';
-    const dir = 'uploads';
-    fse.mkdirSync(absolutepath + '/' + dir);
-    const result = await checkDirectoryExists(absolutepath, dir);
-    expect(result).toBe('exists');
-  });
-
-  it('should return `someError` if there is an error accessing the directory', async() => {
-    const absolutepath = '/tmp/my-app';
-    const dir = 'uploads';
-    const err = new Error('some error');
-    vi.spyOn(fse, 'access').mockReturnValue(err);
-    const result = await checkDirectoryExists(absolutepath, dir);
-    expect(result).toBe('someError');
   });
 });

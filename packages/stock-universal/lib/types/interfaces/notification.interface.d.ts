@@ -1,15 +1,12 @@
 import { TnotifType } from '../types/union.types';
-/** */
 export interface Iaction {
     action: string;
     title: string;
 }
-/** */
 export interface Iactionwithall extends Iaction {
     operation: string;
     url: string;
 }
-/** */
 export interface Imainnotification {
     _id?: string;
     actions: Iactionwithall[];
@@ -22,7 +19,6 @@ export interface Imainnotification {
     expireAt?: string;
     createdAt?: string;
 }
-/** */
 export interface InotifSetting {
     invoices: boolean;
     payments: boolean;

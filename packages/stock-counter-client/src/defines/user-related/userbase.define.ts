@@ -1,5 +1,5 @@
 import { User } from '@open-stock/stock-auth-client';
-import { DatabaseAuto, Iuser } from '@open-stock/stock-universal';
+import { DatabaseAuto, Icustomer, Istaff, Iuser } from '@open-stock/stock-universal';
 
 /** The  UserBase  class extends another class called  DatabaseAuto . It has properties  user ,  startDate ,  endDate , and  occupation . The  user  property can be either a string or an instance of the  User  class. The  startDate  and  endDate  properties are of type  Date  and represent the start and end dates for the user's occupation. The  occupation  property is a string that represents the user's occupation.  */
 /**
@@ -32,7 +32,7 @@ export abstract class UserBase extends DatabaseAuto {
     startDate: string;
     endDate: string;
     occupation: string;
-  }) {
+  } | Icustomer | Istaff) {
     super(data);
     this.user = typeof data.user === 'string' ? data.user : new User(data.user);
     this.startDate = new Date(data.startDate);

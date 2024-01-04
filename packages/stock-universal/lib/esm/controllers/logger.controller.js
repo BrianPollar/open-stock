@@ -7,9 +7,14 @@ const APP_NAME = 'OPEN-STOCK';
 // eslint-disable-next-line @typescript-eslint/dot-notation
 // localStorage['debug'] = 'for:* stock-counter:*';
 // This class is a logger controller.
-/** */
+/**
+ * The LoggerController class provides logging functionality for the application.
+ */
 export class LoggerController {
-    // The constructor for the class.
+    /**
+     * The constructor for the LoggerController class.
+     * Sets the logging functions for the private properties and the colors for the logs.
+     */
     constructor() {
         // The private property `pDebug` is a debug logger.
         this.pDebug = debug(`${APP_NAME}:DEBUG`);
@@ -30,19 +35,31 @@ export class LoggerController {
         this.pError.color = 'red';
         this.pTrace.color = 'pink';
     }
-    // The getter for the `debug` property.
+    /**
+     * The getter for the `debug` property.
+     * @returns The debug logger.
+     */
     get debug() {
         return this.pDebug;
     }
-    // The getter for the `warn` property.
+    /**
+     * The getter for the `warn` property.
+     * @returns The warning logger.
+     */
     get warn() {
         return this.pWarn;
     }
-    // The getter for the `error` property.
+    /**
+     * The getter for the `error` property.
+     * @returns The error logger.
+     */
     get error() {
         return this.pError;
     }
-    // The getter for the `trace` property.
+    /**
+     * The getter for the `trace` property.
+     * @returns The trace logger.
+     */
     get trace() {
         return this.pTrace;
     }

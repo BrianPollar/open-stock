@@ -1,15 +1,39 @@
 "use strict";
+/**
+ * Represents the configuration for the database.
+ */
+// export interface IdatabaseConfig {
+/**
+   * The URL of the database.
+   */
+// url: string;
+// }
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.StockUniversal = void 0;
-// This interface defines the properties of the application configuration.
-/** */
+/**
+ * Represents the configuration options for the app.
+ */
+// export interface IappConfig {
+/**
+   * The base URL of the server.
+   */
+// baseServerUrl: string;
+/**
+   * The token used to authenticate requests.
+   */
+// token?: string;
+// }
+/**
+ * Represents a StockUniversal class.
+ */
 class StockUniversal {
-    // The constructor takes an environment configuration object as input.
+    /**
+     * Creates an instance of StockUniversal.
+     * @param environment - The environment configuration object.
+     */
     constructor(environment) {
-        // The `environment` property is set to the input object.
         StockUniversal.environment = environment;
     }
 }
 exports.StockUniversal = StockUniversal;
-// This class is the main entry point for the application.
 //# sourceMappingURL=stock-universal.js.map

@@ -19,22 +19,25 @@ import {
   updateInvoiceRelatedPayments
 } from '../printables/related/invoicerelated';
 import { getLogger } from 'log4js';
-import { createNotifications, smsHandler } from '@open-stock/stock-notif-server';
+import { getCurrentNotificationSettings } from '@open-stock/stock-notif-server';
 import { user } from '@open-stock/stock-auth-server';
 import { receiptMain } from '../../models/printables/receipt.model';
+import { pesapalNotifRedirectUrl } from '../../stock-counter-local';
 
 /** Logger for PaymentRelated routes */
 const paymentRelatedLogger = getLogger('routes/PaymentRelated');
 
 /**
- * Updates a payment related object in the database.
+ * Updates the payment related information.
  * @param paymentRelated - The payment related object to update.
- * @returns A success object with an optional ID field.
+ * @param queryId - The query ID.
+ * @returns A promise that resolves to an object containing the success status and the updated payment related ID, if successful.
  */
 export const updatePaymentRelated = async(
-  paymentRelated: Required<IpaymentRelated>
+  paymentRelated: Required<IpaymentRelated>,
+  queryId: string
 ): Promise<Isuccess & { id?: string }> => {
-  console.log('okay here 111111', paymentRelated);
+  paymentRelated.companyId = queryId;
   const isValid = verifyObjectId(paymentRelated.paymentRelated);
   if (!isValid) {
     return { success: false, err: 'unauthourised', status: 401 };
@@ -81,37 +84,39 @@ export const updatePaymentRelated = async(
   if (errResponse) {
     return errResponse;
   } else {
-    return { success: true, status: 200, id: (saved as any)._id };
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    return { success: true, status: 200, id: (saved as { _id: string })._id };
   }
 };
 
 /**
- * Creates a payment related object in the database and creates an invoice related object if necessary.
- * @param paymentRelated - The payment related object to create.
- * @param invoiceRelated - The invoice related object to create.
- * @param type - The type of object being created (either 'payment' or 'order').
- * @param extraNotifDesc - A description to include in the notification.
- * @param notifRedirectUrl - The URL to redirect to when the notification is clicked.
- * @returns A success object with an optional ID field.
+ * Creates or updates a payment-related entity.
+ *
+ * @param paymentRelated - The payment-related data.
+ * @param invoiceRelated - The invoice-related data.
+ * @param type - The type of entity ('payment' or 'order').
+ * @param extraNotifDesc - Additional notification description.
+ * @param queryId - The query ID.
+ * @returns A promise that resolves to an object containing the success status and the ID of the created or updated entity.
  */
 export const relegatePaymentRelatedCreation = async(
   paymentRelated: Required<IpaymentRelated>,
   invoiceRelated: Required<IinvoiceRelated>,
   type: 'payment' | 'order', // say payment or order
   extraNotifDesc: string,
-  notifRedirectUrl: string
+  queryId: string
 ): Promise<Isuccess & {id?: string}> => {
-  console.log('FUCK HERE 11111111', paymentRelated);
   const isValid = verifyObjectId(paymentRelated.paymentRelated);
   let found;
   if (isValid) {
     found = await paymentRelatedLean
-      .findById(paymentRelated.paymentRelated).lean().select({ urId: 1 });
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      .findOne({ _id: paymentRelated.paymentRelated }).lean().select({ urId: 1 });
   }
   if (!found || paymentRelated.creationType === 'solo') {
     const count = await paymentRelatedMain
     // eslint-disable-next-line @typescript-eslint/naming-convention
-      .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+      .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     paymentRelated.urId = makeUrId(Number(count[0]?.urId || '0'));
 
     let errResponse: Isuccess;
@@ -153,10 +158,12 @@ export const relegatePaymentRelatedCreation = async(
       notifType = 'payments';
     }
 
-    if (smsHandler.stn && smsHandler.stn[accessor]) {
+    const stn = await getCurrentNotificationSettings();
+
+    if (stn && stn[accessor]) {
       const actions: Iactionwithall[] = [{
         operation: 'view',
-        url: notifRedirectUrl + route,
+        url: pesapalNotifRedirectUrl + route,
         action: '',
         title
       }];
@@ -191,20 +198,22 @@ export const relegatePaymentRelatedCreation = async(
       }
 
       const notifFilters = { id: { $in: ids } };
-      await createNotifications({
+      /* await createNotifications({
         options: notification,
         filters: notifFilters
-      });
+      });*/
     }
-    return { success: true, status: 200, id: (saved as any)._id };
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    return { success: true, status: 200, id: (saved as {_id: string})._id };
     /** return {
       paymentRelated: saved._id as string
       // invoiceRelated: relatedId
     };*/
   } else {
-    await updatePaymentRelated(paymentRelated);
+    await updatePaymentRelated(paymentRelated, queryId);
     // await updateInvoiceRelated(invoiceRelated);
-    return { success: true, status: 200, id: (paymentRelated.paymentRelated as any)._id };
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    return { success: true, status: 200, id: (paymentRelated.paymentRelated as unknown as { _id: string})._id };
     /** return {
       paymentRelated: paymentRelated.paymentRelated
       // invoiceRelated: invoiceRelated.invoiceRelated
@@ -212,7 +221,14 @@ export const relegatePaymentRelatedCreation = async(
   }
 };
 
-/** */
+/**
+ * Creates a payment related product object.
+ * @param paymentRelated - The payment related data.
+ * @param invoiceRelated - The invoice related data.
+ * @param user - The user data.
+ * @param meta - The meta data.
+ * @returns The payment related product object.
+ */
 export const makePaymentRelatedPdct = (
   paymentRelated: Required<IpaymentRelated>,
   invoiceRelated: Required<IinvoiceRelated>,
@@ -243,18 +259,23 @@ export const makePaymentRelatedPdct = (
   ...makeInvoiceRelatedPdct(invoiceRelated, user)
 });
 
-/** */
-export const deleteManyPaymentRelated = async(ids: string[]): Promise<Isuccess> => {
-  console.log('this is called deleteManyPaymentRelated');
-  const isValid = verifyObjectIds(ids);
+
+/**
+ * Deletes multiple payment related documents.
+ * @param companyId - The ID of the company
+   * @param ids - An array of string IDs representing the documents to be deleted.
+ * @param queryId - The ID of the company associated with the documents.
+ * @returns A Promise that resolves to an object indicating the success of the operation.
+ */
+export const deleteManyPaymentRelated = async(ids: string[], queryId: string): Promise<Isuccess> => {
+  const isValid = verifyObjectIds([...ids, ...[queryId]]);
   if (!isValid) {
     return { success: false, status: 402, err: 'unauthourised' };
   }
-  console.log('passed isValid in deleteManyPaymentRelated');
 
   const deletedMany = await paymentRelatedMain
   // eslint-disable-next-line @typescript-eslint/naming-convention
-    .deleteMany({ _id: { $in: ids } });
+    .deleteMany({ _id: { $in: ids }, companyId: queryId });
   if (Boolean(deletedMany)) {
     return { success: Boolean(deletedMany), status: 200 };
   } else {
@@ -262,16 +283,23 @@ export const deleteManyPaymentRelated = async(ids: string[]): Promise<Isuccess> 
   }
 };
 
-/** */
+/**
+ * Deletes all pay orders linked to a payment or an order.
+ * @param paymentRelated - The payment related to the pay orders.
+ * @param invoiceRelated - The invoice related to the pay orders.
+ * @param creationType - The type of payment related creation.
+ * @param where - Specifies whether the pay orders are linked to a payment or an order.
+ * @param queryId - The ID of the query.
+ */
 export const deleteAllPayOrderLinked = async(
   paymentRelated: string,
   invoiceRelated: string,
   creationType: TpaymentRelatedType,
-  where: 'payment' | 'order'
+  where: 'payment' | 'order',
+  queryId: string
 ) => {
-  console.log('let shoot payment creationType here', creationType, where);
-  await deleteManyPaymentRelated([paymentRelated]);
-  await deleteManyInvoiceRelated([invoiceRelated]);
+  await deleteManyPaymentRelated([paymentRelated], queryId);
+  await deleteManyInvoiceRelated([invoiceRelated], queryId);
   if (creationType !== 'solo') {
     await paymentMain.deleteOne({ paymentRelated });
     await orderMain.deleteOne({ paymentRelated });
@@ -283,11 +311,18 @@ export const deleteAllPayOrderLinked = async(
 };
 
 // .catch(err => {});
-/** */
-export const makePaymentInstall = async(receipt: Ireceipt, relatedId: string) => {
+
+/**
+ * Makes a payment installation.
+ * @param receipt - The receipt object.
+ * @param relatedId - The related ID.
+ * @param queryId - The query ID.
+ * @returns A promise that resolves to an object indicating the success of the operation.
+ */
+export const makePaymentInstall = async(receipt: Ireceipt, relatedId: string, queryId: string) => {
   // const pInstall = invoiceRelated.payments[0] as IpaymentInstall;
   if (receipt) {
-    console.log('ARRRRRRIVING FINE');
+    receipt.companyId = queryId;
     let errResponse: Isuccess;
     receipt.invoiceRelated = relatedId;
     const newInstal = new receiptMain(receipt);
@@ -305,13 +340,11 @@ export const makePaymentInstall = async(receipt: Ireceipt, relatedId: string) =>
       return errResponse;
     });
 
-    console.log('maybe getting err res here', errResponse);
-
     if (errResponse) {
       return errResponse;
     }
 
-    await updateInvoiceRelatedPayments(savedPinstall as unknown as Ireceipt);
+    await updateInvoiceRelatedPayments(savedPinstall as unknown as Ireceipt, queryId);
 
     return { success: true };
   }

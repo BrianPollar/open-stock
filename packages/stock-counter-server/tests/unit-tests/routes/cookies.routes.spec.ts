@@ -3,12 +3,13 @@
 import { vi, afterAll, expect, describe, beforeAll, it } from 'vitest';
 import { Application } from 'express';
 import request from 'supertest';
-import { faker } from '@faker-js/faker';
+import { faker } from '@faker-js/faker/locale/en_US';
 import { disconnectMongoose } from '@open-stock/stock-universal-server';
 import { createExpressServer } from '../../../../tests/helpers';
-import { connectStockCounterDatabase } from '../../../../stock-counter-server/src/stock-counter-server';
 import * as http from 'http';
 import { cookiesRoutes } from '../../../../stock-counter-server/src/routes/cookies.routes';
+import { connectStockCounterDatabase } from '../../../src/stock-counter-local';
+import { IpermProp } from '@open-stock/stock-universal';
 
 const cokieServiceHoisted = vi.hoisted(() => {
   return {
@@ -44,20 +45,28 @@ vi.mock('../../src/controllers/twilio.controller', () => {
   };
 });
 
+const permObj: IpermProp = {
+  create: true,
+  read: true,
+  update: true,
+  delete: true
+};
+
 const stockUniversalServer = vi.hoisted(() => {
   return {
     requireAuth: vi.fn((req, res, next) => {
       req.user = {
+        companyId: 'superAdmin',
         userId: '507f1f77bcf86cd799439011',
         permissions: {
-          orders: true,
-          payments: true,
-          users: true,
-          items: true,
-          faqs: true,
-          videos: true,
-          printables: true,
-          buyer: true
+          orders: permObj,
+          payments: permObj,
+          users: permObj,
+          items: permObj,
+          faqs: permObj,
+          videos: permObj,
+          printables: permObj,
+          buyer: permObj
         }
       };
       next();
@@ -66,9 +75,8 @@ const stockUniversalServer = vi.hoisted(() => {
 });
 
 vi.mock('@open-stock/stock-universal-server', async() => {
-  const actual = await vi.importActual('@open-stock/stock-universal-server');
+  const actual: object = await vi.importActual('@open-stock/stock-universal-server');
   return {
-    // @ts-ignore
     ...actual,
     requireAuth: stockUniversalServer.requireAuth
   };
@@ -81,6 +89,7 @@ describe('cookies', () => {
   const apiUrl = '/cookies';
   const token = 'tokenwww';
   const objectId = '507f1f77bcf86cd799439011';
+  const companyId = 'companyId';
 
   beforeAll(async() => {
     app = createExpressServer();
@@ -178,4 +187,3 @@ describe('cookies', () => {
     expect(res.body).toStrictEqual({ success: false, err: 'not found' });
   });
 });
-

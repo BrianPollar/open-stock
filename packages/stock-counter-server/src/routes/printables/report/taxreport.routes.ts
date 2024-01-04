@@ -1,17 +1,19 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
 
 import express from 'express';
-import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectIds } from '@open-stock/stock-universal-server';
 import { paymentLean } from '../../../models/payment.model';
 import { estimateLean } from '../../../models/printables/estimate.model';
 import { taxReportLean, taxReportMain } from '../../../models/printables/report/taxreport.model';
 import { getLogger } from 'log4js';
-import { Isuccess } from '@open-stock/stock-universal';
+import { Icustomrequest, Isuccess } from '@open-stock/stock-universal';
 
 /** Logger for tax report routes */
 const taxReportRoutesLogger = getLogger('routes/taxReportRoutes');
 
-/** Express router for tax report routes */
+/**
+ * Router for tax report routes.
+ */
 export const taxReportRoutes = express.Router();
 
 /**
@@ -25,11 +27,15 @@ export const taxReportRoutes = express.Router();
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>} - Promise object representing the response
  */
-taxReportRoutes.post('/create', requireAuth, roleAuthorisation('printables'), async(req, res) => {
+taxReportRoutes.post('/create/:companyIdParam', requireAuth, roleAuthorisation('printables', 'create'), async(req, res) => {
   const taxReport = req.body.taxReport;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  taxReport.companyId = queryId;
   const count = await taxReportMain
   // eslint-disable-next-line @typescript-eslint/naming-convention
-    .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+    .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
   taxReport.urId = makeUrId(Number(count[0]?.urId || '0'));
   const newTaxReport = new taxReportMain(taxReport);
   let errResponse: Isuccess;
@@ -66,10 +72,13 @@ taxReportRoutes.post('/create', requireAuth, roleAuthorisation('printables'), as
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>} - Promise object representing the response
  */
-taxReportRoutes.get('/getone/:urId', requireAuth, roleAuthorisation('printables'), async(req, res) => {
+taxReportRoutes.get('/getone/:urId/:companyIdParam', requireAuth, roleAuthorisation('printables', 'read'), async(req, res) => {
   const { urId } = req.params;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const taxReport = await taxReportLean
-    .findOne({ urId })
+    .findOne({ urId, queryId })
     .lean()
     .populate({ path: 'estimates', model: estimateLean })
     .populate({ path: 'payments', model: paymentLean });
@@ -87,10 +96,13 @@ taxReportRoutes.get('/getone/:urId', requireAuth, roleAuthorisation('printables'
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>} - Promise object representing the response
  */
-taxReportRoutes.get('/getall/:offset/:limit', requireAuth, roleAuthorisation('printables'), async(req, res) => {
+taxReportRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, roleAuthorisation('printables', 'read'), async(req, res) => {
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const taxReports = await taxReportLean
-    .find({})
+    .find({ companyId: queryId })
     .skip(offset)
     .limit(limit)
     .lean()
@@ -110,13 +122,17 @@ taxReportRoutes.get('/getall/:offset/:limit', requireAuth, roleAuthorisation('pr
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>} - Promise object representing the response
  */
-taxReportRoutes.delete('/deleteone/:id', requireAuth, roleAuthorisation('printables'), async(req, res) => {
+taxReportRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, roleAuthorisation('printables', 'delete'), async(req, res) => {
   const { id } = req.params;
-  const isValid = verifyObjectId(id);
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectIds([id, queryId]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
-  const deleted = await taxReportMain.findByIdAndDelete(id);
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  const deleted = await taxReportMain.findOneAndDelete({ _id: id, companyId: queryId });
   if (Boolean(deleted)) {
     return res.status(200).send({ success: Boolean(deleted) });
   } else {
@@ -135,11 +151,14 @@ taxReportRoutes.delete('/deleteone/:id', requireAuth, roleAuthorisation('printab
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>} - Promise object representing the response
  */
-taxReportRoutes.post('/search/:limit/:offset', requireAuth, roleAuthorisation('printables'), async(req, res) => {
+taxReportRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, roleAuthorisation('printables', 'read'), async(req, res) => {
   const { searchterm, searchKey } = req.body;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
   const taxReports = await taxReportLean
-    .find({ [searchKey]: { $regex: searchterm, $options: 'i' } })
+    .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
     .lean()
     .skip(offset)
     .limit(limit)
@@ -159,16 +178,19 @@ taxReportRoutes.post('/search/:limit/:offset', requireAuth, roleAuthorisation('p
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>} - Promise object representing the response
  */
-taxReportRoutes.put('/deletemany', requireAuth, roleAuthorisation('printables'), async(req, res) => {
+taxReportRoutes.put('/deletemany/:companyIdParam', requireAuth, roleAuthorisation('printables', 'delete'), async(req, res) => {
   const { ids } = req.body;
-  const isValid = verifyObjectIds(ids);
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectIds([...ids, ...[queryId]]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
 
   const deleted = await taxReportMain
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    .deleteMany({ _id: { $in: ids } })
+    .deleteMany({ companyId: queryId, _id: { $in: ids } })
     .catch(err => {
       taxReportRoutesLogger.error('deletemany - err: ', err);
       return null;

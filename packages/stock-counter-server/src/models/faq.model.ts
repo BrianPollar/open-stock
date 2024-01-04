@@ -3,12 +3,15 @@ import { Ifaq } from '@open-stock/stock-universal';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
 const uniqueValidator = require('mongoose-unique-validator');
 
-/** Model type for FAQ */
+/**
+ * Represents a FAQ document in the database.
+ */
 export type Tfaq = Document & Ifaq;
 
 /** FAQ schema */
 const faqSchema: Schema<Tfaq> = new Schema({
   urId: { type: String, unique: true },
+  companyId: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
   posterName: { type: String },
   posterEmail: { type: String, required: [true, 'cannot be empty.'], index: true },
   userId: { type: String },
@@ -21,18 +24,26 @@ faqSchema.plugin(uniqueValidator);
 /** Primary selection object for FAQ */
 const faqselect = {
   urId: 1,
+  companyId: 1,
   posterName: 1,
   posterEmail: 1,
   userId: 1,
   qn: 1
 };
 
-/** Main connection for FAQ operations */
+/**
+ * Represents the main FAQ model.
+ */
 export let faqMain: Model<Tfaq>;
-/** Lean connection for FAQ operations */
+
+/**
+ * Represents a lean FAQ model.
+ */
 export let faqLean: Model<Tfaq>;
 
-/** Primary selection object for FAQ */
+/**
+ * Selects the faqselect constant from the faq.model module.
+ */
 export const faqSelect = faqselect;
 
 /**

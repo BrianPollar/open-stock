@@ -9,7 +9,12 @@ const log4js_1 = require("log4js");
 // This function creates a dbConnectionsLogger named `DbConnections`.
 const dbConnectionsLogger = (0, log4js_1.getLogger)('DbConnections');
 // This function defines a function that creates a new MongoDB connection.
-/** */
+/**
+ * Creates a new MongoDB connection.
+ * @param uri - The URI of the MongoDB server.
+ * @param coonType - The type of connection.
+ * @returns The connection object.
+ */
 const makeNewConnection = async (uri, 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 coonType) => {
@@ -52,7 +57,10 @@ coonType) => {
     return db;
 };
 exports.makeNewConnection = makeNewConnection;
-/** */
+/**
+ * Disconnects from the Mongoose database.
+ * @returns {Promise<void>} A promise that resolves when the disconnection is complete.
+ */
 const disconnectMongoose = async () => {
     await mongoose_1.default.disconnect();
 };

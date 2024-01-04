@@ -1,5 +1,5 @@
 // This file exports an array of expense categories.
-/** */
+
 export const expenseCategory = [
   // The category of expenses related to advertising.
   'advertising',

@@ -3,21 +3,21 @@ import { InvoiceSettings } from '../../../../../stock-counter-client/src/defines
 import { StockCounterClient } from '../../../../../stock-counter-client/src/stock-counter-client';
 import { of } from 'rxjs';
 import Axios from 'axios-observable';
-import { createMockInvoiceSettings } from '../../../../../tests/mocks';
+import { createMockInvoiceSettings } from '../../../../../tests/stock-counter-mocks';
 
-describe('Environment', () => {
+describe('InvoiceSettings', () => {
   let instance: InvoiceSettings;
-  const axiosMock = { } as Axios;
+  const axiosMock = {
+    get: vi.fn(),
+    post: vi.fn(),
+    put: vi.fn().mockImplementation(() => of({ success: true })),
+    delete: vi.fn()
+  } as unknown as Axios;
+  const companyId = 'companyId';
 
   beforeEach(() => {
     new StockCounterClient(axiosMock);
     instance = createMockInvoiceSettings();
-  });
-
-  it('#StockCounterClient should have all callable static properties', () => {
-    expect(StockCounterClient.calcCtrl).toBeDefined();
-    expect(StockCounterClient.ehttp).toBeDefined();
-    expect(StockCounterClient.logger).toBeDefined();
   });
 
   it('should have properties defined', () => {
@@ -30,24 +30,25 @@ describe('Environment', () => {
     expect(instance.bankSettings).toBeDefined();
   });
 
-  it('#getInvoiceSettings static should get InvoiceSettingss array', async() => {
+  it('#getInvoiceSettings static should get InvoiceSettings array', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makeGet').mockImplementationOnce(() => of([createMockInvoiceSettings()]));
-    const list = await InvoiceSettings.getInvoiceSettings('/', 0, 0);
+    const list = await InvoiceSettings.getInvoiceSettings(companyId, 'getall', 0, 0);
     expect(typeof list).toEqual('object');
     expectTypeOf(list).toEqualTypeOf<InvoiceSettings[]>([]);
+    expect(lSpy).toHaveBeenCalledWith('/invoicesettings/getall/0/0/companyId');
   });
 
   it('#getOneInvoiceSettings static should get one InvoiceSettings', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makeGet').mockImplementationOnce(() => of(createMockInvoiceSettings()));
-    const one = await InvoiceSettings.getOneInvoiceSettings('urId');
+    const one = await InvoiceSettings.getOneInvoiceSettings(companyId, 'urId');
     expect(typeof one).toEqual('object');
     expect(one).toBeInstanceOf(InvoiceSettings);
-    expect(lSpy).toHaveBeenCalled();
+    expect(lSpy).toHaveBeenCalledWith('/invoicesettings/getone/urId');
   });
 
   it('#addInvoiceSettings static should add one InvoiceSettings', async() => {
-    const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makePut').mockImplementationOnce(() => of({ success: true }));
-    const added = await InvoiceSettings.addInvoiceSettings(createMockInvoiceSettings() as any);
+    const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makePost').mockImplementationOnce(() => of({ success: true }));
+    const added = await InvoiceSettings.addInvoiceSettings(companyId, createMockInvoiceSettings());
     expect(typeof added).toEqual('object');
     expect(added).toHaveProperty('success');
     expect(added.success).toEqual(true);
@@ -56,16 +57,14 @@ describe('Environment', () => {
     expect(lSpy).toHaveBeenCalled();
   });
 
-  it('#deleteInvoiceSettings static should delete many InvoiceSettingss', async() => {
+  it('#deleteInvoiceSettings static should delete many InvoiceSettings', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makePut').mockImplementationOnce(() => of({ success: true }));
-    const deleted = await InvoiceSettings.deleteInvoiceSettings(['ids']);
+    const deleted = await InvoiceSettings.deleteInvoiceSettings(companyId, ['ids']);
     expect(typeof deleted).toEqual('object');
     expect(deleted).toHaveProperty('success');
     expect(deleted.success).toEqual(true);
     expect(typeof deleted.success).toBe('boolean');
     expectTypeOf(deleted.success).toEqualTypeOf<boolean>(Boolean('true'));
-    expect(lSpy).toHaveBeenCalled();
+    expect(lSpy).toHaveBeenCalledWith('/invoicesettings/deletemany/companyId', { ids: ['ids'] });
   });
 });
-
-

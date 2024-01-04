@@ -37,13 +37,17 @@ const subscriptionselect = {
 };
 
 /**
- * Mongoose model for the subscription collection.
+ * Represents the main subscription model.
  */
 export let subscriptionMain: Model<ISubscription>;
+
+/**
+ * Represents a lean subscription model.
+ */
 export let subscriptionLean: Model<ISubscription>;
 
 /**
- * Primary selection object for subscription.
+ * Represents the subscription select function.
  */
 export const subscriptionSelect = subscriptionselect;
 

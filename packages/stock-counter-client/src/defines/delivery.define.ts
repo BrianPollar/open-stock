@@ -42,28 +42,32 @@ export class DeliveryCity extends DatabaseAuto {
 
   /**
    * Retrieves all delivery cities from the server.
+   * @param companyId - The ID of the company
    * @param url The URL to retrieve the delivery cities from.
    * @param offset The offset to start retrieving the delivery cities from.
    * @param limit The maximum number of delivery cities to retrieve.
    * @returns An array of DeliveryCity instances.
    */
   static async getDeliveryCitys(
+    companyId: string,
     url = 'getall',
     offset = 0,
-    limit = 0
+    limit = 20
   ): Promise<DeliveryCity[]> {
     const observer$ = StockCounterClient.ehttp
-      .makeGet(`/deliverycity/${url}/${offset}/${limit}`);
+      .makeGet(`/deliverycity/${url}/${offset}/${limit}/${companyId}`);
     const citys = await lastValueFrom(observer$) as Ideliverycity[];
     return citys.map(val => new DeliveryCity(val));
   }
 
   /**
    * Retrieves a single delivery city from the server.
+   * @param companyId - The ID of the company
    * @param id The ID of the delivery city to retrieve.
    * @returns A DeliveryCity instance.
    */
   static async getOneDeliveryCity(
+    companyId: string,
     id: string
   ): Promise<DeliveryCity> {
     const observer$ = StockCounterClient.ehttp.makeGet(`/deliverycity/getone/${id}`);
@@ -73,14 +77,16 @@ export class DeliveryCity extends DatabaseAuto {
 
   /**
    * Creates a new delivery city on the server.
+   * @param companyId - The ID of the company
    * @param deliverycity An object containing the data for the new delivery city.
    * @returns An object indicating whether the operation was successful.
    */
   static async createDeliveryCity(
+    companyId: string,
     deliverycity: Ideliverycity
   ): Promise<Isuccess> {
     const observer$ = StockCounterClient.ehttp
-      .makePost('/deliverycity/create', {
+      .makePost(`/deliverycity/create/${companyId}`, {
         deliverycity
       });
     return await lastValueFrom(observer$) as Isuccess;
@@ -88,25 +94,28 @@ export class DeliveryCity extends DatabaseAuto {
 
   /**
    * Deletes multiple delivery cities from the server.
+   * @param companyId - The ID of the company
    * @param ids An array of IDs of the delivery cities to delete.
    * @returns An object indicating whether the operation was successful.
    */
   static async deleteDeliveryCitys(
+    companyId: string,
     ids: string[]
   ): Promise<Isuccess> {
     const observer$ = StockCounterClient.ehttp
-      .makePut('/deliverycity/deletemany', { ids });
+      .makePut(`/deliverycity/deletemany/${companyId}`, { ids });
     return await lastValueFrom(observer$) as Isuccess;
   }
 
   /**
    * Updates the properties of the current instance with the provided values and sends a request to the server to update the corresponding delivery city.
+   * @param companyId - The ID of the company
    * @param vals An object containing the new values for the delivery city.
    * @returns An object indicating whether the operation was successful.
    */
-  async updateDeliveryCity(vals: Ideliverycity): Promise<Isuccess> {
+  async updateDeliveryCity(companyId: string, vals: Ideliverycity): Promise<Isuccess> {
     const observer$ = StockCounterClient.ehttp
-      .makePut('/deliverycity/update', vals);
+      .makePut(`/deliverycity/update/${companyId}`, vals);
     const updated = await lastValueFrom(observer$) as Isuccess;
     if (updated.success) {
       this.name = vals.name || this.name;
@@ -119,11 +128,12 @@ export class DeliveryCity extends DatabaseAuto {
 
   /**
    * Sends a request to the server to delete the current delivery city.
+   * @param companyId - The ID of the company
    * @returns An object indicating whether the operation was successful.
    */
-  async deleteDeliveryCity(): Promise<Isuccess> {
+  async deleteDeliveryCity(companyId: string): Promise<Isuccess> {
     const observer$ = StockCounterClient.ehttp
-      .makeDelete(`/deliverycity/deleteone/${this._id}`);
+      .makeDelete(`/deliverycity/deleteone/${this._id}/${companyId}`);
     return await lastValueFrom(observer$) as Isuccess;
   }
 }

@@ -1,15 +1,20 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.checkDirectoryExists = exports.createDirectories = void 0;
-const tslib_1 = require("tslib");
 // This function imports the `fs-extra` module.
-const fse = tslib_1.__importStar(require("fs-extra"));
+const fs_extra_1 = require("fs-extra");
 // This function imports the `getLogger()` function from `log4js`.
 const log4js_1 = require("log4js");
 // This function creates a fileMangerLogger named `FileManger`.
 const fileMangerLogger = (0, log4js_1.getLogger)('FileManger');
 // This function defines a function that creates directories.
-/** */
+/**
+ * Creates directories for an application.
+ * @param appName - The name of the application.
+ * @param absolutepath - The absolute path where the directories will be created.
+ * @param directories - An array of directory names to be created.
+ * @returns A promise that resolves to a boolean indicating whether the directories were successfully created.
+ */
 const createDirectories = async (appName, absolutepath, directories) => {
     // Check if the directory for the app name exists.
     await (0, exports.checkDirectoryExists)(appName, 'first');
@@ -28,7 +33,17 @@ const createDirectories = async (appName, absolutepath, directories) => {
 };
 exports.createDirectories = createDirectories;
 // This function defines a function that checks if a directory exists.
-/** */
+/**
+ * Checks if a directory exists at the specified path and creates it if it doesn't exist.
+ * @param absolutepath - The absolute path of the directory or the parent directory.
+ * @param dir - The name of the directory to check or create.
+ * @param casel - Optional. Specifies whether to use the absolute path or the absolute path plus the directory name.
+ *                 If set to 'first', the directory path will be set to the absolute path. Otherwise, it will be set to the absolute path plus the directory name.
+ * @returns A Promise that resolves with a string indicating the result:
+ *          - 'created' if the directory was created.
+ *          - 'exists' if the directory already exists.
+ *          - 'someError' if there was an error accessing or creating the directory.
+ */
 const checkDirectoryExists = (absolutepath, dir, casel) => {
     return new Promise(resolve => {
         // Create a variable to store the directory path.
@@ -44,10 +59,10 @@ const checkDirectoryExists = (absolutepath, dir, casel) => {
         // Log the directory path.
         fileMangerLogger.debug('FileManager', `"checkDirectoryExists", ${myDir}`);
         // Check if the directory exists.
-        fse.access(myDir, function (err) {
+        (0, fs_extra_1.access)(myDir, function (err) {
             // If the directory does not exist, then create it.
             if (err && err.code === 'ENOENT') {
-                fse.mkdir(myDir, function (mkdirErr) {
+                (0, fs_extra_1.mkdir)(myDir, function (mkdirErr) {
                     // If there is an error creating the directory, then log it.
                     if (mkdirErr) {
                         fileMangerLogger.error('FileManager', `"checkDirectoryExists 

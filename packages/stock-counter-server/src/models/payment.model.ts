@@ -3,15 +3,18 @@ import { IinvoiceRelated, IpaymentRelated } from '@open-stock/stock-universal';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
 const uniqueValidator = require('mongoose-unique-validator');
 
-/** model type for payment by*/
-/** */
+/**
+ * Represents a payment document.
+ */
 export type Tpayment = Document & {
+  companyId: string;
   paymentRelated: string | IpaymentRelated;
   invoiceRelated: string | IinvoiceRelated;
   order: string;
 };
 
 const paymentSchema: Schema<Tpayment> = new Schema({
+  companyId: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
   paymentRelated: { type: String, unique: true },
   invoiceRelated: { type: String, unique: true },
   order: { type: String }
@@ -24,22 +27,27 @@ paymentSchema.plugin(uniqueValidator);
  * for payment
  */
 const paymentselect = {
+  companyId: 1,
   paymentRelated: 1,
   invoiceRelated: 1,
   order: 1
 };
 
-/** main connection for payments Operations*/
-export let paymentMain: Model<Tpayment>;
-/** lean connection for payments Operations*/
-export let paymentLean: Model<Tpayment>;
-/** primary selection object
- * for payment
+/**
+ * Represents the main payment model.
  */
-/** */
+export let paymentMain: Model<Tpayment>;
+
+/**
+ * Represents a lean payment model.
+ */
+export let paymentLean: Model<Tpayment>;
+
+/**
+ * Represents a payment select function.
+ */
 export const paymentSelect = paymentselect;
 
-/** */
 /**
  * Creates a payment model with the specified database URL, main connection and lean connection.
  * @param dbUrl The URL of the database to connect to.
@@ -59,3 +67,4 @@ export const createPaymentModel = async(dbUrl: string, main = true, lean = true)
     paymentLean = mainConnectionLean.model<Tpayment>('Payment', paymentSchema);
   }
 };
+

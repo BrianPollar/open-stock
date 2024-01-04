@@ -9,7 +9,11 @@ import * as os from 'os';
 // **Returns:**
 //
 // The hostname of the server.
-/** */
+/**
+ * Retrieves the hostname from the request object or the operating system.
+ * @param req - The request object (optional).
+ * @returns The hostname.
+ */
 export const getHostname = (req) => (req ? req.hostname : os.hostname());
 // **Comments:**
 //

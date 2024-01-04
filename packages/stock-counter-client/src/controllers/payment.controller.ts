@@ -24,7 +24,7 @@ export class PaymentController {
    * @param promoCode - The IpromoCode object representing the promo code applied to the cart.
    * @returns An object containing the total cost, total shipping, and the final result.
    */
-  calculateTargetPriceOrShipping(isShipping: boolean, data: Icart[], city: DeliveryCity, promoCode: IpromoCode) {
+  calculateTargetPriceOrShipping(isShipping: boolean, data: Icart[], city: DeliveryCity, promoCode: IpromoCode | null) {
     StockCounterClient.logger.debug('PaymentController:calculate:: - i: %i, data: %data, city: %city', isShipping, data, city);
     let res = 0;
     let totalCost: number;
@@ -91,7 +91,7 @@ export class PaymentController {
    * @param taxPercentage - The tax percentage to be applied to the total cost.
    * @returns An object containing the calculated total cost, total shipping, quantity, and tax value.
    */
-  calculateTargetPriceAndShipping(data: Icart[], city: DeliveryCity, promoCode: IpromoCode, taxPercentage = 0) {
+  calculateTargetPriceAndShipping(data: Icart[], city: DeliveryCity, promoCode: IpromoCode | null, taxPercentage = 0) {
     StockCounterClient.logger.debug('PaymentController:add:: - data: %data, city: %city', data, city);
     const totalPdct = this.calculateTargetPriceOrShipping(false, data, city, promoCode);
     const totShip = this.calculateTargetPriceOrShipping(true, data, city, promoCode);
@@ -122,12 +122,12 @@ export class PaymentController {
    * @param isDemo - A boolean indicating whether the method is being called for demo purposes.
    * @returns An array of DeliveryCity objects representing the available delivery cities.
    */
-  async getDeliveryCitys(deliveryCitys: DeliveryCity[], address?: Iaddress, isDemo = false) {
+  async getDeliveryCitys(companyId: string, deliveryCitys: DeliveryCity[], address?: Iaddress, isDemo = false) {
     if (!deliveryCitys?.length) {
       deliveryCitys = await DeliveryCity
-        .getDeliveryCitys();
+        .getDeliveryCitys(companyId);
       if (!address) {
-        this.currentCity = deliveryCitys[0]; // TODO
+        this.currentCity = deliveryCitys[0];
       }
     } else if (address) {
       this.currentCity = deliveryCitys
@@ -148,9 +148,9 @@ export class PaymentController {
    * @param addr - The Iaddress object representing the delivery address.
    * @returns The estimated delivery date.
    */
-  async determineCity(deliveryCitys: DeliveryCity[], addr: Iaddress) {
+  async determineCity(companyId: string, deliveryCitys: DeliveryCity[], addr: Iaddress) {
     StockCounterClient.logger.debug('PaymentController:determineCity:: - addr', addr);
-    await this.getDeliveryCitys(deliveryCitys, addr);
+    await this.getDeliveryCitys(companyId, deliveryCitys, addr);
     this.currentCity = deliveryCitys.find(val => val._id === addr.city);
     const date = new Date();
     const deliversInDays = this.currentCity.deliversInDays;

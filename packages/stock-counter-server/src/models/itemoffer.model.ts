@@ -2,21 +2,32 @@ import { Document, Model, Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
 const uniqueValidator = require('mongoose-unique-validator');
 
-/** model type for itemOffer by */
-/** */
+/**
+ * Represents an item offer.
+ */
 export interface IitemOffer
 extends Document {
+  /** The user's ID. */
   urId: string;
+  /** The user's company ID. */
+  companyId: string;
+  /** The list of items in the offer. */
   items: string[];
+  /** The expiration date of the offer. */
   expireAt: Date;
+  /** The type of the offer. */
   type: string;
+  /** The header of the offer. */
   header: string;
+  /** The subheader of the offer. */
   subHeader: string;
+  /** The amount of the offer. */
   ammount: number;
 }
 
 const itemOfferSchema: Schema<IitemOffer> = new Schema({
   urId: { type: String, unique: true },
+  companyId: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
   items: [],
   expireAt: { type: Date },
   type: { type: String },
@@ -36,6 +47,7 @@ itemOfferSchema.plugin(uniqueValidator);
  */
 const itemOfferselect = {
   urId: 1,
+  companyId: 1,
   items: 1,
   expireAt: 1,
   type: 1,
@@ -44,17 +56,21 @@ const itemOfferselect = {
   ammount: 1
 };
 
-/** main connection for itemOffers Operations*/
-export let itemOfferMain: Model<IitemOffer>;
-/** lean connection for itemOffers Operations*/
-export let itemOfferLean: Model<IitemOffer>;
-/** primary selection object
- * for itemOffer
+/**
+ * Represents the main item offer model.
  */
-/** */
+export let itemOfferMain: Model<IitemOffer>;
+
+/**
+ * Represents a lean item offer model.
+ */
+export let itemOfferLean: Model<IitemOffer>;
+
+/**
+ * Represents the item offer select function.
+ */
 export const itemOfferSelect = itemOfferselect;
 
-/** */
 /**
  * Creates an instance of the ItemOffer model with the specified database URL.
  * @param {string} dbUrl - The URL of the database to connect to.

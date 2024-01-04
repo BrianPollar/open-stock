@@ -1,5 +1,10 @@
 // This function generates a random string of a specified length and type.
-/** */
+/**
+ * Generates a random string of a specified length and type.
+ * @param length - The length of the random string.
+ * @param how - The type of the random string.
+ * @returns The generated random string.
+ */
 export const makeRandomString = (
 // The length of the random string.
 length, 

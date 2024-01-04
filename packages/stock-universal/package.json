@@ -1,20 +1,23 @@
 {
   "name": "@open-stock/stock-universal",
-  "version": "2.1.7",
+  "version": "2.4.8",
   "description": "> TODO: description",
   "main": "lib/cjs/index.js",
   "module": "lib/esm/index.js",
   "types": "lib/types/index.d.ts",
   "scripts": {
-    "compileLib": "tsc -b ./tsconfig.cjs.json ./tsconfig.esm.json ./tsconfig.types.json",
-    "build:clean": "rm -rf ./build",
-    "build": "npm-run-all build:clean compile && node ./scripts/prepare-package-json",
+    "compileLib": "rm -rf ./lib && tsc -b ./tsconfig.cjs.json ./tsconfig.esm.json ./tsconfig.types.json",
+    "build:clean": "rm -rf ./lib",
     "publishLib": "npm publish --access public lib",
-    "test:vite": "vitest"
+    "test:vite": "vitest",
+    "lint": "eslint . --ext .ts",
+    "versionLib": "npm version"
   },
   "author": "BrianPollar <pollarbrian@hotmail.com>",
   "license": "ISC",
-  "dependencies": {},
+  "dependencies": {
+    "expresss": "^0.0.0"
+  },
   "homepage": "",
   "devDependencies": {
     "axios-mock-adapter": "^1.21.5",

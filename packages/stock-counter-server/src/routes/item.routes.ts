@@ -26,20 +26,22 @@
  * @requires itemDecoyMain
  */
 
-import express from 'express';
-import { Request, Response } from 'express';
+import express, { Request, Response } from 'express';
 import { itemLean, itemMain } from '../models/item.model';
 import { reviewLean } from '../models/review.model';
 import { getLogger } from 'log4js';
-import { Icustomrequest, Ifilewithdir, Isuccess, makeRandomString } from '@open-stock/stock-universal';
-import { appendBody, deleteFiles, makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, uploadFiles, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { Icustomrequest, IfileMeta, Isuccess, makeRandomString } from '@open-stock/stock-universal';
+import { appendBody, deleteFiles, fileMetaLean, makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, saveMetaToDb, stringifyMongooseErr, uploadFiles, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import { itemOfferMain } from '../models/itemoffer.model';
 import { itemDecoyMain } from '../models/itemdecoy.model';
+import { companyLean } from '@open-stock/stock-auth-server';
 
 /** The logger for the item routes */
 const itemRoutesLogger = getLogger('routes/itemRoutes');
 
-/** The express router for handling item routes */
+/**
+ * Express router for item routes.
+ */
 export const itemRoutes = express.Router();
 
 /**
@@ -106,15 +108,18 @@ export const addReview = async(req: Request, res: Response): Promise<Response> =
  */
 export const removeReview = async(req: Request, res: Response): Promise<Response> => {
   const { userId } = (req as Icustomrequest).user;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const { itemId, rating } = req.params;
-  const isValid = verifyObjectId(itemId);
+  const isValid = verifyObjectIds([itemId, queryId]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
 
   const item = await itemMain
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    .findByIdAndUpdate(itemId);
+    .findOneAndUpdate({ _id: itemId, companyId: queryId });
   if (!item) {
     return res.status(404).send({ success: false });
   }
@@ -158,17 +163,28 @@ export const removeReview = async(req: Request, res: Response): Promise<Response
  * @param {Request} req - The express request object
  * @param {Icustomrequest} req.user - The custom request object with user data
  * @param {Object} req.body.item - The item data to create
- * @param {Array<Ifilewithdir>} req.body.newFiles - The files to upload with the item
  * @param {Response} res - The express response object
  * @returns {Promise<Response>} - The express response object with a success status and saved item data
  */
-itemRoutes.post('/create', requireAuth, roleAuthorisation('items'), uploadFiles, appendBody, async(req, res): Promise<Response> => {
+itemRoutes.post('/create/:companyIdParam', requireAuth, roleAuthorisation('items', 'create'), uploadFiles, appendBody, saveMetaToDb, async(req, res): Promise<Response> => {
   const item = req.body.item;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  item.companyId = queryId;
+  const isValid = verifyObjectId(queryId);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   const count = await itemMain
   // eslint-disable-next-line @typescript-eslint/naming-convention
-    .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+    .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
   item.urId = makeUrId(Number(count[0]?.urId || '0'));
-  item.photos = req.body.newFiles || [];
+  const parsed = req.body.parsed;
+  if (parsed && parsed.newFiles) {
+    const oldPhotos = item.photos;
+    item.photos = oldPhotos.concat(parsed.newFiles);
+  }
   const newProd = new itemMain(item);
   let errResponse: Isuccess;
   const saved = await newProd.save()
@@ -203,18 +219,22 @@ itemRoutes.post('/create', requireAuth, roleAuthorisation('items'), uploadFiles,
  * @param {Response} res - The express response object
  * @returns {Promise<Response>} - The express response object with a success status
  */
-itemRoutes.put('/update', requireAuth, roleAuthorisation('items'), async(req, res): Promise<Response> => {
+itemRoutes.put('/update/:companyIdParam', requireAuth, roleAuthorisation('items', 'update'), async(req, res): Promise<Response> => {
   const updatedProduct = req.body.item;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  updatedProduct.companyId = queryId;
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const { _id } = updatedProduct;
-  const isValid = verifyObjectId(_id);
+  const isValid = verifyObjectIds([_id, queryId]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
 
   const item = await itemMain
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    .findByIdAndUpdate(_id);
+    .findOneAndUpdate({ _id, companyId: queryId });
   if (!item) {
     return res.status(404).send({ success: false });
   }
@@ -254,17 +274,20 @@ itemRoutes.put('/update', requireAuth, roleAuthorisation('items'), async(req, re
   return res.status(200).send({ success: Boolean(updated) });
 });
 
-itemRoutes.post('/updateimg', requireAuth, roleAuthorisation('items'), uploadFiles, appendBody, async(req, res) => {
+itemRoutes.post('/updateimg/:companyIdParam', requireAuth, roleAuthorisation('items', 'update'), uploadFiles, appendBody, saveMetaToDb, async(req, res) => {
   const updatedProduct = req.body.item;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const { _id } = updatedProduct;
-  const isValid = verifyObjectId(_id);
+  const isValid = verifyObjectIds([_id, queryId]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const item = await itemMain
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    .findByIdAndUpdate(_id);
+    .findOneAndUpdate({ _id, companyId: queryId });
   if (!item) {
     return res.status(404).send({ success: false });
   }
@@ -274,8 +297,12 @@ itemRoutes.post('/updateimg', requireAuth, roleAuthorisation('items'), uploadFil
     item.urId = makeUrId(Number(count));
   }
 
-  const photos = item.photos;
-  item.photos = [...photos, ...req.body.newFiles];
+  const parsed = req.body.parsed;
+  if (parsed && parsed.newFiles) {
+    const oldPhotos = item.photos;
+    item.photos = oldPhotos.concat(parsed.newFiles);
+  }
+
   delete updatedProduct._id;
 
   const keys = Object.keys(updatedProduct);
@@ -307,17 +334,20 @@ itemRoutes.post('/updateimg', requireAuth, roleAuthorisation('items'), uploadFil
   return res.status(200).send({ success: Boolean(updated) });
 });
 
-itemRoutes.put('/like/:itemId', requireAuth, async(req, res) => {
+itemRoutes.put('/like/:itemId/:companyIdParam', requireAuth, async(req, res) => {
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const { userId } = (req as unknown as Icustomrequest).user;
   const { itemId } = req.params;
-  const isValid = verifyObjectId(itemId);
+  const isValid = verifyObjectIds([itemId, queryId]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
 
   const item = await itemMain
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    .findByIdAndUpdate(itemId);
+    .findOneAndUpdate({ _id: itemId, companyId: queryId });
   if (!item) {
     return res.status(404).send({ success: false });
   }
@@ -345,17 +375,20 @@ itemRoutes.put('/like/:itemId', requireAuth, async(req, res) => {
   return res.status(200).send({ success: true });
 });
 
-itemRoutes.put('/unlike/:itemId', requireAuth, async(req, res) => {
+itemRoutes.put('/unlike/:itemId/:companyIdParam', requireAuth, async(req, res) => {
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const { userId } = (req as unknown as Icustomrequest).user;
   const { itemId } = req.params;
-  const isValid = verifyObjectId(itemId);
+  const isValid = verifyObjectIds([itemId, queryId]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
 
   const item = await itemMain
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    .findByIdAndUpdate(itemId);
+    .findOneAndUpdate({ _id: itemId, companyId: queryId });
   if (!item) {
     return res.status(404).send({ success: false });
   }
@@ -383,119 +416,230 @@ itemRoutes.put('/unlike/:itemId', requireAuth, async(req, res) => {
   return res.status(200).send({ success: true });
 });
 
-itemRoutes.get('/getone/:urId', async(req, res) => {
-  const { urId } = req.params;
+itemRoutes.get('/getone/:urId/:companyIdParam', async(req, res) => {
+  const { companyIdParam, urId } = req.params;
+  let filter = { urId } as any;
+  const isValid = verifyObjectId(companyIdParam);
+  if (isValid) {
+    filter = { urId, companyId: companyIdParam };
+  }
+
   const item = await itemLean
-    .findOne({ urId })
+    .findOne(filter)
+    .populate({ path: 'photos', model: fileMetaLean })
+    .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
     .lean();
+  if (item && !(item as any).companyId) {
+    return res.status(200).send({});
+  }
   return res.status(200).send(item);
 });
 
-itemRoutes.get('/filtergeneral/:prop/:val/:offset/:limit', async(req, res) => {
-  const { prop, val } = req.params;
+itemRoutes.get('/filtergeneral/:prop/:val/:offset/:limit/:companyIdParam', async(req, res) => {
+  const { companyIdParam, prop, val } = req.params;
+  let filter = { [prop]: { $regex: val, $options: 'i' } } as any;
+  const isValid = verifyObjectId(companyIdParam);
+  if (isValid) {
+    filter = { companyId: companyIdParam, [prop]: { $regex: val, $options: 'i' } } ;
+  }
   const items = await itemLean
-    .find({ [prop]: { $regex: val, $options: 'i' } })
+    .find(filter)
+    .populate({ path: 'photos', model: fileMetaLean })
+    .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
     .lean();
-  return res.status(200).send(items);
+  const newItems = items.filter(item => item.companyId);
+  return res.status(200).send(newItems);
 });
 
-itemRoutes.get('/getall/:offset/:limit', async(req, res) => {
+itemRoutes.get('/getall/:offset/:limit/:companyIdParam', async(req, res) => {
+  const { companyIdParam } = req.params;
+  let filter = {} as any;
+  const isValid = verifyObjectId(companyIdParam);
+  if (isValid) {
+    filter = { companyId: companyIdParam };
+  }
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
   const items = await itemLean
-    .find({})
+    .find(filter)
     .skip(offset)
     .limit(limit)
+    .populate({ path: 'photos', model: fileMetaLean })
+    .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
     .lean();
-  return res.status(200).send(items);
+  const newItems = items.filter(item => item.companyId);
+  return res.status(200).send(newItems);
 });
 
-itemRoutes.get('/gettrending/:offset/:limit', async(req, res) => {
+itemRoutes.get('/gettrending/:offset/:limit/:companyIdParam', async(req, res) => {
+  const { companyIdParam } = req.params;
+  let filter = {} as any;
+  const isValid = verifyObjectId(companyIdParam);
+  if (isValid) {
+    filter = { companyId: companyIdParam };
+  }
   const items = await itemLean
-    .find({})
-    .lean()
-    .sort({ timesViewed: 1 });
-  return res.status(200).send(items);
+    .find(filter)
+    .populate({ path: 'photos', model: fileMetaLean })
+    .sort({ timesViewed: 1 })
+    .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
+    .lean();
+  const newItems = items.filter(item => item.companyId);
+  return res.status(200).send(newItems);
 });
 
 // newly posted
-itemRoutes.get('/getnew/:offset/:limit', async(req, res) => {
+itemRoutes.get('/getnew/:offset/:limit/:companyIdParam', async(req, res) => {
+  const { companyIdParam } = req.params;
+  let filter = {} as any;
+  const isValid = verifyObjectId(companyIdParam);
+  if (isValid) {
+    filter = { companyId: companyIdParam };
+  }
   const items = await itemLean
-    .find({})
-    .lean()
-    .sort({ createdAt: -1 });
-  return res.status(200).send(items);
+    .find(filter)
+    .populate({ path: 'photos', model: fileMetaLean })
+    .sort({ createdAt: -1 })
+    .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
+    .lean();
+  const newItems = items.filter(item => item.companyId);
+  return res.status(200).send(newItems);
 });
 
 // new not used
-itemRoutes.get('/getbrandnew/:offset/:limit', async(req, res) => {
+itemRoutes.get('/getbrandnew/:offset/:limit/:companyIdParam', async(req, res) => {
+  const { companyIdParam } = req.params;
+  let filter = { state: 'new' } as any;
+  const isValid = verifyObjectId(companyIdParam);
+  if (isValid) {
+    filter = { companyId: companyIdParam, state: 'new' };
+  }
   const items = await itemLean
-    .find({ state: 'new' })
-    .lean()
-    .sort({ createdAt: -1 });
-  return res.status(200).send(items);
+    .find(filter)
+    .populate({ path: 'photos', model: fileMetaLean })
+    .sort({ createdAt: -1 })
+    .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
+    .lean();
+  const newItems = items.filter(item => item.companyId);
+  return res.status(200).send(newItems);
 });
 
 // new not used
-itemRoutes.get('/getused/:offset/:limit', async(req, res) => {
+itemRoutes.get('/getused/:offset/:limit/:companyIdParam', async(req, res) => {
+  const { companyIdParam } = req.params;
+  let filter = { state: 'refurbished' } as any;
+  const isValid = verifyObjectId(companyIdParam);
+  if (isValid) {
+    filter = { companyId: companyIdParam, state: 'refurbished' };
+  }
   const items = await itemLean
-    .find({ state: 'refurbished' })
-    .lean()
-    .sort({ createdAt: -1 });
-  return res.status(200).send(items);
+    .find(filter)
+    .populate({ path: 'photos', model: fileMetaLean })
+    .sort({ createdAt: -1 })
+    .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
+    .lean();
+  const newItems = items.filter(item => item.companyId);
+  return res.status(200).send(newItems);
 });
 
 // filterprice
-itemRoutes.get('/filterprice/max/:priceFilterValue/:offset/:limit', async(req, res) => {
+itemRoutes.get('/filterprice/max/:priceFilterValue/:offset/:limit/:companyIdParam', async(req, res) => {
+  const { companyIdParam } = req.params;
+  let filter = {} as any;
+  const isValid = verifyObjectId(companyIdParam);
+  if (isValid) {
+    filter = { companyId: companyIdParam };
+  }
   const { priceFilterValue } = req.params;
   const items = await itemLean
-    .find({ })
+    .find(filter)
     .gte('costMeta.sellingPrice', Number(priceFilterValue))
-    .lean()
-    .sort({ createdAt: -1 });
-  return res.status(200).send(items);
+    .populate({ path: 'photos', model: fileMetaLean })
+    .sort({ createdAt: -1 })
+    .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
+    .lean();
+  const newItems = items.filter(item => item.companyId);
+  return res.status(200).send(newItems);
 });
 
-itemRoutes.get('/filterprice/min/:priceFilterValue/:offset/:limit', async(req, res) => {
+itemRoutes.get('/filterprice/min/:priceFilterValue/:offset/:limit/:companyIdParam', async(req, res) => {
+  const { companyIdParam } = req.params;
+  let filter = {} as any;
+  const isValid = verifyObjectId(companyIdParam);
+  if (isValid) {
+    filter = { companyId: companyIdParam };
+  }
   const { priceFilterValue } = req.params;
   const items = await itemLean
-    .find({ })
+    .find(filter)
     .lte('costMeta.sellingPrice', Number(priceFilterValue))
-    .lean()
-    .sort({ createdAt: -1 });
-  return res.status(200).send(items);
+    .populate({ path: 'photos', model: fileMetaLean })
+    .sort({ createdAt: -1 })
+    .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
+    .lean();
+  const newItems = items.filter(item => item.companyId);
+  return res.status(200).send(newItems);
 });
 
 
-itemRoutes.get('/filterprice/eq/:priceFilterMinValue/:priceFilterMaxValue/:offset/:limit', async(req, res) => {
+itemRoutes.get('/filterprice/eq/:priceFilterMinValue/:priceFilterMaxValue/:offset/:limit/:companyIdParam', async(req, res) => {
+  const { companyIdParam } = req.params;
+  let filter = {} as any;
+  const isValid = verifyObjectId(companyIdParam);
+  if (isValid) {
+    filter = { companyId: companyIdParam };
+  }
   const { priceFilterMinValue, priceFilterMaxValue } = req.params;
   const items = await itemLean
-    .find({ })
+    .find(filter)
     .gte('costMeta.sellingPrice', Number(priceFilterMaxValue))
     .lte('costMeta.sellingPrice', Number(priceFilterMinValue))
-    .lean()
-    .sort({ createdAt: -1 });
-  return res.status(200).send(items);
+    .populate({ path: 'photos', model: fileMetaLean })
+    .sort({ createdAt: -1 })
+    .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
+    .lean();
+  const newItems = items.filter(item => item.companyId);
+  return res.status(200).send(newItems);
 });
 
-itemRoutes.get('/filterstars/:starVal/:offset/:limit', async(req, res) => {
+itemRoutes.get('/filterstars/:starVal/:offset/:limit/:companyIdParam', async(req, res) => {
+  const { companyIdParam } = req.params;
+  let filter = {} as any;
+  const isValid = verifyObjectId(companyIdParam);
+  if (isValid) {
+    filter = { companyId: companyIdParam };
+  }
   const starVal = Number(req.params.starVal);
   const reviews = await reviewLean
-    .find({ })
+    .find(filter)
     .where('rating') // rating
     .lte(starVal + 2)
     .gte(starVal)
     .select({ itemId: 1 })
+    .populate({ path: 'photos', model: fileMetaLean })
     .lean()
-    .populate({ path: 'itemId', model: itemLean });
-  const items = reviews
+    .populate({ path: 'itemId', model: itemLean,
+      populate: [{
+        path: 'photos', model: fileMetaLean, transform: (doc) => doc.url
+      }]
+    })
+    .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
+    .lean();
+  const newItems = reviews.filter(val => val.companyId);
+  const items = newItems
     .map(val => val.itemId);
   return res.status(200).send(items);
 });
 
-itemRoutes.get('/discount/:discountValue/:offset/:limit', async(req, res) => {
+itemRoutes.get('/discount/:discountValue/:offset/:limit/:companyIdParam', async(req, res) => {
+  const { companyIdParam } = req.params;
+  let filter = {} as any;
+  const isValid = verifyObjectId(companyIdParam);
+  if (isValid) {
+    filter = { companyId: companyIdParam };
+  }
   const { discountValue } = req.params;
   const items = await itemLean
-    .find({})
+    .find(filter)
     .or([
       {
         // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -510,13 +654,24 @@ itemRoutes.get('/discount/:discountValue/:offset/:limit', async(req, res) => {
         'costMeta.discount': Number(discountValue)
       }
     ])
-    .lean()
-    .sort({ createdAt: -1 });
-  return res.status(200).send(items);
+    .populate({ path: 'photos', model: fileMetaLean })
+    .sort({ createdAt: -1 })
+    .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
+    .lean();
+  const newItems = items.filter(item => item.companyId);
+  return res.status(200).send(newItems);
 });
 
-itemRoutes.post('/getsponsored', async(req, res) => {
+itemRoutes.post('/getsponsored/:companyIdParam', async(req, res) => {
+  const { companyIdParam } = req.params;
   const ids = req.body.sponsored;
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  let filter = { _id: { $in: ids } } as any;
+  const isValid = verifyObjectId(companyIdParam);
+  if (isValid) {
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    filter = { companyId: companyIdParam, _id: { $in: ids } };
+  }
   if (ids && ids.length > 0) {
     for (const id of ids) {
       const isValid = verifyObjectId(id);
@@ -530,26 +685,49 @@ itemRoutes.post('/getsponsored', async(req, res) => {
 
   const items = await itemLean
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    .find({ _id: { $in: ids } })
+    .find(filter)
+    .populate({ path: 'photos', model: fileMetaLean })
     .lean()
-    .sort({ timesViewed: 1 });
-  return res.status(200).send(items);
+    .sort({ timesViewed: 1 })
+    .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
+    .lean();
+  const newItems = items.filter(item => item.companyId);
+  return res.status(200).send(newItems);
 });
 
-itemRoutes.get('/getoffered', async(req, res) => {
+itemRoutes.get('/getoffered/:companyIdParam', async(req, res) => {
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  let filter = {} as any;
+  const isValid = verifyObjectId(queryId);
+  if (isValid) {
+    filter = { companyId: queryId };
+  }
   const items = await itemLean
-    .find({ })
-    .lean()
-    .populate({ path: 'sponsored', model: itemLean })
-    .sort({ createdAt: -1 });
-  const filtered = items.filter(p => p.sponsored?.length && p.sponsored?.length > 0);
+    .find(filter)
+    .populate({ path: 'sponsored', model: itemLean,
+      populate: [{
+        path: 'photos', model: fileMetaLean
+      }
+      ]
+    })
+    .populate({ path: 'photos', model: fileMetaLean })
+    .sort({ createdAt: -1 })
+    .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
+    .lean();
+  const newItems = items.filter(item => item.companyId);
+  const filtered = newItems.filter(p => p.sponsored?.length && p.sponsored?.length > 0);
   return res.status(200).send(filtered);
 });
 
-itemRoutes.put('/addsponsored/:id', requireAuth, roleAuthorisation('items'), deleteFiles, async(req, res) => {
+itemRoutes.put('/addsponsored/:id/:companyIdParam', requireAuth, roleAuthorisation('items', 'update'), deleteFiles, async(req, res) => {
   const { id } = req.params;
   const { sponsored } = req.body;
-  const isValid = verifyObjectId(id);
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectIds([id, queryId]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -580,14 +758,18 @@ itemRoutes.put('/addsponsored/:id', requireAuth, roleAuthorisation('items'), del
   return res.status(200).send({ success: true });
 });
 
-itemRoutes.put('/updatesponsored/:id', requireAuth, roleAuthorisation('items'), deleteFiles, async(req, res) => {
+itemRoutes.put('/updatesponsored/:id/:companyIdParam', requireAuth, roleAuthorisation('items', 'update'), deleteFiles, async(req, res) => {
   const { id } = req.params;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const { sponsored } = req.body;
-  const isValid = verifyObjectId(id);
+  const isValid = verifyObjectIds([id, queryId]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
-  const item = await itemMain.findByIdAndUpdate(id);
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  const item = await itemMain.findOneAndUpdate({ _id: id, companyId: queryId });
   if (!item) {
     return res.status(404).send({ success: false });
   }
@@ -618,13 +800,17 @@ itemRoutes.put('/updatesponsored/:id', requireAuth, roleAuthorisation('items'), 
   return res.status(200).send({ success: true });
 });
 
-itemRoutes.delete('/deletesponsored/:id/:spnsdId', requireAuth, roleAuthorisation('items'), deleteFiles, async(req, res) => {
+itemRoutes.delete('/deletesponsored/:id/:spnsdId/:companyIdParam', requireAuth, roleAuthorisation('items', 'delete'), deleteFiles, async(req, res) => {
   const { id, spnsdId } = req.params;
-  const isValid = verifyObjectId(id);
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectIds([id, queryId]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
-  const item = await itemMain.findByIdAndUpdate(id);
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  const item = await itemMain.findOneAndUpdate({ _id: id, companyId: queryId });
   if (!item) {
     return res.status(404).send({ success: false });
   }
@@ -656,13 +842,17 @@ itemRoutes.delete('/deletesponsored/:id/:spnsdId', requireAuth, roleAuthorisatio
 });
 
 
-itemRoutes.put('/deleteone/:id', requireAuth, roleAuthorisation('items'), deleteFiles, async(req, res) => {
+itemRoutes.put('/deleteone/:id/:companyIdParam', requireAuth, roleAuthorisation('items', 'delete'), deleteFiles, async(req, res) => {
   const { id } = req.params;
-  const isValid = verifyObjectId(id);
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectIds([id, queryId]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
-  const deleted = await itemMain.findByIdAndDelete(id);
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  const deleted = await itemMain.findOneAndDelete({ _id: id, companyId: queryId });
   if (Boolean(deleted)) {
     return res.status(200).send({ success: Boolean(deleted) });
   } else {
@@ -670,29 +860,33 @@ itemRoutes.put('/deleteone/:id', requireAuth, roleAuthorisation('items'), delete
   }
 });
 
-itemRoutes.put('/deleteimages', requireAuth, roleAuthorisation('items'), deleteFiles, async(req, res) => {
-  const filesWithDir: Ifilewithdir[] = req.body.filesWithDir;
+itemRoutes.put('/deleteimages/:companyIdParam', requireAuth, roleAuthorisation('items', 'delete'), deleteFiles, async(req, res) => {
+  const filesWithDir: IfileMeta[] = req.body.filesWithDir;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   if (filesWithDir && !filesWithDir.length) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const updatedProduct = req.body.item;
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const { _id } = updatedProduct;
-  const isValid = verifyObjectId(_id);
+  const isValid = verifyObjectIds([_id, queryId]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const item = await itemMain
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    .findByIdAndUpdate(_id);
+    .findOneAndUpdate({ _id, companyId: queryId });
   if (!item) {
     return res.status(404).send({ success: false, err: 'item not found' });
   }
   const photos = item.photos;
   const filesWithDirStr = filesWithDir
-    .map(val => val.filename);
+    .map(val => val.url);
   item.photos = photos
-    .filter(p => !filesWithDirStr.includes(p));
+    .filter(p => !filesWithDirStr.includes(p))
+    .map(p => p._id) ;
   let errResponse: Isuccess;
   await item.save().catch(err => {
     errResponse = {
@@ -715,9 +909,12 @@ itemRoutes.put('/deleteimages', requireAuth, roleAuthorisation('items'), deleteF
   return res.status(200).send({ success: true });
 });
 
-itemRoutes.post('/search/:limit/:offset', async(req, res) => {
+itemRoutes.post('/search/:limit/:offset/:companyIdParam', async(req, res) => {
   const { searchterm, searchKey, category, extraFilers } = req.body;
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   let filter;
   if (!category || category === 'all') {
     filter = {};
@@ -772,23 +969,28 @@ itemRoutes.post('/search/:limit/:offset', async(req, res) => {
     }
   }
   const items = await itemLean
-    .find({ [searchKey]: { $regex: searchterm, $options: 'i' }, ...filter })
+    .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' }, ...filter })
     .skip(offset)
     .limit(limit)
+    .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
     .lean();
-  return res.status(200).send(items);
+  const newItems = items.filter(item => item.companyId);
+  return res.status(200).send(newItems);
 });
 
-itemRoutes.put('/deletemany', requireAuth, roleAuthorisation('items'), deleteFiles, async(req, res) => {
+itemRoutes.put('/deletemany/:companyIdParam', requireAuth, roleAuthorisation('items', 'delete'), deleteFiles, async(req, res) => {
   const { ids } = req.body;
-  const isValid = verifyObjectIds(ids);
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectIds([...ids, ...[queryId]]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   // start by removing offers
-  await itemOfferMain.deleteMany({ items: { $elemMatch: { $in: ids } } });
+  await itemOfferMain.deleteMany({ companyId: queryId, items: { $elemMatch: { $in: ids } } });
   // also remove decoys
-  await itemDecoyMain.deleteMany({ items: { $elemMatch: { $in: ids } } });
+  await itemDecoyMain.deleteMany({ companyId: queryId, items: { $elemMatch: { $in: ids } } });
   const deleted = await itemMain
     // eslint-disable-next-line @typescript-eslint/naming-convention
     .deleteMany({ _id: { $in: ids } })

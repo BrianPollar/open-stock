@@ -2,16 +2,16 @@
 /* eslint-disable no-undefined */
 import { vi, expect, describe, beforeEach, it } from 'vitest';
 import { PaymentController } from '../../../../stock-counter-client/src/controllers/payment.controller';
-import { createMockCarts } from '../../../../tests/mocks';
-import { createMockDeliveryCity, createMockDeliveryCitys } from '../../../../tests/mocks';
 import { StockCounterClient } from '../../../../stock-counter-client/src/stock-counter-client';
 import { of } from 'rxjs';
-import { createMockAddress } from '../../../../tests/mocks';
 import Axios from 'axios-observable';
+import { createMockCarts, createMockDeliveryCity, createMockDeliveryCitys } from '../../../../tests/stock-counter-mocks';
+import { createMockAddress } from '../../../../tests/stock-auth-mocks';
 
 describe('PaymentController', () => {
   let instance: PaymentController;
   const axiosMock = { } as Axios;
+  const companyId = 'companyid';
 
   beforeEach(() => {
     new StockCounterClient(axiosMock);
@@ -27,8 +27,7 @@ describe('PaymentController', () => {
   });
 
   it('#calculateTargetPriceOrShipping to return price without shipping', () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const calculated = instance.calculateTargetPriceOrShipping(false, createMockCarts(10), createMockDeliveryCity(), null as any);
+    const calculated = instance.calculateTargetPriceOrShipping(false, createMockCarts(10), createMockDeliveryCity(), null);
     expect(typeof calculated).toBe('object');
     expect(calculated).toHaveProperty('totalCost');
     expect(calculated).toHaveProperty('res');
@@ -38,8 +37,7 @@ describe('PaymentController', () => {
   });
 
   it('#calculateTargetPriceOrShipping to return shipping only', () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const calculated = instance.calculateTargetPriceOrShipping(true, createMockCarts(10), createMockDeliveryCity(), null as any);
+    const calculated = instance.calculateTargetPriceOrShipping(true, createMockCarts(10), createMockDeliveryCity(), null);
     expect(typeof calculated).toBe('object');
     expect(calculated).toHaveProperty('totalCost');
     expect(calculated).toHaveProperty('res');
@@ -50,8 +48,7 @@ describe('PaymentController', () => {
   });
 
   it('#calculateTargetPriceAndShipping to return price with shipping', () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const calculated = instance.calculateTargetPriceAndShipping(createMockCarts(10), createMockDeliveryCity(), null as any);
+    const calculated = instance.calculateTargetPriceAndShipping(createMockCarts(10), createMockDeliveryCity(), null);
     expect(typeof calculated).toBe('object');
     expect(calculated).toHaveProperty('res');
     expect(calculated).toHaveProperty('totalCostNshipping');
@@ -68,7 +65,7 @@ describe('PaymentController', () => {
   it('#getDeliveryCitys should append city to PaymentController', async() => {
     vi.spyOn(StockCounterClient.ehttp, 'makeGet').mockImplementationOnce(() => of(createMockDeliveryCitys(10)));
     const citysArg = createMockDeliveryCitys(10);
-    const city = await instance.getDeliveryCitys(citysArg);
+    const city = await instance.getDeliveryCitys(companyId, citysArg);
     expect(typeof city).toBe('object');
     expect(city.length).toBeDefined();
   });

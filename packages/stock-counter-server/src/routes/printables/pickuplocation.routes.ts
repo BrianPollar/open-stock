@@ -2,7 +2,7 @@ import express from 'express';
 import { offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import { pickupLocationLean, pickupLocationMain } from '../../models/printables/pickuplocation.model';
 import { getLogger } from 'log4js';
-import { Isuccess } from '@open-stock/stock-universal';
+import { Icustomrequest, Isuccess } from '@open-stock/stock-universal';
 
 /**
  * Logger for pickup location routes
@@ -24,8 +24,12 @@ export const pickupLocationRoutes = express.Router();
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>}
  */
-pickupLocationRoutes.post('/create', requireAuth, roleAuthorisation('printables'), async(req, res) => {
+pickupLocationRoutes.post('/create/:companyIdParam', requireAuth, roleAuthorisation('printables', 'create'), async(req, res) => {
   const pickupLocation = req.body;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  pickupLocation.companyId = queryId;
   const newPickupLocation = new pickupLocationMain(pickupLocation);
   let errResponse: Isuccess;
   const saved = await newPickupLocation.save()
@@ -60,8 +64,12 @@ pickupLocationRoutes.post('/create', requireAuth, roleAuthorisation('printables'
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>}
  */
-pickupLocationRoutes.put('/update', requireAuth, roleAuthorisation('printables'), async(req, res) => {
+pickupLocationRoutes.put('/update/:companyIdParam', requireAuth, roleAuthorisation('printables', 'update'), async(req, res) => {
   const updatedPickupLocation = req.body;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  updatedPickupLocation.companyId = queryId;
   const isValid = verifyObjectId(updatedPickupLocation._id);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
@@ -69,7 +77,7 @@ pickupLocationRoutes.put('/update', requireAuth, roleAuthorisation('printables')
 
   const pickupLocation = await pickupLocationMain
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    .findByIdAndUpdate(updatedPickupLocation._id);
+    .findOneAndUpdate({ _id: updatedPickupLocation._id, companyId: queryId });
   if (!pickupLocation) {
     return res.status(404).send({ success: false });
   }
@@ -108,14 +116,18 @@ pickupLocationRoutes.put('/update', requireAuth, roleAuthorisation('printables')
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>}
  */
-pickupLocationRoutes.get('/getone/:id', requireAuth, roleAuthorisation('printables'), async(req, res) => {
+pickupLocationRoutes.get('/getone/:id/:companyIdParam', requireAuth, roleAuthorisation('printables', 'read'), async(req, res) => {
   const { id } = req.params;
-  const isValid = verifyObjectId(id);
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectIds([id, queryId]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const pickupLocation = await pickupLocationLean
-    .findById(id)
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    .findOne({ _id: id, companyId: queryId })
     .lean();
   return res.status(200).send(pickupLocation);
 });
@@ -130,10 +142,13 @@ pickupLocationRoutes.get('/getone/:id', requireAuth, roleAuthorisation('printabl
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>}
  */
-pickupLocationRoutes.get('/getall/:offset/:limit', requireAuth, roleAuthorisation('printables'), async(req, res) => {
+pickupLocationRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, roleAuthorisation('printables', 'read'), async(req, res) => {
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const pickupLocations = await pickupLocationLean
-    .find({})
+    .find({ companyId: queryId })
     .skip(offset)
     .limit(limit)
     .lean();
@@ -150,13 +165,17 @@ pickupLocationRoutes.get('/getall/:offset/:limit', requireAuth, roleAuthorisatio
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>}
  */
-pickupLocationRoutes.delete('/deleteone/:id', requireAuth, async(req, res) => {
+pickupLocationRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, async(req, res) => {
   const { id } = req.params;
-  const isValid = verifyObjectId(id);
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectIds([id, queryId]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
-  const deleted = await pickupLocationMain.findByIdAndDelete(id);
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  const deleted = await pickupLocationMain.findOneAndDelete({ _id: id, companyId: queryId });
   if (Boolean(deleted)) {
     return res.status(200).send({ success: Boolean(deleted) });
   } else {
@@ -174,11 +193,14 @@ pickupLocationRoutes.delete('/deleteone/:id', requireAuth, async(req, res) => {
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>}
  */
-pickupLocationRoutes.post('/search/:limit/:offset', requireAuth, roleAuthorisation('printables'), async(req, res) => {
+pickupLocationRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, roleAuthorisation('printables', 'read'), async(req, res) => {
   const { searchterm, searchKey } = req.body;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
   const pickupLocations = await pickupLocationLean
-    .find({ [searchKey]: { $regex: searchterm, $options: 'i' } })
+    .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
     .skip(offset)
     .limit(limit)
     .lean();
@@ -195,16 +217,19 @@ pickupLocationRoutes.post('/search/:limit/:offset', requireAuth, roleAuthorisati
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>}
  */
-pickupLocationRoutes.put('/deletemany', requireAuth, roleAuthorisation('printables'), async(req, res) => {
+pickupLocationRoutes.put('/deletemany/:companyIdParam', requireAuth, roleAuthorisation('printables', 'delete'), async(req, res) => {
   const { ids } = req.body;
-  const isValid = verifyObjectIds(ids);
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectIds([...ids, ...[queryId]]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
 
   const deleted = await pickupLocationMain
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    .deleteMany({ _id: { $in: ids } })
+    .deleteMany({ _id: { $in: ids }, companyId: queryId })
     .catch(err => {
       pickupLocationRoutesLogger.error('deletemany - err: ', err);
       return null;

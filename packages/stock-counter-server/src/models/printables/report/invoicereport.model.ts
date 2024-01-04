@@ -3,12 +3,15 @@ import { IinvoicesReport } from '@open-stock/stock-universal';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../../controllers/database.controller';
 const uniqueValidator = require('mongoose-unique-validator');
 
-/** Model interface for invoicesReport */
+/**
+ * Represents a TinvoicesReport, which is a document that combines the properties of a Document and IinvoicesReport.
+ */
 export type TinvoicesReport = Document & IinvoicesReport;
 
 /** Schema definition for invoicesReport */
 const invoicesReportSchema: Schema<TinvoicesReport> = new Schema({
   urId: { type: String, unique: true },
+  companyId: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
   totalAmount: { type: Number },
   date: { type: Date },
   invoices: []
@@ -20,17 +23,25 @@ invoicesReportSchema.plugin(uniqueValidator);
 /** Primary selection object for invoicesReport */
 const invoicesReportselect = {
   urId: 1,
+  companyId: 1,
   totalAmount: 1,
   date: 1,
   invoices: 1
 };
 
-/** Main connection for invoicesReports Operations */
+/**
+ * Represents the main invoice report.
+ */
 export let invoicesReportMain: Model<TinvoicesReport>;
-/** Lean connection for invoicesReports Operations */
+
+/**
+ * Represents the lean version of the invoices report model.
+ */
 export let invoicesReportLean: Model<TinvoicesReport>;
 
-/** Primary selection object for invoicesReport */
+/**
+ * Select statement for generating invoices report.
+ */
 export const invoicesReportSelect = invoicesReportselect;
 
 /**
@@ -52,3 +63,4 @@ export const createInvoicesReportModel = async(dbUrl: string, main = true, lean 
     invoicesReportLean = mainConnectionLean.model<TinvoicesReport>('invoicesReport', invoicesReportSchema);
   }
 };
+

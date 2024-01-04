@@ -6,15 +6,31 @@ import { getLogger } from 'log4js';
 // import { nodemailer } from 'nodemailer';
 // const nodemailer = require('nodemailer');
 import * as jwt from 'jsonwebtoken';
-import { user } from '../models/user.model';
 import { emailtoken } from '../models/emailtoken.model';
-import { Iauthresponse, IauthresponseObj, Iauthtoken, Isuccess, Iuser, Iuserperm, makeRandomString } from '@open-stock/stock-universal';
+import {
+  Iauthresponse,
+  IauthresponseObj,
+  Iauthtoken,
+  IcompanyPerm,
+  Isuccess,
+  Iuser,
+  Iuserperm,
+  makeRandomString
+} from '@open-stock/stock-universal';
 import { stringifyMongooseErr, verifyObjectId } from '@open-stock/stock-universal-server';
+import { Document } from 'mongoose';
+import { sendMail } from '@open-stock/stock-notif-server';
 
-/** */
+
 const universialControllerLogger = getLogger('controllers/UniversialController');
 
-/** generateToken : This function takes in authentication configuration, expiry date, and JWT secret as parameters and uses the  jwt.sign  method to generate a token with the specified configuration.*/
+/**
+ * Generates a JWT token with the provided authentication configuration, expiry date, and JWT secret.
+ * @param authConfig - The authentication configuration.
+ * @param expiryDate - The expiry date for the token.
+ * @param jwtSecret - The JWT secret used for signing the token.
+ * @returns The generated JWT token.
+ */
 export const generateToken = (
   authConfig: Iauthtoken,
   expiryDate: string | number,
@@ -25,38 +41,44 @@ export const generateToken = (
     expiresIn: expiryDate
   });
 
-/** setUserInfo : This function takes in a user ID and permissions as parameters and creates an authentication token object with the provided details. It also logs the details using a logger.*/
+/**
+ * Sets the user information.
+ * @param userId - The ID of the user.
+ * @param permissions - The user's permissions.
+ * @param companyId - The ID of the company.
+ * @param companyPermissions - The company's permissions.
+ * @returns The user information.
+ */
 export const setUserInfo = (
   userId: string,
-  permissions: Iuserperm
+  permissions: Iuserperm,
+  companyId: string,
+  companyPermissions: IcompanyPerm
 ) => {
   const details: Iauthtoken = {
     userId,
-    permissions
+    permissions,
+    companyId,
+    companyPermissions
   };
 
   universialControllerLogger.info('setUserInfo - details: ', details);
   return details;
 };
 
-/** validatePhone : This function takes in a user ID, case type, verification code, and a new password as parameters. It performs various checks, such as validating the user ID and finding the user in the database. It then verifies the provided verification code using the user's Authy token. If the verification is successful, it updates the user's password (if it's a password reset case) and sends a success response. If there are any errors during the process, it returns an appropriate error response. */
-export const validatePhone = async (
-  userId: string,
+/**
+ * Validates the phone number of a user and performs necessary actions based on the case.
+ * @param foundUser - The user object to validate.
+ * @param nowCase - The current case, either 'password' or 'signup'.
+ * @param verifycode - The verification code entered by the user.
+ * @param newPassword - The new password to set (only applicable for 'password' case).
+ * @returns A promise that resolves to an authentication response object.
+ */
+export const validatePhone = async(
+  foundUser: Iuser & Document,
   nowCase: string,
   verifycode: string,
   newPassword: string): Promise<IauthresponseObj> => {
-    const isValid = verifyObjectId(userId);
-    if (!isValid) {
-      return {
-        status: 401,
-        response: {
-          success: false,
-          err: 'unauthourised'
-        }
-      };
-    }
-    const foundUser: any = await user
-    .findById(userId);
   if (!foundUser) {
     return {
       status: 404,
@@ -68,7 +90,6 @@ export const validatePhone = async (
   }
 
   return new Promise(resolve => {
-  // eslint-disable-next-line prefer-arrow/prefer-arrow-functions
     const postVerify = function(err) {
       if (err) {
         universialControllerLogger.error('postVerify - err: ', err);
@@ -92,20 +113,19 @@ export const validatePhone = async (
         return;
       }
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-      return foundUser.save(postSave);
+      return foundUser.save(postSave as any);
     };
 
-    // eslint-disable-next-line prefer-arrow/prefer-arrow-functions
     const postSave = function(err) {
       if (err) {
-        let response: Isuccess = {
+        const response: Isuccess = {
           success: false
         };
         if (err && err.errors) {
           response.err = stringifyMongooseErr(err.errors);
         } else {
           response.err = `we are having problems connecting to our databases, 
-          try again in a while`
+          try again in a while`;
         }
         universialControllerLogger.error('postSave err: ', err);
         resolve({
@@ -127,8 +147,7 @@ export const validatePhone = async (
 				you can now you can customise your profile`;
       }
       foundUser.save();
-      // eslint-disable-next-line prefer-arrow/prefer-arrow-functions
-      return foundUser.sendMessage(message, function(err1) {
+      return foundUser['sendMessage'](message, function(err1) {
         let msg;
         if (nowCase === 'password') {
           msg = `You are reset up,
@@ -162,20 +181,38 @@ export const validatePhone = async (
         });
       });
     };
-    return foundUser.verifyAuthyToken(verifycode,
+    return foundUser['verifyAuthyToken'](verifycode,
       postVerify);
   });
 };
 
-/** validateEmail : This function is similar to  validatePhone , but it is used for email verification instead. It validates the provided verification code against the user's email token and performs similar checks and updates as  validatePhone . */
-export const validateEmail = async (
-  userId: string,
+/**
+ * Validates the email for a user.
+ * @param foundUser - The user object.
+ * @param type - The type of validation (e.g., '_link', 'code').
+ * @param nowCase - The current case (e.g., 'password', 'signup').
+ * @param verifycode - The verification code or token.
+ * @param newPassword - The new password (only applicable for 'password' case).
+ * @returns A promise that resolves to an authentication response object.
+ */
+export const validateEmail = async(
+  foundUser: Iuser & Document,
   type: string,
   nowCase: string,
   verifycode: string,
   newPassword: string): Promise<IauthresponseObj> => {
   universialControllerLogger.info('validateEmail - %type: , %nowCase: ', type, nowCase);
   let msg: string;
+  if (!foundUser) {
+    msg = 'try signup again, account not found';
+    return {
+      status: 401,
+      response: {
+        success: false,
+        err: msg
+      }
+    };
+  }
   const token = await emailtoken.findOne({ token: verifycode });
   if (!token) {
     if (type === '_link') {
@@ -202,20 +239,9 @@ export const validateEmail = async (
         success: false,
         err: 'unauthourised'
       }
-    }
-  }
-  const foundUser = await user
-    .findById(token.userId);
-  if (!foundUser) {
-    msg = 'try signup again, account not found';
-    return {
-      status: 401,
-      response: {
-        success: false,
-        err: msg
-      }
     };
   }
+
   foundUser.expireAt = '';
   foundUser.verified = true;
   if (nowCase === 'password') {
@@ -226,7 +252,7 @@ export const validateEmail = async (
   }
 
   let status = 200;
-  let errResponse: Isuccess = {
+  const errResponse: Isuccess = {
     success: false
   };
 
@@ -236,15 +262,15 @@ export const validateEmail = async (
       errResponse.err = stringifyMongooseErr(err.errors);
     } else {
       errResponse.err = `we are having problems connecting to our databases, 
-      try again in a while`
+      try again in a while`;
     }
   });
 
-  if(status === 200) {
+  if (status === 200) {
     return {
       status,
       response: errResponse
-    }
+    };
   } else {
     return {
       status,
@@ -257,16 +283,20 @@ export const validateEmail = async (
   }
 };
 
-
-/** sendTokenPhone : This function takes in a user object and an enableValidationSMS flag as parameters. It sends an Authy token to the user's phone number for verification. If the enableValidationSMS flag is set to '1', it uses Twilio to send the SMS. If the flag is set to any other value, it assumes SMS validation is disabled and returns a success response. */
+/**
+ * Sends a token to the user's phone for authentication.
+ * @param foundUser - The user object.
+ * @param enableValidationSMS - Flag indicating whether to enable SMS validation. Default is '1'.
+ * @returns A promise that resolves to an authentication response object.
+ */
 export const sendTokenPhone = (
   foundUser,
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   enableValidationSMS = '1' // twilio enable sms validation
 ): Promise<Iauthresponse> => new Promise(resolve => {
   universialControllerLogger.info('sendTokenPhone');
   let response: Iauthresponse;
   if (enableValidationSMS === '1') {
-    // eslint-disable-next-line prefer-arrow/prefer-arrow-functions
     foundUser.sendAuthyToken(function(err) {
       if (err) {
         universialControllerLogger.error('sendTokenPhone - err: ', err);
@@ -298,7 +328,6 @@ export const sendTokenPhone = (
   }
 });
 
-/** sendTokenEmail : This function takes in the app, user object, verification type, and app official name as parameters. It generates an email verification token and sends an email to the user with the token. The email content varies based on the verification type. If the email is sent successfully, it returns a success response. If there are any errors during the process, it returns an appropriate error response. */
 /**
  * Sends a verification email to the specified user with a token or link.
  * @param app - The Express app instance.
@@ -314,7 +343,7 @@ export const sendTokenEmail = (
   type: string,
   appOfficialName: string,
   link?: string
-  ): Promise<Iauthresponse> => new Promise(resolve => {
+): Promise<Iauthresponse> => new Promise(resolve => {
   universialControllerLogger.info('sendTokenEmail');
   let response: Iauthresponse = {
     success: false
@@ -514,7 +543,7 @@ height: 100%;
       };
     }
 
-    app.locals.stockAuthServer.locaLMailHandler.sendMail(
+    sendMail(
       mailOptions).then(res => {
       universialControllerLogger.info('message sent', res);
       response = {
@@ -539,20 +568,19 @@ height: 100%;
   }).catch((err) => {
     universialControllerLogger.error(`sendTokenEmail
           token.save error, ${err}`);
-          let errResponse: Isuccess = {
-            success: false
-          };
-          if (err && err.errors) {
-            errResponse.err = stringifyMongooseErr(err.errors);
-          } else {
-            errResponse.err = `we are having problems connecting to our databases, 
-            try again in a while`
-          }
-      resolve({ 
-        status: 403,
-        success: false, 
-        err: errResponse.err });
-      return;
+    const errResponse: Isuccess = {
+      success: false
+    };
+    if (err && err.errors) {
+      errResponse.err = stringifyMongooseErr(err.errors);
+    } else {
+      errResponse.err = `we are having problems connecting to our databases, 
+            try again in a while`;
+    }
+    resolve({
+      status: 403,
+      success: false,
+      err: errResponse.err });
+    return;
   });
-  
 });

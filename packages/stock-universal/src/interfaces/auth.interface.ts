@@ -3,7 +3,7 @@
  * @packageDocumentation
  */
 
-import { Iuserperm } from './general.interface';
+import { IcompanyPerm, Iuserperm } from './general.interface';
 import { Iauthresponse } from './return.interface';
 
 /**
@@ -31,7 +31,9 @@ export interface Iauthtoken {
   /**
    * The permissions of the user.
    */
+  companyId: string;
   permissions: Iuserperm;
+  companyPermissions: IcompanyPerm;
 }
 
 /**

@@ -5,11 +5,12 @@ import { StockCounterClient } from '../../../../stock-counter-client/src/stock-c
 import { of } from 'rxjs';
 import Axios from 'axios-observable';
 import { IreviewMain } from '@open-stock/stock-universal';
-import { createMockReview, createMockReviews } from '../../../../tests/mocks';
+import { createMockReview, createMockReviews } from '../../../../tests/stock-counter-mocks';
 
 describe('Review', () => {
   let instance: Review;
   const axiosMock = { } as Axios;
+  const companyId = 'companyid';
 
   beforeEach(() => {
     new StockCounterClient(axiosMock);
@@ -40,7 +41,7 @@ describe('Review', () => {
 
   it('#getreviews static should get Reviews array', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makeGet').mockImplementationOnce(() => of(createMockReviews(10)));
-    const list = await Review.getreviews('uriD', '/', 0, 0);
+    const list = await Review.getreviews(companyId, 'uriD', '/', 0, 0);
     expect(typeof list).toEqual('object');
     expectTypeOf(list).toEqualTypeOf<Review[]>([]);
     expect(lSpy).toHaveBeenCalled();
@@ -48,7 +49,7 @@ describe('Review', () => {
 
   it('#getOnereview static should get one Review', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makeGet').mockImplementationOnce(() => of(createMockReview()));
-    const one = await Review.getOnereview('urId');
+    const one = await Review.getOnereview(companyId, 'urId');
     expect(typeof one).toEqual('object');
     expect(one).toBeInstanceOf(Review);
     expect(lSpy).toHaveBeenCalled();
@@ -56,7 +57,7 @@ describe('Review', () => {
 
   it('#createreview static should add one Review', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makePost').mockImplementationOnce(() => of({ success: true }));
-    const added = await Review.createreview(createMockReview() as IreviewMain);
+    const added = await Review.createreview(companyId, createMockReview() as IreviewMain);
     expect(typeof added).toEqual('object');
     expect(added).toHaveProperty('success');
     expect(added.success).toEqual(true);
@@ -67,7 +68,7 @@ describe('Review', () => {
 
   it('#deleteReview should delete Review', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makeDelete').mockImplementationOnce(() => of({ success: true }));
-    const deleted = await instance.deleteReview();
+    const deleted = await instance.deleteReview(companyId);
     expect(typeof deleted).toEqual('object');
     expect(deleted).toHaveProperty('success');
     expect(deleted.success).toEqual(true);
@@ -76,4 +77,3 @@ describe('Review', () => {
     expect(lSpy).toHaveBeenCalled();
   });
 });
-

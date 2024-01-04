@@ -6,9 +6,10 @@ import { notifnRoutes } from '../../../../stock-notif-server/src/routes/notifica
 // import { disconnectMongoose } from '@open-stock/stock-universal-server';
 import { createExpressServer } from '../../../../tests/helpers';
 import { Application } from 'express';
-import { createNotificationsDatabase } from '../../../../stock-notif-server/src/stock-notif-server';
 import * as http from 'http';
 import { disconnectMongoose } from '@open-stock/stock-universal-server';
+import { createNotificationsDatabase } from '../../../src/stock-notif-local';
+import { IpermProp } from '@open-stock/stock-universal';
 
 const mocks = vi.hoisted(() => {
   return {
@@ -16,27 +17,37 @@ const mocks = vi.hoisted(() => {
   };
 });
 
-
-vi.mock('../../../../stock-notif-server/src/controllers/notifications.controller', () => {
+vi.mock('../../../../stock-notif-server/src/controllers/notifications.controller', async() => {
+  const actual: object = await vi.importActual('../../../../stock-notif-server/src/controllers/notifications.controller');
   return {
+    ... actual,
     createNotifications: mocks.createNotifications
   };
 });
+
+const permObj: IpermProp = {
+  create: true,
+  read: true,
+  update: true,
+  delete: true
+};
+
 
 const stockUniversalServer = vi.hoisted(() => {
   return {
     requireAuth: vi.fn((req, res, next) => {
       req.user = {
         userId: '507f1f77bcf86cd799439011',
+        companyId: 'superAdmin',
         permissions: {
-          orders: true,
-          payments: true,
-          users: true,
-          items: true,
-          faqs: true,
-          videos: true,
-          printables: true,
-          buyer: true
+          orders: permObj,
+          payments: permObj,
+          users: permObj,
+          items: permObj,
+          faqs: permObj,
+          videos: permObj,
+          printables: permObj,
+          buyer: permObj
         }
       };
       next();
@@ -44,12 +55,36 @@ const stockUniversalServer = vi.hoisted(() => {
   };
 });
 
-vi.mock('@open-stock/stock-universal-server', async() => {
-  const actual = await vi.importActual('@open-stock/stock-universal-server');
+const mocksUnivServ = vi.hoisted(() => {
   return {
-    // @ts-ignore
+    verifyObjectId: vi.fn(),
+    verifyObjectIds: vi.fn()
+  };
+});
+
+vi.mock('@open-stock/stock-universal-server', async() => {
+  const actual: object = await vi.importActual('@open-stock/stock-universal-server');
+  return {
     ...actual,
-    requireAuth: stockUniversalServer.requireAuth
+    requireAuth: stockUniversalServer.requireAuth,
+    verifyObjectId: mocksUnivServ.verifyObjectId,
+    verifyObjectIds: mocksUnivServ.verifyObjectId
+  };
+});
+
+const mocksModel = vi.hoisted(() => {
+  return {
+    mainnotificationLean: vi.fn(),
+    mainnotificationMain: vi.fn()
+  };
+});
+
+vi.mock('../../../../stock-notif-server/src/models/notification.model', async() => {
+  const actual: object = await vi.importActual('../../../../stock-notif-server/src/models/notification.model');
+  return {
+    ...actual,
+    mainnotificationLean: mocksModel.mainnotificationLean,
+    mainnotificationMain: mocksModel.mainnotificationMain
   };
 });
 
@@ -62,6 +97,7 @@ describe('AuthRoutes', () => {
   let server: http.Server;
   const token = 'token';
   const objectId = '507f1f77bcf86cd799439011';
+  const companyId = '507f1f77bcf86cd799439011';
 
   beforeAll(async() => {
     app = createExpressServer();
@@ -73,7 +109,8 @@ describe('AuthRoutes', () => {
   });
 
   beforeEach(() => {
-
+    mocksUnivServ.verifyObjectId.mockReturnValue(true);
+    mocksUnivServ.verifyObjectIds.mockReturnValue(true);
   });
 
   afterAll(async() => {
@@ -82,20 +119,8 @@ describe('AuthRoutes', () => {
     server.close();
   });
 
-  it('should create one given the right data type', async() => {
-    // createNotifications = vi.fn();
-    const body = {
-
-    }; // TODO
-    const res = await request(app).post(apiUrl + '/create')
-      .send(body);
-    expect(res.status).toBe(200);
-    expect(typeof res.body).toBe('object');
-    expect(res.body).toStrictEqual({ success: true });
-  });
-
   it('should get all current user notifications', async() => {
-    const res = await request(app).get(apiUrl + '/getmynotifn')
+    const res = await request(app).get(apiUrl + '/getmynotifn/' + companyId)
       .set('Authorization', token)
       .send();
     expect(res.status).toBe(200);
@@ -104,7 +129,7 @@ describe('AuthRoutes', () => {
   });
 
   it('should get all current user unread notifications', async() => {
-    const res = await request(app).get(apiUrl + '/getmyavailnotifn')
+    const res = await request(app).get(apiUrl + '/getmyavailnotifn/' + companyId)
       .set('Authorization', token)
       .send();
     expect(res.status).toBe(200);
@@ -113,7 +138,9 @@ describe('AuthRoutes', () => {
   });
 
   it('should fail to get one as Object id is inValid', async() => {
-    const res = await request(app).get(apiUrl + '/getone/1436347347347478348388835835')
+    mocksUnivServ.verifyObjectId.mockReturnValue(false);
+    mocksUnivServ.verifyObjectIds.mockReturnValue(false);
+    const res = await request(app).get(apiUrl + '/getone/1436347347347478348388835835/' + companyId)
       .send();
     expect(res.status).toBe(401);
     expect(typeof res.body).toBe('object');
@@ -121,7 +148,9 @@ describe('AuthRoutes', () => {
   });
 
   it('should fail to delete on with invalid ObjectId', async() => {
-    const res = await request(app).delete(apiUrl + '/deleteone/1')
+    mocksUnivServ.verifyObjectId.mockReturnValue(false);
+    mocksUnivServ.verifyObjectIds.mockReturnValue(false);
+    const res = await request(app).delete(apiUrl + '/deleteone/1/' + companyId)
       .send();
     expect(res.status).toBe(401);
     expect(typeof res.body).toBe('object');
@@ -129,7 +158,7 @@ describe('AuthRoutes', () => {
   });
 
   it('should pass and delete given valid ObjectId', async() => {
-    const res = await request(app).delete(apiUrl + '/deleteone/' + objectId)
+    const res = await request(app).delete(apiUrl + '/deleteone/' + objectId + '/' + companyId)
       .set('Authorization', token)
       .send();
     expect(res.status).toBe(404);
@@ -139,22 +168,24 @@ describe('AuthRoutes', () => {
   });
 
   it('should request append sunscription', async() => {
+    mocksUnivServ.verifyObjectId.mockReturnValue(false);
     const body = {
-
+      userId: '507f1f77bcf86cd799439011'
     }; // TODO
-    const res = await request(app).post(apiUrl + '/subscription')
+    const res = await request(app).post(apiUrl + '/subscription/' + companyId)
       .set('Authorization', token)
       .send(body);
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(401);
     expect(res.body).toHaveProperty('success');
-    expect(res.body.success).toBe(true);
+    expect(res.body.success).toBe(false);
   });
 
   it('should update if notification is viewed', async() => {
+    mocksUnivServ.verifyObjectId.mockReturnValue(false);
     const body = {
 
     }; // TODO
-    const res = await request(app).post(apiUrl + '/updateviewed')
+    const res = await request(app).post(apiUrl + '/updateviewed/' + companyId)
       .set('Authorization', token)
       .send(body);
     expect(res.status).toBe(401);
@@ -163,7 +194,7 @@ describe('AuthRoutes', () => {
   });
 
   it('should get the number of unviewed notifications', async() => {
-    const res = await request(app).get(apiUrl + '/unviewedlength')
+    const res = await request(app).get(apiUrl + '/unviewedlength/' + companyId)
       .set('Authorization', token)
       .send();
     expect(res.status).toBe(200);
@@ -172,7 +203,7 @@ describe('AuthRoutes', () => {
   });
 
   it('should clear all notifications', async() => {
-    const res = await request(app).put(apiUrl + '/clearall')
+    const res = await request(app).put(apiUrl + '/clearall/' + companyId)
       .set('Authorization', token)
       .send();
     expect(res.status).toBe(200);
@@ -180,18 +211,8 @@ describe('AuthRoutes', () => {
     expect(res.body.success).toBe(true);
   });
 
-  it('should create settings for notifications', async() => {
-    const body = {
-
-    }; // TODO
-    const res = await request(app).post(apiUrl + '/createstn')
-      .send(body);
-    expect(res.status).toBe(200);
-    expect(res.body).toHaveProperty('success');
-    expect(res.body.success).toBe(true);
-  });
-
   it('should update notification settings', async() => {
+    mocksUnivServ.verifyObjectId.mockReturnValue(false);
     const body = {
 
     }; // TODO
@@ -210,4 +231,3 @@ describe('AuthRoutes', () => {
     // expect(res.body.success).toBe(true);
   });
 });
-

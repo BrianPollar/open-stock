@@ -9,7 +9,9 @@ import { verifyObjectId } from '@open-stock/stock-universal-server';
 /** Logger for the cookiesRoutes module */
 const cookiesRoutesLogger = getLogger('routes/cookiesRoutes');
 
-/** Express router for handling cookie-related requests */
+/**
+ * Express router for cookies routes.
+ */
 export const cookiesRoutes = express.Router();
 
 /**

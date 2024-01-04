@@ -33,4 +33,5 @@ export * from './defines/user-related/userbase.define';
 export * from './controllers/calculations.controller';
 export * from './controllers/inventory.controller';
 export * from './controllers/payment.controller';
+export * from './constants/common.fns.constant';
 export * from './stock-counter-client';

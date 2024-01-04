@@ -3,12 +3,15 @@ import { Ideliverycity } from '@open-stock/stock-universal';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
 const uniqueValidator = require('mongoose-unique-validator');
 
-/** model type for deliverycity*/
-/** */
+/**
+ * Represents a delivery city.
+ * @typedef {Document & Ideliverycity} Tdeliverycity
+ */
 export type Tdeliverycity = Document & Ideliverycity;
 
 const deliverycitySchema: Schema<Tdeliverycity> = new Schema({
   name: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
+  companyId: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
   shippingCost: { type: Number, required: [true, 'cannot be empty.'] },
   currency: { type: String, required: [true, 'cannot be empty.'] },
   deliversInDays: { type: Number, required: [true, 'cannot be empty.'] }
@@ -21,23 +24,28 @@ deliverycitySchema.plugin(uniqueValidator);
  * for deliverycity
  */
 const deliverycityselect = {
+  companyId: 1,
   name: 1,
   shippingCost: 1,
   currency: 1,
   deliversInDays: 1
 };
 
-/** main connection for deliverycitys Operations*/
-export let deliverycityMain: Model<Tdeliverycity>;
-/** lean connection for deliverycitys Operations*/
-export let deliverycityLean: Model<Tdeliverycity>;
-/** primary selection object
- * for deliverycity
+/**
+ * Represents the main delivery city model.
  */
-/** */
+export let deliverycityMain: Model<Tdeliverycity>;
+
+/**
+ * Represents a variable that holds a lean model of the delivery city.
+ */
+export let deliverycityLean: Model<Tdeliverycity>;
+
+/**
+ * Represents the selection of delivery cities.
+ */
 export const deliverycitySelect = deliverycityselect;
 
-/** */
 /**
  * Creates a delivery city model with the specified database URL, main connection and lean connection.
  * @param dbUrl The database URL to connect to.

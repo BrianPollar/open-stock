@@ -2,21 +2,25 @@ import { Document, Model, Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
 const uniqueValidator = require('mongoose-unique-validator');
 
-/** Type representing an item document in the database */
+/**
+ * Represents the type of the item model.
+ * Extends the Document type and allows any additional properties.
+ */
 export type TitemModel = Document & any;
 
 /** Mongoose schema for the item model */
 const itemSchema: Schema = new Schema({
   urId: { type: String, unique: true },
+  companyId: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
   numbersInstock: { type: Number, required: [true, 'cannot be empty.'], index: true },
   name: { type: String, required: [true, 'cannot be empty.'], index: true },
-  type: { type: String, required: [true, 'cannot be empty.'] },
+  type: { type: String },
   category: { type: String },
-  state: { type: String, required: [true, 'cannot be empty.'] },
+  state: { type: String },
   photos: [{ type: String }],
   colors: [],
-  model: { type: String, required: [true, 'cannot be empty.'] },
-  origin: { type: String, required: [true, 'cannot be empty.'] },
+  model: { type: String },
+  origin: { type: String },
   anyKnownProblems: { type: String },
   costMeta: { },
   description: { type: String },
@@ -35,17 +39,7 @@ const itemSchema: Schema = new Schema({
 
   // computer
   brand: { type: String },
-  cpuModel: {},
-  ramModel: {},
-  graphics: [],
-  pheripheral: { },
-  screen: { },
-  storageDrive: {},
-  os: { type: String },
-  // laptop
-  keyBoard: { },
-  // desktop
-  withScreen: { type: Boolean }
+  ecomerceCompat: { type: Boolean, default: false }
 }, { timestamps: true });
 
 itemSchema.index({ createdAt: -1 });
@@ -56,6 +50,7 @@ itemSchema.plugin(uniqueValidator);
 /** Primary selection object for item */
 const itemselect = {
   urId: 1,
+  companyId: 1,
   numbersInstock: 1,
   name: 1,
   purchase: 1,
@@ -83,24 +78,23 @@ const itemselect = {
   likesCount: 1,
   timesViewed: 1,
   brand: 1,
-  cpuModel: 1,
-  ramModel: 1,
-  graphics: 1,
-  pheripheral: 1,
-  screen: 1,
-  storageDrives: 1,
-  os: 1,
-  keyBoard: 1,
-  withScreen: 1,
-  inventoryMeta: 1
+  inventoryMeta: 1,
+  ecomerceCompat: 1
 };
 
-/** Main connection for item operations */
+/**
+ * Represents the main item model.
+ */
 export let itemMain: Model<any>;
-/** Lean connection for item operations */
+
+/**
+ * Represents the lean version of the item model.
+ */
 export let itemLean: Model<any>;
 
-/** Primary selection object for item */
+/**
+ * Represents the item select function.
+ */
 export const itemSelect = itemselect;
 
 /**
@@ -122,3 +116,4 @@ export const createItemModel = async(dbUrl: string, main = true, lean = true) =>
     itemLean = mainConnectionLean.model('Item', itemSchema);
   }
 };
+

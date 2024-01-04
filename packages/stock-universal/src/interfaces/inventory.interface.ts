@@ -8,18 +8,23 @@ import {
   TexpenseCategory,
   TinvoiceStatus,
   TinvoiceType,
+  TpayType,
   TreceiptType
 } from '../types/union.types';
 import { IdatabaseAuto } from './general.interface';
 import { Iitem } from './item.interface';
 
-/** Represents an invoice. */
+/**
+ * Represents an invoice.
+ */
 export interface Iinvoice extends IinvoiceRelated {
   estimateId: number;
   dueDate: Date;
 }
 
-/** Represents an expense. */
+/**
+ * Represents an expense in the inventory.
+ */
 export interface Iexpense extends IurId {
   name: string;
   person: string;
@@ -29,14 +34,18 @@ export interface Iexpense extends IurId {
   items?: Iitem[];
 }
 
-/** Represents a profit. */
+/**
+ * Represents the profit information for an item.
+ */
 export interface Iprofit {
   margin: number;
   origCost: number;
   soldAtPrice: number;
 }
 
-/** Represents a quotation. */
+/**
+ * Represents a quotation in the inventory.
+ */
 export interface Iquotation extends IdatabaseAuto {
   fnames: string;
   date: Date;
@@ -51,6 +60,8 @@ export interface Iquotation extends IdatabaseAuto {
 
 /** Represents an invoice-related object. */
 export interface IinvoiceRelated extends IdatabaseAuto {
+  payType?: TpayType;
+  companyId?: string;
   invoiceRelated?: string;
   creationType?: TinvoiceType;
   estimateId?: number;
@@ -130,6 +141,7 @@ export interface Ireceipt extends IurId, IinvoiceRelated {
 
 /** Represents a pickup location. */
 export interface IpickupLocation extends IdatabaseAuto {
+  companyId?: string;
   name: string;
   contact: IpickupLocationContact;
 }
@@ -144,6 +156,7 @@ export interface IpickupLocationContact {
 /** Represents an ID. */
 export interface IurId extends IdatabaseAuto {
   urId?: string;
+  companyId?: string;
 }
 
 /** Represents an expense invoice ID. */
@@ -154,6 +167,8 @@ export interface IexpenseInvoiceId {
 
 /** Represents an invoice-related reference. */
 export interface IinvoiceRelatedRef {
+  payType?: TpayType;
+  companyId?: string;
   invoiceRelated: string | IinvoiceRelated;
 }
 

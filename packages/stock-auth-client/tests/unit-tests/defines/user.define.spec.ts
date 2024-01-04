@@ -1,13 +1,14 @@
 import { vi, expect, describe, beforeEach, it, expectTypeOf } from 'vitest';
-import { createMockAddress, createMockUser, createMockUserperm, createMockUsers } from '../../../mocks';
 import { StockAuthClient } from '../../../../stock-auth-client/src/stock-auth-client';
 import Axios from 'axios-observable';
 import { of } from 'rxjs';
 import { Iuser } from '@open-stock/stock-universal';
 import { User } from '../../../../stock-auth-client/src/defines/user.define';
+import { createMockAddress, createMockUser, createMockUserperm, createMockUsers } from '../../../../tests/stock-auth-mocks';
 
 describe('User', () => {
   let instance: User;
+  const companyId = 'companyId';
   const axiosMock = {
     get: vi.fn().mockImplementation(() => of({ data: { data: 'data' } })),
     post: vi.fn().mockImplementation(() => of({ data: { data: 'data' } })),
@@ -40,7 +41,7 @@ describe('User', () => {
     expect(instance.uid).toBeDefined();
     expect(instance.did).toBeDefined();
     expect(instance.aid).toBeDefined();
-    expect(instance.photo).toBeDefined();
+    expect(instance.photos).toBeDefined();
     expect(instance.admin).toBeDefined();
     expect(instance.subAdmin).toBeDefined();
     expect(instance.permissions).toBeDefined();
@@ -52,7 +53,7 @@ describe('User', () => {
 
   it('#getUsers static should get User array', async() => {
     const lSpy = vi.spyOn(StockAuthClient.ehttp, 'makeGet').mockImplementation(() => of(createMockUsers(10)));
-    const list = await User.getUsers('/', 0, 0);
+    const list = await User.getUsers(companyId, '/', 0, 0);
     expect(typeof list).toEqual('object');
     expectTypeOf(list).toEqualTypeOf<User[]>([]);
     expect(lSpy).toHaveBeenCalled();
@@ -60,7 +61,7 @@ describe('User', () => {
 
   it('#getOneUser static should get one User', async() => {
     const lSpy = vi.spyOn(StockAuthClient.ehttp, 'makeGet').mockImplementation(() => of(createMockUser()));
-    const one = await User.getOneUser('urId');
+    const one = await User.getOneUser(companyId, 'urId');
     expect(typeof one).toEqual('object');
     expect(one).toBeInstanceOf(User);
     expect(lSpy).toHaveBeenCalled();
@@ -68,7 +69,7 @@ describe('User', () => {
 
   it('#addUser static should add one user', async() => {
     const lSpy = vi.spyOn(StockAuthClient.ehttp, 'makePost').mockImplementation(() => of({ success: true }));
-    const added = await User.addUser(createMockUser() as unknown as Iuser);
+    const added = await User.addUser(companyId, createMockUser() as unknown as Iuser);
     expect(typeof added).toBe('object');
     expect(added).toMatchObject({ success: true });
     // expect(added).toHaveProperty('success');
@@ -80,7 +81,7 @@ describe('User', () => {
 
   it('#deleteUsers static should delete many users', async() => {
     const lSpy = vi.spyOn(StockAuthClient.ehttp, 'makePut').mockImplementation(() => of({ success: true }));
-    const deleted = await User.deleteUsers(['ids'], ['filesWithDir']);
+    const deleted = await User.deleteUsers(companyId, ['ids'], ['filesWithDir']);
     expect(typeof deleted).toBe('object');
     // expect(deleted).toHaveProperty('success');
     // expect(deleted.success).toEqual(true);
@@ -91,7 +92,7 @@ describe('User', () => {
 
   it('#updateUserBulk static should update user bulk', async() => {
     const lSpy = vi.spyOn(StockAuthClient.ehttp, 'makePut').mockImplementation(() => of({ success: true }));
-    const updated = await instance.updateUserBulk(createMockUser() as unknown as Iuser);
+    const updated = await instance.updateUserBulk(companyId, createMockUser() as unknown as Iuser);
     expect(typeof updated).toBe('object');
     expect(updated).toHaveProperty('success');
     expect(updated.success).toEqual(true);
@@ -102,7 +103,7 @@ describe('User', () => {
 
   it('#updateUser should update user', async() => {
     const lSpy = vi.spyOn(StockAuthClient.ehttp, 'makePut').mockImplementation(() => of({ success: true }));
-    const updated = await instance.updateUser(createMockUser(), 'all');
+    const updated = await instance.updateUser(companyId, createMockUser(), 'all');
     expect(typeof updated).toBe('object');
     expect(updated).toHaveProperty('success');
     expect(updated.success).toEqual(true);
@@ -113,7 +114,7 @@ describe('User', () => {
 
   it('#manageAddress should manage address', async() => {
     const lSpy = vi.spyOn(StockAuthClient.ehttp, 'makePut').mockImplementation(() => of({ success: true }));
-    const updated = await instance.manageAddress(createMockAddress());
+    const updated = await instance.manageAddress(companyId, createMockAddress());
     expect(typeof updated).toBe('object');
     expect(updated).toHaveProperty('success');
     expect(updated.success).toEqual(true);
@@ -124,7 +125,7 @@ describe('User', () => {
 
   it('#managePermission should manage permisssions', async() => {
     const lSpy = vi.spyOn(StockAuthClient.ehttp, 'makePut').mockImplementation(() => of({ success: true }));
-    const updated = await instance.managePermission(createMockUserperm());
+    const updated = await instance.managePermission(companyId, createMockUserperm());
     expect(typeof updated).toBe('object');
     expect(updated).toHaveProperty('success');
     expect(updated.success).toEqual(true);
@@ -135,7 +136,7 @@ describe('User', () => {
 
   it('#deleteUser should delete user', async() => {
     const lSpy = vi.spyOn(StockAuthClient.ehttp, 'makePut').mockImplementation(() => of({ success: true }));
-    const deleted = await instance.deleteUser();
+    const deleted = await instance.deleteUser(companyId);
     expect(typeof deleted).toBe('object');
     expect(deleted).toHaveProperty('success');
     expect(deleted.success).toEqual(true);

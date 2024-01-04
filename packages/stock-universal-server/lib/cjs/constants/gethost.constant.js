@@ -13,7 +13,11 @@ const os = tslib_1.__importStar(require("os"));
 // **Returns:**
 //
 // The hostname of the server.
-/** */
+/**
+ * Retrieves the hostname from the request object or the operating system.
+ * @param req - The request object (optional).
+ * @returns The hostname.
+ */
 const getHostname = (req) => (req ? req.hostname : os.hostname());
 exports.getHostname = getHostname;
 // **Comments:**

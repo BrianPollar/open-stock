@@ -3,11 +3,14 @@ import { Icustomer } from '@open-stock/stock-universal';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../controllers/database.controller';
 const uniqueValidator = require('mongoose-unique-validator');
 
-/** Represents a customer in the system. */
+/**
+ * Represents a customer document in the database.
+ */
 export type Tcustomer = Document & Icustomer;
 
 /** Defines the schema for the customer model. */
 const customerSchema: Schema<Tcustomer> = new Schema({
+  companyId: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
   user: { type: mongoose.Types.ObjectId, unique: true, required: [true, 'cannot be empty.'], index: true },
   startDate: { type: Date, required: [true, 'cannot be empty.'] },
   endDate: { type: Date, required: [true, 'cannot be empty.'] },
@@ -20,6 +23,7 @@ customerSchema.plugin(uniqueValidator);
 
 /** Defines the main selection object for customer. */
 const customerselect = {
+  companyId: 1,
   user: 1,
   salutation: 1,
   endDate: 1,
@@ -27,13 +31,19 @@ const customerselect = {
   otherAddresses: 1
 };
 
-/** The main connection for customer operations. */
+/**
+ * The main customer model.
+ */
 export let customerMain: Model<Tcustomer>;
 
-/** The lean connection for customer operations. */
+/**
+ * Represents a lean customer model.
+ */
 export let customerLean: Model<Tcustomer>;
 
-/** Defines the primary selection object for customer. */
+/**
+ * Represents a customer select statement.
+ */
 export const customerSelect = customerselect;
 
 /**

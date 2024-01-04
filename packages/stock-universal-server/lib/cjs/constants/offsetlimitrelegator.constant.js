@@ -1,6 +1,4 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.offsetLimitRelegator = void 0;
 // This function exports a function that relegates offset and limit values.
 //
 // **Parameters:**
@@ -11,7 +9,16 @@ exports.offsetLimitRelegator = void 0;
 // **Returns:**
 //
 // An object with the offset and limit values relegated.
-/** */
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.offsetLimitRelegator = void 0;
+/**
+ * Creates an offset-limit object with default values.
+ * If the offset is 0, it is set to 10000.
+ * If the limit is 0, it is set to 10000.
+ * @param offset - The offset value.
+ * @param limit - The limit value.
+ * @returns An object with offset and limit properties.
+ */
 const offsetLimitRelegator = (offset, limit) => ({
     // If the offset is 0, then set it to 10000.
     offset: offset === 0 ? 10000 : offset,

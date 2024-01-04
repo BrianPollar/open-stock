@@ -4,13 +4,12 @@ import { NotificationMain } from '../../../../stock-notif-client/src/defines/not
 import { StockNotifClient } from '../../../../stock-notif-client/src/stock-notif-client';
 import { of } from 'rxjs';
 import Axios from 'axios-observable';
-import { createMockNotif, createMockNotifs } from '../../../../tests/mocks';
+import { createMockNotif, createMockNotifs } from '../../../../tests/stock-notif-mocks';
 
 describe('NotificationMain', () => {
   let instance: NotificationMain;
-  const axiosMock = {
-
-  } as Axios;
+  const axiosMock = {} as Axios;
+  const companyId = 'companyid';
 
   beforeEach(() => {
     new StockNotifClient(axiosMock);
@@ -40,7 +39,7 @@ describe('NotificationMain', () => {
 
   it('#getNotifications static should get NotificationMains array', async() => {
     const lSpy = vi.spyOn(StockNotifClient.ehttp, 'makeGet').mockImplementationOnce(() => of(createMockNotifs(10)));
-    const list = await NotificationMain.getNotifications('/', 0, 0);
+    const list = await NotificationMain.getNotifications(companyId, '/', 0, 0);
     expect(typeof list).toEqual('object');
     expectTypeOf(list).toEqualTypeOf<NotificationMain[]>([]);
     expect(lSpy).toHaveBeenCalled();
@@ -48,7 +47,7 @@ describe('NotificationMain', () => {
 
   it('#creatNotifs static should add one NotificationMain', async() => {
     const lSpy = vi.spyOn(StockNotifClient.ehttp, 'makePost').mockImplementationOnce(() => of(createMockNotif()));
-    const one = await NotificationMain.creatNotifs(createMockNotif() as any);
+    const one = await NotificationMain.creatNotifs(companyId, createMockNotif());
     expect(typeof one).toEqual('object');
     expect(one).toBeInstanceOf(NotificationMain);
     expect(lSpy).toHaveBeenCalled();
@@ -56,7 +55,7 @@ describe('NotificationMain', () => {
 
   it('#appendSubscription static should append subscription', async() => {
     const lSpy = vi.spyOn(StockNotifClient.ehttp, 'makePost').mockImplementationOnce(() => of({ success: true }));
-    const appended = await NotificationMain.appendSubscription(null as any);
+    const appended = await NotificationMain.appendSubscription(companyId, null);
     expect(typeof appended).toEqual('object');
     expect(appended).toHaveProperty('success');
     expect(appended.success).toEqual(true);
@@ -67,7 +66,7 @@ describe('NotificationMain', () => {
 
   it('#getUnviewedLength static should get unviewed notifications length', async() => {
     const lSpy = vi.spyOn(StockNotifClient.ehttp, 'makeGet').mockImplementationOnce(() => of(64));
-    const long = await NotificationMain.getUnviewedLength();
+    const long = await NotificationMain.getUnviewedLength(companyId);
     expect(typeof long).toEqual('number');
     expect(long).toBe(64);
     expect(lSpy).toHaveBeenCalled();
@@ -75,7 +74,7 @@ describe('NotificationMain', () => {
 
   it('#clearAll static should clear all notifications', async() => {
     const lSpy = vi.spyOn(StockNotifClient.ehttp, 'makePost').mockImplementationOnce(() => of({ success: true }));
-    const cleared = await NotificationMain.clearAll();
+    const cleared = await NotificationMain.clearAll(companyId);
     expect(typeof cleared).toEqual('object');
     expect(cleared).toHaveProperty('success');
     expect(cleared.success).toEqual(true);
@@ -86,7 +85,7 @@ describe('NotificationMain', () => {
 
   it('#updateViewed should update viewed notifications', async() => {
     const lSpy = vi.spyOn(StockNotifClient.ehttp, 'makePost').mockImplementationOnce(() => of({ success: true }));
-    const updated = await instance.updateViewed();
+    const updated = await instance.updateViewed(companyId);
     expect(typeof updated).toEqual('object');
     expect(updated).toHaveProperty('success');
     expect(updated.success).toEqual(true);

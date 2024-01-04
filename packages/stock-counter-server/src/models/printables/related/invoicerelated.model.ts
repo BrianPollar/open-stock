@@ -5,7 +5,7 @@ import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectio
 // const uniqueValidator = require('mongoose-unique-validator');
 
 /** model interface for invoiceRelated by */
-/** */
+
 export type TinvoiceRelated = Document & IinvoiceRelated;
 
 /**
@@ -29,6 +29,7 @@ export type TinvoiceRelated = Document & IinvoiceRelated;
  * @property {Array} payments - The payments made on the invoice.
  */
 const invoiceRelatedSchema: Schema<TinvoiceRelated> = new Schema({
+  companyId: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
   creationType: { type: String },
   estimateId: { type: Number },
   invoiceId: { type: Number },
@@ -44,7 +45,8 @@ const invoiceRelatedSchema: Schema<TinvoiceRelated> = new Schema({
   balanceDue: { type: Number },
   subTotal: { type: Number },
   total: { type: Number },
-  payments: []
+  payments: [],
+  payType: { type: String, index: true }
 }, { timestamps: true });
 
 // Apply the uniqueValidator plugin to invoiceRelatedSchema.
@@ -54,6 +56,7 @@ const invoiceRelatedSchema: Schema<TinvoiceRelated> = new Schema({
  * for invoiceRelated
  */
 const invoiceRelatedselect = {
+  companyId: 1,
   creationType: 1,
   estimateId: 1,
   invoiceId: 1,
@@ -69,20 +72,31 @@ const invoiceRelatedselect = {
   balanceDue: 1,
   subTotal: 1,
   total: 1,
-  payments: 1
+  payments: 1,
+  payType: 1
 };
 
-/** main connection for invoiceRelateds Operations*/
-export let invoiceRelatedMain: Model<TinvoiceRelated>;
-/** lean connection for invoiceRelateds Operations*/
-export let invoiceRelatedLean: Model<TinvoiceRelated>;
-/** primary selection object
- * for invoiceRelated
+/**
+ * Represents the main invoice related model.
  */
-/** */
+export let invoiceRelatedMain: Model<TinvoiceRelated>;
+
+/**
+ * Represents a lean version of the invoice related model.
+ */
+export let invoiceRelatedLean: Model<TinvoiceRelated>;
+
+/**
+ * Selects the invoice related fields for querying.
+ */
 export const invoiceRelatedSelect = invoiceRelatedselect;
 
-/** */
+/**
+ * Creates the InvoiceRelated model.
+ * @param dbUrl - The URL of the database.
+ * @param main - Indicates whether to create the main connection model. Default is true.
+ * @param lean - Indicates whether to create the lean connection model. Default is true.
+ */
 export const createInvoiceRelatedModel = async(dbUrl: string, main = true, lean = true) => {
   if (!isStockDbConnected) {
     await connectStockDatabase(dbUrl);
@@ -96,3 +110,4 @@ export const createInvoiceRelatedModel = async(dbUrl: string, main = true, lean 
     invoiceRelatedLean = mainConnectionLean.model<TinvoiceRelated>('invoiceRelated', invoiceRelatedSchema);
   }
 };
+

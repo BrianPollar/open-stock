@@ -21,4 +21,24 @@ describe('offsetLimitRelegator', () => {
     const result = offsetLimitRelegator(10, 100);
     expect(result.limit).toBe(100);
   });
+
+  it('should not relegate the offset value if it is negative', () => {
+    const result = offsetLimitRelegator(-5, 10);
+    expect(result.offset).toBe(-5);
+  });
+
+  it('should not relegate the limit value if it is negative', () => {
+    const result = offsetLimitRelegator(10, -5);
+    expect(result.limit).toBe(-5);
+  });
+
+  it('should not relegate the offset value if it is positive', () => {
+    const result = offsetLimitRelegator(15, 10);
+    expect(result.offset).toBe(15);
+  });
+
+  it('should not relegate the limit value if it is positive', () => {
+    const result = offsetLimitRelegator(10, 20);
+    expect(result.limit).toBe(20);
+  });
 });

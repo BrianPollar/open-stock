@@ -5,10 +5,11 @@ import { Application } from 'express';
 import request from 'supertest';
 import { disconnectMongoose } from '@open-stock/stock-universal-server';
 import { createExpressServer } from '../../../../../tests/helpers';
-import { connectStockCounterDatabase } from '../../../../../stock-counter-server/src/stock-counter-server';
 // import { createMockPickupLocation } from '@open-stock/stock-counter-client';
 import * as http from 'http';
 import { pickupLocationRoutes } from '../../../../../stock-counter-server/src/routes/printables/pickuplocation.routes';
+import { connectStockCounterDatabase } from '../../../../src/stock-counter-local';
+import { IpermProp } from '@open-stock/stock-universal';
 
 const mocks = vi.hoisted(() => {
   return {
@@ -22,20 +23,28 @@ vi.mock('../../src/controllers/twilio.controller', () => {
   };
 });
 
+const permObj: IpermProp = {
+  create: true,
+  read: true,
+  update: true,
+  delete: true
+};
+
 const stockUniversalServer = vi.hoisted(() => {
   return {
     requireAuth: vi.fn((req, res, next) => {
       req.user = {
+        companyId: 'superAdmin',
         userId: '507f1f77bcf86cd799439011',
         permissions: {
-          orders: true,
-          payments: true,
-          users: true,
-          items: true,
-          faqs: true,
-          videos: true,
-          printables: true,
-          buyer: true
+          orders: permObj,
+          payments: permObj,
+          users: permObj,
+          items: permObj,
+          faqs: permObj,
+          videos: permObj,
+          printables: permObj,
+          buyer: permObj
         }
       };
       next();
@@ -44,9 +53,8 @@ const stockUniversalServer = vi.hoisted(() => {
 });
 
 vi.mock('@open-stock/stock-universal-server', async() => {
-  const actual = await vi.importActual('@open-stock/stock-universal-server');
+  const actual: object = await vi.importActual('@open-stock/stock-universal-server');
   return {
-    // @ts-ignore
     ...actual,
     requireAuth: stockUniversalServer.requireAuth
   };
@@ -59,6 +67,7 @@ describe('pickuplocation', () => {
   const apiUrl = '/pickuplocation';
   const token = 'tokenwww';
   const objectId = '507f1f77bcf86cd799439011';
+  const companyId = 'companyId';
   // let currentPickupLocation;
 
   beforeAll(async() => {
@@ -75,22 +84,22 @@ describe('pickuplocation', () => {
     server.close();
   });
 
-  it('should create one given the right data type', async() => {
+  /* it('should create one given the right data type', async() => {
     const body = {
       pickupLocation: {
 
       }
     };
-    const res = await request(app).post(apiUrl + '/create')
+    const res = await request(app).post(apiUrl + '/create/' + companyId)
       .set('Authorization', token)
       .send(body);
     expect(res.status).toBe(403);
     expect(typeof res.body).toBe('object');
     expect(res.body.success).toBe(false);
-  });
+  });*/
 
   it('should fail to get one as Object id is inValid', async() => {
-    const res = await request(app).get(apiUrl + '/getone/1436347347347478348388835835')
+    const res = await request(app).get(apiUrl + '/getone/1436347347347478348388835835/' + companyId)
       .set('Authorization', token)
       .send();
     expect(res.status).toBe(401);
@@ -107,7 +116,7 @@ describe('pickuplocation', () => {
   });*/
 
   it('should fail to delete on with invalid ObjectId', async() => {
-    const res = await request(app).delete(apiUrl + '/deleteone/1')
+    const res = await request(app).delete(apiUrl + '/deleteone/1/' + companyId)
       .set('Authorization', token)
       .send();
     expect(res.status).toBe(401);
@@ -116,7 +125,7 @@ describe('pickuplocation', () => {
   });
 
   it('should pass and delete given valid ObjectId', async() => {
-    const res = await request(app).delete(apiUrl + '/deleteone/' + objectId)
+    const res = await request(app).delete(apiUrl + '/deleteone/' + objectId + '/' + companyId)
       .set('Authorization', token)
       .send();
     expect(res.status).toBe(404);
@@ -130,7 +139,7 @@ describe('pickuplocation', () => {
       searchterm: 'rherh',
       searchKey: 'name'
     };
-    const res = await request(app).post(apiUrl + '/search/0/0')
+    const res = await request(app).post(apiUrl + '/search/0/0/' + companyId)
       .set('Authorization', token)
       .send(body);
     expect(typeof res.body).toBe('object');
@@ -141,7 +150,7 @@ describe('pickuplocation', () => {
     const body = {
       ids: []
     };
-    const res = await request(app).put(apiUrl + '/deletemany')
+    const res = await request(app).put(apiUrl + '/deletemany/' + companyId)
       .set('Authorization', token)
       .send(body);
     expect(res.status).toBe(401);
@@ -153,7 +162,7 @@ describe('pickuplocation', () => {
     const body = {
       ids: [objectId]
     };
-    const res = await request(app).put(apiUrl + '/deletemany')
+    const res = await request(app).put(apiUrl + '/deletemany/' + companyId)
       .set('Authorization', token)
       .send(body);
     expect(res.status).toBe(200);
@@ -162,4 +171,3 @@ describe('pickuplocation', () => {
     expect(res.body.success).toBe(true);
   });
 });
-

@@ -1,16 +1,15 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import { vi, expect, describe, beforeEach, it } from 'vitest';
-import { AuthController } from '../../../../stock-auth-client/src/controllers/auth.controller';
-import { StockAuthClient } from '../../../../stock-auth-client/src/stock-auth-client';
-import { Iauthresponse } from '../../../../stock-universal/src/index';
 import { of } from 'rxjs';
 import Axios from 'axios-observable';
-import { faker } from '@faker-js/faker';
-import { createMockUser } from '../../../mocks';
+import { faker } from '@faker-js/faker/locale/en_US';
+import { Iauthresponse } from '@open-stock/stock-universal';
+import { AuthController } from '../../../src/controllers/auth.controller';
+import { createMockUser } from '../../../../tests/stock-auth-mocks';
+import { StockAuthClient } from '../../../src/stock-auth-client';
 
 describe('AuthController', () => {
   let instance: AuthController;
-
   const mockValue = {
     success: true,
     user: createMockUser(),
@@ -18,14 +17,13 @@ describe('AuthController', () => {
     // eslint-disable-next-line @typescript-eslint/naming-convention
     _id: faker.string.uuid()
   } as unknown as Iauthresponse;
-
   const userInfo = {
     emailPhone: 'string',
     password: 'string',
     firstName: 'string',
-    lastName: 'string'
+    lastName: 'string',
+    url: './'
   };
-
   const axiosMock = {
     get: vi.fn().mockImplementation(() => of(null)),
     post: vi.fn().mockImplementation(() => of(null)),
@@ -39,7 +37,6 @@ describe('AuthController', () => {
   });
 
   it('should have a constructor', () => {
-    // @ts-ignore
     expect(instance.constructor).toBeDefined();
     // expect(ctrSpy).toHaveBeenCalled();
   });
@@ -79,36 +76,31 @@ describe('AuthController', () => {
 
   it('should login user', async() => {
     const ehttpPostSpy = vi.spyOn(StockAuthClient.ehttp, 'makePost').mockImplementationOnce(() => of(mockValue));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    expect(await instance.login(userInfo as any)).toStrictEqual(mockValue);
+    expect(await instance.login(userInfo)).toStrictEqual(mockValue);
     expect(ehttpPostSpy).toHaveBeenCalled();
   });
 
   it('should signup user', async() => {
     const ehttpPostSpy = vi.spyOn(StockAuthClient.ehttp, 'makePost').mockImplementationOnce(() => of(mockValue));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    expect(await instance.signup(userInfo as any)).toStrictEqual(mockValue);
+    expect(await instance.signup(userInfo)).toStrictEqual(mockValue);
     expect(ehttpPostSpy).toHaveBeenCalled();
   });
 
   it('should recover user', async() => {
     const ehttpPostSpy = vi.spyOn(StockAuthClient.ehttp, 'makePost').mockImplementationOnce(() => of(mockValue));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    expect(await instance.recover(userInfo as any)).toStrictEqual(mockValue);
+    expect(await instance.recover(userInfo)).toStrictEqual(mockValue);
     expect(ehttpPostSpy).toHaveBeenCalled();
   });
 
   it('should confirm user', async() => {
     const ehttpPostSpy = vi.spyOn(StockAuthClient.ehttp, 'makePost').mockImplementationOnce(() => of(mockValue));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    expect(await instance.confirm(userInfo as any, '/')).toStrictEqual(mockValue);
+    expect(await instance.confirm(userInfo, '/')).toStrictEqual(mockValue);
     expect(ehttpPostSpy).toHaveBeenCalled();
   });
 
   it('should make socialLogin', async() => {
     const ehttpPostSpy = vi.spyOn(StockAuthClient.ehttp, 'makePost').mockImplementationOnce(() => of(mockValue));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    expect(await instance.socialLogin(userInfo as any)).toStrictEqual(mockValue);
+    expect(await instance.socialLogin(userInfo)).toStrictEqual(mockValue);
     expect(ehttpPostSpy).toHaveBeenCalled();
   });
 });

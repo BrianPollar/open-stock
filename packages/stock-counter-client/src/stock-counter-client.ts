@@ -4,18 +4,16 @@ import Axios from 'axios-observable';
 
 export let stockCounterClient: StockCounterClient;
 
-/** */
+
 export class StockCounterClient {
-  /** */
   static calcCtrl = new CalculationsController();
-
-  /** */
   static logger = new LoggerController();
-
-  /** */
   static ehttp: EhttpController;
 
-  /** */
+  /**
+   * Creates an instance of the StockCounterClient class.
+   * @param axiosInstance The Axios instance to be used for HTTP requests.
+   */
   constructor(
     axiosInstance: Axios
   ) {
@@ -23,7 +21,11 @@ export class StockCounterClient {
   }
 }
 
-/** */
+/**
+ * Creates a stock counter client.
+ * @param axiosInstance - The Axios instance to use for HTTP requests.
+ * @returns An object containing the stock counter client.
+ */
 export const createStockCounter = (
   axiosInstance: Axios
 ) => {

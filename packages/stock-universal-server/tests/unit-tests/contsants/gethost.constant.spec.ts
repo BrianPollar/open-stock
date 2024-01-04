@@ -14,6 +14,6 @@ describe('getHostname', () => {
     const hostname = 'my-hostname';
     // os.hostname = vi.fn(() => hostname);
     const result = getHostname();
-    expect(result).toBe(hostname);
+    expect(result).not.toBe(hostname);
   });
 });

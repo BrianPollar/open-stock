@@ -3,15 +3,18 @@ import { IinvoiceRelated, IpaymentRelated } from '@open-stock/stock-universal';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
 const uniqueValidator = require('mongoose-unique-validator');
 
-/** model type for order by */
-/** */
+/**
+ * Represents an order in the system.
+ */
 export type Torder = Document & {
+  companyId: string;
   paymentRelated: string | IpaymentRelated;
   invoiceRelated: string | IinvoiceRelated;
   deliveryDate: Date;
-  };
+};
 
 const orderSchema: Schema<Torder> = new Schema({
+  companyId: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
   paymentRelated: { type: String, unique: true },
   invoiceRelated: { type: String, unique: true },
   deliveryDate: { type: Date, required: [true, 'cannot be empty.'], index: true }
@@ -24,22 +27,27 @@ orderSchema.plugin(uniqueValidator);
  * for order
  */
 const orderselect = {
+  companyId: 1,
   paymentRelated: 1,
   invoiceRelated: 1,
   deliveryDate: 1
 };
 
-/** main connection for orders Operations*/
-export let orderMain: Model<Torder>;
-/** lean connection for orders Operations*/
-export let orderLean: Model<Torder>;
-/** primary selection object
- * for order
+/**
+ * Represents the main order model.
  */
-/** */
+export let orderMain: Model<Torder>;
+
+/**
+ * Represents a lean order model.
+ */
+export let orderLean: Model<Torder>;
+
+/**
+ * Represents the order select function.
+ */
 export const orderSelect = orderselect;
 
-/** */
 /**
  * Creates an order model with the given database URL, main flag, and lean flag.
  * @param dbUrl The URL of the database to connect to.

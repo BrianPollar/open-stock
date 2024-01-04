@@ -9,7 +9,10 @@ const jwtStrategy = require('passport-jwt').Strategy;
 // This function imports the `extractJwt` module from `passport-jwt`.
 const extractJwt = require('passport-jwt').ExtractJwt;
 // This function defines a function that sets up Passport with the given JWT secret.
-/** */
+/**
+ * Runs the Passport configuration for JWT authentication.
+ * @param jwtSecret - The secret key used to sign and verify JWT tokens.
+ */
 export const runPassport = (jwtSecret) => {
     // Create a JWT options object.
     const jwtOptions = {
@@ -24,8 +27,13 @@ export const runPassport = (jwtSecret) => {
     passport.use(jwtLogin);
 };
 // This function defines a function that checks the user's permissions for the given role.
-/** */
-export const roleAuthorisation = (nowRole) => {
+/**
+ * Middleware function for role-based authorization.
+ * @param nowRole - The current role to check.
+ * @param permProp - The permission property to check within the role.
+ * @returns A middleware function that checks the user's permissions and authorizes access based on the role and permission property.
+ */
+export const roleAuthorisation = (nowRole, permProp) => {
     // Log the role name.
     passportLogger.info(`roleAuthorisation - role: ${nowRole}`);
     // Create a middleware function that checks the user's permissions.
@@ -34,7 +42,8 @@ export const roleAuthorisation = (nowRole) => {
         const { permissions } = req.user;
         // If the user has the required permission, then call the next middleware function.
         if (permissions[nowRole] &&
-            permissions[nowRole] === true) {
+            permissions[nowRole][permProp] &&
+            permissions[nowRole][permProp] === true) {
             passportLogger.debug('roleAuthorisation - permissions', permissions);
             return next();
         }
@@ -47,9 +56,29 @@ export const roleAuthorisation = (nowRole) => {
     };
 };
 // This function defines a function that gets the JWT token from the request object.
-/** */
+/**
+ * Retrieves the token from the request.
+ * @param {Request} req - The request object.
+ * @param {Response} res - The response object.
+ * @param {NextFunction} next - The next middleware function.
+ * @returns {void}
+ */
 export const getToken = (req, res, next) => {
     // Return the next middleware function.
     return next();
 };
+/**
+ * Represents an array of super admin roles.
+ */
+export const roleSuperAdmin = [
+    { name: '' },
+    { name: '' },
+    { name: '' },
+    { name: '' },
+    { name: '' },
+    { name: '' },
+    { name: '' },
+    { name: '' },
+    { name: '' }
+];
 //# sourceMappingURL=passport.service.js.map

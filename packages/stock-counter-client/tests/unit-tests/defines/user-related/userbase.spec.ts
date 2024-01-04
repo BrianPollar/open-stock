@@ -4,7 +4,7 @@ import Axios from 'axios-observable';
 import { StockCounterClient } from '../../../../../stock-counter-client/src/stock-counter-client';
 import { UserBase } from '../../../../../stock-counter-client/src/defines/user-related/userbase.define';
 import { StockAuthClient } from '../../../../../stock-auth-client/src/stock-auth-client';
-import { createMockUserBase } from '../../../../../tests/mocks';
+import { createMockUserBase } from '../../../../../tests/stock-counter-mocks';
 
 class TestBaseUser
   extends UserBase {
@@ -20,7 +20,7 @@ describe('UserBase', () => {
   beforeEach(() => {
     new StockAuthClient(axiosMock);
     new StockCounterClient(axiosMock);
-    instance = new TestBaseUser(createMockUserBase() as any);
+    instance = new TestBaseUser(createMockUserBase());
   });
 
   it('#StockCounterClient should have all callable static properties', () => {
@@ -40,4 +40,3 @@ describe('UserBase', () => {
     expect(instance.occupation).toBeDefined();
   });
 });
-

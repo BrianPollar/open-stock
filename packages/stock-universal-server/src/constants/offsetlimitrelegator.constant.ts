@@ -8,7 +8,15 @@
 // **Returns:**
 //
 // An object with the offset and limit values relegated.
-/** */
+
+/**
+ * Creates an offset-limit object with default values.
+ * If the offset is 0, it is set to 10000.
+ * If the limit is 0, it is set to 10000.
+ * @param offset - The offset value.
+ * @param limit - The limit value.
+ * @returns An object with offset and limit properties.
+ */
 export const offsetLimitRelegator = (offset: number, limit: number) => ({
 
   // If the offset is 0, then set it to 10000.

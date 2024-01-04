@@ -20,4 +20,6 @@ export * from './filemanager/filestorage';
 export * from './filemanager/fs';
 // This function exports the `passport.service` class from the `controllers` directory.
 export * from './controllers/passport.service';
+export * from './stock-universal-server';
+export * from './models/filemeta.model';
 //# sourceMappingURL=index.js.map

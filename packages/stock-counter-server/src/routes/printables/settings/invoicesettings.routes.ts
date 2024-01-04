@@ -1,13 +1,15 @@
 import express from 'express';
-import { appendBody, deleteFiles, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, uploadFiles, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { appendBody, deleteFiles, offsetLimitRelegator, requireAuth, roleAuthorisation, saveMetaToDb, stringifyMongooseErr, uploadFiles, verifyObjectIds } from '@open-stock/stock-universal-server';
 import { invoiceSettingLean, invoiceSettingMain } from '../../../models/printables/settings/invoicesettings.model';
 import { getLogger } from 'log4js';
-import { Isuccess } from '@open-stock/stock-universal';
+import { Icustomrequest, Isuccess } from '@open-stock/stock-universal';
 
 /** Logger for invoice setting routes */
 const invoiceSettingRoutesLogger = getLogger('routes/invoiceSettingRoutes');
 
-/** Express router for invoice setting routes */
+/**
+ * Router for invoice settings.
+ */
 export const invoiceSettingRoutes = express.Router();
 
 /**
@@ -19,8 +21,12 @@ export const invoiceSettingRoutes = express.Router();
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware
  */
-invoiceSettingRoutes.post('/create', requireAuth, roleAuthorisation('printables'), async(req, res) => {
+invoiceSettingRoutes.post('/create/:companyIdParam', requireAuth, roleAuthorisation('printables', 'create'), async(req, res) => {
   const invoiceSetting = req.body.invoicesettings;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  invoiceSetting.companyId = queryId;
   const newJobCard = new invoiceSettingMain(invoiceSetting);
   let errResponse: Isuccess;
   const saved = await newJobCard.save()
@@ -54,8 +60,12 @@ invoiceSettingRoutes.post('/create', requireAuth, roleAuthorisation('printables'
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware
  */
-invoiceSettingRoutes.post('/createimg', requireAuth, roleAuthorisation('printables'), uploadFiles, appendBody, async(req, res) => {
+invoiceSettingRoutes.post('/createimg/:companyIdParam', requireAuth, roleAuthorisation('printables', 'create'), uploadFiles, appendBody, saveMetaToDb, async(req, res) => {
   const invoiceSetting = req.body.invoicesettings;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  invoiceSetting.companyId = queryId;
   if (req.body.newFiles) {
     if (invoiceSetting.generalSettings.defaultDigitalSignature === 'true' &&
     invoiceSetting.generalSettings.defaultDigitalStamp) {
@@ -73,6 +83,7 @@ invoiceSettingRoutes.post('/createimg', requireAuth, roleAuthorisation('printabl
       invoiceSetting.generalSettings.defaultDigitalStamp = req.body.newFiles[0];
     }
   }
+
   const newStn = new invoiceSettingMain(invoiceSetting);
   let errResponse: Isuccess;
   const saved = await newStn.save()
@@ -106,20 +117,22 @@ invoiceSettingRoutes.post('/createimg', requireAuth, roleAuthorisation('printabl
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware
  */
-invoiceSettingRoutes.put('/update', requireAuth, roleAuthorisation('printables'), async(req, res) => {
+invoiceSettingRoutes.put('/update/:companyIdParam', requireAuth, roleAuthorisation('printables', 'update'), async(req, res) => {
   const updatedInvoiceSetting = req.body.invoicesettings;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  updatedInvoiceSetting.companyId = queryId;
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const { _id } = updatedInvoiceSetting;
-  const isValid = verifyObjectId(_id);
+  const isValid = verifyObjectIds([_id, queryId]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
 
-  console.log('INCOMING ISSSSSSSSSS', updatedInvoiceSetting);
-
   const invoiceSetting = await invoiceSettingMain
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    .findByIdAndUpdate(_id);
+    .findOneAndUpdate({ _id, companyId: queryId });
   if (!invoiceSetting) {
     return res.status(404).send({ success: false });
   }
@@ -158,17 +171,21 @@ invoiceSettingRoutes.put('/update', requireAuth, roleAuthorisation('printables')
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware
  */
-invoiceSettingRoutes.put('/updateimg', requireAuth, uploadFiles, appendBody, deleteFiles, async(req, res) => {
+invoiceSettingRoutes.put('/updateimg/:companyIdParam', requireAuth, uploadFiles, appendBody, saveMetaToDb, deleteFiles, async(req, res) => {
   const updatedInvoiceSetting = req.body.invoicesettings;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  updatedInvoiceSetting.companyId = queryId;
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const { _id } = updatedInvoiceSetting;
-  const isValid = verifyObjectId(_id);
+  const isValid = verifyObjectIds([_id, queryId]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const invoiceSetting = await invoiceSettingMain
   // eslint-disable-next-line @typescript-eslint/naming-convention
-    .findByIdAndUpdate(_id);
+    .findOneAndUpdate({ _id, companyId: queryId });
   if (!invoiceSetting) {
     return res.status(404).send({ success: false });
   }
@@ -215,35 +232,46 @@ invoiceSettingRoutes.put('/updateimg', requireAuth, uploadFiles, appendBody, del
   return res.status(200).send({ success: Boolean(updated) });
 });
 
-invoiceSettingRoutes.get('/getone/:id', requireAuth, roleAuthorisation('printables'), async(req, res) => {
+invoiceSettingRoutes.get('/getone/:id/:companyIdParam', requireAuth, roleAuthorisation('printables', 'read'), async(req, res) => {
   const { id } = req.params;
-  const isValid = verifyObjectId(id);
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectIds([id, queryId]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const invoiceSetting = await invoiceSettingLean
-    .findById(id)
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    .findOne({ _id: id, companyId: queryId })
     .lean();
   return res.status(200).send(invoiceSetting);
 });
 
-invoiceSettingRoutes.get('/getall/:offset/:limit', requireAuth, roleAuthorisation('printables'), async(req, res) => {
+invoiceSettingRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, roleAuthorisation('printables', 'read'), async(req, res) => {
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const invoiceSettings = await invoiceSettingLean
-    .find({})
+    .find({ companyId: queryId })
     .skip(offset)
     .limit(limit)
     .lean();
   return res.status(200).send(invoiceSettings);
 });
 
-invoiceSettingRoutes.delete('/deleteone/:id', requireAuth, async(req, res) => {
+invoiceSettingRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, async(req, res) => {
   const { id } = req.params;
-  const isValid = verifyObjectId(id);
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectIds([id, queryId]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
-  const deleted = await invoiceSettingMain.findByIdAndDelete(id);
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  const deleted = await invoiceSettingMain.findOneAndDelete({ _id: id, companyId: queryId });
   if (Boolean(deleted)) {
     return res.status(200).send({ success: Boolean(deleted) });
   } else {
@@ -251,27 +279,33 @@ invoiceSettingRoutes.delete('/deleteone/:id', requireAuth, async(req, res) => {
   }
 });
 
-invoiceSettingRoutes.post('/search/:limit/:offset', requireAuth, roleAuthorisation('printables'), async(req, res) => {
+invoiceSettingRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, roleAuthorisation('printables', 'read'), async(req, res) => {
   const { searchterm, searchKey } = req.body;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
   const invoiceSettings = await invoiceSettingLean
-    .find({ [searchKey]: { $regex: searchterm, $options: 'i' } })
+    .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
     .skip(offset)
     .limit(limit)
     .lean();
   return res.status(200).send(invoiceSettings);
 });
 
-invoiceSettingRoutes.put('/deletemany', requireAuth, roleAuthorisation('printables'), async(req, res) => {
+invoiceSettingRoutes.put('/deletemany/:companyIdParam', requireAuth, roleAuthorisation('printables', 'delete'), async(req, res) => {
   const { ids } = req.body;
-  const isValid = verifyObjectIds(ids);
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectIds([...ids, ...[queryId]]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
 
   const deleted = await invoiceSettingMain
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    .deleteMany({ _id: { $in: ids } })
+    .deleteMany({ companyId: queryId, _id: { $in: ids } })
     .catch(err => {
       invoiceSettingRoutesLogger.error('deletemany - err: ', err);
       return null;

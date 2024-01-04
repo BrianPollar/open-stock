@@ -4,12 +4,15 @@ import { Document, Model, Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../controllers/database.controller';
 const uniqueValidator = require('mongoose-unique-validator');
 
-/** model interface for deliveryNote by */
-/** */
+/**
+ * Represents a delivery note.
+ * @typedef {Document & IurId & IinvoiceRelatedRef} TdeliveryNote
+ */
 export type TdeliveryNote = Document & IurId & IinvoiceRelatedRef;
 
 const deliveryNoteSchema: Schema<TdeliveryNote> = new Schema({
   urId: { type: String, unique: true },
+  companyId: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
   invoiceRelated: { type: String, unique: true }
 }, { timestamps: true });
 
@@ -21,20 +24,26 @@ deliveryNoteSchema.plugin(uniqueValidator);
  */
 const deliveryNoteselect = {
   urId: 1,
+  companyId: 1,
   invoiceRelated: 1
 };
 
-/** main connection for deliveryNotes Operations*/
-export let deliveryNoteMain: Model<TdeliveryNote>;
-/** lean connection for deliveryNotes Operations*/
-export let deliveryNoteLean: Model<TdeliveryNote>;
-/** primary selection object
- * for deliveryNote
+/**
+ * Represents the main delivery note model.
  */
-/** */
+export let deliveryNoteMain: Model<TdeliveryNote>;
+
+/**
+ * Represents a lean delivery note model.
+ */
+export let deliveryNoteLean: Model<TdeliveryNote>;
+
+/**
+ * Selects the delivery note.
+ */
 export const deliveryNoteSelect = deliveryNoteselect;
 
-/** */
+
 /**
  * Creates a delivery note model with the given database URL, main connection and lean connection.
  * @param dbUrl The URL of the database to connect to.

@@ -2,15 +2,26 @@ import { Document, Model, Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
 const uniqueValidator = require('mongoose-unique-validator');
 
-/** model interface for promocode by*/
-/** */
-export interface Ipromocode extends Document {
+/**
+ * Represents a promotional code.
+ */
+export interface Ipromocode
+extends Document {
+  /** The unique identifier of the user. */
   urId: string;
+  /** The user's company ID. */
+  companyId: string;
+  /** The code of the promotional code. */
   code: string;
+  /** The amount associated with the promotional code. */
   amount: number;
+  /** The items associated with the promotional code. */
   items: string[];
+  /** The room ID associated with the promotional code. */
   roomId: string;
+  /** The state of the promotional code. */
   state: string;
+  /** The expiration date of the promotional code. */
   expireAt: string;
 }
 
@@ -27,6 +38,7 @@ export interface Ipromocode extends Document {
  */
 const promocodeSchema: Schema<Ipromocode> = new Schema({
   urId: { type: String, unique: true },
+  companyId: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
   code: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
   items: [{ type: String, required: [true, 'cannot be empty.'] }],
   amount: { type: Number, required: [true, 'cannot be empty.'] },
@@ -46,6 +58,7 @@ promocodeSchema.plugin(uniqueValidator);
  */
 const promocodeselect = {
   urId: 1,
+  companyId: 1,
   code: 1,
   amount: 1,
   items: 1,
@@ -53,17 +66,29 @@ const promocodeselect = {
   used: 1
 };
 
-/** main connection for promocodes Operations*/
-export let promocodeMain: Model<Ipromocode>;
-/** lean connection for promocodes Operations*/
-export let promocodeLean: Model<Ipromocode>;
-/** primary selection object
- * for promocode
+/**
+ * The main promocode model.
  */
-/** */
+export let promocodeMain: Model<Ipromocode>;
+
+/**
+ * Represents a lean version of the promocode model.
+ */
+export let promocodeLean: Model<Ipromocode>;
+
+/**
+ * Selects the promocode from the database.
+ * @param promocodeselect - The promocode select query.
+ * @returns The selected promocode.
+ */
 export const promocodeSelect = promocodeselect;
 
-/** */
+/**
+ * Creates a promocode model with the specified database URL.
+ * @param dbUrl The URL of the database.
+ * @param main Optional parameter indicating whether to create the main promocode model. Default is true.
+ * @param lean Optional parameter indicating whether to create the lean promocode model. Default is true.
+ */
 export const createPromocodeModel = async(dbUrl: string, main = true, lean = true) => {
   if (!isStockDbConnected) {
     await connectStockDatabase(dbUrl);
@@ -77,3 +102,4 @@ export const createPromocodeModel = async(dbUrl: string, main = true, lean = tru
     promocodeLean = mainConnectionLean.model<Ipromocode>('promocode', promocodeSchema);
   }
 };
+

@@ -10,13 +10,14 @@
  */
 /* eslint-disable @typescript-eslint/no-misused-promises */
 import express from 'express';
-import { IinvoiceRelated, Iuser } from '@open-stock/stock-universal';
+import { Icustomrequest, IinvoiceRelated, Iuser } from '@open-stock/stock-universal';
 import {
   makeUrId,
   offsetLimitRelegator,
   requireAuth,
   roleAuthorisation,
-  verifyObjectId
+  verifyObjectId,
+  verifyObjectIds
 } from '@open-stock/stock-universal-server';
 // import { paymentInstallsLean } from '../../models/printables/paymentrelated/paymentsinstalls.model';
 import { receiptLean, receiptMain } from '../../models/printables/receipt.model';
@@ -26,27 +27,34 @@ import { getLogger } from 'log4js';
 import { userLean } from '@open-stock/stock-auth-server';
 import { makePaymentInstall } from '../paymentrelated/paymentrelated';
 
-/** */
-const receiptRoutesLogger = getLogger('routes/receiptRoutes');
 
-/** */
+const receiptRoutesLogger = getLogger('routes/receiptRoutes'); // TODO WATS dis doing
+
+
+/**
+ * Router for handling receipt routes.
+ */
 export const receiptRoutes = express.Router();
 
-receiptRoutes.post('/create', requireAuth, roleAuthorisation('printables'), async(req, res) => {
+receiptRoutes.post('/create/:companyIdParam', requireAuth, roleAuthorisation('printables', 'create'), async(req, res) => {
   const { receipt, invoiceRelated } = req.body;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  receipt.companyId = queryId;
+  invoiceRelated.companyId = queryId;
   const count = await receiptMain
   // eslint-disable-next-line @typescript-eslint/naming-convention
-    .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+    .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
   receipt.urId = makeUrId(Number(count[0]?.urId || '0'));
   const extraNotifDesc = 'Newly created receipt';
-  const invoiceRelatedRes = await relegateInvRelatedCreation(invoiceRelated, extraNotifDesc, req.app.locals.stockCounterServer.notifRedirectUrl, req.app.locals.stockCounterServer.locaLMailHandler);
+  const invoiceRelatedRes = await relegateInvRelatedCreation(invoiceRelated, extraNotifDesc, queryId);
   if (!invoiceRelatedRes.success) {
     return res.status(invoiceRelatedRes.status).send(invoiceRelatedRes);
   }
 
   receipt.invoiceRelated = invoiceRelatedRes.id;
-  console.log('going to make install now ', receipt.invoiceRelated);
-  const added = await makePaymentInstall(receipt, invoiceRelatedRes.id);
+  const added = await makePaymentInstall(receipt, invoiceRelatedRes.id, queryId);
   // const newReceipt = new receiptMain(receipt);
   /* let errResponse: Isuccess;
   const saved = await newReceipt.save()
@@ -72,10 +80,13 @@ receiptRoutes.post('/create', requireAuth, roleAuthorisation('printables'), asyn
   return res.status(200).send({ success: added });
 });
 
-receiptRoutes.get('/getone/:urId', requireAuth, roleAuthorisation('printables'), async(req, res) => {
+receiptRoutes.get('/getone/:urId/:companyIdParam', requireAuth, roleAuthorisation('printables', 'read'), async(req, res) => {
   const { urId } = req.params;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const receipt = await receiptLean
-    .findOne({ urId })
+    .findOne({ urId, queryId })
     .lean()
     .populate({
       path: 'invoiceRelated', model: invoiceRelatedLean,
@@ -95,14 +106,16 @@ receiptRoutes.get('/getone/:urId', requireAuth, roleAuthorisation('printables'),
     // ensure reciepts are properly being populated
     returned = { ...receipt, ...relateds };
   }
-  console.log('one to return ', receipt);
   return res.status(200).send(returned);
 });
 
-receiptRoutes.get('/getall/:offset/:limit', requireAuth, roleAuthorisation('printables'), async(req, res) => {
+receiptRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, roleAuthorisation('printables', 'read'), async(req, res) => {
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const receipts = await receiptLean
-    .find({})
+    .find({ companyId: queryId })
     .skip(offset)
     .limit(limit)
     .lean()
@@ -125,13 +138,16 @@ receiptRoutes.get('/getall/:offset/:limit', requireAuth, roleAuthorisation('prin
   return res.status(200).send(returned);
 });
 
-receiptRoutes.put('/deleteone', requireAuth, roleAuthorisation('printables'), async(req, res) => {
+receiptRoutes.put('/deleteone/:companyIdParam', requireAuth, roleAuthorisation('printables', 'delete'), async(req, res) => {
   const { id, invoiceRelated, creationType, stage } = req.body;
-  const isValid = verifyObjectId(id);
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectIds([id, queryId]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
-  const deleted = await deleteAllLinked(invoiceRelated, creationType, stage, 'receipt');
+  const deleted = await deleteAllLinked(invoiceRelated, creationType, stage, 'receipt', queryId);
   if (Boolean(deleted)) {
     return res.status(200).send({ success: Boolean(deleted) });
   } else {
@@ -139,11 +155,14 @@ receiptRoutes.put('/deleteone', requireAuth, roleAuthorisation('printables'), as
   }
 });
 
-receiptRoutes.post('/search/:limit/:offset', requireAuth, roleAuthorisation('printables'), async(req, res) => {
+receiptRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, roleAuthorisation('printables', 'read'), async(req, res) => {
   const { searchterm, searchKey } = req.body;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
   const receipts = await receiptLean
-    .find({ [searchKey]: { $regex: searchterm, $options: 'i' } })
+    .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
     .lean()
     .skip(offset)
     .limit(limit)
@@ -164,25 +183,33 @@ receiptRoutes.post('/search/:limit/:offset', requireAuth, roleAuthorisation('pri
 });
 
 
-receiptRoutes.put('/update', requireAuth, roleAuthorisation('printables'), async(req, res) => {
+receiptRoutes.put('/update/:companyIdParam', requireAuth, roleAuthorisation('printables', 'update'), async(req, res) => {
   const { updatedReceipt, invoiceRelated } = req.body;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  updatedReceipt.companyId = queryId;
+  invoiceRelated.companyId = queryId;
   const isValid = verifyObjectId(updatedReceipt._id);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
-  const found = await receiptMain.findByIdAndUpdate(updatedReceipt._id);
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  const found = await receiptMain.findOneAndUpdate({ _id: updatedReceipt._id, companyId: queryId });
   if (!found) {
     return res.status(404).send({ success: false, status: 404, err: 'not found' });
   }
   found.paymentMode = updatedReceipt.paymentMode || found.paymentMode;
   await found.save();
-  await updateInvoiceRelated(invoiceRelated);
+  await updateInvoiceRelated(invoiceRelated, queryId);
   return res.status(200).send({ success: true });
 });
 
-receiptRoutes.put('/deletemany', requireAuth, roleAuthorisation('printables'), async(req, res) => {
+receiptRoutes.put('/deletemany/:companyIdParam', requireAuth, roleAuthorisation('printables', 'delete'), async(req, res) => {
   const { credentials } = req.body;
-  console.log('incooomin receipt', credentials);
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   if (!credentials || credentials?.length < 1) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -191,7 +218,7 @@ receiptRoutes.put('/deletemany', requireAuth, roleAuthorisation('printables'), a
     .deleteMany({ _id: { $in: ids } });**/
   const promises = credentials
     .map(async val => {
-      await deleteAllLinked(val.invoiceRelated, val.creationType, val.stage, 'receipt');
+      await deleteAllLinked(val.invoiceRelated, val.creationType, val.stage, 'receipt', queryId);
       return new Promise(resolve => resolve(true));
     });
   await Promise.all(promises);

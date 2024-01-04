@@ -11,7 +11,7 @@ import { StockAuthClient } from '../stock-auth-client';
  * authenticating users, logging in, signing up,
  * recovering passwords, confirming user information,
  *  and performing social logins.  */
-/** */
+
 /**
  * The AuthController class provides methods for user authentication, login, signup, password recovery, and social login.
  */

@@ -16,7 +16,11 @@ const verifyLogger = (0, log4js_1.getLogger)('constants/verify');
 // **Returns:**
 //
 // A boolean indicating whether the ObjectID is valid.
-/** */
+/**
+ * Validates if a value is a valid ObjectID.
+ * @param val - The value to be validated.
+ * @returns `true` if the value is a valid ObjectID, `false` otherwise.
+ */
 const verifyObjectId = (val) => {
     // Log the `val` parameter.
     verifyLogger.info('val for verifyObjectId', val);
@@ -34,7 +38,12 @@ const verifyObjectId = (val) => {
     return objectId.toString() === val;
 };
 exports.verifyObjectId = verifyObjectId;
-/** */
+/**
+ * Checks if an array of values contains valid ObjectIds.
+ * @param companyId - The ID of the company
+   * @param vals - The array of values to be checked.
+ * @returns A boolean indicating whether any invalid ObjectIds were found.
+ */
 const verifyObjectIds = (vals) => {
     const foundInvalid = vals.find(id => {
         const isValid = (0, exports.verifyObjectId)(id);

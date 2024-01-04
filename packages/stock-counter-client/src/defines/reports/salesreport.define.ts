@@ -11,6 +11,8 @@ import { InvoiceRelatedWithReceipt } from '../invoice.define';
  */
 export class SalesReport extends DatabaseAuto {
   urId: string;
+  /** The user's company ID. */
+  companyId: string;
   totalAmount: number;
   date: Date;
   estimates: Estimate[];
@@ -18,7 +20,8 @@ export class SalesReport extends DatabaseAuto {
 
   constructor(data: IsalesReport) {
     super(data);
-    this.urId = data.urId ;
+    this.urId = data.urId;
+    this.companyId = data.companyId;
     this.totalAmount = data.totalAmount;
     this.date = data.date;
     if (data.estimates) {
@@ -31,45 +34,49 @@ export class SalesReport extends DatabaseAuto {
 
   /**
    * Retrieves multiple sales reports from the server.
+   * @param companyId - The ID of the company
    * @param url Optional parameter for the URL of the request.
    * @param offset Optional parameter for the offset of the request.
    * @param limit Optional parameter for the limit of the request.
    * @returns An array of `SalesReport` instances.
    */
-  static async getSalesReports(url = 'getall', offset = 0, limit = 0) {
-    const observer$ = StockCounterClient.ehttp.makeGet(`/salesreport/${url}/${offset}/${limit}`);
+  static async getSalesReports(companyId: string, url = 'getall', offset = 0, limit = 20) {
+    const observer$ = StockCounterClient.ehttp.makeGet(`/salesreport/${url}/${offset}/${limit}/${companyId}`);
     const salesreports = await lastValueFrom(observer$) as IsalesReport[];
     return salesreports.map((val) => new SalesReport(val));
   }
 
   /**
    * Retrieves a single sales report from the server.
+   * @param companyId - The ID of the company
    * @param urId The ID of the report to retrieve.
    * @returns A `SalesReport` instance.
    */
-  static async getOneSalesReport(urId: string) {
-    const observer$ = StockCounterClient.ehttp.makeGet(`/salesreport/getone/${urId}`);
+  static async getOneSalesReport(companyId: string, urId: string) {
+    const observer$ = StockCounterClient.ehttp.makeGet(`/salesreport/getone/${urId}/${companyId}`);
     const salesreport = await lastValueFrom(observer$) as IsalesReport;
     return new SalesReport(salesreport);
   }
 
   /**
    * Adds a new sales report to the server.
+   * @param companyId - The ID of the company
    * @param vals An object that represents the data of the new report.
    * @returns An `Isuccess` object.
    */
-  static async addSalesReport(vals: IsalesReport) {
-    const observer$ = StockCounterClient.ehttp.makePost('/salesreport/create', vals);
+  static async addSalesReport(companyId: string, vals: IsalesReport) {
+    const observer$ = StockCounterClient.ehttp.makePost(`/salesreport/create/${companyId}`, vals);
     return await lastValueFrom(observer$) as Isuccess;
   }
 
   /**
    * Deletes multiple sales reports from the server.
+   * @param companyId - The ID of the company
    * @param ids An array of IDs of the reports to delete.
    * @returns An `Isuccess` object.
    */
-  static async deleteSalesReports(ids: string[]) {
-    const observer$ = StockCounterClient.ehttp.makePut('/salesreport/deletemany', { ids });
+  static async deleteSalesReports(companyId: string, ids: string[]) {
+    const observer$ = StockCounterClient.ehttp.makePut(`/salesreport/deletemany/${companyId}`, { ids });
     return await lastValueFrom(observer$) as Isuccess;
   }
 }

@@ -1,14 +1,18 @@
 import { expect, describe, beforeEach, it, expectTypeOf } from 'vitest';
 import { InventoryController } from '../../../../stock-counter-client/src/controllers/inventory.controller';
-import {
-  createMockPayments,
-  createMockExpenses,
-  createMockEstimates,
-  createMockInvoice, createMockInvoiceRelatedPdct, createMockInvoiceRelatedPdcts, createMockInvoiceRelateds, createMockInvoices
-} from '../../../../tests/mocks';
-import { createMockItem, createMockItems } from '../../../../tests/mocks';
 import { Expense } from '../../../../stock-counter-client/src/defines/expense.define';
 import { Item } from '../../../../stock-counter-client/src/defines/item.define';
+import {
+  createMockPayments, createMockExpenses,
+  createMockEstimates,
+  createMockInvoice,
+  createMockInvoiceRelatedPdct,
+  createMockInvoiceRelatedPdcts,
+  createMockInvoices,
+  createMockInvoiceRelatedWithReceipts,
+  createMockItem, createMockItems
+} from '../../../../tests/stock-counter-mocks';
+
 
 describe('InventoryController', () => {
   let instance: InventoryController;
@@ -105,7 +109,7 @@ describe('InventoryController', () => {
   });
 
   it('#getAllItemsProfit should return number cost for profites made in atime period', () => {
-    const related = createMockInvoiceRelateds(10);
+    const related = createMockInvoiceRelatedWithReceipts(10);
     const items = createMockItems(10);
     const calculated = instance.getAllItemsProfit(related, items);
     expect(typeof calculated).toBe('number');
@@ -122,8 +126,8 @@ describe('InventoryController', () => {
 
   it('#findItem should return true if item exists in IinvoiceRelatedPdct', () => {
     const items = createMockItems(10);
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-    const calculated = instance.findItem(items[0]._id as string, items);
+    const id = items[0]._id as unknown as string;
+    const calculated = instance.findItem(id, items);
     expect(calculated).toBeInstanceOf(Item);
   });
 
@@ -206,7 +210,7 @@ describe('InventoryController', () => {
 
   it('#getSalesByDay should return false if item deoes not exists in IinvoiceRelatedPdct', () => {
     const date = new Date();
-    const relateds = createMockInvoiceRelateds(10);
+    const relateds = createMockInvoiceRelatedWithReceipts(10);
     const returned = instance.getSalesByDay(relateds, date);
     expect(returned).toHaveProperty('sales');
     expect(returned).toHaveProperty('total');
@@ -216,7 +220,7 @@ describe('InventoryController', () => {
 
   it('#getSalesByWeek should return false if item deoes not exists in IinvoiceRelatedPdct', () => {
     const date = new Date();
-    const relateds = createMockInvoiceRelateds(10);
+    const relateds = createMockInvoiceRelatedWithReceipts(10);
     const returned = instance.getSalesByWeek(relateds, date);
     expect(returned).toHaveProperty('sales');
     expect(returned).toHaveProperty('total');
@@ -226,7 +230,7 @@ describe('InventoryController', () => {
 
   it('#getSalesByMonth should return false if item deoes not exists in IinvoiceRelatedPdct', () => {
     const date = new Date();
-    const relateds = createMockInvoiceRelateds(10);
+    const relateds = createMockInvoiceRelatedWithReceipts(10);
     const returned = instance.getSalesByMonth(relateds, date);
     expect(returned).toHaveProperty('sales');
     expect(returned).toHaveProperty('total');
@@ -236,7 +240,7 @@ describe('InventoryController', () => {
 
   it('#getSalesByYear should return false if item deoes not exists in IinvoiceRelatedPdct', () => {
     const date = new Date();
-    const relateds = createMockInvoiceRelateds(10);
+    const relateds = createMockInvoiceRelatedWithReceipts(10);
     const returned = instance.getSalesByYear(relateds, date);
     expect(returned).toHaveProperty('sales');
     expect(returned).toHaveProperty('total');
@@ -247,7 +251,7 @@ describe('InventoryController', () => {
   it('#getSalesByDates should return false if item deoes not exists in IinvoiceRelatedPdct', () => {
     const lowerDate = new Date();
     const upperDate = new Date();
-    const relateds = createMockInvoiceRelateds(10);
+    const relateds = createMockInvoiceRelatedWithReceipts(10);
     const returned = instance.getSalesByDates(relateds, lowerDate, upperDate);
     expect(returned).toHaveProperty('sales');
     expect(returned).toHaveProperty('total');

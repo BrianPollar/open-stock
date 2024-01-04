@@ -4,12 +4,14 @@ import { ItaxReport } from '@open-stock/stock-universal';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../../controllers/database.controller';
 const uniqueValidator = require('mongoose-unique-validator');
 
-/** model interface for taxReport by */
-/** */
+/**
+ * Represents a tax report.
+ */
 export type TtaxReport = Document & ItaxReport;
 
 const taxReportSchema: Schema<TtaxReport> = new Schema({
   urId: { type: String, unique: true },
+  companyId: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
   totalAmount: { type: Number },
   date: { type: Date },
   estimates: [],
@@ -24,23 +26,29 @@ taxReportSchema.plugin(uniqueValidator);
  */
 const taxReportselect = {
   urId: 1,
+  companyId: 1,
   totalAmount: 1,
   date: 1,
   estimates: 1,
   invoiceRelateds: 1
 };
 
-/** main connection for taxReports Operations*/
+/**
+ * Represents the main tax report model.
+ */
 export let taxReportMain: Model<TtaxReport>;
-/** lean connection for taxReports Operations*/
+
+/**
+ * Represents a lean tax report model.
+ */
 export let taxReportLean: Model<TtaxReport>;
 /** primary selection object
  * for taxReport
  */
-/** */
+
 export const taxReportSelect = taxReportselect;
 
-/** */
+
 /**
  * Creates a tax report model with the given database URL, main connection and lean connection.
  * @param dbUrl The URL of the database to connect to.
@@ -60,3 +68,4 @@ export const createTaxReportModel = async(dbUrl: string, main = true, lean = tru
     taxReportLean = mainConnectionLean.model<TtaxReport>('taxReport', taxReportSchema);
   }
 };
+

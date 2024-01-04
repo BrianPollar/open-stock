@@ -11,6 +11,8 @@ import { Expense } from '../expense.define';
 export class ExpenseReport extends DatabaseAuto {
   /** The ID of the user who created the expense report. */
   urId: string;
+  /** The user's company ID. */
+  companyId: string;
 
   /** The total amount of the expense report. */
   totalAmount: number;
@@ -27,7 +29,8 @@ export class ExpenseReport extends DatabaseAuto {
    */
   constructor(data: IexpenseReport) {
     super(data);
-    this.urId = data.urId as string;
+    this.urId = data.urId;
+    this.companyId = data.companyId;
     this.totalAmount = data.totalAmount;
     this.date = data.date;
     if (data.expenses) {
@@ -37,49 +40,54 @@ export class ExpenseReport extends DatabaseAuto {
 
   /**
    * Retrieves a list of expense reports from the API.
+   * @param companyId - The ID of the company
    * @param url Optional URL for the API request.
    * @param offset Optional offset for the API request.
    * @param limit Optional limit for the API request.
    * @returns An array of `ExpenseReport` objects.
    */
   static async getExpenseReports(
+    companyId: string,
     url = 'getall',
     offset = 0,
     limit = 10
   ): Promise<ExpenseReport[]> {
-    const observer$ = StockCounterClient.ehttp.makeGet(`/expensereport/${url}/${offset}/${limit}`);
+    const observer$ = StockCounterClient.ehttp.makeGet(`/expensereport/${url}/${offset}/${limit}/${companyId}`);
     const expensereports = await lastValueFrom(observer$) as IexpenseReport[];
     return expensereports.map((val) => new ExpenseReport(val));
   }
 
   /**
    * Retrieves a single expense report from the API.
+   * @param companyId - The ID of the company
    * @param urId The ID of the expense report to retrieve.
    * @returns A single `ExpenseReport` object.
    */
-  static async getOneExpenseReport(urId: string): Promise<ExpenseReport> {
-    const observer$ = StockCounterClient.ehttp.makeGet(`/expensereport/getone/${urId}`);
+  static async getOneExpenseReport(companyId: string, urId: string): Promise<ExpenseReport> {
+    const observer$ = StockCounterClient.ehttp.makeGet(`/expensereport/getone/${urId}/${companyId}`);
     const expensereport = await lastValueFrom(observer$) as IexpenseReport;
     return new ExpenseReport(expensereport);
   }
 
   /**
    * Adds a new expense report to the API.
+   * @param companyId - The ID of the company
    * @param vals An object of type `IexpenseReport` containing the data for the new expense report.
    * @returns A success message.
    */
-  static async addExpenseReport(vals: IexpenseReport): Promise<Isuccess> {
-    const observer$ = StockCounterClient.ehttp.makePost('/expensereport/create', vals);
+  static async addExpenseReport(companyId: string, vals: IexpenseReport): Promise<Isuccess> {
+    const observer$ = StockCounterClient.ehttp.makePost(`/expensereport/create/${companyId}`, vals);
     return await lastValueFrom(observer$) as Isuccess;
   }
 
   /**
    * Deletes multiple expense reports from the API.
+   * @param companyId - The ID of the company
    * @param ids An array of expense report IDs to delete.
    * @returns A success message.
    */
-  static async deleteExpenseReports(ids: string[]): Promise<Isuccess> {
-    const observer$ = StockCounterClient.ehttp.makePut('/expensereport/deletemany', { ids });
+  static async deleteExpenseReports(companyId: string, ids: string[]): Promise<Isuccess> {
+    const observer$ = StockCounterClient.ehttp.makePut(`/expensereport/deletemany/${companyId}`, { ids });
     return await lastValueFrom(observer$) as Isuccess;
   }
 }

@@ -9,3 +9,5 @@ export * from './filemanager/filemanager.controller';
 export * from './filemanager/filestorage';
 export * from './filemanager/fs';
 export * from './controllers/passport.service';
+export * from './stock-universal-server';
+export * from './models/filemeta.model';
