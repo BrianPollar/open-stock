@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 
 import { lastValueFrom } from 'rxjs';
 import { DatabaseAuto, IblockedReasons, Icompany, Ifile, IfileMeta, Isuccess } from '@open-stock/stock-universal';
@@ -205,9 +204,9 @@ export class Company extends DatabaseAuto {
       this.dateOfEst = data.dateOfEst || this.dateOfEst;
       this.details = data.details || this.details;
       this.businessType = data.businessType || this.businessType;
-      this.profilePic = data.profilePic || this.profilePic;
-      this.profileCoverPic = data.profileCoverPic || this.profileCoverPic;
-      this.photos = data.photos || this.photos;
+      this.profilePic = data.profilePic as IfileMeta || this.profilePic;
+      this.profileCoverPic = data.profileCoverPic as IfileMeta || this.profileCoverPic;
+      this.photos = data.photos as IfileMeta[] || this.photos;
       this.websiteAddress = data.websiteAddress || this.websiteAddress;
       this.pesapalCallbackUrl = data.pesapalCallbackUrl || this.pesapalCallbackUrl;
       this.pesapalCancellationUrl = data.pesapalCancellationUrl || this.pesapalCancellationUrl;

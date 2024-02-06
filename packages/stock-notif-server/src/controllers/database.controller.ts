@@ -2,13 +2,11 @@ import { makeNewConnection } from '@open-stock/stock-universal-server';
 import { getLogger } from 'log4js';
 import { Connection } from 'mongoose';
 
-
 const dbConnectionsLogger = getLogger('DbConnections');
 
 export let mainConnection: Connection;
 export let mainConnectionLean: Connection;
 export let isNotifDbConnected = false;
-
 
 /**
  * Connects to the notification database using the provided configuration URL.

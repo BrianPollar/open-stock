@@ -1,9 +1,8 @@
 "use strict";
-/* eslint-disable @typescript-eslint/naming-convention */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.EhttpController = void 0;
 const tslib_1 = require("tslib");
+/* eslint-disable @typescript-eslint/naming-convention */
 // This file imports the `Observable` type from the `rxjs` module.
 const rxjs_1 = require("rxjs");
 // This file imports the `Axios` module.

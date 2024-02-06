@@ -130,7 +130,7 @@ userSchema.methods['sendAuthyToken'] = function(cb) {
     setUpUser(
       this.phone,
       this.countryCode
-    ).then((res: any) => {
+    ).then(res => {
       this.authyId = res.user.id;
       this.save((err1, doc) => {
         if (err1 || !doc) {

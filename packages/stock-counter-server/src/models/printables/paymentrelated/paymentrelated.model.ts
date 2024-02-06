@@ -4,7 +4,6 @@ import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectio
 const uniqueValidator = require('mongoose-unique-validator');
 
 /** model type for paymentRelated by */
-
 export type TpaymentRelated = Document & IpaymentRelated & { pesaPalorderTrackingId: string };
 
 /**

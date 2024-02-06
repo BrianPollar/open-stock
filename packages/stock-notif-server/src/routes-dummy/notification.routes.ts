@@ -6,7 +6,6 @@ import { createMockNotif, createMockNotifs } from '../../../tests/stock-notif-mo
  */
 export const notifnRoutesDummy = express.Router();
 
-
 notifnRoutesDummy.get('/getmynotifn/:companyIdParam', (req, res) => {
   res.status(200).send(createMockNotifs(10));
 });
@@ -53,4 +52,3 @@ notifnRoutesDummy.put('/updatestn', (req, res) => {
 notifnRoutesDummy.post('/getstn', (req, res) => {
   res.status(200).send([]);
 });
-

@@ -1,13 +1,8 @@
-// This function imports the `mongoose` module.
 import mongoose from 'mongoose';
-
-// This function imports the `getLogger()` function from `log4js`.
 import { getLogger } from 'log4js';
 
-// This function creates a dbConnectionsLogger named `DbConnections`.
+// This var creates a dbConnectionsLogger named `DbConnections`.
 const dbConnectionsLogger = getLogger('DbConnections');
-
-// This function defines a function that creates a new MongoDB connection.
 
 /**
  * Creates a new MongoDB connection.

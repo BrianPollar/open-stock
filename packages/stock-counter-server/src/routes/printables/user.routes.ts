@@ -5,7 +5,6 @@
  * @packageDocumentation
  */
 /* eslint-disable @typescript-eslint/no-var-requires */
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 /* eslint-disable @typescript-eslint/no-misused-promises */
 import express, { Request, Response } from 'express';
 import { getLogger } from 'log4js';
@@ -36,7 +35,7 @@ const authLogger = getLogger('routes/user');
 
 /**
  * Handles the user login request.
- * 
+ *
  * @param req - The request object.
  * @param res - The response object.
  * @returns The response with the user information and token.
@@ -89,9 +88,12 @@ authRoutes.get('/authexpress/:companyIdParam', requireAuth, async(req, res) => {
 
   const foundUser = await userLean
     .findById(userId)
-    .populate({ path: 'profilePic', model: fileMetaLean, transform: (doc) => doc.url })
-    .populate({ path: 'profileCoverPic', model: fileMetaLean, transform: (doc) => doc.url })
-    .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => doc.url })
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    .populate({ path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    .populate({ path: 'profileCoverPic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
     .lean()
     .select(userAuthSelect)
     .catch(err => {
@@ -240,7 +242,7 @@ authRoutes.post('/sociallogin', async(req, res) => {
   const credentials = req.body;
   authLogger.debug(`sociallogin, 
     socialId: ${credentials.socialId}`);
-  const foundUser: any = await user.findOne({
+  const foundUser = await user.findOne({
     fromsocial: true,
     socialframework: credentials.type,
     socialId: credentials.socialId
@@ -288,12 +290,13 @@ authRoutes.post('/sociallogin', async(req, res) => {
     } else {
       return res.status(200).send({
         success: true,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         user: (nUser as any).toAuthJSON()
       });
     }
   } else {
-    foundUser.name = credentials.name;
-    foundUser.profilepic = credentials.profilepic;
+    foundUser.fname = credentials.name;
+    // foundUser.profilepic = credentials.profilepic; // TODO
     let status = 200;
     let response: Iauthresponse = { success: true };
     await foundUser.save().catch(err => {
@@ -313,7 +316,8 @@ authRoutes.post('/sociallogin', async(req, res) => {
     if (status === 200) {
       response = {
         success: true,
-        user: foundUser.toAuthJSON()
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        user: (foundUser as any).toAuthJSON()
       };
       return res.status(200).send(response);
     } else {
@@ -358,6 +362,7 @@ authRoutes.put('/updateprofile/:formtype/:companyIdParam', requireAuth, async(re
       break;
     case 'phone':
       // compare password
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       foundUser['comparePassword'](userdetails.passwd, function(err, isMatch) {
         if (err) {
           status = 401;
@@ -384,6 +389,7 @@ authRoutes.put('/updateprofile/:formtype/:companyIdParam', requireAuth, async(re
       break;
     case 'email':
       // compare password
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       foundUser['comparePassword'](userdetails.passwd, function(err, isMatch) {
         if (err) {
           status = 200;
@@ -409,6 +415,7 @@ authRoutes.put('/updateprofile/:formtype/:companyIdParam', requireAuth, async(re
       break;
     case 'password':
       // compare password
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       foundUser['comparePassword'](userdetails.oldPassword, function(err, isMatch) {
         if (err) {
           status = 200;
@@ -469,16 +476,16 @@ authRoutes.post('/updateprofileimg/:companyIdParam', requireAuth, uploadFiles, a
   const parsed = req.body.parsed;
   if (parsed) {
     if (parsed.profilePic) {
-      foundUser.profilePic = parsed.profilePic._id || foundUser.profilePic;
+      foundUser.profilePic = parsed.profilePic || foundUser.profilePic;
     }
 
     if (parsed.coverPic) {
-      foundUser.profileCoverPic = parsed.coverPic._id || foundUser.profileCoverPic;
+      foundUser.profileCoverPic = parsed.coverPic || foundUser.profileCoverPic;
     }
 
     if (parsed.newFiles) {
       const oldPhotos = foundUser.photos;
-      foundUser.photos = oldPhotos.concat(parsed.newFiles);
+      foundUser.photos = oldPhotos.concat(parsed.newFiles) as string[];
     }
   }
 
@@ -502,8 +509,8 @@ authRoutes.post('/updateprofileimg/:companyIdParam', requireAuth, uploadFiles, a
 
 authRoutes.put('/updatepermissions/:userId/:companyIdParam', requireAuth, roleAuthorisation('users', 'update'), async(req, res) => {
   const { userId } = req.params;
-  const { companyId } = (req as Icustomrequest).user;
-  const { companyIdParam } = req.params;
+  // const { companyId } = (req as Icustomrequest).user;
+  // const { companyIdParam } = req.params;
   authLogger.debug('updatepermissions');
   const isValid = verifyObjectId(userId);
   if (!isValid) {
@@ -539,8 +546,8 @@ authRoutes.put('/updatepermissions/:userId/:companyIdParam', requireAuth, roleAu
 
 authRoutes.put('/blockunblock/:companyIdParam', requireAuth, roleAuthorisation('users', 'update'), async(req, res) => {
   const { userId } = (req as unknown as Icustomrequest).user;
-  const { companyId } = (req as Icustomrequest).user;
-  const { companyIdParam } = req.params;
+  // const { companyId } = (req as Icustomrequest).user;
+  // const { companyIdParam } = req.params;
   authLogger.debug('blockunblock');
 
   const isValid = verifyObjectId(userId);
@@ -605,9 +612,9 @@ authRoutes.put('/addupdateaddr/:userId/:companyIdParam', requireAuth, async(req,
   } else if (how === 'update') {
     let found: Iaddress | Ibilling;
     if (type === 'billing') {
-      found = foundUser.billing.find(val => val.id === address.id) as Ibilling;
+      found = foundUser.billing.find(val => val.id === address.id) ;
     } else {
-      found = foundUser.address.find(val => val.id === address.id) as Iaddress;
+      found = foundUser.address.find(val => val.id === address.id) ;
     }
     if (found) {
       found = address;
@@ -644,7 +651,7 @@ authRoutes.get('/getoneuser/:urId/:companyIdParam', requireAuth, roleAuthorisati
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
-  let filter = { urId } as any;
+  let filter = { urId } as object;
   if (isValid) {
     filter = { urId, companyId: queryId };
   }
@@ -663,8 +670,8 @@ authRoutes.get('/getoneuser/:urId/:companyIdParam', requireAuth, roleAuthorisati
 
 authRoutes.get('/getusers/:where/:offset/:limit/:companyIdParam', requireAuth, roleAuthorisation('users', 'read'), async(req, res) => {
   const { companyId } = (req as Icustomrequest).user;
-  const { companyIdParam } = req.params;
-  const { getusers, where } = req.params;
+  // const { companyIdParam } = req.params;
+  const { where } = req.params;
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
   const currOffset = offset === 0 ? 0 : offset;
   const currLimit = limit === 0 ? 1000 : limit;
@@ -757,11 +764,11 @@ authRoutes.post('/adduserimg/:companyIdParam', requireAuth, roleAuthorisation('u
   }
   if (parsed) {
     if (parsed.profilePic) {
-      userData.profilePic = parsed.profilePic._id || userData.profilePic;
+      userData.profilePic = parsed.profilePic || userData.profilePic;
     }
 
     if (parsed.coverPic) {
-      userData.profileCoverPic = parsed.coverPic._id || userData.profileCoverPic;
+      userData.profileCoverPic = parsed.coverPic || userData.profileCoverPic;
     }
 
     if (parsed.newFiles) {
@@ -879,16 +886,16 @@ authRoutes.post('/updateuserbulkimg/:companyIdParam', requireAuth, roleAuthorisa
   const parsed = req.body.parsed;
   if (parsed) {
     if (parsed.profilePic) {
-      foundUser.profilePic = parsed.profilePic._id || foundUser.profilePic;
+      foundUser.profilePic = parsed.profilePic || foundUser.profilePic;
     }
 
     if (parsed.coverPic) {
-      foundUser.profileCoverPic = parsed.coverPic._id || foundUser.profileCoverPic;
+      foundUser.profileCoverPic = parsed.coverPic || foundUser.profileCoverPic;
     }
 
     if (parsed.newFiles) {
       const oldPhotos = foundUser.photos;
-      foundUser.photos = oldPhotos.concat(parsed.newFiles);
+      foundUser.photos = oldPhotos.concat(parsed.newFiles) as string[];
     }
   }
   delete updatedUser._id;
@@ -984,11 +991,10 @@ authRoutes.put('/deleteimages/:companyIdParam', requireAuth, roleAuthorisation('
     return res.status(404).send({ success: false, err: 'item not found' });
   }
   const photos = foundUser.photos;
-  const filesWithDirStr = filesWithDir
-    .map(val => val.url);
+  const filesWithDirIds = filesWithDir
+    .map(val => val._id);
   foundUser.photos = photos
-    .filter(p => !filesWithDirStr.includes(p._id))
-    .map(p => p._id) as any;
+    .filter((p: string) => !filesWithDirIds.includes(p)) as string[];
   foundUser.profilePic = foundUser.photos.find(p => p === foundUser.profilePic);
   foundUser.profileCoverPic = foundUser.photos.find(p => p === foundUser.profileCoverPic);
   let errResponse: Isuccess;

@@ -179,6 +179,7 @@ export const makeInvoiceRelated = (data: DeliveryNote | Estimate | Invoice | Rec
     balanceDue: data.balanceDue,
     subTotal: data.subTotal,
     total: data.total,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     payments: (data as any).payments // TODO
   };
 };

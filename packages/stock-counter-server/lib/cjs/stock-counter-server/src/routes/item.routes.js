@@ -1,4 +1,7 @@
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.removeReview = exports.addReview = exports.itemRoutes = void 0;
+const tslib_1 = require("tslib");
 /**
  * @file item.routes.ts
  * @description This file contains the express routes for handling CRUD operations on item and review data.
@@ -26,9 +29,6 @@
  * @requires itemOfferMain
  * @requires itemDecoyMain
  */
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.removeReview = exports.addReview = exports.itemRoutes = void 0;
-const tslib_1 = require("tslib");
 const express_1 = tslib_1.__importDefault(require("express"));
 const item_model_1 = require("../models/item.model");
 const review_model_1 = require("../models/review.model");
@@ -430,6 +430,22 @@ exports.itemRoutes.get('/filtergeneral/:prop/:val/:offset/:limit/:companyIdParam
     const newItems = items.filter(item => item.companyId);
     return res.status(200).send(newItems);
 });
+exports.itemRoutes.get('/filterrandom/:prop/:val/:offset/:limit/:companyIdParam', async (req, res) => {
+    const { companyIdParam, prop, val } = req.params;
+    let filter = { [prop]: { $regex: val, $options: 'i' } };
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
+    if (isValid) {
+        filter = { companyId: companyIdParam, [prop]: { $regex: val, $options: 'i' } };
+    }
+    const items = await item_model_1.itemLean
+        .find(filter)
+        .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean })
+        .populate({ path: 'companyId', model: stock_auth_server_1.companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
+        .sort({ timesViewed: 1, likesCount: 1, reviewCount: 1 })
+        .lean();
+    const newItems = items.filter(item => item.companyId);
+    return res.status(200).send(newItems);
+});
 exports.itemRoutes.get('/getall/:offset/:limit/:companyIdParam', async (req, res) => {
     const { companyIdParam } = req.params;
     let filter = {};
@@ -459,6 +475,22 @@ exports.itemRoutes.get('/gettrending/:offset/:limit/:companyIdParam', async (req
         .find(filter)
         .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean })
         .sort({ timesViewed: 1 })
+        .populate({ path: 'companyId', model: stock_auth_server_1.companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
+        .lean();
+    const newItems = items.filter(item => item.companyId);
+    return res.status(200).send(newItems);
+});
+exports.itemRoutes.get('/getfeatured/:offset/:limit/:companyIdParam', async (req, res) => {
+    const { companyIdParam } = req.params;
+    let filter = {};
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
+    if (isValid) {
+        filter = { companyId: companyIdParam };
+    }
+    const items = await item_model_1.itemLean
+        .find(filter)
+        .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean })
+        .sort({ timesViewed: 1, likesCount: 1, reviewCount: 1 }) // TODO better sorting algo
         .populate({ path: 'companyId', model: stock_auth_server_1.companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
         .lean();
     const newItems = items.filter(item => item.companyId);
@@ -867,17 +899,25 @@ exports.itemRoutes.put('/deleteimages/:companyIdParam', stock_universal_server_1
     return res.status(200).send({ success: true });
 });
 exports.itemRoutes.post('/search/:limit/:offset/:companyIdParam', async (req, res) => {
-    const { searchterm, searchKey, category, extraFilers } = req.body;
+    const { searchterm, searchKey, category, extraFilers, subCategory } = req.body;
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
     let filter;
     if (!category || category === 'all') {
-        filter = {};
+        if (subCategory) {
+            filter = { subCategory };
+        }
+        else {
+            filter = {};
+        }
+    }
+    else if (subCategory) {
+        filter = { category, subCategory };
     }
     else {
-        filter = { type: category };
+        filter = { category };
     }
     if (extraFilers) {
         switch (extraFilers.filter) {
@@ -913,8 +953,10 @@ exports.itemRoutes.post('/search/:limit/:offset/:companyIdParam', async (req, re
             case 'category':
                 filter = {
                     ...filter,
-                    ...{ type: extraFilers.val.val }
+                    ...{ category: extraFilers.val.val }
                 };
+                break;
+            case 'subCategory':
                 break;
             case 'breand':
                 filter = {

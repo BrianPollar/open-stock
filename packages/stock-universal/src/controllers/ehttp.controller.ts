@@ -1,6 +1,4 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 // This file imports the `Observable` type from the `rxjs` module.
 import { Observable, map } from 'rxjs';
 // This file imports the `Axios` module.
@@ -12,7 +10,7 @@ import { LoggerController } from './logger.controller';
 
 export interface Ifile {
   // The filename of the file.
-  filename?: any;
+  filename?: string;
   // The revokable URL of the file.
   revokableUrl?: string;
   // The blob data of the file.

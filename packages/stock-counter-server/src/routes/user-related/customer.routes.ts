@@ -3,6 +3,7 @@ import express from 'express';
 import { getLogger } from 'log4js';
 import {
   deleteFiles,
+  fileMetaLean,
   offsetLimitRelegator,
   requireAuth,
   roleAuthorisation,
@@ -91,7 +92,17 @@ customerRoutes.get('/getone/:id/:companyIdParam', async(req, res) => {
   const customer = await customerLean
     // eslint-disable-next-line @typescript-eslint/naming-convention
     .findOne({ _id: id, companyId: queryId })
-    .populate({ path: 'user', model: userLean })
+    .populate({ path: 'user', model: userLean,
+      populate: [{
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+      }, {
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+      }, {
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        path: 'profileCoverPic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+      }] })
     .lean();
   return res.status(200).send(customer);
 });
@@ -113,7 +124,18 @@ customerRoutes.get('/getall/:offset/:limit/:companyIdParam', async(req, res) => 
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const customers = await customerLean
     .find({ companyId: queryId })
-    .populate({ path: 'user', model: userLean })
+    .populate({ path: 'user', model: userLean,
+      populate: [{
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+      }, {
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+      }, {
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        path: 'profileCoverPic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+      }]
+    })
     .skip(offset)
     .limit(limit)
     .lean();

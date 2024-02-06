@@ -5,7 +5,6 @@
  * @packageDocumentation
  */
 /* eslint-disable @typescript-eslint/no-var-requires */
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 /* eslint-disable @typescript-eslint/no-misused-promises */
 import express, { Request, Response, NextFunction } from 'express';
 import { getLogger } from 'log4js';
@@ -18,7 +17,7 @@ import { Document } from 'mongoose';
 import { companyMain } from '../models/company.model';
 // import { notifConfig } from '../../config/notif.config';
 // import { createNotifications, NotificationController } from '../controllers/notifications.controller';
-const passport = require('passport');
+// const passport = require('passport');
 
 /**
  * Router for super admin routes.
@@ -134,7 +133,7 @@ export const loginFactorRelgator = async(req: Request, res: Response, next: Next
 
   const expireAt = Date.now();
   if (from === 'company') {
-    const { name, lastName } = req.body.user;
+    const { name } = req.body.user;
     newUser = new companyMain({
       urId,
       name,
@@ -145,7 +144,7 @@ export const loginFactorRelgator = async(req: Request, res: Response, next: Next
       countryCode: +256
     });
   } else {
-    const { emailPhone, firstName, lastName } = req.body.user;
+    const { firstName, lastName } = req.body.user;
     newUser = new user({
       urId,
       fname: firstName,
@@ -187,7 +186,7 @@ export const loginFactorRelgator = async(req: Request, res: Response, next: Next
   if (isPhone) {
     result = await sendTokenPhone(saved);
   } else {
-    result = await sendTokenEmail(req.app,
+    result = await sendTokenEmail(
     saved as unknown as Iuser, type, stockAuthConfig.localSettings.appOfficialName);
   }
 
@@ -205,8 +204,8 @@ export const loginFactorRelgator = async(req: Request, res: Response, next: Next
   return res.status(500).send(toSend);
 };
 
-superAdminRoutes.post('/login', (req, res, next) => {
-  const secret = process.env['accessKey'] as string;
+superAdminRoutes.post('/login', (req, res) => {
+  const secret = process.env['accessKey'] ;
   const password = req.body.password;
   if (password === secret) {
     const permProp = {
@@ -253,11 +252,11 @@ superAdminRoutes.post('/login', (req, res, next) => {
     };
     const token = generateToken(
       userInfo, '1d', stockAuthConfig.authSecrets.jwtSecret);
-    const nowResponse: Iauthresponse = {
+    const nowResponse = {
       success: true,
       user: comapany,
       token
-    } as any;
+    } as Iauthresponse;
     return res.status(200).send(nowResponse);
   } else {
     return res.status(401).send({ err: 'unauthourized ' });

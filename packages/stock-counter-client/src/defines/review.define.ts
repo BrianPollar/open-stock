@@ -1,9 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 import { User } from '@open-stock/stock-auth-client';
 import { DatabaseAuto, IreviewMain, Isuccess, Iuser } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
 import { StockCounterClient } from '../stock-counter-client';
-
 
 /**
  * Represents a review object.

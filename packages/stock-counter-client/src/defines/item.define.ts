@@ -31,11 +31,10 @@ export class Item extends DatabaseAuto {
   /** The brand of the item. */
   brand: string;
 
-  /** The type of the item. */
-  type?: string;
-
   /** The category of the item. */
   category?: string;
+
+  subCategory?: string;
 
   /** The state of the item. */
   state?: TitemState;
@@ -123,13 +122,14 @@ export class Item extends DatabaseAuto {
    */
   static async searchItems(
     companyId: string,
-    type: string,
+    category: string,
     searchterm: string,
     searchKey: string,
-    extraFilters
+    extraFilters,
+    subCategory?: string
   ) {
     const observer$ = StockCounterClient.ehttp
-      .makePost(`/item/search/${companyId}`, { searchterm, searchKey, category: type, extraFilters });
+      .makePost(`/item/search/${companyId}`, { searchterm, searchKey, category, extraFilters, subCategory });
     const items = await lastValueFrom(observer$) as unknown[];
     return items
       .map(val => new Item(val));
@@ -414,8 +414,8 @@ export class Item extends DatabaseAuto {
     this.numbersInstock = data.numbersInstock || this.numbersInstock;
     this.name = data.name || this.name;
     this.brand = data.brand || this.brand;
-    this.type = data.type || this.type;
     this.category = data.category || this.category;
+    this.subCategory = data.subCategory || this.subCategory;
     this.state = data.state || this.state;
     this.colors = data.colors || this.colors;
     this.model = data.model || this.model;
@@ -432,7 +432,6 @@ export class Item extends DatabaseAuto {
     this.numbersInstock = data.numbersInstock || this.numbersInstock;
     this.name = data.name || this.name;
     this.brand = data.brand || this.brand;
-    this.type = data.type || this.type;
     this.category = data.category || this.category;
     this.state = data.state || this.state;
     this.photos = data.photos || this.photos;
@@ -466,4 +465,3 @@ export class Item extends DatabaseAuto {
     this.ecomerceCompat = data.ecomerceCompat || this.ecomerceCompat;
   }
 }
-

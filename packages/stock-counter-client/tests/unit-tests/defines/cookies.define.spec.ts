@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { vi, expect, describe, beforeEach, it, expectTypeOf } from 'vitest';
 import { Cookies } from '../../../../stock-counter-client/src/defines/cookies.define';
 import { StockCounterClient } from '../../../../stock-counter-client/src/stock-counter-client';

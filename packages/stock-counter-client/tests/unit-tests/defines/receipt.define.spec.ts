@@ -1,5 +1,4 @@
 // //TODO LATER AT convienience
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 import { vi, expect, describe, beforeEach, it, expectTypeOf } from 'vitest';
 import { Receipt } from '../../../../stock-counter-client/src/defines/receipt.define';
 import { } from '../../../../stock-counter-client/src/defines/invoice.define';

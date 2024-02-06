@@ -424,6 +424,22 @@ itemRoutes.get('/filtergeneral/:prop/:val/:offset/:limit/:companyIdParam', async
     const newItems = items.filter(item => item.companyId);
     return res.status(200).send(newItems);
 });
+itemRoutes.get('/filterrandom/:prop/:val/:offset/:limit/:companyIdParam', async (req, res) => {
+    const { companyIdParam, prop, val } = req.params;
+    let filter = { [prop]: { $regex: val, $options: 'i' } };
+    const isValid = verifyObjectId(companyIdParam);
+    if (isValid) {
+        filter = { companyId: companyIdParam, [prop]: { $regex: val, $options: 'i' } };
+    }
+    const items = await itemLean
+        .find(filter)
+        .populate({ path: 'photos', model: fileMetaLean })
+        .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
+        .sort({ timesViewed: 1, likesCount: 1, reviewCount: 1 })
+        .lean();
+    const newItems = items.filter(item => item.companyId);
+    return res.status(200).send(newItems);
+});
 itemRoutes.get('/getall/:offset/:limit/:companyIdParam', async (req, res) => {
     const { companyIdParam } = req.params;
     let filter = {};
@@ -453,6 +469,22 @@ itemRoutes.get('/gettrending/:offset/:limit/:companyIdParam', async (req, res) =
         .find(filter)
         .populate({ path: 'photos', model: fileMetaLean })
         .sort({ timesViewed: 1 })
+        .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
+        .lean();
+    const newItems = items.filter(item => item.companyId);
+    return res.status(200).send(newItems);
+});
+itemRoutes.get('/getfeatured/:offset/:limit/:companyIdParam', async (req, res) => {
+    const { companyIdParam } = req.params;
+    let filter = {};
+    const isValid = verifyObjectId(companyIdParam);
+    if (isValid) {
+        filter = { companyId: companyIdParam };
+    }
+    const items = await itemLean
+        .find(filter)
+        .populate({ path: 'photos', model: fileMetaLean })
+        .sort({ timesViewed: 1, likesCount: 1, reviewCount: 1 }) // TODO better sorting algo
         .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
         .lean();
     const newItems = items.filter(item => item.companyId);
@@ -861,17 +893,25 @@ itemRoutes.put('/deleteimages/:companyIdParam', requireAuth, roleAuthorisation('
     return res.status(200).send({ success: true });
 });
 itemRoutes.post('/search/:limit/:offset/:companyIdParam', async (req, res) => {
-    const { searchterm, searchKey, category, extraFilers } = req.body;
+    const { searchterm, searchKey, category, extraFilers, subCategory } = req.body;
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
     let filter;
     if (!category || category === 'all') {
-        filter = {};
+        if (subCategory) {
+            filter = { subCategory };
+        }
+        else {
+            filter = {};
+        }
+    }
+    else if (subCategory) {
+        filter = { category, subCategory };
     }
     else {
-        filter = { type: category };
+        filter = { category };
     }
     if (extraFilers) {
         switch (extraFilers.filter) {
@@ -907,8 +947,10 @@ itemRoutes.post('/search/:limit/:offset/:companyIdParam', async (req, res) => {
             case 'category':
                 filter = {
                     ...filter,
-                    ...{ type: extraFilers.val.val }
+                    ...{ category: extraFilers.val.val }
                 };
+                break;
+            case 'subCategory':
                 break;
             case 'breand':
                 filter = {

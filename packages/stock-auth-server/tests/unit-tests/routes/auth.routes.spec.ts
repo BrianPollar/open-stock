@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import { beforeAll, afterAll, vi, expect, describe, it } from 'vitest';
 import { Application } from 'express';
@@ -14,6 +15,7 @@ import { createMockUser, createMockUserperm } from '../../../../tests/stock-auth
 // hoist check if admin
 const checkIfAdminHoisted = vi.hoisted(() => {
   return {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     checkIfAdmin: vi.fn().mockImplementation((req, res, next) => {
       const nowResponse: Iadminloginres = {
         success: false
@@ -68,6 +70,7 @@ const authControllerHoisted = vi.hoisted(() => {
 // hoist authroutes some parts
 const authRoutesHoisted = vi.hoisted(() => {
   return {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     userLoginRelegator: vi.fn().mockImplementation((req, res, next) => {
       const nowResponse: Iauthresponse = {
         success: true,
@@ -180,6 +183,7 @@ describe('AuthRoutes', () => {
     await connectAuthDatabase(dbUrl);
     app.use(apiUrl, authRoutes);
     server = app.listen(4001, () => {
+      // eslint-disable-next-line no-console
       console.log('Server has started!');
     });
   });

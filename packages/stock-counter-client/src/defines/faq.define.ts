@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 import { User } from '@open-stock/stock-auth-client';
 import { DatabaseAuto, Ifaq, Ifaqanswer, Isuccess, Iuser } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';

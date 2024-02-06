@@ -49,4 +49,3 @@ orderRoutesDummy.post('/search/:limit/:offset/:companyIdParam', (req, res) => {
 orderRoutesDummy.put('/deletemany/:companyIdParam', (req, res) => {
   res.status(200).send({ success: true });
 });
-

@@ -29,6 +29,9 @@ exports.itemRoutesDummy.get('/getone/:urId/:companyIdParam', (req, res) => {
 exports.itemRoutesDummy.get('/filtergeneral/:prop/:val/:offset/:limit/:companyIdParam', (req, res) => {
     res.status(200).send((0, stock_counter_mocks_1.createMockItems)(Number(req.params.limit)));
 });
+exports.itemRoutesDummy.get('/filterrandom/:prop/:val/:offset/:limit/:companyIdParam', (req, res) => {
+    res.status(200).send((0, stock_counter_mocks_1.createMockItems)(Number(req.params.limit)));
+});
 exports.itemRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) => {
     res.status(200).send((0, stock_counter_mocks_1.createMockItems)(Number(req.params.limit)));
 });

@@ -1,10 +1,8 @@
 import { Application } from 'express';
-import { runStockNotificationServer } from '../../src/stock-notif-server';
+import { IstockNotifServerConfig, runStockNotificationServer } from '../../src/stock-notif-server';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { apiRouter } from '@open-stock/stock-universal-server';
 import { createExpressServer } from '../../../tests/helpers';
-import { IlAuth, IlocalPath } from '@open-stock/stock-auth-server';
-// import { databaseConfigUrl } from '../src/stock-notif-server';
 
 const mocks = vi.hoisted(() => {
   return {
@@ -25,54 +23,7 @@ vi.mock('../../../stock-notif-server/src/controllers/twilio.controller', () => {
   };
 });
 
-const appName = 'testApp';
-
-const localPath: IlocalPath = {
-  absolutepath: `${'process.cwd()'}/${appName}`,
-  photoDirectory: `${'process.cwd()'}/${appName}/openphotos/`,
-  videoDirectory: `${'process.cwd()'}/${appName}/openvideos/`
-};
-
 const jwtSecret = 'aegwegshhweh';
-const cookieSecret = 'ehwerhrewhewrhrhrh';
-
-const authSecrets: IlAuth = {
-  jwtSecret: 'aegwegshhweh',
-  cookieSecret: 'ehwerhrewhewrhrhrh'
-};
-
-const notifStn/* : InotificationConfig*/ = {
-  publicKey: 'notifConfig.notifPublicKey', // TODO
-  privateKey: 'notifConfig.notifPrivateKey', // TODO
-  redirectUrl: 'notifConfig.notifCallbacUrl' // TODO
-};
-
-const twilioAuthyConfig2 /* : ItwilioAuthyConfig*/ = {
-  secret: 'config.secret as string', // TODO
-  accountSid: 'config.accountSid as string', // TODO
-  authToken: 'config.authToken as string', // TODO
-  twilioNumber: 'config.twilioNumber as string', // TODO
-  authyKey: 'config.authyKey as string', // TODO
-  enableValidationSMS: 'config.enableValidationSMS as string', // TODO
-  sendGridApiKey: 'config.sendGridApiKey as string' // TODO
-};
-
-/* const config  : IstocknotifServerConfig = {
-  authSecrets,
-  notificationsSettings: notifStn,
-  twilioAuthySetings: twilioAuthyConfig,
-  databaseConfigUrl: 'mongodb://localhost:27017/node_testyyyyy',
-  localPath
-};*/
-
-
-const twilioAuthyConfig = {
-  authyKey: 'string;',
-  accountSid: 'string;',
-  authToken: 'string;',
-  defaultMail: 'string;',
-  twilioNumber: 'string;'
-};
 
 vi.mock('@open-stock/stock-universal-server', async() => {
   const actual: object = await vi.importActual('@open-stock/stock-universal-server');
@@ -90,9 +41,19 @@ describe('status integration tests', () => {
 
   beforeEach(async() => {
     app = createExpressServer();
-    const res = await runStockNotificationServer(jwtSecret, cookieSecret, twilioAuthyConfig);
-    notifnRoutes = res.notifnRoutes;
-    apiRouter.use('notif', notifnRoutes);
+    const config: IstockNotifServerConfig = {
+      jwtSecret,
+      databaseConfigUrl: 'mongodb://localhost:27017/node_testyyyyy',
+      twilioAutyConfig: {
+        authyKey: 'string',
+        accountSid: 'string',
+        authToken: 'string',
+        defaultMail: 'string', // TODO
+        twilioNumber: 'string' // TODO
+      }
+    };
+    const { stockNotifRouter } = await runStockNotificationServer(config);
+    apiRouter.use('notif', stockNotifRouter);
     app.use('/api', apiRouter);
   });
 

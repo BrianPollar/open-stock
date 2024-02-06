@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { expect, describe, beforeEach, it } from 'vitest';
 import { EhttpController } from '../../../../stock-universal/src/controllers/ehttp.controller';
 import Axios from 'axios-observable';

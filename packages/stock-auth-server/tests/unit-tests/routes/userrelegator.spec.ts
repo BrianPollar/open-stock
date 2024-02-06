@@ -8,11 +8,11 @@ import { userLoginRelegator } from '../../../src/routes/user.routes';
 
 describe('userLoginRelegator', () => {
   const dbUrl = 'mongodb://localhost:27017/node_testyyyyy';
-  const apiUrl = '/auth';
+  // const apiUrl = '/auth';
   let app = Application;
   let server: http.Server;
-  const token = 'token';
-  const objectId = '507f1f77bcf86cd799439011';
+  // const token = 'token';
+  // const objectId = '507f1f77bcf86cd799439011';
   let request: Request;
   let response: Response;
   const univSend = vi.fn();
@@ -21,6 +21,7 @@ describe('userLoginRelegator', () => {
     app = createExpressServer();
     await connectAuthDatabase(dbUrl);
     server = app.listen(4301, () => {
+      // eslint-disable-next-line no-console
       console.log('Server has started!');
     });
   });

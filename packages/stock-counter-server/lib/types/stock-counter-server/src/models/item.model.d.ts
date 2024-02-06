@@ -23,7 +23,7 @@ export declare const itemSelect: {
     numbersInstock: number;
     name: number;
     purchase: number;
-    type: number;
+    subCategory: number;
     category: number;
     state: number;
     photos: number;

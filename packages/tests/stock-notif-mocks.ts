@@ -2,7 +2,6 @@ import { faker } from '@faker-js/faker/locale/en_US';
 import { NotificationMain } from '../stock-notif-client/src/defines/notification.define';
 import { TnotifType } from '@open-stock/stock-universal';
 
-
 export const createMockNotif = (incrementor = 0) => {
   const notif = {
     actions: Array.from({ length: 10 })

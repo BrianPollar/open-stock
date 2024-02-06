@@ -33,4 +33,3 @@ expenseRoutesDummy.post('/search/:limit/:offset/:companyIdParam', (req, res) => 
 expenseRoutesDummy.put('/deletemany/:companyIdParam', (req, res) => {
   res.status(200).send({ success: true });
 });
-

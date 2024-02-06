@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 import { lastValueFrom } from 'rxjs';
 import { InvoiceRelatedWithReceipt } from './invoice.define';
 import { Iaddress, IbagainCredential, Ibilling, IdeleteCredentialsPayRel, IinvoiceRelated, Iorder, Ipayment, IpaymentRelated, Isuccess, TpaymentMethod } from '@open-stock/stock-universal';

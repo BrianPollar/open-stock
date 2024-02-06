@@ -3,7 +3,6 @@ import { IinvoiceSetting } from '@open-stock/stock-universal';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../../controllers/database.controller';
 
 /** model type for invoiceSetting by */
-
 export type TinvoiceSetting = Document & IinvoiceSetting;
 
 const invoiceSettingSchema: Schema = new Schema({

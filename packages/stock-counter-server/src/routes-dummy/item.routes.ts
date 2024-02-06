@@ -39,6 +39,10 @@ itemRoutesDummy.get('/filtergeneral/:prop/:val/:offset/:limit/:companyIdParam', 
   res.status(200).send(createMockItems(Number(req.params.limit)));
 });
 
+itemRoutesDummy.get('/filterrandom/:prop/:val/:offset/:limit/:companyIdParam', (req, res) => {
+  res.status(200).send(createMockItems(Number(req.params.limit)));
+});
+
 itemRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) => {
   res.status(200).send(createMockItems(Number(req.params.limit)));
 });
@@ -119,4 +123,3 @@ itemRoutesDummy.post('/search/:limit/:offset/:companyIdParam', (req, res) => {
 itemRoutesDummy.put('/deletemany/:companyIdParam', (req, res) => {
   res.status(200).send({ success: true });
 });
-

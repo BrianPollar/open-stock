@@ -5,7 +5,6 @@
  * The payment routes include creating a payment, updating a payment, and getting a payment by ID.
  * @packageDocumentation
  */
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 /* eslint-disable @typescript-eslint/no-misused-promises */
 import express from 'express';
 import { paymentLean, paymentMain } from '../models/payment.model';
@@ -173,7 +172,8 @@ paymentRoutes.get('/getone/:id/:companyIdParam', requireAuth, async(req, res) =>
       {
         path: 'items.item', model: itemLean,
         populate: [{
-          path: 'photos', model: fileMetaLean, transform: (doc) => doc.url
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
         }]
       }
       ]
@@ -216,7 +216,8 @@ paymentRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, roleAut
       {
         path: 'items.item', model: itemLean,
         populate: [{
-          path: 'photos', model: fileMetaLean, transform: (doc) => doc.url
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
         }]
       }]
     });
@@ -250,7 +251,8 @@ paymentRoutes.get('/getmypayments/:companyIdParam', requireAuth, async(req, res)
       {
         path: 'items.item', model: itemLean,
         populate: [{
-          path: 'photos', model: fileMetaLean, transform: (doc) => doc.url
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
         }]
       }]
     });
@@ -305,7 +307,8 @@ paymentRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, roleAu
       {
         path: 'items.item', model: itemLean,
         populate: [{
-          path: 'photos', model: fileMetaLean, transform: (doc) => doc.url
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
         }]
       }]
     });
@@ -350,9 +353,9 @@ paymentRoutes.get('/ipn', async(req, res) => {
   const searchParams = currntUrl.searchParams;
 
   // get url parameters
-  const orderTrackingId = searchParams.get('OrderTrackingId') as string;
-  const orderNotificationType = searchParams.get('OrderNotificationType') as string;
-  const orderMerchantReference = searchParams.get('OrderMerchantReference') as string;
+  const orderTrackingId = searchParams.get('OrderTrackingId') ;
+  const orderNotificationType = searchParams.get('OrderNotificationType') ;
+  const orderMerchantReference = searchParams.get('OrderMerchantReference') ;
   paymentRoutesLogger.info('ipn - searchParams, %orderTrackingId:, %orderNotificationType:, %orderMerchantReference:',
     orderTrackingId, orderNotificationType, orderMerchantReference);
 

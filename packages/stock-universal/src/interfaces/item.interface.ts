@@ -16,10 +16,9 @@ export interface Iitem
   name: string;
   // The `brand` property is the brand of the item.
   brand?: string;
-  // The `type` property is the type of the item.
-  type?: string;
   // The `category` property is the category of the item.
   category?: string;
+  subCategory?: string;
   // The `state` property is the state of the item (new or refurbished).
   state?: TitemState; // new or refurbished
   // The `photos` property is an array of photos of the item.

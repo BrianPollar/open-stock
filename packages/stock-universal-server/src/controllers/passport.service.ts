@@ -1,22 +1,17 @@
-// This function imports the `Icustomrequest` interface from `@open-stock/stock-universal`.
 import { Icustomrequest, TroleAuth, TroleAuthProp } from '@open-stock/stock-universal';
-
-// This function imports the `getLogger()` function from `log4js`.
 import { getLogger } from 'log4js';
 
-// This function creates a passportLogger named `controllers/passport`.
+// This vat creates a passportLogger named `controllers/passport`.
 const passportLogger = getLogger('controllers/passport');
 
-// This function imports the `passport` module.
+// This var imports the `passport` module.
 const passport = require('passport');
 
-// This function imports the `jwtStrategy` module from `passport-jwt`.
+// This var imports the `jwtStrategy` module from `passport-jwt`.
 const jwtStrategy = require('passport-jwt').Strategy;
 
-// This function imports the `extractJwt` module from `passport-jwt`.
+// This var imports the `extractJwt` module from `passport-jwt`.
 const extractJwt = require('passport-jwt').ExtractJwt;
-
-// This function defines a function that sets up Passport with the given JWT secret.
 
 /**
  * Runs the Passport configuration for JWT authentication.

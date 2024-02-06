@@ -26,7 +26,7 @@ export const companySchema: Schema<Tcompany> = new Schema({
   businessType: { type: String },
   profilePic: { type: String },
   profileCoverPic: { type: String },
-  photos: [{ type: String }],
+  photos: [],
   websiteAddress: { type: String },
   pesapalCallbackUrl: { type: String },
   pesapalCancellationUrl: { type: String },
@@ -87,14 +87,14 @@ companySchema.methods['sendAuthyToken'] = function(cb) {
   if (!this.authyId) {
     setUpUser(
       this.phone,
-      this.countryCode).then((res: any) => {
+      this.countryCode).then(res => {
       this.authyId = res.company.id;
       this.save((err1, doc) => {
         if (err1 || !doc) {
           return cb.call(this, err1);
         }
         // this = doc;
-        sendToken(this.authyId).then((resp) => cb.call(this, null, resp)).catch(err => cb.call(this, err));
+        sendToken(this.authyId).then(resp => cb.call(this, null, resp)).catch(err => cb.call(this, err));
       });
     }).catch(err => cb.call(this, err));
   } else {
@@ -105,7 +105,7 @@ companySchema.methods['sendAuthyToken'] = function(cb) {
 
 // Test a 2FA token
 companySchema.methods['verifyAuthyToken'] = function(otp, cb) {
-  verifyAuthyToken(this.authyId, otp).then((resp) => {
+  verifyAuthyToken(this.authyId, otp).then(resp => {
     cb.call(this, null, resp);
   }).catch(err => {
     cb.call(this, err);

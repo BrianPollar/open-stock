@@ -1,12 +1,12 @@
 
 import {
-    DatabaseAuto,
-    Ifile,
-    IinvoiceSetting,
-    IinvoiceSettingsBank,
-    IinvoiceSettingsGeneral,
-    IinvoiceSettingsTax,
-    Isuccess
+  DatabaseAuto,
+  Ifile,
+  IinvoiceSetting,
+  IinvoiceSettingsBank,
+  IinvoiceSettingsGeneral,
+  IinvoiceSettingsTax,
+  Isuccess
 } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
 import { StockCounterClient } from '../../stock-counter-client';

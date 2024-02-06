@@ -56,6 +56,8 @@ import { itemOfferRoutesDummy } from './routes-dummy/itemoffer.routes';
 import { customerRoutesDummy } from './routes-dummy/user-related/customer.routes';
 import { staffRoutesDummy } from './routes-dummy/user-related/staff.routes';
 import { localUserRoutesDummy } from './routes-dummy/user-related/locluser.routes';
+import { subscriptionPackageRoutes } from './routes/subscriptions/subscription-package.routes';
+import { companySubscriptionRoutes } from './routes/subscriptions/company-subscription.routes';
 
 /**
  * Represents the configuration object for the StockCounterServer.
@@ -172,6 +174,10 @@ export const runStockCounterServer = async(
     stockCounterRouter.use('/customer', customerRoutes);
     stockCounterRouter.use('/staff', staffRoutes);
     stockCounterRouter.use('/localuser', localUserRoutes);
+
+    // subscriptions
+    stockCounterRouter.use('/subscriptionpackage', subscriptionPackageRoutes);
+    stockCounterRouter.use('/companysubscription', companySubscriptionRoutes);
   } else {
     stockCounterRouter.use('/review', reviewRoutesDummy);
     stockCounterRouter.use('/item', itemRoutesDummy);

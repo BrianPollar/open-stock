@@ -5,8 +5,8 @@ export interface Iitem extends IurId {
     numbersInstock: number;
     name: string;
     brand?: string;
-    type?: string;
     category?: string;
+    subCategory?: string;
     state?: TitemState;
     photos?: IfileMeta[] | string[];
     colors?: TitemColor[];

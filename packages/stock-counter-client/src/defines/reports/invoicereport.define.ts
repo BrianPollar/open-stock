@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 import { lastValueFrom } from 'rxjs';
 import { Invoice } from '../invoice.define';
 import { DatabaseAuto, IinvoicesReport, Isuccess } from '@open-stock/stock-universal';

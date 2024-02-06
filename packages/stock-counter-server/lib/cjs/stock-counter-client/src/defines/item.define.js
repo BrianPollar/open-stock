@@ -31,9 +31,9 @@ class Item extends stock_universal_1.DatabaseAuto {
      * @param extraFilters Additional filters.
      * @returns An array of items that match the search criteria.
      */
-    static async searchItems(companyId, type, searchterm, searchKey, extraFilters) {
+    static async searchItems(companyId, category, searchterm, searchKey, extraFilters, subCategory) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makePost(`/item/search/${companyId}`, { searchterm, searchKey, category: type, extraFilters });
+            .makePost(`/item/search/${companyId}`, { searchterm, searchKey, category, extraFilters });
         const items = await (0, rxjs_1.lastValueFrom)(observer$);
         return items
             .map(val => new Item(val));
@@ -270,8 +270,8 @@ class Item extends stock_universal_1.DatabaseAuto {
         this.numbersInstock = data.numbersInstock || this.numbersInstock;
         this.name = data.name || this.name;
         this.brand = data.brand || this.brand;
-        this.type = data.type || this.type;
         this.category = data.category || this.category;
+        this.subCategory = data.subCategory || this.subCategory;
         this.state = data.state || this.state;
         this.colors = data.colors || this.colors;
         this.model = data.model || this.model;
@@ -287,7 +287,6 @@ class Item extends stock_universal_1.DatabaseAuto {
         this.numbersInstock = data.numbersInstock || this.numbersInstock;
         this.name = data.name || this.name;
         this.brand = data.brand || this.brand;
-        this.type = data.type || this.type;
         this.category = data.category || this.category;
         this.state = data.state || this.state;
         this.photos = data.photos || this.photos;

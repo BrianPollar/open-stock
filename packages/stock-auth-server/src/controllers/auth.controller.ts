@@ -84,6 +84,7 @@ export const checkIpAndAttempt = async(req, res, next) => {
   let nowRes: string;
 
   // compare password
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   foundUser['comparePassword'](password, function(err, isMatch) {
     if (err) {
       authControllerLogger.error('user has wrong password', err);
@@ -121,7 +122,7 @@ export const checkIpAndAttempt = async(req, res, next) => {
   const newAttemp = new loginAtempts(attempt);
   const lastAttempt = await newAttemp.save();
 
-  const attempts = loginAtempts.find({ userId: foundUser._id });
+  // const attempts = loginAtempts.find({ userId: foundUser._id });
 
   if (!attemptSuccess) {
     const response: Iauthresponse = {
@@ -339,7 +340,7 @@ export const loginFactorRelgator = async(req, res, next) => {
   if (isPhone) {
     result = await sendTokenPhone(saved);
   } else {
-    result = await sendTokenEmail(req.app,
+    result = await sendTokenEmail(
     saved as unknown as Iuser, type, stockAuthConfig.localSettings.appOfficialName);
   }
 
@@ -362,10 +363,9 @@ export const loginFactorRelgator = async(req, res, next) => {
  * Resets the account password based on the provided verification code and new password.
  * @param req - The request object containing the request body.
  * @param res - The response object used to send the response.
- * @param next - The next middleware function.
  * @returns The response object with the updated account password.
  */
-export const resetAccountFactory = async(req, res, next) => {
+export const resetAccountFactory = async(req, res) => {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const { foundUser, _id, verifycode, how, password } = req.body;
   authControllerLogger.debug(`resetpassword, 
@@ -398,20 +398,15 @@ export const resetAccountFactory = async(req, res, next) => {
  * Recovers the user account by sending a token via email or phone.
  * @param req - The request object.
  * @param res - The response object.
- * @param next - The next middleware function.
  * @returns The response containing the success status and error message (if applicable).
  */
-export const recoverAccountFactory = async(req, res, next) => {
+export const recoverAccountFactory = async(req, res) => {
   const { appOfficialName } = stockAuthConfig.localSettings;
   const { foundUser, emailPhone } = req.body;
   const emailOrPhone = emailPhone === 'phone' ? 'phone' : 'email';
-  let query;
   authControllerLogger.debug(`recover, 
     emailphone: ${emailPhone}, emailOrPhone: ${emailOrPhone}`);
 
-  if (emailOrPhone === 'phone') {
-    query = { phone: emailPhone };
-  } else { query = { email: emailPhone }; }
   let response: Iauthresponse = { success: false };
   if (!foundUser) {
     response = {
@@ -424,7 +419,7 @@ export const recoverAccountFactory = async(req, res, next) => {
     response = await sendTokenPhone(foundUser);
   } else {
     const type = '_link';
-    response = await sendTokenEmail(req.app, foundUser, type, appOfficialName);
+    response = await sendTokenEmail(foundUser, type, appOfficialName);
   }
   return res.status(200).send(response);
 };
@@ -433,10 +428,9 @@ export const recoverAccountFactory = async(req, res, next) => {
  * Handles the confirmation of a user account.
  * @param req - The request object.
  * @param res - The response object.
- * @param next - The next middleware function.
  * @returns The response object with the status and response data.
  */
-export const confirmAccountFactory = async(req, res, next) => {
+export const confirmAccountFactory = async(req, res) => {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const { foundUser, _id, verifycode, how, type } = req.body;
   authControllerLogger.debug(`verify, verifycode: ${verifycode}, how: ${how}`);

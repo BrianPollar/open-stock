@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 import { expect, describe, beforeEach, it } from 'vitest';
 import Axios from 'axios-observable';
 import { StockCounterClient } from '../../../../../stock-counter-client/src/stock-counter-client';

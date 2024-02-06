@@ -47,4 +47,3 @@ paymentRoutesDummy.get('/ipn', (req, res) => {
 paymentRoutesDummy.get('/paymentstatus/:orderTrackingId/:paymentRelated', (req, res) => {
   res.status(200).send({ success: true });
 });
-

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 import { vi, expect, describe, beforeEach, it, expectTypeOf } from 'vitest';
 import { ItemOffer } from '../../../../stock-counter-client/src/defines/itemoffer.define';
 import { of } from 'rxjs';

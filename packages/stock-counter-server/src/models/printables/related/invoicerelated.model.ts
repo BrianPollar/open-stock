@@ -5,7 +5,6 @@ import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectio
 // const uniqueValidator = require('mongoose-unique-validator');
 
 /** model interface for invoiceRelated by */
-
 export type TinvoiceRelated = Document & IinvoiceRelated;
 
 /**

@@ -1,14 +1,12 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 import { lastValueFrom } from 'rxjs';
 import { PaymentRelated } from './payment.define';
 import {
-    IbagainCredential, IdeleteCredentialsPayRel, IinvoiceRelated,
-    Iorder,
-    Ipayment,
-    IpaymentRelated,
-    Isuccess,
-    TinvoiceStatus,
-    TorderStatus
+  IbagainCredential, IdeleteCredentialsPayRel, IinvoiceRelated,
+  Iorder,
+  Ipayment,
+  IpaymentRelated,
+  Isuccess,
+  TorderStatus
 } from '@open-stock/stock-universal';
 import { StockCounterClient } from '../stock-counter-client';
 
@@ -33,7 +31,7 @@ export class Order extends PaymentRelated {
     this.price = data.price;
     this.paymentMethod = data.paymentMethod;
     this.deliveryDate = data.deliveryDate;
-    this.status = data.status as TinvoiceStatus;
+    this.status = data.status ;
   }
 
   /**

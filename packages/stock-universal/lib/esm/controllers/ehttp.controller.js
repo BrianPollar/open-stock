@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 // This file imports the `Observable` type from the `rxjs` module.
 import { map } from 'rxjs';
 // This file imports the `Axios` module.

@@ -15,10 +15,9 @@ export declare class Item extends DatabaseAuto {
     name: string;
     /** The brand of the item. */
     brand: string;
-    /** The type of the item. */
-    type?: string;
     /** The category of the item. */
     category?: string;
+    subCategory?: string;
     /** The state of the item. */
     state?: TitemState;
     /** The colors of the item. */
@@ -78,7 +77,7 @@ export declare class Item extends DatabaseAuto {
      * @param extraFilters Additional filters.
      * @returns An array of items that match the search criteria.
      */
-    static searchItems(companyId: string, type: string, searchterm: string, searchKey: string, extraFilters: any): Promise<Item[]>;
+    static searchItems(companyId: string, category: string, searchterm: string, searchKey: string, extraFilters: any, subCategory?: string): Promise<Item[]>;
     /**
      * Gets items.
      * @param companyId - The ID of the company

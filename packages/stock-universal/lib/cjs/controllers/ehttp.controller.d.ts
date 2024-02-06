@@ -2,7 +2,7 @@ import { Observable } from 'rxjs';
 import Axios from 'axios-observable';
 import { LoggerController } from './logger.controller';
 export interface Ifile {
-    filename?: any;
+    filename?: string;
     revokableUrl?: string;
     blob: Blob;
     fieldname: string;

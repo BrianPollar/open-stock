@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 import { vi, expect, describe, beforeEach, it, expectTypeOf } from 'vitest';
 import { DeliveryCity } from '../../../../stock-counter-client/src/defines/delivery.define';
 import { StockCounterClient } from '../../../../stock-counter-client/src/stock-counter-client';

@@ -25,6 +25,9 @@ itemRoutesDummy.get('/getone/:urId/:companyIdParam', (req, res) => {
 itemRoutesDummy.get('/filtergeneral/:prop/:val/:offset/:limit/:companyIdParam', (req, res) => {
     res.status(200).send(createMockItems(Number(req.params.limit)));
 });
+itemRoutesDummy.get('/filterrandom/:prop/:val/:offset/:limit/:companyIdParam', (req, res) => {
+    res.status(200).send(createMockItems(Number(req.params.limit)));
+});
 itemRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) => {
     res.status(200).send(createMockItems(Number(req.params.limit)));
 });

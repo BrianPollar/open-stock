@@ -83,7 +83,7 @@ itemOfferRoutes.get('/getall/:type/:offset/:limit/:companyIdParam', async(req, r
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
-  let filter: any = { companyId };
+  let filter = { companyId } as object;
   if (type !== 'all') {
     filter = { type, companyId };
   }
@@ -94,7 +94,8 @@ itemOfferRoutes.get('/getall/:type/:offset/:limit/:companyIdParam', async(req, r
     .populate({
       path: 'items', model: itemLean,
       populate: [{
-        path: 'photos', model: fileMetaLean, transform: (doc) => doc.url
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
       }
       ]
     })
@@ -127,7 +128,8 @@ itemOfferRoutes.get('/getone/:id/:companyIdParam', async(req, res) => {
     .populate({
       path: 'items', model: itemLean,
       populate: [{
-        path: 'photos', model: fileMetaLean, transform: (doc) => doc.url
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
       }
       ]
     })

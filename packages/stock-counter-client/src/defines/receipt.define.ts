@@ -1,13 +1,12 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 import {
-    DatabaseAuto, IdeleteCredentialsInvRel, Iinvoice, IinvoiceRelated,
-    IinvoiceRelatedPdct,
-    Ireceipt,
-    Isuccess,
-    TestimateStage,
-    TinvoiceStatus,
-    TinvoiceType,
-    TreceiptType
+  DatabaseAuto, IdeleteCredentialsInvRel, Iinvoice, IinvoiceRelated,
+  IinvoiceRelatedPdct,
+  Ireceipt,
+  Isuccess,
+  TestimateStage,
+  TinvoiceStatus,
+  TinvoiceType,
+  TreceiptType
 } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
 import { StockCounterClient } from '../stock-counter-client';
@@ -107,7 +106,7 @@ export class InvoiceRelated extends DatabaseAuto {
    */
   static async getInvoicePayments(companyId: string) {
     const observer$ = StockCounterClient.ehttp
-      .makeGet('/invoice/getallpayments');
+      .makeGet(`/invoice/getallpayments/${companyId}`);
     const invoicepays = await lastValueFrom(observer$) as Required<Ireceipt>[];
     return invoicepays
       .map(val => new Receipt(val));

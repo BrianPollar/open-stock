@@ -297,8 +297,8 @@ export const paymentMethodDelegator = async(
         order,
         payment,
         userId,
-        companyId,
-        burgain);
+        companyId
+      );
       break;
     }
     default:
@@ -354,11 +354,7 @@ export const relegatePesapalPayment = async(
   order: Iorder,
   payment: Ipayment,
   userId: string,
-  companyId: string,
-  burgain: {
-    state: boolean;
-    code: string;
-  }
+  companyId: string
 ) => {
   const company = await companyMain.findById(paymentRelated.companyId);
   if (!company) {

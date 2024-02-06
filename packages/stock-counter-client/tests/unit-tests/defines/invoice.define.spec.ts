@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 import { vi, expect, describe, beforeEach, it, expectTypeOf } from 'vitest';
 import { Invoice } from '../../../../stock-counter-client/src/defines/invoice.define';
 import { IdeleteCredentialsInvRel } from '../../../../stock-universal';

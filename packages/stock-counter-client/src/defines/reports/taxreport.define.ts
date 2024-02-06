@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 import { lastValueFrom } from 'rxjs';
 import { Estimate } from '../estimate.define';
 import { InvoiceRelatedWithReceipt } from '../invoice.define';

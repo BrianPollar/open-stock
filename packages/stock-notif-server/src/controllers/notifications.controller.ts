@@ -59,7 +59,7 @@ export const createSettings = async() => {
 export const setUpUser = (
   phone: string | number,
   countryCode: string | number
-): Promise<any> => {
+) => {
   return new Promise((resolve, reject) => {
     notificationSettings.authy.register_user(
       notificationSettings.defaultAuthyMail,
@@ -88,7 +88,7 @@ export const setUpUser = (
    */
 export const sendToken = (
   authyId: string
-): Promise<any> => {
+) => {
   return new Promise((resolve, reject) => {
     notificationSettings.authy.request_sms(
       authyId,
@@ -114,7 +114,7 @@ export const sendSms = (
   phone: string,
   countryCode: string,
   message: string
-): Promise<any> => {
+) => {
   return new Promise((resolve, reject) => {
     notificationSettings.twilioClient.messages.create({
       to: countryCode + phone,

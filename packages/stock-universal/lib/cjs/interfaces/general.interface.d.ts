@@ -1,3 +1,4 @@
+import { DatabaseAuto } from '../defines/base.define';
 import { TexpoMode, TpayType, TpaymentMethod, TpriceCurrenncy, TuserDispNameFormat } from '../types/union.types';
 import { IinvoiceRelated, IurId } from './inventory.interface';
 import { Iitem } from './item.interface';
@@ -59,9 +60,9 @@ export interface Icompany extends IurId {
     /** The business type of the company. */
     businessType: string;
     /** The profile picture of the company. */
-    profilePic: IfileMeta;
+    profilePic: string | IfileMeta;
     /** The profile cover picture of the company. */
-    profileCoverPic: IfileMeta;
+    profileCoverPic: string | IfileMeta;
     /** The password of the company. */
     password: string;
     /** The website address of the company. */
@@ -71,7 +72,7 @@ export interface Icompany extends IurId {
     /** The cancellation URL for Pesapal. */
     pesapalCancellationUrl: string;
     /** The photos associated with the company. */
-    photos: IfileMeta[];
+    photos: string[] | IfileMeta[];
     /** Indicates if the company is blocked. */
     blocked: boolean;
     /** Indicates if the company is verified. */
@@ -243,15 +244,15 @@ export interface Iuser extends IdatabaseAuto {
     /**
      * The user's photos.
      */
-    photos?: IfileMeta[];
+    photos?: string[] | IfileMeta[];
     /**
      * The user's profile picture.
      */
-    profilePic?: IfileMeta;
+    profilePic?: string | IfileMeta;
     /**
      * The user's profile cover picture.
      */
-    profileCoverPic?: IfileMeta;
+    profileCoverPic?: string | IfileMeta;
 }
 /**
  * Represents the interface for a user blocked status.
@@ -495,12 +496,30 @@ export interface IdeleteCredentialsLocalUser {
  * Represents the metadata of a file.
  */
 export interface IfileMeta extends IdatabaseAuto {
-    userOrCompanayId: string;
-    name: string;
+    userOrCompanayId?: string;
+    name?: string;
     url: string;
-    type: string;
-    size: string | number;
-    storageDir: string;
+    type?: string;
+    size?: string | number;
+    storageDir?: string;
     version?: string;
     photoColor?: string;
+}
+export interface IsubscriptionFeature {
+    name: string;
+    limitSize: number;
+    remainingSize?: number;
+}
+export interface IsubscriptionPackage extends DatabaseAuto {
+    name: string;
+    ammount: number;
+    duration: number;
+    active: boolean;
+    features: IsubscriptionFeature[];
+}
+export interface IcompanySubscription extends DatabaseAuto {
+    sunscriprionId: string;
+    features: IsubscriptionFeature[];
+    startDate: Date;
+    endDate: Date;
 }

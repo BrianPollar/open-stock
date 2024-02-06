@@ -112,7 +112,7 @@ export const validatePhone = async(
         });
         return;
       }
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return foundUser.save(postSave as any);
     };
 
@@ -200,7 +200,8 @@ export const validateEmail = async(
   type: string,
   nowCase: string,
   verifycode: string,
-  newPassword: string): Promise<IauthresponseObj> => {
+  newPassword: string
+): Promise<IauthresponseObj> => {
   universialControllerLogger.info('validateEmail - %type: , %nowCase: ', type, nowCase);
   let msg: string;
   if (!foundUser) {
@@ -330,19 +331,16 @@ export const sendTokenPhone = (
 
 /**
  * Sends a verification email to the specified user with a token or link.
- * @param app - The Express app instance.
  * @param foundUser - The user object to send the email to.
  * @param type - The type of verification to send ('token' or '_link').
  * @param appOfficialName - The official name of the app sending the email.
- * @param link - Optional link to include in the email (only used if type is '_link').
  * @returns A Promise that resolves to an Iauthresponse object.
  */
 export const sendTokenEmail = (
-  app,
   foundUser: Iuser,
   type: string,
-  appOfficialName: string,
-  link?: string
+  appOfficialName: string
+  // link?: string
 ): Promise<Iauthresponse> => new Promise(resolve => {
   universialControllerLogger.info('sendTokenEmail');
   let response: Iauthresponse = {
@@ -354,7 +352,7 @@ export const sendTokenEmail = (
     userId: foundUser._id,
     token: tokenCode
   });
-  token.save().then((tok) => {
+  token.save().then(() => {
     if (type === 'token') {
       mailOptions = {
         from: 'info@eagleinfosolutions.com',

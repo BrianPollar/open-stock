@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 import { lastValueFrom } from 'rxjs';
 import { IdeleteCredentialsInvRel, Iinvoice, IinvoiceRelated, Isuccess } from '@open-stock/stock-universal';
 import { StockCounterClient } from '../stock-counter-client';

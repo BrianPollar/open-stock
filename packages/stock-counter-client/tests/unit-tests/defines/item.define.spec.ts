@@ -31,8 +31,8 @@ describe('Item', () => {
     expect(instance.numbersInstock).toBeDefined();
     expect(instance.name).toBeDefined();
     expect(instance.brand).toBeDefined();
-    expect(instance.type).toBeDefined();
     expect(instance.category).toBeDefined();
+    expect(instance.subCategory).toBeDefined();
     expect(instance.state).toBeDefined();
     expect(instance.photos).toBeDefined();
     expect(instance.colors).toBeDefined();

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 import { IdeleteCredentialsInvRel, Iestimate, IinvoiceRelated, Isuccess } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
 import { StockCounterClient } from '../stock-counter-client';
@@ -21,8 +20,8 @@ export class Estimate extends InvoiceRelatedWithReceipt {
   constructor(data: Required<Iestimate>) {
     super(data);
     this.estimateId = data.estimateId;
-    this.fromDate = data.fromDate as Date;
-    this.toDate = data.toDate as Date;
+    this.fromDate = data.fromDate;
+    this.toDate = data.toDate;
   }
 
   /**

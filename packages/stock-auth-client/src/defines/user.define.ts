@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 
 import { lastValueFrom } from 'rxjs';
 import { DatabaseAuto, Iaddress, Ibilling, Icompany, Ifile, IfileMeta, Isuccess, Iuser, Iuserperm, TuserDispNameFormat } from '@open-stock/stock-universal';
@@ -382,9 +381,9 @@ export class User extends DatabaseAuto {
       this.uid = data.uid || this.uid;
       this.did = data.did || this.did;
       this.aid = data.aid || this.aid;
-      this.photos = data.photos || this.photos;
-      this.profilePic = data.profilePic || this.profilePic;
-      this.profileCoverPic = data.profileCoverPic || this.profileCoverPic;
+      this.photos = data.photos as IfileMeta[] || this.photos;
+      this.profilePic = data.profilePic as IfileMeta || this.profilePic;
+      this.profileCoverPic = data.profileCoverPic as IfileMeta || this.profileCoverPic;
       this.permissions = data.permissions || this.permissions;
       this.phone = data.phone || this.phone;
       this.amountDue = data.amountDue || this.amountDue;

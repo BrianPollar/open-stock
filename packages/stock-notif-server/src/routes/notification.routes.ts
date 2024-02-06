@@ -193,9 +193,9 @@ notifnRoutes.get('/unviewedlength/:companyIdParam', requireAuth, async(req, res)
 
 notifnRoutes.put('/clearall/:companyIdParam', requireAuth, async(req, res) => {
   const { companyId } = (req as Icustomrequest).user;
-  const { companyIdParam } = req.params;
+  // const { companyIdParam } = req.params;
   // TODO  chck if this is working
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  // const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const { userId } = (req as Icustomrequest).user;
 
   const all = await mainnotificationLean.find({
@@ -211,7 +211,7 @@ notifnRoutes.put('/clearall/:companyIdParam', requireAuth, async(req, res) => {
     if (error) {
       return new Promise((resolve, reject) => reject(error));
     } else {
-      return new Promise(resolve => resolve({ success: true }));
+      return new Promise(resolve => resolve({ success: Boolean(saved) }));
     }
   });
 

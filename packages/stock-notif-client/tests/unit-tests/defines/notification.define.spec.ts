@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 import { vi, expect, describe, beforeEach, it, expectTypeOf } from 'vitest';
 import { NotificationMain } from '../../../../stock-notif-client/src/defines/notification.define';
 import { StockNotifClient } from '../../../../stock-notif-client/src/stock-notif-client';

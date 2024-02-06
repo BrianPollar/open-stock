@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 import { vi, expect, describe, beforeEach, it, expectTypeOf } from 'vitest';
 import { ExpenseReport } from '../../../../../stock-counter-client/src/defines/reports/expensereport.define';
 import { createMockExpenseReport, createMockExpenseReports } from '../../../../../tests/stock-counter-mocks';

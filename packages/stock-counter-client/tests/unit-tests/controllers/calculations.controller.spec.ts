@@ -1,9 +1,7 @@
 import { expect, describe, beforeEach, it, expectTypeOf } from 'vitest';
 import { CalculationsController, monthNames } from '../../../../stock-counter-client/src/controllers/calculations.controller';
 
-const isInt = (n) => {
-  return Number(n) === n && n % 1 === 0;
-};
+const isInt = (n) => Number(n) === n && n % 1 === 0;
 
 /*
 const isFloat = (n) => {

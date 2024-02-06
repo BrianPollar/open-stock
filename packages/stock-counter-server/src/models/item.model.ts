@@ -1,12 +1,13 @@
 import { Document, Model, Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
+import { Iitem } from '@open-stock/stock-universal';
 const uniqueValidator = require('mongoose-unique-validator');
 
 /**
  * Represents the type of the item model.
  * Extends the Document type and allows any additional properties.
  */
-export type TitemModel = Document & any;
+export type TitemModel = Document & Iitem;
 
 /** Mongoose schema for the item model */
 const itemSchema: Schema = new Schema({
@@ -14,10 +15,10 @@ const itemSchema: Schema = new Schema({
   companyId: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
   numbersInstock: { type: Number, required: [true, 'cannot be empty.'], index: true },
   name: { type: String, required: [true, 'cannot be empty.'], index: true },
-  type: { type: String },
   category: { type: String },
+  subCategory: { type: String },
   state: { type: String },
-  photos: [{ type: String }],
+  photos: [],
   colors: [],
   model: { type: String },
   origin: { type: String },
@@ -28,11 +29,11 @@ const itemSchema: Schema = new Schema({
   sponsored: [{ type: String }],
   buyerGuarantee: { type: String },
   reviewedBy: [],
-  reviewCount: { type: Number, default: 0 },
+  reviewCount: { type: Number, default: 0, index: true },
   reviewWeight: { type: Number, default: 0 },
-  reviewRatingsTotal: { type: Number, default: 0 },
+  reviewRatingsTotal: { type: Number, default: 0, index: true },
   likes: [],
-  likesCount: { type: Number, default: 0 },
+  likesCount: { type: Number, default: 0, index: true },
   timesViewed: { type: Number, default: 0, index: true },
 
   inventoryMeta: [],
@@ -54,7 +55,7 @@ const itemselect = {
   numbersInstock: 1,
   name: 1,
   purchase: 1,
-  type: 1,
+  subCategory: 1,
   category: 1,
   state: 1,
   photos: 1,
@@ -85,12 +86,12 @@ const itemselect = {
 /**
  * Represents the main item model.
  */
-export let itemMain: Model<any>;
+export let itemMain: Model<Iitem>;
 
 /**
  * Represents the lean version of the item model.
  */
-export let itemLean: Model<any>;
+export let itemLean: Model<Iitem>;
 
 /**
  * Represents the item select function.
@@ -109,11 +110,11 @@ export const createItemModel = async(dbUrl: string, main = true, lean = true) =>
   }
 
   if (main) {
-    itemMain = mainConnection.model('Item', itemSchema);
+    itemMain = mainConnection.model<Iitem>('Item', itemSchema);
   }
 
   if (lean) {
-    itemLean = mainConnectionLean.model('Item', itemSchema);
+    itemLean = mainConnectionLean.model<Iitem>('Item', itemSchema);
   }
 };
 

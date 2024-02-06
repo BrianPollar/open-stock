@@ -1,28 +1,13 @@
-// This function imports the `Request` interface from `express`.
 import { Request } from 'express';
-
-// This function imports the `fs-extra` module.
 import { mkdir } from 'fs-extra';
-
-// This function imports the `getLogger()` function from `log4js`.
 import { getLogger } from 'log4js';
-
-// This function imports the `multer` module.
 import multer from 'multer';
-
-// This function imports the `path` module.
 import * as path from 'path';
-
-// This function imports the `makeRandomString()` function from `@open-stock/stock-universal`.
 import { makeRandomString } from '@open-stock/stock-universal';
-
-// This function imports the `getExpressLocals()` function from `..constants/environment.constant`.
 import { getExpressLocals } from '../constants/environment.constant';
 
 // This function creates a fileStorageLogger named `controllers/FileStorage`.
 const fileStorageLogger = getLogger('controllers/FileStorage');
-
-// This interface defines the properties of a Multer request.
 
 /**
  * Represents an extended interface for handling Multer requests.
