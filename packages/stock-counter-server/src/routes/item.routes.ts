@@ -25,15 +25,15 @@
  * @requires itemOfferMain
  * @requires itemDecoyMain
  */
-import express, { Request, Response } from 'express';
-import { itemLean, itemMain } from '../models/item.model';
-import { reviewLean } from '../models/review.model';
-import { getLogger } from 'log4js';
+import { companyLean } from '@open-stock/stock-auth-server';
 import { Icustomrequest, IfileMeta, Isuccess, makeRandomString } from '@open-stock/stock-universal';
 import { appendBody, deleteFiles, fileMetaLean, makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, saveMetaToDb, stringifyMongooseErr, uploadFiles, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
-import { itemOfferMain } from '../models/itemoffer.model';
+import express, { Request, Response } from 'express';
+import { getLogger } from 'log4js';
+import { itemLean, itemMain } from '../models/item.model';
 import { itemDecoyMain } from '../models/itemdecoy.model';
-import { companyLean } from '@open-stock/stock-auth-server';
+import { itemOfferMain } from '../models/itemoffer.model';
+import { reviewLean } from '../models/review.model';
 
 /** The logger for the item routes */
 const itemRoutesLogger = getLogger('routes/itemRoutes');
@@ -519,7 +519,7 @@ itemRoutes.get('/getfeatured/:offset/:limit/:companyIdParam', async(req, res) =>
     .find(filter)
     // eslint-disable-next-line @typescript-eslint/naming-convention
     .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-    .sort({ timesViewed: 1, likesCount: 1, reviewCount: 1 }) // TODO better sorting algo
+    .sort({ timesViewed: 1, likesCount: 1, reviewCount: 1 })
     .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
     .lean();
   const newItems = items.filter(item => item.companyId);

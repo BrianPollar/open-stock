@@ -1,4 +1,4 @@
-import { vi, describe, it, expect, beforeAll } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { getEnvVar, getExpressLocals } from '../../../../stock-universal-server/src/constants/environment.constant';
 
 describe('getEnvVar', () => {
@@ -9,12 +9,15 @@ describe('getEnvVar', () => {
 
   it('should get the environment variable named `name`', () => {
     const req = {
+      localEnv: {
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        APP_NAME: 'My App'
+      },
       env: {
         // eslint-disable-next-line @typescript-eslint/naming-convention
         APP_NAME: 'My App'
       }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any;
+    };
     const next = vi.fn();
     getEnvVar('APP_NAME')(req, {}, next);
     expect(req.localEnv).toStrictEqual(req.env);

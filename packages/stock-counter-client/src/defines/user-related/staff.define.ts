@@ -1,4 +1,4 @@
-import { Istaff, Isuccess, Isalary, IdeleteCredentialsLocalUser, IfileMeta } from '@open-stock/stock-universal';
+import { IdeleteCredentialsLocalUser, IfileMeta, Isalary, Istaff, Isuccess } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
 import { StockCounterClient } from '../../stock-counter-client';
 import { UserBase } from './userbase.define';
@@ -54,7 +54,7 @@ export class Staff extends UserBase {
    * @returns {Promise<Staff>} - A promise that resolves to a Staff instance.
    */
   static async getOneStaff(companyId: string, id: string) {
-    const observer$ = StockCounterClient.ehttp.makeGet(`/staff/getone/${id}`);
+    const observer$ = StockCounterClient.ehttp.makeGet(`/staff/getone/${id}/${companyId}`);
     const staff = await lastValueFrom(observer$) as Istaff;
     return new Staff(staff);
   }

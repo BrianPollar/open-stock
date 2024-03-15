@@ -63,7 +63,7 @@ export class InvoiceSettings extends DatabaseAuto {
     id: string
   ): Promise<InvoiceSettings> {
     const observer$ = StockCounterClient.ehttp
-      .makeGet(`/invoicesettings/getone/${id}`);
+      .makeGet(`/invoicesettings/getone/${id}/${companyId}`);
     const invoiceSetting = await lastValueFrom(observer$) as IinvoiceSetting;
     return new InvoiceSettings(invoiceSetting);
   }

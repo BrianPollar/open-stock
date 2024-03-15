@@ -5,8 +5,7 @@
 import { getLogger } from 'log4js';
 // import { nodemailer } from 'nodemailer';
 // const nodemailer = require('nodemailer');
-import * as jwt from 'jsonwebtoken';
-import { emailtoken } from '../models/emailtoken.model';
+import { sendMail } from '@open-stock/stock-notif-server';
 import {
   Iauthresponse,
   IauthresponseObj,
@@ -18,8 +17,9 @@ import {
   makeRandomString
 } from '@open-stock/stock-universal';
 import { stringifyMongooseErr, verifyObjectId } from '@open-stock/stock-universal-server';
+import * as jwt from 'jsonwebtoken';
 import { Document } from 'mongoose';
-import { sendMail } from '@open-stock/stock-notif-server';
+import { emailtoken } from '../models/emailtoken.model';
 
 
 const universialControllerLogger = getLogger('controllers/UniversialController');
@@ -112,8 +112,7 @@ export const validatePhone = async(
         });
         return;
       }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return foundUser.save(postSave as any);
+      return foundUser.save(postSave as object);
     };
 
     const postSave = function(err) {

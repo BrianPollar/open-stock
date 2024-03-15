@@ -1,9 +1,9 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { makeRecentCookie } from '../../../src/controllers/cookies.service';
-import { describe, beforeEach, vi, it, expect } from 'vitest';
 
 describe('makeRecentCookie', () => {
-  let req: any;
-  let res: any;
+  let req;
+  let res;
 
   beforeEach(() => {
     req = {

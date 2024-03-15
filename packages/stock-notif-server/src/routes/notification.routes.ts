@@ -20,25 +20,19 @@
  * @requires @open-stock/stock-universal-server
  */
 /* eslint-disable @typescript-eslint/no-misused-promises */
+import { Icustomrequest, Isuccess } from '@open-stock/stock-universal';
+import { requireAuth, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { updateNotifnViewed } from '../controllers/notifications.controller';
 import { mainnotificationLean, mainnotificationMain } from '../models/mainnotification.model';
-import { subscriptionLean, subscriptionMain } from '../models/subscriptions.model';
 import { notifSettingLean, notifSettingMain } from '../models/notifsetting.model';
-import { Icustomrequest, Isuccess } from '@open-stock/stock-universal';
-import { requireAuth, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { subscriptionLean, subscriptionMain } from '../models/subscriptions.model';
 
 
 /**
  * Router for handling notification routes.
  */
 export const notifnRoutes = express.Router();
-
-// TODO for now, we are not using this route
-/* notifnRoutes.post('/create', async(req, res) => {
-  await createNotifications(req.body);
-  return res.status(200).send({ success: true });
-});*/
 
 notifnRoutes.get('/getmynotifn/:companyIdParam', requireAuth, async(req, res) => {
   const { userId } = (req as unknown as Icustomrequest).user;
@@ -162,7 +156,7 @@ notifnRoutes.post('/updateviewed/:companyIdParam', requireAuth, async(req, res) 
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
-  await updateNotifnViewed(user, id); // TODO check if this is working
+  await updateNotifnViewed(user, id);
   return res.status(200).send({ success: true });
 });
 
@@ -194,7 +188,6 @@ notifnRoutes.get('/unviewedlength/:companyIdParam', requireAuth, async(req, res)
 notifnRoutes.put('/clearall/:companyIdParam', requireAuth, async(req, res) => {
   const { companyId } = (req as Icustomrequest).user;
   // const { companyIdParam } = req.params;
-  // TODO  chck if this is working
   // const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const { userId } = (req as Icustomrequest).user;
 

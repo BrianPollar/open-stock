@@ -1,18 +1,17 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/ban-ts-comment */
-import { afterAll, vi, beforeAll, describe, it, expect } from 'vitest';
-import { Application } from 'express';
 import { faker } from '@faker-js/faker/locale/en_US';
-import { generateToken, sendTokenEmail, sendTokenPhone, setUserInfo, validateEmail, validatePhone } from '../../../../stock-auth-server/src/controllers/universial.controller';
 import { disconnectMongoose } from '@open-stock/stock-universal-server';
+import { Application } from 'express';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { generateToken, sendTokenEmail, sendTokenPhone, setUserInfo, validateEmail, validatePhone } from '../../../../stock-auth-server/src/controllers/universial.controller';
 import { createExpressServer } from '../../../../tests/helpers';
 // import { updateNotifnViewed } from '../../../../stock-notif-server/src/controllers/notifications.controller';
-import * as http from 'http';
 import { createNotificationsDatabase } from '@open-stock/stock-notif-server/src/stock-notif-local';
-import { authRoutes } from '../../../src/routes/user.routes';
-import { Iauthtoken, Iuser } from '@open-stock/stock-universal';
+import { Iauthtoken } from '@open-stock/stock-universal';
+import * as http from 'http';
 import { createMockCompanyPerm, createMockUser, createMockUserperm } from '../../../../tests/stock-auth-mocks';
-import { user } from '../../../src/models/user.model';
+import { Tuser } from '../../../src/models/user.model';
+import { authRoutes } from '../../../src/routes/user.routes';
 
 // hoist authroutes some parts
 const universialControllerHoisted = vi.hoisted(() => {
@@ -133,7 +132,7 @@ describe('universial', () => {
 
   // TODO
   it('#validatePhone should return a success response if the verifycode is valid', async() => {
-    const userId = createMockUser() as any;
+    const userId = createMockUser() as unknown as Tuser;
     const nowCase = 'password';
     const verifycode = 'code';
     const passwd = 'passwd';
@@ -147,7 +146,7 @@ describe('universial', () => {
 
   // TODO
   it('#validateEmail should return a success response if the verifycode is valid', async() => {
-    const userId = createMockUser() as any;
+    const userId = createMockUser() as unknown as Tuser;
     const type = '_link';
     const nowCase = 'password';
     const verifycode = 'code';
@@ -173,7 +172,7 @@ describe('universial', () => {
   it('#sendTokenEmail should return a success response if the verifycode is valid', async() => {
     const foundUserMock = {
       findOne: vi.fn()
-    } as unknown as typeof user as any;
+    } as unknown as Tuser;
     const type = 'token';
     const appOfficialName = 'name';
     const sent = await sendTokenEmail(foundUserMock, type, appOfficialName);
@@ -184,7 +183,7 @@ describe('universial', () => {
 });
 
 describe('sendTokenEmail', () => {
-  const foundUserMock = createMockUser() as unknown as Iuser as any;
+  const foundUserMock = createMockUser() as unknown as Tuser;
   const type = 'token';
   const appOfficialName = 'name';
   // const link = 'http://localhost:4200/verify?id=';

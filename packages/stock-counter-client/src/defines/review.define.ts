@@ -90,7 +90,7 @@ export class Review extends DatabaseAuto {
     companyId: string,
     id: string
   ) {
-    const observer$ = StockCounterClient.ehttp.makeGet(`/review/getone/${id}`);
+    const observer$ = StockCounterClient.ehttp.makeGet(`/review/getone/${id}/${companyId}`);
     const review = await lastValueFrom(observer$) as IreviewMain;
     return new Review(review);
   }

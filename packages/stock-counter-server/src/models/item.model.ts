@@ -1,6 +1,6 @@
+import { Iitem } from '@open-stock/stock-universal';
 import { Document, Model, Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
-import { Iitem } from '@open-stock/stock-universal';
 const uniqueValidator = require('mongoose-unique-validator');
 
 /**
@@ -117,4 +117,3 @@ export const createItemModel = async(dbUrl: string, main = true, lean = true) =>
     itemLean = mainConnectionLean.model<Iitem>('Item', itemSchema);
   }
 };
-

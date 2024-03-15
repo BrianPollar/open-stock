@@ -10,7 +10,6 @@ import { validatePhone } from './phone-validator';
  * @returns The validation result.
  */
 export const emailphoneValidator = (value): IvalidatorResult => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   if (isNaN(value)) {
     return validateEmail(value);
   } else {

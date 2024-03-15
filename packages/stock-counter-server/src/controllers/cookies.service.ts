@@ -93,12 +93,6 @@ export const makeRecentCookie = (
 ) => {
   const recentCookie = req.body.recentCookie;
   cookieServiceLogger.info('Recent Cookie - recentCookie: ', recentCookie);
-  // const keyObj = {};
-  /** recentCookie.forEach(val => {
-    keyObj[val] = val;
-  });
-  console.log('stringiFied', keyObj);
-   **/
   res.cookie('recent', recentCookie, {
     // maxAge: 5000,
     // expires works the same as the maxAge

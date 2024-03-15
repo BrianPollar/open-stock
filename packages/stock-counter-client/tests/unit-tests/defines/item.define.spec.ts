@@ -1,9 +1,9 @@
-import { vi, expect, describe, beforeEach, it, expectTypeOf } from 'vitest';
+import { Iitem } from '@open-stock/stock-universal';
+import Axios from 'axios-observable';
+import { of } from 'rxjs';
+import { beforeEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 import { Item } from '../../../../stock-counter-client/src/defines/item.define';
 import { StockCounterClient } from '../../../../stock-counter-client/src/stock-counter-client';
-import { of } from 'rxjs';
-import Axios from 'axios-observable';
-import { Iitem } from '@open-stock/stock-universal';
 import { createMockItem, createMockItems } from '../../../../tests/stock-counter-mocks';
 
 describe('Item', () => {
@@ -83,7 +83,7 @@ describe('Item', () => {
 
   it('#deleteItems static should delete many Items', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makePut').mockImplementationOnce(() => of({ success: true }));
-    const deleted = await Item.deleteItems(companyId, ['ids'], ['filesWithDir'], 'url');
+    const deleted = await Item.deleteItems(companyId, ['ids'], [], 'url');
     expect(typeof deleted).toEqual('object');
     expect(deleted).toHaveProperty('success');
     expect(deleted.success).toEqual(true);

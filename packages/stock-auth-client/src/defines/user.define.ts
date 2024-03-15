@@ -1,6 +1,6 @@
 
-import { lastValueFrom } from 'rxjs';
 import { DatabaseAuto, Iaddress, Ibilling, Icompany, Ifile, IfileMeta, Isuccess, Iuser, Iuserperm, TuserDispNameFormat } from '@open-stock/stock-universal';
+import { lastValueFrom } from 'rxjs';
 import { StockAuthClient } from '../stock-auth-client';
 import { Company } from './company.define';
 
@@ -178,7 +178,7 @@ export class User extends DatabaseAuto {
    * @param filesWithDir The files with directories to delete.
    * @returns A success object indicating whether the users were deleted successfully.
    */
-  static async deleteUsers(companyId: string, ids: string[], filesWithDir) {
+  static async deleteUsers(companyId: string, ids: string[], filesWithDir: IfileMeta[]) {
     const observer$ = StockAuthClient.ehttp.makePut(`/user/deletemany/${companyId}`, { ids, filesWithDir });
     return await lastValueFrom(observer$) as Isuccess;
   }

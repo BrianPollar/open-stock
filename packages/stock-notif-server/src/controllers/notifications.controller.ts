@@ -6,12 +6,12 @@
 // RequestOptions// ,
 // generateVAPIDKeys
 // } from 'web-push';
-import * as webPush from 'web-push';
-import { getLogger } from 'log4js';
-import { notifSettingLean, notifSettingMain } from '../models/notifsetting.model';
 import { Iaction, Iactionwithall, Iauthtoken, InotifSetting, Isuccess, Iuser, TnotifType } from '@open-stock/stock-universal';
 import { stringifyMongooseErr } from '@open-stock/stock-universal-server';
+import { getLogger } from 'log4js';
+import * as webPush from 'web-push';
 import { mainnotificationMain } from '../models/mainnotification.model';
+import { notifSettingLean, notifSettingMain } from '../models/notifsetting.model';
 // const sgMail = require('@sendgrid/mail');
 import * as sgMail from '@sendgrid/mail';
 import { notificationSettings } from '../stock-notif-local';
@@ -212,8 +212,8 @@ export const constructMailService = (
 ) => {
   sgMail.setApiKey(sendGridApiKey);
 
-  // console.log(generateVAPIDKeys()); //generate key
-  // console.log('those keys are', notifConfig);
+  // notificationsControllerLogger.info(generateVAPIDKeys()); // generate key
+  // notificationsControllerLogger.info('those keys are', notifConfig);
 
   const vapidKeys = {
     publicKey,

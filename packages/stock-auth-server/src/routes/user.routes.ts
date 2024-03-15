@@ -6,10 +6,6 @@
  */
 /* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable @typescript-eslint/no-misused-promises */
-import express, { Request, Response } from 'express';
-import { getLogger } from 'log4js';
-import { generateToken, sendTokenEmail, setUserInfo } from '../controllers/universial.controller';
-import { user, userAuthSelect, userLean } from '../models/user.model';
 import {
   Iaddress,
   Iauthresponse,
@@ -22,10 +18,14 @@ import {
   Iuser
 } from '@open-stock/stock-universal';
 import { appendBody, deleteFiles, fileMetaLean, makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, saveMetaToDb, stringifyMongooseErr, uploadFiles, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import express, { Request, Response } from 'express';
+import { getLogger } from 'log4js';
 import { checkIpAndAttempt, confirmAccountFactory, determineIfIsPhoneAndMakeFilterObj, isInAdictionaryOnline, isTooCommonPhrase, recoverAccountFactory, resetAccountFactory } from '../controllers/auth.controller';
-import { loginFactorRelgator } from './superadmin.routes';
-import { stockAuthConfig } from '../stock-auth-local';
+import { generateToken, sendTokenEmail, setUserInfo } from '../controllers/universial.controller';
 import { companyLean } from '../models/company.model';
+import { user, userAuthSelect, userLean } from '../models/user.model';
+import { stockAuthConfig } from '../stock-auth-local';
+import { loginFactorRelgator } from './superadmin.routes';
 // import { notifConfig } from '../../config/notif.config';
 // import { createNotifications, NotificationController } from '../controllers/notifications.controller';
 const passport = require('passport');
@@ -293,7 +293,7 @@ authRoutes.post('/sociallogin', async(req, res) => {
         errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
       }
-      return errResponse;
+      return err;
     });
 
     if (errResponse) {
@@ -301,13 +301,15 @@ authRoutes.post('/sociallogin', async(req, res) => {
     } else {
       return res.status(200).send({
         success: true,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        user: (nUser as any).toAuthJSON()
+        user: nUser.toAuthJSON()
       });
     }
   } else {
     foundUser.fname = credentials.name;
-    // foundUser.profilepic = credentials.profilepic; // TODO
+    const file: IfileMeta = {
+      url: credentials.profilepic
+    };
+    foundUser.profilePic = file;
     let status = 200;
     let response: Iauthresponse = { success: true };
     await foundUser.save().catch(err => {
@@ -322,13 +324,13 @@ authRoutes.post('/sociallogin', async(req, res) => {
         try again in a while`;
       }
       response = errResponse;
+      return err;
     });
 
     if (status === 200) {
       response = {
         success: true,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        user: (foundUser as any).toAuthJSON()
+        user: foundUser.toAuthJSON() as Iuser
       };
       return res.status(200).send(response);
     } else {

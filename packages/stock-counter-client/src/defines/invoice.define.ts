@@ -1,5 +1,5 @@
-import { lastValueFrom } from 'rxjs';
 import { IdeleteCredentialsInvRel, Iinvoice, IinvoiceRelated, Isuccess } from '@open-stock/stock-universal';
+import { lastValueFrom } from 'rxjs';
 import { StockCounterClient } from '../stock-counter-client';
 import { InvoiceRelated, Receipt } from './receipt.define';
 
@@ -81,7 +81,7 @@ export class InvoiceRelatedWithReceipt
     id: string
   ) {
     const observer$ = StockCounterClient.ehttp
-      .makeGet(`/invoicerelated/getone/${id}`);
+      .makeGet(`/invoicerelated/getone/${id}/${companyId}`);
     const invoiceRelated = await lastValueFrom(observer$) as Required<IinvoiceRelated>;
     return new InvoiceRelatedWithReceipt(invoiceRelated);
   }
@@ -102,13 +102,6 @@ export class Invoice extends InvoiceRelatedWithReceipt {
   constructor(data: Required<Iinvoice>) {
     super(data);
     this.dueDate = data.dueDate;
-    /**
-     * @todo Uncomment this code block to include items in the invoice.
-     */
-    // if (data.items) {
-    //   this.items = data.items
-    //     .map(val => ProductBase.constructProduct(StockCounterClient.ehttp, val));
-    // }
   }
 
   /**
@@ -143,7 +136,7 @@ export class Invoice extends InvoiceRelatedWithReceipt {
     invoiceId: number
   ) {
     const observer$ = StockCounterClient.ehttp
-      .makeGet(`/invoice/getone/${invoiceId}`);
+      .makeGet(`/invoice/getone/${invoiceId}/${companyId}`);
     const invoice = await lastValueFrom(observer$) as Required<Iinvoice>;
     return new Invoice(invoice);
   }

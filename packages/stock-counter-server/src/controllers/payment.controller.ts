@@ -1,19 +1,19 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable @typescript-eslint/naming-convention */
 
+import { companyMain } from '@open-stock/stock-auth-server';
+import { makeNotfnBody } from '@open-stock/stock-notif-server';
+import { Iactionwithall, Iinvoice, IinvoiceRelated, Iorder, Ipayment, IpaymentRelated, Ireceipt, Isuccess, TpayType } from '@open-stock/stock-universal';
+import { stringifyMongooseErr, verifyObjectId } from '@open-stock/stock-universal-server';
 import { getLogger } from 'log4js';
+import { IorderResponse, IpayDetails } from 'pesapal3';
 import { orderMain } from '../models/order.model';
 import { paymentMain } from '../models/payment.model';
+import { paymentRelatedMain } from '../models/printables/paymentrelated/paymentrelated.model';
 import { promocodeLean } from '../models/promocode.model';
 import { makePaymentInstall, relegatePaymentRelatedCreation } from '../routes/paymentrelated/paymentrelated';
 import { saveInvoice } from '../routes/printables/invoice.routes';
-import { Iactionwithall, Iinvoice, IinvoiceRelated, Iorder, Ipayment, IpaymentRelated, Ireceipt, Isuccess, TpayType } from '@open-stock/stock-universal';
-import { makeNotfnBody } from '@open-stock/stock-notif-server';
-import { IpayDetails, IorderResponse } from 'pesapal3';
-import { paymentRelatedMain } from '../models/printables/paymentrelated/paymentrelated.model';
-import { stringifyMongooseErr, verifyObjectId } from '@open-stock/stock-universal-server';
 import { pesapalPaymentInstance } from '../stock-counter-server';
-import { companyMain } from '@open-stock/stock-auth-server';
 
 /** Interface for the response of the payOnDelivery function */
 export interface IpayResponse extends Isuccess {
@@ -104,7 +104,6 @@ const addOrder = async(
     return paymentRelatedId;
   }
   order.paymentRelated = paymentRelatedId.id;
-  // (order as any).invoiceRelated = relatedId.invoiceRelated;
   const invoice = {
     invoiceRelated: '',
     dueDate: order.deliveryDate

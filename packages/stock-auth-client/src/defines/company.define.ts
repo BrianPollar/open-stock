@@ -1,6 +1,6 @@
 
-import { lastValueFrom } from 'rxjs';
 import { DatabaseAuto, IblockedReasons, Icompany, Ifile, IfileMeta, Isuccess } from '@open-stock/stock-universal';
+import { lastValueFrom } from 'rxjs';
 import { StockAuthClient } from '../stock-auth-client';
 
 /**
@@ -76,7 +76,7 @@ export class Company extends DatabaseAuto {
       const observer$ = StockAuthClient.ehttp.uploadFiles(files, `/company/addcompanyimg/${companyId}`, details);
       added = await lastValueFrom(observer$) as Isuccess;
     } else {
-      const observer$ = StockAuthClient.ehttp.makePost(`/company/addcompany/${companyId}`, details);
+      const observer$ = StockAuthClient.ehttp.makePost('/company/addcompany', details);
       added = await lastValueFrom(observer$) as Isuccess;
     }
     return added;
@@ -89,7 +89,7 @@ export class Company extends DatabaseAuto {
    * @param filesWithDir The files with directories to delete.
    * @returns A success object indicating whether the companys were deleted successfully.
    */
-  static async deleteCompanys(companyId: string, ids: string[], filesWithDir) {
+  static async deleteCompanys(companyId: string, ids: string[], filesWithDir: IfileMeta[]) {
     const observer$ = StockAuthClient.ehttp.makePut(`/company/deletemany/${companyId}`, { ids, filesWithDir });
     return await lastValueFrom(observer$) as Isuccess;
   }

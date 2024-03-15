@@ -1,16 +1,27 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
-import { Iuser } from '@open-stock/stock-universal';
-import { Schema, Document, Model } from 'mongoose';
-import { connectAuthDatabase, isAuthDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
-import bcrypt from 'bcrypt';
 import { sendSms, sendToken, setUpUser, verifyAuthyToken } from '@open-stock/stock-notif-server';
+import { Iuser } from '@open-stock/stock-universal';
+import bcrypt from 'bcrypt';
+import { Document, Model, Schema } from 'mongoose';
+import { connectAuthDatabase, isAuthDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
 // Create authenticated Authy and Twilio API clients
 // const authy = require('authy')(config.authyKey);
 // const twilioClient = require('twilio')(config.accountSid, config.authToken);
 const uniqueValidator = require('mongoose-unique-validator');
 
 
-export type Tuser = Document & Iuser;
+interface IschemaMethods {
+  comparePassword: (...args) => void;
+  sendAuthyToken: (...args) => void;
+  verifyAuthyToken: (...args) => void;
+  sendMessage: (...args) => void;
+  toAuthJSON: () => Partial<Iuser>;
+  toProfileJSONFor: () => Partial<Iuser>;
+  toJSONFor: () => Partial<Iuser>;
+}
+
+
+export type Tuser = Document & Iuser & IschemaMethods;
 /**
  * User schema definition.
  * @typedef {Object} Tuser

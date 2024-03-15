@@ -69,7 +69,7 @@ export class DeliveryCity extends DatabaseAuto {
     companyId: string,
     id: string
   ): Promise<DeliveryCity> {
-    const observer$ = StockCounterClient.ehttp.makeGet(`/deliverycity/getone/${id}`);
+    const observer$ = StockCounterClient.ehttp.makeGet(`/deliverycity/getone/${id}/${companyId}`);
     const city = await lastValueFrom(observer$) as Ideliverycity;
     return new DeliveryCity(city);
   }

@@ -1,9 +1,9 @@
-import { vi, expect, describe, beforeEach, it, expectTypeOf } from 'vitest';
-import { StockAuthClient } from '../../../../stock-auth-client/src/stock-auth-client';
+import { Iuser } from '@open-stock/stock-universal';
 import Axios from 'axios-observable';
 import { of } from 'rxjs';
-import { Iuser } from '@open-stock/stock-universal';
+import { beforeEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 import { User } from '../../../../stock-auth-client/src/defines/user.define';
+import { StockAuthClient } from '../../../../stock-auth-client/src/stock-auth-client';
 import { createMockAddress, createMockUser, createMockUserperm, createMockUsers } from '../../../../tests/stock-auth-mocks';
 
 describe('User', () => {
@@ -81,7 +81,7 @@ describe('User', () => {
 
   it('#deleteUsers static should delete many users', async() => {
     const lSpy = vi.spyOn(StockAuthClient.ehttp, 'makePut').mockImplementation(() => of({ success: true }));
-    const deleted = await User.deleteUsers(companyId, ['ids'], ['filesWithDir']);
+    const deleted = await User.deleteUsers(companyId, ['ids'], []);
     expect(typeof deleted).toBe('object');
     // expect(deleted).toHaveProperty('success');
     // expect(deleted.success).toEqual(true);

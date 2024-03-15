@@ -1,10 +1,10 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { appendBody } from '../../../src/filemanager/fs';
-import { vi, describe, beforeEach, it, expect } from 'vitest';
 
 describe('appendBody', () => {
-  let req: any;
-  let res: any;
-  let next: any;
+  let req;
+  let res;
+  let next;
 
   beforeEach(() => {
     req = {

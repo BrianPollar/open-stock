@@ -6,10 +6,7 @@
  */
 /* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable @typescript-eslint/no-misused-promises */
-// TODO is a repeat
-import express, { Request, Response } from 'express';
-import { getLogger } from 'log4js';
-import { user, userAuthSelect, generateToken, setUserInfo, companyLean, companyMain, loginFactorRelgator, getStockAuthConfig } from '@open-stock/stock-auth-server';
+import { checkIpAndAttempt, companyLean, companyMain, confirmAccountFactory, determineIfIsPhoneAndMakeFilterObj, generateToken, getStockAuthConfig, isInAdictionaryOnline, isTooCommonPhrase, loginFactorRelgator, recoverAccountFactory, resetAccountFactory, setUserInfo, user, userAuthSelect } from '@open-stock/stock-auth-server';
 import { Iauthresponse, Iauthtoken, Icompany, Icustomrequest, IfileMeta, Isuccess, Iuser } from '@open-stock/stock-universal';
 import {
   appendBody,
@@ -24,7 +21,8 @@ import {
   verifyObjectId,
   verifyObjectIds
 } from '@open-stock/stock-universal-server';
-import { checkIpAndAttempt, confirmAccountFactory, determineIfIsPhoneAndMakeFilterObj, isInAdictionaryOnline, isTooCommonPhrase, recoverAccountFactory, resetAccountFactory } from '@open-stock/stock-auth-server';
+import express, { Request, Response } from 'express';
+import { getLogger } from 'log4js';
 // import { notifConfig } from '../../config/notif.config';
 // import { createNotifications, NotificationController } from '../controllers/notifications.controller';
 // const passport = require('passport');

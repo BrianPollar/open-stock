@@ -1,5 +1,5 @@
-import { lastValueFrom } from 'rxjs';
 import { DatabaseAuto, Isuccess } from '@open-stock/stock-universal';
+import { lastValueFrom } from 'rxjs';
 import { StockCounterClient } from '../stock-counter-client';
 
 /** ItemLimitted  class: This class extends
@@ -49,7 +49,7 @@ export class ItemLimitted extends DatabaseAuto {
    * @returns A single ItemLimitted instance.
    */
   static async getOneItemLimitted(companyId: string, id: string) {
-    const observer$ = StockCounterClient.ehttp.makeGet(`/itemlimitted/getone/${id}`);
+    const observer$ = StockCounterClient.ehttp.makeGet(`/itemlimitted/getone/${id}/${companyId}`);
     const limitted = await lastValueFrom(observer$) as ItemLimitted;
     return new ItemLimitted(limitted);
   }

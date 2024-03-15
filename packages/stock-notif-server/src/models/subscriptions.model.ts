@@ -5,7 +5,7 @@
  * @requires mongoose-unique-validator
  */
 
-import { Document, Schema, Model } from 'mongoose';
+import { Document, Model, Schema } from 'mongoose';
 import { connectNotifDatabase, isNotifDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
 const uniqueValidator = require('mongoose-unique-validator');
 
@@ -13,7 +13,7 @@ const uniqueValidator = require('mongoose-unique-validator');
  * Interface for the subscription document.
  */
 export interface ISubscription extends Document {
-  subscription: any;
+  subscription;
   userId: string;
 }
 

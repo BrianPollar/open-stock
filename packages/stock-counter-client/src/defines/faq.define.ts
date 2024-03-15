@@ -173,7 +173,7 @@ export class FaqAnswer
     companyId: string,
     faq: string
   ) {
-    const observer$ = StockCounterClient.ehttp.makeGet(`/faq/getallans/${faq}`);
+    const observer$ = StockCounterClient.ehttp.makeGet(`/faq/getallans/${faq}/${companyId}`);
     const faqans = await lastValueFrom(observer$) as Ifaqanswer[];
     return faqans.map(val => new FaqAnswer(val));
   }
@@ -188,7 +188,7 @@ export class FaqAnswer
     companyId: string,
     id: string
   ) {
-    const observer$ = StockCounterClient.ehttp.makeGet(`/faq/getone/${id}`);
+    const observer$ = StockCounterClient.ehttp.makeGet(`/faq/getone/${id}/${companyId}`);
     const faqans = await lastValueFrom(observer$) as Ifaqanswer;
     return new FaqAnswer(faqans);
   }

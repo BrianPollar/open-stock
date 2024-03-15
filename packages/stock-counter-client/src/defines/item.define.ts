@@ -104,7 +104,7 @@ export class Item extends DatabaseAuto {
 
   /**
    * Represents the constructor of the Item class.
-   * @param {any} data - The data used to initialize the Item instance.
+   * @param data - The data used to initialize the Item instance.
    */
   constructor(data) {
     super(data);
@@ -167,7 +167,7 @@ export class Item extends DatabaseAuto {
     url: string
   ) {
     const observer$ = StockCounterClient.ehttp
-      .makeGet(`${url}`);
+      .makeGet(`${url}/${companyId}`);
     const item = await lastValueFrom(observer$) as unknown[];
     return new Item(item);
   }
@@ -215,11 +215,11 @@ export class Item extends DatabaseAuto {
   static async deleteItems(
     companyId: string,
     ids: string[],
-    filesWithDir,
+    filesWithDir: IfileMeta[],
     url: string
   ) {
     const observer$ = StockCounterClient.ehttp
-      .makePut(`${url}`, { ids, filesWithDir });
+      .makePut(`${url}/${companyId}`, { ids, filesWithDir });
     return await lastValueFrom(observer$) as Isuccess;
   }
 
@@ -248,12 +248,12 @@ export class Item extends DatabaseAuto {
     if (files && files.length > 0) {
       const observer$ = StockCounterClient.ehttp
         .uploadFiles(files,
-          '/item/updateimg',
+          `/item/updateimg/${companyId}`,
           details);
       updated = await lastValueFrom(observer$) as Isuccess;
     } else {
       const observer$ = StockCounterClient.ehttp
-        .makePut(`${url}`, details);
+        .makePut(`${url}/${companyId}`, details);
       updated = await lastValueFrom(observer$) as Isuccess;
     }
     return updated;
@@ -313,7 +313,7 @@ export class Item extends DatabaseAuto {
    */
   async deleteSponsored(companyId: string, itemId: string) {
     const observer$ = StockCounterClient.ehttp
-      .makeDelete(`/item/deletesponsored/${this._id}/${itemId}`);
+      .makeDelete(`/item/deletesponsored/${this._id}/${itemId}/${companyId}`);
     const deleted = await lastValueFrom(observer$) as Isuccess;
 
     if (deleted.success) {

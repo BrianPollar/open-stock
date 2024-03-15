@@ -1,5 +1,5 @@
 
-import { DatabaseAuto, Iprofit, Isuccess } from '@open-stock/stock-universal';
+import { DatabaseAuto, IfileMeta, Iprofit, Isuccess } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
 import { StockCounterClient } from '../stock-counter-client';
 
@@ -54,7 +54,7 @@ export class Profit extends DatabaseAuto {
    * @returns {Promise<Profit>} - A Promise that resolves to a single Profit object.
    */
   static async getOneProfit(companyId: string, id: string): Promise<Profit> {
-    const observer$ = StockCounterClient.ehttp.makeGet('profit/getone/' + id);
+    const observer$ = StockCounterClient.ehttp.makeGet('profit/getone/' + id + '/' + companyId);
     const profit = await lastValueFrom(observer$) as Iprofit;
     return new Profit(profit);
   }
@@ -78,11 +78,11 @@ export class Profit extends DatabaseAuto {
    * @async
    * @param companyId - The ID of the company
    * @param {string[]} ids - The IDs of the Profit objects to delete.
-   * @param {any} filesWithDir - The files and directories to delete.
+   * @param {IfileMeta} filesWithDir - The files and directories to delete.
    * @param {string} url - The URL to delete the Profit objects from.
    * @returns {Promise<Isuccess>} - A Promise that resolves to a success message.
    */
-  static async deleteProfits(companyId: string, ids: string[], filesWithDir: any, url: string): Promise<Isuccess> {
+  static async deleteProfits(companyId: string, ids: string[], filesWithDir: IfileMeta[], url: string): Promise<Isuccess> {
     const observer$ = StockCounterClient.ehttp.makePut(`${url}/${companyId}`, { ids, filesWithDir });
     return await lastValueFrom(observer$) as Isuccess;
   }

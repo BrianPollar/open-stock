@@ -1,12 +1,12 @@
-import { IdeleteCredentialsInvRel, Iinvoice, IinvoiceRelated, IpaymentRelated, LoggerController, TinvoiceStatus } from '@open-stock/stock-universal';
-import { Faq } from '../defines/faq.define';
 import { User } from '@open-stock/stock-auth-client';
-import { Order } from '../defines/order.define';
-import { Payment } from '../defines/payment.define';
-import { Item } from '../defines/item.define';
-import { Invoice } from '../defines/invoice.define';
+import { IdeleteCredentialsInvRel, Iinvoice, IinvoiceRelated, IpaymentRelated, LoggerController, TinvoiceStatus } from '@open-stock/stock-universal';
 import { DeliveryNote } from '../defines/deliverynote.define';
 import { Estimate } from '../defines/estimate.define';
+import { Faq } from '../defines/faq.define';
+import { Invoice } from '../defines/invoice.define';
+import { Item } from '../defines/item.define';
+import { Order } from '../defines/order.define';
+import { Payment } from '../defines/payment.define';
 import { Receipt } from '../defines/receipt.define';
 
 /**
@@ -160,7 +160,7 @@ export const makePaymentRelated = (data: Order | Payment): IpaymentRelated => {
  * @returns An `IinvoiceRelated` object.
  */
 export const makeInvoiceRelated = (data: DeliveryNote | Estimate | Invoice | Receipt | Order | Payment): IinvoiceRelated => {
-  return {
+  const related = {
     invoiceRelated: data.invoiceRelated,
     creationType: data.creationType,
     estimateId: data.estimateId,
@@ -178,10 +178,10 @@ export const makeInvoiceRelated = (data: DeliveryNote | Estimate | Invoice | Rec
     tax: data.tax,
     balanceDue: data.balanceDue,
     subTotal: data.subTotal,
-    total: data.total,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    payments: (data as any).payments // TODO
+    total: data.total
   };
+
+  return (data instanceof Receipt) ? related : { ...related, payments: (data as DeliveryNote).payments };
 };
 
 /**

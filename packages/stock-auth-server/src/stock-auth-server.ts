@@ -1,11 +1,11 @@
-import { runPassport } from '@open-stock/stock-universal-server';
-import { authRoutes } from './routes/user.routes';
-import { companyAuthRoutes } from './routes/company.routes';
-import { connectAuthDatabase, createStockAuthServerLocals, isStockAuthServerRunning, stockAuthConfig } from './stock-auth-local';
 import { isNotificationsServerRunning } from '@open-stock/stock-notif-server';
-import { authRoutesDummy } from './routes-dummy/user.routes';
-import { companyAuthRoutesDummy } from './routes-dummy/company.routes';
+import { runPassport } from '@open-stock/stock-universal-server';
 import express from 'express';
+import { companyAuthRoutesDummy } from './routes-dummy/company.routes';
+import { authRoutesDummy } from './routes-dummy/user.routes';
+import { companyAuthRoutes } from './routes/company.routes';
+import { authRoutes } from './routes/user.routes';
+import { connectAuthDatabase, createStockAuthServerLocals, isStockAuthServerRunning, stockAuthConfig } from './stock-auth-local';
 
 /**
  * Represents the interface for local file paths.
@@ -61,7 +61,7 @@ export interface IStockAuthServerConfig {
  * @param {IStockAuthServerConfig} config - The server configuration.
  * @param {EmailHandler} emailHandler - The email handler.
  * @param {*} app - The Express app.
- * @returns {Promise<{authRoutes: any, userLean: any}>}
+ * @returns {Promise<{authRoutes, userLean}>}
  */
 export const runStockAuthServer = async(config: IStockAuthServerConfig) => {
   if (!isNotificationsServerRunning()) {

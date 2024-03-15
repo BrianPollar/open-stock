@@ -6,9 +6,7 @@
  */
 /* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable @typescript-eslint/no-misused-promises */
-import express, { Request, Response } from 'express';
-import { getLogger } from 'log4js';
-import { user, userAuthSelect, userLean, generateToken, sendTokenEmail, setUserInfo, loginFactorRelgator, getStockAuthConfig, companyLean } from '@open-stock/stock-auth-server';
+import { checkIpAndAttempt, companyLean, confirmAccountFactory, determineIfIsPhoneAndMakeFilterObj, generateToken, getStockAuthConfig, isInAdictionaryOnline, isTooCommonPhrase, loginFactorRelgator, recoverAccountFactory, resetAccountFactory, sendTokenEmail, setUserInfo, user, userAuthSelect, userLean } from '@open-stock/stock-auth-server';
 import {
   Iaddress,
   Iauthresponse,
@@ -21,7 +19,8 @@ import {
   Iuser
 } from '@open-stock/stock-universal';
 import { appendBody, deleteFiles, fileMetaLean, makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, saveMetaToDb, stringifyMongooseErr, uploadFiles, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
-import { checkIpAndAttempt, confirmAccountFactory, determineIfIsPhoneAndMakeFilterObj, isInAdictionaryOnline, isTooCommonPhrase, recoverAccountFactory, resetAccountFactory } from '@open-stock/stock-auth-server';
+import express, { Request, Response } from 'express';
+import { getLogger } from 'log4js';
 // import { notifConfig } from '../../config/notif.config';
 // import { createNotifications, NotificationController } from '../controllers/notifications.controller';
 const passport = require('passport');
@@ -282,7 +281,7 @@ authRoutes.post('/sociallogin', async(req, res) => {
         errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
       }
-      return errResponse;
+      return err;
     });
 
     if (errResponse) {
@@ -290,16 +289,18 @@ authRoutes.post('/sociallogin', async(req, res) => {
     } else {
       return res.status(200).send({
         success: true,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        user: (nUser as any).toAuthJSON()
+        user: nUser.toAuthJSON()
       });
     }
   } else {
     foundUser.fname = credentials.name;
-    // foundUser.profilepic = credentials.profilepic; // TODO
+    const file: IfileMeta = {
+      url: credentials.profilepic
+    };
+    foundUser.profilePic = file;
     let status = 200;
     let response: Iauthresponse = { success: true };
-    await foundUser.save().catch(err => {
+    const foundUserSaved = await foundUser.save().catch(err => {
       status = 403;
       const errResponse: Isuccess = {
         success: false
@@ -311,13 +312,13 @@ authRoutes.post('/sociallogin', async(req, res) => {
         try again in a while`;
       }
       response = errResponse;
+      return err;
     });
 
     if (status === 200) {
       response = {
         success: true,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        user: (foundUser as any).toAuthJSON()
+        user: foundUserSaved.toAuthJSON()
       };
       return res.status(200).send(response);
     } else {

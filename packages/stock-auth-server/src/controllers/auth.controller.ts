@@ -1,12 +1,12 @@
-import { user } from '../models/user.model';
 import { Iauthresponse, IauthresponseObj, Isuccess, Iuser, Iuserperm } from '@open-stock/stock-universal';
-import { loginAtempts } from '../models/loginattemps.model';
-import { getLogger } from 'log4js';
 import { makeUrId, stringifyMongooseErr, verifyObjectIds } from '@open-stock/stock-universal-server';
-import { sendTokenEmail, sendTokenPhone, validateEmail, validatePhone } from './universial.controller';
+import { getLogger } from 'log4js';
+import { Document } from 'mongoose';
+import { loginAtempts } from '../models/loginattemps.model';
+import { user } from '../models/user.model';
 import { userip } from '../models/userip.model';
 import { stockAuthConfig } from '../stock-auth-local';
-import { Document } from 'mongoose';
+import { sendTokenEmail, sendTokenPhone, validateEmail, validatePhone } from './universial.controller';
 
 const authControllerLogger = getLogger('loginAttemptController');
 /**
@@ -246,7 +246,7 @@ export const loginFactorRelgator = async(req, res, next) => {
 
   const count = await user
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    .find({ }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 }); // TODO: add queryId, FOR NOW NOT USING IT
+    .find({ }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
   const urId = makeUrId(Number(count[0]?.urId || '0'));
 
   const permissions: Iuserperm = {
