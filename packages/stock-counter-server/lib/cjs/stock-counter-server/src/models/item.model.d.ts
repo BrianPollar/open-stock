@@ -1,19 +1,20 @@
 /// <reference types="mongoose/types/document" />
 /// <reference types="mongoose/types/models" />
+import { Iitem } from '@open-stock/stock-universal';
 import { Document, Model } from 'mongoose';
 /**
  * Represents the type of the item model.
  * Extends the Document type and allows any additional properties.
  */
-export type TitemModel = Document & any;
+export type TitemModel = Document & Iitem;
 /**
  * Represents the main item model.
  */
-export declare let itemMain: Model<any>;
+export declare let itemMain: Model<Iitem>;
 /**
  * Represents the lean version of the item model.
  */
-export declare let itemLean: Model<any>;
+export declare let itemLean: Model<Iitem>;
 /**
  * Represents the item select function.
  */

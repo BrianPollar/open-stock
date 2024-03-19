@@ -1,7 +1,8 @@
+/* eslint-disable @typescript-eslint/no-var-requires */
+import { sendSms, sendToken, setUpUser, verifyAuthyToken } from '@open-stock/stock-notif-server';
+import bcrypt from 'bcrypt';
 import { Schema } from 'mongoose';
 import { connectAuthDatabase, isAuthDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
-import bcrypt from 'bcrypt';
-import { sendSms, sendToken, setUpUser, verifyAuthyToken } from '@open-stock/stock-notif-server';
 // Create authenticated Authy and Twilio API clients
 // const authy = require('authy')(config.authyKey);
 // const twilioClient = require('twilio')(config.accountSid, config.authToken);
@@ -111,7 +112,9 @@ userSchema.methods['comparePassword'] = function (candidatePassword, cb) {
 // Send a verification token to the user (two step auth for login)
 userSchema.methods['sendAuthyToken'] = function (cb) {
     if (!this.authyId) {
-        setUpUser(this.phone, this.countryCode).then((res) => {
+        setUpUser(this.phone, this.countryCode
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ).then((res) => {
             this.authyId = res.user.id;
             this.save((err1, doc) => {
                 if (err1 || !doc) {

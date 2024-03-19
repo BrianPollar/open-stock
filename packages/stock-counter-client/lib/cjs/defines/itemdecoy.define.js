@@ -1,10 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ItemDecoy = void 0;
-const rxjs_1 = require("rxjs");
-const item_define_1 = require("./item.define");
 const stock_universal_1 = require("@open-stock/stock-universal");
+const rxjs_1 = require("rxjs");
 const stock_counter_client_1 = require("../stock-counter-client");
+const item_define_1 = require("./item.define");
 /**
  * ItemDecoy class: This class extends the DatabaseAuto class and represents
  * an item decoy object in the database. It has properties for urId (a string representing the UUID)
@@ -43,7 +43,7 @@ class ItemDecoy extends stock_universal_1.DatabaseAuto {
      * @returns A single ItemDecoy instance.
      */
     static async getOneItemDecoy(companyId, id) {
-        const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makeGet(`/itemdecoy/getone/${id}`);
+        const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makeGet(`/itemdecoy/getone/${id}/${companyId}`);
         const decoy = await (0, rxjs_1.lastValueFrom)(observer$);
         return new ItemDecoy(decoy);
     }
@@ -56,7 +56,7 @@ class ItemDecoy extends stock_universal_1.DatabaseAuto {
      * @returns A success response.
      */
     static async createItemDecoy(companyId, how, itemdecoy) {
-        const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makePost(`/itemdecoy/create/${how}`, { itemdecoy });
+        const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makePost(`/itemdecoy/create/${how}/${companyId}`, { itemdecoy });
         return await (0, rxjs_1.lastValueFrom)(observer$);
     }
     /**

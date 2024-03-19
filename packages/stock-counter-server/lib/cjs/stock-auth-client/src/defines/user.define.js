@@ -1,9 +1,8 @@
 "use strict";
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.User = void 0;
-const rxjs_1 = require("rxjs");
 const stock_universal_1 = require("@open-stock/stock-universal");
+const rxjs_1 = require("rxjs");
 const stock_auth_client_1 = require("../stock-auth-client");
 const company_define_1 = require("./company.define");
 /**

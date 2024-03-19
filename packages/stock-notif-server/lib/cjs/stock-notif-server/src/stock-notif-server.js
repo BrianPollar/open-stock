@@ -3,12 +3,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.isNotificationsServerRunning = exports.getCurrentNotificationSettings = exports.runStockNotificationServer = void 0;
 const tslib_1 = require("tslib");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
-const notification_routes_1 = require("./routes/notification.routes");
-const twilio_controller_1 = require("./controllers/twilio.controller");
-const stock_notif_local_1 = require("./stock-notif-local");
-const notifsetting_model_1 = require("./models/notifsetting.model");
 const express_1 = tslib_1.__importDefault(require("express"));
-const notification_routes_2 = require("./routes-dummy/notification.routes");
+const twilio_controller_1 = require("./controllers/twilio.controller");
+const notifsetting_model_1 = require("./models/notifsetting.model");
+const notification_routes_1 = require("./routes-dummy/notification.routes");
+const notification_routes_2 = require("./routes/notification.routes");
+const stock_notif_local_1 = require("./stock-notif-local");
 const runStockNotificationServer = async (config) => {
     if (!(0, stock_universal_server_1.isUniversalServerRunning)()) {
         const error = new Error('File loacations must be handled properly, please start by firing up that server');
@@ -24,17 +24,17 @@ const runStockNotificationServer = async (config) => {
     (0, stock_notif_local_1.createStockNotifServerLocals)();
     const stockNotifRouter = express_1.default.Router();
     if (!config.useDummyRoutes) {
-        stockNotifRouter.use('/notifn', notification_routes_1.notifnRoutes);
+        stockNotifRouter.use('/notifn', notification_routes_2.notifnRoutes);
     }
     else {
-        stockNotifRouter.use('/notifn', notification_routes_2.notifnRoutesDummy);
+        stockNotifRouter.use('/notifn', notification_routes_1.notifnRoutesDummy);
     }
     return Promise.resolve({ stockNotifRouter, notificationSettings: stock_notif_local_1.notificationSettings });
 };
 exports.runStockNotificationServer = runStockNotificationServer;
 /**
  * Retrieves the current notification settings.
- * @returns {Promise<any>} A promise that resolves to the current notification settings.
+ * @returns {Promise<TnotifSetting>} A promise that resolves to the current notification settings.
  */
 const getCurrentNotificationSettings = async () => {
     const stn = await notifsetting_model_1.notifSettingMain.findOne({}).lean();

@@ -1,7 +1,6 @@
 import { Iauthresponse, IauthresponseObj, Isuccess, Iuser, Iuserperm } from '@open-stock/stock-universal';
 import { makeUrId, stringifyMongooseErr, verifyObjectIds } from '@open-stock/stock-universal-server';
 import { getLogger } from 'log4js';
-import { Document } from 'mongoose';
 import { loginAtempts } from '../models/loginattemps.model';
 import { user } from '../models/user.model';
 import { userip } from '../models/userip.model';
@@ -328,7 +327,7 @@ export const loginFactorRelgator = async(req, res, next) => {
       response.err = `we are having problems connecting to our databases, 
       try again in a while`;
     }
-    return response;
+    return err;
   });
 
   if (!response.success) {
@@ -345,7 +344,7 @@ export const loginFactorRelgator = async(req, res, next) => {
   }
 
   if (!response.success) {
-    (saved as Iuser & Document & { remove: () => void }).remove();
+    saved.remove();
     return res.status(200).send(response);
   }
   if (Boolean(result.success)) {

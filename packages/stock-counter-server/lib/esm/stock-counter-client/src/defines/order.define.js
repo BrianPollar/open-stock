@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 import { lastValueFrom } from 'rxjs';
 import { PaymentRelated } from './payment.define';
 import { StockCounterClient } from '../stock-counter-client';

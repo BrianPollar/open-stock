@@ -44,7 +44,7 @@ const appendBody = (req, res, next) => {
     if (!req.files) {
         return res.status(404).send({ success: false });
     }
-    const { userId, companyId } = req.user;
+    const { userId } = req.user;
     const parsed = JSON.parse(req.body.data);
     const newFiles = [];
     let thumbnail;
@@ -143,22 +143,26 @@ const saveMetaToDb = async (req, res, next) => {
     if (parsed.profilePic) {
         const newFileMeta = new filemeta_model_1.fileMeta(parsed.profilePic);
         const newSaved = await newFileMeta.save();
-        parsed.profilePic = newSaved;
+        parsed.profilePic = newSaved._id;
         parsed.newFiles.push(newSaved);
     }
     if (parsed.coverPic) {
         const newFileMeta = new filemeta_model_1.fileMeta(parsed.profilePic);
         const newSaved = await newFileMeta.save();
-        parsed.coverPic = newSaved;
+        parsed.coverPic = newSaved._id;
         parsed.newFiles.push(newSaved);
     }
     if (parsed.thumbnail) {
         const newFileMeta = new filemeta_model_1.fileMeta(parsed.thumbnail);
         const newSaved = await newFileMeta.save();
-        parsed.thumbnail = newSaved;
+        parsed.thumbnail = newSaved._id;
         parsed.newFiles.push(newSaved);
     }
-    req.body.parsed = parsed;
+    if (parsed.newFiles) {
+        const mappedParsedFiles = parsed.newFiles.map((value) => value._id);
+        parsed.newFiles = mappedParsedFiles;
+    }
+    req.body.parsed = parsed; // newFiles are strings of ids
 };
 exports.saveMetaToDb = saveMetaToDb;
 /**

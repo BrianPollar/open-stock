@@ -9,7 +9,7 @@ import { StockCounterClient } from '../stock-counter-client';
 export class Item extends DatabaseAuto {
     /**
      * Represents the constructor of the Item class.
-     * @param {any} data - The data used to initialize the Item instance.
+     * @param data - The data used to initialize the Item instance.
      */
     constructor(data) {
         super(data);
@@ -30,7 +30,7 @@ export class Item extends DatabaseAuto {
      */
     static async searchItems(companyId, category, searchterm, searchKey, extraFilters, subCategory) {
         const observer$ = StockCounterClient.ehttp
-            .makePost(`/item/search/${companyId}`, { searchterm, searchKey, category, extraFilters });
+            .makePost(`/item/search/${companyId}`, { searchterm, searchKey, category, extraFilters, subCategory });
         const items = await lastValueFrom(observer$);
         return items
             .map(val => new Item(val));
@@ -58,7 +58,7 @@ export class Item extends DatabaseAuto {
      */
     static async getOneItem(companyId, url) {
         const observer$ = StockCounterClient.ehttp
-            .makeGet(`${url}`);
+            .makeGet(`${url}/${companyId}`);
         const item = await lastValueFrom(observer$);
         return new Item(item);
     }
@@ -97,7 +97,7 @@ export class Item extends DatabaseAuto {
      */
     static async deleteItems(companyId, ids, filesWithDir, url) {
         const observer$ = StockCounterClient.ehttp
-            .makePut(`${url}`, { ids, filesWithDir });
+            .makePut(`${url}/${companyId}`, { ids, filesWithDir });
         return await lastValueFrom(observer$);
     }
     /**
@@ -119,12 +119,12 @@ export class Item extends DatabaseAuto {
         };
         if (files && files.length > 0) {
             const observer$ = StockCounterClient.ehttp
-                .uploadFiles(files, '/item/updateimg', details);
+                .uploadFiles(files, `/item/updateimg/${companyId}`, details);
             updated = await lastValueFrom(observer$);
         }
         else {
             const observer$ = StockCounterClient.ehttp
-                .makePut(`${url}`, details);
+                .makePut(`${url}/${companyId}`, details);
             updated = await lastValueFrom(observer$);
         }
         return updated;
@@ -175,7 +175,7 @@ export class Item extends DatabaseAuto {
      */
     async deleteSponsored(companyId, itemId) {
         const observer$ = StockCounterClient.ehttp
-            .makeDelete(`/item/deletesponsored/${this._id}/${itemId}`);
+            .makeDelete(`/item/deletesponsored/${this._id}/${itemId}/${companyId}`);
         const deleted = await lastValueFrom(observer$);
         if (deleted.success) {
             const found = this.sponsored.find(sponsd => sponsd.item._id === itemId);

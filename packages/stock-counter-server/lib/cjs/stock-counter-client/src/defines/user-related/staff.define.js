@@ -49,7 +49,7 @@ class Staff extends userbase_define_1.UserBase {
      * @returns {Promise<Staff>} - A promise that resolves to a Staff instance.
      */
     static async getOneStaff(companyId, id) {
-        const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makeGet(`/staff/getone/${id}`);
+        const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makeGet(`/staff/getone/${id}/${companyId}`);
         const staff = await (0, rxjs_1.lastValueFrom)(observer$);
         return new Staff(staff);
     }

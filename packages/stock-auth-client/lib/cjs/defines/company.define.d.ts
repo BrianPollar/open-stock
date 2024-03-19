@@ -56,7 +56,7 @@ export declare class Company extends DatabaseAuto {
      * @param filesWithDir The files with directories to delete.
      * @returns A success object indicating whether the companys were deleted successfully.
      */
-    static deleteCompanys(companyId: string, ids: string[], filesWithDir: any): Promise<Isuccess>;
+    static deleteCompanys(companyId: string, ids: string[], filesWithDir: IfileMeta[]): Promise<Isuccess>;
     /**
      * Updates the company's profile with the provided values and optional files.
      * @param companyId - The ID of the company

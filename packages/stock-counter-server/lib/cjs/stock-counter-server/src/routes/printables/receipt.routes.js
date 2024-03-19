@@ -2,27 +2,14 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.receiptRoutes = void 0;
 const tslib_1 = require("tslib");
-/**
- * Defines the routes for creating, retrieving, updating and deleting receipts.
- * @remarks
- * This file contains the following routes:
- * - POST /create - creates a new receipt
- * - GET /getone/:urId - retrieves a single receipt by its unique identifier (urId)
- * - GET /getall/:offset/:limit - retrieves all receipts with pagination
- * - PUT /deleteone - deletes a single receipt and its related documents
- * - POST /search/:limit/:offset - searches for receipts based on a search term and key
- */
-/* eslint-disable @typescript-eslint/no-misused-promises */
-const express_1 = tslib_1.__importDefault(require("express"));
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
+const express_1 = tslib_1.__importDefault(require("express"));
 // import { paymentInstallsLean } from '../../models/printables/paymentrelated/paymentsinstalls.model';
+const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const receipt_model_1 = require("../../models/printables/receipt.model");
 const invoicerelated_model_1 = require("../../models/printables/related/invoicerelated.model");
-const invoicerelated_1 = require("./related/invoicerelated");
-const log4js_1 = require("log4js");
-const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const paymentrelated_1 = require("../paymentrelated/paymentrelated");
-const receiptRoutesLogger = (0, log4js_1.getLogger)('routes/receiptRoutes'); // TODO WATS dis doing
+const invoicerelated_1 = require("./related/invoicerelated");
 /**
  * Router for handling receipt routes.
  */

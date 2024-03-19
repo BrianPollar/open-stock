@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 import { lastValueFrom } from 'rxjs';
 import { Item } from './item.define';
 import { DatabaseAuto } from '@open-stock/stock-universal';

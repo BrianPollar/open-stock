@@ -1,7 +1,7 @@
-import { lastValueFrom } from 'rxjs';
-import { Item } from './item.define';
 import { DatabaseAuto } from '@open-stock/stock-universal';
+import { lastValueFrom } from 'rxjs';
 import { StockCounterClient } from '../stock-counter-client';
+import { Item } from './item.define';
 /**
  * ItemDecoy class: This class extends the DatabaseAuto class and represents
  * an item decoy object in the database. It has properties for urId (a string representing the UUID)
@@ -40,7 +40,7 @@ export class ItemDecoy extends DatabaseAuto {
      * @returns A single ItemDecoy instance.
      */
     static async getOneItemDecoy(companyId, id) {
-        const observer$ = StockCounterClient.ehttp.makeGet(`/itemdecoy/getone/${id}`);
+        const observer$ = StockCounterClient.ehttp.makeGet(`/itemdecoy/getone/${id}/${companyId}`);
         const decoy = await lastValueFrom(observer$);
         return new ItemDecoy(decoy);
     }
@@ -53,7 +53,7 @@ export class ItemDecoy extends DatabaseAuto {
      * @returns A success response.
      */
     static async createItemDecoy(companyId, how, itemdecoy) {
-        const observer$ = StockCounterClient.ehttp.makePost(`/itemdecoy/create/${how}`, { itemdecoy });
+        const observer$ = StockCounterClient.ehttp.makePost(`/itemdecoy/create/${how}/${companyId}`, { itemdecoy });
         return await lastValueFrom(observer$);
     }
     /**

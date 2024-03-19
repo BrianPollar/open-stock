@@ -9,7 +9,6 @@ const tslib_1 = require("tslib");
  * The payment routes include creating a payment, updating a payment, and getting a payment by ID.
  * @packageDocumentation
  */
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 /* eslint-disable @typescript-eslint/no-misused-promises */
 const express_1 = tslib_1.__importDefault(require("express"));
 const payment_model_1 = require("../models/payment.model");
@@ -158,7 +157,8 @@ exports.paymentRoutes.get('/getone/:id/:companyIdParam', stock_universal_server_
             {
                 path: 'items.item', model: item_model_1.itemLean,
                 populate: [{
-                        path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => doc.url
+                        // eslint-disable-next-line @typescript-eslint/naming-convention
+                        path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                     }]
             }
         ]
@@ -196,7 +196,8 @@ exports.paymentRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_univer
             {
                 path: 'items.item', model: item_model_1.itemLean,
                 populate: [{
-                        path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => doc.url
+                        // eslint-disable-next-line @typescript-eslint/naming-convention
+                        path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                     }]
             }]
     });
@@ -225,7 +226,8 @@ exports.paymentRoutes.get('/getmypayments/:companyIdParam', stock_universal_serv
             {
                 path: 'items.item', model: item_model_1.itemLean,
                 populate: [{
-                        path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => doc.url
+                        // eslint-disable-next-line @typescript-eslint/naming-convention
+                        path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                     }]
             }]
     });
@@ -275,7 +277,8 @@ exports.paymentRoutes.post('/search/:limit/:offset/:companyIdParam', stock_unive
             {
                 path: 'items.item', model: item_model_1.itemLean,
                 populate: [{
-                        path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => doc.url
+                        // eslint-disable-next-line @typescript-eslint/naming-convention
+                        path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                     }]
             }]
     });

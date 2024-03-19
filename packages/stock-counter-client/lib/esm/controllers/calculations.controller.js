@@ -71,7 +71,6 @@ export class CalculationsController {
      * @param restrictNoTo The number of elements to include in the new array.
      * @returns A new array containing only the first restrictNoTo elements of the original array.
      */
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     restrictArrayToLength(data, restrictNoTo) {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-return
         return data.filter((val, index) => index < restrictNoTo);
@@ -114,7 +113,6 @@ export class CalculationsController {
             const image = new Image();
             image.src = imageSrc;
             image.onload = rs => {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const target = rs.currentTarget;
                 if (expectedMaxSize) {
                     const imgSize = target.size;

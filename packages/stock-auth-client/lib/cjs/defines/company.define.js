@@ -1,9 +1,8 @@
 "use strict";
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Company = void 0;
-const rxjs_1 = require("rxjs");
 const stock_universal_1 = require("@open-stock/stock-universal");
+const rxjs_1 = require("rxjs");
 const stock_auth_client_1 = require("../stock-auth-client");
 /**
  * Represents a company and extends the DatabaseAuto class. It has properties that correspond to the fields in the company object, and methods for updating, deleting, and managing the company's profile, addresses, and permissions.
@@ -58,7 +57,7 @@ class Company extends stock_universal_1.DatabaseAuto {
             added = await (0, rxjs_1.lastValueFrom)(observer$);
         }
         else {
-            const observer$ = stock_auth_client_1.StockAuthClient.ehttp.makePost(`/company/addcompany/${companyId}`, details);
+            const observer$ = stock_auth_client_1.StockAuthClient.ehttp.makePost('/company/addcompany', details);
             added = await (0, rxjs_1.lastValueFrom)(observer$);
         }
         return added;

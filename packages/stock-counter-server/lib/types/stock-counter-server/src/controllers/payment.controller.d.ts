@@ -35,10 +35,7 @@ export declare const paymentMethodDelegator: (paymentRelated: Required<IpaymentR
  * @param burgain - The burgain details.
  * @returns A promise that resolves to an object containing the success status, status code, and the Pesapal order response.
  */
-export declare const relegatePesapalPayment: (paymentRelated: Required<IpaymentRelated>, invoiceRelated: Required<IinvoiceRelated>, type: string, order: Iorder, payment: Ipayment, userId: string, companyId: string, burgain: {
-    state: boolean;
-    code: string;
-}) => Promise<{
+export declare const relegatePesapalPayment: (paymentRelated: Required<IpaymentRelated>, invoiceRelated: Required<IinvoiceRelated>, type: string, order: Iorder, payment: Ipayment, userId: string, companyId: string) => Promise<{
     success: boolean;
     err?: string;
     fileUrl?: string;

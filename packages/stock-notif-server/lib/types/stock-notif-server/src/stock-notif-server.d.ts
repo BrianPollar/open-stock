@@ -36,7 +36,7 @@ export declare const runStockNotificationServer: (config: IstockNotifServerConfi
 }>;
 /**
  * Retrieves the current notification settings.
- * @returns {Promise<any>} A promise that resolves to the current notification settings.
+ * @returns {Promise<TnotifSetting>} A promise that resolves to the current notification settings.
  */
 export declare const getCurrentNotificationSettings: () => Promise<import("mongoose").FlattenMaps<import("./models/notifsetting.model").TnotifSetting> & {
     _id: import("mongoose").Types.ObjectId;

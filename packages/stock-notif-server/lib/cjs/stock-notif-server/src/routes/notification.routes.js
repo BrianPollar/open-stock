@@ -2,43 +2,16 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.notifnRoutes = void 0;
 const tslib_1 = require("tslib");
-/**
- * @fileoverview This file contains the routes for notifications in the server.
- * It exports an express Router instance with the following routes:
- * - POST /create: creates a new notification.
- * - GET /getmynotifn: gets all notifications for the authenticated user that have not been viewed.
- * - GET /getmyavailnotifn: gets all available notifications for the authenticated user.
- * - GET /getone/:id: gets a single notification by id.
- * - DELETE /deleteone/:id: deletes a single notification by id.
- * - POST /subscription: creates or updates a subscription for the authenticated user.
- * - POST /updateviewed: updates the viewed status of a notification for the authenticated user.
- * - GET /unviewedlength: gets the count of unviewed notifications for the authenticated user.
- * - PUT /clearall: clears all notifications for the authenticated user.
- * - POST /createstn: creates a new notification setting.
- * @requires express
- * @requires ../controllers/notifications.controller
- * @requires ../models/mainnotification.model
- * @requires ../models/subscriptions.model
- * @requires ../models/notifsetting.model
- * @requires @open-stock/stock-universal
- * @requires @open-stock/stock-universal-server
- */
-/* eslint-disable @typescript-eslint/no-misused-promises */
+const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
 const notifications_controller_1 = require("../controllers/notifications.controller");
 const mainnotification_model_1 = require("../models/mainnotification.model");
-const subscriptions_model_1 = require("../models/subscriptions.model");
 const notifsetting_model_1 = require("../models/notifsetting.model");
-const stock_universal_server_1 = require("@open-stock/stock-universal-server");
+const subscriptions_model_1 = require("../models/subscriptions.model");
 /**
  * Router for handling notification routes.
  */
 exports.notifnRoutes = express_1.default.Router();
-// TODO for now, we are not using this route
-/* notifnRoutes.post('/create', async(req, res) => {
-  await createNotifications(req.body);
-  return res.status(200).send({ success: true });
-});*/
 exports.notifnRoutes.get('/getmynotifn/:companyIdParam', stock_universal_server_1.requireAuth, async (req, res) => {
     const { userId } = req.user;
     const { companyId } = req.user;
@@ -156,7 +129,7 @@ exports.notifnRoutes.post('/updateviewed/:companyIdParam', stock_universal_serve
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
-    await (0, notifications_controller_1.updateNotifnViewed)(user, id); // TODO check if this is working
+    await (0, notifications_controller_1.updateNotifnViewed)(user, id);
     return res.status(200).send({ success: true });
 });
 exports.notifnRoutes.get('/unviewedlength/:companyIdParam', stock_universal_server_1.requireAuth, async (req, res) => {
@@ -186,9 +159,8 @@ exports.notifnRoutes.get('/unviewedlength/:companyIdParam', stock_universal_serv
 });
 exports.notifnRoutes.put('/clearall/:companyIdParam', stock_universal_server_1.requireAuth, async (req, res) => {
     const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    // TODO  chck if this is working
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    // const { companyIdParam } = req.params;
+    // const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
     const { userId } = req.user;
     const all = await mainnotification_model_1.mainnotificationLean.find({
         userId, active: true, companyId
@@ -204,7 +176,7 @@ exports.notifnRoutes.put('/clearall/:companyIdParam', stock_universal_server_1.r
             return new Promise((resolve, reject) => reject(error));
         }
         else {
-            return new Promise(resolve => resolve({ success: true }));
+            return new Promise(resolve => resolve({ success: Boolean(saved) }));
         }
     });
     let errResponse;

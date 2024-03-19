@@ -1,17 +1,15 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.roleSuperAdmin = exports.getToken = exports.roleAuthorisation = exports.runPassport = void 0;
-// This function imports the `getLogger()` function from `log4js`.
 const log4js_1 = require("log4js");
-// This function creates a passportLogger named `controllers/passport`.
+// This vat creates a passportLogger named `controllers/passport`.
 const passportLogger = (0, log4js_1.getLogger)('controllers/passport');
-// This function imports the `passport` module.
+// This var imports the `passport` module.
 const passport = require('passport');
-// This function imports the `jwtStrategy` module from `passport-jwt`.
+// This var imports the `jwtStrategy` module from `passport-jwt`.
 const jwtStrategy = require('passport-jwt').Strategy;
-// This function imports the `extractJwt` module from `passport-jwt`.
+// This var imports the `extractJwt` module from `passport-jwt`.
 const extractJwt = require('passport-jwt').ExtractJwt;
-// This function defines a function that sets up Passport with the given JWT secret.
 /**
  * Runs the Passport configuration for JWT authentication.
  * @param jwtSecret - The secret key used to sign and verify JWT tokens.

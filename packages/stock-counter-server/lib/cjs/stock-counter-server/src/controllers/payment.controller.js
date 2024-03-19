@@ -3,17 +3,17 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.relegatePesapalPayment = exports.paymentMethodDelegator = exports.payOnDelivery = void 0;
+const stock_auth_server_1 = require("@open-stock/stock-auth-server");
+const stock_notif_server_1 = require("@open-stock/stock-notif-server");
+const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const log4js_1 = require("log4js");
 const order_model_1 = require("../models/order.model");
 const payment_model_1 = require("../models/payment.model");
+const paymentrelated_model_1 = require("../models/printables/paymentrelated/paymentrelated.model");
 const promocode_model_1 = require("../models/promocode.model");
 const paymentrelated_1 = require("../routes/paymentrelated/paymentrelated");
 const invoice_routes_1 = require("../routes/printables/invoice.routes");
-const stock_notif_server_1 = require("@open-stock/stock-notif-server");
-const paymentrelated_model_1 = require("../models/printables/paymentrelated/paymentrelated.model");
-const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const stock_counter_server_1 = require("../stock-counter-server");
-const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 /** Logger for the payment controller */
 const paymentControllerLogger = (0, log4js_1.getLogger)('paymentController');
 /**
@@ -73,7 +73,6 @@ const addOrder = async (paymentRelated, invoiceRelated, order, userId, companyId
         return paymentRelatedId;
     }
     order.paymentRelated = paymentRelatedId.id;
-    // (order as any).invoiceRelated = relatedId.invoiceRelated;
     const invoice = {
         invoiceRelated: '',
         dueDate: order.deliveryDate
@@ -231,7 +230,7 @@ const paymentMethodDelegator = async (paymentRelated, invoiceRelated, type, orde
     let response;
     switch (type) {
         case 'pesapal': {
-            response = await (0, exports.relegatePesapalPayment)(paymentRelated, invoiceRelated, type, order, payment, userId, companyId, burgain);
+            response = await (0, exports.relegatePesapalPayment)(paymentRelated, invoiceRelated, type, order, payment, userId, companyId);
             break;
         }
         default:
@@ -280,7 +279,7 @@ exports.paymentMethodDelegator = paymentMethodDelegator;
  * @param burgain - The burgain details.
  * @returns A promise that resolves to an object containing the success status, status code, and the Pesapal order response.
  */
-const relegatePesapalPayment = async (paymentRelated, invoiceRelated, type, order, payment, userId, companyId, burgain) => {
+const relegatePesapalPayment = async (paymentRelated, invoiceRelated, type, order, payment, userId, companyId) => {
     const company = await stock_auth_server_1.companyMain.findById(paymentRelated.companyId);
     if (!company) {
         return { success: false, status: 401, err: 'user must be of a company' };

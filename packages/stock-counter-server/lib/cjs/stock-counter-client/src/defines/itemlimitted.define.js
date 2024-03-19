@@ -1,9 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ItemLimitted = void 0;
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
-const rxjs_1 = require("rxjs");
 const stock_universal_1 = require("@open-stock/stock-universal");
+const rxjs_1 = require("rxjs");
 const stock_counter_client_1 = require("../stock-counter-client");
 /** ItemLimitted  class: This class extends
  * the  DatabaseAuto  class and represents
@@ -43,7 +42,7 @@ class ItemLimitted extends stock_universal_1.DatabaseAuto {
      * @returns A single ItemLimitted instance.
      */
     static async getOneItemLimitted(companyId, id) {
-        const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makeGet(`/itemlimitted/getone/${id}`);
+        const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makeGet(`/itemlimitted/getone/${id}/${companyId}`);
         const limitted = await (0, rxjs_1.lastValueFrom)(observer$);
         return new ItemLimitted(limitted);
     }

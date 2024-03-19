@@ -54,23 +54,20 @@ export declare const loginFactorRelgator: (req: any, res: any, next: any) => Pro
  * Resets the account password based on the provided verification code and new password.
  * @param req - The request object containing the request body.
  * @param res - The response object used to send the response.
- * @param next - The next middleware function.
  * @returns The response object with the updated account password.
  */
-export declare const resetAccountFactory: (req: any, res: any, next: any) => Promise<any>;
+export declare const resetAccountFactory: (req: any, res: any) => Promise<any>;
 /**
  * Recovers the user account by sending a token via email or phone.
  * @param req - The request object.
  * @param res - The response object.
- * @param next - The next middleware function.
  * @returns The response containing the success status and error message (if applicable).
  */
-export declare const recoverAccountFactory: (req: any, res: any, next: any) => Promise<any>;
+export declare const recoverAccountFactory: (req: any, res: any) => Promise<any>;
 /**
  * Handles the confirmation of a user account.
  * @param req - The request object.
  * @param res - The response object.
- * @param next - The next middleware function.
  * @returns The response object with the status and response data.
  */
-export declare const confirmAccountFactory: (req: any, res: any, next: any) => Promise<any>;
+export declare const confirmAccountFactory: (req: any, res: any) => Promise<any>;

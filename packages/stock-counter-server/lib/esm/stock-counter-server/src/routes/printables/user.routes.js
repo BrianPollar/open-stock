@@ -5,13 +5,11 @@
  * @packageDocumentation
  */
 /* eslint-disable @typescript-eslint/no-var-requires */
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 /* eslint-disable @typescript-eslint/no-misused-promises */
+import { checkIpAndAttempt, companyLean, confirmAccountFactory, determineIfIsPhoneAndMakeFilterObj, generateToken, getStockAuthConfig, isInAdictionaryOnline, isTooCommonPhrase, loginFactorRelgator, recoverAccountFactory, resetAccountFactory, sendTokenEmail, setUserInfo, user, userAuthSelect, userLean } from '@open-stock/stock-auth-server';
+import { appendBody, deleteFiles, fileMetaLean, makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, saveMetaToDb, stringifyMongooseErr, uploadFiles, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { getLogger } from 'log4js';
-import { user, userAuthSelect, userLean, generateToken, sendTokenEmail, setUserInfo, loginFactorRelgator, getStockAuthConfig, companyLean } from '@open-stock/stock-auth-server';
-import { appendBody, deleteFiles, fileMetaLean, makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, saveMetaToDb, stringifyMongooseErr, uploadFiles, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
-import { checkIpAndAttempt, confirmAccountFactory, determineIfIsPhoneAndMakeFilterObj, isInAdictionaryOnline, isTooCommonPhrase, recoverAccountFactory, resetAccountFactory } from '@open-stock/stock-auth-server';
 // import { notifConfig } from '../../config/notif.config';
 // import { createNotifications, NotificationController } from '../controllers/notifications.controller';
 const passport = require('passport');
@@ -59,9 +57,12 @@ authRoutes.get('/authexpress/:companyIdParam', requireAuth, async (req, res) => 
     }
     const foundUser = await userLean
         .findById(userId)
-        .populate({ path: 'profilePic', model: fileMetaLean, transform: (doc) => doc.url })
-        .populate({ path: 'profileCoverPic', model: fileMetaLean, transform: (doc) => doc.url })
-        .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => doc.url })
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        .populate({ path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        .populate({ path: 'profileCoverPic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
         .lean()
         .select(userAuthSelect)
         .catch(err => {
@@ -228,7 +229,7 @@ authRoutes.post('/sociallogin', async (req, res) => {
                 errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
             }
-            return errResponse;
+            return err;
         });
         if (errResponse) {
             return res.status(403).send(errResponse);
@@ -241,11 +242,14 @@ authRoutes.post('/sociallogin', async (req, res) => {
         }
     }
     else {
-        foundUser.name = credentials.name;
-        foundUser.profilepic = credentials.profilepic;
+        foundUser.fname = credentials.name;
+        const file = {
+            url: credentials.profilepic
+        };
+        foundUser.profilePic = file;
         let status = 200;
         let response = { success: true };
-        await foundUser.save().catch(err => {
+        const foundUserSaved = await foundUser.save().catch(err => {
             status = 403;
             const errResponse = {
                 success: false
@@ -258,11 +262,12 @@ authRoutes.post('/sociallogin', async (req, res) => {
         try again in a while`;
             }
             response = errResponse;
+            return err;
         });
         if (status === 200) {
             response = {
                 success: true,
-                user: foundUser.toAuthJSON()
+                user: foundUserSaved.toAuthJSON()
             };
             return res.status(200).send(response);
         }
@@ -306,6 +311,7 @@ authRoutes.put('/updateprofile/:formtype/:companyIdParam', requireAuth, async (r
             break;
         case 'phone':
             // compare password
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             foundUser['comparePassword'](userdetails.passwd, function (err, isMatch) {
                 if (err) {
                     status = 401;
@@ -333,6 +339,7 @@ authRoutes.put('/updateprofile/:formtype/:companyIdParam', requireAuth, async (r
             break;
         case 'email':
             // compare password
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             foundUser['comparePassword'](userdetails.passwd, function (err, isMatch) {
                 if (err) {
                     status = 200;
@@ -359,6 +366,7 @@ authRoutes.put('/updateprofile/:formtype/:companyIdParam', requireAuth, async (r
             break;
         case 'password':
             // compare password
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             foundUser['comparePassword'](userdetails.oldPassword, function (err, isMatch) {
                 if (err) {
                     status = 200;
@@ -415,10 +423,10 @@ authRoutes.post('/updateprofileimg/:companyIdParam', requireAuth, uploadFiles, a
     const parsed = req.body.parsed;
     if (parsed) {
         if (parsed.profilePic) {
-            foundUser.profilePic = parsed.profilePic._id || foundUser.profilePic;
+            foundUser.profilePic = parsed.profilePic || foundUser.profilePic;
         }
         if (parsed.coverPic) {
-            foundUser.profileCoverPic = parsed.coverPic._id || foundUser.profileCoverPic;
+            foundUser.profileCoverPic = parsed.coverPic || foundUser.profileCoverPic;
         }
         if (parsed.newFiles) {
             const oldPhotos = foundUser.photos;
@@ -445,8 +453,8 @@ authRoutes.post('/updateprofileimg/:companyIdParam', requireAuth, uploadFiles, a
 });
 authRoutes.put('/updatepermissions/:userId/:companyIdParam', requireAuth, roleAuthorisation('users', 'update'), async (req, res) => {
     const { userId } = req.params;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
+    // const { companyId } = (req as Icustomrequest).user;
+    // const { companyIdParam } = req.params;
     authLogger.debug('updatepermissions');
     const isValid = verifyObjectId(userId);
     if (!isValid) {
@@ -481,8 +489,8 @@ authRoutes.put('/updatepermissions/:userId/:companyIdParam', requireAuth, roleAu
 });
 authRoutes.put('/blockunblock/:companyIdParam', requireAuth, roleAuthorisation('users', 'update'), async (req, res) => {
     const { userId } = req.user;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
+    // const { companyId } = (req as Icustomrequest).user;
+    // const { companyIdParam } = req.params;
     authLogger.debug('blockunblock');
     const isValid = verifyObjectId(userId);
     if (!isValid) {
@@ -602,8 +610,8 @@ authRoutes.get('/getoneuser/:urId/:companyIdParam', requireAuth, roleAuthorisati
 });
 authRoutes.get('/getusers/:where/:offset/:limit/:companyIdParam', requireAuth, roleAuthorisation('users', 'read'), async (req, res) => {
     const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const { getusers, where } = req.params;
+    // const { companyIdParam } = req.params;
+    const { where } = req.params;
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     const currOffset = offset === 0 ? 0 : offset;
     const currLimit = limit === 0 ? 1000 : limit;
@@ -675,7 +683,7 @@ authRoutes.post('/adduser/:companyIdParam', requireAuth, roleAuthorisation('user
             // eslint-disable-next-line @typescript-eslint/naming-convention
             _id: savedUser._id
         };
-        await sendTokenEmail(req.app, savedUser, type, getStockAuthConfig().localSettings.appOfficialName);
+        await sendTokenEmail(savedUser, type, getStockAuthConfig().localSettings.appOfficialName);
     }
     return res.status(status).send(response);
 });
@@ -691,10 +699,10 @@ authRoutes.post('/adduserimg/:companyIdParam', requireAuth, roleAuthorisation('u
     }
     if (parsed) {
         if (parsed.profilePic) {
-            userData.profilePic = parsed.profilePic._id || userData.profilePic;
+            userData.profilePic = parsed.profilePic || userData.profilePic;
         }
         if (parsed.coverPic) {
-            userData.profileCoverPic = parsed.coverPic._id || userData.profileCoverPic;
+            userData.profileCoverPic = parsed.coverPic || userData.profileCoverPic;
         }
         if (parsed.newFiles) {
             const oldPhotos = userData.photos;
@@ -805,10 +813,10 @@ authRoutes.post('/updateuserbulkimg/:companyIdParam', requireAuth, roleAuthorisa
     const parsed = req.body.parsed;
     if (parsed) {
         if (parsed.profilePic) {
-            foundUser.profilePic = parsed.profilePic._id || foundUser.profilePic;
+            foundUser.profilePic = parsed.profilePic || foundUser.profilePic;
         }
         if (parsed.coverPic) {
-            foundUser.profileCoverPic = parsed.coverPic._id || foundUser.profileCoverPic;
+            foundUser.profileCoverPic = parsed.coverPic || foundUser.profileCoverPic;
         }
         if (parsed.newFiles) {
             const oldPhotos = foundUser.photos;
@@ -902,11 +910,10 @@ authRoutes.put('/deleteimages/:companyIdParam', requireAuth, roleAuthorisation('
         return res.status(404).send({ success: false, err: 'item not found' });
     }
     const photos = foundUser.photos;
-    const filesWithDirStr = filesWithDir
-        .map(val => val.url);
+    const filesWithDirIds = filesWithDir
+        .map(val => val._id);
     foundUser.photos = photos
-        .filter(p => !filesWithDirStr.includes(p._id))
-        .map(p => p._id);
+        .filter((p) => !filesWithDirIds.includes(p));
     foundUser.profilePic = foundUser.photos.find(p => p === foundUser.profilePic);
     foundUser.profileCoverPic = foundUser.photos.find(p => p === foundUser.profileCoverPic);
     let errResponse;

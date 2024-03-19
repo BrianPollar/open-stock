@@ -1,5 +1,6 @@
 import { LoggerController } from '@open-stock/stock-universal';
 import { Invoice } from '../defines/invoice.define';
+import { Receipt } from '../defines/receipt.define';
 /**
  * Transforms a Faq object into either an image source or a name.
  * @param faq The Faq object to transform.
@@ -141,7 +142,7 @@ export const makePaymentRelated = (data) => {
  * @returns An `IinvoiceRelated` object.
  */
 export const makeInvoiceRelated = (data) => {
-    return {
+    const related = {
         invoiceRelated: data.invoiceRelated,
         creationType: data.creationType,
         estimateId: data.estimateId,
@@ -159,9 +160,9 @@ export const makeInvoiceRelated = (data) => {
         tax: data.tax,
         balanceDue: data.balanceDue,
         subTotal: data.subTotal,
-        total: data.total,
-        payments: data.payments // TODO
+        total: data.total
     };
+    return (data instanceof Receipt) ? related : { ...related, payments: data.payments };
 };
 /**
  * Function to like an item.

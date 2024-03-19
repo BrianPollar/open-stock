@@ -1,21 +1,14 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createMockItemLimitted = exports.createMockItemDecoys = exports.createMockItemDecoy = exports.createMockItems = exports.createMockItem = exports.createMockCostMeta = exports.createMockInvoiceMetas = exports.createMockInvoiceMeta = exports.createMockCarts = exports.createMockCart = exports.createMockSponsoreds = exports.createMockSponsored = exports.createMockInvoices = exports.createMockInvoice = exports.createMockPaymentReceipts = exports.createMockInvoiceRelateds = exports.createMockInvoiceRelatedsSolo = exports.createMockInvoiceRelatedWithReceipts = exports.createMockInvoiceRelatedWithReceipt = exports.createMockInvoiceRelated = exports.createMockInvoiceRelatedSolo = exports.createMockInvoiceRelatedPdcts = exports.createMockInvoiceRelatedPdct = exports.createMockFaqAnswers = exports.createMockFaqAnswer = exports.createMockFaqs = exports.createMockFaq = exports.createMockExpenses = exports.createMockExpense = exports.mockExpense = exports.createMockEstimates = exports.createMockEstimate = exports.createMockDeliverynotes = exports.createMockDeliverynote = exports.createMockDeliveryCitys = exports.createMockDeliveryCity = exports.createMockInvoiceSettings = exports.createMockSettingsBank = exports.createMockSettingsTax = exports.createMockSettingsGeneral = exports.createMockTaxReports = exports.createMockTaxReport = exports.createMockSalesReports = exports.createMockSalesReport = exports.createMockProfitAndLossReports = exports.createMockProfitAndLossReport = exports.createMockInvoiceReports = exports.createMockInvoiceReport = exports.createMockExpenseReports = exports.createMockExpenseReport = void 0;
-exports.createMockUserBase = exports.createMockStaffs = exports.createMockStaff = exports.createMockSalary = exports.createMockCustomers = exports.createMockCustomer = exports.createMockReviews = exports.createMockReview = exports.createMockReceipts = exports.createMockReceipt = exports.createMockProfits = exports.createMockProfit = exports.createMockPayments = exports.createMockPayment = exports.createMockPaymentRelateds = exports.createMockPaymentRelated = exports.createMockPaymentRelatedSolos = exports.createMockPaymentRelatedSolo = exports.createMockOrders = exports.createMockOrder = exports.createMockItemOffers = exports.createMockItemOffer = exports.createMockItemLimitteds = void 0;
+exports.createMockSubscriptionPackages = exports.createMockSubscriptionPackage = exports.createMockCompanySubscriptions = exports.createMockCompanySubscription = exports.createMockUserBase = exports.createMockStaffs = exports.createMockStaff = exports.createMockSalary = exports.createMockCustomers = exports.createMockCustomer = exports.createMockReviews = exports.createMockReview = exports.createMockReceipts = exports.createMockReceipt = exports.createMockProfits = exports.createMockProfit = exports.createMockPayments = exports.createMockPayment = exports.createMockPaymentRelateds = exports.createMockPaymentRelated = exports.createMockPaymentRelatedSolos = exports.createMockPaymentRelatedSolo = exports.createMockOrders = exports.createMockOrder = exports.createMockItemOffers = exports.createMockItemOffer = exports.createMockItemLimitteds = void 0;
 const en_US_1 = require("@faker-js/faker/locale/en_US");
 const stock_universal_1 = require("@open-stock/stock-universal");
-const invoicereport_define_1 = require("../stock-counter-client/src/defines/reports/invoicereport.define");
-const expensereport_define_1 = require("../stock-counter-client/src/defines/reports/expensereport.define");
-const profitandlossreport_define_1 = require("../stock-counter-client/src/defines/reports/profitandlossreport.define");
-const salesreport_define_1 = require("../stock-counter-client/src/defines/reports/salesreport.define");
-const taxreport_define_1 = require("../stock-counter-client/src/defines/reports/taxreport.define");
-const invoicesetting_define_1 = require("../stock-counter-client/src/defines/settings/invoicesetting.define");
 const delivery_define_1 = require("../stock-counter-client/src/defines/delivery.define");
 const deliverynote_define_1 = require("../stock-counter-client/src/defines/deliverynote.define");
-const expense_define_1 = require("../stock-counter-client/src/defines/expense.define");
 const estimate_define_1 = require("../stock-counter-client/src/defines/estimate.define");
+const expense_define_1 = require("../stock-counter-client/src/defines/expense.define");
 const faq_define_1 = require("../stock-counter-client/src/defines/faq.define");
-const faq_define_2 = require("../stock-counter-client/src/defines/faq.define");
 const invoice_define_1 = require("../stock-counter-client/src/defines/invoice.define");
 const item_define_1 = require("../stock-counter-client/src/defines/item.define");
 const itemdecoy_define_1 = require("../stock-counter-client/src/defines/itemdecoy.define");
@@ -23,14 +16,18 @@ const itemlimitted_define_1 = require("../stock-counter-client/src/defines/iteml
 const itemoffer_define_1 = require("../stock-counter-client/src/defines/itemoffer.define");
 const order_define_1 = require("../stock-counter-client/src/defines/order.define");
 const payment_define_1 = require("../stock-counter-client/src/defines/payment.define");
-const payment_define_2 = require("../stock-counter-client/src/defines/payment.define");
-// import { PaymentInstall } from '../stock-counter-client/src/defines/paymentinstalls.define';
+const expensereport_define_1 = require("../stock-counter-client/src/defines/reports/expensereport.define");
+const invoicereport_define_1 = require("../stock-counter-client/src/defines/reports/invoicereport.define");
+const profitandlossreport_define_1 = require("../stock-counter-client/src/defines/reports/profitandlossreport.define");
+const salesreport_define_1 = require("../stock-counter-client/src/defines/reports/salesreport.define");
+const taxreport_define_1 = require("../stock-counter-client/src/defines/reports/taxreport.define");
+const invoicesetting_define_1 = require("../stock-counter-client/src/defines/settings/invoicesetting.define");
+const src_1 = require("../stock-counter-client/src");
 const profit_define_1 = require("../stock-counter-client/src/defines/profit.define");
 const receipt_define_1 = require("../stock-counter-client/src/defines/receipt.define");
 const review_define_1 = require("../stock-counter-client/src/defines/review.define");
-const stock_auth_mocks_1 = require("./stock-auth-mocks");
-const src_1 = require("../stock-counter-client/src");
 const mocks_1 = require("./mocks");
+const stock_auth_mocks_1 = require("./stock-auth-mocks");
 /**
 The  createMockExpenseReport  function creates a single mock expense report object. It takes an optional  incrementor  parameter to generate unique IDs for each report. It uses the  createMockDatabaseAuto  function to generate common properties like ID and timestamps. It also generates random values for properties like  urId ,  totalAmount ,  date , and  expenses . The  expenses  property is generated using the  createMockExpenses  function, which returns an array of mock expense objects. */
 const createMockExpenseReport = (incrementor = 0) => {
@@ -262,7 +259,7 @@ const createMockFaqAnswer = () => {
         userId: (0, stock_auth_mocks_1.createMockUser)(),
         ans: en_US_1.faker.string.alpha()
     };
-    return new faq_define_2.FaqAnswer(ans);
+    return new faq_define_1.FaqAnswer(ans);
 };
 exports.createMockFaqAnswer = createMockFaqAnswer;
 /** The  createMockFaqAnswers  function generates an array of mock FAQ answers with a specified length. */
@@ -569,7 +566,7 @@ const createMockPayment = () => {
         ...(0, exports.createMockPaymentRelatedSolo)(),
         order: en_US_1.faker.string.uuid()
     };
-    return new payment_define_2.Payment(payment);
+    return new payment_define_1.Payment(payment);
 };
 exports.createMockPayment = createMockPayment;
 const createMockPayments = (length) => {
@@ -676,11 +673,33 @@ exports.createMockStaffs = createMockStaffs;
 /** The  createMockUserBase  function takes an optional parameter  incrementor  and returns an object with properties  user ,  startDate ,  endDate , and  occupation . The  user  property is assigned a random UUID string generated by the  faker.string.uuid()  function. The  startDate  and  endDate  properties are assigned random past and future dates generated by the  faker.date.past()  and  faker.date.future()  functions, respectively. The  occupation  property is assigned a random alphanumeric string generated by the  faker.string.alphanumeric()  function.*/
 const createMockUserBase = (incrementor = 0) => ({
     ...(0, mocks_1.createMockDatabaseAuto)(),
-    user: en_US_1.faker.string.uuid(),
+    user: en_US_1.faker.string.uuid() + incrementor,
     startDate: en_US_1.faker.date.past(),
     endDate: en_US_1.faker.date.future(),
     occupation: en_US_1.faker.string.alphanumeric(5)
 });
 exports.createMockUserBase = createMockUserBase;
-// This file imports the `faker` module.
+const createMockCompanySubscription = () => ({
+    subscriprionId: en_US_1.faker.string.uuid(),
+    startDate: en_US_1.faker.date.past(),
+    endDate: en_US_1.faker.date.future(),
+    features: ['feature1', 'feature2', 'feature3']
+});
+exports.createMockCompanySubscription = createMockCompanySubscription;
+const createMockCompanySubscriptions = (length) => {
+    return Array.from({ length }).map(() => (0, exports.createMockCompanySubscription)());
+};
+exports.createMockCompanySubscriptions = createMockCompanySubscriptions;
+const createMockSubscriptionPackage = () => ({
+    name: en_US_1.faker.string.alphanumeric(),
+    ammount: en_US_1.faker.number.int(),
+    duration: en_US_1.faker.number.int(),
+    active: true,
+    features: ['feature1', 'feature2', 'feature3']
+});
+exports.createMockSubscriptionPackage = createMockSubscriptionPackage;
+const createMockSubscriptionPackages = (length) => {
+    return Array.from({ length }).map(() => (0, exports.createMockSubscriptionPackage)());
+};
+exports.createMockSubscriptionPackages = createMockSubscriptionPackages;
 //# sourceMappingURL=stock-counter-mocks.js.map

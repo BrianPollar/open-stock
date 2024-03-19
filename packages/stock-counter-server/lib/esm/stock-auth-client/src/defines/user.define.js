@@ -1,6 +1,5 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
-import { lastValueFrom } from 'rxjs';
 import { DatabaseAuto } from '@open-stock/stock-universal';
+import { lastValueFrom } from 'rxjs';
 import { StockAuthClient } from '../stock-auth-client';
 import { Company } from './company.define';
 /**

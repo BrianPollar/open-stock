@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 import { lastValueFrom } from 'rxjs';
 import { DatabaseAuto } from '@open-stock/stock-universal';
 import { StockCounterClient } from '../../stock-counter-client';

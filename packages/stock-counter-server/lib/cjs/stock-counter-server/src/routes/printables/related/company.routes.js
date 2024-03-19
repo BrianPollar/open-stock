@@ -9,16 +9,14 @@ const tslib_1 = require("tslib");
  * @packageDocumentation
  */
 /* eslint-disable @typescript-eslint/no-var-requires */
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 /* eslint-disable @typescript-eslint/no-misused-promises */
-const express_1 = tslib_1.__importDefault(require("express"));
-const log4js_1 = require("log4js");
 const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
-const stock_auth_server_2 = require("@open-stock/stock-auth-server");
+const express_1 = tslib_1.__importDefault(require("express"));
+const log4js_1 = require("log4js");
 // import { notifConfig } from '../../config/notif.config';
 // import { createNotifications, NotificationController } from '../controllers/notifications.controller';
-const passport = require('passport');
+// const passport = require('passport');
 /**
  * Router for company authentication routes.
  */
@@ -32,7 +30,7 @@ const companyAuthLogger = (0, log4js_1.getLogger)('routes/company');
  */
 const companyLoginRelegator = async (req, res) => {
     const { emailPhone } = req.body;
-    const { query } = (0, stock_auth_server_2.determineIfIsPhoneAndMakeFilterObj)(emailPhone);
+    const { query } = (0, stock_auth_server_1.determineIfIsPhoneAndMakeFilterObj)(emailPhone);
     const foundCompany = await stock_auth_server_1.companyLean
         .findOne({ ...query, ...{ verified: true } })
         .lean()
@@ -139,12 +137,12 @@ exports.companyAuthRoutes.post('/login', (req, res, next) => {
     companyAuthLogger.debug(`login attempt,
     emailPhone: ${emailPhone}`);
     return next();
-}, stock_auth_server_2.checkIpAndAttempt, exports.companyLoginRelegator);
+}, stock_auth_server_1.checkIpAndAttempt, exports.companyLoginRelegator);
 exports.companyAuthRoutes.post('/signup', (req, res, next) => {
     const user = req.body;
     req.body.user = user;
     return next();
-}, stock_auth_server_2.isTooCommonPhrase, stock_auth_server_2.isInAdictionaryOnline, stock_auth_server_1.loginFactorRelgator, (req, res) => {
+}, stock_auth_server_1.isTooCommonPhrase, stock_auth_server_1.isInAdictionaryOnline, stock_auth_server_1.loginFactorRelgator, (req, res) => {
     return res.status(401).send({ success: false, msg: 'unauthourised' });
 });
 exports.companyAuthRoutes.post('/recover', async (req, res, next) => {
@@ -162,7 +160,7 @@ exports.companyAuthRoutes.post('/recover', async (req, res, next) => {
     const foundCompany = await stock_auth_server_1.companyMain.findOne(query);
     req.body.foundUser = foundCompany;
     return next();
-}, stock_auth_server_2.recoverAccountFactory);
+}, stock_auth_server_1.recoverAccountFactory);
 exports.companyAuthRoutes.post('/confirm', async (req, res, next) => {
     // eslint-disable-next-line @typescript-eslint/naming-convention
     const { _id, verifycode, how } = req.body;
@@ -180,7 +178,7 @@ exports.companyAuthRoutes.post('/confirm', async (req, res, next) => {
     const foundCompany = await stock_auth_server_1.companyMain.findById(_id);
     req.body.foundUser = foundCompany;
     return next();
-}, stock_auth_server_2.confirmAccountFactory);
+}, stock_auth_server_1.confirmAccountFactory);
 exports.companyAuthRoutes.put('/resetpaswd', async (req, res, next) => {
     // eslint-disable-next-line @typescript-eslint/naming-convention
     const { _id, verifycode } = req.body;
@@ -199,7 +197,7 @@ exports.companyAuthRoutes.put('/resetpaswd', async (req, res, next) => {
     const foundCompany = await stock_auth_server_1.companyMain.findById(_id);
     req.body.foundUser = foundCompany;
     return next();
-}, stock_auth_server_2.resetAccountFactory);
+}, stock_auth_server_1.resetAccountFactory);
 exports.companyAuthRoutes.post('/updateprofileimg/:companyIdParam', stock_universal_server_1.requireAuth, stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.saveMetaToDb, async (req, res) => {
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -220,10 +218,10 @@ exports.companyAuthRoutes.post('/updateprofileimg/:companyIdParam', stock_univer
     const parsed = req.body.parsed;
     if (parsed) {
         if (parsed.profilePic) {
-            foundCompany.profilePic = parsed.profilePic._id || foundCompany.profilePic;
+            foundCompany.profilePic = parsed.profilePic || foundCompany.profilePic;
         }
         if (parsed.coverPic) {
-            foundCompany.profileCoverPic = parsed.coverPic._id || foundCompany.profileCoverPic;
+            foundCompany.profileCoverPic = parsed.coverPic || foundCompany.profileCoverPic;
         }
         if (parsed.newFiles) {
             const oldPhotos = foundCompany.photos;
@@ -293,10 +291,10 @@ exports.companyAuthRoutes.post('/addcompanyimg/:companyIdParam', stock_universal
     const parsed = req.body.parsed;
     if (parsed) {
         if (parsed.profilePic) {
-            userData.profilePic = parsed.profilePic._id || userData.profilePic;
+            userData.profilePic = parsed.profilePic || userData.profilePic;
         }
         if (parsed.coverPic) {
-            userData.profileCoverPic = parsed.coverPic._id || userData.profileCoverPic;
+            userData.profileCoverPic = parsed.coverPic || userData.profileCoverPic;
         }
         if (parsed.newFiles) {
             const oldPhotos = userData.photos;
@@ -403,10 +401,10 @@ exports.companyAuthRoutes.post('/updatecompanybulkimg/:companyIdParam', stock_un
     const parsed = req.body.parsed;
     if (parsed) {
         if (parsed.profilePic) {
-            foundCompany.profilePic = parsed.profilePic._id || foundCompany.profilePic;
+            foundCompany.profilePic = parsed.profilePic || foundCompany.profilePic;
         }
         if (parsed.coverPic) {
-            foundCompany.profileCoverPic = parsed.coverPic._id || foundCompany.profileCoverPic;
+            foundCompany.profileCoverPic = parsed.coverPic || foundCompany.profileCoverPic;
         }
         if (parsed.newFiles) {
             const oldPhotos = foundCompany.photos;
@@ -491,11 +489,10 @@ exports.companyAuthRoutes.put('/deleteimages/:companyIdParam', stock_universal_s
         return res.status(404).send({ success: false, err: 'item not found' });
     }
     const photos = company.photos;
-    const filesWithDirStr = filesWithDir
-        .map(val => val.url);
+    const filesWithDirIds = filesWithDir
+        .map(val => val._id);
     company.photos = photos
-        .filter(p => !filesWithDirStr.includes(p._id))
-        .map(p => p._id);
+        .filter((p) => !filesWithDirIds.includes(p));
     company.profilePic = company.photos.find(p => p === company.profilePic);
     company.profileCoverPic = company.photos.find(p => p === company.profileCoverPic);
     let errResponse;

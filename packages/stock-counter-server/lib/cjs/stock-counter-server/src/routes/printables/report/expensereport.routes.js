@@ -2,12 +2,11 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.expenseReportRoutes = void 0;
 const tslib_1 = require("tslib");
-/* eslint-disable @typescript-eslint/no-misused-promises */
-const express_1 = tslib_1.__importDefault(require("express"));
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
+const express_1 = tslib_1.__importDefault(require("express"));
+const log4js_1 = require("log4js");
 const expense_model_1 = require("../../../models/expense.model");
 const expenesreport_model_1 = require("../../../models/printables/report/expenesreport.model");
-const log4js_1 = require("log4js");
 /** Logger for expense report routes */
 const expenseReportRoutesLogger = (0, log4js_1.getLogger)('routes/expenseReportRoutes');
 /**
@@ -31,7 +30,6 @@ exports.expenseReportRoutes.post('/create/:companyIdParam', stock_universal_serv
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
     expenseReport.companyId = queryId;
-    console.log('companyId is', queryId);
     const count = await expenesreport_model_1.expenseReportMain
         // eslint-disable-next-line @typescript-eslint/naming-convention
         .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });

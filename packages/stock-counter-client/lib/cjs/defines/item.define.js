@@ -12,7 +12,7 @@ const stock_counter_client_1 = require("../stock-counter-client");
 class Item extends stock_universal_1.DatabaseAuto {
     /**
      * Represents the constructor of the Item class.
-     * @param {any} data - The data used to initialize the Item instance.
+     * @param data - The data used to initialize the Item instance.
      */
     constructor(data) {
         super(data);
@@ -33,7 +33,7 @@ class Item extends stock_universal_1.DatabaseAuto {
      */
     static async searchItems(companyId, category, searchterm, searchKey, extraFilters, subCategory) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makePost(`/item/search/${companyId}`, { searchterm, searchKey, category, extraFilters });
+            .makePost(`/item/search/${companyId}`, { searchterm, searchKey, category, extraFilters, subCategory });
         const items = await (0, rxjs_1.lastValueFrom)(observer$);
         return items
             .map(val => new Item(val));
@@ -61,7 +61,7 @@ class Item extends stock_universal_1.DatabaseAuto {
      */
     static async getOneItem(companyId, url) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makeGet(`${url}`);
+            .makeGet(`${url}/${companyId}`);
         const item = await (0, rxjs_1.lastValueFrom)(observer$);
         return new Item(item);
     }
@@ -100,7 +100,7 @@ class Item extends stock_universal_1.DatabaseAuto {
      */
     static async deleteItems(companyId, ids, filesWithDir, url) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makePut(`${url}`, { ids, filesWithDir });
+            .makePut(`${url}/${companyId}`, { ids, filesWithDir });
         return await (0, rxjs_1.lastValueFrom)(observer$);
     }
     /**
@@ -122,12 +122,12 @@ class Item extends stock_universal_1.DatabaseAuto {
         };
         if (files && files.length > 0) {
             const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-                .uploadFiles(files, '/item/updateimg', details);
+                .uploadFiles(files, `/item/updateimg/${companyId}`, details);
             updated = await (0, rxjs_1.lastValueFrom)(observer$);
         }
         else {
             const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-                .makePut(`${url}`, details);
+                .makePut(`${url}/${companyId}`, details);
             updated = await (0, rxjs_1.lastValueFrom)(observer$);
         }
         return updated;
@@ -178,7 +178,7 @@ class Item extends stock_universal_1.DatabaseAuto {
      */
     async deleteSponsored(companyId, itemId) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makeDelete(`/item/deletesponsored/${this._id}/${itemId}`);
+            .makeDelete(`/item/deletesponsored/${this._id}/${itemId}/${companyId}`);
         const deleted = await (0, rxjs_1.lastValueFrom)(observer$);
         if (deleted.success) {
             const found = this.sponsored.find(sponsd => sponsd.item._id === itemId);

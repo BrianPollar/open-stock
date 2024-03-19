@@ -1,6 +1,5 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
-import { lastValueFrom } from 'rxjs';
 import { DatabaseAuto } from '@open-stock/stock-universal';
+import { lastValueFrom } from 'rxjs';
 import { StockCounterClient } from '../stock-counter-client';
 /** ItemLimitted  class: This class extends
  * the  DatabaseAuto  class and represents
@@ -40,7 +39,7 @@ export class ItemLimitted extends DatabaseAuto {
      * @returns A single ItemLimitted instance.
      */
     static async getOneItemLimitted(companyId, id) {
-        const observer$ = StockCounterClient.ehttp.makeGet(`/itemlimitted/getone/${id}`);
+        const observer$ = StockCounterClient.ehttp.makeGet(`/itemlimitted/getone/${id}/${companyId}`);
         const limitted = await lastValueFrom(observer$);
         return new ItemLimitted(limitted);
     }

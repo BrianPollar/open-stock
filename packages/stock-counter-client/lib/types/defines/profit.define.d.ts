@@ -1,4 +1,4 @@
-import { DatabaseAuto, Iprofit, Isuccess } from '@open-stock/stock-universal';
+import { DatabaseAuto, IfileMeta, Iprofit, Isuccess } from '@open-stock/stock-universal';
 /**
  * Represents a Profit object.
  * @class
@@ -51,11 +51,11 @@ export declare class Profit extends DatabaseAuto {
      * @async
      * @param companyId - The ID of the company
      * @param {string[]} ids - The IDs of the Profit objects to delete.
-     * @param {any} filesWithDir - The files and directories to delete.
+     * @param {IfileMeta} filesWithDir - The files and directories to delete.
      * @param {string} url - The URL to delete the Profit objects from.
      * @returns {Promise<Isuccess>} - A Promise that resolves to a success message.
      */
-    static deleteProfits(companyId: string, ids: string[], filesWithDir: any, url: string): Promise<Isuccess>;
+    static deleteProfits(companyId: string, ids: string[], filesWithDir: IfileMeta[], url: string): Promise<Isuccess>;
     /**
      * Updates a single Profit object.
      * @async

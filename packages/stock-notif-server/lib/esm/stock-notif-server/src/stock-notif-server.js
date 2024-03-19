@@ -1,10 +1,10 @@
 import { isUniversalServerRunning, runPassport } from '@open-stock/stock-universal-server';
-import { notifnRoutes } from './routes/notification.routes';
-import { makeAuthyTwilio } from './controllers/twilio.controller';
-import { createNotificationsDatabase, createStockNotifServerLocals, isStockNotifServerRunning, notificationSettings } from './stock-notif-local';
-import { notifSettingMain } from './models/notifsetting.model';
 import express from 'express';
+import { makeAuthyTwilio } from './controllers/twilio.controller';
+import { notifSettingMain } from './models/notifsetting.model';
 import { notifnRoutesDummy } from './routes-dummy/notification.routes';
+import { notifnRoutes } from './routes/notification.routes';
+import { createNotificationsDatabase, createStockNotifServerLocals, isStockNotifServerRunning, notificationSettings } from './stock-notif-local';
 export const runStockNotificationServer = async (config) => {
     if (!isUniversalServerRunning()) {
         const error = new Error('File loacations must be handled properly, please start by firing up that server');
@@ -29,7 +29,7 @@ export const runStockNotificationServer = async (config) => {
 };
 /**
  * Retrieves the current notification settings.
- * @returns {Promise<any>} A promise that resolves to the current notification settings.
+ * @returns {Promise<TnotifSetting>} A promise that resolves to the current notification settings.
  */
 export const getCurrentNotificationSettings = async () => {
     const stn = await notifSettingMain.findOne({}).lean();

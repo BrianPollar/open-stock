@@ -2,19 +2,11 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.makeNotfnBody = exports.updateNotifnViewed = exports.createPayload = exports.createNotifSetting = exports.constructMailService = exports.sendMail = exports.constructMail = exports.verifyAuthyToken = exports.sendSms = exports.sendToken = exports.setUpUser = exports.createSettings = exports.determineUserHasMail = void 0;
 const tslib_1 = require("tslib");
-/* eslint-disable @typescript-eslint/no-var-requires */
-// import {
-// PushSubscription,
-// sendNotification,
-// setVapidDetails,
-// RequestOptions// ,
-// generateVAPIDKeys
-// } from 'web-push';
-const webPush = tslib_1.__importStar(require("web-push"));
-const log4js_1 = require("log4js");
-const notifsetting_model_1 = require("../models/notifsetting.model");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
+const log4js_1 = require("log4js");
+const webPush = tslib_1.__importStar(require("web-push"));
 const mainnotification_model_1 = require("../models/mainnotification.model");
+const notifsetting_model_1 = require("../models/notifsetting.model");
 // const sgMail = require('@sendgrid/mail');
 const sgMail = tslib_1.__importStar(require("@sendgrid/mail"));
 const stock_notif_local_1 = require("../stock-notif-local");
@@ -181,8 +173,8 @@ exports.sendMail = sendMail;
  */
 const constructMailService = (sendGridApiKey, publicKey, privateKey) => {
     sgMail.setApiKey(sendGridApiKey);
-    // console.log(generateVAPIDKeys()); //generate key
-    // console.log('those keys are', notifConfig);
+    // notificationsControllerLogger.info(generateVAPIDKeys()); // generate key
+    // notificationsControllerLogger.info('those keys are', notifConfig);
     const vapidKeys = {
         publicKey,
         privateKey

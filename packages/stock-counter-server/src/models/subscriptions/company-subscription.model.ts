@@ -1,6 +1,6 @@
-import { Document, Model, Schema } from 'mongoose';
 import { IcompanySubscription } from '@open-stock/stock-universal';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
+import { Document, Model, Schema } from 'mongoose';
+import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../controllers/database.controller';
 const uniqueValidator = require('mongoose-unique-validator');
 
 export type TcompanySubscription= Document & IcompanySubscription;

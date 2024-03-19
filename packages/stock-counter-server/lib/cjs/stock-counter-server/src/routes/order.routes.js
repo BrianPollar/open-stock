@@ -213,7 +213,8 @@ exports.orderRoutes.get('/getone/:id/:companyIdParam', stock_universal_server_1.
             {
                 path: 'items.item', model: item_model_1.itemLean,
                 populate: [{
-                        path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => doc.url
+                        // eslint-disable-next-line @typescript-eslint/naming-convention
+                        path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                     }]
             }]
     });
@@ -250,7 +251,8 @@ exports.orderRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universa
             {
                 path: 'items.item', model: item_model_1.itemLean,
                 populate: [{
-                        path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => doc.url
+                        // eslint-disable-next-line @typescript-eslint/naming-convention
+                        path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                     }]
             }]
     });
@@ -279,7 +281,8 @@ exports.orderRoutes.get('/getmyorders/:companyIdParam', stock_universal_server_1
             {
                 path: 'items.item', model: item_model_1.itemLean,
                 populate: [{
-                        path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => doc.url
+                        // eslint-disable-next-line @typescript-eslint/naming-convention
+                        path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                     }]
             }]
     });
@@ -370,7 +373,8 @@ exports.orderRoutes.post('/search/:limit/:offset/:companyIdParam', stock_univers
             {
                 path: 'items.item', model: item_model_1.itemLean,
                 populate: [{
-                        path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => doc.url
+                        // eslint-disable-next-line @typescript-eslint/naming-convention
+                        path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                     }]
             }]
     });

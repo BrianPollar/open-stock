@@ -1,7 +1,8 @@
+/* eslint-disable @typescript-eslint/no-var-requires */
+import { sendSms, sendToken, setUpUser, verifyAuthyToken } from '@open-stock/stock-notif-server';
+import bcrypt from 'bcrypt';
 import { Schema } from 'mongoose';
 import { connectAuthDatabase, isAuthDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
-import bcrypt from 'bcrypt';
-import { sendSms, sendToken, setUpUser, verifyAuthyToken } from '@open-stock/stock-notif-server';
 // Create authenticated Authy and Twilio API clients
 // const authy = require('authy')(config.authyKey);
 // const twilioClient = require('twilio')(config.accountSid, config.authToken);
@@ -18,7 +19,7 @@ export const companySchema = new Schema({
     businessType: { type: String },
     profilePic: { type: String },
     profileCoverPic: { type: String },
-    photos: [{ type: String }],
+    photos: [],
     websiteAddress: { type: String },
     pesapalCallbackUrl: { type: String },
     pesapalCancellationUrl: { type: String },
@@ -66,14 +67,16 @@ companySchema.methods['comparePassword'] = function (candidatePassword, cb) {
 // Send a verification token to the company (two step auth for login)
 companySchema.methods['sendAuthyToken'] = function (cb) {
     if (!this.authyId) {
-        setUpUser(this.phone, this.countryCode).then((res) => {
-            this.authyId = res.company.id;
+        setUpUser(this.phone, 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        this.countryCode).then((res) => {
+            this.authyId = res.user.id;
             this.save((err1, doc) => {
                 if (err1 || !doc) {
                     return cb.call(this, err1);
                 }
                 // this = doc;
-                sendToken(this.authyId).then((resp) => cb.call(this, null, resp)).catch(err => cb.call(this, err));
+                sendToken(this.authyId).then(resp => cb.call(this, null, resp)).catch(err => cb.call(this, err));
             });
         }).catch(err => cb.call(this, err));
     }
@@ -84,7 +87,7 @@ companySchema.methods['sendAuthyToken'] = function (cb) {
 };
 // Test a 2FA token
 companySchema.methods['verifyAuthyToken'] = function (otp, cb) {
-    verifyAuthyToken(this.authyId, otp).then((resp) => {
+    verifyAuthyToken(this.authyId, otp).then(resp => {
         cb.call(this, null, resp);
     }).catch(err => {
         cb.call(this, err);

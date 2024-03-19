@@ -12,42 +12,40 @@ import {
   IinvoiceSetting,
   Iitem,
   Iorder,
+  Ipayment,
   IpaymentRelated,
   IprofitAndLossReport,
   Ireceipt,
   IreviewMain,
   Iuser,
-  makeRandomString,
-  Ipayment
+  makeRandomString
 } from '@open-stock/stock-universal';
-import { InvoiceReport } from '../stock-counter-client/src/defines/reports/invoicereport.define';
-import { ExpenseReport } from '../stock-counter-client/src/defines/reports/expensereport.define';
-import { ProfitAndLossReport } from '../stock-counter-client/src/defines/reports/profitandlossreport.define';
-import { SalesReport } from '../stock-counter-client/src/defines/reports/salesreport.define';
-import { TaxReport } from '../stock-counter-client/src/defines/reports/taxreport.define';
-import { InvoiceSettings } from '../stock-counter-client/src/defines/settings/invoicesetting.define';
 import { DeliveryCity } from '../stock-counter-client/src/defines/delivery.define';
 import { DeliveryNote } from '../stock-counter-client/src/defines/deliverynote.define';
-import { Expense } from '../stock-counter-client/src/defines/expense.define';
 import { Estimate } from '../stock-counter-client/src/defines/estimate.define';
-import { Faq } from '../stock-counter-client/src/defines/faq.define';
-import { FaqAnswer } from '../stock-counter-client/src/defines/faq.define';
+import { Expense } from '../stock-counter-client/src/defines/expense.define';
+import { Faq, FaqAnswer } from '../stock-counter-client/src/defines/faq.define';
 import { Invoice, InvoiceRelatedWithReceipt } from '../stock-counter-client/src/defines/invoice.define';
 import { Item } from '../stock-counter-client/src/defines/item.define';
 import { ItemDecoy } from '../stock-counter-client/src/defines/itemdecoy.define';
 import { ItemLimitted } from '../stock-counter-client/src/defines/itemlimitted.define';
 import { ItemOffer } from '../stock-counter-client/src/defines/itemoffer.define';
 import { Order } from '../stock-counter-client/src/defines/order.define';
-import { PaymentRelated } from '../stock-counter-client/src/defines/payment.define';
-import { Payment } from '../stock-counter-client/src/defines/payment.define';
+import { Payment, PaymentRelated } from '../stock-counter-client/src/defines/payment.define';
+import { ExpenseReport } from '../stock-counter-client/src/defines/reports/expensereport.define';
+import { InvoiceReport } from '../stock-counter-client/src/defines/reports/invoicereport.define';
+import { ProfitAndLossReport } from '../stock-counter-client/src/defines/reports/profitandlossreport.define';
+import { SalesReport } from '../stock-counter-client/src/defines/reports/salesreport.define';
+import { TaxReport } from '../stock-counter-client/src/defines/reports/taxreport.define';
+import { InvoiceSettings } from '../stock-counter-client/src/defines/settings/invoicesetting.define';
 // import { PaymentInstall } from '../stock-counter-client/src/defines/paymentinstalls.define';
+import { Icustomer, Istaff } from '@open-stock/stock-universal';
+import { Customer, Staff } from '../stock-counter-client/src';
 import { Profit } from '../stock-counter-client/src/defines/profit.define';
 import { InvoiceRelated, Receipt } from '../stock-counter-client/src/defines/receipt.define';
 import { Review } from '../stock-counter-client/src/defines/review.define';
-import { createMockAddress, createMockBilling, createMockFileMeta, createMockUser } from './stock-auth-mocks';
-import { Customer, Staff } from '../stock-counter-client/src';
-import { Icustomer, Istaff } from '@open-stock/stock-universal';
 import { createMockDatabaseAuto } from './mocks';
+import { createMockAddress, createMockBilling, createMockFileMeta, createMockUser } from './stock-auth-mocks';
 
 /**
 The  createMockExpenseReport  function creates a single mock expense report object. It takes an optional  incrementor  parameter to generate unique IDs for each report. It uses the  createMockDatabaseAuto  function to generate common properties like ID and timestamps. It also generates random values for properties like  urId ,  totalAmount ,  date , and  expenses . The  expenses  property is generated using the  createMockExpenses  function, which returns an array of mock expense objects. */
@@ -738,3 +736,28 @@ export const createMockUserBase = (incrementor = 0) => ({
   endDate: faker.date.future(),
   occupation: faker.string.alphanumeric(5)
 });
+
+export const createMockCompanySubscription = () => ({
+  subscriprionId: faker.string.uuid(),
+  startDate: faker.date.past(),
+  endDate: faker.date.future(),
+  features: ['feature1', 'feature2', 'feature3']
+});
+
+export const createMockCompanySubscriptions = (length: number) => {
+  return Array.from({ length }).map(() => createMockCompanySubscription());
+};
+
+export const createMockSubscriptionPackage = () => ({
+  name: faker.string.alphanumeric(),
+  ammount: faker.number.int(),
+  duration: faker.number.int(),
+  active: true,
+  features: ['feature1', 'feature2', 'feature3']
+});
+
+
+export const createMockSubscriptionPackages = (length: number) => {
+  return Array.from({ length }).map(() => createMockSubscriptionPackage());
+};
+

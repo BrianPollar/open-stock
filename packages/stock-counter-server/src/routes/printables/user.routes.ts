@@ -747,7 +747,7 @@ authRoutes.post('/adduser/:companyIdParam', requireAuth, roleAuthorisation('user
       // eslint-disable-next-line @typescript-eslint/naming-convention
       _id: savedUser._id
     };
-    await sendTokenEmail(req.app,
+    await sendTokenEmail(
       savedUser, type, getStockAuthConfig().localSettings.appOfficialName);
   }
   return res.status(status).send(response);

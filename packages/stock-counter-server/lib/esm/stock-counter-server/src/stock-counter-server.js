@@ -1,60 +1,64 @@
 import express from 'express';
-import { reviewRoutes } from './routes/review.routes';
-import { itemRoutes } from './routes/item.routes';
-import { paymentRoutes } from './routes/payment.routes';
-import { orderRoutes } from './routes/order.routes';
-import { faqRoutes } from './routes/faq.routes';
-import { deliverycityRoutes } from './routes/deliverycity.routes';
 import { cookiesRoutes } from './routes/cookies.routes';
-import { promocodeRoutes } from './routes/promo.routes';
+import { deliverycityRoutes } from './routes/deliverycity.routes';
+import { expenseRoutes } from './routes/expense.routes';
+import { faqRoutes } from './routes/faq.routes';
+import { itemRoutes } from './routes/item.routes';
+import { orderRoutes } from './routes/order.routes';
+import { paymentRoutes } from './routes/payment.routes';
 import { deliveryNoteRoutes } from './routes/printables/deliverynote.routes';
 import { estimateRoutes } from './routes/printables/estimate.routes';
 import { invoiceRoutes } from './routes/printables/invoice.routes';
 import { pickupLocationRoutes } from './routes/printables/pickuplocation.routes';
 import { receiptRoutes } from './routes/printables/receipt.routes';
-import { expenseRoutes } from './routes/expense.routes';
 import { expenseReportRoutes } from './routes/printables/report/expensereport.routes';
+import { invoicesReportRoutes } from './routes/printables/report/invoicereport.routes';
 import { profitAndLossReportRoutes } from './routes/printables/report/profitandlossreport.routes';
 import { salesReportRoutes } from './routes/printables/report/salesreport.routes';
 import { taxReportRoutes } from './routes/printables/report/taxreport.routes';
-import { invoicesReportRoutes } from './routes/printables/report/invoicereport.routes';
 import { invoiceSettingRoutes } from './routes/printables/settings/invoicesettings.routes';
+import { promocodeRoutes } from './routes/promo.routes';
+import { reviewRoutes } from './routes/review.routes';
 // import { paymentInstallsRoutes } from './routes/paymentrelated/paymentinstalls.routes';
-import { invoiceRelateRoutes } from './routes/printables/related/invoicerelated.route';
-import { itemDecoyRoutes } from './routes/itemdecoy.routes';
-import { itemOfferRoutes } from './routes/itemoffer.routes';
 import { isAuthServerRunning } from '@open-stock/stock-auth-server';
 import { runPassport } from '@open-stock/stock-universal-server';
-import { customerRoutes } from './routes/user-related/customer.routes';
-import { staffRoutes } from './routes/user-related/staff.routes';
-import { localUserRoutes } from './routes/user-related/locluser.routes';
-import { connectStockCounterDatabase, createStockCounterServerLocals, isStockCounterServerRunning } from './stock-counter-local';
-import { reviewRoutesDummy } from './routes-dummy/review.routes';
-import { itemRoutesDummy } from './routes-dummy/item.routes';
-import { paymentRoutesDummy } from './routes-dummy/payment.routes';
-import { orderRoutesDummy } from './routes-dummy/order.routes';
-import { faqRoutesDummy } from './routes-dummy/faq.routes';
-import { deliverycityRoutesDummy } from './routes-dummy/deliverycity.routes';
 import { cookiesRoutesDummy } from './routes-dummy/cookies.routes';
-import { promocodeRoutesDummy } from './routes-dummy/promo.routes';
+import { deliverycityRoutesDummy } from './routes-dummy/deliverycity.routes';
+import { expenseRoutesDummy } from './routes-dummy/expense.routes';
+import { faqRoutesDummy } from './routes-dummy/faq.routes';
+import { itemRoutesDummy } from './routes-dummy/item.routes';
+import { itemDecoyRoutesDummy } from './routes-dummy/itemdecoy.routes';
+import { itemOfferRoutesDummy } from './routes-dummy/itemoffer.routes';
+import { orderRoutesDummy } from './routes-dummy/order.routes';
+import { paymentRoutesDummy } from './routes-dummy/payment.routes';
 import { deliveryNoteRoutesDummy } from './routes-dummy/printables/deliverynote.routes';
 import { estimateRoutesDummy } from './routes-dummy/printables/estimate.routes';
 import { invoiceRoutesDummy } from './routes-dummy/printables/invoice.routes';
 import { pickupLocationRoutesDummy } from './routes-dummy/printables/pickuplocation.routes';
 import { receiptRoutesDummy } from './routes-dummy/printables/receipt.routes';
-import { expenseRoutesDummy } from './routes-dummy/expense.routes';
+import { invoiceRelateRoutesDummy } from './routes-dummy/printables/related/invoicerelated.route';
 import { expenseReportRoutesDummy } from './routes-dummy/printables/report/expensereport.routes';
+import { invoicesReportRoutesDummy } from './routes-dummy/printables/report/invoicereport.routes';
 import { profitAndLossReportRoutesDummy } from './routes-dummy/printables/report/profitandlossreport.routes';
 import { salesReportRoutesDummy } from './routes-dummy/printables/report/salesreport.routes';
 import { taxReportRoutesDummy } from './routes-dummy/printables/report/taxreport.routes';
-import { invoicesReportRoutesDummy } from './routes-dummy/printables/report/invoicereport.routes';
 import { invoiceSettingRoutesDummy } from './routes-dummy/printables/settings/invoicesettings.routes';
-import { invoiceRelateRoutesDummy } from './routes-dummy/printables/related/invoicerelated.route';
-import { itemDecoyRoutesDummy } from './routes-dummy/itemdecoy.routes';
-import { itemOfferRoutesDummy } from './routes-dummy/itemoffer.routes';
+import { promocodeRoutesDummy } from './routes-dummy/promo.routes';
+import { reviewRoutesDummy } from './routes-dummy/review.routes';
+import { companySubscriptionRoutesDummy } from './routes-dummy/subscriptions/company-subscription.routes';
+import { subscriptionPackageRoutesDummy } from './routes-dummy/subscriptions/subscription-package.routes';
 import { customerRoutesDummy } from './routes-dummy/user-related/customer.routes';
-import { staffRoutesDummy } from './routes-dummy/user-related/staff.routes';
 import { localUserRoutesDummy } from './routes-dummy/user-related/locluser.routes';
+import { staffRoutesDummy } from './routes-dummy/user-related/staff.routes';
+import { itemDecoyRoutes } from './routes/itemdecoy.routes';
+import { itemOfferRoutes } from './routes/itemoffer.routes';
+import { invoiceRelateRoutes } from './routes/printables/related/invoicerelated.route';
+import { companySubscriptionRoutes } from './routes/subscriptions/company-subscription.routes';
+import { subscriptionPackageRoutes } from './routes/subscriptions/subscription-package.routes';
+import { customerRoutes } from './routes/user-related/customer.routes';
+import { localUserRoutes } from './routes/user-related/locluser.routes';
+import { staffRoutes } from './routes/user-related/staff.routes';
+import { connectStockCounterDatabase, createStockCounterServerLocals, isStockCounterServerRunning } from './stock-counter-local';
 /**
  * The PesaPal payment instance for the server.
  */
@@ -114,6 +118,9 @@ export const runStockCounterServer = async (config, paymentInstance) => {
         stockCounterRouter.use('/customer', customerRoutes);
         stockCounterRouter.use('/staff', staffRoutes);
         stockCounterRouter.use('/localuser', localUserRoutes);
+        // subscriptions
+        stockCounterRouter.use('/subscriptionpackage', subscriptionPackageRoutes);
+        stockCounterRouter.use('/companysubscription', companySubscriptionRoutes);
     }
     else {
         stockCounterRouter.use('/review', reviewRoutesDummy);
@@ -149,6 +156,9 @@ export const runStockCounterServer = async (config, paymentInstance) => {
         stockCounterRouter.use('/customer', customerRoutesDummy);
         stockCounterRouter.use('/staff', staffRoutesDummy);
         stockCounterRouter.use('/localuser', localUserRoutesDummy);
+        // subscriptions
+        stockCounterRouter.use('/subscriptionpackage', subscriptionPackageRoutesDummy);
+        stockCounterRouter.use('/companysubscription', companySubscriptionRoutesDummy);
     }
     createStockCounterServerLocals(config.pesapalNotificationRedirectUrl);
     return Promise.resolve({ stockCounterRouter });

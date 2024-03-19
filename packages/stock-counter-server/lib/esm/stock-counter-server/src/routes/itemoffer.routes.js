@@ -89,7 +89,8 @@ itemOfferRoutes.get('/getall/:type/:offset/:limit/:companyIdParam', async (req, 
         .populate({
         path: 'items', model: itemLean,
         populate: [{
-                path: 'photos', model: fileMetaLean, transform: (doc) => doc.url
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
             }
         ]
     })
@@ -121,7 +122,8 @@ itemOfferRoutes.get('/getone/:id/:companyIdParam', async (req, res) => {
         .populate({
         path: 'items', model: itemLean,
         populate: [{
-                path: 'photos', model: fileMetaLean, transform: (doc) => doc.url
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
             }
         ]
     })

@@ -1,12 +1,12 @@
-import { IinvoiceRelated, IpaymentRelated, TinvoiceStatus } from '@open-stock/stock-universal';
-import { Faq } from '../defines/faq.define';
 import { User } from '@open-stock/stock-auth-client';
-import { Order } from '../defines/order.define';
-import { Payment } from '../defines/payment.define';
-import { Item } from '../defines/item.define';
-import { Invoice } from '../defines/invoice.define';
+import { IinvoiceRelated, IpaymentRelated, TinvoiceStatus } from '@open-stock/stock-universal';
 import { DeliveryNote } from '../defines/deliverynote.define';
 import { Estimate } from '../defines/estimate.define';
+import { Faq } from '../defines/faq.define';
+import { Invoice } from '../defines/invoice.define';
+import { Item } from '../defines/item.define';
+import { Order } from '../defines/order.define';
+import { Payment } from '../defines/payment.define';
 import { Receipt } from '../defines/receipt.define';
 /**
  * Transforms a Faq object into either an image source or a name.

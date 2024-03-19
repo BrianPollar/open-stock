@@ -2,10 +2,11 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createUserModel = exports.userAboutSelect = exports.userAuthSelect = exports.userLean = exports.user = void 0;
 const tslib_1 = require("tslib");
+/* eslint-disable @typescript-eslint/no-var-requires */
+const stock_notif_server_1 = require("@open-stock/stock-notif-server");
+const bcrypt_1 = tslib_1.__importDefault(require("bcrypt"));
 const mongoose_1 = require("mongoose");
 const database_controller_1 = require("../controllers/database.controller");
-const bcrypt_1 = tslib_1.__importDefault(require("bcrypt"));
-const stock_notif_server_1 = require("@open-stock/stock-notif-server");
 // Create authenticated Authy and Twilio API clients
 // const authy = require('authy')(config.authyKey);
 // const twilioClient = require('twilio')(config.accountSid, config.authToken);
@@ -115,7 +116,9 @@ userSchema.methods['comparePassword'] = function (candidatePassword, cb) {
 // Send a verification token to the user (two step auth for login)
 userSchema.methods['sendAuthyToken'] = function (cb) {
     if (!this.authyId) {
-        (0, stock_notif_server_1.setUpUser)(this.phone, this.countryCode).then((res) => {
+        (0, stock_notif_server_1.setUpUser)(this.phone, this.countryCode
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ).then((res) => {
             this.authyId = res.user.id;
             this.save((err1, doc) => {
                 if (err1 || !doc) {

@@ -11,7 +11,6 @@ const phone_validator_1 = require("./phone-validator");
  * @returns The validation result.
  */
 const emailphoneValidator = (value) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (isNaN(value)) {
         return (0, email_validator_1.validateEmail)(value);
     }

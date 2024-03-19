@@ -2,13 +2,10 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.disconnectMongoose = exports.makeNewConnection = void 0;
 const tslib_1 = require("tslib");
-// This function imports the `mongoose` module.
 const mongoose_1 = tslib_1.__importDefault(require("mongoose"));
-// This function imports the `getLogger()` function from `log4js`.
 const log4js_1 = require("log4js");
-// This function creates a dbConnectionsLogger named `DbConnections`.
+// This var creates a dbConnectionsLogger named `DbConnections`.
 const dbConnectionsLogger = (0, log4js_1.getLogger)('DbConnections');
-// This function defines a function that creates a new MongoDB connection.
 /**
  * Creates a new MongoDB connection.
  * @param uri - The URI of the MongoDB server.

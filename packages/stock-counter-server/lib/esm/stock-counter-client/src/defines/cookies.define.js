@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { lastValueFrom } from 'rxjs';
 import { StockCounterClient } from '../stock-counter-client';
 /**

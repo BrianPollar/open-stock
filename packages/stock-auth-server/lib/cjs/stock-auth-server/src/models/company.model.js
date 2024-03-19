@@ -2,10 +2,11 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createCompanyModel = exports.companyAboutSelect = exports.companyAuthSelect = exports.companyLean = exports.companyMain = exports.companySchema = void 0;
 const tslib_1 = require("tslib");
+/* eslint-disable @typescript-eslint/no-var-requires */
+const stock_notif_server_1 = require("@open-stock/stock-notif-server");
+const bcrypt_1 = tslib_1.__importDefault(require("bcrypt"));
 const mongoose_1 = require("mongoose");
 const database_controller_1 = require("../controllers/database.controller");
-const bcrypt_1 = tslib_1.__importDefault(require("bcrypt"));
-const stock_notif_server_1 = require("@open-stock/stock-notif-server");
 // Create authenticated Authy and Twilio API clients
 // const authy = require('authy')(config.authyKey);
 // const twilioClient = require('twilio')(config.accountSid, config.authToken);
@@ -22,7 +23,7 @@ exports.companySchema = new mongoose_1.Schema({
     businessType: { type: String },
     profilePic: { type: String },
     profileCoverPic: { type: String },
-    photos: [{ type: String }],
+    photos: [],
     websiteAddress: { type: String },
     pesapalCallbackUrl: { type: String },
     pesapalCancellationUrl: { type: String },
@@ -70,14 +71,16 @@ exports.companySchema.methods['comparePassword'] = function (candidatePassword, 
 // Send a verification token to the company (two step auth for login)
 exports.companySchema.methods['sendAuthyToken'] = function (cb) {
     if (!this.authyId) {
-        (0, stock_notif_server_1.setUpUser)(this.phone, this.countryCode).then((res) => {
-            this.authyId = res.company.id;
+        (0, stock_notif_server_1.setUpUser)(this.phone, 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        this.countryCode).then((res) => {
+            this.authyId = res.user.id;
             this.save((err1, doc) => {
                 if (err1 || !doc) {
                     return cb.call(this, err1);
                 }
                 // this = doc;
-                (0, stock_notif_server_1.sendToken)(this.authyId).then((resp) => cb.call(this, null, resp)).catch(err => cb.call(this, err));
+                (0, stock_notif_server_1.sendToken)(this.authyId).then(resp => cb.call(this, null, resp)).catch(err => cb.call(this, err));
             });
         }).catch(err => cb.call(this, err));
     }
@@ -88,7 +91,7 @@ exports.companySchema.methods['sendAuthyToken'] = function (cb) {
 };
 // Test a 2FA token
 exports.companySchema.methods['verifyAuthyToken'] = function (otp, cb) {
-    (0, stock_notif_server_1.verifyAuthyToken)(this.authyId, otp).then((resp) => {
+    (0, stock_notif_server_1.verifyAuthyToken)(this.authyId, otp).then(resp => {
         cb.call(this, null, resp);
     }).catch(err => {
         cb.call(this, err);

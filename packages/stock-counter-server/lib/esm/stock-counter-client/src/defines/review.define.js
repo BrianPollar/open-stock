@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 import { User } from '@open-stock/stock-auth-client';
 import { DatabaseAuto } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
@@ -51,7 +50,7 @@ export class Review extends DatabaseAuto {
      * @returns A Review object.
      */
     static async getOnereview(companyId, id) {
-        const observer$ = StockCounterClient.ehttp.makeGet(`/review/getone/${id}`);
+        const observer$ = StockCounterClient.ehttp.makeGet(`/review/getone/${id}/${companyId}`);
         const review = await lastValueFrom(observer$);
         return new Review(review);
     }

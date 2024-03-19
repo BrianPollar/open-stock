@@ -39,7 +39,7 @@ export class InvoiceSettings extends DatabaseAuto {
      */
     static async getOneInvoiceSettings(companyId, id) {
         const observer$ = StockCounterClient.ehttp
-            .makeGet(`/invoicesettings/getone/${id}`);
+            .makeGet(`/invoicesettings/getone/${id}/${companyId}`);
         const invoiceSetting = await lastValueFrom(observer$);
         return new InvoiceSettings(invoiceSetting);
     }

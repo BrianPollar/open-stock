@@ -1,30 +1,3 @@
-/**
- * @file item.routes.ts
- * @description This file contains the express routes for handling CRUD operations on item and review data.
- * @requires express
- * @requires Request
- * @requires Response
- * @requires itemLean
- * @requires itemMain
- * @requires reviewLean
- * @requires getLogger
- * @requires Icustomrequest
- * @requires Ifilewithdir
- * @requires Isuccess
- * @requires makeRandomString
- * @requires appendBody
- * @requires deleteFiles
- * @requires makeUrId
- * @requires offsetLimitRelegator
- * @requires requireAuth
- * @requires roleAuthorisation
- * @requires stringifyMongooseErr
- * @requires uploadFiles
- * @requires verifyObjectId
- * @requires verifyObjectIds
- * @requires itemOfferMain
- * @requires itemDecoyMain
- */
 import { Response } from 'express';
 /**
  * Express router for item routes.

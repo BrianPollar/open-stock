@@ -2,7 +2,16 @@
 /// <reference types="mongoose/types/models" />
 import { Iuser } from '@open-stock/stock-universal';
 import { Document, Model } from 'mongoose';
-export type Tuser = Document & Iuser;
+interface IschemaMethods {
+    comparePassword: (...args: any[]) => void;
+    sendAuthyToken: (...args: any[]) => void;
+    verifyAuthyToken: (...args: any[]) => void;
+    sendMessage: (...args: any[]) => void;
+    toAuthJSON: () => Partial<Iuser>;
+    toProfileJSONFor: () => Partial<Iuser>;
+    toJSONFor: () => Partial<Iuser>;
+}
+export type Tuser = Document & Iuser & IschemaMethods;
 /**
  * Represents the user model.
  */
@@ -79,3 +88,4 @@ export declare const userAboutSelect: {
  * @param lean Indicates whether to create the lean user model.
  */
 export declare const createUserModel: (dbUrl: string, main?: boolean, lean?: boolean) => Promise<void>;
+export {};

@@ -1,9 +1,8 @@
-/* eslint-disable @typescript-eslint/no-misused-promises */
-import express from 'express';
 import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectIds } from '@open-stock/stock-universal-server';
+import express from 'express';
+import { getLogger } from 'log4js';
 import { expenseLean } from '../../../models/expense.model';
 import { expenseReportLean, expenseReportMain } from '../../../models/printables/report/expenesreport.model';
-import { getLogger } from 'log4js';
 /** Logger for expense report routes */
 const expenseReportRoutesLogger = getLogger('routes/expenseReportRoutes');
 /**
@@ -27,7 +26,6 @@ expenseReportRoutes.post('/create/:companyIdParam', requireAuth, roleAuthorisati
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
     expenseReport.companyId = queryId;
-    console.log('companyId is', queryId);
     const count = await expenseReportMain
         // eslint-disable-next-line @typescript-eslint/naming-convention
         .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });

@@ -1,6 +1,6 @@
 {
   "name": "@open-stock/stock-counter-client",
-  "version": "2.4.8",
+  "version": "2.4.9",
   "description": "> TODO: description",
   "main": "lib/cjs/index.js",
   "module": "lib/esm/index.js",

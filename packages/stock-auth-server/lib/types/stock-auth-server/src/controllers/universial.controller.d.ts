@@ -45,11 +45,9 @@ export declare const validateEmail: (foundUser: Iuser & Document, type: string, 
 export declare const sendTokenPhone: (foundUser: any, enableValidationSMS?: string) => Promise<Iauthresponse>;
 /**
  * Sends a verification email to the specified user with a token or link.
- * @param app - The Express app instance.
  * @param foundUser - The user object to send the email to.
  * @param type - The type of verification to send ('token' or '_link').
  * @param appOfficialName - The official name of the app sending the email.
- * @param link - Optional link to include in the email (only used if type is '_link').
  * @returns A Promise that resolves to an Iauthresponse object.
  */
-export declare const sendTokenEmail: (app: any, foundUser: Iuser, type: string, appOfficialName: string, link?: string) => Promise<Iauthresponse>;
+export declare const sendTokenEmail: (foundUser: Iuser, type: string, appOfficialName: string) => Promise<Iauthresponse>;

@@ -1,10 +1,7 @@
-// This function imports the `fs-extra` module.
 import { access, mkdir } from 'fs-extra';
-// This function imports the `getLogger()` function from `log4js`.
 import { getLogger } from 'log4js';
 // This function creates a fileMangerLogger named `FileManger`.
 const fileMangerLogger = getLogger('FileManger');
-// This function defines a function that creates directories.
 /**
  * Creates directories for an application.
  * @param appName - The name of the application.

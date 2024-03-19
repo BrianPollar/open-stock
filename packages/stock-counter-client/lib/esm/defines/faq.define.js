@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 import { User } from '@open-stock/stock-auth-client';
 import { DatabaseAuto } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
@@ -130,7 +129,7 @@ export class FaqAnswer extends DatabaseAuto {
      * @returns An array of FAQ answers.
      */
     static async getFaqAns(companyId, faq) {
-        const observer$ = StockCounterClient.ehttp.makeGet(`/faq/getallans/${faq}`);
+        const observer$ = StockCounterClient.ehttp.makeGet(`/faq/getallans/${faq}/${companyId}`);
         const faqans = await lastValueFrom(observer$);
         return faqans.map(val => new FaqAnswer(val));
     }
@@ -141,7 +140,7 @@ export class FaqAnswer extends DatabaseAuto {
      * @returns A Promise that resolves to a new instance of FaqAnswer.
      */
     static async getOnefaqAns(companyId, id) {
-        const observer$ = StockCounterClient.ehttp.makeGet(`/faq/getone/${id}`);
+        const observer$ = StockCounterClient.ehttp.makeGet(`/faq/getone/${id}/${companyId}`);
         const faqans = await lastValueFrom(observer$);
         return new FaqAnswer(faqans);
     }

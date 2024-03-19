@@ -2,17 +2,11 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.rudimentaryStorage = exports.upload = exports.multerFileds = void 0;
 const tslib_1 = require("tslib");
-// This function imports the `fs-extra` module.
 const fs_extra_1 = require("fs-extra");
-// This function imports the `getLogger()` function from `log4js`.
 const log4js_1 = require("log4js");
-// This function imports the `multer` module.
 const multer_1 = tslib_1.__importDefault(require("multer"));
-// This function imports the `path` module.
 const path = tslib_1.__importStar(require("path"));
-// This function imports the `makeRandomString()` function from `@open-stock/stock-universal`.
 const stock_universal_1 = require("@open-stock/stock-universal");
-// This function imports the `getExpressLocals()` function from `..constants/environment.constant`.
 const environment_constant_1 = require("../constants/environment.constant");
 // This function creates a fileStorageLogger named `controllers/FileStorage`.
 const fileStorageLogger = (0, log4js_1.getLogger)('controllers/FileStorage');

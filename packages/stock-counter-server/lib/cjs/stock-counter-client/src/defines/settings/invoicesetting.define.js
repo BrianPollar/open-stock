@@ -42,7 +42,7 @@ class InvoiceSettings extends stock_universal_1.DatabaseAuto {
      */
     static async getOneInvoiceSettings(companyId, id) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makeGet(`/invoicesettings/getone/${id}`);
+            .makeGet(`/invoicesettings/getone/${id}/${companyId}`);
         const invoiceSetting = await (0, rxjs_1.lastValueFrom)(observer$);
         return new InvoiceSettings(invoiceSetting);
     }

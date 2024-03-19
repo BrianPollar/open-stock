@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TaxReport = void 0;
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 const rxjs_1 = require("rxjs");
 const estimate_define_1 = require("../estimate.define");
 const invoice_define_1 = require("../invoice.define");

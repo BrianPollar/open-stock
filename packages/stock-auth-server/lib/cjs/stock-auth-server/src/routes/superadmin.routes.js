@@ -9,7 +9,6 @@ const tslib_1 = require("tslib");
  * @packageDocumentation
  */
 /* eslint-disable @typescript-eslint/no-var-requires */
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 /* eslint-disable @typescript-eslint/no-misused-promises */
 const express_1 = tslib_1.__importDefault(require("express"));
 const log4js_1 = require("log4js");
@@ -20,7 +19,7 @@ const stock_auth_local_1 = require("../stock-auth-local");
 const company_model_1 = require("../models/company.model");
 // import { notifConfig } from '../../config/notif.config';
 // import { createNotifications, NotificationController } from '../controllers/notifications.controller';
-const passport = require('passport');
+// const passport = require('passport');
 /**
  * Router for super admin routes.
  */
@@ -129,7 +128,7 @@ const loginFactorRelgator = async (req, res, next) => {
     let newUser;
     const expireAt = Date.now();
     if (from === 'company') {
-        const { name, lastName } = req.body.user;
+        const { name } = req.body.user;
         newUser = new company_model_1.companyMain({
             urId,
             name,
@@ -141,7 +140,7 @@ const loginFactorRelgator = async (req, res, next) => {
         });
     }
     else {
-        const { emailPhone, firstName, lastName } = req.body.user;
+        const { firstName, lastName } = req.body.user;
         newUser = new user_model_1.user({
             urId,
             fname: firstName,
@@ -180,7 +179,7 @@ const loginFactorRelgator = async (req, res, next) => {
         result = await (0, universial_controller_1.sendTokenPhone)(saved);
     }
     else {
-        result = await (0, universial_controller_1.sendTokenEmail)(req.app, saved, type, stock_auth_local_1.stockAuthConfig.localSettings.appOfficialName);
+        result = await (0, universial_controller_1.sendTokenEmail)(saved, type, stock_auth_local_1.stockAuthConfig.localSettings.appOfficialName);
     }
     if (!response.success) {
         saved.remove();
@@ -196,7 +195,7 @@ const loginFactorRelgator = async (req, res, next) => {
     return res.status(500).send(toSend);
 };
 exports.loginFactorRelgator = loginFactorRelgator;
-exports.superAdminRoutes.post('/login', (req, res, next) => {
+exports.superAdminRoutes.post('/login', (req, res) => {
     const secret = process.env['accessKey'];
     const password = req.body.password;
     if (password === secret) {

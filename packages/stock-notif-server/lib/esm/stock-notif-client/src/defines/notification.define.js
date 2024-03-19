@@ -61,7 +61,7 @@ export class NotificationMain {
      * @returns A promise that resolves to the number of unviewed notifications.
      */
     static async getUnviewedLength(companyId) {
-        const observer$ = StockNotifClient.ehttp.makeGet('/notification/unviewedlength');
+        const observer$ = StockNotifClient.ehttp.makeGet(`/notification/unviewedlength/${companyId}`);
         return await lastValueFrom(observer$);
     }
     /**

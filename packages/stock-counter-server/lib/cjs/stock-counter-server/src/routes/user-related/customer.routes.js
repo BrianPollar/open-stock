@@ -81,7 +81,17 @@ exports.customerRoutes.get('/getone/:id/:companyIdParam', async (req, res) => {
     const customer = await customer_model_1.customerLean
         // eslint-disable-next-line @typescript-eslint/naming-convention
         .findOne({ _id: id, companyId: queryId })
-        .populate({ path: 'user', model: stock_auth_server_1.userLean })
+        .populate({ path: 'user', model: stock_auth_server_1.userLean,
+        populate: [{
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+            }, {
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                path: 'profilePic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+            }, {
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                path: 'profileCoverPic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+            }] })
         .lean();
     return res.status(200).send(customer);
 });
@@ -102,7 +112,18 @@ exports.customerRoutes.get('/getall/:offset/:limit/:companyIdParam', async (req,
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
     const customers = await customer_model_1.customerLean
         .find({ companyId: queryId })
-        .populate({ path: 'user', model: stock_auth_server_1.userLean })
+        .populate({ path: 'user', model: stock_auth_server_1.userLean,
+        populate: [{
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+            }, {
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                path: 'profilePic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+            }, {
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                path: 'profileCoverPic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+            }]
+    })
         .skip(offset)
         .limit(limit)
         .lean();

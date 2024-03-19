@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.FaqAnswer = exports.Faq = void 0;
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 const stock_auth_client_1 = require("@open-stock/stock-auth-client");
 const stock_universal_1 = require("@open-stock/stock-universal");
 const rxjs_1 = require("rxjs");
@@ -134,7 +133,7 @@ class FaqAnswer extends stock_universal_1.DatabaseAuto {
      * @returns An array of FAQ answers.
      */
     static async getFaqAns(companyId, faq) {
-        const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makeGet(`/faq/getallans/${faq}`);
+        const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makeGet(`/faq/getallans/${faq}/${companyId}`);
         const faqans = await (0, rxjs_1.lastValueFrom)(observer$);
         return faqans.map(val => new FaqAnswer(val));
     }
@@ -145,7 +144,7 @@ class FaqAnswer extends stock_universal_1.DatabaseAuto {
      * @returns A Promise that resolves to a new instance of FaqAnswer.
      */
     static async getOnefaqAns(companyId, id) {
-        const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makeGet(`/faq/getone/${id}`);
+        const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makeGet(`/faq/getone/${id}/${companyId}`);
         const faqans = await (0, rxjs_1.lastValueFrom)(observer$);
         return new FaqAnswer(faqans);
     }

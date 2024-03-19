@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
-import { Icompany } from '@open-stock/stock-universal';
-import { Schema, Document, Model } from 'mongoose';
-import { connectAuthDatabase, isAuthDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
-import bcrypt from 'bcrypt';
 import { sendSms, sendToken, setUpUser, verifyAuthyToken } from '@open-stock/stock-notif-server';
+import { Icompany } from '@open-stock/stock-universal';
+import bcrypt from 'bcrypt';
+import { Document, Model, Schema } from 'mongoose';
+import { connectAuthDatabase, isAuthDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
 // Create authenticated Authy and Twilio API clients
 // const authy = require('authy')(config.authyKey);
 // const twilioClient = require('twilio')(config.accountSid, config.authToken);
@@ -87,8 +87,9 @@ companySchema.methods['sendAuthyToken'] = function(cb) {
   if (!this.authyId) {
     setUpUser(
       this.phone,
-      this.countryCode).then(res => {
-      this.authyId = res.company.id;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      this.countryCode).then((res: any) => {
+      this.authyId = res.user.id;
       this.save((err1, doc) => {
         if (err1 || !doc) {
           return cb.call(this, err1);

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 import { lastValueFrom } from 'rxjs';
 import { StockCounterClient } from '../stock-counter-client';
 import { InvoiceRelated, Receipt } from './receipt.define';
@@ -60,7 +59,7 @@ export class InvoiceRelatedWithReceipt extends InvoiceRelated {
      */
     static async getOneInvoiceRelated(companyId, id) {
         const observer$ = StockCounterClient.ehttp
-            .makeGet(`/invoicerelated/getone/${id}`);
+            .makeGet(`/invoicerelated/getone/${id}/${companyId}`);
         const invoiceRelated = await lastValueFrom(observer$);
         return new InvoiceRelatedWithReceipt(invoiceRelated);
     }
@@ -76,13 +75,6 @@ export class Invoice extends InvoiceRelatedWithReceipt {
     constructor(data) {
         super(data);
         this.dueDate = data.dueDate;
-        /**
-         * @todo Uncomment this code block to include items in the invoice.
-         */
-        // if (data.items) {
-        //   this.items = data.items
-        //     .map(val => ProductBase.constructProduct(StockCounterClient.ehttp, val));
-        // }
     }
     /**
      * Retrieves all invoices.
@@ -107,7 +99,7 @@ export class Invoice extends InvoiceRelatedWithReceipt {
      */
     static async getOneInvoice(companyId, invoiceId) {
         const observer$ = StockCounterClient.ehttp
-            .makeGet(`/invoice/getone/${invoiceId}`);
+            .makeGet(`/invoice/getone/${invoiceId}/${companyId}`);
         const invoice = await lastValueFrom(observer$);
         return new Invoice(invoice);
     }

@@ -65,7 +65,7 @@ export declare class Item extends DatabaseAuto {
     ecomerceCompat: boolean;
     /**
      * Represents the constructor of the Item class.
-     * @param {any} data - The data used to initialize the Item instance.
+     * @param data - The data used to initialize the Item instance.
      */
     constructor(data: any);
     /**
@@ -111,7 +111,7 @@ export declare class Item extends DatabaseAuto {
      * @param url The URL to delete the items from.
      * @returns The success status of deleting the items.
      */
-    static deleteItems(companyId: string, ids: string[], filesWithDir: any, url: string): Promise<Isuccess>;
+    static deleteItems(companyId: string, ids: string[], filesWithDir: IfileMeta[], url: string): Promise<Isuccess>;
     /**
      * Updates an item.
      * @param companyId - The ID of the company

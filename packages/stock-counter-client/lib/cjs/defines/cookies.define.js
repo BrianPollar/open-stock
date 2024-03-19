@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Cookies = void 0;
-/* eslint-disable @typescript-eslint/no-explicit-any */
 const rxjs_1 = require("rxjs");
 const stock_counter_client_1 = require("../stock-counter-client");
 /**

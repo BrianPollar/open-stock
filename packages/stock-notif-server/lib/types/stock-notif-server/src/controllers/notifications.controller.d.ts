@@ -16,13 +16,13 @@ export declare const createSettings: () => Promise<InotifSetting>;
    * @param countryCode - The user's country code.
    * @returns A promise that resolves with the Authy registration response.
    */
-export declare const setUpUser: (phone: string | number, countryCode: string | number) => Promise<any>;
+export declare const setUpUser: (phone: string | number, countryCode: string | number) => Promise<unknown>;
 /**
    * Requests an SMS token from Authy for the given user.
    * @param authyId - The user's Authy ID.
    * @returns A promise that resolves with the Authy token request response.
    */
-export declare const sendToken: (authyId: string) => Promise<any>;
+export declare const sendToken: (authyId: string) => Promise<unknown>;
 /**
    * Sends an SMS message using Twilio.
    * @param phone - The recipient's phone number.
@@ -30,7 +30,7 @@ export declare const sendToken: (authyId: string) => Promise<any>;
    * @param message - The message to send.
    * @returns A promise that resolves with the Twilio message send response.
    */
-export declare const sendSms: (phone: string, countryCode: string, message: string) => Promise<any>;
+export declare const sendSms: (phone: string, countryCode: string, message: string) => Promise<unknown>;
 /**
  * Verifies the Authy token for a given Authy ID.
  * @param authyId - The Authy ID of the user.

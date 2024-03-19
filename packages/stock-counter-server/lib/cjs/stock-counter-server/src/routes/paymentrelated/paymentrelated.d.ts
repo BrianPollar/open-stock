@@ -48,7 +48,7 @@ export declare const makePaymentRelatedPdct: (paymentRelated: Required<IpaymentR
     balanceDue: number;
     subTotal: number;
     total: number;
-    billingUserPhoto: import("@open-stock/stock-universal").IfileMeta;
+    billingUserPhoto: string | import("@open-stock/stock-universal").IfileMeta;
     createdAt: Date;
     payments: string[] | Ireceipt[];
     _id: any;

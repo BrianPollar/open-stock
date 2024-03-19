@@ -2,7 +2,7 @@
 /// <reference types="mongoose/types/schematypes" />
 /// <reference types="mongoose/types/models" />
 import { Icompany } from '@open-stock/stock-universal';
-import { Schema, Document, Model } from 'mongoose';
+import { Document, Model, Schema } from 'mongoose';
 /**
  * Represents a company document with additional fields from the Icompany interface.
  */

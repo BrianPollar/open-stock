@@ -1,24 +1,11 @@
-/**
- * Defines the routes for creating, retrieving, updating and deleting receipts.
- * @remarks
- * This file contains the following routes:
- * - POST /create - creates a new receipt
- * - GET /getone/:urId - retrieves a single receipt by its unique identifier (urId)
- * - GET /getall/:offset/:limit - retrieves all receipts with pagination
- * - PUT /deleteone - deletes a single receipt and its related documents
- * - POST /search/:limit/:offset - searches for receipts based on a search term and key
- */
-/* eslint-disable @typescript-eslint/no-misused-promises */
-import express from 'express';
 import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import express from 'express';
 // import { paymentInstallsLean } from '../../models/printables/paymentrelated/paymentsinstalls.model';
+import { userLean } from '@open-stock/stock-auth-server';
 import { receiptLean, receiptMain } from '../../models/printables/receipt.model';
 import { invoiceRelatedLean } from '../../models/printables/related/invoicerelated.model';
-import { deleteAllLinked, makeInvoiceRelatedPdct, relegateInvRelatedCreation, updateInvoiceRelated } from './related/invoicerelated';
-import { getLogger } from 'log4js';
-import { userLean } from '@open-stock/stock-auth-server';
 import { makePaymentInstall } from '../paymentrelated/paymentrelated';
-const receiptRoutesLogger = getLogger('routes/receiptRoutes'); // TODO WATS dis doing
+import { deleteAllLinked, makeInvoiceRelatedPdct, relegateInvRelatedCreation, updateInvoiceRelated } from './related/invoicerelated';
 /**
  * Router for handling receipt routes.
  */

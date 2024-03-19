@@ -88,7 +88,7 @@ export declare class User extends DatabaseAuto {
      * @param filesWithDir The files with directories to delete.
      * @returns A success object indicating whether the users were deleted successfully.
      */
-    static deleteUsers(companyId: string, ids: string[], filesWithDir: any): Promise<Isuccess>;
+    static deleteUsers(companyId: string, ids: string[], filesWithDir: IfileMeta[]): Promise<Isuccess>;
     /**
      * Updates the user's profile with the provided values and optional files.
      * @param companyId - The ID of the company

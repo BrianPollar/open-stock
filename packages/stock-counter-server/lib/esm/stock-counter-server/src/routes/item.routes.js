@@ -25,15 +25,15 @@
  * @requires itemOfferMain
  * @requires itemDecoyMain
  */
-import express from 'express';
-import { itemLean, itemMain } from '../models/item.model';
-import { reviewLean } from '../models/review.model';
-import { getLogger } from 'log4js';
+import { companyLean } from '@open-stock/stock-auth-server';
 import { makeRandomString } from '@open-stock/stock-universal';
 import { appendBody, deleteFiles, fileMetaLean, makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, saveMetaToDb, stringifyMongooseErr, uploadFiles, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
-import { itemOfferMain } from '../models/itemoffer.model';
+import express from 'express';
+import { getLogger } from 'log4js';
+import { itemLean, itemMain } from '../models/item.model';
 import { itemDecoyMain } from '../models/itemdecoy.model';
-import { companyLean } from '@open-stock/stock-auth-server';
+import { itemOfferMain } from '../models/itemoffer.model';
+import { reviewLean } from '../models/review.model';
 /** The logger for the item routes */
 const itemRoutesLogger = getLogger('routes/itemRoutes');
 /**
@@ -174,7 +174,7 @@ itemRoutes.post('/create/:companyIdParam', requireAuth, roleAuthorisation('items
     item.urId = makeUrId(Number(count[0]?.urId || '0'));
     const parsed = req.body.parsed;
     if (parsed && parsed.newFiles) {
-        const oldPhotos = item.photos;
+        const oldPhotos = item.photos || [];
         item.photos = oldPhotos.concat(parsed.newFiles);
     }
     const newProd = new itemMain(item);
@@ -401,7 +401,8 @@ itemRoutes.get('/getone/:urId/:companyIdParam', async (req, res) => {
     }
     const item = await itemLean
         .findOne(filter)
-        .populate({ path: 'photos', model: fileMetaLean })
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
         .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
         .lean();
     if (item && !item.companyId) {
@@ -418,7 +419,8 @@ itemRoutes.get('/filtergeneral/:prop/:val/:offset/:limit/:companyIdParam', async
     }
     const items = await itemLean
         .find(filter)
-        .populate({ path: 'photos', model: fileMetaLean })
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
         .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
         .lean();
     const newItems = items.filter(item => item.companyId);
@@ -433,7 +435,8 @@ itemRoutes.get('/filterrandom/:prop/:val/:offset/:limit/:companyIdParam', async 
     }
     const items = await itemLean
         .find(filter)
-        .populate({ path: 'photos', model: fileMetaLean })
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
         .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
         .sort({ timesViewed: 1, likesCount: 1, reviewCount: 1 })
         .lean();
@@ -452,7 +455,8 @@ itemRoutes.get('/getall/:offset/:limit/:companyIdParam', async (req, res) => {
         .find(filter)
         .skip(offset)
         .limit(limit)
-        .populate({ path: 'photos', model: fileMetaLean })
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
         .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
         .lean();
     const newItems = items.filter(item => item.companyId);
@@ -467,7 +471,8 @@ itemRoutes.get('/gettrending/:offset/:limit/:companyIdParam', async (req, res) =
     }
     const items = await itemLean
         .find(filter)
-        .populate({ path: 'photos', model: fileMetaLean })
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
         .sort({ timesViewed: 1 })
         .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
         .lean();
@@ -483,8 +488,9 @@ itemRoutes.get('/getfeatured/:offset/:limit/:companyIdParam', async (req, res) =
     }
     const items = await itemLean
         .find(filter)
-        .populate({ path: 'photos', model: fileMetaLean })
-        .sort({ timesViewed: 1, likesCount: 1, reviewCount: 1 }) // TODO better sorting algo
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+        .sort({ timesViewed: 1, likesCount: 1, reviewCount: 1 })
         .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
         .lean();
     const newItems = items.filter(item => item.companyId);
@@ -500,7 +506,8 @@ itemRoutes.get('/getnew/:offset/:limit/:companyIdParam', async (req, res) => {
     }
     const items = await itemLean
         .find(filter)
-        .populate({ path: 'photos', model: fileMetaLean })
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
         .sort({ createdAt: -1 })
         .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
         .lean();
@@ -517,7 +524,8 @@ itemRoutes.get('/getbrandnew/:offset/:limit/:companyIdParam', async (req, res) =
     }
     const items = await itemLean
         .find(filter)
-        .populate({ path: 'photos', model: fileMetaLean })
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
         .sort({ createdAt: -1 })
         .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
         .lean();
@@ -534,7 +542,8 @@ itemRoutes.get('/getused/:offset/:limit/:companyIdParam', async (req, res) => {
     }
     const items = await itemLean
         .find(filter)
-        .populate({ path: 'photos', model: fileMetaLean })
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
         .sort({ createdAt: -1 })
         .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
         .lean();
@@ -553,7 +562,8 @@ itemRoutes.get('/filterprice/max/:priceFilterValue/:offset/:limit/:companyIdPara
     const items = await itemLean
         .find(filter)
         .gte('costMeta.sellingPrice', Number(priceFilterValue))
-        .populate({ path: 'photos', model: fileMetaLean })
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
         .sort({ createdAt: -1 })
         .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
         .lean();
@@ -571,7 +581,8 @@ itemRoutes.get('/filterprice/min/:priceFilterValue/:offset/:limit/:companyIdPara
     const items = await itemLean
         .find(filter)
         .lte('costMeta.sellingPrice', Number(priceFilterValue))
-        .populate({ path: 'photos', model: fileMetaLean })
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
         .sort({ createdAt: -1 })
         .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
         .lean();
@@ -590,7 +601,8 @@ itemRoutes.get('/filterprice/eq/:priceFilterMinValue/:priceFilterMaxValue/:offse
         .find(filter)
         .gte('costMeta.sellingPrice', Number(priceFilterMaxValue))
         .lte('costMeta.sellingPrice', Number(priceFilterMinValue))
-        .populate({ path: 'photos', model: fileMetaLean })
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
         .sort({ createdAt: -1 })
         .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
         .lean();
@@ -611,13 +623,9 @@ itemRoutes.get('/filterstars/:starVal/:offset/:limit/:companyIdParam', async (re
         .lte(starVal + 2)
         .gte(starVal)
         .select({ itemId: 1 })
-        .populate({ path: 'photos', model: fileMetaLean })
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
         .lean()
-        .populate({ path: 'itemId', model: itemLean,
-        populate: [{
-                path: 'photos', model: fileMetaLean, transform: (doc) => doc.url
-            }]
-    })
         .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
         .lean();
     const newItems = reviews.filter(val => val.companyId);
@@ -649,7 +657,8 @@ itemRoutes.get('/discount/:discountValue/:offset/:limit/:companyIdParam', async 
             'costMeta.discount': Number(discountValue)
         }
     ])
-        .populate({ path: 'photos', model: fileMetaLean })
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
         .sort({ createdAt: -1 })
         .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
         .lean();
@@ -680,7 +689,8 @@ itemRoutes.post('/getsponsored/:companyIdParam', async (req, res) => {
     const items = await itemLean
         // eslint-disable-next-line @typescript-eslint/naming-convention
         .find(filter)
-        .populate({ path: 'photos', model: fileMetaLean })
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
         .lean()
         .sort({ timesViewed: 1 })
         .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
@@ -705,7 +715,8 @@ itemRoutes.get('/getoffered/:companyIdParam', async (req, res) => {
             }
         ]
     })
-        .populate({ path: 'photos', model: fileMetaLean })
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
         .sort({ createdAt: -1 })
         .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
         .lean();
@@ -866,12 +877,10 @@ itemRoutes.put('/deleteimages/:companyIdParam', requireAuth, roleAuthorisation('
     if (!item) {
         return res.status(404).send({ success: false, err: 'item not found' });
     }
+    const filesWithDirIds = filesWithDir.map(val => val._id);
     const photos = item.photos;
-    const filesWithDirStr = filesWithDir
-        .map(val => val.url);
     item.photos = photos
-        .filter(p => !filesWithDirStr.includes(p))
-        .map(p => p._id);
+        .filter((p) => !filesWithDirIds.includes(p));
     let errResponse;
     await item.save().catch(err => {
         errResponse = {
@@ -966,6 +975,8 @@ itemRoutes.post('/search/:limit/:offset/:companyIdParam', async (req, res) => {
         .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' }, ...filter })
         .skip(offset)
         .limit(limit)
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
         .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
         .lean();
     const newItems = items.filter(item => item.companyId);

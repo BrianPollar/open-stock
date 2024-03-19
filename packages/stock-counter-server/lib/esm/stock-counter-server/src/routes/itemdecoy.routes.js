@@ -117,7 +117,7 @@ itemDecoyRoutes.get('/getall/:offset/:limit/:companyIdParam', async (req, res) =
         .populate({
         path: 'items', model: itemLean,
         populate: [{
-                path: 'photos', model: fileMetaLean, transform: (doc) => doc.url
+                path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
             }
         ]
     })
@@ -144,7 +144,7 @@ itemDecoyRoutes.get('/getone/:id/:companyIdParam', async (req, res) => {
         .populate({
         path: 'items', model: itemLean,
         populate: [{
-                path: 'photos', model: fileMetaLean, transform: (doc) => doc.url
+                path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
             }
         ]
     })

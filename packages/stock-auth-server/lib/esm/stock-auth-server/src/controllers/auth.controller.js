@@ -1,10 +1,10 @@
-import { user } from '../models/user.model';
-import { loginAtempts } from '../models/loginattemps.model';
-import { getLogger } from 'log4js';
 import { makeUrId, stringifyMongooseErr, verifyObjectIds } from '@open-stock/stock-universal-server';
-import { sendTokenEmail, sendTokenPhone, validateEmail, validatePhone } from './universial.controller';
+import { getLogger } from 'log4js';
+import { loginAtempts } from '../models/loginattemps.model';
+import { user } from '../models/user.model';
 import { userip } from '../models/userip.model';
 import { stockAuthConfig } from '../stock-auth-local';
+import { sendTokenEmail, sendTokenPhone, validateEmail, validatePhone } from './universial.controller';
 const authControllerLogger = getLogger('loginAttemptController');
 /**
  * Checks if the IP address is valid and attempts to log in the user.
@@ -73,6 +73,7 @@ export const checkIpAndAttempt = async (req, res, next) => {
     let attemptSuccess = true;
     let nowRes;
     // compare password
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     foundUser['comparePassword'](password, function (err, isMatch) {
         if (err) {
             authControllerLogger.error('user has wrong password', err);
@@ -106,7 +107,7 @@ export const checkIpAndAttempt = async (req, res, next) => {
     };
     const newAttemp = new loginAtempts(attempt);
     const lastAttempt = await newAttemp.save();
-    const attempts = loginAtempts.find({ userId: foundUser._id });
+    // const attempts = loginAtempts.find({ userId: foundUser._id });
     if (!attemptSuccess) {
         const response = {
             success: false,
@@ -223,7 +224,7 @@ export const loginFactorRelgator = async (req, res, next) => {
     }
     const count = await user
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 }); // TODO: add queryId, FOR NOW NOT USING IT
+        .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     const urId = makeUrId(Number(count[0]?.urId || '0'));
     const permissions = {
         orders: {
@@ -302,7 +303,7 @@ export const loginFactorRelgator = async (req, res, next) => {
             response.err = `we are having problems connecting to our databases, 
       try again in a while`;
         }
-        return response;
+        return err;
     });
     if (!response.success) {
         return res.status(response.status).send(response);
@@ -313,7 +314,7 @@ export const loginFactorRelgator = async (req, res, next) => {
         result = await sendTokenPhone(saved);
     }
     else {
-        result = await sendTokenEmail(req.app, saved, type, stockAuthConfig.localSettings.appOfficialName);
+        result = await sendTokenEmail(saved, type, stockAuthConfig.localSettings.appOfficialName);
     }
     if (!response.success) {
         saved.remove();
@@ -332,10 +333,9 @@ export const loginFactorRelgator = async (req, res, next) => {
  * Resets the account password based on the provided verification code and new password.
  * @param req - The request object containing the request body.
  * @param res - The response object used to send the response.
- * @param next - The next middleware function.
  * @returns The response object with the updated account password.
  */
-export const resetAccountFactory = async (req, res, next) => {
+export const resetAccountFactory = async (req, res) => {
     // eslint-disable-next-line @typescript-eslint/naming-convention
     const { foundUser, _id, verifycode, how, password } = req.body;
     authControllerLogger.debug(`resetpassword, 
@@ -364,22 +364,14 @@ export const resetAccountFactory = async (req, res, next) => {
  * Recovers the user account by sending a token via email or phone.
  * @param req - The request object.
  * @param res - The response object.
- * @param next - The next middleware function.
  * @returns The response containing the success status and error message (if applicable).
  */
-export const recoverAccountFactory = async (req, res, next) => {
+export const recoverAccountFactory = async (req, res) => {
     const { appOfficialName } = stockAuthConfig.localSettings;
     const { foundUser, emailPhone } = req.body;
     const emailOrPhone = emailPhone === 'phone' ? 'phone' : 'email';
-    let query;
     authControllerLogger.debug(`recover, 
     emailphone: ${emailPhone}, emailOrPhone: ${emailOrPhone}`);
-    if (emailOrPhone === 'phone') {
-        query = { phone: emailPhone };
-    }
-    else {
-        query = { email: emailPhone };
-    }
     let response = { success: false };
     if (!foundUser) {
         response = {
@@ -393,7 +385,7 @@ export const recoverAccountFactory = async (req, res, next) => {
     }
     else {
         const type = '_link';
-        response = await sendTokenEmail(req.app, foundUser, type, appOfficialName);
+        response = await sendTokenEmail(foundUser, type, appOfficialName);
     }
     return res.status(200).send(response);
 };
@@ -401,10 +393,9 @@ export const recoverAccountFactory = async (req, res, next) => {
  * Handles the confirmation of a user account.
  * @param req - The request object.
  * @param res - The response object.
- * @param next - The next middleware function.
  * @returns The response object with the status and response data.
  */
-export const confirmAccountFactory = async (req, res, next) => {
+export const confirmAccountFactory = async (req, res) => {
     // eslint-disable-next-line @typescript-eslint/naming-convention
     const { foundUser, _id, verifycode, how, type } = req.body;
     authControllerLogger.debug(`verify, verifycode: ${verifycode}, how: ${how}`);

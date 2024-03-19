@@ -5,7 +5,6 @@
  * @packageDocumentation
  */
 /* eslint-disable @typescript-eslint/no-var-requires */
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 /* eslint-disable @typescript-eslint/no-misused-promises */
 import express from 'express';
 import { getLogger } from 'log4js';
@@ -14,7 +13,7 @@ import { appendBody, deleteFiles, fileMetaLean, makeUrId, requireAuth, roleAutho
 import { checkIpAndAttempt, confirmAccountFactory, determineIfIsPhoneAndMakeFilterObj, isInAdictionaryOnline, isTooCommonPhrase, recoverAccountFactory, resetAccountFactory } from '@open-stock/stock-auth-server';
 // import { notifConfig } from '../../config/notif.config';
 // import { createNotifications, NotificationController } from '../controllers/notifications.controller';
-const passport = require('passport');
+// const passport = require('passport');
 /**
  * Router for company authentication routes.
  */
@@ -78,7 +77,8 @@ companyAuthRoutes.get('/authexpress/:companyIdParam', requireAuth, async (req, r
         .findById(userId)
         .populate({ path: 'profilePic', model: fileMetaLean })
         .populate({ path: 'profileCoverPic', model: fileMetaLean })
-        .populate({ path: 'photos', model: fileMetaLean })
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
         .lean()
         .select(userAuthSelect)
         .catch(err => {
@@ -215,10 +215,10 @@ companyAuthRoutes.post('/updateprofileimg/:companyIdParam', requireAuth, uploadF
     const parsed = req.body.parsed;
     if (parsed) {
         if (parsed.profilePic) {
-            foundCompany.profilePic = parsed.profilePic._id || foundCompany.profilePic;
+            foundCompany.profilePic = parsed.profilePic || foundCompany.profilePic;
         }
         if (parsed.coverPic) {
-            foundCompany.profileCoverPic = parsed.coverPic._id || foundCompany.profileCoverPic;
+            foundCompany.profileCoverPic = parsed.coverPic || foundCompany.profileCoverPic;
         }
         if (parsed.newFiles) {
             const oldPhotos = foundCompany.photos;
@@ -292,10 +292,10 @@ companyAuthRoutes.post('/addcompanyimg/:companyIdParam', requireAuth, roleAuthor
     const parsed = req.body.parsed;
     if (parsed) {
         if (parsed.profilePic) {
-            userData.profilePic = parsed.profilePic._id || userData.profilePic;
+            userData.profilePic = parsed.profilePic || userData.profilePic;
         }
         if (parsed.coverPic) {
-            userData.profileCoverPic = parsed.coverPic._id || userData.profileCoverPic;
+            userData.profileCoverPic = parsed.coverPic || userData.profileCoverPic;
         }
         if (parsed.newFiles) {
             const oldPhotos = userData.photos;
@@ -402,10 +402,10 @@ companyAuthRoutes.post('/updatecompanybulkimg/:companyIdParam', requireAuth, rol
     const parsed = req.body.parsed;
     if (parsed) {
         if (parsed.profilePic) {
-            foundCompany.profilePic = parsed.profilePic._id || foundCompany.profilePic;
+            foundCompany.profilePic = parsed.profilePic || foundCompany.profilePic;
         }
         if (parsed.coverPic) {
-            foundCompany.profileCoverPic = parsed.coverPic._id || foundCompany.profileCoverPic;
+            foundCompany.profileCoverPic = parsed.coverPic || foundCompany.profileCoverPic;
         }
         if (parsed.newFiles) {
             const oldPhotos = foundCompany.photos;
@@ -490,11 +490,10 @@ companyAuthRoutes.put('/deleteimages/:companyIdParam', requireAuth, roleAuthoris
         return res.status(404).send({ success: false, err: 'item not found' });
     }
     const photos = company.photos;
-    const filesWithDirStr = filesWithDir
-        .map(val => val.url);
+    const filesWithDirIds = filesWithDir
+        .map(val => val._id);
     company.photos = photos
-        .filter(p => !filesWithDirStr.includes(p._id))
-        .map(p => p._id);
+        .filter((p) => !filesWithDirIds.includes(p));
     company.profilePic = company.photos.find(p => p === company.profilePic);
     company.profileCoverPic = company.photos.find(p => p === company.profileCoverPic);
     let errResponse;

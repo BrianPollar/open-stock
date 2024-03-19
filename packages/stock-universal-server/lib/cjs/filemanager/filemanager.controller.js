@@ -1,13 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.checkDirectoryExists = exports.createDirectories = void 0;
-// This function imports the `fs-extra` module.
 const fs_extra_1 = require("fs-extra");
-// This function imports the `getLogger()` function from `log4js`.
 const log4js_1 = require("log4js");
 // This function creates a fileMangerLogger named `FileManger`.
 const fileMangerLogger = (0, log4js_1.getLogger)('FileManger');
-// This function defines a function that creates directories.
 /**
  * Creates directories for an application.
  * @param appName - The name of the application.

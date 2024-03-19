@@ -1,4 +1,4 @@
-import { Istaff, Isuccess, Isalary, IdeleteCredentialsLocalUser, IfileMeta } from '@open-stock/stock-universal';
+import { IdeleteCredentialsLocalUser, IfileMeta, Isalary, Istaff, Isuccess } from '@open-stock/stock-universal';
 import { UserBase } from './userbase.define';
 /**
  * The  Staff  class extends a base class called  UserBase  (not provided) and adds additional properties such as employmentType and salary.

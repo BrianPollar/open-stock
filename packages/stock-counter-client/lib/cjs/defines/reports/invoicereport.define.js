@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.InvoiceReport = void 0;
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 const rxjs_1 = require("rxjs");
 const invoice_define_1 = require("../invoice.define");
 const stock_universal_1 = require("@open-stock/stock-universal");

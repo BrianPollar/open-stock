@@ -9,13 +9,11 @@ const tslib_1 = require("tslib");
  * @packageDocumentation
  */
 /* eslint-disable @typescript-eslint/no-var-requires */
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 /* eslint-disable @typescript-eslint/no-misused-promises */
-const express_1 = tslib_1.__importDefault(require("express"));
-const log4js_1 = require("log4js");
 const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
-const stock_auth_server_2 = require("@open-stock/stock-auth-server");
+const express_1 = tslib_1.__importDefault(require("express"));
+const log4js_1 = require("log4js");
 // import { notifConfig } from '../../config/notif.config';
 // import { createNotifications, NotificationController } from '../controllers/notifications.controller';
 const passport = require('passport');
@@ -33,7 +31,7 @@ const authLogger = (0, log4js_1.getLogger)('routes/user');
  */
 const userLoginRelegator = async (req, res) => {
     const { emailPhone } = req.body;
-    const { query } = (0, stock_auth_server_2.determineIfIsPhoneAndMakeFilterObj)(emailPhone);
+    const { query } = (0, stock_auth_server_1.determineIfIsPhoneAndMakeFilterObj)(emailPhone);
     const foundUser = await stock_auth_server_1.userLean
         .findOne({ ...query, ...{ verified: true } })
         .lean()
@@ -64,9 +62,12 @@ exports.authRoutes.get('/authexpress/:companyIdParam', stock_universal_server_1.
     }
     const foundUser = await stock_auth_server_1.userLean
         .findById(userId)
-        .populate({ path: 'profilePic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => doc.url })
-        .populate({ path: 'profileCoverPic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => doc.url })
-        .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => doc.url })
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        .populate({ path: 'profilePic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        .populate({ path: 'profileCoverPic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
         .lean()
         .select(stock_auth_server_1.userAuthSelect)
         .catch(err => {
@@ -108,12 +109,12 @@ exports.authRoutes.post('/login', (req, res, next) => {
     authLogger.debug(`login attempt,
     emailPhone: ${emailPhone}`);
     return next();
-}, stock_auth_server_2.checkIpAndAttempt, exports.userLoginRelegator);
+}, stock_auth_server_1.checkIpAndAttempt, exports.userLoginRelegator);
 exports.authRoutes.post('/signup', (req, res, next) => {
     const user = req.body;
     req.body.user = user;
     return next();
-}, stock_auth_server_2.isTooCommonPhrase, stock_auth_server_2.isInAdictionaryOnline, stock_auth_server_1.loginFactorRelgator, (req, res) => {
+}, stock_auth_server_1.isTooCommonPhrase, stock_auth_server_1.isInAdictionaryOnline, stock_auth_server_1.loginFactorRelgator, (req, res) => {
     return res.status(401).send({ success: false, msg: 'unauthourised' });
 });
 exports.authRoutes.post('recover', async (req, res, next) => {
@@ -131,7 +132,7 @@ exports.authRoutes.post('recover', async (req, res, next) => {
     const foundUser = await stock_auth_server_1.user.findOne(query);
     req.body.foundUser = foundUser;
     return next();
-}, stock_auth_server_2.recoverAccountFactory);
+}, stock_auth_server_1.recoverAccountFactory);
 exports.authRoutes.post('/confirm', async (req, res, next) => {
     // eslint-disable-next-line @typescript-eslint/naming-convention
     const { _id, verifycode, how } = req.body;
@@ -149,7 +150,7 @@ exports.authRoutes.post('/confirm', async (req, res, next) => {
     const foundUser = await stock_auth_server_1.user.findById(_id);
     req.body.foundUser = foundUser;
     return next();
-}, stock_auth_server_2.confirmAccountFactory);
+}, stock_auth_server_1.confirmAccountFactory);
 exports.authRoutes.put('/resetpaswd', async (req, res, next) => {
     // eslint-disable-next-line @typescript-eslint/naming-convention
     const { _id, verifycode } = req.body;
@@ -168,7 +169,7 @@ exports.authRoutes.put('/resetpaswd', async (req, res, next) => {
     const foundUser = await stock_auth_server_1.user.findById(_id);
     req.body.foundUser = foundUser;
     return next();
-}, stock_auth_server_2.resetAccountFactory);
+}, stock_auth_server_1.resetAccountFactory);
 exports.authRoutes.post('/manuallyverify/:userId/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('users', 'update'), async (req, res) => {
     const { userId, companyId } = req.params;
     const { companyIdParam } = req.params;
@@ -233,7 +234,7 @@ exports.authRoutes.post('/sociallogin', async (req, res) => {
                 errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
             }
-            return errResponse;
+            return err;
         });
         if (errResponse) {
             return res.status(403).send(errResponse);
@@ -246,11 +247,14 @@ exports.authRoutes.post('/sociallogin', async (req, res) => {
         }
     }
     else {
-        foundUser.name = credentials.name;
-        foundUser.profilepic = credentials.profilepic;
+        foundUser.fname = credentials.name;
+        const file = {
+            url: credentials.profilepic
+        };
+        foundUser.profilePic = file;
         let status = 200;
         let response = { success: true };
-        await foundUser.save().catch(err => {
+        const foundUserSaved = await foundUser.save().catch(err => {
             status = 403;
             const errResponse = {
                 success: false
@@ -263,11 +267,12 @@ exports.authRoutes.post('/sociallogin', async (req, res) => {
         try again in a while`;
             }
             response = errResponse;
+            return err;
         });
         if (status === 200) {
             response = {
                 success: true,
-                user: foundUser.toAuthJSON()
+                user: foundUserSaved.toAuthJSON()
             };
             return res.status(200).send(response);
         }
@@ -311,6 +316,7 @@ exports.authRoutes.put('/updateprofile/:formtype/:companyIdParam', stock_univers
             break;
         case 'phone':
             // compare password
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             foundUser['comparePassword'](userdetails.passwd, function (err, isMatch) {
                 if (err) {
                     status = 401;
@@ -338,6 +344,7 @@ exports.authRoutes.put('/updateprofile/:formtype/:companyIdParam', stock_univers
             break;
         case 'email':
             // compare password
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             foundUser['comparePassword'](userdetails.passwd, function (err, isMatch) {
                 if (err) {
                     status = 200;
@@ -364,6 +371,7 @@ exports.authRoutes.put('/updateprofile/:formtype/:companyIdParam', stock_univers
             break;
         case 'password':
             // compare password
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             foundUser['comparePassword'](userdetails.oldPassword, function (err, isMatch) {
                 if (err) {
                     status = 200;
@@ -420,10 +428,10 @@ exports.authRoutes.post('/updateprofileimg/:companyIdParam', stock_universal_ser
     const parsed = req.body.parsed;
     if (parsed) {
         if (parsed.profilePic) {
-            foundUser.profilePic = parsed.profilePic._id || foundUser.profilePic;
+            foundUser.profilePic = parsed.profilePic || foundUser.profilePic;
         }
         if (parsed.coverPic) {
-            foundUser.profileCoverPic = parsed.coverPic._id || foundUser.profileCoverPic;
+            foundUser.profileCoverPic = parsed.coverPic || foundUser.profileCoverPic;
         }
         if (parsed.newFiles) {
             const oldPhotos = foundUser.photos;
@@ -450,8 +458,8 @@ exports.authRoutes.post('/updateprofileimg/:companyIdParam', stock_universal_ser
 });
 exports.authRoutes.put('/updatepermissions/:userId/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('users', 'update'), async (req, res) => {
     const { userId } = req.params;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
+    // const { companyId } = (req as Icustomrequest).user;
+    // const { companyIdParam } = req.params;
     authLogger.debug('updatepermissions');
     const isValid = (0, stock_universal_server_1.verifyObjectId)(userId);
     if (!isValid) {
@@ -486,8 +494,8 @@ exports.authRoutes.put('/updatepermissions/:userId/:companyIdParam', stock_unive
 });
 exports.authRoutes.put('/blockunblock/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('users', 'update'), async (req, res) => {
     const { userId } = req.user;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
+    // const { companyId } = (req as Icustomrequest).user;
+    // const { companyIdParam } = req.params;
     authLogger.debug('blockunblock');
     const isValid = (0, stock_universal_server_1.verifyObjectId)(userId);
     if (!isValid) {
@@ -607,8 +615,8 @@ exports.authRoutes.get('/getoneuser/:urId/:companyIdParam', stock_universal_serv
 });
 exports.authRoutes.get('/getusers/:where/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('users', 'read'), async (req, res) => {
     const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const { getusers, where } = req.params;
+    // const { companyIdParam } = req.params;
+    const { where } = req.params;
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const currOffset = offset === 0 ? 0 : offset;
     const currLimit = limit === 0 ? 1000 : limit;
@@ -680,7 +688,7 @@ exports.authRoutes.post('/adduser/:companyIdParam', stock_universal_server_1.req
             // eslint-disable-next-line @typescript-eslint/naming-convention
             _id: savedUser._id
         };
-        await (0, stock_auth_server_1.sendTokenEmail)(req.app, savedUser, type, (0, stock_auth_server_1.getStockAuthConfig)().localSettings.appOfficialName);
+        await (0, stock_auth_server_1.sendTokenEmail)(savedUser, type, (0, stock_auth_server_1.getStockAuthConfig)().localSettings.appOfficialName);
     }
     return res.status(status).send(response);
 });
@@ -696,10 +704,10 @@ exports.authRoutes.post('/adduserimg/:companyIdParam', stock_universal_server_1.
     }
     if (parsed) {
         if (parsed.profilePic) {
-            userData.profilePic = parsed.profilePic._id || userData.profilePic;
+            userData.profilePic = parsed.profilePic || userData.profilePic;
         }
         if (parsed.coverPic) {
-            userData.profileCoverPic = parsed.coverPic._id || userData.profileCoverPic;
+            userData.profileCoverPic = parsed.coverPic || userData.profileCoverPic;
         }
         if (parsed.newFiles) {
             const oldPhotos = userData.photos;
@@ -810,10 +818,10 @@ exports.authRoutes.post('/updateuserbulkimg/:companyIdParam', stock_universal_se
     const parsed = req.body.parsed;
     if (parsed) {
         if (parsed.profilePic) {
-            foundUser.profilePic = parsed.profilePic._id || foundUser.profilePic;
+            foundUser.profilePic = parsed.profilePic || foundUser.profilePic;
         }
         if (parsed.coverPic) {
-            foundUser.profileCoverPic = parsed.coverPic._id || foundUser.profileCoverPic;
+            foundUser.profileCoverPic = parsed.coverPic || foundUser.profileCoverPic;
         }
         if (parsed.newFiles) {
             const oldPhotos = foundUser.photos;
@@ -907,11 +915,10 @@ exports.authRoutes.put('/deleteimages/:companyIdParam', stock_universal_server_1
         return res.status(404).send({ success: false, err: 'item not found' });
     }
     const photos = foundUser.photos;
-    const filesWithDirStr = filesWithDir
-        .map(val => val.url);
+    const filesWithDirIds = filesWithDir
+        .map(val => val._id);
     foundUser.photos = photos
-        .filter(p => !filesWithDirStr.includes(p._id))
-        .map(p => p._id);
+        .filter((p) => !filesWithDirIds.includes(p));
     foundUser.profilePic = foundUser.photos.find(p => p === foundUser.profilePic);
     foundUser.profileCoverPic = foundUser.photos.find(p => p === foundUser.profileCoverPic);
     let errResponse;

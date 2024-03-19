@@ -209,7 +209,8 @@ orderRoutes.get('/getone/:id/:companyIdParam', requireAuth, async (req, res) => 
             {
                 path: 'items.item', model: itemLean,
                 populate: [{
-                        path: 'photos', model: fileMetaLean, transform: (doc) => doc.url
+                        // eslint-disable-next-line @typescript-eslint/naming-convention
+                        path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                     }]
             }]
     });
@@ -246,7 +247,8 @@ orderRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, roleAutho
             {
                 path: 'items.item', model: itemLean,
                 populate: [{
-                        path: 'photos', model: fileMetaLean, transform: (doc) => doc.url
+                        // eslint-disable-next-line @typescript-eslint/naming-convention
+                        path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                     }]
             }]
     });
@@ -275,7 +277,8 @@ orderRoutes.get('/getmyorders/:companyIdParam', requireAuth, async (req, res) =>
             {
                 path: 'items.item', model: itemLean,
                 populate: [{
-                        path: 'photos', model: fileMetaLean, transform: (doc) => doc.url
+                        // eslint-disable-next-line @typescript-eslint/naming-convention
+                        path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                     }]
             }]
     });
@@ -366,7 +369,8 @@ orderRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, roleAuth
             {
                 path: 'items.item', model: itemLean,
                 populate: [{
-                        path: 'photos', model: fileMetaLean, transform: (doc) => doc.url
+                        // eslint-disable-next-line @typescript-eslint/naming-convention
+                        path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                     }]
             }]
     });

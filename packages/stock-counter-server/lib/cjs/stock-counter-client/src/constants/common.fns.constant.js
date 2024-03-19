@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.applyBlockDateSelect = exports.transformNoInvId = exports.openBoxFn = exports.deleteManyInvoicesFn = exports.toggleSelectionFn = exports.deleteInvoiceFn = exports.markInvStatusAsFn = exports.determineLikedFn = exports.unLikeFn = exports.likeFn = exports.makeInvoiceRelated = exports.makePaymentRelated = exports.transformUrId = exports.transformInvoice = exports.transformEstimateId = exports.transformFaqToNameOrImage = void 0;
 const stock_universal_1 = require("@open-stock/stock-universal");
 const invoice_define_1 = require("../defines/invoice.define");
+const receipt_define_1 = require("../defines/receipt.define");
 /**
  * Transforms a Faq object into either an image source or a name.
  * @param faq The Faq object to transform.
@@ -149,7 +150,7 @@ exports.makePaymentRelated = makePaymentRelated;
  * @returns An `IinvoiceRelated` object.
  */
 const makeInvoiceRelated = (data) => {
-    return {
+    const related = {
         invoiceRelated: data.invoiceRelated,
         creationType: data.creationType,
         estimateId: data.estimateId,
@@ -167,9 +168,9 @@ const makeInvoiceRelated = (data) => {
         tax: data.tax,
         balanceDue: data.balanceDue,
         subTotal: data.subTotal,
-        total: data.total,
-        payments: data.payments // TODO
+        total: data.total
     };
+    return (data instanceof receipt_define_1.Receipt) ? related : { ...related, payments: data.payments };
 };
 exports.makeInvoiceRelated = makeInvoiceRelated;
 /**

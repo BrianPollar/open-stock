@@ -9,11 +9,11 @@ const tslib_1 = require("tslib");
 const log4js_1 = require("log4js");
 // import { nodemailer } from 'nodemailer';
 // const nodemailer = require('nodemailer');
-const jwt = tslib_1.__importStar(require("jsonwebtoken"));
-const emailtoken_model_1 = require("../models/emailtoken.model");
+const stock_notif_server_1 = require("@open-stock/stock-notif-server");
 const stock_universal_1 = require("@open-stock/stock-universal");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
-const stock_notif_server_1 = require("@open-stock/stock-notif-server");
+const jwt = tslib_1.__importStar(require("jsonwebtoken"));
+const emailtoken_model_1 = require("../models/emailtoken.model");
 const universialControllerLogger = (0, log4js_1.getLogger)('controllers/UniversialController');
 /**
  * Generates a JWT token with the provided authentication configuration, expiry date, and JWT secret.
@@ -90,7 +90,6 @@ const validatePhone = async (foundUser, nowCase, verifycode, newPassword) => {
                 });
                 return;
             }
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-return
             return foundUser.save(postSave);
         };
         const postSave = function (err) {
@@ -304,14 +303,14 @@ enableValidationSMS = '1' // twilio enable sms validation
 exports.sendTokenPhone = sendTokenPhone;
 /**
  * Sends a verification email to the specified user with a token or link.
- * @param app - The Express app instance.
  * @param foundUser - The user object to send the email to.
  * @param type - The type of verification to send ('token' or '_link').
  * @param appOfficialName - The official name of the app sending the email.
- * @param link - Optional link to include in the email (only used if type is '_link').
  * @returns A Promise that resolves to an Iauthresponse object.
  */
-const sendTokenEmail = (app, foundUser, type, appOfficialName, link) => new Promise(resolve => {
+const sendTokenEmail = (foundUser, type, appOfficialName
+// link?: string
+) => new Promise(resolve => {
     universialControllerLogger.info('sendTokenEmail');
     let response = {
         success: false
@@ -322,7 +321,7 @@ const sendTokenEmail = (app, foundUser, type, appOfficialName, link) => new Prom
         userId: foundUser._id,
         token: tokenCode
     });
-    token.save().then((tok) => {
+    token.save().then(() => {
         if (type === 'token') {
             mailOptions = {
                 from: 'info@eagleinfosolutions.com',

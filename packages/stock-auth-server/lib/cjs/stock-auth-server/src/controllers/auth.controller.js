@@ -1,13 +1,13 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.confirmAccountFactory = exports.recoverAccountFactory = exports.resetAccountFactory = exports.loginFactorRelgator = exports.determineIfIsPhoneAndMakeFilterObj = exports.isInAdictionaryOnline = exports.isTooCommonPhrase = exports.checkIpAndAttempt = void 0;
-const user_model_1 = require("../models/user.model");
-const loginattemps_model_1 = require("../models/loginattemps.model");
-const log4js_1 = require("log4js");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
-const universial_controller_1 = require("./universial.controller");
+const log4js_1 = require("log4js");
+const loginattemps_model_1 = require("../models/loginattemps.model");
+const user_model_1 = require("../models/user.model");
 const userip_model_1 = require("../models/userip.model");
 const stock_auth_local_1 = require("../stock-auth-local");
+const universial_controller_1 = require("./universial.controller");
 const authControllerLogger = (0, log4js_1.getLogger)('loginAttemptController');
 /**
  * Checks if the IP address is valid and attempts to log in the user.
@@ -76,6 +76,7 @@ const checkIpAndAttempt = async (req, res, next) => {
     let attemptSuccess = true;
     let nowRes;
     // compare password
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     foundUser['comparePassword'](password, function (err, isMatch) {
         if (err) {
             authControllerLogger.error('user has wrong password', err);
@@ -109,7 +110,7 @@ const checkIpAndAttempt = async (req, res, next) => {
     };
     const newAttemp = new loginattemps_model_1.loginAtempts(attempt);
     const lastAttempt = await newAttemp.save();
-    const attempts = loginattemps_model_1.loginAtempts.find({ userId: foundUser._id });
+    // const attempts = loginAtempts.find({ userId: foundUser._id });
     if (!attemptSuccess) {
         const response = {
             success: false,
@@ -230,7 +231,7 @@ const loginFactorRelgator = async (req, res, next) => {
     }
     const count = await user_model_1.user
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 }); // TODO: add queryId, FOR NOW NOT USING IT
+        .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     const urId = (0, stock_universal_server_1.makeUrId)(Number(count[0]?.urId || '0'));
     const permissions = {
         orders: {
@@ -309,7 +310,7 @@ const loginFactorRelgator = async (req, res, next) => {
             response.err = `we are having problems connecting to our databases, 
       try again in a while`;
         }
-        return response;
+        return err;
     });
     if (!response.success) {
         return res.status(response.status).send(response);
@@ -320,7 +321,7 @@ const loginFactorRelgator = async (req, res, next) => {
         result = await (0, universial_controller_1.sendTokenPhone)(saved);
     }
     else {
-        result = await (0, universial_controller_1.sendTokenEmail)(req.app, saved, type, stock_auth_local_1.stockAuthConfig.localSettings.appOfficialName);
+        result = await (0, universial_controller_1.sendTokenEmail)(saved, type, stock_auth_local_1.stockAuthConfig.localSettings.appOfficialName);
     }
     if (!response.success) {
         saved.remove();
@@ -340,10 +341,9 @@ exports.loginFactorRelgator = loginFactorRelgator;
  * Resets the account password based on the provided verification code and new password.
  * @param req - The request object containing the request body.
  * @param res - The response object used to send the response.
- * @param next - The next middleware function.
  * @returns The response object with the updated account password.
  */
-const resetAccountFactory = async (req, res, next) => {
+const resetAccountFactory = async (req, res) => {
     // eslint-disable-next-line @typescript-eslint/naming-convention
     const { foundUser, _id, verifycode, how, password } = req.body;
     authControllerLogger.debug(`resetpassword, 
@@ -373,22 +373,14 @@ exports.resetAccountFactory = resetAccountFactory;
  * Recovers the user account by sending a token via email or phone.
  * @param req - The request object.
  * @param res - The response object.
- * @param next - The next middleware function.
  * @returns The response containing the success status and error message (if applicable).
  */
-const recoverAccountFactory = async (req, res, next) => {
+const recoverAccountFactory = async (req, res) => {
     const { appOfficialName } = stock_auth_local_1.stockAuthConfig.localSettings;
     const { foundUser, emailPhone } = req.body;
     const emailOrPhone = emailPhone === 'phone' ? 'phone' : 'email';
-    let query;
     authControllerLogger.debug(`recover, 
     emailphone: ${emailPhone}, emailOrPhone: ${emailOrPhone}`);
-    if (emailOrPhone === 'phone') {
-        query = { phone: emailPhone };
-    }
-    else {
-        query = { email: emailPhone };
-    }
     let response = { success: false };
     if (!foundUser) {
         response = {
@@ -402,7 +394,7 @@ const recoverAccountFactory = async (req, res, next) => {
     }
     else {
         const type = '_link';
-        response = await (0, universial_controller_1.sendTokenEmail)(req.app, foundUser, type, appOfficialName);
+        response = await (0, universial_controller_1.sendTokenEmail)(foundUser, type, appOfficialName);
     }
     return res.status(200).send(response);
 };
@@ -411,10 +403,9 @@ exports.recoverAccountFactory = recoverAccountFactory;
  * Handles the confirmation of a user account.
  * @param req - The request object.
  * @param res - The response object.
- * @param next - The next middleware function.
  * @returns The response object with the status and response data.
  */
-const confirmAccountFactory = async (req, res, next) => {
+const confirmAccountFactory = async (req, res) => {
     // eslint-disable-next-line @typescript-eslint/naming-convention
     const { foundUser, _id, verifycode, how, type } = req.body;
     authControllerLogger.debug(`verify, verifycode: ${verifycode}, how: ${how}`);

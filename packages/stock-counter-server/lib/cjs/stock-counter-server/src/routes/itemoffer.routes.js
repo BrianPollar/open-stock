@@ -93,7 +93,8 @@ exports.itemOfferRoutes.get('/getall/:type/:offset/:limit/:companyIdParam', asyn
         .populate({
         path: 'items', model: item_model_1.itemLean,
         populate: [{
-                path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => doc.url
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
             }
         ]
     })
@@ -125,7 +126,8 @@ exports.itemOfferRoutes.get('/getone/:id/:companyIdParam', async (req, res) => {
         .populate({
         path: 'items', model: item_model_1.itemLean,
         populate: [{
-                path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => doc.url
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
             }
         ]
     })

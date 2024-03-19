@@ -5,11 +5,11 @@
 import { getLogger } from 'log4js';
 // import { nodemailer } from 'nodemailer';
 // const nodemailer = require('nodemailer');
-import * as jwt from 'jsonwebtoken';
-import { emailtoken } from '../models/emailtoken.model';
+import { sendMail } from '@open-stock/stock-notif-server';
 import { makeRandomString } from '@open-stock/stock-universal';
 import { stringifyMongooseErr, verifyObjectId } from '@open-stock/stock-universal-server';
-import { sendMail } from '@open-stock/stock-notif-server';
+import * as jwt from 'jsonwebtoken';
+import { emailtoken } from '../models/emailtoken.model';
 const universialControllerLogger = getLogger('controllers/UniversialController');
 /**
  * Generates a JWT token with the provided authentication configuration, expiry date, and JWT secret.
@@ -84,7 +84,6 @@ export const validatePhone = async (foundUser, nowCase, verifycode, newPassword)
                 });
                 return;
             }
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-return
             return foundUser.save(postSave);
         };
         const postSave = function (err) {
@@ -295,14 +294,14 @@ enableValidationSMS = '1' // twilio enable sms validation
 });
 /**
  * Sends a verification email to the specified user with a token or link.
- * @param app - The Express app instance.
  * @param foundUser - The user object to send the email to.
  * @param type - The type of verification to send ('token' or '_link').
  * @param appOfficialName - The official name of the app sending the email.
- * @param link - Optional link to include in the email (only used if type is '_link').
  * @returns A Promise that resolves to an Iauthresponse object.
  */
-export const sendTokenEmail = (app, foundUser, type, appOfficialName, link) => new Promise(resolve => {
+export const sendTokenEmail = (foundUser, type, appOfficialName
+// link?: string
+) => new Promise(resolve => {
     universialControllerLogger.info('sendTokenEmail');
     let response = {
         success: false
@@ -313,7 +312,7 @@ export const sendTokenEmail = (app, foundUser, type, appOfficialName, link) => n
         userId: foundUser._id,
         token: tokenCode
     });
-    token.save().then((tok) => {
+    token.save().then(() => {
         if (type === 'token') {
             mailOptions = {
                 from: 'info@eagleinfosolutions.com',

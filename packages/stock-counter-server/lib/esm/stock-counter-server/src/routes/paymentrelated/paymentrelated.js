@@ -7,7 +7,6 @@ import { getLogger } from 'log4js';
 import { getCurrentNotificationSettings } from '@open-stock/stock-notif-server';
 import { user } from '@open-stock/stock-auth-server';
 import { receiptMain } from '../../models/printables/receipt.model';
-import { pesapalNotifRedirectUrl } from '../../stock-counter-local';
 /** Logger for PaymentRelated routes */
 const paymentRelatedLogger = getLogger('routes/PaymentRelated');
 /**
@@ -111,40 +110,40 @@ extraNotifDesc, queryId) => {
             return errResponse;
         }
         // const relatedId = await relegateInvRelatedCreation(invoiceRelated, extraNotifDesc, true);
-        let route;
-        let title = '';
+        // let route: string;
+        // let title = '';
         let accessor;
-        let notifType;
+        // let notifType: TnotifType;
         if (type === 'order') {
-            route = 'orders';
-            title = 'Order Made';
+            // route = 'orders';
+            // title = 'Order Made';
             accessor = 'orders';
-            notifType = 'orders';
+            // notifType = 'orders';
         }
         else {
-            route = 'payments';
-            title = 'Payment Made';
+            // route = 'payments';
+            // title = 'Payment Made';
             accessor = 'payments';
-            notifType = 'payments';
+            // notifType = 'payments';
         }
         const stn = await getCurrentNotificationSettings();
         if (stn && stn[accessor]) {
-            const actions = [{
-                    operation: 'view',
-                    url: pesapalNotifRedirectUrl + route,
-                    action: '',
-                    title
-                }];
-            const notification = {
-                actions,
-                userId: invoiceRelated.billingUserId,
-                title,
-                body: extraNotifDesc,
-                icon: '',
-                notifType,
-                // photo: string;
-                expireAt: '200000'
-            };
+            /* const actions: Iactionwithall[] = [{
+              operation: 'view',
+              url: pesapalNotifRedirectUrl + route,
+              action: '',
+              title
+            }];*/
+            /* const notification: Imainnotification = {
+              actions,
+              userId: invoiceRelated.billingUserId,
+              title,
+              body: extraNotifDesc,
+              icon: '',
+              notifType,
+              // photo: string;
+              expireAt: '200000'
+            };*/
             const capableUsers = await user.find({})
                 .lean().select({ permissions: 1 });
             const ids = [];
@@ -162,7 +161,7 @@ extraNotifDesc, queryId) => {
                     }
                 }
             }
-            const notifFilters = { id: { $in: ids } };
+            // const notifFilters = { id: { $in: ids } };
             /* await createNotifications({
               options: notification,
               filters: notifFilters

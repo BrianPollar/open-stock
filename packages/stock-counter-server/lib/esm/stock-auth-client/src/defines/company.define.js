@@ -1,6 +1,5 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
-import { lastValueFrom } from 'rxjs';
 import { DatabaseAuto } from '@open-stock/stock-universal';
+import { lastValueFrom } from 'rxjs';
 import { StockAuthClient } from '../stock-auth-client';
 /**
  * Represents a company and extends the DatabaseAuto class. It has properties that correspond to the fields in the company object, and methods for updating, deleting, and managing the company's profile, addresses, and permissions.
@@ -55,7 +54,7 @@ export class Company extends DatabaseAuto {
             added = await lastValueFrom(observer$);
         }
         else {
-            const observer$ = StockAuthClient.ehttp.makePost(`/company/addcompany/${companyId}`, details);
+            const observer$ = StockAuthClient.ehttp.makePost('/company/addcompany', details);
             added = await lastValueFrom(observer$);
         }
         return added;

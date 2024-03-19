@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DeliveryCity = void 0;
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 const stock_universal_1 = require("@open-stock/stock-universal");
 const rxjs_1 = require("rxjs");
 const stock_counter_client_1 = require("../stock-counter-client");
@@ -42,7 +41,7 @@ class DeliveryCity extends stock_universal_1.DatabaseAuto {
      * @returns A DeliveryCity instance.
      */
     static async getOneDeliveryCity(companyId, id) {
-        const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makeGet(`/deliverycity/getone/${id}`);
+        const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makeGet(`/deliverycity/getone/${id}/${companyId}`);
         const city = await (0, rxjs_1.lastValueFrom)(observer$);
         return new DeliveryCity(city);
     }

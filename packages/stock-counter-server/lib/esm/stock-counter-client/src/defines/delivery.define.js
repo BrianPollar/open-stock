@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 import { DatabaseAuto } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
 import { StockCounterClient } from '../stock-counter-client';
@@ -39,7 +38,7 @@ export class DeliveryCity extends DatabaseAuto {
      * @returns A DeliveryCity instance.
      */
     static async getOneDeliveryCity(companyId, id) {
-        const observer$ = StockCounterClient.ehttp.makeGet(`/deliverycity/getone/${id}`);
+        const observer$ = StockCounterClient.ehttp.makeGet(`/deliverycity/getone/${id}/${companyId}`);
         const city = await lastValueFrom(observer$);
         return new DeliveryCity(city);
     }

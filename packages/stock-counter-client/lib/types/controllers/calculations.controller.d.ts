@@ -67,7 +67,7 @@ export declare class CalculationsController {
      * @param restrictNoTo The number of elements to include in the new array.
      * @returns A new array containing only the first restrictNoTo elements of the original array.
      */
-    restrictArrayToLength(data: any[], restrictNoTo: number): any[];
+    restrictArrayToLength(data: unknown[], restrictNoTo: number): unknown[];
     determineStars(weight: number, where: string): number[];
     /**
      * Checks if the dimensions of an image are within the allowed limits.

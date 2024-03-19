@@ -5,7 +5,6 @@
  * @packageDocumentation
  */
 /* eslint-disable @typescript-eslint/no-var-requires */
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 /* eslint-disable @typescript-eslint/no-misused-promises */
 import express from 'express';
 import { getLogger } from 'log4js';
@@ -16,7 +15,7 @@ import { stockAuthConfig } from '../stock-auth-local';
 import { companyMain } from '../models/company.model';
 // import { notifConfig } from '../../config/notif.config';
 // import { createNotifications, NotificationController } from '../controllers/notifications.controller';
-const passport = require('passport');
+// const passport = require('passport');
 /**
  * Router for super admin routes.
  */
@@ -125,7 +124,7 @@ export const loginFactorRelgator = async (req, res, next) => {
     let newUser;
     const expireAt = Date.now();
     if (from === 'company') {
-        const { name, lastName } = req.body.user;
+        const { name } = req.body.user;
         newUser = new companyMain({
             urId,
             name,
@@ -137,7 +136,7 @@ export const loginFactorRelgator = async (req, res, next) => {
         });
     }
     else {
-        const { emailPhone, firstName, lastName } = req.body.user;
+        const { firstName, lastName } = req.body.user;
         newUser = new user({
             urId,
             fname: firstName,
@@ -176,7 +175,7 @@ export const loginFactorRelgator = async (req, res, next) => {
         result = await sendTokenPhone(saved);
     }
     else {
-        result = await sendTokenEmail(req.app, saved, type, stockAuthConfig.localSettings.appOfficialName);
+        result = await sendTokenEmail(saved, type, stockAuthConfig.localSettings.appOfficialName);
     }
     if (!response.success) {
         saved.remove();
@@ -191,7 +190,7 @@ export const loginFactorRelgator = async (req, res, next) => {
     };
     return res.status(500).send(toSend);
 };
-superAdminRoutes.post('/login', (req, res, next) => {
+superAdminRoutes.post('/login', (req, res) => {
     const secret = process.env['accessKey'];
     const password = req.body.password;
     if (password === secret) {

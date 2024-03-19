@@ -1,5 +1,4 @@
 "use strict";
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Profit = void 0;
 const stock_universal_1 = require("@open-stock/stock-universal");
@@ -45,7 +44,7 @@ class Profit extends stock_universal_1.DatabaseAuto {
      * @returns {Promise<Profit>} - A Promise that resolves to a single Profit object.
      */
     static async getOneProfit(companyId, id) {
-        const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makeGet('profit/getone/' + id);
+        const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makeGet('profit/getone/' + id + '/' + companyId);
         const profit = await (0, rxjs_1.lastValueFrom)(observer$);
         return new Profit(profit);
     }
@@ -67,7 +66,7 @@ class Profit extends stock_universal_1.DatabaseAuto {
      * @async
      * @param companyId - The ID of the company
      * @param {string[]} ids - The IDs of the Profit objects to delete.
-     * @param {any} filesWithDir - The files and directories to delete.
+     * @param {IfileMeta} filesWithDir - The files and directories to delete.
      * @param {string} url - The URL to delete the Profit objects from.
      * @returns {Promise<Isuccess>} - A Promise that resolves to a success message.
      */

@@ -46,7 +46,7 @@ export interface IStockAuthServerConfig {
  * @param {IStockAuthServerConfig} config - The server configuration.
  * @param {EmailHandler} emailHandler - The email handler.
  * @param {*} app - The Express app.
- * @returns {Promise<{authRoutes: any, userLean: any}>}
+ * @returns {Promise<{authRoutes, userLean}>}
  */
 export declare const runStockAuthServer: (config: IStockAuthServerConfig) => Promise<{
     stockAuthRouter: any;
