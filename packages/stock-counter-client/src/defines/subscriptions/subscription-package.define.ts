@@ -19,7 +19,7 @@ export class SubscriptionPackange {
 
   static async getSubscriptionPackanges() {
     const observer$ = StockCounterClient.ehttp
-      .makeGet('/companysubscription/getall');
+      .makeGet('/subscriptionpackage/getall');
     const companysubscriptions = await lastValueFrom(observer$) as unknown[];
     return companysubscriptions
       .map((val) => new SubscriptionPackange(val));
@@ -30,7 +30,7 @@ export class SubscriptionPackange {
     subscriptionPackages
   ) {
     const observer$ = StockCounterClient.ehttp
-      .makePost(`/companysubscription/create/${companyId}`, subscriptionPackages);
+      .makePost(`/subscriptionpackage/create/${companyId}`, subscriptionPackages);
     return await lastValueFrom(observer$) as Isuccess;
   }
 
@@ -38,7 +38,7 @@ export class SubscriptionPackange {
     id: string
   ) {
     const observer$ = StockCounterClient.ehttp
-      .makePut(`/companysubscription/deleteone/${id}`, {});
+      .makePut(`/subscriptionpackage/deleteone/${id}`, {});
     return await lastValueFrom(observer$) as Isuccess;
   }
 }

@@ -5,6 +5,8 @@ import { notifSettingMain } from './models/notifsetting.model';
 import { notifnRoutesDummy } from './routes-dummy/notification.routes';
 import { notifnRoutes } from './routes/notification.routes';
 import { ItwilioAuthySecrets, createNotificationsDatabase, createStockNotifServerLocals, isStockNotifServerRunning, notificationSettings } from './stock-notif-local';
+import { mailSenderRoutesDummy } from './routes-dummy/mail.routes';
+import { mailSenderRoutes } from './routes/mail.routes';
 
 export interface IstockNotifServerConfig {
   jwtSecret: string;
@@ -28,8 +30,10 @@ export const runStockNotificationServer = async(config: IstockNotifServerConfig)
   const stockNotifRouter = express.Router();
   if (!config.useDummyRoutes) {
     stockNotifRouter.use('/notifn', notifnRoutes);
+    stockNotifRouter.use('/mailsender', mailSenderRoutes);
   } else {
     stockNotifRouter.use('/notifn', notifnRoutesDummy);
+    stockNotifRouter.use('/mailsender', mailSenderRoutesDummy);
   }
   return Promise.resolve({ stockNotifRouter, notificationSettings });
 };

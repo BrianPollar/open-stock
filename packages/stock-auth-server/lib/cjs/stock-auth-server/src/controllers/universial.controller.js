@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.sendTokenEmail = exports.sendTokenPhone = exports.validateEmail = exports.validatePhone = exports.setUserInfo = exports.generateToken = void 0;
+exports.sendRandomEmail = exports.sendTokenEmail = exports.sendTokenPhone = exports.validateEmail = exports.validatePhone = exports.setUserInfo = exports.generateToken = void 0;
 const tslib_1 = require("tslib");
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-var-requires */
@@ -552,4 +552,97 @@ height: 100%;
     });
 });
 exports.sendTokenEmail = sendTokenEmail;
+const sendRandomEmail = (emailFrom, emailTo, subject, message) => new Promise(resolve => {
+    universialControllerLogger.info('sendTokenEmail');
+    const mailOptions = {
+        from: emailFrom,
+        to: emailTo,
+        subject,
+        text: 'Please confirm your email address',
+        // html: 'Hello, <br> Please click on the link to veify you email.<br><a href=`${nowLink}`></a>'
+        html: `<!DOCTYPE html>
+    <html lang="en">
+    <head>
+<style>
+body {
+background: rgb(238, 238, 238);
+}
+.main-div {
+max-width: 400px;
+margin: 0 auto;
+background: #fff;
+font-weight: normal;
+}
+h2 {
+text-align:center;
+padding-top: 40px;
+}
+
+.body-div{
+font-weight: lighter;
+text-align: left;
+width: 80%;
+margin: 0 auto;
+font-size: 0.8em;
+}
+
+.code-para{
+font-size: 1.2em;
+}
+
+.last-divi {
+padding-top: 30px;
+text-align: center;
+font-size: 0.7em;
+}
+
+.compny-divi {
+padding-bottom: 40px;
+text-align: center;
+font-size: 0.7em;
+}
+
+.img-divi {
+width: 75px;
+height: 75px;
+margin-left: calc(100% - 80px);
+}
+
+.img-divi-img {
+width: 100%;
+height: 100%;
+}
+</style>
+</head>
+    <body>
+    <div class="main-div">
+      <div class="img-divi">
+        <img class="img-divi-img" src="https://eagleinfosolutions.com/dist/public/logo2.png" />
+      </div>
+    <h2>Confirm your email address<h2>
+      <div class="body-div">
+
+      ${message}
+
+      <div class="last-divi">
+        <a href="https://eagleinfosolutions.com/support">Help</a> | <a href="https://eagleinfosolutions.com/support">Contacts</a>
+      </div>
+
+      <div class="compny-divi"> Eagle Info Solutions Inc, Kampala Uganda</div>
+      </div>
+      </div>
+      </body>
+</html>`
+    };
+    (0, stock_notif_server_1.sendMail)(mailOptions).then(res => {
+        universialControllerLogger.info('message sent', res);
+        resolve(true);
+        return;
+    }).catch(error => {
+        universialControllerLogger.error('email verication with token error', JSON.stringify(error));
+        resolve(false);
+        return;
+    });
+});
+exports.sendRandomEmail = sendRandomEmail;
 //# sourceMappingURL=universial.controller.js.map
