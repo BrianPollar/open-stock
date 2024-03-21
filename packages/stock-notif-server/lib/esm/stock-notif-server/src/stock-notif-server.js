@@ -5,6 +5,8 @@ import { notifSettingMain } from './models/notifsetting.model';
 import { notifnRoutesDummy } from './routes-dummy/notification.routes';
 import { notifnRoutes } from './routes/notification.routes';
 import { createNotificationsDatabase, createStockNotifServerLocals, isStockNotifServerRunning, notificationSettings } from './stock-notif-local';
+import { mailSenderRoutesDummy } from './routes-dummy/mail.routes';
+import { mailSenderRoutes } from './routes/mail.routes';
 export const runStockNotificationServer = async (config) => {
     if (!isUniversalServerRunning()) {
         const error = new Error('File loacations must be handled properly, please start by firing up that server');
@@ -21,9 +23,11 @@ export const runStockNotificationServer = async (config) => {
     const stockNotifRouter = express.Router();
     if (!config.useDummyRoutes) {
         stockNotifRouter.use('/notifn', notifnRoutes);
+        stockNotifRouter.use('/mailsender', mailSenderRoutes);
     }
     else {
         stockNotifRouter.use('/notifn', notifnRoutesDummy);
+        stockNotifRouter.use('/mailsender', mailSenderRoutesDummy);
     }
     return Promise.resolve({ stockNotifRouter, notificationSettings });
 };

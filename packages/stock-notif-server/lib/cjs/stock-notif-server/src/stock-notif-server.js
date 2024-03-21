@@ -9,6 +9,8 @@ const notifsetting_model_1 = require("./models/notifsetting.model");
 const notification_routes_1 = require("./routes-dummy/notification.routes");
 const notification_routes_2 = require("./routes/notification.routes");
 const stock_notif_local_1 = require("./stock-notif-local");
+const mail_routes_1 = require("./routes-dummy/mail.routes");
+const mail_routes_2 = require("./routes/mail.routes");
 const runStockNotificationServer = async (config) => {
     if (!(0, stock_universal_server_1.isUniversalServerRunning)()) {
         const error = new Error('File loacations must be handled properly, please start by firing up that server');
@@ -25,9 +27,11 @@ const runStockNotificationServer = async (config) => {
     const stockNotifRouter = express_1.default.Router();
     if (!config.useDummyRoutes) {
         stockNotifRouter.use('/notifn', notification_routes_2.notifnRoutes);
+        stockNotifRouter.use('/mailsender', mail_routes_2.mailSenderRoutes);
     }
     else {
         stockNotifRouter.use('/notifn', notification_routes_1.notifnRoutesDummy);
+        stockNotifRouter.use('/mailsender', mail_routes_1.mailSenderRoutesDummy);
     }
     return Promise.resolve({ stockNotifRouter, notificationSettings: stock_notif_local_1.notificationSettings });
 };

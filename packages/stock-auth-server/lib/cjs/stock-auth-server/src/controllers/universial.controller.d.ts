@@ -51,4 +51,3 @@ export declare const sendTokenPhone: (foundUser: any, enableValidationSMS?: stri
  * @returns A Promise that resolves to an Iauthresponse object.
  */
 export declare const sendTokenEmail: (foundUser: Iuser, type: string, appOfficialName: string) => Promise<Iauthresponse>;
-export declare const sendRandomEmail: (emailFrom: string, emailTo: string, subject: string, message: string) => Promise<boolean>;

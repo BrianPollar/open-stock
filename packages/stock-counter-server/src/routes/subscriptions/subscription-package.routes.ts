@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
-import express from 'express';
-import { getLogger } from 'log4js';
 import { Icustomrequest } from '@open-stock/stock-universal';
 import { requireAuth, roleAuthorisation } from '@open-stock/stock-universal-server';
+import express from 'express';
+import { getLogger } from 'log4js';
 import { subscriptionPackageLean, subscriptionPackageMain } from '../../models/subscriptions/subscription-package.model';
 
 /** Logger for subscriptionPackage routes */
@@ -20,7 +20,7 @@ subscriptionPackageRoutes.post('/create/:companyIdParam', requireAuth, roleAutho
   return res.status(200).send({ success: true, status: 200 });
 });
 
-subscriptionPackageRoutes.get('/getall', requireAuth, roleAuthorisation('users', 'create'), async(req, res) => {
+subscriptionPackageRoutes.get('/getall', async(req, res) => {
   const { companyId } = (req as Icustomrequest).user;
   const subscriptionPackages = await subscriptionPackageLean
     .find({ companyId })

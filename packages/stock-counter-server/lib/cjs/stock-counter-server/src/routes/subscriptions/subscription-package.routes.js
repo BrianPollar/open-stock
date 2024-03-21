@@ -2,10 +2,9 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.subscriptionPackageRoutes = void 0;
 const tslib_1 = require("tslib");
-/* eslint-disable @typescript-eslint/no-misused-promises */
+const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
 const log4js_1 = require("log4js");
-const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const subscription_package_model_1 = require("../../models/subscriptions/subscription-package.model");
 /** Logger for subscriptionPackage routes */
 const subscriptionPackageRoutesLogger = (0, log4js_1.getLogger)('routes/subscriptionPackageRoutes');
@@ -19,7 +18,7 @@ exports.subscriptionPackageRoutes.post('/create/:companyIdParam', stock_universa
     await newPkg.save();
     return res.status(200).send({ success: true, status: 200 });
 });
-exports.subscriptionPackageRoutes.get('/getall', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('users', 'create'), async (req, res) => {
+exports.subscriptionPackageRoutes.get('/getall', async (req, res) => {
     const { companyId } = req.user;
     const subscriptionPackages = await subscription_package_model_1.subscriptionPackageLean
         .find({ companyId })
