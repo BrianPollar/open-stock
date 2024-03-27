@@ -417,6 +417,9 @@ itemRoutes.get('/filtergeneral/:prop/:val/:offset/:limit/:companyIdParam', async
     if (isValid) {
         filter = { companyId: companyIdParam, [prop]: { $regex: val, $options: 'i' } };
     }
+    if (prop === 'time') {
+        filter = { companyId: companyIdParam, createdAt: { $gte: new Date(val) } };
+    }
     const items = await itemLean
         .find(filter)
         // eslint-disable-next-line @typescript-eslint/naming-convention

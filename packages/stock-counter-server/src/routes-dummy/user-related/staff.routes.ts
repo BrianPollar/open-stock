@@ -15,6 +15,10 @@ staffRoutesDummy.get('/getone/:id/:companyIdParam', (req, res) => {
   res.status(200).send(createMockStaff());
 });
 
+staffRoutesDummy.get('/getall/:offset/:limit/:role/:companyIdParam', (req, res) => {
+  res.status(200).send(createMockStaffs(Number(req.params.limit)));
+});
+
 staffRoutesDummy.get('/getbyrole/:offset/:limit/:role/:companyIdParam', (req, res) => {
   res.status(200).send(createMockStaffs(Number(req.params.limit)));
 });

@@ -1,12 +1,11 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
+import { loginFactorRelgator, userLean } from '@open-stock/stock-auth-server';
+import { Icustomrequest, Isuccess } from '@open-stock/stock-universal';
+import { deleteFiles, fileMetaLean, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { getLogger } from 'log4js';
-import { deleteFiles, fileMetaLean, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import { staffLean, staffMain } from '../../models/user-related/staff.model';
-import { userLean } from '@open-stock/stock-auth-server';
-import { Icustomrequest, Isuccess } from '@open-stock/stock-universal';
 import { removeManyUsers, removeOneUser } from './locluser.routes';
-import { loginFactorRelgator } from '@open-stock/stock-auth-server';
 
 
 const staffRoutesLogger = getLogger('routes/staffRoutes');
@@ -72,6 +71,32 @@ staffRoutes.get('/getone/:id/:companyIdParam', async(req, res) => {
       }] })
     .lean();
   return res.status(200).send(staff);
+});
+
+
+staffRoutes.get('/getall/:offset/:limit/:companyIdParam', async(req, res) => {
+  const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const customers = await staffLean
+    .find({ companyId: queryId })
+    .populate({ path: 'user', model: userLean,
+      populate: [{
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+      }, {
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+      }, {
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        path: 'profileCoverPic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+      }]
+    })
+    .skip(offset)
+    .limit(limit)
+    .lean();
+  return res.status(200).send(customers);
 });
 
 staffRoutes.get('/getbyrole/:offset/:limit/:role/:companyIdParam', async(req, res) => {

@@ -1,4 +1,4 @@
-import { appendBody, deleteFiles, fileMetaLean, makeUrId, requireAuth, roleAuthorisation, saveMetaToDb, stringifyMongooseErr, uploadFiles, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { appendBody, deleteFiles, fileMetaLean, makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, saveMetaToDb, stringifyMongooseErr, uploadFiles, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { getLogger } from 'log4js';
 import { checkIpAndAttempt, confirmAccountFactory, determineIfIsPhoneAndMakeFilterObj, isInAdictionaryOnline, isTooCommonPhrase, recoverAccountFactory, resetAccountFactory } from '../controllers/auth.controller';
@@ -140,7 +140,7 @@ companyAuthRoutes.post('/signup', (req, res, next) => {
 }, isTooCommonPhrase, isInAdictionaryOnline, loginFactorRelgator, (req, res) => {
     return res.status(401).send({ success: false, msg: 'unauthourised' });
 });
-companyAuthRoutes.post('recover', async (req, res, next) => {
+companyAuthRoutes.post('/recover', async (req, res, next) => {
     const emailPhone = req.body.emailPhone;
     const emailOrPhone = emailPhone === 'phone' ? 'phone' : 'email';
     let query;
@@ -377,6 +377,41 @@ companyAuthRoutes.post('/addcompanyimg/:companyIdParam', requireAuth, roleAuthor
         };
     }
     return res.status(status).send(response);
+});
+companyAuthRoutes.get('/getonecompany/:urId/:companyIdParam', requireAuth, roleAuthorisation('users', 'read'), async (req, res) => {
+    const { urId } = req.params;
+    const { companyId } = req.user;
+    const { companyIdParam } = req.params;
+    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const oneUser = await companyLean
+        .findOne({ urId, queryId })
+        .populate({ path: 'profilePic', model: fileMetaLean })
+        .populate({ path: 'profileCoverPic', model: fileMetaLean })
+        .populate({ path: 'photos', model: fileMetaLean })
+        .lean();
+    if (!oneUser.companyId) {
+        return res.status(200).send({});
+    }
+    return res.status(200).send(oneUser);
+});
+companyAuthRoutes.get('/getcompanys//:offset/:limit/:companyIdParam', requireAuth, roleAuthorisation('users', 'read'), async (req, res) => {
+    const { companyId } = req.user;
+    const { companyIdParam } = req.params;
+    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
+    const currOffset = offset === 0 ? 0 : offset;
+    const currLimit = limit === 0 ? 1000 : limit;
+    const faqs = await companyLean
+        .find({ companyId: queryId })
+        .sort({ firstName: 1 })
+        .limit(Number(currLimit))
+        .skip(Number(currOffset))
+        .populate({ path: 'profilePic', model: fileMetaLean })
+        .populate({ path: 'profileCoverPic', model: fileMetaLean })
+        .populate({ path: 'photos', model: fileMetaLean })
+        .lean();
+    const filteredFaqs = faqs.filter(data => !data.blocked);
+    return res.status(200).send(filteredFaqs);
 });
 companyAuthRoutes.put('/updatecompanybulk/:companyIdParam', requireAuth, roleAuthorisation('items', 'update'), async (req, res) => {
     const { companyId } = req.user;

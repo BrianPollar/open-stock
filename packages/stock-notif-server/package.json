@@ -1,6 +1,6 @@
 {
   "name": "@open-stock/stock-notif-server",
-  "version": "2.5.5",
+  "version": "2.5.6",
   "description": "> TODO: description",
   "main": "lib/cjs/stock-notif-server/src/index.js",
   "module": "lib/esm/stock-notif-server/src/index.js",
