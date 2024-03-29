@@ -145,7 +145,7 @@ pickupLocationRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, 
             .skip(offset)
             .limit(limit)
             .lean(),
-        pickupLocationLean.countDocuments()
+        pickupLocationLean.countDocuments({ companyId: queryId })
     ]);
     const response = {
         count: all[1],

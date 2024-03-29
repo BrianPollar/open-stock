@@ -259,7 +259,7 @@ invoiceSettingRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, 
       .skip(offset)
       .limit(limit)
       .lean(),
-    invoiceSettingLean.countDocuments()
+    invoiceSettingLean.countDocuments({ companyId: queryId })
   ]);
 
   const response: IdataArrayResponse = {

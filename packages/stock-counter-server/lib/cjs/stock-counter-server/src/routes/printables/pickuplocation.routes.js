@@ -149,7 +149,7 @@ exports.pickupLocationRoutes.get('/getall/:offset/:limit/:companyIdParam', stock
             .skip(offset)
             .limit(limit)
             .lean(),
-        pickuplocation_model_1.pickupLocationLean.countDocuments()
+        pickuplocation_model_1.pickupLocationLean.countDocuments({ companyId: queryId })
     ]);
     const response = {
         count: all[1],

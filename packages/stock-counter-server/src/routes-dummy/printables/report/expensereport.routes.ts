@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
+import { IdataArrayResponse } from '@open-stock/stock-universal';
 import express from 'express';
 import { createMockExpenseReport, createMockExpenseReports } from '../../../../../tests/stock-counter-mocks';
-import { IdataArrayResponse } from '@open-stock/stock-universal';
 
 /**
  * Expense report routes.
@@ -29,7 +29,11 @@ expenseReportRoutesDummy.delete('/deleteone/:id/:companyIdParam', (req, res) => 
 });
 
 expenseReportRoutesDummy.post('/search/:offset/:limit/:companyIdParam', (req, res) => {
-  res.status(200).send(createMockExpenseReports(Number(req.params.limit)));
+  const response: IdataArrayResponse = {
+    count: req.params.limit,
+    data: createMockExpenseReports(Number(req.params.limit))
+  };
+  res.status(200).send(response);
 });
 
 

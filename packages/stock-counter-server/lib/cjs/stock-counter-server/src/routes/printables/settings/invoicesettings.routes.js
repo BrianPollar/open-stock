@@ -248,7 +248,7 @@ exports.invoiceSettingRoutes.get('/getall/:offset/:limit/:companyIdParam', stock
             .skip(offset)
             .limit(limit)
             .lean(),
-        invoicesettings_model_1.invoiceSettingLean.countDocuments()
+        invoicesettings_model_1.invoiceSettingLean.countDocuments({ companyId: queryId })
     ]);
     const response = {
         count: all[1],

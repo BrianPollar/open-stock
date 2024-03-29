@@ -6,7 +6,6 @@ import express from 'express';
 import { getLogger } from 'log4js';
 import { staffLean, staffMain } from '../../models/user-related/staff.model';
 import { removeManyUsers, removeOneUser } from './locluser.routes';
-import { all } from 'axios';
 
 
 const staffRoutesLogger = getLogger('routes/staffRoutes');
@@ -163,24 +162,31 @@ staffRoutes.post('/search/:limit/:offset/:companyIdParam', async(req, res) => {
   if (!extraDetails) {
     matchFilter = {};
   }
-  const staffs = await staffLean
-    .find({ companyId: queryId, ...filters })
-    .populate({ path: 'user', model: userLean, match: { ...matchFilter },
-      populate: [{
+  const all = await Promise.all([
+    staffLean
+      .find({ companyId: queryId, ...filters })
+      .populate({ path: 'user', model: userLean, match: { ...matchFilter },
+        populate: [{
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-      }, {
+          path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+        }, {
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-      }, {
+          path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+        }, {
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        path: 'profileCoverPic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-      }] })
-    .skip(offset)
-    .limit(limit)
-    .lean();
-  const staffsToReturn = staffs.filter(val => val.user);
-  return res.status(200).send(staffsToReturn);
+          path: 'profileCoverPic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+        }] })
+      .skip(offset)
+      .limit(limit)
+      .lean(),
+    staffLean.countDocuments({ companyId: queryId, ...filters })
+  ]);
+  const staffsToReturn = all[0].filter(val => val.user);
+  const response: IdataArrayResponse = {
+    count: all[1],
+    data: staffsToReturn
+  };
+  return res.status(200).send(response);
 });
 
 staffRoutes.put('/update/:companyIdParam', requireAuth, roleAuthorisation('users', 'update'), async(req, res) => {
