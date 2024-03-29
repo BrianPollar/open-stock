@@ -11,13 +11,21 @@ salesReportRoutesDummy.get('/getone/:urId/:companyIdParam', (req, res) => {
     res.status(200).send(createMockSalesReport());
 });
 salesReportRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) => {
-    res.status(200).send(createMockSalesReports(Number(req.params.limit)));
+    const response = {
+        count: req.params.limit,
+        data: createMockSalesReports(Number(req.params.limit))
+    };
+    res.status(200).send(response);
 });
 salesReportRoutesDummy.delete('/deleteone/:id/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });
 });
 salesReportRoutesDummy.post('/search/:limit/:offset/:companyIdParam', (req, res) => {
-    res.status(200).send(createMockSalesReports(Number(req.params.limit)));
+    const response = {
+        count: req.params.limit,
+        data: createMockSalesReports(Number(req.params.limit))
+    };
+    res.status(200).send(response);
 });
 salesReportRoutesDummy.put('/deletemany/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });

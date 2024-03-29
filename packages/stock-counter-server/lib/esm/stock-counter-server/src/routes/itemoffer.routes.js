@@ -1,9 +1,8 @@
-/* eslint-disable @typescript-eslint/no-misused-promises */
 import { fileMetaLean, makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { getLogger } from 'log4js';
-import { itemOfferLean, itemOfferMain } from '../models/itemoffer.model';
 import { itemLean } from '../models/item.model';
+import { itemOfferLean, itemOfferMain } from '../models/itemoffer.model';
 /** Logger for item offer routes */
 const itemOfferRoutesLogger = getLogger('routes/itemOfferRoutes');
 /**
@@ -82,20 +81,27 @@ itemOfferRoutes.get('/getall/:type/:offset/:limit/:companyIdParam', async (req, 
     if (type !== 'all') {
         filter = { type, companyId };
     }
-    const items = await itemOfferLean
-        .find(filter)
-        .skip(offset)
-        .limit(limit)
-        .populate({
-        path: 'items', model: itemLean,
-        populate: [{
-                // eslint-disable-next-line @typescript-eslint/naming-convention
-                path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-            }
-        ]
-    })
-        .lean();
-    return res.status(200).send(items);
+    const all = await Promise.all([
+        itemOfferLean
+            .find(filter)
+            .skip(offset)
+            .limit(limit)
+            .populate({
+            path: 'items', model: itemLean,
+            populate: [{
+                    // eslint-disable-next-line @typescript-eslint/naming-convention
+                    path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+                }
+            ]
+        })
+            .lean(),
+        itemOfferLean.countDocuments(filter)
+    ]);
+    const response = {
+        count: all[1],
+        data: all[0]
+    };
+    return res.status(200).send(response);
 });
 /**
  * Route for getting a single item offer by ID

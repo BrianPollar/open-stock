@@ -42,7 +42,10 @@ class Faq extends stock_universal_1.DatabaseAuto {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
             .makeGet(`/faq/${url}/${offset}/${limit}/${companyId}`);
         const faqs = await (0, rxjs_1.lastValueFrom)(observer$);
-        return faqs.map(val => new Faq(val));
+        return {
+            count: faqs.count,
+            faqs: faqs.data.map(val => new Faq(val))
+        };
     }
     /**
      * Retrieves a single FAQ from the server.
@@ -135,7 +138,7 @@ class FaqAnswer extends stock_universal_1.DatabaseAuto {
     static async getFaqAns(companyId, faq) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makeGet(`/faq/getallans/${faq}/${companyId}`);
         const faqans = await (0, rxjs_1.lastValueFrom)(observer$);
-        return faqans.map(val => new FaqAnswer(val));
+        return faqans.data.map(val => new FaqAnswer(val));
     }
     /**
      * Retrieves a single FAQ answer by its ID.

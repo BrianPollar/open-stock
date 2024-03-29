@@ -117,8 +117,9 @@ class PaymentController {
      */
     async getDeliveryCitys(companyId, deliveryCitys, address, isDemo = false) {
         if (!deliveryCitys?.length) {
-            deliveryCitys = await delivery_define_1.DeliveryCity
+            const { count, citys } = await delivery_define_1.DeliveryCity
                 .getDeliveryCitys(companyId);
+            deliveryCitys = citys;
             if (!address) {
                 this.currentCity = deliveryCitys[0];
             }

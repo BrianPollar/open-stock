@@ -12,7 +12,11 @@ expenseReportRoutesDummy.get('/getone/:urId/:companyIdParam', (req, res) => {
     res.status(200).send(createMockExpenseReport());
 });
 expenseReportRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) => {
-    res.status(200).send(createMockExpenseReports(Number(req.params.limit)));
+    const response = {
+        count: req.params.limit,
+        data: createMockExpenseReports(Number(req.params.limit))
+    };
+    res.status(200).send(response);
 });
 expenseReportRoutesDummy.delete('/deleteone/:id/:companyIdParam', (req, res) => {
     return res.status(200).send({ success: true });

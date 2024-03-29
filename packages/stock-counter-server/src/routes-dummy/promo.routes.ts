@@ -1,3 +1,4 @@
+import { IdataArrayResponse } from '@open-stock/stock-universal';
 import express from 'express';
 
 /**
@@ -18,7 +19,11 @@ promocodeRoutesDummy.get('/getonebycode/:code/:companyIdParam', (req, res) => {
 });
 
 promocodeRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) => {
-  res.status(200).send([]);
+  const response: IdataArrayResponse = {
+    count: req.params.limit,
+    data: []
+  };
+  res.status(200).send(response);
 });
 
 promocodeRoutesDummy.delete('/deleteone/:id/:companyIdParam', (req, res) => {

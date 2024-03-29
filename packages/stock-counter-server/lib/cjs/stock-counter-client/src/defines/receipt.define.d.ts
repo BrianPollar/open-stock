@@ -52,7 +52,10 @@ export declare class InvoiceRelated extends DatabaseAuto {
      * @param companyId - The ID of the company
      * @returns An array of invoice payments.
      */
-    static getInvoicePayments(companyId: string): Promise<Receipt[]>;
+    static getInvoicePayments(companyId: string): Promise<{
+        count: number;
+        invoicepays: Receipt[];
+    }>;
     /**
      * Gets a single invoice payment.
      * @param companyId - The ID of the company
@@ -113,7 +116,10 @@ export declare class Receipt extends InvoiceRelated {
      * @param limit - The limit for pagination. Default value is 0.
      * @returns An array of receipts.
      */
-    static getReceipts(companyId: string, url?: string, offset?: number, limit?: number): Promise<Receipt[]>;
+    static getReceipts(companyId: string, url?: string, offset?: number, limit?: number): Promise<{
+        count: number;
+        receipts: Receipt[];
+    }>;
     /**
      * Retrieves a single receipt based on the company ID and user ID.
      * @param companyId - The ID of the company.

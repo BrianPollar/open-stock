@@ -1,8 +1,7 @@
-/* eslint-disable @typescript-eslint/no-misused-promises */
-import express from 'express';
-import { deliverycityLean, deliverycityMain } from '../models/deliverycity.model';
-import { getLogger } from 'log4js';
 import { offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import express from 'express';
+import { getLogger } from 'log4js';
+import { deliverycityLean, deliverycityMain } from '../models/deliverycity.model';
 /**
  * Logger for deliverycity routes
  */
@@ -99,12 +98,19 @@ deliverycityRoutes.get('/getall/:offset/:limit/:companyIdParam', async (req, res
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const deliverycitys = await deliverycityLean
-        .find({ companyId: queryId })
-        .skip(offset)
-        .limit(limit)
-        .lean();
-    return res.status(200).send(deliverycitys);
+    const all = await Promise.all([
+        deliverycityLean
+            .find({ companyId: queryId })
+            .skip(offset)
+            .limit(limit)
+            .lean(),
+        deliverycityLean.countDocuments({ companyId: queryId })
+    ]);
+    const response = {
+        count: all[1],
+        data: all[0]
+    };
+    return res.status(200).send(response);
 });
 /**
  * Route for updating a delivery city by ID

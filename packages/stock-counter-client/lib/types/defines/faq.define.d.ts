@@ -34,7 +34,10 @@ export declare class Faq extends DatabaseAuto {
      * @param limit The maximum number of FAQs to retrieve.
      * @returns An array of Faq instances.
      */
-    static getFaqs(companyId: string, url?: string, offset?: number, limit?: number): Promise<Faq[]>;
+    static getFaqs(companyId: string, url?: string, offset?: number, limit?: number): Promise<{
+        count: number;
+        faqs: Faq[];
+    }>;
     /**
      * Retrieves a single FAQ from the server.
      * @param companyId - The ID of the company

@@ -1,11 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProfitAndLossReport = void 0;
-const rxjs_1 = require("rxjs");
-const invoice_define_1 = require("../invoice.define");
 const stock_universal_1 = require("@open-stock/stock-universal");
+const rxjs_1 = require("rxjs");
 const stock_counter_client_1 = require("../../stock-counter-client");
 const expense_define_1 = require("../expense.define");
+const invoice_define_1 = require("../invoice.define");
 /** The  ProfitAndLossReport  class extends the  DatabaseAuto  class. It has properties such as  urId ,  totalAmount ,  date ,  expenses , and  invoiceRelateds . The constructor takes an object  data  as an argument and assigns its properties to the corresponding class properties. It also converts the  expenses  and  invoiceRelateds  arrays into instances of the  Expense  and  InvoiceRelated  classes, respectively.
 
 The class has several static methods:
@@ -42,7 +42,10 @@ class ProfitAndLossReport extends stock_universal_1.DatabaseAuto {
     static async getProfitAndLossReports(companyId, url = 'getall', offset = 0, limit = 20) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makeGet(`/profitandlossreport//${url}/${offset}/${limit}/${companyId}`);
         const profitandlossreports = await (0, rxjs_1.lastValueFrom)(observer$);
-        return profitandlossreports.map((val) => new ProfitAndLossReport(val));
+        return {
+            count: profitandlossreports.count,
+            profitandlossreports: profitandlossreports.data.map((val) => new ProfitAndLossReport(val))
+        };
     }
     /**
      * Retrieves a single profit and loss report based on the provided urId.

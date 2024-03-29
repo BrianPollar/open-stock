@@ -1,7 +1,7 @@
 /**
  * Router for authentication routes.
  */
-export declare const authRoutes: any;
+export declare const userAuthRoutes: any;
 /**
  * Handles the user login request.
  * @param req - The request object.

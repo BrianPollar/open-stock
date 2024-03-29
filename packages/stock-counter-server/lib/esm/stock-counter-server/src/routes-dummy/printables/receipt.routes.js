@@ -11,13 +11,21 @@ receiptRoutesDummy.get('/getone/:urId/:companyIdParam', (req, res) => {
     res.status(200).send(createMockReceipt());
 });
 receiptRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) => {
-    res.status(200).send(createMockReceipts(Number(req.params.limit)));
+    const response = {
+        count: req.params.limit,
+        data: createMockReceipts(Number(req.params.limit))
+    };
+    res.status(200).send(response);
 });
 receiptRoutesDummy.put('/deleteone/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });
 });
 receiptRoutesDummy.post('/search/:limit/:offset/:companyIdParam', (req, res) => {
-    res.status(200).send(createMockReceipts(Number(req.params.limit)));
+    const response = {
+        count: req.params.limit,
+        data: createMockReceipts(Number(req.params.limit))
+    };
+    res.status(200).send(response);
 });
 receiptRoutesDummy.put('/update/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });

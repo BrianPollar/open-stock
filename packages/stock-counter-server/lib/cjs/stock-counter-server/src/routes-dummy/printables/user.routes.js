@@ -52,7 +52,11 @@ exports.authRoutesDummy.get('/getoneuser/:urId/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });
 });
 exports.authRoutesDummy.get('/getusers/:where/:offset/:limit/:companyIdParam', (req, res) => {
-    res.status(200).send({ success: true });
+    const response = {
+        count: req.params.limit,
+        data: []
+    };
+    res.status(200).send(response);
 });
 exports.authRoutesDummy.post('/adduser/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });

@@ -1,7 +1,7 @@
+import { DatabaseAuto, IdataArrayResponse, IinvoicesReport, Isuccess } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
-import { Invoice } from '../invoice.define';
-import { DatabaseAuto, IinvoicesReport, Isuccess } from '@open-stock/stock-universal';
 import { StockCounterClient } from '../../stock-counter-client';
+import { Invoice } from '../invoice.define';
 
 /**
  * InvoiceReport  class: This class represents an invoice report object.
@@ -44,10 +44,13 @@ export class InvoiceReport extends DatabaseAuto {
    * @param {number} [limit=0] - The limit of the HTTP GET request
    * @returns {Promise<InvoiceReport[]>} - An array of InvoiceReport instances
    */
-  static async getInvoiceReports(companyId: string, url = 'getall', offset = 0, limit = 20): Promise<InvoiceReport[]> {
+  static async getInvoiceReports(companyId: string, url = 'getall', offset = 0, limit = 20) {
     const observer$ = StockCounterClient.ehttp.makeGet(`/invoicesreport/${url}/${offset}/${limit}/${companyId}`);
-    const invoicesreports = await lastValueFrom(observer$) as IinvoicesReport[];
-    return invoicesreports.map((val) => new InvoiceReport(val));
+    const invoicesreports = await lastValueFrom(observer$) as IdataArrayResponse;
+    return {
+      count: invoicesreports.count,
+      invoicesreports: invoicesreports.data.map((val) => new InvoiceReport(val as IinvoicesReport))
+    };
   }
 
   /**

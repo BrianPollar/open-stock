@@ -1,5 +1,5 @@
 
-import { DatabaseAuto, IblockedReasons, Icompany, Ifile, IfileMeta, Isuccess } from '@open-stock/stock-universal';
+import { DatabaseAuto, IblockedReasons, Icompany, IdataArrayResponse, Ifile, IfileMeta, Isuccess } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
 import { StockAuthClient } from '../stock-auth-client';
 
@@ -44,8 +44,11 @@ export class Company extends DatabaseAuto {
    */
   static async getCompanys(companyId: string, offset = 0, limit = 20) {
     const observer$ = StockAuthClient.ehttp.makeGet(`/company/getcompanys/${offset}/${limit}/${companyId}`);
-    const companys = await lastValueFrom(observer$) as Icompany[];
-    return companys.map(val => new Company(val));
+    const companys = await lastValueFrom(observer$) as IdataArrayResponse;
+    return {
+      count: companys.count,
+      companys: companys.data.map(val => new Company(val as Icompany))
+    };
   }
 
   /**

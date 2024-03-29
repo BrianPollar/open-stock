@@ -18,16 +18,28 @@ exports.paymentRoutesDummy.get('/getone/:id/:companyIdParam', (req, res) => {
     res.status(200).send((0, stock_counter_mocks_1.createMockPayment)());
 });
 exports.paymentRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) => {
-    res.status(200).send((0, stock_counter_mocks_1.createMockPayments)(Number(req.params.limit)));
+    const response = {
+        count: req.params.limit,
+        data: (0, stock_counter_mocks_1.createMockPayments)(Number(req.params.limit))
+    };
+    res.status(200).send(response);
 });
 exports.paymentRoutesDummy.get('/getmypayments/:companyIdParam', (req, res) => {
-    res.status(200).send((0, stock_counter_mocks_1.createMockPayments)(Number(req.params.limit)));
+    const response = {
+        count: req.params.limit,
+        data: (0, stock_counter_mocks_1.createMockPayments)(Number(req.params.limit))
+    };
+    res.status(200).send(response);
 });
 exports.paymentRoutesDummy.put('/deleteone/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });
 });
 exports.paymentRoutesDummy.post('/search/:limit/:offset/:companyIdParam', (req, res) => {
-    res.status(200).send({ success: true });
+    const response = {
+        count: req.params.limit,
+        data: []
+    };
+    res.status(200).send(response);
 });
 exports.paymentRoutesDummy.put('/deletemany/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });

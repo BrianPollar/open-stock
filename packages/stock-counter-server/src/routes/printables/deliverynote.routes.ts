@@ -1,9 +1,12 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
 
-import express from 'express';
-import { Icustomrequest, IinvoiceRelated, Isuccess, Iuser } from '@open-stock/stock-universal';
+import { userLean } from '@open-stock/stock-auth-server';
+import { Icustomrequest, IdataArrayResponse, IinvoiceRelated, Isuccess, Iuser } from '@open-stock/stock-universal';
 import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectIds } from '@open-stock/stock-universal-server';
+import express from 'express';
+import { getLogger } from 'log4js';
 import { deliveryNoteLean, deliveryNoteMain } from '../../models/printables/deliverynote.model';
+import { receiptLean } from '../../models/printables/receipt.model';
 import { invoiceRelatedLean } from '../../models/printables/related/invoicerelated.model';
 import {
   deleteAllLinked,
@@ -11,9 +14,6 @@ import {
   relegateInvRelatedCreation,
   updateInvoiceRelated
 } from './related/invoicerelated';
-import { getLogger } from 'log4js';
-import { userLean } from '@open-stock/stock-auth-server';
-import { receiptLean } from '../../models/printables/receipt.model';
 
 /** Logger for delivery note routes */
 const deliveryNoteRoutesLogger = getLogger('routes/deliveryNoteRoutes');
@@ -137,21 +137,24 @@ deliveryNoteRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, ro
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const deliveryNotes = await deliveryNoteLean
-    .find({ companyId: queryId })
-    .skip(offset)
-    .limit(limit)
-    .lean()
-    .populate({
-      path: 'invoiceRelated', model: invoiceRelatedLean,
-      populate: [{
-        path: 'billingUserId', model: userLean
-      },
-      {
-        path: 'payments', model: receiptLean
-      }]
-    });
-  const returned = deliveryNotes
+  const all = await Promise.all([
+    deliveryNoteLean
+      .find({ companyId: queryId })
+      .skip(offset)
+      .limit(limit)
+      .lean()
+      .populate({
+        path: 'invoiceRelated', model: invoiceRelatedLean,
+        populate: [{
+          path: 'billingUserId', model: userLean
+        },
+        {
+          path: 'payments', model: receiptLean
+        }]
+      }),
+    deliveryNoteLean.countDocuments({ companyId: queryId })
+  ]);
+  const returned = all[0]
     .map(val => makeInvoiceRelatedPdct(val.invoiceRelated as Required<IinvoiceRelated>,
       (val.invoiceRelated as IinvoiceRelated)
         .billingUserId as unknown as Iuser, (val).createdAt, {
@@ -159,7 +162,11 @@ deliveryNoteRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, ro
         _id: val._id,
         urId: val.urId
       }));
-  return res.status(200).send(returned);
+  const response: IdataArrayResponse = {
+    count: all[1],
+    data: returned
+  };
+  return res.status(200).send(response);
 });
 
 /**
@@ -214,25 +221,32 @@ deliveryNoteRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, r
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
-  const deliveryNotes = await deliveryNoteLean
-    .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
-    .lean()
-    .skip(offset)
-    .limit(limit)
-    .populate({
-      path: 'invoiceRelated', model: invoiceRelatedLean,
-      populate: [{
-        path: 'billingUserId', model: userLean
-      },
-      {
-        path: 'payments', model: receiptLean
-      }]
-    });
-  const returned = deliveryNotes
+  const all = await Promise.all([
+    deliveryNoteLean
+      .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+      .skip(offset)
+      .limit(limit)
+      .lean()
+      .populate({
+        path: 'invoiceRelated', model: invoiceRelatedLean,
+        populate: [{
+          path: 'billingUserId', model: userLean
+        },
+        {
+          path: 'payments', model: receiptLean
+        }]
+      }),
+    deliveryNoteLean.countDocuments({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+  ]);
+  const returned = all[0]
     .map(val => makeInvoiceRelatedPdct(val.invoiceRelated as Required<IinvoiceRelated>,
       (val.invoiceRelated as IinvoiceRelated)
         .billingUserId as unknown as Iuser));
-  return res.status(200).send(returned);
+  const response: IdataArrayResponse = {
+    count: all[1],
+    data: returned
+  };
+  return res.status(200).send(response);
 });
 
 

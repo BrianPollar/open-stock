@@ -3,7 +3,7 @@
  * @packageDocumentation
  */
 
-import { Iactionwithall, Imainnotification, InotifSetting, Isuccess, TnotifType } from '@open-stock/stock-universal';
+import { Iactionwithall, IdataArrayResponse, Imainnotification, InotifSetting, Isuccess, TnotifType } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
 import { StockNotifClient } from '../stock-notif-client';
 
@@ -69,8 +69,10 @@ export class NotificationMain {
    */
   static async getNotifications(companyId: string, url = 'getmynotifn', offset = 0, limit = 20) {
     const observer$ = StockNotifClient.ehttp.makeGet(`/notification/${url}/${offset}/${limit}/${companyId}`);
-    const notifications = await lastValueFrom(observer$) as Imainnotification[];
-    return notifications.map(val => new NotificationMain(val));
+    const notifications = await lastValueFrom(observer$) as IdataArrayResponse;
+    return {
+      count: notifications.count,
+      notifications: notifications.data.map(val => new NotificationMain(val as Imainnotification)) };
   }
 
   /**

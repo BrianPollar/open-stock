@@ -31,8 +31,11 @@ class Estimate extends invoice_define_1.InvoiceRelatedWithReceipt {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
             .makeGet(`/estimate/${url}/${offset}/${limit}/${companyId}`);
         const estimates = await (0, rxjs_1.lastValueFrom)(observer$);
-        return estimates
-            .map(val => new Estimate(val));
+        return {
+            count: estimates.count,
+            estimates: estimates.data
+                .map(val => new Estimate(val))
+        };
     }
     /**
      * Retrieves a single estimate by its ID from the server by making a GET request.

@@ -40,8 +40,11 @@ export class InvoiceRelated extends DatabaseAuto {
         const observer$ = StockCounterClient.ehttp
             .makeGet(`/invoice/getallpayments/${companyId}`);
         const invoicepays = await lastValueFrom(observer$);
-        return invoicepays
-            .map(val => new Receipt(val));
+        return {
+            count: invoicepays.count,
+            invoicepays: invoicepays.data
+                .map(val => new Receipt(val))
+        };
     }
     /**
      * Gets a single invoice payment.
@@ -128,8 +131,11 @@ export class Receipt extends InvoiceRelated {
         const observer$ = StockCounterClient.ehttp
             .makeGet(`/receipt/${url}/${offset}/${limit}/${companyId}`);
         const receipts = await lastValueFrom(observer$);
-        return receipts
-            .map(val => new Receipt(val));
+        return {
+            count: receipts.count,
+            receipts: receipts.data
+                .map(val => new Receipt(val))
+        };
     }
     /**
      * Retrieves a single receipt based on the company ID and user ID.

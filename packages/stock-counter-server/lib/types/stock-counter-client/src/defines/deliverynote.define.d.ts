@@ -24,7 +24,10 @@ export declare class DeliveryNote extends InvoiceRelatedWithReceipt {
      * @param limit The limit to use for pagination. Defaults to `0`.
      * @returns An array of `DeliveryNote` instances.
      */
-    static getDeliveryNotes(companyId: string, url?: string, offset?: number, limit?: number): Promise<DeliveryNote[]>;
+    static getDeliveryNotes(companyId: string, url?: string, offset?: number, limit?: number): Promise<{
+        count: number;
+        deliverynotes: DeliveryNote[];
+    }>;
     /**
      * Retrieves a single delivery note by its unique identifier (`urId`).
      * Uses the `StockCounterClient.ehttp` object to make an HTTP GET request and returns a single `DeliveryNote` instance.

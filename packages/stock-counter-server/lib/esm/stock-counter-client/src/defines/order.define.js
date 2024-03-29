@@ -1,6 +1,6 @@
 import { lastValueFrom } from 'rxjs';
-import { PaymentRelated } from './payment.define';
 import { StockCounterClient } from '../stock-counter-client';
+import { PaymentRelated } from './payment.define';
 /**
  * Represents an order with payment and delivery information.
  * @extends PaymentRelated
@@ -27,7 +27,7 @@ export class Order extends PaymentRelated {
     static async searchOrders(companyId, searchterm, searchKey) {
         const observer$ = StockCounterClient.ehttp.makePost(`/order/search/${companyId}`, { searchterm, searchKey });
         const orders = await lastValueFrom(observer$);
-        return orders.map(val => new Order(val));
+        return orders.data.map(val => new Order(val));
     }
     /**
      * Deletes multiple orders.
@@ -51,7 +51,10 @@ export class Order extends PaymentRelated {
     static async getOrders(companyId, url = 'getall', offset = 0, limit = 20) {
         const observer$ = StockCounterClient.ehttp.makeGet(`/order/${url}/${offset}/${limit}/${companyId}`);
         const orders = await lastValueFrom(observer$);
-        return orders.map(val => new Order(val));
+        return {
+            count: orders.count,
+            orders: orders.data.map(val => new Order(val))
+        };
     }
     /**
      * Gets a single order by ID.

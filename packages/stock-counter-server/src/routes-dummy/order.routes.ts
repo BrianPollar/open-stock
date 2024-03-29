@@ -1,3 +1,4 @@
+import { IdataArrayResponse } from '@open-stock/stock-universal';
 import express from 'express';
 import { createMockOrder, createMockOrders } from '../../../tests/stock-counter-mocks';
 
@@ -27,11 +28,19 @@ orderRoutesDummy.get('/getone/:id/:companyIdParam', (req, res) => {
 });
 
 orderRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) => {
-  res.status(200).send(createMockOrders(Number(req.params.limit)));
+  const response: IdataArrayResponse = {
+    count: req.params.limit,
+    data: createMockOrders(Number(req.params.limit))
+  };
+  res.status(200).send(response);
 });
 
 orderRoutesDummy.get('/getmyorders/:companyIdParam', (req, res) => {
-  res.status(200).send(createMockOrders(10));
+  const response: IdataArrayResponse = {
+    count: req.params.limit,
+    data: createMockOrders(10)
+  };
+  res.status(200).send(response);
 });
 
 orderRoutesDummy.put('/deleteone/:companyIdParam', (req, res) => {
@@ -43,7 +52,11 @@ orderRoutesDummy.put('/appendDelivery/:orderId/:status/:companyIdParam', (req, r
 });
 
 orderRoutesDummy.post('/search/:limit/:offset/:companyIdParam', (req, res) => {
-  res.status(200).send(createMockOrders(Number(req.params.limit)));
+  const response: IdataArrayResponse = {
+    count: req.params.limit,
+    data: createMockOrders(Number(req.params.limit))
+  };
+  res.status(200).send(response);
 });
 
 orderRoutesDummy.put('/deletemany/:companyIdParam', (req, res) => {

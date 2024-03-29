@@ -1,10 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ItemOffer = void 0;
-const rxjs_1 = require("rxjs");
-const item_define_1 = require("./item.define");
 const stock_universal_1 = require("@open-stock/stock-universal");
+const rxjs_1 = require("rxjs");
 const stock_counter_client_1 = require("../stock-counter-client");
+const item_define_1 = require("./item.define");
 /**
  * Represents an item offer.
  */
@@ -36,7 +36,10 @@ class ItemOffer extends stock_universal_1.DatabaseAuto {
     static async getItemOffers(companyId, type, url = 'getall', offset = 0, limit = 20) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makeGet(`/itemoffer/${url}/${type}/${offset}/${limit}/${companyId}`);
         const offers = await (0, rxjs_1.lastValueFrom)(observer$);
-        return offers.map((val) => new ItemOffer(val));
+        return {
+            count: offers.count,
+            offers: offers.data.map((val) => new ItemOffer(val))
+        };
     }
     /**
      * Gets a single item offer.

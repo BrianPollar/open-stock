@@ -1,6 +1,7 @@
 import {
   DatabaseAuto,
   IcostMeta,
+  IdataArrayResponse,
   Ifile,
   IfileMeta,
   IinventoryMeta, Iitem, Isponsored,
@@ -151,9 +152,11 @@ export class Item extends DatabaseAuto {
   ) {
     const observer$ = StockCounterClient.ehttp
       .makeGet(`${url}/${offset}/${limit}/${companyId}`);
-    const items = await lastValueFrom(observer$) as unknown[];
-    return items
-      .map(val => new Item(val));
+    const items = await lastValueFrom(observer$) as IdataArrayResponse;
+    return {
+      count: items.count,
+      items: items.data
+        .map(val => new Item(val)) };
   }
 
   /**
@@ -168,7 +171,7 @@ export class Item extends DatabaseAuto {
   ) {
     const observer$ = StockCounterClient.ehttp
       .makeGet(`${url}/${companyId}`);
-    const item = await lastValueFrom(observer$) as unknown[];
+    const item = await lastValueFrom(observer$);
     return new Item(item);
   }
 
@@ -335,11 +338,11 @@ export class Item extends DatabaseAuto {
     const mappedIds = this.sponsored.map(val =>(val.item as unknown as Item)._id || val.item);
     const observer$ = StockCounterClient.ehttp
       .makePost(`/item/getsponsored/${companyId}`, { sponsored: mappedIds || [] });
-    const items = await lastValueFrom(observer$) as unknown[];
+    const items = await lastValueFrom(observer$) as IdataArrayResponse;
     return this.sponsored
       .map(sponsrd => {
         sponsrd.item = new Item(
-          items.find(val => (val as Item)._id === (sponsrd.item as unknown as Item)._id || sponsrd.item)) as unknown as Iitem;
+          items.data.find(val => (val as Item)._id === (sponsrd.item as unknown as Item)._id || sponsrd.item)) as unknown as Iitem;
       });
   }
 

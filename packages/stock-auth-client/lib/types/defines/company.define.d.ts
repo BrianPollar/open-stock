@@ -33,7 +33,10 @@ export declare class Company extends DatabaseAuto {
      * @param limit The maximum number of companys to retrieve.
      * @returns An array of Company instances created from the retrieved company objects.
      */
-    static getCompanys(companyId: string, url: string, offset?: number, limit?: number): Promise<Company[]>;
+    static getCompanys(companyId: string, offset?: number, limit?: number): Promise<{
+        count: number;
+        companys: Company[];
+    }>;
     /**
      * Retrieves a single company based on the provided company ID.
      * @param companyId - The ID of the company

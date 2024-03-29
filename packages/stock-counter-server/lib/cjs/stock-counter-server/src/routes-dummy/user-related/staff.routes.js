@@ -2,7 +2,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.staffRoutesDummy = void 0;
 const tslib_1 = require("tslib");
-/* eslint-disable @typescript-eslint/no-misused-promises */
 const express_1 = tslib_1.__importDefault(require("express"));
 const stock_counter_mocks_1 = require("../../../../tests/stock-counter-mocks");
 /**
@@ -15,11 +14,26 @@ exports.staffRoutesDummy.post('/create/:companyIdParam', (req, res) => {
 exports.staffRoutesDummy.get('/getone/:id/:companyIdParam', (req, res) => {
     res.status(200).send((0, stock_counter_mocks_1.createMockStaff)());
 });
+exports.staffRoutesDummy.get('/getall/:offset/:limit/:role/:companyIdParam', (req, res) => {
+    const response = {
+        count: req.params.limit,
+        data: (0, stock_counter_mocks_1.createMockStaffs)(Number(req.params.limit))
+    };
+    res.status(200).send(response);
+});
 exports.staffRoutesDummy.get('/getbyrole/:offset/:limit/:role/:companyIdParam', (req, res) => {
-    res.status(200).send((0, stock_counter_mocks_1.createMockStaffs)(Number(req.params.limit)));
+    const response = {
+        count: req.params.limit,
+        data: (0, stock_counter_mocks_1.createMockStaffs)(Number(req.params.limit))
+    };
+    res.status(200).send(response);
 });
 exports.staffRoutesDummy.post('/search/:limit/:offset/:companyIdParam', (req, res) => {
-    res.status(200).send((0, stock_counter_mocks_1.createMockStaffs)(Number(req.params.limit)));
+    const response = {
+        count: req.params.limit,
+        data: (0, stock_counter_mocks_1.createMockStaffs)(Number(req.params.limit))
+    };
+    res.status(200).send(response);
 });
 exports.staffRoutesDummy.put('/update/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });

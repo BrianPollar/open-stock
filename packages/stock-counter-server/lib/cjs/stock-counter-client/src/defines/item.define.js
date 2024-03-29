@@ -50,8 +50,11 @@ class Item extends stock_universal_1.DatabaseAuto {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
             .makeGet(`${url}/${offset}/${limit}/${companyId}`);
         const items = await (0, rxjs_1.lastValueFrom)(observer$);
-        return items
-            .map(val => new Item(val));
+        return {
+            count: items.count,
+            items: items.data
+                .map(val => new Item(val))
+        };
     }
     /**
      * Gets a single item.
@@ -201,7 +204,7 @@ class Item extends stock_universal_1.DatabaseAuto {
         const items = await (0, rxjs_1.lastValueFrom)(observer$);
         return this.sponsored
             .map(sponsrd => {
-            sponsrd.item = new Item(items.find(val => val._id === sponsrd.item._id || sponsrd.item));
+            sponsrd.item = new Item(items.data.find(val => val._id === sponsrd.item._id || sponsrd.item));
         });
     }
     /**

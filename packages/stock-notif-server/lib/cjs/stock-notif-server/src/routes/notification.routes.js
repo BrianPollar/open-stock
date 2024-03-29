@@ -21,21 +21,35 @@ exports.notifnRoutes.get('/getmynotifn/:companyIdParam', stock_universal_server_
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
-    const notifs = await mainnotification_model_1.mainnotificationLean
-        .find({ userId, active: true, viewed: { $nin: [userId] }, companyId: queryId })
-        .lean()
-        .sort({ name: 'asc' });
-    return res.status(200).send(notifs);
+    const all = await Promise.all([
+        mainnotification_model_1.mainnotificationLean
+            .find({ userId, active: true, viewed: { $nin: [userId] }, companyId: queryId })
+            .lean()
+            .sort({ name: 'asc' }),
+        mainnotification_model_1.mainnotificationLean.countDocuments({ userId, active: true, viewed: { $nin: [userId] }, companyId: queryId })
+    ]);
+    const response = {
+        count: all[1],
+        data: all[0]
+    };
+    return res.status(200).send(response);
 });
 exports.notifnRoutes.get('/getmyavailnotifn/:companyIdParam', stock_universal_server_1.requireAuth, async (req, res) => {
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const notifs = await mainnotification_model_1.mainnotificationLean
-        .find({ active: true, companyId: queryId })
-        .lean()
-        .sort({ name: 'asc' });
-    return res.status(200).send(notifs);
+    const all = await Promise.all([
+        mainnotification_model_1.mainnotificationLean
+            .find({ active: true, companyId: queryId })
+            .lean()
+            .sort({ name: 'asc' }),
+        mainnotification_model_1.mainnotificationLean.countDocuments({ active: true, companyId: queryId })
+    ]);
+    const response = {
+        count: all[1],
+        data: all[0]
+    };
+    return res.status(200).send(response);
 });
 exports.notifnRoutes.get('/getone/:id/:companyIdParam', stock_universal_server_1.requireAuth, async (req, res) => {
     const { companyId } = req.user;

@@ -1,4 +1,4 @@
-import { DatabaseAuto, Iexpense, Isuccess, TexpenseCategory } from '@open-stock/stock-universal';
+import { DatabaseAuto, IdataArrayResponse, Iexpense, Isuccess, TexpenseCategory } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
 import { StockCounterClient } from '../stock-counter-client';
 import { Item } from './item.define';
@@ -61,8 +61,11 @@ export class Expense extends DatabaseAuto {
    */
   static async getExpenses(companyId: string, url = 'getall', offset = 0, limit = 20) {
     const observer$ = StockCounterClient.ehttp.makeGet(`/expense/${url}/${offset}/${limit}/${companyId}`);
-    const expenses = await lastValueFrom(observer$) as Iexpense[];
-    return expenses.map((val) => new Expense(val));
+    const expenses = await lastValueFrom(observer$) as IdataArrayResponse;
+    return {
+      count: expenses.count,
+      expenses: expenses.data.map((val) => new Expense(val as Iexpense))
+    };
   }
 
   /**

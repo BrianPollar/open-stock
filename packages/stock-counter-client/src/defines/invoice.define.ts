@@ -1,4 +1,4 @@
-import { IdeleteCredentialsInvRel, Iinvoice, IinvoiceRelated, Isuccess } from '@open-stock/stock-universal';
+import { IdataArrayResponse, IdeleteCredentialsInvRel, Iinvoice, IinvoiceRelated, Isuccess } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
 import { StockCounterClient } from '../stock-counter-client';
 import { InvoiceRelated, Receipt } from './receipt.define';
@@ -38,9 +38,12 @@ export class InvoiceRelatedWithReceipt
   ) {
     const observer$ = StockCounterClient.ehttp
       .makeGet(`/invoicerelated/${url}/${offset}/${limit}/${companyId}`);
-    const invoiceRelateds = await lastValueFrom(observer$) as Required<IinvoiceRelated>[];
-    return invoiceRelateds
-      .map(val => new InvoiceRelatedWithReceipt(val));
+    const invoiceRelateds = await lastValueFrom(observer$) as IdataArrayResponse;
+    return {
+      count: invoiceRelateds.count,
+      invoiceRelateds: invoiceRelateds.data
+        .map(val => new InvoiceRelatedWithReceipt(val as Required<IinvoiceRelated>))
+    };
   }
 
   /**
@@ -65,9 +68,12 @@ export class InvoiceRelatedWithReceipt
     };
     const observer$ = StockCounterClient.ehttp
       .makePost(`/invoicerelated/search/${offset}/${limit}/${companyId}`, body);
-    const invoiceRelateds = await lastValueFrom(observer$) as Required<IinvoiceRelated>[];
-    return invoiceRelateds
-      .map(val => new InvoiceRelatedWithReceipt(val));
+    const invoiceRelateds = await lastValueFrom(observer$) as IdataArrayResponse;
+    return {
+      count: invoiceRelateds.count,
+      invoiceRelateds: invoiceRelateds.data
+        .map(val => new InvoiceRelatedWithReceipt(val as Required<IinvoiceRelated>))
+    };
   }
 
   /**
@@ -120,9 +126,11 @@ export class Invoice extends InvoiceRelatedWithReceipt {
   ) {
     const observer$ = StockCounterClient.ehttp
       .makeGet(`/invoice/${url}/${offset}/${limit}/${companyId}`);
-    const invoices = await lastValueFrom(observer$) as Required<Iinvoice>[];
-    return invoices
-      .map(val => new Invoice(val));
+    const invoices = await lastValueFrom(observer$) as IdataArrayResponse;
+    return {
+      count: invoices.count,
+      invoices: invoices.data
+        .map(val => new Invoice(val as Required<Iinvoice>)) };
   }
 
   /**

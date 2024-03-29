@@ -1,11 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TaxReport = void 0;
+const stock_universal_1 = require("@open-stock/stock-universal");
 const rxjs_1 = require("rxjs");
+const stock_counter_client_1 = require("../../stock-counter-client");
 const estimate_define_1 = require("../estimate.define");
 const invoice_define_1 = require("../invoice.define");
-const stock_universal_1 = require("@open-stock/stock-universal");
-const stock_counter_client_1 = require("../../stock-counter-client");
 /**
  * TaxReport class: This class represents a tax report object. It extends the DatabaseAuto class.
  */
@@ -39,7 +39,10 @@ class TaxReport extends stock_universal_1.DatabaseAuto {
     static async getTaxReports(companyId, url = 'getall', offset = 0, limit = 20) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makeGet(`/taxreport/${url}/${offset}/${limit}/${companyId}`);
         const taxreports = await (0, rxjs_1.lastValueFrom)(observer$);
-        return taxreports.map((val) => new TaxReport(val));
+        return {
+            count: taxreports.count,
+            taxreports: taxreports.data.map((val) => new TaxReport(val))
+        };
     }
     /**
      * Retrieves a single tax report from the server based on the provided unique identifier (urId).

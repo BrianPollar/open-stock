@@ -2,14 +2,14 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.invoiceRoutes = exports.saveInvoice = void 0;
 const tslib_1 = require("tslib");
-const express_1 = tslib_1.__importDefault(require("express"));
+const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
+const express_1 = tslib_1.__importDefault(require("express"));
+const log4js_1 = require("log4js");
 const invoice_model_1 = require("../../models/printables/invoice.model");
+const receipt_model_1 = require("../../models/printables/receipt.model");
 const invoicerelated_model_1 = require("../../models/printables/related/invoicerelated.model");
 const invoicerelated_1 = require("./related/invoicerelated");
-const log4js_1 = require("log4js");
-const stock_auth_server_1 = require("@open-stock/stock-auth-server");
-const receipt_model_1 = require("../../models/printables/receipt.model");
 /** Logger for invoice routes */
 const invoiceRoutesLogger = (0, log4js_1.getLogger)('routes/invoiceRoutes');
 /**
@@ -168,24 +168,31 @@ exports.invoiceRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_univer
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const invoices = await invoice_model_1.invoiceLean
-        .find({ companyId: queryId })
-        .skip(offset)
-        .limit(limit)
-        .lean()
-        .populate({
-        path: 'invoiceRelated', model: invoicerelated_model_1.invoiceRelatedLean,
-        populate: [{
-                path: 'billingUserId', model: stock_auth_server_1.userLean
-            },
-            {
-                path: 'payments', model: receipt_model_1.receiptLean
-            }]
-    });
-    const returned = invoices
+    const all = await Promise.all([
+        invoice_model_1.invoiceLean
+            .find({ companyId: queryId })
+            .skip(offset)
+            .limit(limit)
+            .lean()
+            .populate({
+            path: 'invoiceRelated', model: invoicerelated_model_1.invoiceRelatedLean,
+            populate: [{
+                    path: 'billingUserId', model: stock_auth_server_1.userLean
+                },
+                {
+                    path: 'payments', model: receipt_model_1.receiptLean
+                }]
+        }),
+        invoice_model_1.invoiceLean.countDocuments({ companyId: queryId })
+    ]);
+    const returned = all[0]
         .map(val => (0, invoicerelated_1.makeInvoiceRelatedPdct)(val.invoiceRelated, val.invoiceRelated
         .billingUserId));
-    return res.status(200).send(returned);
+    const response = {
+        count: all[1],
+        data: returned
+    };
+    return res.status(200).send(response);
 });
 exports.invoiceRoutes.put('/deleteone/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'delete'), async (req, res) => {
     const { id, invoiceRelated, creationType, stage } = req.body;
@@ -210,24 +217,31 @@ exports.invoiceRoutes.post('/search/:limit/:offset/:companyIdParam', stock_unive
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
-    const invoices = await invoice_model_1.invoiceLean
-        .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
-        .lean()
-        .skip(offset)
-        .limit(limit)
-        .populate({
-        path: 'invoiceRelated', model: invoicerelated_model_1.invoiceRelatedLean,
-        populate: [{
-                path: 'billingUserId', model: stock_auth_server_1.userLean
-            },
-            {
-                path: 'payments', model: receipt_model_1.receiptLean
-            }]
-    });
-    const returned = invoices
+    const all = await Promise.all([
+        invoice_model_1.invoiceLean
+            .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+            .skip(offset)
+            .limit(limit)
+            .lean()
+            .populate({
+            path: 'invoiceRelated', model: invoicerelated_model_1.invoiceRelatedLean,
+            populate: [{
+                    path: 'billingUserId', model: stock_auth_server_1.userLean
+                },
+                {
+                    path: 'payments', model: receipt_model_1.receiptLean
+                }]
+        }),
+        invoice_model_1.invoiceLean.countDocuments({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+    ]);
+    const returned = all[0]
         .map(val => (0, invoicerelated_1.makeInvoiceRelatedPdct)(val.invoiceRelated, val.invoiceRelated
         .billingUserId));
-    return res.status(200).send(returned);
+    const response = {
+        count: all[1],
+        data: returned
+    };
+    return res.status(200).send(response);
 });
 exports.invoiceRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'delete'), async (req, res) => {
     const { credentials } = req.body;
@@ -332,10 +346,17 @@ exports.invoiceRoutes.get('/getallpayments/:companyIdParam', stock_universal_ser
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const invoicePays = await receipt_model_1.receiptLean
-        .find({ companyId: queryId })
-        .lean();
-    return res.status(200).send(invoicePays);
+    const all = await Promise.all([
+        receipt_model_1.receiptLean
+            .find({ companyId: queryId })
+            .lean(),
+        receipt_model_1.receiptLean.countDocuments({ companyId: queryId })
+    ]);
+    const response = {
+        count: all[1],
+        data: all[0]
+    };
+    return res.status(200).send(response);
 });
 exports.invoiceRoutes.put('/deleteonepayment/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'delete'), async (req, res) => {
     const { id, invoiceRelated, creationType, stage } = req.body;

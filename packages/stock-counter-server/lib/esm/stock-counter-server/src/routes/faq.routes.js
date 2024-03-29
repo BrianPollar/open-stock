@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
-import express from 'express';
-import { faqanswerLean, faqanswerMain } from '../models/faqanswer.model';
-import { faqLean, faqMain } from '../models/faq.model';
-import { getLogger } from 'log4js';
 import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import express from 'express';
+import { getLogger } from 'log4js';
+import { faqLean, faqMain } from '../models/faq.model';
+import { faqanswerLean, faqanswerMain } from '../models/faqanswer.model';
 /** Logger for faqRoutes */
 const faqRoutesLogger = getLogger('routes/faqRoutes');
 /**
@@ -104,12 +104,19 @@ faqRoutes.get('/getall/:offset/:limit/:companyIdParam', async (req, res) => {
     const { companyIdParam } = req.params;
     // const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
     const queryId = companyIdParam;
-    const faqs = await faqLean
-        .find({ companyId: queryId })
-        .skip(offset)
-        .limit(limit)
-        .lean();
-    return res.status(200).send(faqs);
+    const all = await Promise.all([
+        faqLean
+            .find({ companyId: queryId })
+            .skip(offset)
+            .limit(limit)
+            .lean(),
+        faqLean.countDocuments({ companyId: queryId })
+    ]);
+    const response = {
+        count: all[1],
+        data: all[0]
+    };
+    return res.status(200).send(response);
 });
 /**
  * Delete a single FAQ by ID

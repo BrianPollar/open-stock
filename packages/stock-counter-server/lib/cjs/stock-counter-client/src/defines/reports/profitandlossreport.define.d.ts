@@ -1,6 +1,6 @@
-import { InvoiceRelatedWithReceipt } from '../invoice.define';
 import { DatabaseAuto, IprofitAndLossReport, Isuccess } from '@open-stock/stock-universal';
 import { Expense } from '../expense.define';
+import { InvoiceRelatedWithReceipt } from '../invoice.define';
 /** The  ProfitAndLossReport  class extends the  DatabaseAuto  class. It has properties such as  urId ,  totalAmount ,  date ,  expenses , and  invoiceRelateds . The constructor takes an object  data  as an argument and assigns its properties to the corresponding class properties. It also converts the  expenses  and  invoiceRelateds  arrays into instances of the  Expense  and  InvoiceRelated  classes, respectively.
 
 The class has several static methods:
@@ -29,7 +29,10 @@ export declare class ProfitAndLossReport extends DatabaseAuto {
      * @param limit - The limit to use for pagination. Defaults to 0.
      * @returns An array of ProfitAndLossReport instances.
      */
-    static getProfitAndLossReports(companyId: string, url?: string, offset?: number, limit?: number): Promise<ProfitAndLossReport[]>;
+    static getProfitAndLossReports(companyId: string, url?: string, offset?: number, limit?: number): Promise<{
+        count: number;
+        profitandlossreports: ProfitAndLossReport[];
+    }>;
     /**
      * Retrieves a single profit and loss report based on the provided urId.
      * @param companyId - The ID of the company

@@ -1,3 +1,4 @@
+import { IdataArrayResponse } from '@open-stock/stock-universal';
 import express from 'express';
 import { createMockInvoiceReport, createMockInvoiceReports } from '../../../../../tests/stock-counter-mocks';
 
@@ -15,7 +16,11 @@ invoicesReportRoutesDummy.get('/getone/:urId/:companyIdParam', (req, res) => {
 });
 
 invoicesReportRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) => {
-  res.status(200).send(createMockInvoiceReports(Number(req.params.limit)));
+  const response: IdataArrayResponse = {
+    count: req.params.limit,
+    data: createMockInvoiceReports(Number(req.params.limit))
+  };
+  res.status(200).send(response);
 });
 
 invoicesReportRoutesDummy.delete('/deleteone/:id/:companyIdParam', (req, res) => {
@@ -23,7 +28,11 @@ invoicesReportRoutesDummy.delete('/deleteone/:id/:companyIdParam', (req, res) =>
 });
 
 invoicesReportRoutesDummy.post('/search/:offset/:limit/:companyIdParam', (req, res) => {
-  res.status(200).send(createMockInvoiceReports(Number(req.params.limit)));
+  const response: IdataArrayResponse = {
+    count: req.params.limit,
+    data: createMockInvoiceReports(Number(req.params.limit))
+  };
+  res.status(200).send(response);
 });
 
 invoicesReportRoutesDummy.put('/deletemany/:companyIdParam', (req, res) => {

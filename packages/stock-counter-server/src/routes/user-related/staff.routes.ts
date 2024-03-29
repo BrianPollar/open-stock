@@ -1,11 +1,12 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
 import { loginFactorRelgator, userLean } from '@open-stock/stock-auth-server';
-import { Icustomrequest, Isuccess } from '@open-stock/stock-universal';
+import { Icustomrequest, IdataArrayResponse, Isuccess } from '@open-stock/stock-universal';
 import { deleteFiles, fileMetaLean, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { getLogger } from 'log4js';
 import { staffLean, staffMain } from '../../models/user-related/staff.model';
 import { removeManyUsers, removeOneUser } from './locluser.routes';
+import { all } from 'axios';
 
 
 const staffRoutesLogger = getLogger('routes/staffRoutes');
@@ -79,24 +80,31 @@ staffRoutes.get('/getall/:offset/:limit/:companyIdParam', async(req, res) => {
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const customers = await staffLean
-    .find({ companyId: queryId })
-    .populate({ path: 'user', model: userLean,
-      populate: [{
+  const all = await Promise.all([
+    staffLean
+      .find({ companyId: queryId })
+      .populate({ path: 'user', model: userLean,
+        populate: [{
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-      }, {
+          path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+        }, {
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-      }, {
+          path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+        }, {
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        path: 'profileCoverPic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-      }]
-    })
-    .skip(offset)
-    .limit(limit)
-    .lean();
-  return res.status(200).send(customers);
+          path: 'profileCoverPic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+        }]
+      })
+      .skip(offset)
+      .limit(limit)
+      .lean(),
+    staffLean.countDocuments({ companyId: queryId })
+  ]);
+  const response: IdataArrayResponse = {
+    count: all[1],
+    data: all[0]
+  };
+  return res.status(200).send(response);
 });
 
 staffRoutes.get('/getbyrole/:offset/:limit/:role/:companyIdParam', async(req, res) => {
@@ -104,24 +112,31 @@ staffRoutes.get('/getbyrole/:offset/:limit/:role/:companyIdParam', async(req, re
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam, role } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const staffs = await staffLean
-    .find({ companyId: queryId })
-    .populate({ path: 'user', model: userLean, match: { role },
-      populate: [{
+  const all = await Promise.all([
+    staffLean
+      .find({ companyId: queryId })
+      .populate({ path: 'user', model: userLean, match: { role },
+        populate: [{
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-      }, {
+          path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+        }, {
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-      }, {
+          path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+        }, {
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        path: 'profileCoverPic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-      }] })
-    .skip(offset)
-    .limit(limit)
-    .lean();
-  const staffsToReturn = staffs.filter(val => val.user);
-  return res.status(200).send(staffsToReturn);
+          path: 'profileCoverPic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+        }] })
+      .skip(offset)
+      .limit(limit)
+      .lean(),
+    staffLean.countDocuments({ companyId: queryId })
+  ]);
+  const staffsToReturn = all[0].filter(val => val.user);
+  const response: IdataArrayResponse = {
+    count: all[1],
+    data: staffsToReturn
+  };
+  return res.status(200).send(response);
 });
 
 staffRoutes.post('/search/:limit/:offset/:companyIdParam', async(req, res) => {

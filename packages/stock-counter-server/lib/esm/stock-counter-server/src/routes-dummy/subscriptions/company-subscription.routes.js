@@ -9,7 +9,11 @@ companySubscriptionRoutesDummy.post('/subscribe/:companyIdParam', (req, res) => 
 companySubscriptionRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) => {
     const { offset } = offsetLimitRelegator(req.params.offset, req.params.limit);
     const companySubscriptions = createMockCompanySubscriptions(offset);
-    return res.status(200).send(companySubscriptions);
+    const response = {
+        count: req.params.limit,
+        data: companySubscriptions
+    };
+    return res.status(200).send(response);
 });
 companySubscriptionRoutesDummy.put('/deleteone/:companyIdParam', (req, res) => {
     return res.status(200).send({ success: true });

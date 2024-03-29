@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
 
-import express from 'express';
+import { Icustomrequest, IdataArrayResponse, Isuccess } from '@open-stock/stock-universal';
 import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectIds } from '@open-stock/stock-universal-server';
+import express from 'express';
+import { getLogger } from 'log4js';
 import { paymentLean } from '../../../models/payment.model';
 import { estimateLean } from '../../../models/printables/estimate.model';
 import { taxReportLean, taxReportMain } from '../../../models/printables/report/taxreport.model';
-import { getLogger } from 'log4js';
-import { Icustomrequest, Isuccess } from '@open-stock/stock-universal';
 
 /** Logger for tax report routes */
 const taxReportRoutesLogger = getLogger('routes/taxReportRoutes');
@@ -101,14 +101,21 @@ taxReportRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, roleA
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const taxReports = await taxReportLean
-    .find({ companyId: queryId })
-    .skip(offset)
-    .limit(limit)
-    .lean()
-    .populate({ path: 'estimates', model: estimateLean })
-    .populate({ path: 'payments', model: paymentLean });
-  return res.status(200).send(taxReports);
+  const all = await Promise.all([
+    taxReportLean
+      .find({ companyId: queryId })
+      .skip(offset)
+      .limit(limit)
+      .lean()
+      .populate({ path: 'estimates', model: estimateLean })
+      .populate({ path: 'payments', model: paymentLean }),
+    taxReportLean.countDocuments({ companyId: queryId })
+  ]);
+  const response: IdataArrayResponse = {
+    count: all[1],
+    data: all[0]
+  };
+  return res.status(200).send(response);
 });
 
 /**
@@ -157,14 +164,22 @@ taxReportRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, role
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
-  const taxReports = await taxReportLean
-    .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
-    .lean()
-    .skip(offset)
-    .limit(limit)
-    .populate({ path: 'estimates', model: estimateLean })
-    .populate({ path: 'payments', model: paymentLean });
-  return res.status(200).send(taxReports);
+
+  const all = await Promise.all([
+    taxReportLean
+      .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+      .skip(offset)
+      .limit(limit)
+      .lean()
+      .populate({ path: 'estimates', model: estimateLean })
+      .populate({ path: 'payments', model: paymentLean }),
+    taxReportLean.countDocuments({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+  ]);
+  const response: IdataArrayResponse = {
+    count: all[1],
+    data: all[0]
+  };
+  return res.status(200).send(response);
 });
 
 /**

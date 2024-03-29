@@ -1,5 +1,5 @@
-import { Estimate } from '../estimate.define';
 import { DatabaseAuto, IsalesReport, Isuccess } from '@open-stock/stock-universal';
+import { Estimate } from '../estimate.define';
 import { InvoiceRelatedWithReceipt } from '../invoice.define';
 /**
  * The `SalesReport` class represents a sales report object.
@@ -23,7 +23,10 @@ export declare class SalesReport extends DatabaseAuto {
      * @param limit Optional parameter for the limit of the request.
      * @returns An array of `SalesReport` instances.
      */
-    static getSalesReports(companyId: string, url?: string, offset?: number, limit?: number): Promise<SalesReport[]>;
+    static getSalesReports(companyId: string, url?: string, offset?: number, limit?: number): Promise<{
+        cousnt: number;
+        salesreports: SalesReport[];
+    }>;
     /**
      * Retrieves a single sales report from the server.
      * @param companyId - The ID of the company

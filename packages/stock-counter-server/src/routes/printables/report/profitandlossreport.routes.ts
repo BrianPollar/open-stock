@@ -1,10 +1,10 @@
-import express from 'express';
+import { Icustomrequest, IdataArrayResponse, Isuccess } from '@open-stock/stock-universal';
 import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectIds } from '@open-stock/stock-universal-server';
+import express from 'express';
+import { getLogger } from 'log4js';
 import { expenseLean } from '../../../models/expense.model';
 import { paymentLean } from '../../../models/payment.model';
 import { profitandlossReportLean, profitandlossReportMain } from '../../../models/printables/report/profitandlossreport.model';
-import { getLogger } from 'log4js';
-import { Icustomrequest, Isuccess } from '@open-stock/stock-universal';
 
 /** Logger for the profit and loss report routes */
 const profitAndLossReportRoutesLogger = getLogger('routes/profitAndLossReportRoutes');
@@ -82,14 +82,21 @@ profitAndLossReportRoutes.get('/getall/:offset/:limit/:companyIdParam', requireA
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const profitAndLossReports = await profitandlossReportLean
-    .find({ companyId: queryId })
-    .skip(offset)
-    .limit(limit)
-    .lean()
-    .populate({ path: 'expenses', model: expenseLean })
-    .populate({ path: 'payments', model: paymentLean });
-  return res.status(200).send(profitAndLossReports);
+  const all = await Promise.all([
+    profitandlossReportLean
+      .find({ companyId: queryId })
+      .skip(offset)
+      .limit(limit)
+      .lean()
+      .populate({ path: 'expenses', model: expenseLean })
+      .populate({ path: 'payments', model: paymentLean }),
+    profitandlossReportLean.countDocuments({ companyId: queryId })
+  ]);
+  const response: IdataArrayResponse = {
+    count: all[1],
+    data: all[0]
+  };
+  return res.status(200).send(response);
 });
 
 /**
@@ -126,14 +133,21 @@ profitAndLossReportRoutes.post('/search/:limit/:offset/:companyIdParam', require
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
-  const profitAndLossReports = await profitandlossReportLean
-    .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
-    .lean()
-    .skip(offset)
-    .limit(limit)
-    .populate({ path: 'expenses', model: expenseLean })
-    .populate({ path: 'payments', model: paymentLean });
-  return res.status(200).send(profitAndLossReports);
+  const all = await Promise.all([
+    profitandlossReportLean
+      .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+      .skip(offset)
+      .limit(limit)
+      .lean()
+      .populate({ path: 'expenses', model: expenseLean })
+      .populate({ path: 'payments', model: paymentLean }),
+    profitandlossReportLean.countDocuments({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+  ]);
+  const response: IdataArrayResponse = {
+    count: all[1],
+    data: all[0]
+  };
+  return res.status(200).send(response);
 });
 
 /**

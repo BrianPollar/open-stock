@@ -2,12 +2,11 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.reviewRoutes = void 0;
 const tslib_1 = require("tslib");
-/* eslint-disable @typescript-eslint/no-misused-promises */
+const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
+const log4js_1 = require("log4js");
 const review_model_1 = require("../models/review.model");
 const item_routes_1 = require("./item.routes");
-const log4js_1 = require("log4js");
-const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 /**
  * Logger for review routes
  */
@@ -106,12 +105,19 @@ exports.reviewRoutes.get('/getone/:id/:companyIdParam', async (req, res) => {
 exports.reviewRoutes.get('/getall/:id/:companyIdParam', async (req, res) => {
     const { companyIdParam } = req.params;
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
-    const reviews = await review_model_1.reviewLean
-        .find({ itemId: req.params.id, companyId: companyIdParam })
-        .skip(offset)
-        .limit(limit)
-        .lean();
-    return res.status(200).send(reviews);
+    const all = await Promise.all([
+        review_model_1.reviewLean
+            .find({ itemId: req.params.id, companyId: companyIdParam })
+            .skip(offset)
+            .limit(limit)
+            .lean(),
+        review_model_1.reviewLean.countDocuments({ itemId: req.params.id, companyId: companyIdParam })
+    ]);
+    const response = {
+        count: all[1],
+        data: all[0]
+    };
+    return res.status(200).send(response);
 });
 /**
  * Route for deleting a single review by ID

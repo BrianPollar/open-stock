@@ -12,7 +12,11 @@ exports.invoiceRelateRoutesDummy.get('/getone/:id/:companyIdParam', (req, res) =
     res.status(200).send((0, stock_counter_mocks_1.createMockInvoiceRelated)());
 });
 exports.invoiceRelateRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) => {
-    res.status(200).send((0, stock_counter_mocks_1.createMockInvoiceRelateds)(Number(req.params.limit)));
+    const response = {
+        count: req.params.limit,
+        data: (0, stock_counter_mocks_1.createMockInvoiceRelateds)(Number(req.params.limit))
+    };
+    res.status(200).send(response);
 });
 exports.invoiceRelateRoutesDummy.post('/search/:offset/:limit/:companyIdParam', (req, res) => {
     res.status(200).send((0, stock_counter_mocks_1.createMockInvoiceRelateds)(Number(req.params.limit)));

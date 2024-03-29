@@ -2,12 +2,12 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.salesReportRoutes = void 0;
 const tslib_1 = require("tslib");
-const express_1 = tslib_1.__importDefault(require("express"));
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
-const estimate_model_1 = require("../../../models/printables/estimate.model");
-const salesreport_model_1 = require("../../../models/printables/report/salesreport.model");
+const express_1 = tslib_1.__importDefault(require("express"));
 const log4js_1 = require("log4js");
+const estimate_model_1 = require("../../../models/printables/estimate.model");
 const invoicerelated_model_1 = require("../../../models/printables/related/invoicerelated.model");
+const salesreport_model_1 = require("../../../models/printables/report/salesreport.model");
 /** Logger for sales report routes */
 const salesReportRoutesLogger = (0, log4js_1.getLogger)('routes/salesReportRoutes');
 /**
@@ -94,14 +94,21 @@ exports.salesReportRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_un
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const salesReports = await salesreport_model_1.salesReportLean
-        .find({ companyId: queryId })
-        .skip(offset)
-        .limit(limit)
-        .lean()
-        .populate({ path: 'estimates', model: estimate_model_1.estimateLean })
-        .populate({ path: 'invoiceRelateds', model: invoicerelated_model_1.invoiceRelatedLean });
-    return res.status(200).send(salesReports);
+    const all = await Promise.all([
+        salesreport_model_1.salesReportLean
+            .find({ companyId: queryId })
+            .skip(offset)
+            .limit(limit)
+            .lean()
+            .populate({ path: 'estimates', model: estimate_model_1.estimateLean })
+            .populate({ path: 'invoiceRelateds', model: invoicerelated_model_1.invoiceRelatedLean }),
+        salesreport_model_1.salesReportLean.countDocuments({ companyId: queryId })
+    ]);
+    const response = {
+        count: all[1],
+        data: all[0]
+    };
+    return res.status(200).send(response);
 });
 /**
  * Delete a sales report by ID
@@ -147,14 +154,21 @@ exports.salesReportRoutes.post('/search/:limit/:offset/:companyIdParam', stock_u
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
-    const salesReports = await salesreport_model_1.salesReportLean
-        .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
-        .lean()
-        .skip(offset)
-        .limit(limit)
-        .populate({ path: 'estimates', model: estimate_model_1.estimateLean })
-        .populate({ path: 'invoiceRelateds', model: invoicerelated_model_1.invoiceRelatedLean });
-    return res.status(200).send(salesReports);
+    const all = await Promise.all([
+        salesreport_model_1.salesReportLean
+            .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+            .skip(offset)
+            .limit(limit)
+            .lean()
+            .populate({ path: 'estimates', model: estimate_model_1.estimateLean })
+            .populate({ path: 'invoiceRelateds', model: invoicerelated_model_1.invoiceRelatedLean }),
+        salesreport_model_1.salesReportLean.countDocuments({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+    ]);
+    const response = {
+        count: all[1],
+        data: all[0]
+    };
+    return res.status(200).send(response);
 });
 /**
  * Delete multiple sales reports by IDs

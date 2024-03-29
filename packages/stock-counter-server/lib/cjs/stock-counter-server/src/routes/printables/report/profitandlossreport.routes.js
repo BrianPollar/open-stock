@@ -2,12 +2,12 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.profitAndLossReportRoutes = void 0;
 const tslib_1 = require("tslib");
-const express_1 = tslib_1.__importDefault(require("express"));
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
+const express_1 = tslib_1.__importDefault(require("express"));
+const log4js_1 = require("log4js");
 const expense_model_1 = require("../../../models/expense.model");
 const payment_model_1 = require("../../../models/payment.model");
 const profitandlossreport_model_1 = require("../../../models/printables/report/profitandlossreport.model");
-const log4js_1 = require("log4js");
 /** Logger for the profit and loss report routes */
 const profitAndLossReportRoutesLogger = (0, log4js_1.getLogger)('routes/profitAndLossReportRoutes');
 /**
@@ -79,14 +79,21 @@ exports.profitAndLossReportRoutes.get('/getall/:offset/:limit/:companyIdParam', 
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const profitAndLossReports = await profitandlossreport_model_1.profitandlossReportLean
-        .find({ companyId: queryId })
-        .skip(offset)
-        .limit(limit)
-        .lean()
-        .populate({ path: 'expenses', model: expense_model_1.expenseLean })
-        .populate({ path: 'payments', model: payment_model_1.paymentLean });
-    return res.status(200).send(profitAndLossReports);
+    const all = await Promise.all([
+        profitandlossreport_model_1.profitandlossReportLean
+            .find({ companyId: queryId })
+            .skip(offset)
+            .limit(limit)
+            .lean()
+            .populate({ path: 'expenses', model: expense_model_1.expenseLean })
+            .populate({ path: 'payments', model: payment_model_1.paymentLean }),
+        profitandlossreport_model_1.profitandlossReportLean.countDocuments({ companyId: queryId })
+    ]);
+    const response = {
+        count: all[1],
+        data: all[0]
+    };
+    return res.status(200).send(response);
 });
 /**
  * Delete a single profit and loss report by ID.
@@ -122,14 +129,21 @@ exports.profitAndLossReportRoutes.post('/search/:limit/:offset/:companyIdParam',
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
-    const profitAndLossReports = await profitandlossreport_model_1.profitandlossReportLean
-        .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
-        .lean()
-        .skip(offset)
-        .limit(limit)
-        .populate({ path: 'expenses', model: expense_model_1.expenseLean })
-        .populate({ path: 'payments', model: payment_model_1.paymentLean });
-    return res.status(200).send(profitAndLossReports);
+    const all = await Promise.all([
+        profitandlossreport_model_1.profitandlossReportLean
+            .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+            .skip(offset)
+            .limit(limit)
+            .lean()
+            .populate({ path: 'expenses', model: expense_model_1.expenseLean })
+            .populate({ path: 'payments', model: payment_model_1.paymentLean }),
+        profitandlossreport_model_1.profitandlossReportLean.countDocuments({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+    ]);
+    const response = {
+        count: all[1],
+        data: all[0]
+    };
+    return res.status(200).send(response);
 });
 /**
  * Delete multiple profit and loss reports by ID.

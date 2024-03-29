@@ -101,7 +101,10 @@ class User extends stock_universal_1.DatabaseAuto {
     static async getUsers(companyId, url, offset = 0, limit = 20) {
         const observer$ = stock_auth_client_1.StockAuthClient.ehttp.makeGet(`/user/getusers/${url}/${offset}/${limit}/${companyId}`);
         const users = await (0, rxjs_1.lastValueFrom)(observer$);
-        return users.map(val => new User(val));
+        return {
+            count: users.count,
+            users: users.data.map(val => new User(val))
+        };
     }
     /**
      * Retrieves a single user based on the provided user ID.

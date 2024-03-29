@@ -33,7 +33,10 @@ class Profit extends stock_universal_1.DatabaseAuto {
     static async getProfits(companyId, url = 'getall', offset = 0, limit = 20) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makeGet(`profit/${url}/${offset}/${limit}/${companyId}`);
         const profits = await (0, rxjs_1.lastValueFrom)(observer$);
-        return profits.map(val => new Profit(val));
+        return {
+            count: profits.count,
+            profits: profits.data.map(val => new Profit(val))
+        };
     }
     /**
      * Gets a single Profit object by ID.

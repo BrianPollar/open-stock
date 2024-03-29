@@ -1,6 +1,6 @@
 
+import { DatabaseAuto, IdataArrayResponse, IexpenseReport, Isuccess } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
-import { DatabaseAuto, IexpenseReport, Isuccess } from '@open-stock/stock-universal';
 import { StockCounterClient } from '../../stock-counter-client';
 import { Expense } from '../expense.define';
 
@@ -50,10 +50,13 @@ export class ExpenseReport extends DatabaseAuto {
     url = 'getall',
     offset = 0,
     limit = 10
-  ): Promise<ExpenseReport[]> {
+  ) {
     const observer$ = StockCounterClient.ehttp.makeGet(`/expensereport/${url}/${offset}/${limit}/${companyId}`);
-    const expensereports = await lastValueFrom(observer$) as IexpenseReport[];
-    return expensereports.map((val) => new ExpenseReport(val));
+    const expensereports = await lastValueFrom(observer$) as IdataArrayResponse;
+    return {
+      count: expensereports.count,
+      expensereports: expensereports.data.map((val) => new ExpenseReport(val as IexpenseReport))
+    };
   }
 
   /**

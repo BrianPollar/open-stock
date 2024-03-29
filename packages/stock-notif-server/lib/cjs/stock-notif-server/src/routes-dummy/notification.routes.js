@@ -9,10 +9,18 @@ const stock_notif_mocks_1 = require("../../../tests/stock-notif-mocks");
  */
 exports.notifnRoutesDummy = express_1.default.Router();
 exports.notifnRoutesDummy.get('/getmynotifn/:companyIdParam', (req, res) => {
-    res.status(200).send((0, stock_notif_mocks_1.createMockNotifs)(10));
+    const response = {
+        count: 10,
+        data: (0, stock_notif_mocks_1.createMockNotifs)(10)
+    };
+    res.status(200).send(response);
 });
 exports.notifnRoutesDummy.get('/getmyavailnotifn/:companyIdParam', (req, res) => {
-    res.status(200).send((0, stock_notif_mocks_1.createMockNotifs)(10));
+    const response = {
+        count: 10,
+        data: (0, stock_notif_mocks_1.createMockNotifs)(10)
+    };
+    res.status(200).send(response);
 });
 exports.notifnRoutesDummy.get('/getone/:id/:companyIdParam', (req, res) => {
     res.status(200).send((0, stock_notif_mocks_1.createMockNotif)());

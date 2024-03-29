@@ -1,5 +1,6 @@
 import express from 'express';
 import { createMockReview, createMockReviews } from '../../../tests/stock-counter-mocks';
+import { IdataArrayResponse } from '@open-stock/stock-universal';
 
 /**
  * Express router for review routes
@@ -15,7 +16,11 @@ reviewRoutesDummy.get('/getone/:id/:companyIdParam', (req, res) => {
 });
 
 reviewRoutesDummy.get('/getall/:id/:companyIdParam', (req, res) => {
-  res.status(200).send(createMockReviews(10));
+  const response: IdataArrayResponse = {
+    count: 10,
+    data: createMockReviews(10)
+  };
+  res.status(200).send(response);
 });
 
 reviewRoutesDummy.delete('/deleteone/:id/:itemId/:rating/:companyIdParam', (req, res) => {

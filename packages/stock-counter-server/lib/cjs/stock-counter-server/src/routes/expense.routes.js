@@ -3,10 +3,10 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.expenseRoutes = void 0;
 const tslib_1 = require("tslib");
-const express_1 = tslib_1.__importDefault(require("express"));
-const expense_model_1 = require("../models/expense.model");
-const log4js_1 = require("log4js");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
+const express_1 = tslib_1.__importDefault(require("express"));
+const log4js_1 = require("log4js");
+const expense_model_1 = require("../models/expense.model");
 /** Logger for expense routes */
 const expenseRoutesLogger = (0, log4js_1.getLogger)('routes/expenseRoutes');
 /**
@@ -150,12 +150,19 @@ exports.expenseRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_univer
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const expenses = await expense_model_1.expenseLean
-        .find({ companyId: queryId })
-        .skip(offset)
-        .limit(limit)
-        .lean();
-    return res.status(200).send(expenses);
+    const all = await Promise.all([
+        expense_model_1.expenseLean
+            .find({ companyId: queryId })
+            .skip(offset)
+            .limit(limit)
+            .lean(),
+        expense_model_1.expenseLean.countDocuments({ companyId: queryId })
+    ]);
+    const response = {
+        count: all[1],
+        data: all[0]
+    };
+    return res.status(200).send(response);
 });
 /**
  * Delete a single expense by ID
@@ -203,12 +210,19 @@ exports.expenseRoutes.post('/search/:limit/:offset/:companyIdParam', stock_unive
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
-    const expenses = await expense_model_1.expenseLean
-        .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
-        .skip(offset)
-        .limit(limit)
-        .lean();
-    return res.status(200).send(expenses);
+    const all = await Promise.all([
+        expense_model_1.expenseLean
+            .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+            .skip(offset)
+            .limit(limit)
+            .lean(),
+        expense_model_1.expenseLean.countDocuments({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+    ]);
+    const response = {
+        count: all[1],
+        data: all[0]
+    };
+    return res.status(200).send(response);
 });
 /**
  * Delete multiple expenses by ID

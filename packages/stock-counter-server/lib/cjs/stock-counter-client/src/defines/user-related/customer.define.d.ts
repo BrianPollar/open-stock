@@ -20,7 +20,10 @@ export declare class Customer extends UserBase {
      * @param {number} [limit=0] - The limit for pagination.
      * @returns {Promise<Customer[]>} - An array of Customer instances created from the retrieved customer data.
      */
-    static getCustomers(companyId: string, offset?: number, limit?: number): Promise<Customer[]>;
+    static getCustomers(companyId: string, offset?: number, limit?: number): Promise<{
+        count: number;
+        customers: Customer[];
+    }>;
     /**
      * Retrieves a single customer by ID.
      * @static

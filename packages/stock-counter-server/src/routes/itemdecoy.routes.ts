@@ -1,9 +1,9 @@
+import { Icustomrequest, IdataArrayResponse, Iitem, Isuccess } from '@open-stock/stock-universal';
+import { fileMetaLean, makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { getLogger } from 'log4js';
-import { Icustomrequest, Iitem, Isuccess } from '@open-stock/stock-universal';
-import { fileMetaLean, makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
-import { itemDecoyLean, itemDecoyMain } from '../models/itemdecoy.model';
 import { itemLean } from '../models/item.model';
+import { itemDecoyLean, itemDecoyMain } from '../models/itemdecoy.model';
 
 /** Logger for item decoy routes */
 const itemDecoyRoutesLogger = getLogger('routes/itemDecoyRoutes');
@@ -121,19 +121,27 @@ itemDecoyRoutes.get('/getall/:offset/:limit/:companyIdParam', async(req, res) =>
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
-  const items = await itemDecoyLean
-    .find({ companyId: queryId })
-    .skip(offset)
-    .limit(limit)
-    .populate({
-      path: 'items', model: itemLean,
-      populate: [{
-        path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-      }
-      ]
-    })
-    .lean();
-  return res.status(200).send(items);
+  const all = await Promise.all([
+    itemDecoyLean
+      .find({ companyId: queryId })
+      .skip(offset)
+      .limit(limit)
+      .populate({
+        path: 'items', model: itemLean,
+        populate: [{
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+        }
+        ]
+      })
+      .lean(),
+    itemDecoyLean.countDocuments({ companyId: queryId })
+  ]);
+  const response: IdataArrayResponse = {
+    count: all[1],
+    data: all[0]
+  };
+  return res.status(200).send(response);
 });
 
 /**
@@ -156,6 +164,7 @@ itemDecoyRoutes.get('/getone/:id/:companyIdParam', async(req, res) => {
     .populate({
       path: 'items', model: itemLean,
       populate: [{
+        // eslint-disable-next-line @typescript-eslint/naming-convention
         path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
       }
       ]

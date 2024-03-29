@@ -2,8 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.invoiceSettingRoutesDummy = void 0;
 const tslib_1 = require("tslib");
-const express_1 = tslib_1.__importDefault(require("express"));
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
+const express_1 = tslib_1.__importDefault(require("express"));
 const stock_counter_mocks_1 = require("../../../../../tests/stock-counter-mocks");
 /**
  * Router for invoice settings.
@@ -25,13 +25,21 @@ exports.invoiceSettingRoutesDummy.get('/getone/:id/:companyIdParam', (req, res) 
     res.status(200).send((0, stock_counter_mocks_1.createMockInvoiceSettings)());
 });
 exports.invoiceSettingRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) => {
-    res.status(200).send([(0, stock_counter_mocks_1.createMockInvoiceSettings)()]);
+    const response = {
+        count: req.params.limit,
+        data: [(0, stock_counter_mocks_1.createMockInvoiceSettings)()]
+    };
+    res.status(200).send(response);
 });
 exports.invoiceSettingRoutesDummy.delete('/deleteone/:id/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });
 });
 exports.invoiceSettingRoutesDummy.post('/search/:limit/:offset/:companyIdParam', (req, res) => {
-    res.status(200).send([(0, stock_counter_mocks_1.createMockInvoiceSettings)()]);
+    const response = {
+        count: req.params.limit,
+        data: [(0, stock_counter_mocks_1.createMockInvoiceSettings)()]
+    };
+    res.status(200).send(response);
 });
 exports.invoiceSettingRoutesDummy.put('/deletemany/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });

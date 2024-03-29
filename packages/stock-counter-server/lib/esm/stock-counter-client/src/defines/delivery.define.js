@@ -29,7 +29,10 @@ export class DeliveryCity extends DatabaseAuto {
         const observer$ = StockCounterClient.ehttp
             .makeGet(`/deliverycity/${url}/${offset}/${limit}/${companyId}`);
         const citys = await lastValueFrom(observer$);
-        return citys.map(val => new DeliveryCity(val));
+        return {
+            count: citys.count,
+            citys: citys.data.map(val => new DeliveryCity(val))
+        };
     }
     /**
      * Retrieves a single delivery city from the server.

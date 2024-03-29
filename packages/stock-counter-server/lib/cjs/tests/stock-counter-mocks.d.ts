@@ -7,7 +7,6 @@ import { Faq, FaqAnswer } from '../stock-counter-client/src/defines/faq.define';
 import { Invoice, InvoiceRelatedWithReceipt } from '../stock-counter-client/src/defines/invoice.define';
 import { Item } from '../stock-counter-client/src/defines/item.define';
 import { ItemDecoy } from '../stock-counter-client/src/defines/itemdecoy.define';
-import { ItemLimitted } from '../stock-counter-client/src/defines/itemlimitted.define';
 import { ItemOffer } from '../stock-counter-client/src/defines/itemoffer.define';
 import { Order } from '../stock-counter-client/src/defines/order.define';
 import { Payment, PaymentRelated } from '../stock-counter-client/src/defines/payment.define';
@@ -242,18 +241,6 @@ export declare const createMockItemDecoy: () => ItemDecoy;
  * specified number of times. It returns
  * an array of  ItemDecoy  instances. */
 export declare const createMockItemDecoys: (length: number) => ItemDecoy[];
-/** createMockItemLimitted : This function
- * creates a mock item limitted by combining a mock
- * database auto object with a randomly generated UUID
- * and an array of mock name. It returns a new instance
- * of the  ItemLimitted  class. */
-export declare const createMockItemLimitted: () => ItemLimitted;
-/** createMockItemLimitteds : This function
- * creates an array of mock item limitteds by
- * calling the  createMockItemLimitted  function a
- * specified number of times. It returns
- * an array of  ItemLimitted  instances. */
-export declare const createMockItemLimitteds: (length: number) => ItemLimitted[];
 export declare const createMockItemOffer: () => ItemOffer;
 export declare const createMockItemOffers: (length: number) => ItemOffer[];
 export declare const createMockOrder: () => Order;

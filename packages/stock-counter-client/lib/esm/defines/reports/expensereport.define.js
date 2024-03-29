@@ -1,5 +1,5 @@
-import { lastValueFrom } from 'rxjs';
 import { DatabaseAuto } from '@open-stock/stock-universal';
+import { lastValueFrom } from 'rxjs';
 import { StockCounterClient } from '../../stock-counter-client';
 import { Expense } from '../expense.define';
 /**
@@ -31,7 +31,10 @@ export class ExpenseReport extends DatabaseAuto {
     static async getExpenseReports(companyId, url = 'getall', offset = 0, limit = 10) {
         const observer$ = StockCounterClient.ehttp.makeGet(`/expensereport/${url}/${offset}/${limit}/${companyId}`);
         const expensereports = await lastValueFrom(observer$);
-        return expensereports.map((val) => new ExpenseReport(val));
+        return {
+            count: expensereports.count,
+            expensereports: expensereports.data.map((val) => new ExpenseReport(val))
+        };
     }
     /**
      * Retrieves a single expense report from the API.

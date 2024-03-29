@@ -2,10 +2,10 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.pickupLocationRoutes = void 0;
 const tslib_1 = require("tslib");
-const express_1 = tslib_1.__importDefault(require("express"));
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
-const pickuplocation_model_1 = require("../../models/printables/pickuplocation.model");
+const express_1 = tslib_1.__importDefault(require("express"));
 const log4js_1 = require("log4js");
+const pickuplocation_model_1 = require("../../models/printables/pickuplocation.model");
 /**
  * Logger for pickup location routes
  */
@@ -143,12 +143,19 @@ exports.pickupLocationRoutes.get('/getall/:offset/:limit/:companyIdParam', stock
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const pickupLocations = await pickuplocation_model_1.pickupLocationLean
-        .find({ companyId: queryId })
-        .skip(offset)
-        .limit(limit)
-        .lean();
-    return res.status(200).send(pickupLocations);
+    const all = await Promise.all([
+        pickuplocation_model_1.pickupLocationLean
+            .find({ companyId: queryId })
+            .skip(offset)
+            .limit(limit)
+            .lean(),
+        pickuplocation_model_1.pickupLocationLean.countDocuments()
+    ]);
+    const response = {
+        count: all[1],
+        data: all[0]
+    };
+    return res.status(200).send(response);
 });
 /**
  * Route to delete a single pickup location by ID
@@ -194,12 +201,19 @@ exports.pickupLocationRoutes.post('/search/:limit/:offset/:companyIdParam', stoc
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
-    const pickupLocations = await pickuplocation_model_1.pickupLocationLean
-        .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
-        .skip(offset)
-        .limit(limit)
-        .lean();
-    return res.status(200).send(pickupLocations);
+    const all = await Promise.all([
+        pickuplocation_model_1.pickupLocationLean
+            .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+            .skip(offset)
+            .limit(limit)
+            .lean(),
+        pickuplocation_model_1.pickupLocationLean.countDocuments({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+    ]);
+    const response = {
+        count: all[1],
+        data: all[0]
+    };
+    return res.status(200).send(response);
 });
 /**
  * Route to delete multiple pickup locations by ID

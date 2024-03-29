@@ -77,3 +77,9 @@ export interface Iauthresponse {
 }
 
 // This interface defines the properties of an authentication response.
+
+
+export interface IdataArrayResponse {
+  count: number;
+  data: unknown[];
+}

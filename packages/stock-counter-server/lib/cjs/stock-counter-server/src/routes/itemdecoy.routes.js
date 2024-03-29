@@ -2,11 +2,11 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.itemDecoyRoutes = void 0;
 const tslib_1 = require("tslib");
+const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
 const log4js_1 = require("log4js");
-const stock_universal_server_1 = require("@open-stock/stock-universal-server");
-const itemdecoy_model_1 = require("../models/itemdecoy.model");
 const item_model_1 = require("../models/item.model");
+const itemdecoy_model_1 = require("../models/itemdecoy.model");
 /** Logger for item decoy routes */
 const itemDecoyRoutesLogger = (0, log4js_1.getLogger)('routes/itemDecoyRoutes');
 /**
@@ -114,19 +114,27 @@ exports.itemDecoyRoutes.get('/getall/:offset/:limit/:companyIdParam', async (req
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
-    const items = await itemdecoy_model_1.itemDecoyLean
-        .find({ companyId: queryId })
-        .skip(offset)
-        .limit(limit)
-        .populate({
-        path: 'items', model: item_model_1.itemLean,
-        populate: [{
-                path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-            }
-        ]
-    })
-        .lean();
-    return res.status(200).send(items);
+    const all = await Promise.all([
+        itemdecoy_model_1.itemDecoyLean
+            .find({ companyId: queryId })
+            .skip(offset)
+            .limit(limit)
+            .populate({
+            path: 'items', model: item_model_1.itemLean,
+            populate: [{
+                    // eslint-disable-next-line @typescript-eslint/naming-convention
+                    path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+                }
+            ]
+        })
+            .lean(),
+        itemdecoy_model_1.itemDecoyLean.countDocuments({ companyId: queryId })
+    ]);
+    const response = {
+        count: all[1],
+        data: all[0]
+    };
+    return res.status(200).send(response);
 });
 /**
  * Get a single item decoy by ID.
@@ -148,6 +156,7 @@ exports.itemDecoyRoutes.get('/getone/:id/:companyIdParam', async (req, res) => {
         .populate({
         path: 'items', model: item_model_1.itemLean,
         populate: [{
+                // eslint-disable-next-line @typescript-eslint/naming-convention
                 path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
             }
         ]

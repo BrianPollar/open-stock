@@ -44,7 +44,10 @@ class Review extends stock_universal_1.DatabaseAuto {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
             .makeGet(`/review/${url}/${itemId}/${offset}/${limit}/${companyId}`);
         const reviews = await (0, rxjs_1.lastValueFrom)(observer$);
-        return reviews.map(val => new Review(val));
+        return {
+            count: reviews.count,
+            reviews: reviews.data.map(val => new Review(val))
+        };
     }
     /**
      * Gets a single review by ID.

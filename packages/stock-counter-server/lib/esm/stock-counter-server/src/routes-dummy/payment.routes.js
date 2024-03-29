@@ -14,16 +14,28 @@ paymentRoutesDummy.get('/getone/:id/:companyIdParam', (req, res) => {
     res.status(200).send(createMockPayment());
 });
 paymentRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) => {
-    res.status(200).send(createMockPayments(Number(req.params.limit)));
+    const response = {
+        count: req.params.limit,
+        data: createMockPayments(Number(req.params.limit))
+    };
+    res.status(200).send(response);
 });
 paymentRoutesDummy.get('/getmypayments/:companyIdParam', (req, res) => {
-    res.status(200).send(createMockPayments(Number(req.params.limit)));
+    const response = {
+        count: req.params.limit,
+        data: createMockPayments(Number(req.params.limit))
+    };
+    res.status(200).send(response);
 });
 paymentRoutesDummy.put('/deleteone/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });
 });
 paymentRoutesDummy.post('/search/:limit/:offset/:companyIdParam', (req, res) => {
-    res.status(200).send({ success: true });
+    const response = {
+        count: req.params.limit,
+        data: []
+    };
+    res.status(200).send(response);
 });
 paymentRoutesDummy.put('/deletemany/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });

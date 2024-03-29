@@ -1,5 +1,5 @@
-import { Item } from './item.define';
 import { DatabaseAuto, Isuccess } from '@open-stock/stock-universal';
+import { Item } from './item.define';
 /**
  * Represents an item offer.
  */
@@ -34,7 +34,10 @@ export declare class ItemOffer extends DatabaseAuto {
      * @param limit The maximum number of items to return.
      * @returns An array of ItemOffer instances.
      */
-    static getItemOffers(companyId: string, type: string, url?: string, offset?: number, limit?: number): Promise<ItemOffer[]>;
+    static getItemOffers(companyId: string, type: string, url?: string, offset?: number, limit?: number): Promise<{
+        count: number;
+        offers: ItemOffer[];
+    }>;
     /**
      * Gets a single item offer.
      * @param companyId - The ID of the company

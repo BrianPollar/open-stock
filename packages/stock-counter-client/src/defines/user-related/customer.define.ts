@@ -1,4 +1,4 @@
-import { Iaddress, Icustomer, IdeleteCredentialsLocalUser, IfileMeta, Isuccess } from '@open-stock/stock-universal';
+import { Iaddress, Icustomer, IdataArrayResponse, IdeleteCredentialsLocalUser, IfileMeta, Isuccess } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
 import { StockCounterClient } from '../../stock-counter-client';
 import { UserBase } from './userbase.define';
@@ -28,10 +28,13 @@ export class Customer extends UserBase {
    * @param {number} [limit=0] - The limit for pagination.
    * @returns {Promise<Customer[]>} - An array of Customer instances created from the retrieved customer data.
    */
-  static async getCustomers(companyId: string, offset = 0, limit = 20): Promise<Customer[]> {
+  static async getCustomers(companyId: string, offset = 0, limit = 20) {
     const observer$ = StockCounterClient.ehttp.makeGet(`/customer/getall/${offset}/${limit}/${companyId}`);
-    const customers = await lastValueFrom(observer$) as Icustomer[];
-    return customers.map(val => new Customer(val));
+    const customers = await lastValueFrom(observer$) as IdataArrayResponse;
+    return {
+      count: customers.count,
+      customers: customers.data.map(val => new Customer(val as Icustomer))
+    };
   }
 
   /**

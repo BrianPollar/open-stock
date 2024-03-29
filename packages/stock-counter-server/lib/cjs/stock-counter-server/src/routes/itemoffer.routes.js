@@ -2,12 +2,11 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.itemOfferRoutes = void 0;
 const tslib_1 = require("tslib");
-/* eslint-disable @typescript-eslint/no-misused-promises */
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
 const log4js_1 = require("log4js");
-const itemoffer_model_1 = require("../models/itemoffer.model");
 const item_model_1 = require("../models/item.model");
+const itemoffer_model_1 = require("../models/itemoffer.model");
 /** Logger for item offer routes */
 const itemOfferRoutesLogger = (0, log4js_1.getLogger)('routes/itemOfferRoutes');
 /**
@@ -86,20 +85,27 @@ exports.itemOfferRoutes.get('/getall/:type/:offset/:limit/:companyIdParam', asyn
     if (type !== 'all') {
         filter = { type, companyId };
     }
-    const items = await itemoffer_model_1.itemOfferLean
-        .find(filter)
-        .skip(offset)
-        .limit(limit)
-        .populate({
-        path: 'items', model: item_model_1.itemLean,
-        populate: [{
-                // eslint-disable-next-line @typescript-eslint/naming-convention
-                path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-            }
-        ]
-    })
-        .lean();
-    return res.status(200).send(items);
+    const all = await Promise.all([
+        itemoffer_model_1.itemOfferLean
+            .find(filter)
+            .skip(offset)
+            .limit(limit)
+            .populate({
+            path: 'items', model: item_model_1.itemLean,
+            populate: [{
+                    // eslint-disable-next-line @typescript-eslint/naming-convention
+                    path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+                }
+            ]
+        })
+            .lean(),
+        itemoffer_model_1.itemOfferLean.countDocuments(filter)
+    ]);
+    const response = {
+        count: all[1],
+        data: all[0]
+    };
+    return res.status(200).send(response);
 });
 /**
  * Route for getting a single item offer by ID

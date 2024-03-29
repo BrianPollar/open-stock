@@ -65,3 +65,7 @@ export interface Iauthresponse {
      */
     status?: number;
 }
+export interface IdataArrayResponse {
+    count: number;
+    data: unknown[];
+}

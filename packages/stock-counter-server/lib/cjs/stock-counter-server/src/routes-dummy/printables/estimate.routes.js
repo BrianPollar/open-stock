@@ -13,13 +13,21 @@ exports.estimateRoutesDummy.get('/getone/:estimateId/:companyIdParam', (req, res
     res.status(200).send((0, stock_counter_mocks_1.createMockEstimate)());
 });
 exports.estimateRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) => {
-    res.status(200).send((0, stock_counter_mocks_1.createMockEstimates)(Number(req.params.limit)));
+    const response = {
+        count: req.params.limit,
+        data: (0, stock_counter_mocks_1.createMockEstimates)(Number(req.params.limit))
+    };
+    res.status(200).send(response);
 });
 exports.estimateRoutesDummy.put('/deleteone/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });
 });
 exports.estimateRoutesDummy.post('/search/:limit/:offset/:companyIdParam', (req, res) => {
-    res.status(200).send((0, stock_counter_mocks_1.createMockEstimates)(Number(req.params.limit)));
+    const response = {
+        count: req.params.limit,
+        data: (0, stock_counter_mocks_1.createMockEstimates)(Number(req.params.limit))
+    };
+    res.status(200).send(response);
 });
 exports.estimateRoutesDummy.put('/deletemany/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });

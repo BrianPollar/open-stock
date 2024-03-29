@@ -29,8 +29,11 @@ export class DeliveryNote extends InvoiceRelatedWithReceipt {
         const observer$ = StockCounterClient.ehttp
             .makeGet(`/deliverynote/${url}/${offset}/${limit}/${companyId}`);
         const deliverynotes = await lastValueFrom(observer$);
-        return deliverynotes
-            .map((val) => new DeliveryNote(val));
+        return {
+            count: deliverynotes.count,
+            deliverynotes: deliverynotes.data
+                .map((val) => new DeliveryNote(val))
+        };
     }
     /**
      * Retrieves a single delivery note by its unique identifier (`urId`).

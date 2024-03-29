@@ -1,5 +1,5 @@
-import express from 'express';
 import { appendBody, deleteFiles, saveMetaToDb, uploadFiles } from '@open-stock/stock-universal-server';
+import express from 'express';
 import { createMockInvoiceSettings } from '../../../../../tests/stock-counter-mocks';
 /**
  * Router for invoice settings.
@@ -21,13 +21,21 @@ invoiceSettingRoutesDummy.get('/getone/:id/:companyIdParam', (req, res) => {
     res.status(200).send(createMockInvoiceSettings());
 });
 invoiceSettingRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) => {
-    res.status(200).send([createMockInvoiceSettings()]);
+    const response = {
+        count: req.params.limit,
+        data: [createMockInvoiceSettings()]
+    };
+    res.status(200).send(response);
 });
 invoiceSettingRoutesDummy.delete('/deleteone/:id/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });
 });
 invoiceSettingRoutesDummy.post('/search/:limit/:offset/:companyIdParam', (req, res) => {
-    res.status(200).send([createMockInvoiceSettings()]);
+    const response = {
+        count: req.params.limit,
+        data: [createMockInvoiceSettings()]
+    };
+    res.status(200).send(response);
 });
 invoiceSettingRoutesDummy.put('/deletemany/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });

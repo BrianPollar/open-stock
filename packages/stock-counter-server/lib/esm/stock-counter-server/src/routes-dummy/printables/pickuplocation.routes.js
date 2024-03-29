@@ -13,13 +13,21 @@ pickupLocationRoutesDummy.get('/getone/:id/:companyIdParam', (req, res) => {
     res.status(200).send({});
 });
 pickupLocationRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) => {
-    res.status(200).send([]);
+    const response = {
+        count: req.params.limit,
+        data: []
+    };
+    res.status(200).send(response);
 });
 pickupLocationRoutesDummy.delete('/deleteone/:id/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });
 });
 pickupLocationRoutesDummy.post('/search/:limit/:offset/:companyIdParam', (req, res) => {
-    res.status(200).send([]);
+    const response = {
+        count: 0,
+        data: []
+    };
+    res.status(200).send(response);
 });
 pickupLocationRoutesDummy.put('/deletemany/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });

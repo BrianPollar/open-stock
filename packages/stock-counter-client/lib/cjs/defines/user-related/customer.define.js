@@ -28,7 +28,10 @@ class Customer extends userbase_define_1.UserBase {
     static async getCustomers(companyId, offset = 0, limit = 20) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makeGet(`/customer/getall/${offset}/${limit}/${companyId}`);
         const customers = await (0, rxjs_1.lastValueFrom)(observer$);
-        return customers.map(val => new Customer(val));
+        return {
+            count: customers.count,
+            customers: customers.data.map(val => new Customer(val))
+        };
     }
     /**
      * Retrieves a single customer by ID.

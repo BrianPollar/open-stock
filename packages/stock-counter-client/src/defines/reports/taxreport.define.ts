@@ -1,8 +1,8 @@
+import { DatabaseAuto, IdataArrayResponse, Isuccess, ItaxReport } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
+import { StockCounterClient } from '../../stock-counter-client';
 import { Estimate } from '../estimate.define';
 import { InvoiceRelatedWithReceipt } from '../invoice.define';
-import { DatabaseAuto, Isuccess, ItaxReport } from '@open-stock/stock-universal';
-import { StockCounterClient } from '../../stock-counter-client';
 
 /**
  * TaxReport class: This class represents a tax report object. It extends the DatabaseAuto class.
@@ -50,8 +50,11 @@ export class TaxReport extends DatabaseAuto {
    */
   static async getTaxReports(companyId: string, url = 'getall', offset = 0, limit = 20) {
     const observer$ = StockCounterClient.ehttp.makeGet(`/taxreport/${url}/${offset}/${limit}/${companyId}`);
-    const taxreports = await lastValueFrom(observer$) as ItaxReport[];
-    return taxreports.map((val) => new TaxReport(val));
+    const taxreports = await lastValueFrom(observer$) as IdataArrayResponse;
+    return {
+      count: taxreports.count,
+      taxreports: taxreports.data.map((val) => new TaxReport(val as ItaxReport))
+    };
   }
 
   /**

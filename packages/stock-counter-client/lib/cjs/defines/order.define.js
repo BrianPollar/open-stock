@@ -2,8 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Order = void 0;
 const rxjs_1 = require("rxjs");
-const payment_define_1 = require("./payment.define");
 const stock_counter_client_1 = require("../stock-counter-client");
+const payment_define_1 = require("./payment.define");
 /**
  * Represents an order with payment and delivery information.
  * @extends PaymentRelated
@@ -30,7 +30,7 @@ class Order extends payment_define_1.PaymentRelated {
     static async searchOrders(companyId, searchterm, searchKey) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makePost(`/order/search/${companyId}`, { searchterm, searchKey });
         const orders = await (0, rxjs_1.lastValueFrom)(observer$);
-        return orders.map(val => new Order(val));
+        return orders.data.map(val => new Order(val));
     }
     /**
      * Deletes multiple orders.
@@ -54,7 +54,10 @@ class Order extends payment_define_1.PaymentRelated {
     static async getOrders(companyId, url = 'getall', offset = 0, limit = 20) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makeGet(`/order/${url}/${offset}/${limit}/${companyId}`);
         const orders = await (0, rxjs_1.lastValueFrom)(observer$);
-        return orders.map(val => new Order(val));
+        return {
+            count: orders.count,
+            orders: orders.data.map(val => new Order(val))
+        };
     }
     /**
      * Gets a single order by ID.

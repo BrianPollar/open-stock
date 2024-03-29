@@ -1,6 +1,6 @@
 import { lastValueFrom } from 'rxjs';
-import { InvoiceRelatedWithReceipt } from './invoice.define';
 import { StockCounterClient } from '../stock-counter-client';
+import { InvoiceRelatedWithReceipt } from './invoice.define';
 export class PaymentRelated extends InvoiceRelatedWithReceipt {
     /**
      * Constructs a new instance of the Payment class.
@@ -70,7 +70,10 @@ export class Payment extends PaymentRelated {
     static async searchPayments(companyId, searchterm, searchKey) {
         const observer$ = StockCounterClient.ehttp.makePost(`/payment/search/${companyId}`, { searchterm, searchKey });
         const payments = await lastValueFrom(observer$);
-        return payments.map(val => new Payment(val));
+        return {
+            count: payments.count,
+            payments: payments.data.map(val => new Payment(val))
+        };
     }
     /**
      * Retrieves payments.
@@ -83,7 +86,10 @@ export class Payment extends PaymentRelated {
     static async getPayments(companyId, url = 'getall', offset = 0, limit = 20) {
         const observer$ = StockCounterClient.ehttp.makeGet(`/payment/${url}/${offset}/${limit}/${companyId}`);
         const payments = await lastValueFrom(observer$);
-        return payments.map(val => new Payment(val));
+        return {
+            count: payments.count,
+            payments: payments.data.map(val => new Payment(val))
+        };
     }
     /**
      * Retrieves a single payment.

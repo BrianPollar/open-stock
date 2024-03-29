@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
-import express from 'express';
-import { getLogger } from 'log4js';
 import { userLean } from '@open-stock/stock-auth-server';
 import { offsetLimitRelegator, requireAuth, roleAuthorisation, verifyObjectIds } from '@open-stock/stock-universal-server';
+import express from 'express';
+import { getLogger } from 'log4js';
 import { companySubscriptionLean, companySubscriptionMain } from '../../models/subscriptions/company-subscription.model';
 /** Logger for companySubscription routes */
 const companySubscriptionRoutesLogger = getLogger('routes/companySubscriptionRoutes');
@@ -21,13 +21,20 @@ companySubscriptionRoutes.get('/getall/:offset/:limit/:companyIdParam', requireA
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const companySubscriptions = await companySubscriptionLean
-        .find({ companyId: queryId })
-        .populate({ path: 'user', model: userLean })
-        .skip(offset)
-        .limit(limit)
-        .lean();
-    return res.status(200).send(companySubscriptions);
+    const all = await Promise.all([
+        companySubscriptionLean
+            .find({ companyId: queryId })
+            .populate({ path: 'user', model: userLean })
+            .skip(offset)
+            .limit(limit)
+            .lean(),
+        companySubscriptionLean.countDocuments({ companyId: queryId })
+    ]);
+    const response = {
+        count: all[1],
+        data: all[0]
+    };
+    return res.status(200).send(response);
 });
 companySubscriptionRoutes.put('/deleteone/:companyIdParam', requireAuth, roleAuthorisation('users', 'delete'), async (req, res) => {
     const { id } = req.body;

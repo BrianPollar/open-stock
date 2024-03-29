@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.userLoginRelegator = exports.authRoutes = void 0;
+exports.userLoginRelegator = exports.userAuthRoutes = void 0;
 const tslib_1 = require("tslib");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
@@ -17,7 +17,7 @@ const passport = require('passport');
 /**
  * Router for authentication routes.
  */
-exports.authRoutes = express_1.default.Router();
+exports.userAuthRoutes = express_1.default.Router();
 /**
  * Logger for authentication routes.
  */
@@ -55,8 +55,8 @@ const userLoginRelegator = async (req, res) => {
     return res.status(200).send(nowResponse);
 };
 exports.userLoginRelegator = userLoginRelegator;
-exports.authRoutes.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
-exports.authRoutes.get('/authexpress/:companyIdParam', stock_universal_server_1.requireAuth, async (req, res) => {
+exports.userAuthRoutes.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+exports.userAuthRoutes.get('/authexpress/:companyIdParam', stock_universal_server_1.requireAuth, async (req, res) => {
     const { userId } = req.user;
     const isValid = (0, stock_universal_server_1.verifyObjectId)(userId);
     if (!isValid) {
@@ -105,21 +105,21 @@ exports.authRoutes.get('/authexpress/:companyIdParam', stock_universal_server_1.
     };
     return res.status(200).send(nowResponse);
 });
-exports.authRoutes.post('/login', (req, res, next) => {
+exports.userAuthRoutes.post('/login', (req, res, next) => {
     req.body.from = 'user';
     const { emailPhone } = req.body;
     authLogger.debug(`login attempt,
     emailPhone: ${emailPhone}`);
     return next();
 }, auth_controller_1.checkIpAndAttempt, exports.userLoginRelegator);
-exports.authRoutes.post('/signup', (req, res, next) => {
+exports.userAuthRoutes.post('/signup', (req, res, next) => {
     const user = req.body;
     req.body.user = user;
     return next();
 }, auth_controller_1.isTooCommonPhrase, auth_controller_1.isInAdictionaryOnline, superadmin_routes_1.loginFactorRelgator, (req, res) => {
     return res.status(401).send({ success: false, msg: 'unauthourised' });
 });
-exports.authRoutes.post('recover', async (req, res, next) => {
+exports.userAuthRoutes.post('recover', async (req, res, next) => {
     const emailPhone = req.body.emailPhone;
     const emailOrPhone = emailPhone === 'phone' ? 'phone' : 'email';
     let query;
@@ -135,7 +135,7 @@ exports.authRoutes.post('recover', async (req, res, next) => {
     req.body.foundUser = foundUser;
     return next();
 }, auth_controller_1.recoverAccountFactory);
-exports.authRoutes.post('/confirm', async (req, res, next) => {
+exports.userAuthRoutes.post('/confirm', async (req, res, next) => {
     // eslint-disable-next-line @typescript-eslint/naming-convention
     const { _id, verifycode, how } = req.body;
     authLogger.debug(`verify, verifycode: ${verifycode}, how: ${how}`);
@@ -153,7 +153,7 @@ exports.authRoutes.post('/confirm', async (req, res, next) => {
     req.body.foundUser = foundUser;
     return next();
 }, auth_controller_1.confirmAccountFactory);
-exports.authRoutes.put('/resetpaswd', async (req, res, next) => {
+exports.userAuthRoutes.put('/resetpaswd', async (req, res, next) => {
     // eslint-disable-next-line @typescript-eslint/naming-convention
     const { _id, verifycode } = req.body;
     authLogger.debug(`resetpassword, 
@@ -172,7 +172,7 @@ exports.authRoutes.put('/resetpaswd', async (req, res, next) => {
     req.body.foundUser = foundUser;
     return next();
 }, auth_controller_1.resetAccountFactory);
-exports.authRoutes.post('/manuallyverify/:userId/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('users', 'create'), async (req, res) => {
+exports.userAuthRoutes.post('/manuallyverify/:userId/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('users', 'create'), async (req, res) => {
     const { userId, companyIdParam } = req.params;
     const { companyId } = req.user;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
@@ -195,7 +195,7 @@ exports.authRoutes.post('/manuallyverify/:userId/:companyIdParam', stock_univers
     foundUser.verified = true;
     return res.status(200).send({ success: true });
 });
-exports.authRoutes.post('/sociallogin', async (req, res) => {
+exports.userAuthRoutes.post('/sociallogin', async (req, res) => {
     const credentials = req.body;
     authLogger.debug(`sociallogin, 
     socialId: ${credentials.socialId}`);
@@ -284,7 +284,7 @@ exports.authRoutes.post('/sociallogin', async (req, res) => {
         }
     }
 });
-exports.authRoutes.put('/updateprofile/:formtype/:companyIdParam', stock_universal_server_1.requireAuth, async (req, res) => {
+exports.userAuthRoutes.put('/updateprofile/:formtype/:companyIdParam', stock_universal_server_1.requireAuth, async (req, res) => {
     const { userId } = req.user;
     const { userdetails } = req.body;
     const { formtype } = req.params;
@@ -410,7 +410,7 @@ exports.authRoutes.put('/updateprofile/:formtype/:companyIdParam', stock_univers
     }
     return res.status(status).send(response);
 });
-exports.authRoutes.post('/updateprofileimg/:companyIdParam', stock_universal_server_1.requireAuth, stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.saveMetaToDb, async (req, res) => {
+exports.userAuthRoutes.post('/updateprofileimg/:companyIdParam', stock_universal_server_1.requireAuth, stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.saveMetaToDb, async (req, res) => {
     let userId = req.body.user?._id;
     if (!userId) {
         userId = req.user.userId;
@@ -459,7 +459,7 @@ exports.authRoutes.post('/updateprofileimg/:companyIdParam', stock_universal_ser
     });
     return res.status(status).send(response);
 });
-exports.authRoutes.put('/updatepermissions/:userId/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('users', 'update'), async (req, res) => {
+exports.userAuthRoutes.put('/updatepermissions/:userId/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('users', 'update'), async (req, res) => {
     const { userId } = req.params;
     const isValid = (0, stock_universal_server_1.verifyObjectId)(userId);
     if (!isValid) {
@@ -493,7 +493,7 @@ exports.authRoutes.put('/updatepermissions/:userId/:companyIdParam', stock_unive
     });
     return res.status(status).send(response);
 });
-exports.authRoutes.put('/blockunblock/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('users', 'update'), async (req, res) => {
+exports.userAuthRoutes.put('/blockunblock/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('users', 'update'), async (req, res) => {
     const { userId } = req.user;
     authLogger.debug('blockunblock');
     const isValid = (0, stock_universal_server_1.verifyObjectId)(userId);
@@ -527,7 +527,7 @@ exports.authRoutes.put('/blockunblock/:companyIdParam', stock_universal_server_1
     });
     return res.status(status).send(response);
 });
-exports.authRoutes.put('/addupdateaddr/:userId/:companyIdParam', stock_universal_server_1.requireAuth, async (req, res) => {
+exports.userAuthRoutes.put('/addupdateaddr/:userId/:companyIdParam', stock_universal_server_1.requireAuth, async (req, res) => {
     const { userId } = req.params;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -591,7 +591,7 @@ exports.authRoutes.put('/addupdateaddr/:userId/:companyIdParam', stock_universal
     });
     return res.status(status).send(response);
 });
-exports.authRoutes.get('/getoneuser/:urId/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('users', 'read'), async (req, res) => {
+exports.userAuthRoutes.get('/getoneuser/:urId/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('users', 'read'), async (req, res) => {
     const { urId } = req.params;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -608,7 +608,7 @@ exports.authRoutes.get('/getoneuser/:urId/:companyIdParam', stock_universal_serv
     }
     return res.status(200).send(oneUser);
 });
-exports.authRoutes.get('/getusers/:where/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('users', 'read'), async (req, res) => {
+exports.userAuthRoutes.get('/getusers/:where/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('users', 'read'), async (req, res) => {
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
@@ -634,20 +634,27 @@ exports.authRoutes.get('/getusers/:where/:offset/:limit/:companyIdParam', stock_
             filter = { companyId: queryId };
             break;
     }
-    const faqs = await user_model_1.userLean
-        .find(filter)
-        .sort({ firstName: 1 })
-        .limit(Number(currLimit))
-        .skip(Number(currOffset))
-        .populate({ path: 'profilePic', model: stock_universal_server_1.fileMetaLean })
-        .populate({ path: 'profileCoverPic', model: stock_universal_server_1.fileMetaLean })
-        .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean })
-        .populate({ path: 'companyId', model: company_model_1.companyLean, select: { name: 1, blocked: 1 } })
-        .lean();
-    const filteredFaqs = faqs.filter(data => !data.companyId.blocked);
-    return res.status(200).send(filteredFaqs);
+    const all = await Promise.all([
+        user_model_1.userLean
+            .find(filter)
+            .sort({ firstName: 1 })
+            .limit(Number(currLimit))
+            .skip(Number(currOffset))
+            .populate({ path: 'profilePic', model: stock_universal_server_1.fileMetaLean })
+            .populate({ path: 'profileCoverPic', model: stock_universal_server_1.fileMetaLean })
+            .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean })
+            .populate({ path: 'companyId', model: company_model_1.companyLean, select: { name: 1, blocked: 1 } })
+            .lean(),
+        user_model_1.userLean.countDocuments(filter)
+    ]);
+    const filteredFaqs = all[0].filter(data => !data.companyId.blocked);
+    const response = {
+        count: all[1],
+        data: filteredFaqs
+    };
+    return res.status(200).send(response);
 });
-exports.authRoutes.post('/adduser/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('users', 'create'), async (req, res) => {
+exports.userAuthRoutes.post('/adduser/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('users', 'create'), async (req, res) => {
     const userData = req.body.user;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -688,7 +695,7 @@ exports.authRoutes.post('/adduser/:companyIdParam', stock_universal_server_1.req
     }
     return res.status(status).send(response);
 });
-exports.authRoutes.post('/adduserimg/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('users', 'create'), stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.saveMetaToDb, async (req, res) => {
+exports.userAuthRoutes.post('/adduserimg/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('users', 'create'), stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.saveMetaToDb, async (req, res) => {
     const userData = req.body.user;
     const parsed = req.body.parsed;
     const { companyId } = req.user;
@@ -741,7 +748,7 @@ exports.authRoutes.post('/adduserimg/:companyIdParam', stock_universal_server_1.
     }
     return res.status(status).send(response);
 });
-exports.authRoutes.put('/updateuserbulk/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('items', 'update'), async (req, res) => {
+exports.userAuthRoutes.put('/updateuserbulk/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('items', 'update'), async (req, res) => {
     const updatedUser = req.body.user;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -789,7 +796,7 @@ exports.authRoutes.put('/updateuserbulk/:companyIdParam', stock_universal_server
     });
     return res.status(status).send(response);
 });
-exports.authRoutes.post('/updateuserbulkimg/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('items', 'update'), stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.saveMetaToDb, async (req, res) => {
+exports.userAuthRoutes.post('/updateuserbulkimg/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('items', 'update'), stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.saveMetaToDb, async (req, res) => {
     const updatedUser = req.body.user;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -849,7 +856,7 @@ exports.authRoutes.post('/updateuserbulkimg/:companyIdParam', stock_universal_se
     });
     return res.status(status).send(response);
 });
-exports.authRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('users', 'delete'), stock_universal_server_1.deleteFiles, async (req, res) => {
+exports.userAuthRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('users', 'delete'), stock_universal_server_1.deleteFiles, async (req, res) => {
     const { ids } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -871,7 +878,7 @@ exports.authRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.r
         return res.status(404).send({ success: Boolean(deleted), err: 'could not delete selected items, try again in a while' });
     }
 });
-exports.authRoutes.put('/deleteone/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('users', 'delete'), stock_universal_server_1.deleteFiles, async (req, res) => {
+exports.userAuthRoutes.put('/deleteone/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('users', 'delete'), stock_universal_server_1.deleteFiles, async (req, res) => {
     // eslint-disable-next-line @typescript-eslint/naming-convention
     const { _id } = req.body;
     const { companyId } = req.user;
@@ -891,7 +898,7 @@ exports.authRoutes.put('/deleteone/:companyIdParam', stock_universal_server_1.re
         return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
-exports.authRoutes.put('/deleteimages/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('items', 'delete'), stock_universal_server_1.deleteFiles, async (req, res) => {
+exports.userAuthRoutes.put('/deleteimages/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('items', 'delete'), stock_universal_server_1.deleteFiles, async (req, res) => {
     const filesWithDir = req.body.filesWithDir;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;

@@ -37,7 +37,10 @@ export class Expense extends DatabaseAuto {
     static async getExpenses(companyId, url = 'getall', offset = 0, limit = 20) {
         const observer$ = StockCounterClient.ehttp.makeGet(`/expense/${url}/${offset}/${limit}/${companyId}`);
         const expenses = await lastValueFrom(observer$);
-        return expenses.map((val) => new Expense(val));
+        return {
+            count: expenses.count,
+            expenses: expenses.data.map((val) => new Expense(val))
+        };
     }
     /**
      * Retrieves a single expense from the server.

@@ -1,3 +1,4 @@
+import { IdataArrayResponse } from '@open-stock/stock-universal';
 import express from 'express';
 import { createMockNotif, createMockNotifs } from '../../../tests/stock-notif-mocks';
 
@@ -7,11 +8,19 @@ import { createMockNotif, createMockNotifs } from '../../../tests/stock-notif-mo
 export const notifnRoutesDummy = express.Router();
 
 notifnRoutesDummy.get('/getmynotifn/:companyIdParam', (req, res) => {
-  res.status(200).send(createMockNotifs(10));
+  const response: IdataArrayResponse = {
+    count: 10,
+    data: createMockNotifs(10)
+  };
+  res.status(200).send(response);
 });
 
 notifnRoutesDummy.get('/getmyavailnotifn/:companyIdParam', (req, res) => {
-  res.status(200).send(createMockNotifs(10));
+  const response: IdataArrayResponse = {
+    count: 10,
+    data: createMockNotifs(10)
+  };
+  res.status(200).send(response);
 });
 
 notifnRoutesDummy.get('/getone/:id/:companyIdParam', (req, res) => {

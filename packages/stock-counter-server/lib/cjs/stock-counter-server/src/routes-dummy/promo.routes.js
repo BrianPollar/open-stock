@@ -17,7 +17,11 @@ exports.promocodeRoutesDummy.get('/getonebycode/:code/:companyIdParam', (req, re
     res.status(200).send({});
 });
 exports.promocodeRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) => {
-    res.status(200).send([]);
+    const response = {
+        count: req.params.limit,
+        data: []
+    };
+    res.status(200).send(response);
 });
 exports.promocodeRoutesDummy.delete('/deleteone/:id/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });

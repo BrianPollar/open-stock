@@ -40,7 +40,10 @@ class Expense extends stock_universal_1.DatabaseAuto {
     static async getExpenses(companyId, url = 'getall', offset = 0, limit = 20) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makeGet(`/expense/${url}/${offset}/${limit}/${companyId}`);
         const expenses = await (0, rxjs_1.lastValueFrom)(observer$);
-        return expenses.map((val) => new Expense(val));
+        return {
+            count: expenses.count,
+            expenses: expenses.data.map((val) => new Expense(val))
+        };
     }
     /**
      * Retrieves a single expense from the server.

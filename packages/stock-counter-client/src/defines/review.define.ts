@@ -1,5 +1,5 @@
 import { User } from '@open-stock/stock-auth-client';
-import { DatabaseAuto, IreviewMain, Isuccess, Iuser } from '@open-stock/stock-universal';
+import { DatabaseAuto, IdataArrayResponse, IreviewMain, Isuccess, Iuser } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
 import { StockCounterClient } from '../stock-counter-client';
 
@@ -76,8 +76,10 @@ export class Review extends DatabaseAuto {
   ) {
     const observer$ = StockCounterClient.ehttp
       .makeGet(`/review/${url}/${itemId}/${offset}/${limit}/${companyId}`);
-    const reviews = await lastValueFrom(observer$) as IreviewMain[];
-    return reviews.map(val => new Review(val));
+    const reviews = await lastValueFrom(observer$) as IdataArrayResponse;
+    return {
+      count: reviews.count,
+      reviews: reviews.data.map(val => new Review(val as IreviewMain)) };
   }
 
   /**

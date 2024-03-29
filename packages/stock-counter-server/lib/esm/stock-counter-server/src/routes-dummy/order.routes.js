@@ -20,10 +20,18 @@ orderRoutesDummy.get('/getone/:id/:companyIdParam', (req, res) => {
     res.status(200).send(createMockOrder());
 });
 orderRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) => {
-    res.status(200).send(createMockOrders(Number(req.params.limit)));
+    const response = {
+        count: req.params.limit,
+        data: createMockOrders(Number(req.params.limit))
+    };
+    res.status(200).send(response);
 });
 orderRoutesDummy.get('/getmyorders/:companyIdParam', (req, res) => {
-    res.status(200).send(createMockOrders(10));
+    const response = {
+        count: req.params.limit,
+        data: createMockOrders(10)
+    };
+    res.status(200).send(response);
 });
 orderRoutesDummy.put('/deleteone/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });
@@ -32,7 +40,11 @@ orderRoutesDummy.put('/appendDelivery/:orderId/:status/:companyIdParam', (req, r
     res.status(200).send({ success: true });
 });
 orderRoutesDummy.post('/search/:limit/:offset/:companyIdParam', (req, res) => {
-    res.status(200).send(createMockOrders(Number(req.params.limit)));
+    const response = {
+        count: req.params.limit,
+        data: createMockOrders(Number(req.params.limit))
+    };
+    res.status(200).send(response);
 });
 orderRoutesDummy.put('/deletemany/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });

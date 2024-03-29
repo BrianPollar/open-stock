@@ -1,7 +1,7 @@
+import { DatabaseAuto, IdataArrayResponse, IsalesReport, Isuccess } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
-import { Estimate } from '../estimate.define';
-import { DatabaseAuto, IsalesReport, Isuccess } from '@open-stock/stock-universal';
 import { StockCounterClient } from '../../stock-counter-client';
+import { Estimate } from '../estimate.define';
 import { InvoiceRelatedWithReceipt } from '../invoice.define';
 
 /**
@@ -42,8 +42,11 @@ export class SalesReport extends DatabaseAuto {
    */
   static async getSalesReports(companyId: string, url = 'getall', offset = 0, limit = 20) {
     const observer$ = StockCounterClient.ehttp.makeGet(`/salesreport/${url}/${offset}/${limit}/${companyId}`);
-    const salesreports = await lastValueFrom(observer$) as IsalesReport[];
-    return salesreports.map((val) => new SalesReport(val));
+    const salesreports = await lastValueFrom(observer$) as IdataArrayResponse;
+    return {
+      cousnt: salesreports.count,
+      salesreports: salesreports.data.map((val) => new SalesReport(val as IsalesReport))
+    };
   }
 
   /**

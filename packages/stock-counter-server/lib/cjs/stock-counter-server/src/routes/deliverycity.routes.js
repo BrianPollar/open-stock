@@ -2,11 +2,10 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deliverycityRoutes = void 0;
 const tslib_1 = require("tslib");
-/* eslint-disable @typescript-eslint/no-misused-promises */
-const express_1 = tslib_1.__importDefault(require("express"));
-const deliverycity_model_1 = require("../models/deliverycity.model");
-const log4js_1 = require("log4js");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
+const express_1 = tslib_1.__importDefault(require("express"));
+const log4js_1 = require("log4js");
+const deliverycity_model_1 = require("../models/deliverycity.model");
 /**
  * Logger for deliverycity routes
  */
@@ -103,12 +102,19 @@ exports.deliverycityRoutes.get('/getall/:offset/:limit/:companyIdParam', async (
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const deliverycitys = await deliverycity_model_1.deliverycityLean
-        .find({ companyId: queryId })
-        .skip(offset)
-        .limit(limit)
-        .lean();
-    return res.status(200).send(deliverycitys);
+    const all = await Promise.all([
+        deliverycity_model_1.deliverycityLean
+            .find({ companyId: queryId })
+            .skip(offset)
+            .limit(limit)
+            .lean(),
+        deliverycity_model_1.deliverycityLean.countDocuments({ companyId: queryId })
+    ]);
+    const response = {
+        count: all[1],
+        data: all[0]
+    };
+    return res.status(200).send(response);
 });
 /**
  * Route for updating a delivery city by ID

@@ -20,7 +20,7 @@
  * @requires @open-stock/stock-universal-server
  */
 /* eslint-disable @typescript-eslint/no-misused-promises */
-import { Icustomrequest, Isuccess } from '@open-stock/stock-universal';
+import { Icustomrequest, IdataArrayResponse, Isuccess } from '@open-stock/stock-universal';
 import { requireAuth, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { updateNotifnViewed } from '../controllers/notifications.controller';
@@ -43,22 +43,36 @@ notifnRoutes.get('/getmynotifn/:companyIdParam', requireAuth, async(req, res) =>
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
-  const notifs = await mainnotificationLean
-    .find({ userId, active: true, viewed: { $nin: [userId] }, companyId: queryId })
-    .lean()
-    .sort({ name: 'asc' });
-  return res.status(200).send(notifs);
+  const all = await Promise.all([
+    mainnotificationLean
+      .find({ userId, active: true, viewed: { $nin: [userId] }, companyId: queryId })
+      .lean()
+      .sort({ name: 'asc' }),
+    mainnotificationLean.countDocuments({ userId, active: true, viewed: { $nin: [userId] }, companyId: queryId })
+  ]);
+  const response: IdataArrayResponse = {
+    count: all[1],
+    data: all[0]
+  };
+  return res.status(200).send(response);
 });
 
 notifnRoutes.get('/getmyavailnotifn/:companyIdParam', requireAuth, async(req, res) => {
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const notifs = await mainnotificationLean
-    .find({ active: true, companyId: queryId })
-    .lean()
-    .sort({ name: 'asc' });
-  return res.status(200).send(notifs);
+  const all = await Promise.all([
+    mainnotificationLean
+      .find({ active: true, companyId: queryId })
+      .lean()
+      .sort({ name: 'asc' }),
+    mainnotificationLean.countDocuments({ active: true, companyId: queryId })
+  ]);
+  const response: IdataArrayResponse = {
+    count: all[1],
+    data: all[0]
+  };
+  return res.status(200).send(response);
 });
 
 notifnRoutes.get('/getone/:id/:companyIdParam', requireAuth, async(req, res) => {

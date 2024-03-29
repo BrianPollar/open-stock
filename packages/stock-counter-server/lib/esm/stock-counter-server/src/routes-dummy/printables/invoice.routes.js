@@ -14,7 +14,11 @@ invoiceRoutesDummy.get('/getone/:invoiceId/:companyIdParam', (req, res) => {
     res.status(200).send(createMockInvoice());
 });
 invoiceRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) => {
-    res.status(200).send(createMockInvoices(Number(req.params.limit)));
+    const response = {
+        count: req.params.limit,
+        data: createMockInvoices(Number(req.params.limit))
+    };
+    res.status(200).send(response);
 });
 invoiceRoutesDummy.put('/deleteone/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });
@@ -36,7 +40,11 @@ invoiceRoutesDummy.get('/getonepayment/:urId/:companyIdParam', (req, res) => {
     res.status(200).send(createMockReceipt());
 });
 invoiceRoutesDummy.get('/getallpayments/:companyIdParam', (req, res) => {
-    res.status(200).send(createMockReceipts(10));
+    const response = {
+        count: 10,
+        data: createMockReceipts(10)
+    };
+    res.status(200).send(response);
 });
 invoiceRoutesDummy.put('/deleteonepayment/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });

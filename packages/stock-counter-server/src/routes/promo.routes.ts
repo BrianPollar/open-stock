@@ -1,11 +1,10 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
 
+import { Icustomrequest, IdataArrayResponse, Isuccess, makeRandomString } from '@open-stock/stock-universal';
+import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
-import { promocodeLean, promocodeMain } from '../models/promocode.model';
 import { getLogger } from 'log4js';
-import { Icustomrequest, Isuccess, makeRandomString } from '@open-stock/stock-universal';
-import { makeUrId, offsetLimitRelegator, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
-import { requireAuth } from '@open-stock/stock-universal-server';
+import { promocodeLean, promocodeMain } from '../models/promocode.model';
 
 /** Logger for promocode routes */
 const promocodeRoutesLogger = getLogger('routes/promocodeRoutes');
@@ -137,12 +136,19 @@ promocodeRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, roleA
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
-  const promocodes = await promocodeLean
-    .find({ companyId: queryId })
-    .skip(offset)
-    .limit(limit)
-    .lean();
-  return res.status(200).send(promocodes);
+  const all = await Promise.all([
+    promocodeLean
+      .find({ companyId: queryId })
+      .skip(offset)
+      .limit(limit)
+      .lean(),
+    promocodeLean.countDocuments({ companyId: queryId })
+  ]);
+  const response: IdataArrayResponse = {
+    count: all[1],
+    data: all[0]
+  };
+  return res.status(200).send(response);
 });
 
 /**

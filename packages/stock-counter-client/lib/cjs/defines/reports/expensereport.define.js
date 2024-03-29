@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ExpenseReport = void 0;
-const rxjs_1 = require("rxjs");
 const stock_universal_1 = require("@open-stock/stock-universal");
+const rxjs_1 = require("rxjs");
 const stock_counter_client_1 = require("../../stock-counter-client");
 const expense_define_1 = require("../expense.define");
 /**
@@ -34,7 +34,10 @@ class ExpenseReport extends stock_universal_1.DatabaseAuto {
     static async getExpenseReports(companyId, url = 'getall', offset = 0, limit = 10) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makeGet(`/expensereport/${url}/${offset}/${limit}/${companyId}`);
         const expensereports = await (0, rxjs_1.lastValueFrom)(observer$);
-        return expensereports.map((val) => new ExpenseReport(val));
+        return {
+            count: expensereports.count,
+            expensereports: expensereports.data.map((val) => new ExpenseReport(val))
+        };
     }
     /**
      * Retrieves a single expense report from the API.

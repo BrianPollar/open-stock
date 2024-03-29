@@ -45,7 +45,10 @@ export declare class NotificationMain {
      * @param limit The limit to use for the request.
      * @returns A promise that resolves to an array of NotificationMain instances.
      */
-    static getNotifications(companyId: string, url?: string, offset?: number, limit?: number): Promise<NotificationMain[]>;
+    static getNotifications(companyId: string, url?: string, offset?: number, limit?: number): Promise<{
+        count: number;
+        notifications: NotificationMain[];
+    }>;
     /**
      * Appends a subscription to the list of subscriptions.
      * @param companyId - The ID of the company

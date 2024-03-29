@@ -87,27 +87,34 @@ exports.receiptRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_univer
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const receipts = await receipt_model_1.receiptLean
-        .find({ companyId: queryId })
-        .skip(offset)
-        .limit(limit)
-        .lean()
-        .populate({
-        path: 'invoiceRelated', model: invoicerelated_model_1.invoiceRelatedLean,
-        populate: [{
-                path: 'billingUserId', model: stock_auth_server_1.userLean
-            },
-            {
-                path: 'payments', model: receipt_model_1.receiptLean
-            }]
-    });
-    const returned = receipts
+    const all = await Promise.all([
+        receipt_model_1.receiptLean
+            .find({ companyId: queryId })
+            .skip(offset)
+            .limit(limit)
+            .lean()
+            .populate({
+            path: 'invoiceRelated', model: invoicerelated_model_1.invoiceRelatedLean,
+            populate: [{
+                    path: 'billingUserId', model: stock_auth_server_1.userLean
+                },
+                {
+                    path: 'payments', model: receipt_model_1.receiptLean
+                }]
+        }),
+        receipt_model_1.receiptLean.countDocuments({ companyId: queryId })
+    ]);
+    const returned = all[0]
         .map(val => {
         const related = (0, invoicerelated_1.makeInvoiceRelatedPdct)(val.invoiceRelated, val.invoiceRelated
             .billingUserId);
         return { ...val, ...related };
     });
-    return res.status(200).send(returned);
+    const response = {
+        count: all[1],
+        data: returned
+    };
+    return res.status(200).send(response);
 });
 exports.receiptRoutes.put('/deleteone/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'delete'), async (req, res) => {
     const { id, invoiceRelated, creationType, stage } = req.body;
@@ -132,24 +139,31 @@ exports.receiptRoutes.post('/search/:limit/:offset/:companyIdParam', stock_unive
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
-    const receipts = await receipt_model_1.receiptLean
-        .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
-        .lean()
-        .skip(offset)
-        .limit(limit)
-        .populate({
-        path: 'invoiceRelated', model: invoicerelated_model_1.invoiceRelatedLean,
-        populate: [{
-                path: 'billingUserId', model: stock_auth_server_1.userLean
-            },
-            {
-                path: 'payments', model: receipt_model_1.receiptLean
-            }]
-    });
-    const returned = receipts
+    const all = await Promise.all([
+        receipt_model_1.receiptLean
+            .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+            .skip(offset)
+            .limit(limit)
+            .lean()
+            .populate({
+            path: 'invoiceRelated', model: invoicerelated_model_1.invoiceRelatedLean,
+            populate: [{
+                    path: 'billingUserId', model: stock_auth_server_1.userLean
+                },
+                {
+                    path: 'payments', model: receipt_model_1.receiptLean
+                }]
+        }),
+        receipt_model_1.receiptLean.countDocuments({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+    ]);
+    const returned = all[0]
         .map(val => (0, invoicerelated_1.makeInvoiceRelatedPdct)(val.invoiceRelated, val.invoiceRelated
         .billingUserId));
-    return res.status(200).send(returned);
+    const response = {
+        count: all[1],
+        data: returned
+    };
+    return res.status(200).send(response);
 });
 exports.receiptRoutes.put('/update/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'update'), async (req, res) => {
     const { updatedReceipt, invoiceRelated } = req.body;

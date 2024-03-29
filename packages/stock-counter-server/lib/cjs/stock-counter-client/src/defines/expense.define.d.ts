@@ -36,7 +36,10 @@ export declare class Expense extends DatabaseAuto {
      * @param {number} [limit=0] - The maximum number of expenses to retrieve.
      * @returns {Promise<Expense[]>} An array of Expense instances.
      */
-    static getExpenses(companyId: string, url?: string, offset?: number, limit?: number): Promise<Expense[]>;
+    static getExpenses(companyId: string, url?: string, offset?: number, limit?: number): Promise<{
+        count: number;
+        expenses: Expense[];
+    }>;
     /**
      * Retrieves a single expense from the server.
      * @static

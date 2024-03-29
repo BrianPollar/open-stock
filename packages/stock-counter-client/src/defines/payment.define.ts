@@ -1,7 +1,7 @@
+import { Iaddress, IbagainCredential, Ibilling, IdataArrayResponse, IdeleteCredentialsPayRel, IinvoiceRelated, Iorder, Ipayment, IpaymentRelated, Isuccess, TpaymentMethod } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
-import { InvoiceRelatedWithReceipt } from './invoice.define';
-import { Iaddress, IbagainCredential, Ibilling, IdeleteCredentialsPayRel, IinvoiceRelated, Iorder, Ipayment, IpaymentRelated, Isuccess, TpaymentMethod } from '@open-stock/stock-universal';
 import { StockCounterClient } from '../stock-counter-client';
+import { InvoiceRelatedWithReceipt } from './invoice.define';
 
 
 export class PaymentRelated
@@ -109,8 +109,10 @@ export class Payment extends PaymentRelated {
     searchKey: string
   ) {
     const observer$ = StockCounterClient.ehttp.makePost(`/payment/search/${companyId}`, { searchterm, searchKey });
-    const payments = await lastValueFrom(observer$) as Required<Ipayment>[];
-    return payments.map(val => new Payment(val));
+    const payments = await lastValueFrom(observer$) as IdataArrayResponse;
+    return {
+      count: payments.count,
+      payments: payments.data.map(val => new Payment(val as Required<Ipayment>)) };
   }
 
   /**
@@ -128,8 +130,11 @@ export class Payment extends PaymentRelated {
     limit = 20
   ) {
     const observer$ = StockCounterClient.ehttp.makeGet(`/payment/${url}/${offset}/${limit}/${companyId}`);
-    const payments = await lastValueFrom(observer$) as Required<Ipayment>[];
-    return payments.map(val => new Payment(val));
+    const payments = await lastValueFrom(observer$) as IdataArrayResponse;
+    return {
+      count: payments.count,
+      payments: payments.data.map(val => new Payment(val as Required<Ipayment>))
+    };
   }
 
   /**

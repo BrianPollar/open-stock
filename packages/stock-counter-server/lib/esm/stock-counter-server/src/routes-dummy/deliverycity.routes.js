@@ -11,7 +11,11 @@ deliverycityRoutesDummy.get('/getone/:id/:companyIdParam', (req, res) => {
     res.status(200).send(createMockDeliveryCity());
 });
 deliverycityRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) => {
-    res.status(200).send(createMockDeliveryCitys(Number(req.params.limit)));
+    const response = {
+        count: req.params.limit,
+        data: createMockDeliveryCitys(Number(req.params.limit))
+    };
+    res.status(200).send(response);
 });
 deliverycityRoutesDummy.put('/update/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });

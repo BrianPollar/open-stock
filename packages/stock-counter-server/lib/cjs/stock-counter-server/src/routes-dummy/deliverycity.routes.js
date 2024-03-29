@@ -15,7 +15,11 @@ exports.deliverycityRoutesDummy.get('/getone/:id/:companyIdParam', (req, res) =>
     res.status(200).send((0, stock_counter_mocks_1.createMockDeliveryCity)());
 });
 exports.deliverycityRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) => {
-    res.status(200).send((0, stock_counter_mocks_1.createMockDeliveryCitys)(Number(req.params.limit)));
+    const response = {
+        count: req.params.limit,
+        data: (0, stock_counter_mocks_1.createMockDeliveryCitys)(Number(req.params.limit))
+    };
+    res.status(200).send(response);
 });
 exports.deliverycityRoutesDummy.put('/update/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });

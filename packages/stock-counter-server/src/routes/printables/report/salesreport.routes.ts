@@ -1,10 +1,10 @@
-import express from 'express';
+import { Icustomrequest, IdataArrayResponse, Isuccess } from '@open-stock/stock-universal';
 import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectIds } from '@open-stock/stock-universal-server';
-import { estimateLean } from '../../../models/printables/estimate.model';
-import { salesReportLean, salesReportMain } from '../../../models/printables/report/salesreport.model';
+import express from 'express';
 import { getLogger } from 'log4js';
-import { Icustomrequest, Isuccess } from '@open-stock/stock-universal';
+import { estimateLean } from '../../../models/printables/estimate.model';
 import { invoiceRelatedLean } from '../../../models/printables/related/invoicerelated.model';
+import { salesReportLean, salesReportMain } from '../../../models/printables/report/salesreport.model';
 
 /** Logger for sales report routes */
 const salesReportRoutesLogger = getLogger('routes/salesReportRoutes');
@@ -96,14 +96,21 @@ salesReportRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, rol
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const salesReports = await salesReportLean
-    .find({ companyId: queryId })
-    .skip(offset)
-    .limit(limit)
-    .lean()
-    .populate({ path: 'estimates', model: estimateLean })
-    .populate({ path: 'invoiceRelateds', model: invoiceRelatedLean });
-  return res.status(200).send(salesReports);
+  const all = await Promise.all([
+    salesReportLean
+      .find({ companyId: queryId })
+      .skip(offset)
+      .limit(limit)
+      .lean()
+      .populate({ path: 'estimates', model: estimateLean })
+      .populate({ path: 'invoiceRelateds', model: invoiceRelatedLean }),
+    salesReportLean.countDocuments({ companyId: queryId })
+  ]);
+  const response: IdataArrayResponse = {
+    count: all[1],
+    data: all[0]
+  };
+  return res.status(200).send(response);
 });
 
 /**
@@ -150,14 +157,21 @@ salesReportRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, ro
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
-  const salesReports = await salesReportLean
-    .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
-    .lean()
-    .skip(offset)
-    .limit(limit)
-    .populate({ path: 'estimates', model: estimateLean })
-    .populate({ path: 'invoiceRelateds', model: invoiceRelatedLean });
-  return res.status(200).send(salesReports);
+  const all = await Promise.all([
+    salesReportLean
+      .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+      .skip(offset)
+      .limit(limit)
+      .lean()
+      .populate({ path: 'estimates', model: estimateLean })
+      .populate({ path: 'invoiceRelateds', model: invoiceRelatedLean }),
+    salesReportLean.countDocuments({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+  ]);
+  const response: IdataArrayResponse = {
+    count: all[1],
+    data: all[0]
+  };
+  return res.status(200).send(response);
 });
 
 /**

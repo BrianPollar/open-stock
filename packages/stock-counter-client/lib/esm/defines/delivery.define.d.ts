@@ -33,7 +33,10 @@ export declare class DeliveryCity extends DatabaseAuto {
      * @param limit The maximum number of delivery cities to retrieve.
      * @returns An array of DeliveryCity instances.
      */
-    static getDeliveryCitys(companyId: string, url?: string, offset?: number, limit?: number): Promise<DeliveryCity[]>;
+    static getDeliveryCitys(companyId: string, url?: string, offset?: number, limit?: number): Promise<{
+        count: number;
+        citys: DeliveryCity[];
+    }>;
     /**
      * Retrieves a single delivery city from the server.
      * @param companyId - The ID of the company

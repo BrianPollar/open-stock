@@ -2,10 +2,10 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.invoiceSettingRoutes = void 0;
 const tslib_1 = require("tslib");
-const express_1 = tslib_1.__importDefault(require("express"));
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
-const invoicesettings_model_1 = require("../../../models/printables/settings/invoicesettings.model");
+const express_1 = tslib_1.__importDefault(require("express"));
 const log4js_1 = require("log4js");
+const invoicesettings_model_1 = require("../../../models/printables/settings/invoicesettings.model");
 /** Logger for invoice setting routes */
 const invoiceSettingRoutesLogger = (0, log4js_1.getLogger)('routes/invoiceSettingRoutes');
 /**
@@ -242,12 +242,19 @@ exports.invoiceSettingRoutes.get('/getall/:offset/:limit/:companyIdParam', stock
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const invoiceSettings = await invoicesettings_model_1.invoiceSettingLean
-        .find({ companyId: queryId })
-        .skip(offset)
-        .limit(limit)
-        .lean();
-    return res.status(200).send(invoiceSettings);
+    const all = await Promise.all([
+        invoicesettings_model_1.invoiceSettingLean
+            .find({ companyId: queryId })
+            .skip(offset)
+            .limit(limit)
+            .lean(),
+        invoicesettings_model_1.invoiceSettingLean.countDocuments()
+    ]);
+    const response = {
+        count: all[1],
+        data: all[0]
+    };
+    return res.status(200).send(response);
 });
 exports.invoiceSettingRoutes.delete('/deleteone/:id/:companyIdParam', stock_universal_server_1.requireAuth, async (req, res) => {
     const { id } = req.params;
@@ -273,12 +280,19 @@ exports.invoiceSettingRoutes.post('/search/:limit/:offset/:companyIdParam', stoc
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
-    const invoiceSettings = await invoicesettings_model_1.invoiceSettingLean
-        .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
-        .skip(offset)
-        .limit(limit)
-        .lean();
-    return res.status(200).send(invoiceSettings);
+    const all = await Promise.all([
+        invoicesettings_model_1.invoiceSettingLean
+            .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+            .skip(offset)
+            .limit(limit)
+            .lean(),
+        invoicesettings_model_1.invoiceSettingLean.countDocuments({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+    ]);
+    const response = {
+        count: all[1],
+        data: all[0]
+    };
+    return res.status(200).send(response);
 });
 exports.invoiceSettingRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'delete'), async (req, res) => {
     const { ids } = req.body;

@@ -1,14 +1,14 @@
-import { lastValueFrom } from 'rxjs';
-import { PaymentRelated } from './payment.define';
 import {
-  IbagainCredential, IdeleteCredentialsPayRel, IinvoiceRelated,
+  IbagainCredential, IdataArrayResponse, IdeleteCredentialsPayRel, IinvoiceRelated,
   Iorder,
   Ipayment,
   IpaymentRelated,
   Isuccess,
   TorderStatus
 } from '@open-stock/stock-universal';
+import { lastValueFrom } from 'rxjs';
 import { StockCounterClient } from '../stock-counter-client';
+import { PaymentRelated } from './payment.define';
 
 
 /**
@@ -43,8 +43,8 @@ export class Order extends PaymentRelated {
    */
   static async searchOrders(companyId: string, searchterm: string, searchKey: string) {
     const observer$ = StockCounterClient.ehttp.makePost(`/order/search/${companyId}`, { searchterm, searchKey });
-    const orders = await lastValueFrom(observer$) as Required<Iorder>[];
-    return orders.map(val => new Order(val));
+    const orders = await lastValueFrom(observer$) as IdataArrayResponse;
+    return orders.data.map(val => new Order(val as Required<Iorder>));
   }
 
   /**
@@ -69,8 +69,10 @@ export class Order extends PaymentRelated {
    */
   static async getOrders(companyId: string, url = 'getall', offset = 0, limit = 20) {
     const observer$ = StockCounterClient.ehttp.makeGet(`/order/${url}/${offset}/${limit}/${companyId}`);
-    const orders = await lastValueFrom(observer$) as Required<Iorder>[];
-    return orders.map(val => new Order(val));
+    const orders = await lastValueFrom(observer$) as IdataArrayResponse;
+    return {
+      count: orders.count,
+      orders: orders.data.map(val => new Order(val as Required<Iorder>)) };
   }
 
   /**

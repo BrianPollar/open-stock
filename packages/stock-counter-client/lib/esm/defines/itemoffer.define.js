@@ -1,7 +1,7 @@
-import { lastValueFrom } from 'rxjs';
-import { Item } from './item.define';
 import { DatabaseAuto } from '@open-stock/stock-universal';
+import { lastValueFrom } from 'rxjs';
 import { StockCounterClient } from '../stock-counter-client';
+import { Item } from './item.define';
 /**
  * Represents an item offer.
  */
@@ -33,7 +33,10 @@ export class ItemOffer extends DatabaseAuto {
     static async getItemOffers(companyId, type, url = 'getall', offset = 0, limit = 20) {
         const observer$ = StockCounterClient.ehttp.makeGet(`/itemoffer/${url}/${type}/${offset}/${limit}/${companyId}`);
         const offers = await lastValueFrom(observer$);
-        return offers.map((val) => new ItemOffer(val));
+        return {
+            count: offers.count,
+            offers: offers.data.map((val) => new ItemOffer(val))
+        };
     }
     /**
      * Gets a single item offer.

@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
-import express from 'express';
-import { expenseLean, expenseMain } from '../models/expense.model';
-import { getLogger } from 'log4js';
 import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import express from 'express';
+import { getLogger } from 'log4js';
+import { expenseLean, expenseMain } from '../models/expense.model';
 /** Logger for expense routes */
 const expenseRoutesLogger = getLogger('routes/expenseRoutes');
 /**
@@ -146,12 +146,19 @@ expenseRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, roleAut
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const expenses = await expenseLean
-        .find({ companyId: queryId })
-        .skip(offset)
-        .limit(limit)
-        .lean();
-    return res.status(200).send(expenses);
+    const all = await Promise.all([
+        expenseLean
+            .find({ companyId: queryId })
+            .skip(offset)
+            .limit(limit)
+            .lean(),
+        expenseLean.countDocuments({ companyId: queryId })
+    ]);
+    const response = {
+        count: all[1],
+        data: all[0]
+    };
+    return res.status(200).send(response);
 });
 /**
  * Delete a single expense by ID
@@ -199,12 +206,19 @@ expenseRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, roleAu
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
-    const expenses = await expenseLean
-        .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
-        .skip(offset)
-        .limit(limit)
-        .lean();
-    return res.status(200).send(expenses);
+    const all = await Promise.all([
+        expenseLean
+            .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+            .skip(offset)
+            .limit(limit)
+            .lean(),
+        expenseLean.countDocuments({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+    ]);
+    const response = {
+        count: all[1],
+        data: all[0]
+    };
+    return res.status(200).send(response);
 });
 /**
  * Delete multiple expenses by ID

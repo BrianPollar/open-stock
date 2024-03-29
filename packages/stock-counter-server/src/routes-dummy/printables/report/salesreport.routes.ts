@@ -1,3 +1,4 @@
+import { IdataArrayResponse } from '@open-stock/stock-universal';
 import express from 'express';
 import { createMockSalesReport, createMockSalesReports } from '../../../../../tests/stock-counter-mocks';
 
@@ -17,7 +18,11 @@ salesReportRoutesDummy.get('/getone/:urId/:companyIdParam', (req, res) => {
 
 
 salesReportRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) => {
-  res.status(200).send(createMockSalesReports(Number(req.params.limit)));
+  const response: IdataArrayResponse = {
+    count: req.params.limit,
+    data: createMockSalesReports(Number(req.params.limit))
+  };
+  res.status(200).send(response);
 });
 
 
@@ -27,7 +32,11 @@ salesReportRoutesDummy.delete('/deleteone/:id/:companyIdParam', (req, res) => {
 
 
 salesReportRoutesDummy.post('/search/:limit/:offset/:companyIdParam', (req, res) => {
-  res.status(200).send(createMockSalesReports(Number(req.params.limit)));
+  const response: IdataArrayResponse = {
+    count: req.params.limit,
+    data: createMockSalesReports(Number(req.params.limit))
+  };
+  res.status(200).send(response);
 });
 
 

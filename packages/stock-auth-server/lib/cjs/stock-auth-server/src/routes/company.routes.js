@@ -406,17 +406,24 @@ exports.companyAuthRoutes.get('/getcompanys//:offset/:limit/:companyIdParam', st
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const currOffset = offset === 0 ? 0 : offset;
     const currLimit = limit === 0 ? 1000 : limit;
-    const faqs = await company_model_1.companyLean
-        .find({ companyId: queryId })
-        .sort({ firstName: 1 })
-        .limit(Number(currLimit))
-        .skip(Number(currOffset))
-        .populate({ path: 'profilePic', model: stock_universal_server_1.fileMetaLean })
-        .populate({ path: 'profileCoverPic', model: stock_universal_server_1.fileMetaLean })
-        .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean })
-        .lean();
-    const filteredFaqs = faqs.filter(data => !data.blocked);
-    return res.status(200).send(filteredFaqs);
+    const all = await Promise.all([
+        company_model_1.companyLean
+            .find({ companyId: queryId })
+            .sort({ firstName: 1 })
+            .limit(Number(currLimit))
+            .skip(Number(currOffset))
+            .populate({ path: 'profilePic', model: stock_universal_server_1.fileMetaLean })
+            .populate({ path: 'profileCoverPic', model: stock_universal_server_1.fileMetaLean })
+            .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean })
+            .lean(),
+        company_model_1.companyLean.countDocuments({ companyId: queryId })
+    ]);
+    const filteredFaqs = all[0].filter(data => !data.blocked);
+    const response = {
+        count: all[1],
+        data: filteredFaqs
+    };
+    return res.status(200).send(response);
 });
 exports.companyAuthRoutes.put('/updatecompanybulk/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('items', 'update'), async (req, res) => {
     const { companyId } = req.user;

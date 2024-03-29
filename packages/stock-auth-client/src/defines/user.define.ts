@@ -1,5 +1,5 @@
 
-import { DatabaseAuto, Iaddress, Ibilling, Icompany, Ifile, IfileMeta, Isuccess, Iuser, Iuserperm, TuserDispNameFormat } from '@open-stock/stock-universal';
+import { DatabaseAuto, Iaddress, Ibilling, Icompany, IdataArrayResponse, Ifile, IfileMeta, Isuccess, Iuser, Iuserperm, TuserDispNameFormat } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
 import { StockAuthClient } from '../stock-auth-client';
 import { Company } from './company.define';
@@ -133,8 +133,11 @@ export class User extends DatabaseAuto {
    */
   static async getUsers(companyId: string, url: string, offset = 0, limit = 20) {
     const observer$ = StockAuthClient.ehttp.makeGet(`/user/getusers/${url}/${offset}/${limit}/${companyId}`);
-    const users = await lastValueFrom(observer$) as Iuser[];
-    return users.map(val => new User(val));
+    const users = await lastValueFrom(observer$) as IdataArrayResponse;
+    return {
+      count: users.count,
+      users: users.data.map(val => new User(val as Iuser))
+    };
   }
 
   /**

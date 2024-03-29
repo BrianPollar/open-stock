@@ -3,10 +3,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.companySubscriptionRoutes = void 0;
 const tslib_1 = require("tslib");
 /* eslint-disable @typescript-eslint/no-misused-promises */
-const express_1 = tslib_1.__importDefault(require("express"));
-const log4js_1 = require("log4js");
 const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
+const express_1 = tslib_1.__importDefault(require("express"));
+const log4js_1 = require("log4js");
 const company_subscription_model_1 = require("../../models/subscriptions/company-subscription.model");
 /** Logger for companySubscription routes */
 const companySubscriptionRoutesLogger = (0, log4js_1.getLogger)('routes/companySubscriptionRoutes');
@@ -25,13 +25,20 @@ exports.companySubscriptionRoutes.get('/getall/:offset/:limit/:companyIdParam', 
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const companySubscriptions = await company_subscription_model_1.companySubscriptionLean
-        .find({ companyId: queryId })
-        .populate({ path: 'user', model: stock_auth_server_1.userLean })
-        .skip(offset)
-        .limit(limit)
-        .lean();
-    return res.status(200).send(companySubscriptions);
+    const all = await Promise.all([
+        company_subscription_model_1.companySubscriptionLean
+            .find({ companyId: queryId })
+            .populate({ path: 'user', model: stock_auth_server_1.userLean })
+            .skip(offset)
+            .limit(limit)
+            .lean(),
+        company_subscription_model_1.companySubscriptionLean.countDocuments({ companyId: queryId })
+    ]);
+    const response = {
+        count: all[1],
+        data: all[0]
+    };
+    return res.status(200).send(response);
 });
 exports.companySubscriptionRoutes.put('/deleteone/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('users', 'delete'), async (req, res) => {
     const { id } = req.body;

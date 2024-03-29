@@ -1,8 +1,8 @@
-import { lastValueFrom } from 'rxjs';
-import { InvoiceRelatedWithReceipt } from '../invoice.define';
 import { DatabaseAuto } from '@open-stock/stock-universal';
+import { lastValueFrom } from 'rxjs';
 import { StockCounterClient } from '../../stock-counter-client';
 import { Expense } from '../expense.define';
+import { InvoiceRelatedWithReceipt } from '../invoice.define';
 /** The  ProfitAndLossReport  class extends the  DatabaseAuto  class. It has properties such as  urId ,  totalAmount ,  date ,  expenses , and  invoiceRelateds . The constructor takes an object  data  as an argument and assigns its properties to the corresponding class properties. It also converts the  expenses  and  invoiceRelateds  arrays into instances of the  Expense  and  InvoiceRelated  classes, respectively.
 
 The class has several static methods:
@@ -39,7 +39,10 @@ export class ProfitAndLossReport extends DatabaseAuto {
     static async getProfitAndLossReports(companyId, url = 'getall', offset = 0, limit = 20) {
         const observer$ = StockCounterClient.ehttp.makeGet(`/profitandlossreport//${url}/${offset}/${limit}/${companyId}`);
         const profitandlossreports = await lastValueFrom(observer$);
-        return profitandlossreports.map((val) => new ProfitAndLossReport(val));
+        return {
+            count: profitandlossreports.count,
+            profitandlossreports: profitandlossreports.data.map((val) => new ProfitAndLossReport(val))
+        };
     }
     /**
      * Retrieves a single profit and loss report based on the provided urId.

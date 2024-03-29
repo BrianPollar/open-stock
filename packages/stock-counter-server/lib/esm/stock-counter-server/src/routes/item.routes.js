@@ -420,14 +420,21 @@ itemRoutes.get('/filtergeneral/:prop/:val/:offset/:limit/:companyIdParam', async
     if (prop === 'time') {
         filter = { companyId: companyIdParam, createdAt: { $gte: new Date(val) } };
     }
-    const items = await itemLean
-        .find(filter)
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-        .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
-        .lean();
-    const newItems = items.filter(item => item.companyId);
-    return res.status(200).send(newItems);
+    const all = await Promise.all([
+        itemLean
+            .find(filter)
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+            .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
+            .lean(),
+        itemLean.countDocuments(filter)
+    ]);
+    const newItems = all[0].filter(item => item.companyId);
+    const response = {
+        count: all[1],
+        data: newItems
+    };
+    return res.status(200).send(response);
 });
 itemRoutes.get('/filterrandom/:prop/:val/:offset/:limit/:companyIdParam', async (req, res) => {
     const { companyIdParam, prop, val } = req.params;
@@ -436,15 +443,22 @@ itemRoutes.get('/filterrandom/:prop/:val/:offset/:limit/:companyIdParam', async 
     if (isValid) {
         filter = { companyId: companyIdParam, [prop]: { $regex: val, $options: 'i' } };
     }
-    const items = await itemLean
-        .find(filter)
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-        .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
-        .sort({ timesViewed: 1, likesCount: 1, reviewCount: 1 })
-        .lean();
-    const newItems = items.filter(item => item.companyId);
-    return res.status(200).send(newItems);
+    const all = await Promise.all([
+        itemLean
+            .find(filter)
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+            .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
+            .sort({ timesViewed: 1, likesCount: 1, reviewCount: 1 })
+            .lean(),
+        itemLean.countDocuments(filter)
+    ]);
+    const newItems = all[0].filter(item => item.companyId);
+    const response = {
+        count: all[1],
+        data: newItems
+    };
+    return res.status(200).send(response);
 });
 itemRoutes.get('/getall/:offset/:limit/:companyIdParam', async (req, res) => {
     const { companyIdParam } = req.params;
@@ -454,16 +468,23 @@ itemRoutes.get('/getall/:offset/:limit/:companyIdParam', async (req, res) => {
         filter = { companyId: companyIdParam };
     }
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
-    const items = await itemLean
-        .find(filter)
-        .skip(offset)
-        .limit(limit)
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-        .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
-        .lean();
-    const newItems = items.filter(item => item.companyId);
-    return res.status(200).send(newItems);
+    const all = await Promise.all([
+        itemLean
+            .find(filter)
+            .skip(offset)
+            .limit(limit)
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+            .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
+            .lean(),
+        itemLean.countDocuments(filter)
+    ]);
+    const newItems = all[0].filter(item => item.companyId);
+    const response = {
+        count: all[1],
+        data: newItems
+    };
+    return res.status(200).send(response);
 });
 itemRoutes.get('/gettrending/:offset/:limit/:companyIdParam', async (req, res) => {
     const { companyIdParam } = req.params;
@@ -472,15 +493,22 @@ itemRoutes.get('/gettrending/:offset/:limit/:companyIdParam', async (req, res) =
     if (isValid) {
         filter = { companyId: companyIdParam };
     }
-    const items = await itemLean
-        .find(filter)
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-        .sort({ timesViewed: 1 })
-        .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
-        .lean();
-    const newItems = items.filter(item => item.companyId);
-    return res.status(200).send(newItems);
+    const all = await Promise.all([
+        itemLean
+            .find(filter)
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+            .sort({ timesViewed: 1 })
+            .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
+            .lean(),
+        itemLean.countDocuments(filter)
+    ]);
+    const newItems = all[0].filter(item => item.companyId);
+    const response = {
+        count: all[1],
+        data: newItems
+    };
+    return res.status(200).send(response);
 });
 itemRoutes.get('/getfeatured/:offset/:limit/:companyIdParam', async (req, res) => {
     const { companyIdParam } = req.params;
@@ -489,15 +517,22 @@ itemRoutes.get('/getfeatured/:offset/:limit/:companyIdParam', async (req, res) =
     if (isValid) {
         filter = { companyId: companyIdParam };
     }
-    const items = await itemLean
-        .find(filter)
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-        .sort({ timesViewed: 1, likesCount: 1, reviewCount: 1 })
-        .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
-        .lean();
-    const newItems = items.filter(item => item.companyId);
-    return res.status(200).send(newItems);
+    const all = await Promise.all([
+        itemLean
+            .find(filter)
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+            .sort({ timesViewed: 1, likesCount: 1, reviewCount: 1 })
+            .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
+            .lean(),
+        itemLean.countDocuments(filter)
+    ]);
+    const newItems = all[0].filter(item => item.companyId);
+    const response = {
+        count: all[1],
+        data: newItems
+    };
+    return res.status(200).send(response);
 });
 // newly posted
 itemRoutes.get('/getnew/:offset/:limit/:companyIdParam', async (req, res) => {
@@ -507,15 +542,22 @@ itemRoutes.get('/getnew/:offset/:limit/:companyIdParam', async (req, res) => {
     if (isValid) {
         filter = { companyId: companyIdParam };
     }
-    const items = await itemLean
-        .find(filter)
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-        .sort({ createdAt: -1 })
-        .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
-        .lean();
-    const newItems = items.filter(item => item.companyId);
-    return res.status(200).send(newItems);
+    const all = await Promise.all([
+        itemLean
+            .find(filter)
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+            .sort({ createdAt: -1 })
+            .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
+            .lean(),
+        itemLean.countDocuments(filter)
+    ]);
+    const newItems = all[0].filter(item => item.companyId);
+    const response = {
+        count: all[1],
+        data: newItems
+    };
+    return res.status(200).send(response);
 });
 // new not used
 itemRoutes.get('/getbrandnew/:offset/:limit/:companyIdParam', async (req, res) => {
@@ -525,15 +567,22 @@ itemRoutes.get('/getbrandnew/:offset/:limit/:companyIdParam', async (req, res) =
     if (isValid) {
         filter = { companyId: companyIdParam, state: 'new' };
     }
-    const items = await itemLean
-        .find(filter)
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-        .sort({ createdAt: -1 })
-        .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
-        .lean();
-    const newItems = items.filter(item => item.companyId);
-    return res.status(200).send(newItems);
+    const all = await Promise.all([
+        itemLean
+            .find(filter)
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+            .sort({ createdAt: -1 })
+            .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
+            .lean(),
+        itemLean.countDocuments(filter)
+    ]);
+    const newItems = all[0].filter(item => item.companyId);
+    const response = {
+        count: all[1],
+        data: newItems
+    };
+    return res.status(200).send(response);
 });
 // new not used
 itemRoutes.get('/getused/:offset/:limit/:companyIdParam', async (req, res) => {
@@ -543,15 +592,22 @@ itemRoutes.get('/getused/:offset/:limit/:companyIdParam', async (req, res) => {
     if (isValid) {
         filter = { companyId: companyIdParam, state: 'refurbished' };
     }
-    const items = await itemLean
-        .find(filter)
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-        .sort({ createdAt: -1 })
-        .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
-        .lean();
-    const newItems = items.filter(item => item.companyId);
-    return res.status(200).send(newItems);
+    const all = await Promise.all([
+        itemLean
+            .find(filter)
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+            .sort({ createdAt: -1 })
+            .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
+            .lean(),
+        itemLean.countDocuments(filter)
+    ]);
+    const newItems = all[0].filter(item => item.companyId);
+    const response = {
+        count: all[1],
+        data: newItems
+    };
+    return res.status(200).send(response);
 });
 // filterprice
 itemRoutes.get('/filterprice/max/:priceFilterValue/:offset/:limit/:companyIdParam', async (req, res) => {
@@ -562,16 +618,23 @@ itemRoutes.get('/filterprice/max/:priceFilterValue/:offset/:limit/:companyIdPara
         filter = { companyId: companyIdParam };
     }
     const { priceFilterValue } = req.params;
-    const items = await itemLean
-        .find(filter)
-        .gte('costMeta.sellingPrice', Number(priceFilterValue))
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-        .sort({ createdAt: -1 })
-        .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
-        .lean();
-    const newItems = items.filter(item => item.companyId);
-    return res.status(200).send(newItems);
+    const all = await Promise.all([
+        itemLean
+            .find(filter)
+            .gte('costMeta.sellingPrice', Number(priceFilterValue))
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+            .sort({ createdAt: -1 })
+            .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
+            .lean(),
+        itemLean.countDocuments(filter)
+    ]);
+    const newItems = all[0].filter(item => item.companyId);
+    const response = {
+        count: all[1],
+        data: newItems
+    };
+    return res.status(200).send(response);
 });
 itemRoutes.get('/filterprice/min/:priceFilterValue/:offset/:limit/:companyIdParam', async (req, res) => {
     const { companyIdParam } = req.params;
@@ -581,16 +644,23 @@ itemRoutes.get('/filterprice/min/:priceFilterValue/:offset/:limit/:companyIdPara
         filter = { companyId: companyIdParam };
     }
     const { priceFilterValue } = req.params;
-    const items = await itemLean
-        .find(filter)
-        .lte('costMeta.sellingPrice', Number(priceFilterValue))
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-        .sort({ createdAt: -1 })
-        .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
-        .lean();
-    const newItems = items.filter(item => item.companyId);
-    return res.status(200).send(newItems);
+    const all = await Promise.all([
+        itemLean
+            .find(filter)
+            .lte('costMeta.sellingPrice', Number(priceFilterValue))
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+            .sort({ createdAt: -1 })
+            .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
+            .lean(),
+        itemLean.countDocuments(filter)
+    ]);
+    const newItems = all[0].filter(item => item.companyId);
+    const response = {
+        count: all[1],
+        data: newItems
+    };
+    return res.status(200).send(response);
 });
 itemRoutes.get('/filterprice/eq/:priceFilterMinValue/:priceFilterMaxValue/:offset/:limit/:companyIdParam', async (req, res) => {
     const { companyIdParam } = req.params;
@@ -600,17 +670,24 @@ itemRoutes.get('/filterprice/eq/:priceFilterMinValue/:priceFilterMaxValue/:offse
         filter = { companyId: companyIdParam };
     }
     const { priceFilterMinValue, priceFilterMaxValue } = req.params;
-    const items = await itemLean
-        .find(filter)
-        .gte('costMeta.sellingPrice', Number(priceFilterMaxValue))
-        .lte('costMeta.sellingPrice', Number(priceFilterMinValue))
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-        .sort({ createdAt: -1 })
-        .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
-        .lean();
-    const newItems = items.filter(item => item.companyId);
-    return res.status(200).send(newItems);
+    const all = await Promise.all([
+        itemLean
+            .find(filter)
+            .gte('costMeta.sellingPrice', Number(priceFilterMaxValue))
+            .lte('costMeta.sellingPrice', Number(priceFilterMinValue))
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+            .sort({ createdAt: -1 })
+            .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
+            .lean(),
+        itemLean.countDocuments(filter)
+    ]);
+    const newItems = all[0].filter(item => item.companyId);
+    const response = {
+        count: all[1],
+        data: newItems
+    };
+    return res.status(200).send(response);
 });
 itemRoutes.get('/filterstars/:starVal/:offset/:limit/:companyIdParam', async (req, res) => {
     const { companyIdParam } = req.params;
@@ -620,21 +697,28 @@ itemRoutes.get('/filterstars/:starVal/:offset/:limit/:companyIdParam', async (re
         filter = { companyId: companyIdParam };
     }
     const starVal = Number(req.params.starVal);
-    const reviews = await reviewLean
-        .find(filter)
-        .where('rating') // rating
-        .lte(starVal + 2)
-        .gte(starVal)
-        .select({ itemId: 1 })
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-        .lean()
-        .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
-        .lean();
-    const newItems = reviews.filter(val => val.companyId);
+    const all = await Promise.all([
+        reviewLean
+            .find(filter)
+            .where('rating') // rating
+            .lte(starVal + 2)
+            .gte(starVal)
+            .select({ itemId: 1 })
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+            .lean()
+            .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
+            .lean(),
+        reviewLean.countDocuments(filter)
+    ]);
+    const newItems = all[0].filter(val => val.companyId);
     const items = newItems
         .map(val => val.itemId);
-    return res.status(200).send(items);
+    const response = {
+        count: all[1],
+        data: newItems
+    };
+    return res.status(200).send(response);
 });
 itemRoutes.get('/discount/:discountValue/:offset/:limit/:companyIdParam', async (req, res) => {
     const { companyIdParam } = req.params;
@@ -644,29 +728,36 @@ itemRoutes.get('/discount/:discountValue/:offset/:limit/:companyIdParam', async 
         filter = { companyId: companyIdParam };
     }
     const { discountValue } = req.params;
-    const items = await itemLean
-        .find(filter)
-        .or([
-        {
+    const all = await Promise.all([
+        itemLean
+            .find(filter)
+            .or([
+            {
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                'costMeta.offer': 'true',
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                'costMeta.discount': Number(discountValue)
+            },
+            {
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                'costMeta.offer': true,
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                'costMeta.discount': Number(discountValue)
+            }
+        ])
             // eslint-disable-next-line @typescript-eslint/naming-convention
-            'costMeta.offer': 'true',
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            'costMeta.discount': Number(discountValue)
-        },
-        {
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            'costMeta.offer': true,
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            'costMeta.discount': Number(discountValue)
-        }
-    ])
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-        .sort({ createdAt: -1 })
-        .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
-        .lean();
-    const newItems = items.filter(item => item.companyId);
-    return res.status(200).send(newItems);
+            .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+            .sort({ createdAt: -1 })
+            .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
+            .lean(),
+        itemLean.countDocuments(filter)
+    ]);
+    const newItems = all[0].filter(item => item.companyId);
+    const response = {
+        count: all[1],
+        data: newItems
+    };
+    return res.status(200).send(response);
 });
 itemRoutes.post('/getsponsored/:companyIdParam', async (req, res) => {
     const { companyIdParam } = req.params;
@@ -974,16 +1065,23 @@ itemRoutes.post('/search/:limit/:offset/:companyIdParam', async (req, res) => {
                 return res.status(401).send({ success: false, err: 'unauthorised' });
         }
     }
-    const items = await itemLean
-        .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' }, ...filter })
-        .skip(offset)
-        .limit(limit)
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-        .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
-        .lean();
-    const newItems = items.filter(item => item.companyId);
-    return res.status(200).send(newItems);
+    const all = await Promise.all([
+        itemLean
+            .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' }, ...filter })
+            .skip(offset)
+            .limit(limit)
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+            .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
+            .lean(),
+        itemLean.countDocuments({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' }, ...filter })
+    ]);
+    const newItems = all[0].filter(item => item.companyId);
+    const response = {
+        count: all[1],
+        data: newItems
+    };
+    return res.status(200).send(response);
 });
 itemRoutes.put('/deletemany/:companyIdParam', requireAuth, roleAuthorisation('items', 'delete'), deleteFiles, async (req, res) => {
     const { ids } = req.body;

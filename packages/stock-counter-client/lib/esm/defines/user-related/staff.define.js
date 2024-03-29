@@ -25,7 +25,10 @@ export class Staff extends UserBase {
     static async getStaffs(companyId, offset = 0, limit = 20) {
         const observer$ = StockCounterClient.ehttp.makeGet(`/staff/getall/${offset}/${limit}/${companyId}`);
         const staffs = await lastValueFrom(observer$);
-        return staffs.map(val => new Staff(val));
+        return {
+            count: staffs.count,
+            staffs: staffs.data.map(val => new Staff(val))
+        };
     }
     /**
      * Retrieves all staff members.
@@ -37,7 +40,10 @@ export class Staff extends UserBase {
     static async getStaffByRole(companyId, role, offset = 0, limit = 20) {
         const observer$ = StockCounterClient.ehttp.makeGet(`/staff/getbyrole/${offset}/${limit}/${role}/${companyId}`);
         const staffs = await lastValueFrom(observer$);
-        return staffs.map(val => new Staff(val));
+        return {
+            count: staffs.count,
+            staffs: staffs.data.map(val => new Staff(val))
+        };
     }
     /**
      * Retrieves a single staff member by ID.

@@ -22,7 +22,10 @@ export declare class Estimate extends InvoiceRelatedWithReceipt {
      * @param limit - The maximum number of estimates to retrieve.
      * @returns An array of Estimate objects.
      */
-    static getEstimates(companyId: string, url?: string, offset?: number, limit?: number): Promise<Estimate[]>;
+    static getEstimates(companyId: string, url?: string, offset?: number, limit?: number): Promise<{
+        count: number;
+        estimates: Estimate[];
+    }>;
     /**
      * Retrieves a single estimate by its ID from the server by making a GET request.
      * @param companyId - The ID of the company

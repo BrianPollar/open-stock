@@ -6,7 +6,7 @@
  */
 /* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable @typescript-eslint/no-misused-promises */
-import { Iauthresponse, Iauthtoken, Icompany, Icustomrequest, IfileMeta, Isuccess, Iuser } from '@open-stock/stock-universal';
+import { Iauthresponse, Iauthtoken, Icompany, Icustomrequest, IdataArrayResponse, IfileMeta, Isuccess, Iuser } from '@open-stock/stock-universal';
 import {
   appendBody,
   deleteFiles,
@@ -472,17 +472,24 @@ companyAuthRoutes.get('/getcompanys//:offset/:limit/:companyIdParam', requireAut
   const currOffset = offset === 0 ? 0 : offset;
   const currLimit = limit === 0 ? 1000 : limit;
 
-  const faqs = await companyLean
-    .find({ companyId: queryId })
-    .sort({ firstName: 1 })
-    .limit(Number(currLimit))
-    .skip(Number(currOffset))
-    .populate({ path: 'profilePic', model: fileMetaLean })
-    .populate({ path: 'profileCoverPic', model: fileMetaLean })
-    .populate({ path: 'photos', model: fileMetaLean })
-    .lean();
-  const filteredFaqs = faqs.filter(data => !data.blocked);
-  return res.status(200).send(filteredFaqs);
+  const all = await Promise.all([
+    companyLean
+      .find({ companyId: queryId })
+      .sort({ firstName: 1 })
+      .limit(Number(currLimit))
+      .skip(Number(currOffset))
+      .populate({ path: 'profilePic', model: fileMetaLean })
+      .populate({ path: 'profileCoverPic', model: fileMetaLean })
+      .populate({ path: 'photos', model: fileMetaLean })
+      .lean(),
+    companyLean.countDocuments({ companyId: queryId })
+  ]);
+  const filteredFaqs = all[0].filter(data => !data.blocked);
+  const response: IdataArrayResponse = {
+    count: all[1],
+    data: filteredFaqs
+  };
+  return res.status(200).send(response);
 });
 
 companyAuthRoutes.put('/updatecompanybulk/:companyIdParam', requireAuth, roleAuthorisation('items', 'update'), async(req, res) => {

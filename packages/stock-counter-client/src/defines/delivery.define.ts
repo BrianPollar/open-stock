@@ -1,4 +1,4 @@
-import { DatabaseAuto, Ideliverycity, Isuccess, TpriceCurrenncy } from '@open-stock/stock-universal';
+import { DatabaseAuto, IdataArrayResponse, Ideliverycity, Isuccess, TpriceCurrenncy } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
 import { StockCounterClient } from '../stock-counter-client';
 
@@ -52,11 +52,14 @@ export class DeliveryCity extends DatabaseAuto {
     url = 'getall',
     offset = 0,
     limit = 20
-  ): Promise<DeliveryCity[]> {
+  ) {
     const observer$ = StockCounterClient.ehttp
       .makeGet(`/deliverycity/${url}/${offset}/${limit}/${companyId}`);
-    const citys = await lastValueFrom(observer$) as Ideliverycity[];
-    return citys.map(val => new DeliveryCity(val));
+    const citys = await lastValueFrom(observer$) as IdataArrayResponse;
+    return {
+      count: citys.count,
+      citys: citys.data.map(val => new DeliveryCity(val as Ideliverycity))
+    };
   }
 
   /**

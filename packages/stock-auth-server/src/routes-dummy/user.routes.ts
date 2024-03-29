@@ -1,14 +1,15 @@
 
+import { IdataArrayResponse } from '@open-stock/stock-universal';
 import express from 'express';
-import { createMockUser } from '../../../tests/stock-auth-mocks';
+import { createMockUser, createMockUsers } from '../../../tests/stock-auth-mocks';
 
 /**
  * Router for authentication routes.
  */
-export const authRoutesDummy = express.Router();
+export const userAuthRoutesDummy = express.Router();
 
 
-authRoutesDummy.get('/authexpress/:companyIdParam', (req, res) => {
+userAuthRoutesDummy.get('/authexpress/:companyIdParam', (req, res) => {
   const nowResponse = {
     success: true,
     user: createMockUser(),
@@ -17,7 +18,7 @@ authRoutesDummy.get('/authexpress/:companyIdParam', (req, res) => {
   return res.status(200).send(nowResponse);
 });
 
-authRoutesDummy.post('/login', (req, res) => {
+userAuthRoutesDummy.post('/login', (req, res) => {
   const nowResponse = {
     success: true,
     user: createMockUser(),
@@ -26,7 +27,7 @@ authRoutesDummy.post('/login', (req, res) => {
   return res.status(200).send(nowResponse);
 });
 
-authRoutesDummy.post('/signup', (req, res) => {
+userAuthRoutesDummy.post('/signup', (req, res) => {
   const response = {
     status: 200,
     success: true,
@@ -37,7 +38,7 @@ authRoutesDummy.post('/signup', (req, res) => {
   res.status(200).send(response);
 });
 
-authRoutesDummy.post('recover', (req, res) => {
+userAuthRoutesDummy.post('recover', (req, res) => {
   const response = {
     success: true,
     message: 'Recovery email sent',
@@ -46,7 +47,7 @@ authRoutesDummy.post('recover', (req, res) => {
   res.status(200).send(response);
 });
 
-authRoutesDummy.post('/confirm', (req, res) => {
+userAuthRoutesDummy.post('/confirm', (req, res) => {
   const response = {
     success: true,
     msg: 'Password reset successful',
@@ -55,7 +56,7 @@ authRoutesDummy.post('/confirm', (req, res) => {
   res.status(200).send(response);
 });
 
-authRoutesDummy.put('/resetpaswd', (req, res) => {
+userAuthRoutesDummy.put('/resetpaswd', (req, res) => {
   const response = {
     success: true,
     msg: 'Password reset successful',
@@ -64,11 +65,11 @@ authRoutesDummy.put('/resetpaswd', (req, res) => {
   res.status(200).send(response);
 });
 
-authRoutesDummy.post('/manuallyverify/:userId/:companyIdParam', (req, res) => {
+userAuthRoutesDummy.post('/manuallyverify/:userId/:companyIdParam', (req, res) => {
   res.status(200).send({ success: true });
 });
 
-authRoutesDummy.post('/sociallogin', (req, res) => {
+userAuthRoutesDummy.post('/sociallogin', (req, res) => {
   const response = {
     success: true,
     user: createMockUser()
@@ -76,58 +77,62 @@ authRoutesDummy.post('/sociallogin', (req, res) => {
   res.status(200).send(response);
 });
 
-authRoutesDummy.put('/updateprofile/:formtype/:companyIdParam', (req, res) => {
+userAuthRoutesDummy.put('/updateprofile/:formtype/:companyIdParam', (req, res) => {
   res.status(200).send({ success: true });
 });
 
-authRoutesDummy.post('/updateprofileimg/:companyIdParam', (req, res) => {
+userAuthRoutesDummy.post('/updateprofileimg/:companyIdParam', (req, res) => {
   res.status(200).send({ success: true });
 });
 
-authRoutesDummy.put('/updatepermissions/:userId/:companyIdParam', (req, res) => {
+userAuthRoutesDummy.put('/updatepermissions/:userId/:companyIdParam', (req, res) => {
   res.status(200).send({ success: true });
 });
 
-authRoutesDummy.put('/blockunblock/:companyIdParam', (req, res) => {
+userAuthRoutesDummy.put('/blockunblock/:companyIdParam', (req, res) => {
   res.status(200).send({ success: true });
 });
 
-authRoutesDummy.put('/addupdateaddr/:userId/:companyIdParam', (req, res) => {
+userAuthRoutesDummy.put('/addupdateaddr/:userId/:companyIdParam', (req, res) => {
   res.status(200).send({ success: true });
 });
 
-authRoutesDummy.get('/getoneuser/:urId/:companyIdParam', (req, res) => {
+userAuthRoutesDummy.get('/getoneuser/:urId/:companyIdParam', (req, res) => {
+  res.status(200).send(createMockUser());
+});
+
+userAuthRoutesDummy.get('/getusers/:where/:offset/:limit/:companyIdParam', (req, res) => {
+  const response: IdataArrayResponse = {
+    count: req.params.limit,
+    data: createMockUsers(req.params.limit)
+  };
+  res.status(200).send(response);
+});
+
+userAuthRoutesDummy.post('/adduser/:companyIdParam', (req, res) => {
   res.status(200).send({ success: true });
 });
 
-authRoutesDummy.get('/getusers/:where/:offset/:limit/:companyIdParam', (req, res) => {
+userAuthRoutesDummy.post('/adduserimg/:companyIdParam', (req, res) => {
   res.status(200).send({ success: true });
 });
 
-authRoutesDummy.post('/adduser/:companyIdParam', (req, res) => {
+userAuthRoutesDummy.put('/updateuserbulk/:companyIdParam', (req, res) => {
   res.status(200).send({ success: true });
 });
 
-authRoutesDummy.post('/adduserimg/:companyIdParam', (req, res) => {
+userAuthRoutesDummy.post('/updateuserbulkimg/:companyIdParam', (req, res) => {
   res.status(200).send({ success: true });
 });
 
-authRoutesDummy.put('/updateuserbulk/:companyIdParam', (req, res) => {
+userAuthRoutesDummy.put('/deletemany/:companyIdParam', (req, res) => {
   res.status(200).send({ success: true });
 });
 
-authRoutesDummy.post('/updateuserbulkimg/:companyIdParam', (req, res) => {
+userAuthRoutesDummy.put('/deleteone/:companyIdParam', (req, res) => {
   res.status(200).send({ success: true });
 });
 
-authRoutesDummy.put('/deletemany/:companyIdParam', (req, res) => {
-  res.status(200).send({ success: true });
-});
-
-authRoutesDummy.put('/deleteone/:companyIdParam', (req, res) => {
-  res.status(200).send({ success: true });
-});
-
-authRoutesDummy.put('/deleteimages/:companyIdParam', (req, res) => {
+userAuthRoutesDummy.put('/deleteimages/:companyIdParam', (req, res) => {
   res.status(200).send({ success: true });
 });

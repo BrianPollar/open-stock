@@ -19,7 +19,10 @@ export declare class Staff extends UserBase {
      * @param {number} [limit=0] - The maximum number of staff members to retrieve.
      * @returns {Promise<Staff[]>} - A promise that resolves to an array of Staff instances.
      */
-    static getStaffs(companyId: string, offset?: number, limit?: number): Promise<Staff[]>;
+    static getStaffs(companyId: string, offset?: number, limit?: number): Promise<{
+        count: number;
+        staffs: Staff[];
+    }>;
     /**
      * Retrieves all staff members.
      * @param companyId - The ID of the company
@@ -27,7 +30,10 @@ export declare class Staff extends UserBase {
      * @param {number} [limit=0] - The maximum number of staff members to retrieve.
      * @returns {Promise<Staff[]>} - A promise that resolves to an array of Staff instances.
      */
-    static getStaffByRole(companyId: string, role: string, offset?: number, limit?: number): Promise<Staff[]>;
+    static getStaffByRole(companyId: string, role: string, offset?: number, limit?: number): Promise<{
+        count: number;
+        staffs: Staff[];
+    }>;
     /**
      * Retrieves a single staff member by ID.
      * @param companyId - The ID of the company

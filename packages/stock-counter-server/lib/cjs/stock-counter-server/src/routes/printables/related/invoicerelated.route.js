@@ -3,13 +3,13 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.invoiceRelateRoutes = void 0;
 const tslib_1 = require("tslib");
-const express_1 = tslib_1.__importDefault(require("express"));
-const stock_universal_server_1 = require("@open-stock/stock-universal-server");
-const invoicerelated_1 = require("./invoicerelated");
-const log4js_1 = require("log4js");
-const invoicerelated_model_1 = require("../../../models/printables/related/invoicerelated.model");
 const stock_auth_server_1 = require("@open-stock/stock-auth-server");
+const stock_universal_server_1 = require("@open-stock/stock-universal-server");
+const express_1 = tslib_1.__importDefault(require("express"));
+const log4js_1 = require("log4js");
 const receipt_model_1 = require("../../../models/printables/receipt.model");
+const invoicerelated_model_1 = require("../../../models/printables/related/invoicerelated.model");
+const invoicerelated_1 = require("./invoicerelated");
 /** Logger for file storage */
 const fileStorageLogger = (0, log4js_1.getLogger)('routes/FileStorage');
 /**
@@ -54,25 +54,33 @@ exports.invoiceRelateRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const relateds = await invoicerelated_model_1.invoiceRelatedLean
-        .find({ companyId: queryId })
-        .skip(offset)
-        .limit(limit)
-        .lean()
-        .populate({ path: 'billingUserId', model: stock_auth_server_1.userLean })
-        .populate({ path: 'payments', model: receipt_model_1.receiptLean })
-        .catch(err => {
-        fileStorageLogger.error('getall - err: ', err);
-        return null;
-    });
-    if (relateds) {
-        const returned = relateds
+    const all = await Promise.all([
+        invoicerelated_model_1.invoiceRelatedLean
+            .find({ companyId: queryId })
+            .skip(offset)
+            .limit(limit)
+            .lean()
+            .populate({ path: 'billingUserId', model: stock_auth_server_1.userLean })
+            .populate({ path: 'payments', model: receipt_model_1.receiptLean })
+            .catch(err => {
+            fileStorageLogger.error('getall - err: ', err);
+            return null;
+        }),
+        invoicerelated_model_1.invoiceRelatedLean.countDocuments({ companyId: queryId })
+    ]);
+    const response = {
+        count: all[1],
+        data: null
+    };
+    if (all[0]) {
+        const returned = all[0]
             .map(val => (0, invoicerelated_1.makeInvoiceRelatedPdct)(val, val
             .billingUserId));
-        return res.status(200).send(returned);
+        response.data = returned;
+        return res.status(200).send(response);
     }
     else {
-        return res.status(200).send([]);
+        return res.status(200).send(response);
     }
 });
 /**
@@ -89,29 +97,37 @@ exports.invoiceRelateRoutes.post('/search/:offset/:limit/:companyIdParam', stock
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const relateds = await invoicerelated_model_1.invoiceRelatedLean
-        .find({ queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
-        .skip(offset)
-        .limit(limit)
-        .lean()
-        .populate({ path: 'billingUserId', model: stock_auth_server_1.userLean })
-        .populate({ path: 'payments', model: receipt_model_1.receiptLean })
-        .catch(err => {
-        fileStorageLogger.error('getall - err: ', err);
-        return null;
-    });
-    if (relateds) {
-        const returned = relateds
+    const all = await Promise.all([
+        invoicerelated_model_1.invoiceRelatedLean
+            .find({ queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+            .skip(offset)
+            .limit(limit)
+            .lean()
+            .populate({ path: 'billingUserId', model: stock_auth_server_1.userLean })
+            .populate({ path: 'payments', model: receipt_model_1.receiptLean })
+            .catch(err => {
+            fileStorageLogger.error('getall - err: ', err);
+            return null;
+        }),
+        invoicerelated_model_1.invoiceRelatedLean.countDocuments({ queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+    ]);
+    const response = {
+        count: all[1],
+        data: null
+    };
+    if (all[0]) {
+        const returned = all[0]
             .map(val => (0, invoicerelated_1.makeInvoiceRelatedPdct)(val, val
             .billingUserId));
-        return res.status(200).send(returned);
+        response.data = returned;
+        return res.status(200).send(response);
     }
     else {
-        return res.status(200).send([]);
+        return res.status(200).send(response);
     }
 });
 /**
- * Update an invoice related product
+ * Update an invoicereturned product
  * @param invoiceRelated - The updated invoice related product
  * @returns A success message if the update was successful
  */

@@ -1,8 +1,8 @@
-import express from 'express';
+import { Icustomrequest, IdataArrayResponse, Isuccess } from '@open-stock/stock-universal';
 import { offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
-import { pickupLocationLean, pickupLocationMain } from '../../models/printables/pickuplocation.model';
+import express from 'express';
 import { getLogger } from 'log4js';
-import { Icustomrequest, Isuccess } from '@open-stock/stock-universal';
+import { pickupLocationLean, pickupLocationMain } from '../../models/printables/pickuplocation.model';
 
 /**
  * Logger for pickup location routes
@@ -147,12 +147,19 @@ pickupLocationRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, 
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const pickupLocations = await pickupLocationLean
-    .find({ companyId: queryId })
-    .skip(offset)
-    .limit(limit)
-    .lean();
-  return res.status(200).send(pickupLocations);
+  const all = await Promise.all([
+    pickupLocationLean
+      .find({ companyId: queryId })
+      .skip(offset)
+      .limit(limit)
+      .lean(),
+    pickupLocationLean.countDocuments()
+  ]);
+  const response: IdataArrayResponse = {
+    count: all[1],
+    data: all[0]
+  };
+  return res.status(200).send(response);
 });
 
 /**
@@ -199,12 +206,19 @@ pickupLocationRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth,
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
-  const pickupLocations = await pickupLocationLean
-    .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
-    .skip(offset)
-    .limit(limit)
-    .lean();
-  return res.status(200).send(pickupLocations);
+  const all = await Promise.all([
+    pickupLocationLean
+      .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+      .skip(offset)
+      .limit(limit)
+      .lean(),
+    pickupLocationLean.countDocuments({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+  ]);
+  const response: IdataArrayResponse = {
+    count: all[1],
+    data: all[0]
+  };
+  return res.status(200).send(response);
 });
 
 /**

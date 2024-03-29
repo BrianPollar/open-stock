@@ -1,3 +1,4 @@
+import { IdataArrayResponse } from '@open-stock/stock-universal';
 import express from 'express';
 import { createMockEstimate, createMockEstimates } from '../../../../tests/stock-counter-mocks';
 
@@ -13,7 +14,11 @@ estimateRoutesDummy.get('/getone/:estimateId/:companyIdParam', (req, res) => {
 });
 
 estimateRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) => {
-  res.status(200).send(createMockEstimates(Number(req.params.limit)));
+  const response: IdataArrayResponse = {
+    count: req.params.limit,
+    data: createMockEstimates(Number(req.params.limit))
+  };
+  res.status(200).send(response);
 });
 
 estimateRoutesDummy.put('/deleteone/:companyIdParam', (req, res) => {
@@ -21,7 +26,11 @@ estimateRoutesDummy.put('/deleteone/:companyIdParam', (req, res) => {
 });
 
 estimateRoutesDummy.post('/search/:limit/:offset/:companyIdParam', (req, res) => {
-  res.status(200).send(createMockEstimates(Number(req.params.limit)));
+  const response: IdataArrayResponse = {
+    count: req.params.limit,
+    data: createMockEstimates(Number(req.params.limit))
+  };
+  res.status(200).send(response);
 });
 
 estimateRoutesDummy.put('/deletemany/:companyIdParam', (req, res) => {

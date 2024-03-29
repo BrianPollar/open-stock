@@ -19,7 +19,6 @@ export * from './defines/cookies.define';
 export * from './defines/faq.define';
 export * from './defines/item.define';
 export * from './defines/itemdecoy.define';
-export * from './defines/itemlimitted.define';
 export * from './defines/itemoffer.define';
 export * from './defines/profit.define';
 export * from './defines/receipt.define';

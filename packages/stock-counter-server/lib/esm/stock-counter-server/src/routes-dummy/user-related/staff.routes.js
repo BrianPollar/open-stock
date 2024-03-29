@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-misused-promises */
 import express from 'express';
 import { createMockStaff, createMockStaffs } from '../../../../tests/stock-counter-mocks';
 /**
@@ -11,11 +10,26 @@ staffRoutesDummy.post('/create/:companyIdParam', (req, res) => {
 staffRoutesDummy.get('/getone/:id/:companyIdParam', (req, res) => {
     res.status(200).send(createMockStaff());
 });
+staffRoutesDummy.get('/getall/:offset/:limit/:role/:companyIdParam', (req, res) => {
+    const response = {
+        count: req.params.limit,
+        data: createMockStaffs(Number(req.params.limit))
+    };
+    res.status(200).send(response);
+});
 staffRoutesDummy.get('/getbyrole/:offset/:limit/:role/:companyIdParam', (req, res) => {
-    res.status(200).send(createMockStaffs(Number(req.params.limit)));
+    const response = {
+        count: req.params.limit,
+        data: createMockStaffs(Number(req.params.limit))
+    };
+    res.status(200).send(response);
 });
 staffRoutesDummy.post('/search/:limit/:offset/:companyIdParam', (req, res) => {
-    res.status(200).send(createMockStaffs(Number(req.params.limit)));
+    const response = {
+        count: req.params.limit,
+        data: createMockStaffs(Number(req.params.limit))
+    };
+    res.status(200).send(response);
 });
 staffRoutesDummy.put('/update/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });

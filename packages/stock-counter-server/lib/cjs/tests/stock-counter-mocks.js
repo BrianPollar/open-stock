@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createMockItemLimitted = exports.createMockItemDecoys = exports.createMockItemDecoy = exports.createMockItems = exports.createMockItem = exports.createMockCostMeta = exports.createMockInvoiceMetas = exports.createMockInvoiceMeta = exports.createMockCarts = exports.createMockCart = exports.createMockSponsoreds = exports.createMockSponsored = exports.createMockInvoices = exports.createMockInvoice = exports.createMockPaymentReceipts = exports.createMockInvoiceRelateds = exports.createMockInvoiceRelatedsSolo = exports.createMockInvoiceRelatedWithReceipts = exports.createMockInvoiceRelatedWithReceipt = exports.createMockInvoiceRelated = exports.createMockInvoiceRelatedSolo = exports.createMockInvoiceRelatedPdcts = exports.createMockInvoiceRelatedPdct = exports.createMockFaqAnswers = exports.createMockFaqAnswer = exports.createMockFaqs = exports.createMockFaq = exports.createMockExpenses = exports.createMockExpense = exports.mockExpense = exports.createMockEstimates = exports.createMockEstimate = exports.createMockDeliverynotes = exports.createMockDeliverynote = exports.createMockDeliveryCitys = exports.createMockDeliveryCity = exports.createMockInvoiceSettings = exports.createMockSettingsBank = exports.createMockSettingsTax = exports.createMockSettingsGeneral = exports.createMockTaxReports = exports.createMockTaxReport = exports.createMockSalesReports = exports.createMockSalesReport = exports.createMockProfitAndLossReports = exports.createMockProfitAndLossReport = exports.createMockInvoiceReports = exports.createMockInvoiceReport = exports.createMockExpenseReports = exports.createMockExpenseReport = void 0;
-exports.createMockSubscriptionPackages = exports.createMockSubscriptionPackage = exports.createMockCompanySubscriptions = exports.createMockCompanySubscription = exports.createMockUserBase = exports.createMockStaffs = exports.createMockStaff = exports.createMockSalary = exports.createMockCustomers = exports.createMockCustomer = exports.createMockReviews = exports.createMockReview = exports.createMockReceipts = exports.createMockReceipt = exports.createMockProfits = exports.createMockProfit = exports.createMockPayments = exports.createMockPayment = exports.createMockPaymentRelateds = exports.createMockPaymentRelated = exports.createMockPaymentRelatedSolos = exports.createMockPaymentRelatedSolo = exports.createMockOrders = exports.createMockOrder = exports.createMockItemOffers = exports.createMockItemOffer = exports.createMockItemLimitteds = void 0;
+exports.createMockItemOffer = exports.createMockItemDecoys = exports.createMockItemDecoy = exports.createMockItems = exports.createMockItem = exports.createMockCostMeta = exports.createMockInvoiceMetas = exports.createMockInvoiceMeta = exports.createMockCarts = exports.createMockCart = exports.createMockSponsoreds = exports.createMockSponsored = exports.createMockInvoices = exports.createMockInvoice = exports.createMockPaymentReceipts = exports.createMockInvoiceRelateds = exports.createMockInvoiceRelatedsSolo = exports.createMockInvoiceRelatedWithReceipts = exports.createMockInvoiceRelatedWithReceipt = exports.createMockInvoiceRelated = exports.createMockInvoiceRelatedSolo = exports.createMockInvoiceRelatedPdcts = exports.createMockInvoiceRelatedPdct = exports.createMockFaqAnswers = exports.createMockFaqAnswer = exports.createMockFaqs = exports.createMockFaq = exports.createMockExpenses = exports.createMockExpense = exports.mockExpense = exports.createMockEstimates = exports.createMockEstimate = exports.createMockDeliverynotes = exports.createMockDeliverynote = exports.createMockDeliveryCitys = exports.createMockDeliveryCity = exports.createMockInvoiceSettings = exports.createMockSettingsBank = exports.createMockSettingsTax = exports.createMockSettingsGeneral = exports.createMockTaxReports = exports.createMockTaxReport = exports.createMockSalesReports = exports.createMockSalesReport = exports.createMockProfitAndLossReports = exports.createMockProfitAndLossReport = exports.createMockInvoiceReports = exports.createMockInvoiceReport = exports.createMockExpenseReports = exports.createMockExpenseReport = void 0;
+exports.createMockSubscriptionPackages = exports.createMockSubscriptionPackage = exports.createMockCompanySubscriptions = exports.createMockCompanySubscription = exports.createMockUserBase = exports.createMockStaffs = exports.createMockStaff = exports.createMockSalary = exports.createMockCustomers = exports.createMockCustomer = exports.createMockReviews = exports.createMockReview = exports.createMockReceipts = exports.createMockReceipt = exports.createMockProfits = exports.createMockProfit = exports.createMockPayments = exports.createMockPayment = exports.createMockPaymentRelateds = exports.createMockPaymentRelated = exports.createMockPaymentRelatedSolos = exports.createMockPaymentRelatedSolo = exports.createMockOrders = exports.createMockOrder = exports.createMockItemOffers = void 0;
 const en_US_1 = require("@faker-js/faker/locale/en_US");
 const stock_universal_1 = require("@open-stock/stock-universal");
 const delivery_define_1 = require("../stock-counter-client/src/defines/delivery.define");
@@ -12,7 +12,6 @@ const faq_define_1 = require("../stock-counter-client/src/defines/faq.define");
 const invoice_define_1 = require("../stock-counter-client/src/defines/invoice.define");
 const item_define_1 = require("../stock-counter-client/src/defines/item.define");
 const itemdecoy_define_1 = require("../stock-counter-client/src/defines/itemdecoy.define");
-const itemlimitted_define_1 = require("../stock-counter-client/src/defines/itemlimitted.define");
 const itemoffer_define_1 = require("../stock-counter-client/src/defines/itemoffer.define");
 const order_define_1 = require("../stock-counter-client/src/defines/order.define");
 const payment_define_1 = require("../stock-counter-client/src/defines/payment.define");
@@ -475,29 +474,6 @@ const createMockItemDecoys = (length) => {
     return Array.from({ length }).map(() => (0, exports.createMockItemDecoy)());
 };
 exports.createMockItemDecoys = createMockItemDecoys;
-/** createMockItemLimitted : This function
- * creates a mock item limitted by combining a mock
- * database auto object with a randomly generated UUID
- * and an array of mock name. It returns a new instance
- * of the  ItemLimitted  class. */
-const createMockItemLimitted = () => {
-    const limitted = {
-        ...(0, mocks_1.createMockDatabaseAuto)(),
-        urId: en_US_1.faker.string.uuid(),
-        name: en_US_1.faker.string.alphanumeric(10)
-    };
-    return new itemlimitted_define_1.ItemLimitted(limitted);
-};
-exports.createMockItemLimitted = createMockItemLimitted;
-/** createMockItemLimitteds : This function
- * creates an array of mock item limitteds by
- * calling the  createMockItemLimitted  function a
- * specified number of times. It returns
- * an array of  ItemLimitted  instances. */
-const createMockItemLimitteds = (length) => {
-    return Array.from({ length }).map(() => (0, exports.createMockItemLimitted)());
-};
-exports.createMockItemLimitteds = createMockItemLimitteds;
 const createMockItemOffer = () => {
     const offer = {
         ...(0, mocks_1.createMockDatabaseAuto)(),

@@ -46,7 +46,10 @@ class NotificationMain {
     static async getNotifications(companyId, url = 'getmynotifn', offset = 0, limit = 20) {
         const observer$ = stock_notif_client_1.StockNotifClient.ehttp.makeGet(`/notification/${url}/${offset}/${limit}/${companyId}`);
         const notifications = await (0, rxjs_1.lastValueFrom)(observer$);
-        return notifications.map(val => new NotificationMain(val));
+        return {
+            count: notifications.count,
+            notifications: notifications.data.map(val => new NotificationMain(val))
+        };
     }
     /**
      * Appends a subscription to the list of subscriptions.

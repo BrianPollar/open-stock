@@ -98,7 +98,10 @@ export class User extends DatabaseAuto {
     static async getUsers(companyId, url, offset = 0, limit = 20) {
         const observer$ = StockAuthClient.ehttp.makeGet(`/user/getusers/${url}/${offset}/${limit}/${companyId}`);
         const users = await lastValueFrom(observer$);
-        return users.map(val => new User(val));
+        return {
+            count: users.count,
+            users: users.data.map(val => new User(val))
+        };
     }
     /**
      * Retrieves a single user based on the provided user ID.

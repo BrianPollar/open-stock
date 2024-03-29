@@ -24,10 +24,18 @@ exports.orderRoutesDummy.get('/getone/:id/:companyIdParam', (req, res) => {
     res.status(200).send((0, stock_counter_mocks_1.createMockOrder)());
 });
 exports.orderRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) => {
-    res.status(200).send((0, stock_counter_mocks_1.createMockOrders)(Number(req.params.limit)));
+    const response = {
+        count: req.params.limit,
+        data: (0, stock_counter_mocks_1.createMockOrders)(Number(req.params.limit))
+    };
+    res.status(200).send(response);
 });
 exports.orderRoutesDummy.get('/getmyorders/:companyIdParam', (req, res) => {
-    res.status(200).send((0, stock_counter_mocks_1.createMockOrders)(10));
+    const response = {
+        count: req.params.limit,
+        data: (0, stock_counter_mocks_1.createMockOrders)(10)
+    };
+    res.status(200).send(response);
 });
 exports.orderRoutesDummy.put('/deleteone/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });
@@ -36,7 +44,11 @@ exports.orderRoutesDummy.put('/appendDelivery/:orderId/:status/:companyIdParam',
     res.status(200).send({ success: true });
 });
 exports.orderRoutesDummy.post('/search/:limit/:offset/:companyIdParam', (req, res) => {
-    res.status(200).send((0, stock_counter_mocks_1.createMockOrders)(Number(req.params.limit)));
+    const response = {
+        count: req.params.limit,
+        data: (0, stock_counter_mocks_1.createMockOrders)(Number(req.params.limit))
+    };
+    res.status(200).send(response);
 });
 exports.orderRoutesDummy.put('/deletemany/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });

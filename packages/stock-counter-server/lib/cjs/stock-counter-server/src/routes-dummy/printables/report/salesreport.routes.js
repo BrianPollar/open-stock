@@ -15,13 +15,21 @@ exports.salesReportRoutesDummy.get('/getone/:urId/:companyIdParam', (req, res) =
     res.status(200).send((0, stock_counter_mocks_1.createMockSalesReport)());
 });
 exports.salesReportRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) => {
-    res.status(200).send((0, stock_counter_mocks_1.createMockSalesReports)(Number(req.params.limit)));
+    const response = {
+        count: req.params.limit,
+        data: (0, stock_counter_mocks_1.createMockSalesReports)(Number(req.params.limit))
+    };
+    res.status(200).send(response);
 });
 exports.salesReportRoutesDummy.delete('/deleteone/:id/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });
 });
 exports.salesReportRoutesDummy.post('/search/:limit/:offset/:companyIdParam', (req, res) => {
-    res.status(200).send((0, stock_counter_mocks_1.createMockSalesReports)(Number(req.params.limit)));
+    const response = {
+        count: req.params.limit,
+        data: (0, stock_counter_mocks_1.createMockSalesReports)(Number(req.params.limit))
+    };
+    res.status(200).send(response);
 });
 exports.salesReportRoutesDummy.put('/deletemany/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });

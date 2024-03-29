@@ -1,3 +1,4 @@
+import { IdataArrayResponse } from '@open-stock/stock-universal';
 import express from 'express';
 import { createMockInvoice, createMockInvoices, createMockReceipt, createMockReceipts } from '../../../../tests/stock-counter-mocks';
 
@@ -19,7 +20,11 @@ invoiceRoutesDummy.get('/getone/:invoiceId/:companyIdParam', (req, res) => {
 });
 
 invoiceRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) => {
-  res.status(200).send(createMockInvoices(Number(req.params.limit)));
+  const response: IdataArrayResponse = {
+    count: req.params.limit,
+    data: createMockInvoices(Number(req.params.limit))
+  };
+  res.status(200).send(response);
 });
 
 invoiceRoutesDummy.put('/deleteone/:companyIdParam', (req, res) => {
@@ -48,7 +53,11 @@ invoiceRoutesDummy.get('/getonepayment/:urId/:companyIdParam', (req, res) => {
 });
 
 invoiceRoutesDummy.get('/getallpayments/:companyIdParam', (req, res) => {
-  res.status(200).send(createMockReceipts(10));
+  const response: IdataArrayResponse = {
+    count: 10,
+    data: createMockReceipts(10)
+  };
+  res.status(200).send(response);
 });
 
 invoiceRoutesDummy.put('/deleteonepayment/:companyIdParam', (req, res) => {

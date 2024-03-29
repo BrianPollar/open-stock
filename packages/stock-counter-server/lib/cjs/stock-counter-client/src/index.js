@@ -23,7 +23,6 @@ tslib_1.__exportStar(require("./defines/cookies.define"), exports);
 tslib_1.__exportStar(require("./defines/faq.define"), exports);
 tslib_1.__exportStar(require("./defines/item.define"), exports);
 tslib_1.__exportStar(require("./defines/itemdecoy.define"), exports);
-tslib_1.__exportStar(require("./defines/itemlimitted.define"), exports);
 tslib_1.__exportStar(require("./defines/itemoffer.define"), exports);
 tslib_1.__exportStar(require("./defines/profit.define"), exports);
 tslib_1.__exportStar(require("./defines/receipt.define"), exports);

@@ -1,5 +1,5 @@
 import {
-  DatabaseAuto, IdeleteCredentialsInvRel, Iinvoice, IinvoiceRelated,
+  DatabaseAuto, IdataArrayResponse, IdeleteCredentialsInvRel, Iinvoice, IinvoiceRelated,
   IinvoiceRelatedPdct,
   Ireceipt,
   Isuccess,
@@ -107,9 +107,11 @@ export class InvoiceRelated extends DatabaseAuto {
   static async getInvoicePayments(companyId: string) {
     const observer$ = StockCounterClient.ehttp
       .makeGet(`/invoice/getallpayments/${companyId}`);
-    const invoicepays = await lastValueFrom(observer$) as Required<Ireceipt>[];
-    return invoicepays
-      .map(val => new Receipt(val));
+    const invoicepays = await lastValueFrom(observer$) as IdataArrayResponse;
+    return {
+      count: invoicepays.count,
+      invoicepays: invoicepays.data
+        .map(val => new Receipt(val as Required<Ireceipt>)) };
   }
 
   /**
@@ -230,9 +232,12 @@ export class Receipt
   ) {
     const observer$ = StockCounterClient.ehttp
       .makeGet(`/receipt/${url}/${offset}/${limit}/${companyId}`);
-    const receipts = await lastValueFrom(observer$) as Required<Ireceipt>[];
-    return receipts
-      .map(val => new Receipt(val));
+    const receipts = await lastValueFrom(observer$) as IdataArrayResponse;
+    return {
+      count: receipts.count,
+      receipts: receipts.data
+        .map(val => new Receipt(val as Required<Ireceipt>))
+    };
   }
 
   /**

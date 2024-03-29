@@ -1,4 +1,5 @@
 
+import { IdataArrayResponse } from '@open-stock/stock-universal';
 import express from 'express';
 // import { notifConfig } from '../../config/notif.config';
 // import { createNotifications, NotificationController } from '../controllers/notifications.controller';
@@ -67,7 +68,11 @@ authRoutesDummy.get('/getoneuser/:urId/:companyIdParam', (req, res) => {
 });
 
 authRoutesDummy.get('/getusers/:where/:offset/:limit/:companyIdParam', (req, res) => {
-  res.status(200).send({ success: true });
+  const response: IdataArrayResponse = {
+    count: req.params.limit,
+    data: []
+  };
+  res.status(200).send(response);
 });
 
 authRoutesDummy.post('/adduser/:companyIdParam', (req, res) => {

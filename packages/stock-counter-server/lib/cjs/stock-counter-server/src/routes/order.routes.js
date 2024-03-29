@@ -3,18 +3,18 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.orderRoutes = void 0;
 const tslib_1 = require("tslib");
+const stock_auth_server_1 = require("@open-stock/stock-auth-server");
+const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
+const log4js_1 = require("log4js");
 const payment_controller_1 = require("../controllers/payment.controller");
+const item_model_1 = require("../models/item.model");
 const order_model_1 = require("../models/order.model");
 const paymentrelated_model_1 = require("../models/printables/paymentrelated/paymentrelated.model");
-const invoicerelated_model_1 = require("../models/printables/related/invoicerelated.model");
-const item_model_1 = require("../models/item.model");
-const paymentrelated_1 = require("./paymentrelated/paymentrelated");
-const log4js_1 = require("log4js");
-const invoicerelated_1 = require("./printables/related/invoicerelated");
-const stock_universal_server_1 = require("@open-stock/stock-universal-server");
-const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const receipt_model_1 = require("../models/printables/receipt.model");
+const invoicerelated_model_1 = require("../models/printables/related/invoicerelated.model");
+const paymentrelated_1 = require("./paymentrelated/paymentrelated");
+const invoicerelated_1 = require("./printables/related/invoicerelated");
 /** Logger for order routes */
 const orderRoutesLogger = (0, log4js_1.getLogger)('routes/orderRoutes');
 /**
@@ -234,32 +234,39 @@ exports.orderRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universa
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
-    const orders = await order_model_1.orderLean
-        .find({ companyId: queryId })
-        .skip(offset)
-        .limit(limit)
-        .lean()
-        .populate({ path: 'paymentRelated', model: paymentrelated_model_1.paymentRelatedLean })
-        .populate({
-        path: 'invoiceRelated', model: invoicerelated_model_1.invoiceRelatedLean,
-        populate: [{
-                path: 'billingUserId', model: stock_auth_server_1.userLean
-            },
-            {
-                path: 'payments', model: receipt_model_1.receiptLean
-            },
-            {
-                path: 'items.item', model: item_model_1.itemLean,
-                populate: [{
-                        // eslint-disable-next-line @typescript-eslint/naming-convention
-                        path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-                    }]
-            }]
-    });
-    const returned = orders
+    const all = await Promise.all([
+        order_model_1.orderLean
+            .find({ companyId: queryId })
+            .skip(offset)
+            .limit(limit)
+            .lean()
+            .populate({ path: 'paymentRelated', model: paymentrelated_model_1.paymentRelatedLean })
+            .populate({
+            path: 'invoiceRelated', model: invoicerelated_model_1.invoiceRelatedLean,
+            populate: [{
+                    path: 'billingUserId', model: stock_auth_server_1.userLean
+                },
+                {
+                    path: 'payments', model: receipt_model_1.receiptLean
+                },
+                {
+                    path: 'items.item', model: item_model_1.itemLean,
+                    populate: [{
+                            // eslint-disable-next-line @typescript-eslint/naming-convention
+                            path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+                        }]
+                }]
+        }),
+        order_model_1.orderLean.countDocuments({ companyId: queryId })
+    ]);
+    const returned = all[0]
         .map(val => (0, paymentrelated_1.makePaymentRelatedPdct)(val.paymentRelated, val.invoiceRelated, val.invoiceRelated
         .billingUserId, val));
-    return res.status(200).send(returned);
+    const response = {
+        count: all[1],
+        data: returned
+    };
+    return res.status(200).send(response);
 });
 exports.orderRoutes.get('/getmyorders/:companyIdParam', stock_universal_server_1.requireAuth, async (req, res) => {
     const { userId } = req.user;
@@ -349,39 +356,46 @@ exports.orderRoutes.post('/search/:limit/:offset/:companyIdParam', stock_univers
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
-    const orders = await order_model_1.orderLean
-        .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
-        .lean()
-        .skip(offset)
-        .limit(limit)
-        .populate({ path: 'paymentRelated', model: item_model_1.itemLean,
-        populate: [{
-                path: 'items', model: item_model_1.itemLean
-            },
-            {
-                path: 'user', select: stock_auth_server_1.userAboutSelect, model: stock_auth_server_1.userLean
-            }]
-    })
-        .populate({
-        path: 'invoiceRelated', model: invoicerelated_model_1.invoiceRelatedLean,
-        populate: [{
-                path: 'billingUserId', model: stock_auth_server_1.userLean
-            },
-            {
-                path: 'payments', model: receipt_model_1.receiptLean
-            },
-            {
-                path: 'items.item', model: item_model_1.itemLean,
-                populate: [{
-                        // eslint-disable-next-line @typescript-eslint/naming-convention
-                        path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-                    }]
-            }]
-    });
-    const returned = orders
+    const all = await Promise.all([
+        order_model_1.orderLean
+            .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+            .lean()
+            .skip(offset)
+            .limit(limit)
+            .populate({ path: 'paymentRelated', model: item_model_1.itemLean,
+            populate: [{
+                    path: 'items', model: item_model_1.itemLean
+                },
+                {
+                    path: 'user', select: stock_auth_server_1.userAboutSelect, model: stock_auth_server_1.userLean
+                }]
+        })
+            .populate({
+            path: 'invoiceRelated', model: invoicerelated_model_1.invoiceRelatedLean,
+            populate: [{
+                    path: 'billingUserId', model: stock_auth_server_1.userLean
+                },
+                {
+                    path: 'payments', model: receipt_model_1.receiptLean
+                },
+                {
+                    path: 'items.item', model: item_model_1.itemLean,
+                    populate: [{
+                            // eslint-disable-next-line @typescript-eslint/naming-convention
+                            path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+                        }]
+                }]
+        }),
+        order_model_1.orderLean.countDocuments({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+    ]);
+    const returned = all[0]
         .map(val => (0, paymentrelated_1.makePaymentRelatedPdct)(val.paymentRelated, val.invoiceRelated, val.invoiceRelated
         .billingUserId, val));
-    return res.status(200).send(returned);
+    const response = {
+        count: all[1],
+        data: returned
+    };
+    return res.status(200).send(response);
 });
 exports.orderRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('orders', 'delete'), async (req, res) => {
     const { credentials } = req.body;

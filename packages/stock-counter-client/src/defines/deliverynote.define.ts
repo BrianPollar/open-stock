@@ -1,4 +1,4 @@
-import { IdeleteCredentialsInvRel, IinvoiceRelated, Isuccess } from '@open-stock/stock-universal';
+import { IdataArrayResponse, IdeleteCredentialsInvRel, IinvoiceRelated, Isuccess } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
 import { StockCounterClient } from '../stock-counter-client';
 import { InvoiceRelatedWithReceipt } from './invoice.define';
@@ -41,9 +41,12 @@ export class DeliveryNote extends InvoiceRelatedWithReceipt {
   ) {
     const observer$ = StockCounterClient.ehttp
       .makeGet(`/deliverynote/${url}/${offset}/${limit}/${companyId}`);
-    const deliverynotes = await lastValueFrom(observer$) as IinvoiceRelated[];
-    return deliverynotes
-      .map((val) => new DeliveryNote(val));
+    const deliverynotes = await lastValueFrom(observer$) as IdataArrayResponse;
+    return {
+      count: deliverynotes.count,
+      deliverynotes: deliverynotes.data
+        .map((val) => new DeliveryNote(val as IinvoiceRelated))
+    };
   }
 
   /**

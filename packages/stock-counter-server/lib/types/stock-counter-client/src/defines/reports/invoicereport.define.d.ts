@@ -1,5 +1,5 @@
-import { Invoice } from '../invoice.define';
 import { DatabaseAuto, IinvoicesReport, Isuccess } from '@open-stock/stock-universal';
+import { Invoice } from '../invoice.define';
 /**
  * InvoiceReport  class: This class represents an invoice report object.
  * It extends the  DatabaseAuto  class (not provided in the code) and has properties such as  urId ,  totalAmount ,  date , and  invoices .
@@ -30,7 +30,10 @@ export declare class InvoiceReport extends DatabaseAuto {
      * @param {number} [limit=0] - The limit of the HTTP GET request
      * @returns {Promise<InvoiceReport[]>} - An array of InvoiceReport instances
      */
-    static getInvoiceReports(companyId: string, url?: string, offset?: number, limit?: number): Promise<InvoiceReport[]>;
+    static getInvoiceReports(companyId: string, url?: string, offset?: number, limit?: number): Promise<{
+        count: number;
+        invoicesreports: InvoiceReport[];
+    }>;
     /**
      * Retrieves a single invoice report from a server using an HTTP GET request.
      * @static

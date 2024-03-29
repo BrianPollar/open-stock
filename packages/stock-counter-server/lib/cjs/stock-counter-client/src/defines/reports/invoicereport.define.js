@@ -1,10 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.InvoiceReport = void 0;
-const rxjs_1 = require("rxjs");
-const invoice_define_1 = require("../invoice.define");
 const stock_universal_1 = require("@open-stock/stock-universal");
+const rxjs_1 = require("rxjs");
 const stock_counter_client_1 = require("../../stock-counter-client");
+const invoice_define_1 = require("../invoice.define");
 /**
  * InvoiceReport  class: This class represents an invoice report object.
  * It extends the  DatabaseAuto  class (not provided in the code) and has properties such as  urId ,  totalAmount ,  date , and  invoices .
@@ -37,7 +37,10 @@ class InvoiceReport extends stock_universal_1.DatabaseAuto {
     static async getInvoiceReports(companyId, url = 'getall', offset = 0, limit = 20) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makeGet(`/invoicesreport/${url}/${offset}/${limit}/${companyId}`);
         const invoicesreports = await (0, rxjs_1.lastValueFrom)(observer$);
-        return invoicesreports.map((val) => new InvoiceReport(val));
+        return {
+            count: invoicesreports.count,
+            invoicesreports: invoicesreports.data.map((val) => new InvoiceReport(val))
+        };
     }
     /**
      * Retrieves a single invoice report from a server using an HTTP GET request.

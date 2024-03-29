@@ -8,7 +8,11 @@ invoiceRelateRoutesDummy.get('/getone/:id/:companyIdParam', (req, res) => {
     res.status(200).send(createMockInvoiceRelated());
 });
 invoiceRelateRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) => {
-    res.status(200).send(createMockInvoiceRelateds(Number(req.params.limit)));
+    const response = {
+        count: req.params.limit,
+        data: createMockInvoiceRelateds(Number(req.params.limit))
+    };
+    res.status(200).send(response);
 });
 invoiceRelateRoutesDummy.post('/search/:offset/:limit/:companyIdParam', (req, res) => {
     res.status(200).send(createMockInvoiceRelateds(Number(req.params.limit)));

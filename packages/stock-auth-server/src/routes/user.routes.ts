@@ -1,6 +1,6 @@
 /**
  * This file contains the authentication routes for the stock-auth-server package.
- * It exports the authRoutes router and userLoginRelegator function.
+ * It exports the userAuthRoutes router and userLoginRelegator function.
  * It also imports various controllers and models from the same package and other packages.
  * @packageDocumentation
  */
@@ -13,6 +13,7 @@ import {
   Ibilling,
   Icompany,
   Icustomrequest,
+  IdataArrayResponse,
   IfileMeta,
   Isuccess,
   Iuser
@@ -33,7 +34,7 @@ const passport = require('passport');
 /**
  * Router for authentication routes.
  */
-export const authRoutes = express.Router();
+export const userAuthRoutes = express.Router();
 
 /**
  * Logger for authentication routes.
@@ -85,11 +86,11 @@ export const userLoginRelegator = async(req: Request, res: Response) => {
   return res.status(200).send(nowResponse);
 };
 
-authRoutes.get('/google',
+userAuthRoutes.get('/google',
   passport.authenticate('google', { scope: ['profile', 'email'] }));
 
 
-authRoutes.get('/authexpress/:companyIdParam', requireAuth, async(req, res) => {
+userAuthRoutes.get('/authexpress/:companyIdParam', requireAuth, async(req, res) => {
   const { userId } = (req as Icustomrequest).user;
   const isValid = verifyObjectId(userId);
   if (!isValid) {
@@ -151,7 +152,7 @@ authRoutes.get('/authexpress/:companyIdParam', requireAuth, async(req, res) => {
   return res.status(200).send(nowResponse);
 });
 
-authRoutes.post('/login', (req, res, next) => {
+userAuthRoutes.post('/login', (req, res, next) => {
   req.body.from = 'user';
   const { emailPhone } = req.body;
   authLogger.debug(`login attempt,
@@ -160,7 +161,7 @@ authRoutes.post('/login', (req, res, next) => {
 }, checkIpAndAttempt, userLoginRelegator);
 
 
-authRoutes.post('/signup', (req, res, next) => {
+userAuthRoutes.post('/signup', (req, res, next) => {
   const user = req.body;
   req.body.user = user;
   return next();
@@ -168,7 +169,7 @@ authRoutes.post('/signup', (req, res, next) => {
   return res.status(401).send({ success: false, msg: 'unauthourised' });
 });
 
-authRoutes.post('recover', async(req, res, next) => {
+userAuthRoutes.post('recover', async(req, res, next) => {
   const emailPhone = req.body.emailPhone;
   const emailOrPhone = emailPhone === 'phone' ? 'phone' : 'email';
   let query;
@@ -183,7 +184,7 @@ authRoutes.post('recover', async(req, res, next) => {
   return next();
 }, recoverAccountFactory);
 
-authRoutes.post('/confirm', async(req, res, next) => {
+userAuthRoutes.post('/confirm', async(req, res, next) => {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const { _id, verifycode, how } = req.body;
   authLogger.debug(`verify, verifycode: ${verifycode}, how: ${how}`);
@@ -202,7 +203,7 @@ authRoutes.post('/confirm', async(req, res, next) => {
   return next();
 }, confirmAccountFactory);
 
-authRoutes.put('/resetpaswd', async(req, res, next) => {
+userAuthRoutes.put('/resetpaswd', async(req, res, next) => {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const { _id, verifycode } = req.body;
   authLogger.debug(`resetpassword, 
@@ -222,7 +223,7 @@ authRoutes.put('/resetpaswd', async(req, res, next) => {
   return next();
 }, resetAccountFactory);
 
-authRoutes.post('/manuallyverify/:userId/:companyIdParam', requireAuth, roleAuthorisation('users', 'create'), async(req, res) => {
+userAuthRoutes.post('/manuallyverify/:userId/:companyIdParam', requireAuth, roleAuthorisation('users', 'create'), async(req, res) => {
   const { userId, companyIdParam } = req.params;
   const { companyId } = (req as Icustomrequest).user;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
@@ -249,7 +250,7 @@ authRoutes.post('/manuallyverify/:userId/:companyIdParam', requireAuth, roleAuth
 });
 
 
-authRoutes.post('/sociallogin', async(req, res) => {
+userAuthRoutes.post('/sociallogin', async(req, res) => {
   const credentials = req.body;
   authLogger.debug(`sociallogin, 
     socialId: ${credentials.socialId}`);
@@ -339,7 +340,7 @@ authRoutes.post('/sociallogin', async(req, res) => {
   }
 });
 
-authRoutes.put('/updateprofile/:formtype/:companyIdParam', requireAuth, async(req, res) => {
+userAuthRoutes.put('/updateprofile/:formtype/:companyIdParam', requireAuth, async(req, res) => {
   const { userId } = (req as unknown as Icustomrequest).user;
   const { userdetails } = req.body;
   const { formtype } = req.params;
@@ -465,7 +466,7 @@ authRoutes.put('/updateprofile/:formtype/:companyIdParam', requireAuth, async(re
   return res.status(status).send(response);
 });
 
-authRoutes.post('/updateprofileimg/:companyIdParam', requireAuth, uploadFiles, appendBody, saveMetaToDb, async(req, res) => {
+userAuthRoutes.post('/updateprofileimg/:companyIdParam', requireAuth, uploadFiles, appendBody, saveMetaToDb, async(req, res) => {
   let userId = req.body.user?._id;
 
   if (!userId) {
@@ -520,7 +521,7 @@ authRoutes.post('/updateprofileimg/:companyIdParam', requireAuth, uploadFiles, a
   return res.status(status).send(response);
 });
 
-authRoutes.put('/updatepermissions/:userId/:companyIdParam', requireAuth, roleAuthorisation('users', 'update'), async(req, res) => {
+userAuthRoutes.put('/updatepermissions/:userId/:companyIdParam', requireAuth, roleAuthorisation('users', 'update'), async(req, res) => {
   const { userId } = req.params;
   const isValid = verifyObjectId(userId);
   if (!isValid) {
@@ -555,7 +556,7 @@ authRoutes.put('/updatepermissions/:userId/:companyIdParam', requireAuth, roleAu
   return res.status(status).send(response);
 });
 
-authRoutes.put('/blockunblock/:companyIdParam', requireAuth, roleAuthorisation('users', 'update'), async(req, res) => {
+userAuthRoutes.put('/blockunblock/:companyIdParam', requireAuth, roleAuthorisation('users', 'update'), async(req, res) => {
   const { userId } = (req as unknown as Icustomrequest).user;
   authLogger.debug('blockunblock');
   const isValid = verifyObjectId(userId);
@@ -590,7 +591,7 @@ authRoutes.put('/blockunblock/:companyIdParam', requireAuth, roleAuthorisation('
   return res.status(status).send(response);
 });
 
-authRoutes.put('/addupdateaddr/:userId/:companyIdParam', requireAuth, async(req, res) => {
+userAuthRoutes.put('/addupdateaddr/:userId/:companyIdParam', requireAuth, async(req, res) => {
   const { userId } = req.params;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -654,7 +655,7 @@ authRoutes.put('/addupdateaddr/:userId/:companyIdParam', requireAuth, async(req,
 });
 
 
-authRoutes.get('/getoneuser/:urId/:companyIdParam', requireAuth, roleAuthorisation('users', 'read'), async(req, res) => {
+userAuthRoutes.get('/getoneuser/:urId/:companyIdParam', requireAuth, roleAuthorisation('users', 'read'), async(req, res) => {
   const { urId } = req.params;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -672,7 +673,7 @@ authRoutes.get('/getoneuser/:urId/:companyIdParam', requireAuth, roleAuthorisati
   return res.status(200).send(oneUser);
 });
 
-authRoutes.get('/getusers/:where/:offset/:limit/:companyIdParam', requireAuth, roleAuthorisation('users', 'read'), async(req, res) => {
+userAuthRoutes.get('/getusers/:where/:offset/:limit/:companyIdParam', requireAuth, roleAuthorisation('users', 'read'), async(req, res) => {
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
@@ -699,21 +700,29 @@ authRoutes.get('/getusers/:where/:offset/:limit/:companyIdParam', requireAuth, r
       filter = { companyId: queryId };
       break;
   }
-  const faqs = await userLean
-    .find(filter)
-    .sort({ firstName: 1 })
-    .limit(Number(currLimit))
-    .skip(Number(currOffset))
-    .populate({ path: 'profilePic', model: fileMetaLean })
-    .populate({ path: 'profileCoverPic', model: fileMetaLean })
-    .populate({ path: 'photos', model: fileMetaLean })
-    .populate({ path: 'companyId', model: companyLean, select: { name: 1, blocked: 1 } })
-    .lean();
-  const filteredFaqs = faqs.filter(data => !(data.companyId as Icompany).blocked);
-  return res.status(200).send(filteredFaqs);
+  const all = await Promise.all([
+    userLean
+      .find(filter)
+      .sort({ firstName: 1 })
+      .limit(Number(currLimit))
+      .skip(Number(currOffset))
+      .populate({ path: 'profilePic', model: fileMetaLean })
+      .populate({ path: 'profileCoverPic', model: fileMetaLean })
+      .populate({ path: 'photos', model: fileMetaLean })
+      .populate({ path: 'companyId', model: companyLean, select: { name: 1, blocked: 1 } })
+      .lean(),
+    userLean.countDocuments(filter)
+
+  ]);
+  const filteredFaqs = all[0].filter(data => !(data.companyId as Icompany).blocked);
+  const response: IdataArrayResponse = {
+    count: all[1],
+    data: filteredFaqs
+  };
+  return res.status(200).send(response);
 });
 
-authRoutes.post('/adduser/:companyIdParam', requireAuth, roleAuthorisation('users', 'create'), async(req, res) => {
+userAuthRoutes.post('/adduser/:companyIdParam', requireAuth, roleAuthorisation('users', 'create'), async(req, res) => {
   const userData = req.body.user;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -757,7 +766,7 @@ authRoutes.post('/adduser/:companyIdParam', requireAuth, roleAuthorisation('user
   return res.status(status).send(response);
 });
 
-authRoutes.post('/adduserimg/:companyIdParam', requireAuth, roleAuthorisation('users', 'create'), uploadFiles, appendBody, saveMetaToDb, async(req, res) => {
+userAuthRoutes.post('/adduserimg/:companyIdParam', requireAuth, roleAuthorisation('users', 'create'), uploadFiles, appendBody, saveMetaToDb, async(req, res) => {
   const userData = req.body.user;
   const parsed = req.body.parsed;
   const { companyId } = (req as Icustomrequest).user;
@@ -812,7 +821,7 @@ authRoutes.post('/adduserimg/:companyIdParam', requireAuth, roleAuthorisation('u
   return res.status(status).send(response);
 });
 
-authRoutes.put('/updateuserbulk/:companyIdParam', requireAuth, roleAuthorisation('items', 'update'), async(req, res) => {
+userAuthRoutes.put('/updateuserbulk/:companyIdParam', requireAuth, roleAuthorisation('items', 'update'), async(req, res) => {
   const updatedUser = req.body.user;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -864,7 +873,7 @@ authRoutes.put('/updateuserbulk/:companyIdParam', requireAuth, roleAuthorisation
   return res.status(status).send(response);
 });
 
-authRoutes.post('/updateuserbulkimg/:companyIdParam', requireAuth, roleAuthorisation('items', 'update'), uploadFiles, appendBody, saveMetaToDb, async(req, res) => {
+userAuthRoutes.post('/updateuserbulkimg/:companyIdParam', requireAuth, roleAuthorisation('items', 'update'), uploadFiles, appendBody, saveMetaToDb, async(req, res) => {
   const updatedUser = req.body.user;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -931,7 +940,7 @@ authRoutes.post('/updateuserbulkimg/:companyIdParam', requireAuth, roleAuthorisa
   return res.status(status).send(response);
 });
 
-authRoutes.put('/deletemany/:companyIdParam', requireAuth, roleAuthorisation('users', 'delete'), deleteFiles, async(req, res) => {
+userAuthRoutes.put('/deletemany/:companyIdParam', requireAuth, roleAuthorisation('users', 'delete'), deleteFiles, async(req, res) => {
   const { ids } = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -955,7 +964,7 @@ authRoutes.put('/deletemany/:companyIdParam', requireAuth, roleAuthorisation('us
   }
 });
 
-authRoutes.put('/deleteone/:companyIdParam', requireAuth, roleAuthorisation('users', 'delete'), deleteFiles, async(req, res) => {
+userAuthRoutes.put('/deleteone/:companyIdParam', requireAuth, roleAuthorisation('users', 'delete'), deleteFiles, async(req, res) => {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const { _id } = req.body;
   const { companyId } = (req as Icustomrequest).user;
@@ -976,7 +985,7 @@ authRoutes.put('/deleteone/:companyIdParam', requireAuth, roleAuthorisation('use
   }
 });
 
-authRoutes.put('/deleteimages/:companyIdParam', requireAuth, roleAuthorisation('items', 'delete'), deleteFiles, async(req, res) => {
+userAuthRoutes.put('/deleteimages/:companyIdParam', requireAuth, roleAuthorisation('items', 'delete'), deleteFiles, async(req, res) => {
   const filesWithDir: IfileMeta[] = req.body.filesWithDir;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;

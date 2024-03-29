@@ -38,7 +38,10 @@ export declare class Review extends DatabaseAuto {
      * @param limit The limit to use for the request. Defaults to 0.
      * @returns An array of Review objects.
      */
-    static getreviews(companyId: string, itemId: string, url?: string, offset?: number, limit?: number): Promise<Review[]>;
+    static getreviews(companyId: string, itemId: string, url?: string, offset?: number, limit?: number): Promise<{
+        count: number;
+        reviews: Review[];
+    }>;
     /**
      * Gets a single review by ID.
      * @param companyId - The ID of the company

@@ -8,7 +8,11 @@ itemOfferRoutesDummy.post('/create/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });
 });
 itemOfferRoutesDummy.get('/getall/:type/:offset/:limit/:companyIdParam', (req, res) => {
-    res.status(200).send(createMockItemOffers(Number(req.params.limit)));
+    const response = {
+        count: req.params.limit,
+        data: createMockItemOffers(Number(req.params.limit))
+    };
+    res.status(200).send(response);
 });
 itemOfferRoutesDummy.get('/getone/:id/:companyIdParam', (req, res) => {
     res.status(200).send(createMockItemOffer());

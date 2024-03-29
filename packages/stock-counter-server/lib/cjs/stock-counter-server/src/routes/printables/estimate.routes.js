@@ -2,14 +2,14 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.estimateRoutes = exports.updateEstimateUniv = void 0;
 const tslib_1 = require("tslib");
-const express_1 = tslib_1.__importDefault(require("express"));
+const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
+const express_1 = tslib_1.__importDefault(require("express"));
+const log4js_1 = require("log4js");
 const estimate_model_1 = require("../../models/printables/estimate.model");
+const receipt_model_1 = require("../../models/printables/receipt.model");
 const invoicerelated_model_1 = require("../../models/printables/related/invoicerelated.model");
 const invoicerelated_1 = require("./related/invoicerelated");
-const log4js_1 = require("log4js");
-const stock_auth_server_1 = require("@open-stock/stock-auth-server");
-const receipt_model_1 = require("../../models/printables/receipt.model");
 /** Logger for estimate routes */
 const estimateRoutesogger = (0, log4js_1.getLogger)('routes/estimateRoutes');
 /**
@@ -135,24 +135,31 @@ exports.estimateRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_unive
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const estimates = await estimate_model_1.estimateLean
-        .find({ companyId: queryId })
-        .skip(offset)
-        .limit(limit)
-        .lean()
-        .populate({
-        path: 'invoiceRelated', model: invoicerelated_model_1.invoiceRelatedLean,
-        populate: [{
-                path: 'billingUserId', model: stock_auth_server_1.userLean
-            },
-            {
-                path: 'payments', model: receipt_model_1.receiptLean
-            }]
-    });
-    const returned = estimates
+    const all = await Promise.all([
+        estimate_model_1.estimateLean
+            .find({ companyId: queryId })
+            .skip(offset)
+            .limit(limit)
+            .lean()
+            .populate({
+            path: 'invoiceRelated', model: invoicerelated_model_1.invoiceRelatedLean,
+            populate: [{
+                    path: 'billingUserId', model: stock_auth_server_1.userLean
+                },
+                {
+                    path: 'payments', model: receipt_model_1.receiptLean
+                }]
+        }),
+        estimate_model_1.estimateLean.countDocuments({ companyId: queryId })
+    ]);
+    const returned = all[0]
         .map(val => (0, invoicerelated_1.makeInvoiceRelatedPdct)(val.invoiceRelated, val.invoiceRelated
         .billingUserId));
-    return res.status(200).send(returned);
+    const response = {
+        count: all[1],
+        data: returned
+    };
+    return res.status(200).send(response);
 });
 /**
  * Deletes an estimate and its associated invoice related object.
@@ -189,24 +196,31 @@ exports.estimateRoutes.post('/search/:limit/:offset/:companyIdParam', stock_univ
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
-    const estimates = await estimate_model_1.estimateLean
-        .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
-        .lean()
-        .skip(offset)
-        .limit(limit)
-        .populate({
-        path: 'invoiceRelated', model: invoicerelated_model_1.invoiceRelatedLean,
-        populate: [{
-                path: 'billingUserId', model: stock_auth_server_1.userLean
-            },
-            {
-                path: 'payments', model: receipt_model_1.receiptLean
-            }]
-    });
-    const returned = estimates
+    const all = await Promise.all([
+        estimate_model_1.estimateLean
+            .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+            .skip(offset)
+            .limit(limit)
+            .lean()
+            .populate({
+            path: 'invoiceRelated', model: invoicerelated_model_1.invoiceRelatedLean,
+            populate: [{
+                    path: 'billingUserId', model: stock_auth_server_1.userLean
+                },
+                {
+                    path: 'payments', model: receipt_model_1.receiptLean
+                }]
+        }),
+        estimate_model_1.estimateLean.countDocuments({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+    ]);
+    const returned = all[0]
         .map(val => (0, invoicerelated_1.makeInvoiceRelatedPdct)(val.invoiceRelated, val.invoiceRelated
         .billingUserId));
-    return res.status(200).send(returned);
+    const response = {
+        count: all[1],
+        data: returned
+    };
+    return res.status(200).send(response);
 });
 exports.estimateRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'delete'), async (req, res) => {
     const { credentials } = req.body;

@@ -15,13 +15,21 @@ exports.profitAndLossReportRoutesDummy.get('/getone/:urId/:companyIdParam', (req
     res.status(200).send((0, stock_counter_mocks_1.createMockProfitAndLossReport)());
 });
 exports.profitAndLossReportRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) => {
-    res.status(200).send((0, stock_counter_mocks_1.createMockProfitAndLossReports)(Number(req.params.limit)));
+    const response = {
+        count: req.params.limit,
+        data: (0, stock_counter_mocks_1.createMockProfitAndLossReports)(Number(req.params.limit))
+    };
+    res.status(200).send(response);
 });
 exports.profitAndLossReportRoutesDummy.delete('/deleteone/:id/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });
 });
 exports.profitAndLossReportRoutesDummy.post('/search/:limit/:offset/:companyIdParam', (req, res) => {
-    res.status(200).send((0, stock_counter_mocks_1.createMockProfitAndLossReports)(Number(req.params.limit)));
+    const response = {
+        count: req.params.limit,
+        data: (0, stock_counter_mocks_1.createMockProfitAndLossReports)(Number(req.params.limit))
+    };
+    res.status(200).send(response);
 });
 exports.profitAndLossReportRoutesDummy.put('/deletemany/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });

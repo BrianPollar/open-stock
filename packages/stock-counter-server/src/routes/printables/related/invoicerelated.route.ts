@@ -1,13 +1,13 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
 
-import express from 'express';
-import { Icustomrequest, IinvoiceRelated, Iuser } from '@open-stock/stock-universal';
-import { offsetLimitRelegator, requireAuth, roleAuthorisation, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
-import { makeInvoiceRelatedPdct, updateInvoiceRelated } from './invoicerelated';
-import { getLogger } from 'log4js';
-import { invoiceRelatedLean } from '../../../models/printables/related/invoicerelated.model';
 import { userLean } from '@open-stock/stock-auth-server';
+import { Icustomrequest, IdataArrayResponse, IinvoiceRelated, Iuser } from '@open-stock/stock-universal';
+import { offsetLimitRelegator, requireAuth, roleAuthorisation, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import express from 'express';
+import { getLogger } from 'log4js';
 import { receiptLean } from '../../../models/printables/receipt.model';
+import { invoiceRelatedLean } from '../../../models/printables/related/invoicerelated.model';
+import { makeInvoiceRelatedPdct, updateInvoiceRelated } from './invoicerelated';
 
 /** Logger for file storage */
 const fileStorageLogger = getLogger('routes/FileStorage');
@@ -59,25 +59,33 @@ invoiceRelateRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, r
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const relateds = await invoiceRelatedLean
-    .find({ companyId: queryId })
-    .skip(offset)
-    .limit(limit)
-    .lean()
-    .populate({ path: 'billingUserId', model: userLean })
-    .populate({ path: 'payments', model: receiptLean })
-    .catch(err => {
-      fileStorageLogger.error('getall - err: ', err);
-      return null;
-    });
-  if (relateds) {
-    const returned = relateds
+  const all = await Promise.all([
+    invoiceRelatedLean
+      .find({ companyId: queryId })
+      .skip(offset)
+      .limit(limit)
+      .lean()
+      .populate({ path: 'billingUserId', model: userLean })
+      .populate({ path: 'payments', model: receiptLean })
+      .catch(err => {
+        fileStorageLogger.error('getall - err: ', err);
+        return null;
+      }),
+    invoiceRelatedLean.countDocuments({ companyId: queryId })
+  ]);
+  const response: IdataArrayResponse = {
+    count: all[1],
+    data: null
+  };
+  if (all[0]) {
+    const returned = all[0]
       .map(val => makeInvoiceRelatedPdct(val as Required<IinvoiceRelated>,
         (val as IinvoiceRelated)
           .billingUserId as unknown as Iuser));
-    return res.status(200).send(returned);
+    response.data = returned;
+    return res.status(200).send(response);
   } else {
-    return res.status(200).send([]);
+    return res.status(200).send(response);
   }
 });
 
@@ -95,30 +103,38 @@ invoiceRelateRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, 
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const relateds = await invoiceRelatedLean
-    .find({ queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
-    .skip(offset)
-    .limit(limit)
-    .lean()
-    .populate({ path: 'billingUserId', model: userLean })
-    .populate({ path: 'payments', model: receiptLean })
-    .catch(err => {
-      fileStorageLogger.error('getall - err: ', err);
-      return null;
-    });
-  if (relateds) {
-    const returned = relateds
+  const all = await Promise.all([
+    invoiceRelatedLean
+      .find({ queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+      .skip(offset)
+      .limit(limit)
+      .lean()
+      .populate({ path: 'billingUserId', model: userLean })
+      .populate({ path: 'payments', model: receiptLean })
+      .catch(err => {
+        fileStorageLogger.error('getall - err: ', err);
+        return null;
+      }),
+    invoiceRelatedLean.countDocuments({ queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+  ]);
+  const response: IdataArrayResponse = {
+    count: all[1],
+    data: null
+  };
+  if (all[0]) {
+    const returned = all[0]
       .map(val => makeInvoiceRelatedPdct(val as Required<IinvoiceRelated>,
         (val as IinvoiceRelated)
           .billingUserId as unknown as Iuser));
-    return res.status(200).send(returned);
+    response.data = returned;
+    return res.status(200).send(response);
   } else {
-    return res.status(200).send([]);
+    return res.status(200).send(response);
   }
 });
 
 /**
- * Update an invoice related product
+ * Update an invoicereturned product
  * @param invoiceRelated - The updated invoice related product
  * @returns A success message if the update was successful
  */

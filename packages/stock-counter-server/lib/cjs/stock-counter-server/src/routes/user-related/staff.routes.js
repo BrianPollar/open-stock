@@ -3,19 +3,18 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.staffRoutes = void 0;
 const tslib_1 = require("tslib");
 /* eslint-disable @typescript-eslint/no-misused-promises */
+const stock_auth_server_1 = require("@open-stock/stock-auth-server");
+const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
 const log4js_1 = require("log4js");
-const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const staff_model_1 = require("../../models/user-related/staff.model");
-const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const locluser_routes_1 = require("./locluser.routes");
-const stock_auth_server_2 = require("@open-stock/stock-auth-server");
 const staffRoutesLogger = (0, log4js_1.getLogger)('routes/staffRoutes');
 /**
  * Router for staff related routes.
  */
 exports.staffRoutes = express_1.default.Router();
-exports.staffRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('users', 'create'), stock_auth_server_2.loginFactorRelgator, async (req, res) => {
+exports.staffRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('users', 'create'), stock_auth_server_1.loginFactorRelgator, async (req, res) => {
     const staff = req.body.staff;
     const newStaff = new staff_model_1.staffMain(staff);
     let errResponse;
@@ -71,29 +70,67 @@ exports.staffRoutes.get('/getone/:id/:companyIdParam', async (req, res) => {
         .lean();
     return res.status(200).send(staff);
 });
+exports.staffRoutes.get('/getall/:offset/:limit/:companyIdParam', async (req, res) => {
+    const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
+    const { companyId } = req.user;
+    const { companyIdParam } = req.params;
+    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const all = await Promise.all([
+        staff_model_1.staffLean
+            .find({ companyId: queryId })
+            .populate({ path: 'user', model: stock_auth_server_1.userLean,
+            populate: [{
+                    // eslint-disable-next-line @typescript-eslint/naming-convention
+                    path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+                }, {
+                    // eslint-disable-next-line @typescript-eslint/naming-convention
+                    path: 'profilePic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+                }, {
+                    // eslint-disable-next-line @typescript-eslint/naming-convention
+                    path: 'profileCoverPic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+                }]
+        })
+            .skip(offset)
+            .limit(limit)
+            .lean(),
+        staff_model_1.staffLean.countDocuments({ companyId: queryId })
+    ]);
+    const response = {
+        count: all[1],
+        data: all[0]
+    };
+    return res.status(200).send(response);
+});
 exports.staffRoutes.get('/getbyrole/:offset/:limit/:role/:companyIdParam', async (req, res) => {
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const { companyId } = req.user;
     const { companyIdParam, role } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const staffs = await staff_model_1.staffLean
-        .find({ companyId: queryId })
-        .populate({ path: 'user', model: stock_auth_server_1.userLean, match: { role },
-        populate: [{
-                // eslint-disable-next-line @typescript-eslint/naming-convention
-                path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-            }, {
-                // eslint-disable-next-line @typescript-eslint/naming-convention
-                path: 'profilePic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-            }, {
-                // eslint-disable-next-line @typescript-eslint/naming-convention
-                path: 'profileCoverPic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-            }] })
-        .skip(offset)
-        .limit(limit)
-        .lean();
-    const staffsToReturn = staffs.filter(val => val.user);
-    return res.status(200).send(staffsToReturn);
+    const all = await Promise.all([
+        staff_model_1.staffLean
+            .find({ companyId: queryId })
+            .populate({ path: 'user', model: stock_auth_server_1.userLean, match: { role },
+            populate: [{
+                    // eslint-disable-next-line @typescript-eslint/naming-convention
+                    path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+                }, {
+                    // eslint-disable-next-line @typescript-eslint/naming-convention
+                    path: 'profilePic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+                }, {
+                    // eslint-disable-next-line @typescript-eslint/naming-convention
+                    path: 'profileCoverPic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+                }] })
+            .skip(offset)
+            .limit(limit)
+            .lean(),
+        staff_model_1.staffLean.countDocuments({ companyId: queryId })
+    ]);
+    const staffsToReturn = all[0].filter(val => val.user);
+    const response = {
+        count: all[1],
+        data: staffsToReturn
+    };
+    return res.status(200).send(response);
 });
 exports.staffRoutes.post('/search/:limit/:offset/:companyIdParam', async (req, res) => {
     const { searchterm, searchKey, extraDetails } = req.body;

@@ -1,3 +1,4 @@
+import { IdataArrayResponse } from '@open-stock/stock-universal';
 import express from 'express';
 import { createMockReceipt, createMockReceipts } from '../../../../tests/stock-counter-mocks';
 
@@ -16,7 +17,11 @@ receiptRoutesDummy.get('/getone/:urId/:companyIdParam', (req, res) => {
 });
 
 receiptRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) => {
-  res.status(200).send(createMockReceipts(Number(req.params.limit)));
+  const response: IdataArrayResponse = {
+    count: req.params.limit,
+    data: createMockReceipts(Number(req.params.limit))
+  };
+  res.status(200).send(response);
 });
 
 receiptRoutesDummy.put('/deleteone/:companyIdParam', (req, res) => {
@@ -24,7 +29,11 @@ receiptRoutesDummy.put('/deleteone/:companyIdParam', (req, res) => {
 });
 
 receiptRoutesDummy.post('/search/:limit/:offset/:companyIdParam', (req, res) => {
-  res.status(200).send(createMockReceipts(Number(req.params.limit)));
+  const response: IdataArrayResponse = {
+    count: req.params.limit,
+    data: createMockReceipts(Number(req.params.limit))
+  };
+  res.status(200).send(response);
 });
 
 receiptRoutesDummy.put('/update/:companyIdParam', (req, res) => {

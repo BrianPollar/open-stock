@@ -1,10 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SalesReport = void 0;
-const rxjs_1 = require("rxjs");
-const estimate_define_1 = require("../estimate.define");
 const stock_universal_1 = require("@open-stock/stock-universal");
+const rxjs_1 = require("rxjs");
 const stock_counter_client_1 = require("../../stock-counter-client");
+const estimate_define_1 = require("../estimate.define");
 const invoice_define_1 = require("../invoice.define");
 /**
  * The `SalesReport` class represents a sales report object.
@@ -36,7 +36,10 @@ class SalesReport extends stock_universal_1.DatabaseAuto {
     static async getSalesReports(companyId, url = 'getall', offset = 0, limit = 20) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makeGet(`/salesreport/${url}/${offset}/${limit}/${companyId}`);
         const salesreports = await (0, rxjs_1.lastValueFrom)(observer$);
-        return salesreports.map((val) => new SalesReport(val));
+        return {
+            cousnt: salesreports.count,
+            salesreports: salesreports.data.map((val) => new SalesReport(val))
+        };
     }
     /**
      * Retrieves a single sales report from the server.

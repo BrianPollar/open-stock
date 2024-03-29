@@ -8,7 +8,6 @@ import { Faq, FaqAnswer } from '../stock-counter-client/src/defines/faq.define';
 import { Invoice, InvoiceRelatedWithReceipt } from '../stock-counter-client/src/defines/invoice.define';
 import { Item } from '../stock-counter-client/src/defines/item.define';
 import { ItemDecoy } from '../stock-counter-client/src/defines/itemdecoy.define';
-import { ItemLimitted } from '../stock-counter-client/src/defines/itemlimitted.define';
 import { ItemOffer } from '../stock-counter-client/src/defines/itemoffer.define';
 import { Order } from '../stock-counter-client/src/defines/order.define';
 import { Payment, PaymentRelated } from '../stock-counter-client/src/defines/payment.define';
@@ -421,27 +420,6 @@ export const createMockItemDecoy = () => {
  * an array of  ItemDecoy  instances. */
 export const createMockItemDecoys = (length) => {
     return Array.from({ length }).map(() => createMockItemDecoy());
-};
-/** createMockItemLimitted : This function
- * creates a mock item limitted by combining a mock
- * database auto object with a randomly generated UUID
- * and an array of mock name. It returns a new instance
- * of the  ItemLimitted  class. */
-export const createMockItemLimitted = () => {
-    const limitted = {
-        ...createMockDatabaseAuto(),
-        urId: faker.string.uuid(),
-        name: faker.string.alphanumeric(10)
-    };
-    return new ItemLimitted(limitted);
-};
-/** createMockItemLimitteds : This function
- * creates an array of mock item limitteds by
- * calling the  createMockItemLimitted  function a
- * specified number of times. It returns
- * an array of  ItemLimitted  instances. */
-export const createMockItemLimitteds = (length) => {
-    return Array.from({ length }).map(() => createMockItemLimitted());
 };
 export const createMockItemOffer = () => {
     const offer = {

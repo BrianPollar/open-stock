@@ -1,14 +1,14 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.authRoutesDummy = void 0;
+exports.userAuthRoutesDummy = void 0;
 const tslib_1 = require("tslib");
 const express_1 = tslib_1.__importDefault(require("express"));
 const stock_auth_mocks_1 = require("../../../tests/stock-auth-mocks");
 /**
  * Router for authentication routes.
  */
-exports.authRoutesDummy = express_1.default.Router();
-exports.authRoutesDummy.get('/authexpress/:companyIdParam', (req, res) => {
+exports.userAuthRoutesDummy = express_1.default.Router();
+exports.userAuthRoutesDummy.get('/authexpress/:companyIdParam', (req, res) => {
     const nowResponse = {
         success: true,
         user: (0, stock_auth_mocks_1.createMockUser)(),
@@ -16,7 +16,7 @@ exports.authRoutesDummy.get('/authexpress/:companyIdParam', (req, res) => {
     };
     return res.status(200).send(nowResponse);
 });
-exports.authRoutesDummy.post('/login', (req, res) => {
+exports.userAuthRoutesDummy.post('/login', (req, res) => {
     const nowResponse = {
         success: true,
         user: (0, stock_auth_mocks_1.createMockUser)(),
@@ -24,7 +24,7 @@ exports.authRoutesDummy.post('/login', (req, res) => {
     };
     return res.status(200).send(nowResponse);
 });
-exports.authRoutesDummy.post('/signup', (req, res) => {
+exports.userAuthRoutesDummy.post('/signup', (req, res) => {
     const response = {
         status: 200,
         success: true,
@@ -34,7 +34,7 @@ exports.authRoutesDummy.post('/signup', (req, res) => {
     };
     res.status(200).send(response);
 });
-exports.authRoutesDummy.post('recover', (req, res) => {
+exports.userAuthRoutesDummy.post('recover', (req, res) => {
     const response = {
         success: true,
         message: 'Recovery email sent',
@@ -42,7 +42,7 @@ exports.authRoutesDummy.post('recover', (req, res) => {
     };
     res.status(200).send(response);
 });
-exports.authRoutesDummy.post('/confirm', (req, res) => {
+exports.userAuthRoutesDummy.post('/confirm', (req, res) => {
     const response = {
         success: true,
         msg: 'Password reset successful',
@@ -50,7 +50,7 @@ exports.authRoutesDummy.post('/confirm', (req, res) => {
     };
     res.status(200).send(response);
 });
-exports.authRoutesDummy.put('/resetpaswd', (req, res) => {
+exports.userAuthRoutesDummy.put('/resetpaswd', (req, res) => {
     const response = {
         success: true,
         msg: 'Password reset successful',
@@ -58,56 +58,60 @@ exports.authRoutesDummy.put('/resetpaswd', (req, res) => {
     };
     res.status(200).send(response);
 });
-exports.authRoutesDummy.post('/manuallyverify/:userId/:companyIdParam', (req, res) => {
+exports.userAuthRoutesDummy.post('/manuallyverify/:userId/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });
 });
-exports.authRoutesDummy.post('/sociallogin', (req, res) => {
+exports.userAuthRoutesDummy.post('/sociallogin', (req, res) => {
     const response = {
         success: true,
         user: (0, stock_auth_mocks_1.createMockUser)()
     };
     res.status(200).send(response);
 });
-exports.authRoutesDummy.put('/updateprofile/:formtype/:companyIdParam', (req, res) => {
+exports.userAuthRoutesDummy.put('/updateprofile/:formtype/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });
 });
-exports.authRoutesDummy.post('/updateprofileimg/:companyIdParam', (req, res) => {
+exports.userAuthRoutesDummy.post('/updateprofileimg/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });
 });
-exports.authRoutesDummy.put('/updatepermissions/:userId/:companyIdParam', (req, res) => {
+exports.userAuthRoutesDummy.put('/updatepermissions/:userId/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });
 });
-exports.authRoutesDummy.put('/blockunblock/:companyIdParam', (req, res) => {
+exports.userAuthRoutesDummy.put('/blockunblock/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });
 });
-exports.authRoutesDummy.put('/addupdateaddr/:userId/:companyIdParam', (req, res) => {
+exports.userAuthRoutesDummy.put('/addupdateaddr/:userId/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });
 });
-exports.authRoutesDummy.get('/getoneuser/:urId/:companyIdParam', (req, res) => {
+exports.userAuthRoutesDummy.get('/getoneuser/:urId/:companyIdParam', (req, res) => {
+    res.status(200).send((0, stock_auth_mocks_1.createMockUser)());
+});
+exports.userAuthRoutesDummy.get('/getusers/:where/:offset/:limit/:companyIdParam', (req, res) => {
+    const response = {
+        count: req.params.limit,
+        data: (0, stock_auth_mocks_1.createMockUsers)(req.params.limit)
+    };
+    res.status(200).send(response);
+});
+exports.userAuthRoutesDummy.post('/adduser/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });
 });
-exports.authRoutesDummy.get('/getusers/:where/:offset/:limit/:companyIdParam', (req, res) => {
+exports.userAuthRoutesDummy.post('/adduserimg/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });
 });
-exports.authRoutesDummy.post('/adduser/:companyIdParam', (req, res) => {
+exports.userAuthRoutesDummy.put('/updateuserbulk/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });
 });
-exports.authRoutesDummy.post('/adduserimg/:companyIdParam', (req, res) => {
+exports.userAuthRoutesDummy.post('/updateuserbulkimg/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });
 });
-exports.authRoutesDummy.put('/updateuserbulk/:companyIdParam', (req, res) => {
+exports.userAuthRoutesDummy.put('/deletemany/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });
 });
-exports.authRoutesDummy.post('/updateuserbulkimg/:companyIdParam', (req, res) => {
+exports.userAuthRoutesDummy.put('/deleteone/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });
 });
-exports.authRoutesDummy.put('/deletemany/:companyIdParam', (req, res) => {
-    res.status(200).send({ success: true });
-});
-exports.authRoutesDummy.put('/deleteone/:companyIdParam', (req, res) => {
-    res.status(200).send({ success: true });
-});
-exports.authRoutesDummy.put('/deleteimages/:companyIdParam', (req, res) => {
+exports.userAuthRoutesDummy.put('/deleteimages/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });
 });
 //# sourceMappingURL=user.routes.js.map

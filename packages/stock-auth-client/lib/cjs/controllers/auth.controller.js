@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthController = void 0;
-// import * as CryptoJs from 'crypto-js';
 const rxjs_1 = require("rxjs");
 const stock_auth_client_1 = require("../stock-auth-client");
 /** The
@@ -28,13 +27,13 @@ class AuthController {
     }
     /**
      * The authenticateJwt() method is used to authenticate the JSON Web Token (JWT) for the user.
-     * It makes a GET request to the '/auth/authexpress' endpoint and returns the response.
+     * It makes a GET request to the '/user/authexpress' endpoint and returns the response.
      * @returns A promise that resolves to the response from the server.
      */
     async authenticateJwt() {
         stock_auth_client_1.StockAuthClient.logger.debug('AuthService:AuthService:authenticateJwt::');
         const observer$ = stock_auth_client_1.StockAuthClient.ehttp
-            .makeGet('/auth/authexpress');
+            .makeGet('/user/authexpress');
         return (0, rxjs_1.lastValueFrom)(observer$);
     }
     /**
@@ -68,32 +67,31 @@ class AuthController {
      * The signup() method is used for user registration.
      * It takes a userInfo object containing the email/phone, password, first name, and last name.
      * The password is encrypted using the MD5 algorithm.
-     * It makes a POST request to the '/auth/signup' endpoint with the registration details and returns the response as a promise of type Iauthresponse.
+     * It makes a POST request to the '/user/signup' endpoint with the registration details and returns the response as a promise of type Iauthresponse.
      * @param userInfo An object containing the email/phone, password, first name, and last name.
      * @returns A promise that resolves to the response from the server.
      */
     async signup(userInfo) {
-        const signupUrl = '/auth/signup';
         const details = {
             emailPhone: userInfo.emailPhone,
             passwd: userInfo.password,
             firstName: userInfo.firstName,
             lastName: userInfo.lastName
         };
-        stock_auth_client_1.StockAuthClient.logger.debug('AuthService:signup:: - signupUrl : %s, email: %email', signupUrl, userInfo.emailPhone);
+        stock_auth_client_1.StockAuthClient.logger.debug('AuthService:signup:: - signupUrl : %s, email: %email', userInfo.url, userInfo.emailPhone);
         const observer$ = stock_auth_client_1.StockAuthClient.ehttp
-            .makePost(signupUrl, details);
+            .makePost(userInfo.url, details);
         return (0, rxjs_1.lastValueFrom)(observer$);
     }
     /**
      * The recover() method is used for password recovery.
      * It takes a userInfo object containing the email/phone of the user.
-     * It makes a POST request to the '/auth/recover/{emailPhone}' endpoint with the user information and returns the response as a promise of type Iauthresponse.
+     * It makes a POST request to the '/user/recover/{emailPhone}' endpoint with the user information and returns the response as a promise of type Iauthresponse.
      * @param userInfo An object containing the email/phone of the user.
      * @returns A promise that resolves to the response from the server.
      */
     async recover(userInfo) {
-        const recoveryUrl = `/auth/recover/${userInfo.emailPhone}`;
+        const recoveryUrl = `/user/recover/${userInfo.emailPhone}`;
         stock_auth_client_1.StockAuthClient.logger
             .debug('AuthService:recover:: - recoveryUrl : %s', recoveryUrl);
         const observer$ = stock_auth_client_1.StockAuthClient.ehttp
@@ -103,13 +101,12 @@ class AuthController {
     /**
      * The confirm() method is used for confirming user information.
      * It takes a userInfo object containing the user information and a route string indicating the route to be used for confirmation.
-     * It makes a POST request to the '/auth/{route}' endpoint with the user information and returns the response as a promise of type Iauthresponse.
+     * It makes a POST request to the '/user/{route}' endpoint with the user information and returns the response as a promise of type Iauthresponse.
      * @param userInfo An object containing the user information.
      * @param route A string indicating the route to be used for confirmation.
      * @returns A promise that resolves to the response from the server.
      */
-    async confirm(userInfo, route) {
-        const verifyUrl = `/auth/${route}`;
+    async confirm(userInfo, verifyUrl) {
         stock_auth_client_1.StockAuthClient.logger.debug('AuthService:confirm:: - verifyUrl : %s', verifyUrl);
         const observer$ = stock_auth_client_1.StockAuthClient.ehttp
             .makePost(verifyUrl, userInfo);
@@ -118,12 +115,12 @@ class AuthController {
     /**
      * The socialLogin() method is used for social login.
      * It takes a userInfo object containing the social login information.
-     * It makes a POST request to the '/auth/sociallogin' endpoint with the social login details and returns the response as a promise of type Iauthresponse.
+     * It makes a POST request to the '/user/sociallogin' endpoint with the social login details and returns the response as a promise of type Iauthresponse.
      * @param userInfo An object containing the social login information.
      * @returns A promise that resolves to the response from the server.
      */
     async socialLogin(userInfo) {
-        const loginUrl = '/auth/sociallogin';
+        const loginUrl = '/user/sociallogin';
         stock_auth_client_1.StockAuthClient.logger.debug('AuthService:confirm:: - verifyUrl : %s', loginUrl);
         const observer$ = stock_auth_client_1.StockAuthClient.ehttp
             .makePost(loginUrl, userInfo);

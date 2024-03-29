@@ -1,6 +1,6 @@
+import { DatabaseAuto, Isuccess, ItaxReport } from '@open-stock/stock-universal';
 import { Estimate } from '../estimate.define';
 import { InvoiceRelatedWithReceipt } from '../invoice.define';
-import { DatabaseAuto, Isuccess, ItaxReport } from '@open-stock/stock-universal';
 /**
  * TaxReport class: This class represents a tax report object. It extends the DatabaseAuto class.
  */
@@ -31,7 +31,10 @@ export declare class TaxReport extends DatabaseAuto {
      * @param limit Optional parameter for the limit of the request.
      * @returns An array of TaxReport instances.
      */
-    static getTaxReports(companyId: string, url?: string, offset?: number, limit?: number): Promise<TaxReport[]>;
+    static getTaxReports(companyId: string, url?: string, offset?: number, limit?: number): Promise<{
+        count: number;
+        taxreports: TaxReport[];
+    }>;
     /**
      * Retrieves a single tax report from the server based on the provided unique identifier (urId).
      * @param companyId - The ID of the company

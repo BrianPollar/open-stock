@@ -21,10 +21,13 @@ export class Company extends DatabaseAuto {
      * @param limit The maximum number of companys to retrieve.
      * @returns An array of Company instances created from the retrieved company objects.
      */
-    static async getCompanys(companyId, url, offset = 0, limit = 20) {
-        const observer$ = StockAuthClient.ehttp.makeGet(`/company/getcompanys/${url}/${offset}/${limit}/${companyId}`);
+    static async getCompanys(companyId, offset = 0, limit = 20) {
+        const observer$ = StockAuthClient.ehttp.makeGet(`/company/getcompanys/${offset}/${limit}/${companyId}`);
         const companys = await lastValueFrom(observer$);
-        return companys.map(val => new Company(val));
+        return {
+            count: companys.count,
+            companys: companys.data.map(val => new Company(val))
+        };
     }
     /**
      * Retrieves a single company based on the provided company ID.

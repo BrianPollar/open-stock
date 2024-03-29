@@ -39,7 +39,10 @@ export class Faq extends DatabaseAuto {
         const observer$ = StockCounterClient.ehttp
             .makeGet(`/faq/${url}/${offset}/${limit}/${companyId}`);
         const faqs = await lastValueFrom(observer$);
-        return faqs.map(val => new Faq(val));
+        return {
+            count: faqs.count,
+            faqs: faqs.data.map(val => new Faq(val))
+        };
     }
     /**
      * Retrieves a single FAQ from the server.
@@ -131,7 +134,7 @@ export class FaqAnswer extends DatabaseAuto {
     static async getFaqAns(companyId, faq) {
         const observer$ = StockCounterClient.ehttp.makeGet(`/faq/getallans/${faq}/${companyId}`);
         const faqans = await lastValueFrom(observer$);
-        return faqans.map(val => new FaqAnswer(val));
+        return faqans.data.map(val => new FaqAnswer(val));
     }
     /**
      * Retrieves a single FAQ answer by its ID.

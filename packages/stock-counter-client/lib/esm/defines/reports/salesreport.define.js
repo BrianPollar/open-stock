@@ -1,7 +1,7 @@
-import { lastValueFrom } from 'rxjs';
-import { Estimate } from '../estimate.define';
 import { DatabaseAuto } from '@open-stock/stock-universal';
+import { lastValueFrom } from 'rxjs';
 import { StockCounterClient } from '../../stock-counter-client';
+import { Estimate } from '../estimate.define';
 import { InvoiceRelatedWithReceipt } from '../invoice.define';
 /**
  * The `SalesReport` class represents a sales report object.
@@ -33,7 +33,10 @@ export class SalesReport extends DatabaseAuto {
     static async getSalesReports(companyId, url = 'getall', offset = 0, limit = 20) {
         const observer$ = StockCounterClient.ehttp.makeGet(`/salesreport/${url}/${offset}/${limit}/${companyId}`);
         const salesreports = await lastValueFrom(observer$);
-        return salesreports.map((val) => new SalesReport(val));
+        return {
+            cousnt: salesreports.count,
+            salesreports: salesreports.data.map((val) => new SalesReport(val))
+        };
     }
     /**
      * Retrieves a single sales report from the server.

@@ -2,12 +2,12 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.invoicesReportRoutes = void 0;
 const tslib_1 = require("tslib");
-const express_1 = tslib_1.__importDefault(require("express"));
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
+const express_1 = tslib_1.__importDefault(require("express"));
+const log4js_1 = require("log4js");
 const payment_model_1 = require("../../../models/payment.model");
 const estimate_model_1 = require("../../../models/printables/estimate.model");
 const invoicereport_model_1 = require("../../../models/printables/report/invoicereport.model");
-const log4js_1 = require("log4js");
 /** Logger for invoicesReportRoutes */
 const invoicesReportRoutesLogger = (0, log4js_1.getLogger)('routes/invoicesReportRoutes');
 /**
@@ -89,14 +89,21 @@ exports.invoicesReportRoutes.get('/getall/:offset/:limit/:companyIdParam', stock
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const invoicesReports = await invoicereport_model_1.invoicesReportLean
-        .find({ companyId: queryId })
-        .skip(offset)
-        .limit(limit)
-        .lean()
-        .populate({ path: 'estimates', model: estimate_model_1.estimateLean })
-        .populate({ path: 'payments', model: payment_model_1.paymentLean });
-    return res.status(200).send(invoicesReports);
+    const all = await Promise.all([
+        invoicereport_model_1.invoicesReportLean
+            .find({ companyId: queryId })
+            .skip(offset)
+            .limit(limit)
+            .lean()
+            .populate({ path: 'estimates', model: estimate_model_1.estimateLean })
+            .populate({ path: 'payments', model: payment_model_1.paymentLean }),
+        invoicereport_model_1.invoicesReportLean.countDocuments({ companyId: queryId })
+    ]);
+    const response = {
+        count: all[1],
+        data: all[0]
+    };
+    return res.status(200).send(response);
 });
 /**
  * Route to delete a single invoices report by id
@@ -140,14 +147,21 @@ exports.invoicesReportRoutes.post('/search/:offset/:limit/:companyIdParam', stoc
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
-    const invoicesReports = await invoicereport_model_1.invoicesReportLean
-        .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
-        .lean()
-        .skip(offset)
-        .limit(limit)
-        .populate({ path: 'estimates', model: estimate_model_1.estimateLean })
-        .populate({ path: 'payments', model: payment_model_1.paymentLean });
-    return res.status(200).send(invoicesReports);
+    const all = await Promise.all([
+        invoicereport_model_1.invoicesReportLean
+            .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+            .skip(offset)
+            .limit(limit)
+            .lean()
+            .populate({ path: 'estimates', model: estimate_model_1.estimateLean })
+            .populate({ path: 'payments', model: payment_model_1.paymentLean }),
+        invoicereport_model_1.invoicesReportLean.countDocuments({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+    ]);
+    const response = {
+        count: all[1],
+        data: all[0]
+    };
+    return res.status(200).send(response);
 });
 /**
  * Route to delete multiple invoices reports by ids

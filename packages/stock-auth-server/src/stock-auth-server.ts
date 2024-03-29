@@ -2,10 +2,10 @@ import { isNotificationsServerRunning } from '@open-stock/stock-notif-server';
 import { runPassport } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { companyAuthRoutesDummy } from './routes-dummy/company.routes';
-import { authRoutesDummy } from './routes-dummy/user.routes';
 import { companyAuthRoutes } from './routes/company.routes';
-import { authRoutes } from './routes/user.routes';
+import { userAuthRoutes } from './routes/user.routes';
 import { connectAuthDatabase, createStockAuthServerLocals, isStockAuthServerRunning, stockAuthConfig } from './stock-auth-local';
+import { userAuthRoutesDummy } from './routes-dummy/user.routes';
 
 /**
  * Represents the interface for local file paths.
@@ -75,10 +75,10 @@ export const runStockAuthServer = async(config: IStockAuthServerConfig) => {
   const stockAuthRouter = express.Router();
 
   if (!config.useDummyRoutes) {
-    stockAuthRouter.use('/auth', authRoutes);
+    stockAuthRouter.use('/user', userAuthRoutes);
     stockAuthRouter.use('/company', companyAuthRoutes);
   } else {
-    stockAuthRouter.use('/auth', authRoutesDummy);
+    stockAuthRouter.use('/user', userAuthRoutesDummy);
     stockAuthRouter.use('/company', companyAuthRoutesDummy);
   }
   return Promise.resolve({ stockAuthRouter });

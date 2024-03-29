@@ -9,7 +9,7 @@
  * - POST /search/:limit/:offset - searches for receipts based on a search term and key
  */
 /* eslint-disable @typescript-eslint/no-misused-promises */
-import { Icustomrequest, IinvoiceRelated, Iuser } from '@open-stock/stock-universal';
+import { Icustomrequest, IdataArrayResponse, IinvoiceRelated, Iuser } from '@open-stock/stock-universal';
 import {
   makeUrId,
   offsetLimitRelegator,
@@ -109,28 +109,35 @@ receiptRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, roleAut
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const receipts = await receiptLean
-    .find({ companyId: queryId })
-    .skip(offset)
-    .limit(limit)
-    .lean()
-    .populate({
-      path: 'invoiceRelated', model: invoiceRelatedLean,
-      populate: [{
-        path: 'billingUserId', model: userLean
-      },
-      {
-        path: 'payments', model: receiptLean
-      }]
-    });
-  const returned = receipts
+  const all = await Promise.all([
+    receiptLean
+      .find({ companyId: queryId })
+      .skip(offset)
+      .limit(limit)
+      .lean()
+      .populate({
+        path: 'invoiceRelated', model: invoiceRelatedLean,
+        populate: [{
+          path: 'billingUserId', model: userLean
+        },
+        {
+          path: 'payments', model: receiptLean
+        }]
+      }),
+    receiptLean.countDocuments({ companyId: queryId })
+  ]);
+  const returned = all[0]
     .map(val => {
       const related = makeInvoiceRelatedPdct(val.invoiceRelated as Required<IinvoiceRelated>,
       (val.invoiceRelated as IinvoiceRelated)
         .billingUserId as unknown as Iuser);
       return { ...val, ...related };
     });
-  return res.status(200).send(returned);
+  const response: IdataArrayResponse = {
+    count: all[1],
+    data: returned
+  };
+  return res.status(200).send(response);
 });
 
 receiptRoutes.put('/deleteone/:companyIdParam', requireAuth, roleAuthorisation('printables', 'delete'), async(req, res) => {
@@ -156,25 +163,32 @@ receiptRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, roleAu
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
-  const receipts = await receiptLean
-    .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
-    .lean()
-    .skip(offset)
-    .limit(limit)
-    .populate({
-      path: 'invoiceRelated', model: invoiceRelatedLean,
-      populate: [{
-        path: 'billingUserId', model: userLean
-      },
-      {
-        path: 'payments', model: receiptLean
-      }]
-    });
-  const returned = receipts
+  const all = await Promise.all([
+    receiptLean
+      .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+      .skip(offset)
+      .limit(limit)
+      .lean()
+      .populate({
+        path: 'invoiceRelated', model: invoiceRelatedLean,
+        populate: [{
+          path: 'billingUserId', model: userLean
+        },
+        {
+          path: 'payments', model: receiptLean
+        }]
+      }),
+    receiptLean.countDocuments({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+  ]);
+  const returned = all[0]
     .map(val => makeInvoiceRelatedPdct(val.invoiceRelated as Required<IinvoiceRelated>,
       (val.invoiceRelated as IinvoiceRelated)
         .billingUserId as unknown as Iuser));
-  return res.status(200).send(returned);
+  const response: IdataArrayResponse = {
+    count: all[1],
+    data: returned
+  };
+  return res.status(200).send(response);
 });
 
 

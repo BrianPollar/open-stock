@@ -1,4 +1,4 @@
-import { DatabaseAuto, Isuccess } from '@open-stock/stock-universal';
+import { DatabaseAuto, IdataArrayResponse, Isuccess } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
 import { StockCounterClient } from '../stock-counter-client';
 import { Item } from './item.define';
@@ -39,10 +39,12 @@ export class ItemDecoy extends DatabaseAuto {
    * @param limit A number representing the maximum number of item decoys to retrieve.
    * @returns An array of ItemDecoy instances.
    */
-  static async getItemDecoys(companyId: string, url = 'getall', offset = 0, limit = 20): Promise<ItemDecoy[]> {
+  static async getItemDecoys(companyId: string, url = 'getall', offset = 0, limit = 20) {
     const observer$ = StockCounterClient.ehttp.makeGet(`/itemdecoy/${url}/${offset}/${limit}/${companyId}`);
-    const decoys = await lastValueFrom(observer$) as ItemDecoy[];
-    return decoys.map(val => new ItemDecoy(val));
+    const decoys = await lastValueFrom(observer$) as IdataArrayResponse;
+    return {
+      count: decoys.count,
+      decoys: decoys.data.map(val => new ItemDecoy(val as ItemDecoy)) };
   }
 
   /**

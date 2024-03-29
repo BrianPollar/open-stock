@@ -27,7 +27,10 @@ export declare class ExpenseReport extends DatabaseAuto {
      * @param limit Optional limit for the API request.
      * @returns An array of `ExpenseReport` objects.
      */
-    static getExpenseReports(companyId: string, url?: string, offset?: number, limit?: number): Promise<ExpenseReport[]>;
+    static getExpenseReports(companyId: string, url?: string, offset?: number, limit?: number): Promise<{
+        count: number;
+        expensereports: ExpenseReport[];
+    }>;
     /**
      * Retrieves a single expense report from the API.
      * @param companyId - The ID of the company

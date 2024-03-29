@@ -1,7 +1,7 @@
-import express from 'express';
 import { appendBody, deleteFiles, offsetLimitRelegator, requireAuth, roleAuthorisation, saveMetaToDb, stringifyMongooseErr, uploadFiles, verifyObjectIds } from '@open-stock/stock-universal-server';
-import { invoiceSettingLean, invoiceSettingMain } from '../../../models/printables/settings/invoicesettings.model';
+import express from 'express';
 import { getLogger } from 'log4js';
+import { invoiceSettingLean, invoiceSettingMain } from '../../../models/printables/settings/invoicesettings.model';
 /** Logger for invoice setting routes */
 const invoiceSettingRoutesLogger = getLogger('routes/invoiceSettingRoutes');
 /**
@@ -238,12 +238,19 @@ invoiceSettingRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, 
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const invoiceSettings = await invoiceSettingLean
-        .find({ companyId: queryId })
-        .skip(offset)
-        .limit(limit)
-        .lean();
-    return res.status(200).send(invoiceSettings);
+    const all = await Promise.all([
+        invoiceSettingLean
+            .find({ companyId: queryId })
+            .skip(offset)
+            .limit(limit)
+            .lean(),
+        invoiceSettingLean.countDocuments()
+    ]);
+    const response = {
+        count: all[1],
+        data: all[0]
+    };
+    return res.status(200).send(response);
 });
 invoiceSettingRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, async (req, res) => {
     const { id } = req.params;
@@ -269,12 +276,19 @@ invoiceSettingRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth,
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
-    const invoiceSettings = await invoiceSettingLean
-        .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
-        .skip(offset)
-        .limit(limit)
-        .lean();
-    return res.status(200).send(invoiceSettings);
+    const all = await Promise.all([
+        invoiceSettingLean
+            .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+            .skip(offset)
+            .limit(limit)
+            .lean(),
+        invoiceSettingLean.countDocuments({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+    ]);
+    const response = {
+        count: all[1],
+        data: all[0]
+    };
+    return res.status(200).send(response);
 });
 invoiceSettingRoutes.put('/deletemany/:companyIdParam', requireAuth, roleAuthorisation('printables', 'delete'), async (req, res) => {
     const { ids } = req.body;

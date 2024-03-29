@@ -30,7 +30,10 @@ export class Profit extends DatabaseAuto {
     static async getProfits(companyId, url = 'getall', offset = 0, limit = 20) {
         const observer$ = StockCounterClient.ehttp.makeGet(`profit/${url}/${offset}/${limit}/${companyId}`);
         const profits = await lastValueFrom(observer$);
-        return profits.map(val => new Profit(val));
+        return {
+            count: profits.count,
+            profits: profits.data.map(val => new Profit(val))
+        };
     }
     /**
      * Gets a single Profit object by ID.

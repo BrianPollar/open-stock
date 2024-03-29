@@ -15,7 +15,10 @@ export declare class InvoiceRelatedWithReceipt extends InvoiceRelated {
      * @param limit The maximum number of invoice related to receipts to get.
      * @returns An array of invoice related to receipts.
      */
-    static getInvoiceRelateds(companyId: string, url?: string, offset?: number, limit?: number): Promise<InvoiceRelatedWithReceipt[]>;
+    static getInvoiceRelateds(companyId: string, url?: string, offset?: number, limit?: number): Promise<{
+        count: number;
+        invoiceRelateds: InvoiceRelatedWithReceipt[];
+    }>;
     /**
      * Searches for invoice related to receipts.
      * @param companyId - The ID of the company
@@ -25,7 +28,10 @@ export declare class InvoiceRelatedWithReceipt extends InvoiceRelated {
      * @param limit The maximum number of invoice related to receipts to get.
      * @returns An array of invoice related to receipts.
      */
-    static searchInvoiceRelateds(companyId: string, searchterm: string, searchKey: string, offset?: number, limit?: number): Promise<InvoiceRelatedWithReceipt[]>;
+    static searchInvoiceRelateds(companyId: string, searchterm: string, searchKey: string, offset?: number, limit?: number): Promise<{
+        count: number;
+        invoiceRelateds: InvoiceRelatedWithReceipt[];
+    }>;
     /**
      * Gets a single invoice related to a receipt.
      * @param companyId - The ID of the company
@@ -53,7 +59,10 @@ export declare class Invoice extends InvoiceRelatedWithReceipt {
      * @param limit - The maximum number of invoices to retrieve.
      * @returns An array of invoices.
      */
-    static getInvoices(companyId: string, url?: string, offset?: number, limit?: number): Promise<Invoice[]>;
+    static getInvoices(companyId: string, url?: string, offset?: number, limit?: number): Promise<{
+        count: number;
+        invoices: Invoice[];
+    }>;
     /**
      * Retrieves a single invoice.
      * @param companyId - The ID of the company

@@ -1,9 +1,9 @@
-import express from 'express';
 import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectIds } from '@open-stock/stock-universal-server';
+import express from 'express';
+import { getLogger } from 'log4js';
 import { paymentLean } from '../../../models/payment.model';
 import { estimateLean } from '../../../models/printables/estimate.model';
 import { invoicesReportLean, invoicesReportMain } from '../../../models/printables/report/invoicereport.model';
-import { getLogger } from 'log4js';
 /** Logger for invoicesReportRoutes */
 const invoicesReportRoutesLogger = getLogger('routes/invoicesReportRoutes');
 /**
@@ -85,14 +85,21 @@ invoicesReportRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, 
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const invoicesReports = await invoicesReportLean
-        .find({ companyId: queryId })
-        .skip(offset)
-        .limit(limit)
-        .lean()
-        .populate({ path: 'estimates', model: estimateLean })
-        .populate({ path: 'payments', model: paymentLean });
-    return res.status(200).send(invoicesReports);
+    const all = await Promise.all([
+        invoicesReportLean
+            .find({ companyId: queryId })
+            .skip(offset)
+            .limit(limit)
+            .lean()
+            .populate({ path: 'estimates', model: estimateLean })
+            .populate({ path: 'payments', model: paymentLean }),
+        invoicesReportLean.countDocuments({ companyId: queryId })
+    ]);
+    const response = {
+        count: all[1],
+        data: all[0]
+    };
+    return res.status(200).send(response);
 });
 /**
  * Route to delete a single invoices report by id
@@ -136,14 +143,21 @@ invoicesReportRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth,
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
-    const invoicesReports = await invoicesReportLean
-        .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
-        .lean()
-        .skip(offset)
-        .limit(limit)
-        .populate({ path: 'estimates', model: estimateLean })
-        .populate({ path: 'payments', model: paymentLean });
-    return res.status(200).send(invoicesReports);
+    const all = await Promise.all([
+        invoicesReportLean
+            .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+            .skip(offset)
+            .limit(limit)
+            .lean()
+            .populate({ path: 'estimates', model: estimateLean })
+            .populate({ path: 'payments', model: paymentLean }),
+        invoicesReportLean.countDocuments({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+    ]);
+    const response = {
+        count: all[1],
+        data: all[0]
+    };
+    return res.status(200).send(response);
 });
 /**
  * Route to delete multiple invoices reports by ids

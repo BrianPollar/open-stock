@@ -25,7 +25,10 @@ export class Customer extends UserBase {
     static async getCustomers(companyId, offset = 0, limit = 20) {
         const observer$ = StockCounterClient.ehttp.makeGet(`/customer/getall/${offset}/${limit}/${companyId}`);
         const customers = await lastValueFrom(observer$);
-        return customers.map(val => new Customer(val));
+        return {
+            count: customers.count,
+            customers: customers.data.map(val => new Customer(val))
+        };
     }
     /**
      * Retrieves a single customer by ID.

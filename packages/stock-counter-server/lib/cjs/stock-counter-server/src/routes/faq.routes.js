@@ -3,11 +3,11 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.faqRoutes = void 0;
 const tslib_1 = require("tslib");
-const express_1 = tslib_1.__importDefault(require("express"));
-const faqanswer_model_1 = require("../models/faqanswer.model");
-const faq_model_1 = require("../models/faq.model");
-const log4js_1 = require("log4js");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
+const express_1 = tslib_1.__importDefault(require("express"));
+const log4js_1 = require("log4js");
+const faq_model_1 = require("../models/faq.model");
+const faqanswer_model_1 = require("../models/faqanswer.model");
 /** Logger for faqRoutes */
 const faqRoutesLogger = (0, log4js_1.getLogger)('routes/faqRoutes');
 /**
@@ -108,12 +108,19 @@ exports.faqRoutes.get('/getall/:offset/:limit/:companyIdParam', async (req, res)
     const { companyIdParam } = req.params;
     // const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
     const queryId = companyIdParam;
-    const faqs = await faq_model_1.faqLean
-        .find({ companyId: queryId })
-        .skip(offset)
-        .limit(limit)
-        .lean();
-    return res.status(200).send(faqs);
+    const all = await Promise.all([
+        faq_model_1.faqLean
+            .find({ companyId: queryId })
+            .skip(offset)
+            .limit(limit)
+            .lean(),
+        faq_model_1.faqLean.countDocuments({ companyId: queryId })
+    ]);
+    const response = {
+        count: all[1],
+        data: all[0]
+    };
+    return res.status(200).send(response);
 });
 /**
  * Delete a single FAQ by ID

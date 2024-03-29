@@ -1,5 +1,5 @@
 
-import { DatabaseAuto, IfileMeta, Iprofit, Isuccess } from '@open-stock/stock-universal';
+import { DatabaseAuto, IdataArrayResponse, IfileMeta, Iprofit, Isuccess } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
 import { StockCounterClient } from '../stock-counter-client';
 
@@ -39,10 +39,12 @@ export class Profit extends DatabaseAuto {
    * @param {number} limit - The maximum number of Profit objects to get.
    * @returns {Promise<Profit[]>} - A Promise that resolves to an array of Profit objects.
    */
-  static async getProfits(companyId: string, url = 'getall', offset = 0, limit = 20): Promise<Profit[]> {
+  static async getProfits(companyId: string, url = 'getall', offset = 0, limit = 20) {
     const observer$ = StockCounterClient.ehttp.makeGet(`profit/${url}/${offset}/${limit}/${companyId}`);
-    const profits = await lastValueFrom(observer$) as Iprofit[];
-    return profits.map(val => new Profit(val));
+    const profits = await lastValueFrom(observer$) as IdataArrayResponse;
+    return {
+      count: profits.count,
+      profits: profits.data.map(val => new Profit(val as Iprofit)) };
   }
 
   /**

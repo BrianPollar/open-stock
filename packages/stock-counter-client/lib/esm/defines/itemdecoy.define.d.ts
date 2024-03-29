@@ -31,7 +31,10 @@ export declare class ItemDecoy extends DatabaseAuto {
      * @param limit A number representing the maximum number of item decoys to retrieve.
      * @returns An array of ItemDecoy instances.
      */
-    static getItemDecoys(companyId: string, url?: string, offset?: number, limit?: number): Promise<ItemDecoy[]>;
+    static getItemDecoys(companyId: string, url?: string, offset?: number, limit?: number): Promise<{
+        count: number;
+        decoys: ItemDecoy[];
+    }>;
     /**
      * Static method that retrieves a specific item decoy from the server based on the provided ID.
      * It returns a single ItemDecoy instance.

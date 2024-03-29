@@ -1,5 +1,6 @@
 import express from 'express';
 import { createMockDeliveryCity, createMockDeliveryCitys } from '../../../tests/stock-counter-mocks';
+import { IdataArrayResponse } from '@open-stock/stock-universal';
 
 /**
  * Express router for deliverycity routes
@@ -15,7 +16,11 @@ deliverycityRoutesDummy.get('/getone/:id/:companyIdParam', (req, res) => {
 });
 
 deliverycityRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) => {
-  res.status(200).send(createMockDeliveryCitys(Number(req.params.limit)));
+  const response: IdataArrayResponse = {
+    count: req.params.limit,
+    data: createMockDeliveryCitys(Number(req.params.limit))
+  };
+  res.status(200).send(response);
 });
 
 deliverycityRoutesDummy.put('/update/:companyIdParam', (req, res) => {

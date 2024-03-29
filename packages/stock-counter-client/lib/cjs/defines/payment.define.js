@@ -2,8 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Payment = exports.PaymentRelated = void 0;
 const rxjs_1 = require("rxjs");
-const invoice_define_1 = require("./invoice.define");
 const stock_counter_client_1 = require("../stock-counter-client");
+const invoice_define_1 = require("./invoice.define");
 class PaymentRelated extends invoice_define_1.InvoiceRelatedWithReceipt {
     /**
      * Constructs a new instance of the Payment class.
@@ -74,7 +74,10 @@ class Payment extends PaymentRelated {
     static async searchPayments(companyId, searchterm, searchKey) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makePost(`/payment/search/${companyId}`, { searchterm, searchKey });
         const payments = await (0, rxjs_1.lastValueFrom)(observer$);
-        return payments.map(val => new Payment(val));
+        return {
+            count: payments.count,
+            payments: payments.data.map(val => new Payment(val))
+        };
     }
     /**
      * Retrieves payments.
@@ -87,7 +90,10 @@ class Payment extends PaymentRelated {
     static async getPayments(companyId, url = 'getall', offset = 0, limit = 20) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makeGet(`/payment/${url}/${offset}/${limit}/${companyId}`);
         const payments = await (0, rxjs_1.lastValueFrom)(observer$);
-        return payments.map(val => new Payment(val));
+        return {
+            count: payments.count,
+            payments: payments.data.map(val => new Payment(val))
+        };
     }
     /**
      * Retrieves a single payment.

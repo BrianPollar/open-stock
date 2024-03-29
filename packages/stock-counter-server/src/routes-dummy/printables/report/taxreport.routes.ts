@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
 
+import { IdataArrayResponse } from '@open-stock/stock-universal';
 import express from 'express';
 import { createMockTaxReport, createMockTaxReports } from '../../../../../tests/stock-counter-mocks';
 
@@ -20,7 +21,11 @@ taxReportRoutesDummy.get('/getone/:urId/:companyIdParam', (req, res) => {
 
 
 taxReportRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) => {
-  res.status(200).send(createMockTaxReports(Number(req.params.limit)));
+  const response: IdataArrayResponse = {
+    count: req.params.limit,
+    data: createMockTaxReports(Number(req.params.limit))
+  };
+  res.status(200).send(response);
 });
 
 
@@ -30,7 +35,11 @@ taxReportRoutesDummy.delete('/deleteone/:id/:companyIdParam', (req, res) => {
 
 
 taxReportRoutesDummy.post('/search/:limit/:offset/:companyIdParam', (req, res) => {
-  res.status(200).send(createMockTaxReports(Number(req.params.limit)));
+  const response: IdataArrayResponse = {
+    count: req.params.limit,
+    data: createMockTaxReports(Number(req.params.limit))
+  };
+  res.status(200).send(response);
 });
 
 

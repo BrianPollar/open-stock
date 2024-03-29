@@ -31,8 +31,11 @@ class InvoiceRelatedWithReceipt extends receipt_define_1.InvoiceRelated {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
             .makeGet(`/invoicerelated/${url}/${offset}/${limit}/${companyId}`);
         const invoiceRelateds = await (0, rxjs_1.lastValueFrom)(observer$);
-        return invoiceRelateds
-            .map(val => new InvoiceRelatedWithReceipt(val));
+        return {
+            count: invoiceRelateds.count,
+            invoiceRelateds: invoiceRelateds.data
+                .map(val => new InvoiceRelatedWithReceipt(val))
+        };
     }
     /**
      * Searches for invoice related to receipts.
@@ -51,8 +54,11 @@ class InvoiceRelatedWithReceipt extends receipt_define_1.InvoiceRelated {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
             .makePost(`/invoicerelated/search/${offset}/${limit}/${companyId}`, body);
         const invoiceRelateds = await (0, rxjs_1.lastValueFrom)(observer$);
-        return invoiceRelateds
-            .map(val => new InvoiceRelatedWithReceipt(val));
+        return {
+            count: invoiceRelateds.count,
+            invoiceRelateds: invoiceRelateds.data
+                .map(val => new InvoiceRelatedWithReceipt(val))
+        };
     }
     /**
      * Gets a single invoice related to a receipt.
@@ -92,8 +98,11 @@ class Invoice extends InvoiceRelatedWithReceipt {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
             .makeGet(`/invoice/${url}/${offset}/${limit}/${companyId}`);
         const invoices = await (0, rxjs_1.lastValueFrom)(observer$);
-        return invoices
-            .map(val => new Invoice(val));
+        return {
+            count: invoices.count,
+            invoices: invoices.data
+                .map(val => new Invoice(val))
+        };
     }
     /**
      * Retrieves a single invoice.

@@ -12,7 +12,11 @@ exports.itemOfferRoutesDummy.post('/create/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });
 });
 exports.itemOfferRoutesDummy.get('/getall/:type/:offset/:limit/:companyIdParam', (req, res) => {
-    res.status(200).send((0, stock_counter_mocks_1.createMockItemOffers)(Number(req.params.limit)));
+    const response = {
+        count: req.params.limit,
+        data: (0, stock_counter_mocks_1.createMockItemOffers)(Number(req.params.limit))
+    };
+    res.status(200).send(response);
 });
 exports.itemOfferRoutesDummy.get('/getone/:id/:companyIdParam', (req, res) => {
     res.status(200).send((0, stock_counter_mocks_1.createMockItemOffer)());

@@ -1,5 +1,6 @@
 import express from 'express';
 import { createMockInvoiceRelated, createMockInvoiceRelateds } from '../../../../../tests/stock-counter-mocks';
+import { IdataArrayResponse } from '@open-stock/stock-universal';
 
 /**
  * Router for handling invoice related routes.
@@ -12,7 +13,11 @@ invoiceRelateRoutesDummy.get('/getone/:id/:companyIdParam', (req, res) => {
 });
 
 invoiceRelateRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) => {
-  res.status(200).send(createMockInvoiceRelateds(Number(req.params.limit)));
+  const response: IdataArrayResponse = {
+    count: req.params.limit,
+    data: createMockInvoiceRelateds(Number(req.params.limit))
+  };
+  res.status(200).send(response);
 });
 
 invoiceRelateRoutesDummy.post('/search/:offset/:limit/:companyIdParam', (req, res) => {

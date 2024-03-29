@@ -86,7 +86,10 @@ export declare class Item extends DatabaseAuto {
      * @param limit The maximum number of items to get.
      * @returns An array of items.
      */
-    static getItems(companyId: string, url: string, offset?: number, limit?: number): Promise<Item[]>;
+    static getItems(companyId: string, url: string, offset?: number, limit?: number): Promise<{
+        count: number;
+        items: Item[];
+    }>;
     /**
      * Gets a single item.
      * @param companyId - The ID of the company

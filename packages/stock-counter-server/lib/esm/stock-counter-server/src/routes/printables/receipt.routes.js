@@ -83,27 +83,34 @@ receiptRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, roleAut
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const receipts = await receiptLean
-        .find({ companyId: queryId })
-        .skip(offset)
-        .limit(limit)
-        .lean()
-        .populate({
-        path: 'invoiceRelated', model: invoiceRelatedLean,
-        populate: [{
-                path: 'billingUserId', model: userLean
-            },
-            {
-                path: 'payments', model: receiptLean
-            }]
-    });
-    const returned = receipts
+    const all = await Promise.all([
+        receiptLean
+            .find({ companyId: queryId })
+            .skip(offset)
+            .limit(limit)
+            .lean()
+            .populate({
+            path: 'invoiceRelated', model: invoiceRelatedLean,
+            populate: [{
+                    path: 'billingUserId', model: userLean
+                },
+                {
+                    path: 'payments', model: receiptLean
+                }]
+        }),
+        receiptLean.countDocuments({ companyId: queryId })
+    ]);
+    const returned = all[0]
         .map(val => {
         const related = makeInvoiceRelatedPdct(val.invoiceRelated, val.invoiceRelated
             .billingUserId);
         return { ...val, ...related };
     });
-    return res.status(200).send(returned);
+    const response = {
+        count: all[1],
+        data: returned
+    };
+    return res.status(200).send(response);
 });
 receiptRoutes.put('/deleteone/:companyIdParam', requireAuth, roleAuthorisation('printables', 'delete'), async (req, res) => {
     const { id, invoiceRelated, creationType, stage } = req.body;
@@ -128,24 +135,31 @@ receiptRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, roleAu
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
-    const receipts = await receiptLean
-        .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
-        .lean()
-        .skip(offset)
-        .limit(limit)
-        .populate({
-        path: 'invoiceRelated', model: invoiceRelatedLean,
-        populate: [{
-                path: 'billingUserId', model: userLean
-            },
-            {
-                path: 'payments', model: receiptLean
-            }]
-    });
-    const returned = receipts
+    const all = await Promise.all([
+        receiptLean
+            .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+            .skip(offset)
+            .limit(limit)
+            .lean()
+            .populate({
+            path: 'invoiceRelated', model: invoiceRelatedLean,
+            populate: [{
+                    path: 'billingUserId', model: userLean
+                },
+                {
+                    path: 'payments', model: receiptLean
+                }]
+        }),
+        receiptLean.countDocuments({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+    ]);
+    const returned = all[0]
         .map(val => makeInvoiceRelatedPdct(val.invoiceRelated, val.invoiceRelated
         .billingUserId));
-    return res.status(200).send(returned);
+    const response = {
+        count: all[1],
+        data: returned
+    };
+    return res.status(200).send(response);
 });
 receiptRoutes.put('/update/:companyIdParam', requireAuth, roleAuthorisation('printables', 'update'), async (req, res) => {
     const { updatedReceipt, invoiceRelated } = req.body;

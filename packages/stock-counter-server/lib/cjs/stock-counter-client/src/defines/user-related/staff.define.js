@@ -28,7 +28,10 @@ class Staff extends userbase_define_1.UserBase {
     static async getStaffs(companyId, offset = 0, limit = 20) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makeGet(`/staff/getall/${offset}/${limit}/${companyId}`);
         const staffs = await (0, rxjs_1.lastValueFrom)(observer$);
-        return staffs.map(val => new Staff(val));
+        return {
+            count: staffs.count,
+            staffs: staffs.data.map(val => new Staff(val))
+        };
     }
     /**
      * Retrieves all staff members.
@@ -40,7 +43,10 @@ class Staff extends userbase_define_1.UserBase {
     static async getStaffByRole(companyId, role, offset = 0, limit = 20) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makeGet(`/staff/getbyrole/${offset}/${limit}/${role}/${companyId}`);
         const staffs = await (0, rxjs_1.lastValueFrom)(observer$);
-        return staffs.map(val => new Staff(val));
+        return {
+            count: staffs.count,
+            staffs: staffs.data.map(val => new Staff(val))
+        };
     }
     /**
      * Retrieves a single staff member by ID.

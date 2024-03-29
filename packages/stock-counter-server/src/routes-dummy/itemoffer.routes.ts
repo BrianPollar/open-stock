@@ -1,3 +1,4 @@
+import { IdataArrayResponse } from '@open-stock/stock-universal';
 import express from 'express';
 import { createMockItemOffer, createMockItemOffers } from '../../../tests/stock-counter-mocks';
 
@@ -11,7 +12,11 @@ itemOfferRoutesDummy.post('/create/:companyIdParam', (req, res) => {
 });
 
 itemOfferRoutesDummy.get('/getall/:type/:offset/:limit/:companyIdParam', (req, res) => {
-  res.status(200).send(createMockItemOffers(Number(req.params.limit)));
+  const response: IdataArrayResponse = {
+    count: req.params.limit,
+    data: createMockItemOffers(Number(req.params.limit))
+  };
+  res.status(200).send(response);
 });
 
 itemOfferRoutesDummy.get('/getone/:id/:companyIdParam', (req, res) => {

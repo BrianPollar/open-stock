@@ -1,4 +1,4 @@
-import { IdeleteCredentialsInvRel, Iestimate, IinvoiceRelated, Isuccess } from '@open-stock/stock-universal';
+import { IdataArrayResponse, IdeleteCredentialsInvRel, Iestimate, IinvoiceRelated, Isuccess } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
 import { StockCounterClient } from '../stock-counter-client';
 import { InvoiceRelatedWithReceipt } from './invoice.define';
@@ -37,12 +37,15 @@ export class Estimate extends InvoiceRelatedWithReceipt {
     url = 'getall',
     offset = 0,
     limit = 20
-  ): Promise<Estimate[]> {
+  ) {
     const observer$ = StockCounterClient.ehttp
       .makeGet(`/estimate/${url}/${offset}/${limit}/${companyId}`);
-    const estimates = await lastValueFrom(observer$) as Required<Iestimate>[];
-    return estimates
-      .map(val => new Estimate(val));
+    const estimates = await lastValueFrom(observer$) as IdataArrayResponse;
+    return {
+      count: estimates.count,
+      estimates: estimates.data
+        .map(val => new Estimate(val as Required<Iestimate>))
+    };
   }
 
   /**

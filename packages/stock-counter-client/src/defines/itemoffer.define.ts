@@ -1,7 +1,7 @@
+import { DatabaseAuto, IdataArrayResponse, Isuccess } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
-import { Item } from './item.define';
-import { DatabaseAuto, Isuccess } from '@open-stock/stock-universal';
 import { StockCounterClient } from '../stock-counter-client';
+import { Item } from './item.define';
 
 /**
  * Represents an item offer.
@@ -61,12 +61,14 @@ export class ItemOffer extends DatabaseAuto {
     url = 'getall',
     offset = 0,
     limit = 20
-  ): Promise<ItemOffer[]> {
+  ) {
     const observer$ = StockCounterClient.ehttp.makeGet(
       `/itemoffer/${url}/${type}/${offset}/${limit}/${companyId}`
     );
-    const offers = await lastValueFrom(observer$) as ItemOffer[];
-    return offers.map((val) => new ItemOffer(val));
+    const offers = await lastValueFrom(observer$) as IdataArrayResponse;
+    return {
+      count: offers.count,
+      offers: offers.data.map((val) => new ItemOffer(val)) };
   }
 
   /**

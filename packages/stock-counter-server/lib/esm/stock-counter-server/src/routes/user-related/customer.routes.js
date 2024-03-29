@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
+import { userLean } from '@open-stock/stock-auth-server';
+import { deleteFiles, fileMetaLean, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { getLogger } from 'log4js';
-import { deleteFiles, fileMetaLean, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import { customerLean, customerMain } from '../../models/user-related/customer.model';
-import { userLean } from '@open-stock/stock-auth-server';
 import { removeManyUsers, removeOneUser } from './locluser.routes';
 /** Logger for customer routes */
 const customerRoutesLogger = getLogger('routes/customerRoutes');
@@ -106,24 +106,31 @@ customerRoutes.get('/getall/:offset/:limit/:companyIdParam', async (req, res) =>
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const customers = await customerLean
-        .find({ companyId: queryId })
-        .populate({ path: 'user', model: userLean,
-        populate: [{
-                // eslint-disable-next-line @typescript-eslint/naming-convention
-                path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-            }, {
-                // eslint-disable-next-line @typescript-eslint/naming-convention
-                path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-            }, {
-                // eslint-disable-next-line @typescript-eslint/naming-convention
-                path: 'profileCoverPic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-            }]
-    })
-        .skip(offset)
-        .limit(limit)
-        .lean();
-    return res.status(200).send(customers);
+    const all = await Promise.all([
+        customerLean
+            .find({ companyId: queryId })
+            .populate({ path: 'user', model: userLean,
+            populate: [{
+                    // eslint-disable-next-line @typescript-eslint/naming-convention
+                    path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+                }, {
+                    // eslint-disable-next-line @typescript-eslint/naming-convention
+                    path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+                }, {
+                    // eslint-disable-next-line @typescript-eslint/naming-convention
+                    path: 'profileCoverPic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+                }]
+        })
+            .skip(offset)
+            .limit(limit)
+            .lean(),
+        customerLean.countDocuments({ companyId: queryId })
+    ]);
+    const response = {
+        count: all[1],
+        data: all[0]
+    };
+    return res.status(200).send(response);
 });
 /**
  * Route for updating a customer.

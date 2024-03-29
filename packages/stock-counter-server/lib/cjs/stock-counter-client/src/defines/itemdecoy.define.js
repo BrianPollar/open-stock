@@ -33,7 +33,10 @@ class ItemDecoy extends stock_universal_1.DatabaseAuto {
     static async getItemDecoys(companyId, url = 'getall', offset = 0, limit = 20) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makeGet(`/itemdecoy/${url}/${offset}/${limit}/${companyId}`);
         const decoys = await (0, rxjs_1.lastValueFrom)(observer$);
-        return decoys.map(val => new ItemDecoy(val));
+        return {
+            count: decoys.count,
+            decoys: decoys.data.map(val => new ItemDecoy(val))
+        };
     }
     /**
      * Static method that retrieves a specific item decoy from the server based on the provided ID.

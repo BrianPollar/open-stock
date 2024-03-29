@@ -26,7 +26,10 @@ export declare class Profit extends DatabaseAuto {
      * @param {number} limit - The maximum number of Profit objects to get.
      * @returns {Promise<Profit[]>} - A Promise that resolves to an array of Profit objects.
      */
-    static getProfits(companyId: string, url?: string, offset?: number, limit?: number): Promise<Profit[]>;
+    static getProfits(companyId: string, url?: string, offset?: number, limit?: number): Promise<{
+        count: number;
+        profits: Profit[];
+    }>;
     /**
      * Gets a single Profit object by ID.
      * @static

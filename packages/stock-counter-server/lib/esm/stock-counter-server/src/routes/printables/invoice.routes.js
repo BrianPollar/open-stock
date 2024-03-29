@@ -1,11 +1,11 @@
-import express from 'express';
+import { userLean } from '@open-stock/stock-auth-server';
 import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import express from 'express';
+import { getLogger } from 'log4js';
 import { invoiceLean, invoiceMain } from '../../models/printables/invoice.model';
+import { receiptLean, receiptMain } from '../../models/printables/receipt.model';
 import { invoiceRelatedLean, invoiceRelatedMain } from '../../models/printables/related/invoicerelated.model';
 import { deleteAllLinked, makeInvoiceRelatedPdct, relegateInvRelatedCreation, updateInvoiceRelated, updateInvoiceRelatedPayments } from './related/invoicerelated';
-import { getLogger } from 'log4js';
-import { userLean } from '@open-stock/stock-auth-server';
-import { receiptLean, receiptMain } from '../../models/printables/receipt.model';
 /** Logger for invoice routes */
 const invoiceRoutesLogger = getLogger('routes/invoiceRoutes');
 /**
@@ -163,24 +163,31 @@ invoiceRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, roleAut
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const invoices = await invoiceLean
-        .find({ companyId: queryId })
-        .skip(offset)
-        .limit(limit)
-        .lean()
-        .populate({
-        path: 'invoiceRelated', model: invoiceRelatedLean,
-        populate: [{
-                path: 'billingUserId', model: userLean
-            },
-            {
-                path: 'payments', model: receiptLean
-            }]
-    });
-    const returned = invoices
+    const all = await Promise.all([
+        invoiceLean
+            .find({ companyId: queryId })
+            .skip(offset)
+            .limit(limit)
+            .lean()
+            .populate({
+            path: 'invoiceRelated', model: invoiceRelatedLean,
+            populate: [{
+                    path: 'billingUserId', model: userLean
+                },
+                {
+                    path: 'payments', model: receiptLean
+                }]
+        }),
+        invoiceLean.countDocuments({ companyId: queryId })
+    ]);
+    const returned = all[0]
         .map(val => makeInvoiceRelatedPdct(val.invoiceRelated, val.invoiceRelated
         .billingUserId));
-    return res.status(200).send(returned);
+    const response = {
+        count: all[1],
+        data: returned
+    };
+    return res.status(200).send(response);
 });
 invoiceRoutes.put('/deleteone/:companyIdParam', requireAuth, roleAuthorisation('printables', 'delete'), async (req, res) => {
     const { id, invoiceRelated, creationType, stage } = req.body;
@@ -205,24 +212,31 @@ invoiceRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, roleAu
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
-    const invoices = await invoiceLean
-        .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
-        .lean()
-        .skip(offset)
-        .limit(limit)
-        .populate({
-        path: 'invoiceRelated', model: invoiceRelatedLean,
-        populate: [{
-                path: 'billingUserId', model: userLean
-            },
-            {
-                path: 'payments', model: receiptLean
-            }]
-    });
-    const returned = invoices
+    const all = await Promise.all([
+        invoiceLean
+            .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+            .skip(offset)
+            .limit(limit)
+            .lean()
+            .populate({
+            path: 'invoiceRelated', model: invoiceRelatedLean,
+            populate: [{
+                    path: 'billingUserId', model: userLean
+                },
+                {
+                    path: 'payments', model: receiptLean
+                }]
+        }),
+        invoiceLean.countDocuments({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+    ]);
+    const returned = all[0]
         .map(val => makeInvoiceRelatedPdct(val.invoiceRelated, val.invoiceRelated
         .billingUserId));
-    return res.status(200).send(returned);
+    const response = {
+        count: all[1],
+        data: returned
+    };
+    return res.status(200).send(response);
 });
 invoiceRoutes.put('/deletemany/:companyIdParam', requireAuth, roleAuthorisation('printables', 'delete'), async (req, res) => {
     const { credentials } = req.body;
@@ -327,10 +341,17 @@ invoiceRoutes.get('/getallpayments/:companyIdParam', requireAuth, roleAuthorisat
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const invoicePays = await receiptLean
-        .find({ companyId: queryId })
-        .lean();
-    return res.status(200).send(invoicePays);
+    const all = await Promise.all([
+        receiptLean
+            .find({ companyId: queryId })
+            .lean(),
+        receiptLean.countDocuments({ companyId: queryId })
+    ]);
+    const response = {
+        count: all[1],
+        data: all[0]
+    };
+    return res.status(200).send(response);
 });
 invoiceRoutes.put('/deleteonepayment/:companyIdParam', requireAuth, roleAuthorisation('printables', 'delete'), async (req, res) => {
     const { id, invoiceRelated, creationType, stage } = req.body;

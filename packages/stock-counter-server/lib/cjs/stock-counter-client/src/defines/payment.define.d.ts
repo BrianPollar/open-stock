@@ -1,5 +1,5 @@
-import { InvoiceRelatedWithReceipt } from './invoice.define';
 import { Iaddress, IbagainCredential, Ibilling, IdeleteCredentialsPayRel, IinvoiceRelated, Iorder, Ipayment, IpaymentRelated, Isuccess, TpaymentMethod } from '@open-stock/stock-universal';
+import { InvoiceRelatedWithReceipt } from './invoice.define';
 export declare class PaymentRelated extends InvoiceRelatedWithReceipt {
     paymentRelated: string;
     urId: string;
@@ -52,7 +52,10 @@ export declare class Payment extends PaymentRelated {
      * @param searchKey - The search key.
      * @returns A Promise that resolves to an array of Payment objects.
      */
-    static searchPayments(companyId: string, searchterm: string, searchKey: string): Promise<Payment[]>;
+    static searchPayments(companyId: string, searchterm: string, searchKey: string): Promise<{
+        count: number;
+        payments: Payment[];
+    }>;
     /**
      * Retrieves payments.
      * @param companyId - The ID of the company
@@ -61,7 +64,10 @@ export declare class Payment extends PaymentRelated {
      * @param limit - The maximum number of payments to retrieve.
      * @returns A Promise that resolves to an array of Payment objects.
      */
-    static getPayments(companyId: string, url?: string, offset?: number, limit?: number): Promise<Payment[]>;
+    static getPayments(companyId: string, url?: string, offset?: number, limit?: number): Promise<{
+        count: number;
+        payments: Payment[];
+    }>;
     /**
      * Retrieves a single payment.
      * @param companyId - The ID of the company

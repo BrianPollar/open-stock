@@ -6,10 +6,10 @@ const stock_notif_server_1 = require("@open-stock/stock-notif-server");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
 const company_routes_1 = require("./routes-dummy/company.routes");
-const user_routes_1 = require("./routes-dummy/user.routes");
 const company_routes_2 = require("./routes/company.routes");
-const user_routes_2 = require("./routes/user.routes");
+const user_routes_1 = require("./routes/user.routes");
 const stock_auth_local_1 = require("./stock-auth-local");
+const user_routes_2 = require("./routes-dummy/user.routes");
 /**
  * Runs the stock authentication server by setting up the necessary configurations, connecting to the database, initializing passport authentication, and returning the authentication routes.
  * @param {IStockAuthServerConfig} config - The server configuration.
@@ -28,11 +28,11 @@ const runStockAuthServer = async (config) => {
     (0, stock_universal_server_1.runPassport)(config.authSecrets.jwtSecret);
     const stockAuthRouter = express_1.default.Router();
     if (!config.useDummyRoutes) {
-        stockAuthRouter.use('/auth', user_routes_2.authRoutes);
+        stockAuthRouter.use('/user', user_routes_1.userAuthRoutes);
         stockAuthRouter.use('/company', company_routes_2.companyAuthRoutes);
     }
     else {
-        stockAuthRouter.use('/auth', user_routes_1.authRoutesDummy);
+        stockAuthRouter.use('/user', user_routes_2.userAuthRoutesDummy);
         stockAuthRouter.use('/company', company_routes_1.companyAuthRoutesDummy);
     }
     return Promise.resolve({ stockAuthRouter });

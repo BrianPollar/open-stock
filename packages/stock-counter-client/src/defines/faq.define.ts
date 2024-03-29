@@ -1,5 +1,5 @@
 import { User } from '@open-stock/stock-auth-client';
-import { DatabaseAuto, Ifaq, Ifaqanswer, Isuccess, Iuser } from '@open-stock/stock-universal';
+import { DatabaseAuto, IdataArrayResponse, Ifaq, Ifaqanswer, Isuccess, Iuser } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
 import { StockCounterClient } from '../stock-counter-client';
 
@@ -62,8 +62,10 @@ export class Faq extends DatabaseAuto {
   static async getFaqs(companyId: string, url = 'getall', offset = 0, limit = 20) {
     const observer$ = StockCounterClient.ehttp
       .makeGet(`/faq/${url}/${offset}/${limit}/${companyId}`);
-    const faqs = await lastValueFrom(observer$) as Ifaq[];
-    return faqs.map(val => new Faq(val));
+    const faqs = await lastValueFrom(observer$) as IdataArrayResponse;
+    return {
+      count: faqs.count,
+      faqs: faqs.data.map(val => new Faq(val as Ifaq)) };
   }
 
   /**
@@ -174,8 +176,8 @@ export class FaqAnswer
     faq: string
   ) {
     const observer$ = StockCounterClient.ehttp.makeGet(`/faq/getallans/${faq}/${companyId}`);
-    const faqans = await lastValueFrom(observer$) as Ifaqanswer[];
-    return faqans.map(val => new FaqAnswer(val));
+    const faqans = await lastValueFrom(observer$) as IdataArrayResponse;
+    return faqans.data.map(val => new FaqAnswer(val as Ifaqanswer));
   }
 
   /**

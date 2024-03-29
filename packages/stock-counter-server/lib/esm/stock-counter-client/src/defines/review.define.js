@@ -41,7 +41,10 @@ export class Review extends DatabaseAuto {
         const observer$ = StockCounterClient.ehttp
             .makeGet(`/review/${url}/${itemId}/${offset}/${limit}/${companyId}`);
         const reviews = await lastValueFrom(observer$);
-        return reviews.map(val => new Review(val));
+        return {
+            count: reviews.count,
+            reviews: reviews.data.map(val => new Review(val))
+        };
     }
     /**
      * Gets a single review by ID.

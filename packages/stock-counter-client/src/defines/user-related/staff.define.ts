@@ -1,4 +1,4 @@
-import { IdeleteCredentialsLocalUser, IfileMeta, Isalary, Istaff, Isuccess } from '@open-stock/stock-universal';
+import { IdataArrayResponse, IdeleteCredentialsLocalUser, IfileMeta, Isalary, Istaff, Isuccess } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
 import { StockCounterClient } from '../../stock-counter-client';
 import { UserBase } from './userbase.define';
@@ -30,8 +30,11 @@ export class Staff extends UserBase {
    */
   static async getStaffs(companyId: string, offset = 0, limit = 20) {
     const observer$ = StockCounterClient.ehttp.makeGet(`/staff/getall/${offset}/${limit}/${companyId}`);
-    const staffs = await lastValueFrom(observer$) as Istaff[];
-    return staffs.map(val => new Staff(val));
+    const staffs = await lastValueFrom(observer$) as IdataArrayResponse;
+    return {
+      count: staffs.count,
+      staffs: staffs.data.map(val => new Staff(val as Istaff))
+    };
   }
 
   /**
@@ -43,8 +46,11 @@ export class Staff extends UserBase {
    */
   static async getStaffByRole(companyId: string, role: string, offset = 0, limit = 20) {
     const observer$ = StockCounterClient.ehttp.makeGet(`/staff/getbyrole/${offset}/${limit}/${role}/${companyId}`);
-    const staffs = await lastValueFrom(observer$) as Istaff[];
-    return staffs.map(val => new Staff(val));
+    const staffs = await lastValueFrom(observer$) as IdataArrayResponse;
+    return {
+      count: staffs.count,
+      staffs: staffs.data.map(val => new Staff(val as Istaff))
+    };
   }
 
   /**

@@ -1,9 +1,8 @@
-/* eslint-disable @typescript-eslint/no-misused-promises */
+import { makeUrId, offsetLimitRelegator, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
+import { getLogger } from 'log4js';
 import { reviewLean, reviewMain } from '../models/review.model';
 import { addReview, removeReview } from './item.routes';
-import { getLogger } from 'log4js';
-import { makeUrId, offsetLimitRelegator, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 /**
  * Logger for review routes
  */
@@ -102,12 +101,19 @@ reviewRoutes.get('/getone/:id/:companyIdParam', async (req, res) => {
 reviewRoutes.get('/getall/:id/:companyIdParam', async (req, res) => {
     const { companyIdParam } = req.params;
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
-    const reviews = await reviewLean
-        .find({ itemId: req.params.id, companyId: companyIdParam })
-        .skip(offset)
-        .limit(limit)
-        .lean();
-    return res.status(200).send(reviews);
+    const all = await Promise.all([
+        reviewLean
+            .find({ itemId: req.params.id, companyId: companyIdParam })
+            .skip(offset)
+            .limit(limit)
+            .lean(),
+        reviewLean.countDocuments({ itemId: req.params.id, companyId: companyIdParam })
+    ]);
+    const response = {
+        count: all[1],
+        data: all[0]
+    };
+    return res.status(200).send(response);
 });
 /**
  * Route for deleting a single review by ID

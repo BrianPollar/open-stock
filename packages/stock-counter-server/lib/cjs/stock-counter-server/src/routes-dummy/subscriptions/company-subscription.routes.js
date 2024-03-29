@@ -13,7 +13,11 @@ exports.companySubscriptionRoutesDummy.post('/subscribe/:companyIdParam', (req, 
 exports.companySubscriptionRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) => {
     const { offset } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const companySubscriptions = (0, stock_counter_mocks_1.createMockCompanySubscriptions)(offset);
-    return res.status(200).send(companySubscriptions);
+    const response = {
+        count: req.params.limit,
+        data: companySubscriptions
+    };
+    return res.status(200).send(response);
 });
 exports.companySubscriptionRoutesDummy.put('/deleteone/:companyIdParam', (req, res) => {
     return res.status(200).send({ success: true });

@@ -1,5 +1,5 @@
-import { PaymentRelated } from './payment.define';
 import { IbagainCredential, IdeleteCredentialsPayRel, IinvoiceRelated, Iorder, Ipayment, IpaymentRelated, Isuccess, TorderStatus } from '@open-stock/stock-universal';
+import { PaymentRelated } from './payment.define';
 /**
  * Represents an order with payment and delivery information.
  * @extends PaymentRelated
@@ -37,7 +37,10 @@ export declare class Order extends PaymentRelated {
      * @param limit - The limit to use for pagination.
      * @returns An array of orders.
      */
-    static getOrders(companyId: string, url?: string, offset?: number, limit?: number): Promise<Order[]>;
+    static getOrders(companyId: string, url?: string, offset?: number, limit?: number): Promise<{
+        count: number;
+        orders: Order[];
+    }>;
     /**
      * Gets a single order by ID.
      * @param companyId - The ID of the company

@@ -27,44 +27,92 @@ exports.itemRoutesDummy.get('/getone/:urId/:companyIdParam', (req, res) => {
     res.status(200).send((0, stock_counter_mocks_1.createMockItem)());
 });
 exports.itemRoutesDummy.get('/filtergeneral/:prop/:val/:offset/:limit/:companyIdParam', (req, res) => {
-    res.status(200).send((0, stock_counter_mocks_1.createMockItems)(Number(req.params.limit)));
+    const response = {
+        count: req.params.limit,
+        data: (0, stock_counter_mocks_1.createMockItems)(Number(req.params.limit))
+    };
+    res.status(200).send(response);
 });
 exports.itemRoutesDummy.get('/filterrandom/:prop/:val/:offset/:limit/:companyIdParam', (req, res) => {
-    res.status(200).send((0, stock_counter_mocks_1.createMockItems)(Number(req.params.limit)));
+    const response = {
+        count: req.params.limit,
+        data: (0, stock_counter_mocks_1.createMockItems)(Number(req.params.limit))
+    };
+    res.status(200).send(response);
 });
 exports.itemRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) => {
-    res.status(200).send((0, stock_counter_mocks_1.createMockItems)(Number(req.params.limit)));
+    const response = {
+        count: req.params.limit,
+        data: (0, stock_counter_mocks_1.createMockItems)(Number(req.params.limit))
+    };
+    res.status(200).send(response);
 });
 exports.itemRoutesDummy.get('/gettrending/:offset/:limit/:companyIdParam', (req, res) => {
-    res.status(200).send((0, stock_counter_mocks_1.createMockItems)(Number(req.params.limit)));
+    const response = {
+        count: req.params.limit,
+        data: (0, stock_counter_mocks_1.createMockItems)(Number(req.params.limit))
+    };
+    res.status(200).send(response);
 });
 // newly posted
 exports.itemRoutesDummy.get('/getnew/:offset/:limit/:companyIdParam', (req, res) => {
-    res.status(200).send((0, stock_counter_mocks_1.createMockItems)(Number(req.params.limit)));
+    const response = {
+        count: req.params.limit,
+        data: (0, stock_counter_mocks_1.createMockItems)(Number(req.params.limit))
+    };
+    res.status(200).send(response);
 });
 // new not used
 exports.itemRoutesDummy.get('/getbrandnew/:offset/:limit/:companyIdParam', (req, res) => {
-    res.status(200).send((0, stock_counter_mocks_1.createMockItems)(Number(req.params.limit)));
+    const response = {
+        count: req.params.limit,
+        data: (0, stock_counter_mocks_1.createMockItems)(Number(req.params.limit))
+    };
+    res.status(200).send(response);
 });
 // new not used
 exports.itemRoutesDummy.get('/getused/:offset/:limit/:companyIdParam', (req, res) => {
-    res.status(200).send((0, stock_counter_mocks_1.createMockItems)(Number(req.params.limit)));
+    const response = {
+        count: req.params.limit,
+        data: (0, stock_counter_mocks_1.createMockItems)(Number(req.params.limit))
+    };
+    res.status(200).send(response);
 });
 // filterprice
 exports.itemRoutesDummy.get('/filterprice/max/:priceFilterValue/:offset/:limit/:companyIdParam', (req, res) => {
-    res.status(200).send((0, stock_counter_mocks_1.createMockItems)(Number(req.params.limit)));
+    const response = {
+        count: req.params.limit,
+        data: (0, stock_counter_mocks_1.createMockItems)(Number(req.params.limit))
+    };
+    res.status(200).send(response);
 });
 exports.itemRoutesDummy.get('/filterprice/min/:priceFilterValue/:offset/:limit/:companyIdParam', (req, res) => {
-    res.status(200).send((0, stock_counter_mocks_1.createMockItems)(Number(req.params.limit)));
+    const response = {
+        count: req.params.limit,
+        data: (0, stock_counter_mocks_1.createMockItems)(Number(req.params.limit))
+    };
+    res.status(200).send(response);
 });
 exports.itemRoutesDummy.get('/filterprice/eq/:priceFilterMinValue/:priceFilterMaxValue/:offset/:limit/:companyIdParam', (req, res) => {
-    res.status(200).send((0, stock_counter_mocks_1.createMockItems)(Number(req.params.limit)));
+    const response = {
+        count: req.params.limit,
+        data: (0, stock_counter_mocks_1.createMockItems)(Number(req.params.limit))
+    };
+    res.status(200).send(response);
 });
 exports.itemRoutesDummy.get('/filterstars/:starVal/:offset/:limit/:companyIdParam', (req, res) => {
-    res.status(200).send((0, stock_counter_mocks_1.createMockItems)(Number(req.params.limit)));
+    const response = {
+        count: req.params.limit,
+        data: (0, stock_counter_mocks_1.createMockItems)(Number(req.params.limit))
+    };
+    res.status(200).send(response);
 });
 exports.itemRoutesDummy.get('/discount/:discountValue/:offset/:limit/:companyIdParam', (req, res) => {
-    res.status(200).send((0, stock_counter_mocks_1.createMockItems)(Number(req.params.limit)));
+    const response = {
+        count: req.params.limit,
+        data: (0, stock_counter_mocks_1.createMockItems)(Number(req.params.limit))
+    };
+    res.status(200).send(response);
 });
 exports.itemRoutesDummy.post('/getsponsored/:companyIdParam', (req, res) => {
     res.status(200).send((0, stock_counter_mocks_1.createMockSponsoreds)(10));
@@ -88,7 +136,11 @@ exports.itemRoutesDummy.put('/deleteimages/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });
 });
 exports.itemRoutesDummy.post('/search/:limit/:offset/:companyIdParam', (req, res) => {
-    res.status(200).send((0, stock_counter_mocks_1.createMockItems)(Number(req.params.limit)));
+    const response = {
+        count: req.params.limit,
+        data: (0, stock_counter_mocks_1.createMockItems)(Number(req.params.limit))
+    };
+    res.status(200).send(response);
 });
 exports.itemRoutesDummy.put('/deletemany/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });

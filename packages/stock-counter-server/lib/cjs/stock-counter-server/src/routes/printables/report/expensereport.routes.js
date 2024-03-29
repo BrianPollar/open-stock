@@ -93,16 +93,23 @@ exports.expenseReportRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const expenseReports = await expenesreport_model_1.expenseReportLean
-        .find({ companyId: queryId })
-        .skip(offset)
-        .limit(limit)
-        .lean()
-        .populate({ path: 'expenses', model: expense_model_1.expenseLean, strictPopulate: false })
-        .catch(() => {
-        return [];
-    });
-    return res.status(200).send(expenseReports);
+    const all = await Promise.all([
+        expenesreport_model_1.expenseReportLean
+            .find({ companyId: queryId })
+            .skip(offset)
+            .limit(limit)
+            .lean()
+            .populate({ path: 'expenses', model: expense_model_1.expenseLean, strictPopulate: false })
+            .catch(() => {
+            return [];
+        }),
+        expenesreport_model_1.expenseReportLean.countDocuments({ companyId: queryId })
+    ]);
+    const response = {
+        count: all[1],
+        data: all[0]
+    };
+    return res.status(200).send(response);
 });
 /**
  * Delete a single expense report by ID
@@ -150,13 +157,20 @@ exports.expenseReportRoutes.post('/search/:offset/:limit/:companyIdParam', stock
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
-    const expenseReports = await expenesreport_model_1.expenseReportLean
-        .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
-        .lean()
-        .skip(offset)
-        .limit(limit)
-        .populate({ path: 'expenses', model: expense_model_1.expenseLean });
-    return res.status(200).send(expenseReports);
+    const all = await Promise.all([
+        expenesreport_model_1.expenseReportLean
+            .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+            .lean()
+            .skip(offset)
+            .limit(limit)
+            .populate({ path: 'expenses', model: expense_model_1.expenseLean }),
+        expenesreport_model_1.expenseReportLean.countDocuments({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+    ]);
+    const response = {
+        count: all[1],
+        data: all[0]
+    };
+    return res.status(200).send(response);
 });
 /**
  * Delete multiple expense reports by ID

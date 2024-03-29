@@ -47,8 +47,11 @@ export class Item extends DatabaseAuto {
         const observer$ = StockCounterClient.ehttp
             .makeGet(`${url}/${offset}/${limit}/${companyId}`);
         const items = await lastValueFrom(observer$);
-        return items
-            .map(val => new Item(val));
+        return {
+            count: items.count,
+            items: items.data
+                .map(val => new Item(val))
+        };
     }
     /**
      * Gets a single item.
@@ -198,7 +201,7 @@ export class Item extends DatabaseAuto {
         const items = await lastValueFrom(observer$);
         return this.sponsored
             .map(sponsrd => {
-            sponsrd.item = new Item(items.find(val => val._id === sponsrd.item._id || sponsrd.item));
+            sponsrd.item = new Item(items.data.find(val => val._id === sponsrd.item._id || sponsrd.item));
         });
     }
     /**

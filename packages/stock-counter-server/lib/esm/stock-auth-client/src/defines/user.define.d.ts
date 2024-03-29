@@ -65,7 +65,10 @@ export declare class User extends DatabaseAuto {
      * @param limit The maximum number of users to retrieve.
      * @returns An array of User instances created from the retrieved user objects.
      */
-    static getUsers(companyId: string, url: string, offset?: number, limit?: number): Promise<User[]>;
+    static getUsers(companyId: string, url: string, offset?: number, limit?: number): Promise<{
+        count: number;
+        users: User[];
+    }>;
     /**
      * Retrieves a single user based on the provided user ID.
      * @param companyId - The ID of the company

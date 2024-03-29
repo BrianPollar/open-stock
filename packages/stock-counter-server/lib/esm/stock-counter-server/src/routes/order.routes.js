@@ -1,16 +1,16 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
+import { userAboutSelect, userLean } from '@open-stock/stock-auth-server';
+import { fileMetaLean, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
+import { getLogger } from 'log4js';
 import { paymentMethodDelegator } from '../controllers/payment.controller';
+import { itemLean } from '../models/item.model';
 import { orderLean, orderMain } from '../models/order.model';
 import { paymentRelatedLean } from '../models/printables/paymentrelated/paymentrelated.model';
-import { invoiceRelatedLean } from '../models/printables/related/invoicerelated.model';
-import { itemLean } from '../models/item.model';
-import { deleteAllPayOrderLinked, makePaymentRelatedPdct, relegatePaymentRelatedCreation, updatePaymentRelated } from './paymentrelated/paymentrelated';
-import { getLogger } from 'log4js';
-import { relegateInvRelatedCreation } from './printables/related/invoicerelated';
-import { fileMetaLean, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
-import { userAboutSelect, userLean } from '@open-stock/stock-auth-server';
 import { receiptLean } from '../models/printables/receipt.model';
+import { invoiceRelatedLean } from '../models/printables/related/invoicerelated.model';
+import { deleteAllPayOrderLinked, makePaymentRelatedPdct, relegatePaymentRelatedCreation, updatePaymentRelated } from './paymentrelated/paymentrelated';
+import { relegateInvRelatedCreation } from './printables/related/invoicerelated';
 /** Logger for order routes */
 const orderRoutesLogger = getLogger('routes/orderRoutes');
 /**
@@ -230,32 +230,39 @@ orderRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, roleAutho
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
-    const orders = await orderLean
-        .find({ companyId: queryId })
-        .skip(offset)
-        .limit(limit)
-        .lean()
-        .populate({ path: 'paymentRelated', model: paymentRelatedLean })
-        .populate({
-        path: 'invoiceRelated', model: invoiceRelatedLean,
-        populate: [{
-                path: 'billingUserId', model: userLean
-            },
-            {
-                path: 'payments', model: receiptLean
-            },
-            {
-                path: 'items.item', model: itemLean,
-                populate: [{
-                        // eslint-disable-next-line @typescript-eslint/naming-convention
-                        path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-                    }]
-            }]
-    });
-    const returned = orders
+    const all = await Promise.all([
+        orderLean
+            .find({ companyId: queryId })
+            .skip(offset)
+            .limit(limit)
+            .lean()
+            .populate({ path: 'paymentRelated', model: paymentRelatedLean })
+            .populate({
+            path: 'invoiceRelated', model: invoiceRelatedLean,
+            populate: [{
+                    path: 'billingUserId', model: userLean
+                },
+                {
+                    path: 'payments', model: receiptLean
+                },
+                {
+                    path: 'items.item', model: itemLean,
+                    populate: [{
+                            // eslint-disable-next-line @typescript-eslint/naming-convention
+                            path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+                        }]
+                }]
+        }),
+        orderLean.countDocuments({ companyId: queryId })
+    ]);
+    const returned = all[0]
         .map(val => makePaymentRelatedPdct(val.paymentRelated, val.invoiceRelated, val.invoiceRelated
         .billingUserId, val));
-    return res.status(200).send(returned);
+    const response = {
+        count: all[1],
+        data: returned
+    };
+    return res.status(200).send(response);
 });
 orderRoutes.get('/getmyorders/:companyIdParam', requireAuth, async (req, res) => {
     const { userId } = req.user;
@@ -345,39 +352,46 @@ orderRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, roleAuth
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
-    const orders = await orderLean
-        .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
-        .lean()
-        .skip(offset)
-        .limit(limit)
-        .populate({ path: 'paymentRelated', model: itemLean,
-        populate: [{
-                path: 'items', model: itemLean
-            },
-            {
-                path: 'user', select: userAboutSelect, model: userLean
-            }]
-    })
-        .populate({
-        path: 'invoiceRelated', model: invoiceRelatedLean,
-        populate: [{
-                path: 'billingUserId', model: userLean
-            },
-            {
-                path: 'payments', model: receiptLean
-            },
-            {
-                path: 'items.item', model: itemLean,
-                populate: [{
-                        // eslint-disable-next-line @typescript-eslint/naming-convention
-                        path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-                    }]
-            }]
-    });
-    const returned = orders
+    const all = await Promise.all([
+        orderLean
+            .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+            .lean()
+            .skip(offset)
+            .limit(limit)
+            .populate({ path: 'paymentRelated', model: itemLean,
+            populate: [{
+                    path: 'items', model: itemLean
+                },
+                {
+                    path: 'user', select: userAboutSelect, model: userLean
+                }]
+        })
+            .populate({
+            path: 'invoiceRelated', model: invoiceRelatedLean,
+            populate: [{
+                    path: 'billingUserId', model: userLean
+                },
+                {
+                    path: 'payments', model: receiptLean
+                },
+                {
+                    path: 'items.item', model: itemLean,
+                    populate: [{
+                            // eslint-disable-next-line @typescript-eslint/naming-convention
+                            path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+                        }]
+                }]
+        }),
+        orderLean.countDocuments({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+    ]);
+    const returned = all[0]
         .map(val => makePaymentRelatedPdct(val.paymentRelated, val.invoiceRelated, val.invoiceRelated
         .billingUserId, val));
-    return res.status(200).send(returned);
+    const response = {
+        count: all[1],
+        data: returned
+    };
+    return res.status(200).send(response);
 });
 orderRoutes.put('/deletemany/:companyIdParam', requireAuth, roleAuthorisation('orders', 'delete'), async (req, res) => {
     const { credentials } = req.body;

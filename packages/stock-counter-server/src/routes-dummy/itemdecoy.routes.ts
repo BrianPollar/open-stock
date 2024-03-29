@@ -1,5 +1,6 @@
 import express from 'express';
 import { createMockItemDecoy, createMockItemDecoys } from '../../../tests/stock-counter-mocks';
+import { IdataArrayResponse } from '@open-stock/stock-universal';
 
 /**
  * Router for item decoy routes.
@@ -11,7 +12,11 @@ itemDecoyRoutesDummy.post('/create/:how/:companyIdParam', (req, res) => {
 });
 
 itemDecoyRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) => {
-  res.status(200).send(createMockItemDecoys(Number(req.params.limit)));
+  const response: IdataArrayResponse = {
+    count: req.params.limit,
+    data: createMockItemDecoys(Number(req.params.limit))
+  };
+  res.status(200).send(response);
 });
 
 itemDecoyRoutesDummy.get('/getone/:id/:companyIdParam', (req, res) => {

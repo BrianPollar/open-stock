@@ -28,8 +28,11 @@ export class InvoiceRelatedWithReceipt extends InvoiceRelated {
         const observer$ = StockCounterClient.ehttp
             .makeGet(`/invoicerelated/${url}/${offset}/${limit}/${companyId}`);
         const invoiceRelateds = await lastValueFrom(observer$);
-        return invoiceRelateds
-            .map(val => new InvoiceRelatedWithReceipt(val));
+        return {
+            count: invoiceRelateds.count,
+            invoiceRelateds: invoiceRelateds.data
+                .map(val => new InvoiceRelatedWithReceipt(val))
+        };
     }
     /**
      * Searches for invoice related to receipts.
@@ -48,8 +51,11 @@ export class InvoiceRelatedWithReceipt extends InvoiceRelated {
         const observer$ = StockCounterClient.ehttp
             .makePost(`/invoicerelated/search/${offset}/${limit}/${companyId}`, body);
         const invoiceRelateds = await lastValueFrom(observer$);
-        return invoiceRelateds
-            .map(val => new InvoiceRelatedWithReceipt(val));
+        return {
+            count: invoiceRelateds.count,
+            invoiceRelateds: invoiceRelateds.data
+                .map(val => new InvoiceRelatedWithReceipt(val))
+        };
     }
     /**
      * Gets a single invoice related to a receipt.
@@ -88,8 +94,11 @@ export class Invoice extends InvoiceRelatedWithReceipt {
         const observer$ = StockCounterClient.ehttp
             .makeGet(`/invoice/${url}/${offset}/${limit}/${companyId}`);
         const invoices = await lastValueFrom(observer$);
-        return invoices
-            .map(val => new Invoice(val));
+        return {
+            count: invoices.count,
+            invoices: invoices.data
+                .map(val => new Invoice(val))
+        };
     }
     /**
      * Retrieves a single invoice.
