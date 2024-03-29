@@ -24,7 +24,7 @@ export declare class SalesReport extends DatabaseAuto {
      * @returns An array of `SalesReport` instances.
      */
     static getSalesReports(companyId: string, url?: string, offset?: number, limit?: number): Promise<{
-        cousnt: number;
+        count: number;
         salesreports: SalesReport[];
     }>;
     /**

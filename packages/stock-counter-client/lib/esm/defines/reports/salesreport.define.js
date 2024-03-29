@@ -34,7 +34,7 @@ export class SalesReport extends DatabaseAuto {
         const observer$ = StockCounterClient.ehttp.makeGet(`/salesreport/${url}/${offset}/${limit}/${companyId}`);
         const salesreports = await lastValueFrom(observer$);
         return {
-            cousnt: salesreports.count,
+            count: salesreports.count,
             salesreports: salesreports.data.map((val) => new SalesReport(val))
         };
     }

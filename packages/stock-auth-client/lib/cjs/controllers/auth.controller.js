@@ -91,11 +91,10 @@ class AuthController {
      * @returns A promise that resolves to the response from the server.
      */
     async recover(userInfo) {
-        const recoveryUrl = `/user/recover/${userInfo.emailPhone}`;
         stock_auth_client_1.StockAuthClient.logger
-            .debug('AuthService:recover:: - recoveryUrl : %s', recoveryUrl);
+            .debug('AuthService:recover:: - recoveryUrl : %s', userInfo.url);
         const observer$ = stock_auth_client_1.StockAuthClient.ehttp
-            .makePost(recoveryUrl, userInfo);
+            .makePost(userInfo.url, userInfo);
         return (0, rxjs_1.lastValueFrom)(observer$);
     }
     /**

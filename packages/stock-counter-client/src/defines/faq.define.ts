@@ -177,7 +177,9 @@ export class FaqAnswer
   ) {
     const observer$ = StockCounterClient.ehttp.makeGet(`/faq/getallans/${faq}/${companyId}`);
     const faqans = await lastValueFrom(observer$) as IdataArrayResponse;
-    return faqans.data.map(val => new FaqAnswer(val as Ifaqanswer));
+    return {
+      count: faqans.count,
+      faqans: faqans.data.map(val => new FaqAnswer(val as Ifaqanswer)) };
   }
 
   /**

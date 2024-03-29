@@ -91,7 +91,10 @@ export declare class FaqAnswer extends DatabaseAuto {
      * @param faq The FAQ identifier.
      * @returns An array of FAQ answers.
      */
-    static getFaqAns(companyId: string, faq: string): Promise<FaqAnswer[]>;
+    static getFaqAns(companyId: string, faq: string): Promise<{
+        count: number;
+        faqans: FaqAnswer[];
+    }>;
     /**
      * Retrieves a single FAQ answer by its ID.
      * @param companyId - The ID of the company.

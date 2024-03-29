@@ -134,7 +134,10 @@ export class FaqAnswer extends DatabaseAuto {
     static async getFaqAns(companyId, faq) {
         const observer$ = StockCounterClient.ehttp.makeGet(`/faq/getallans/${faq}/${companyId}`);
         const faqans = await lastValueFrom(observer$);
-        return faqans.data.map(val => new FaqAnswer(val));
+        return {
+            count: faqans.count,
+            faqans: faqans.data.map(val => new FaqAnswer(val))
+        };
     }
     /**
      * Retrieves a single FAQ answer by its ID.

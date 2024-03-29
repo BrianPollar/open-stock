@@ -138,7 +138,10 @@ class FaqAnswer extends stock_universal_1.DatabaseAuto {
     static async getFaqAns(companyId, faq) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makeGet(`/faq/getallans/${faq}/${companyId}`);
         const faqans = await (0, rxjs_1.lastValueFrom)(observer$);
-        return faqans.data.map(val => new FaqAnswer(val));
+        return {
+            count: faqans.count,
+            faqans: faqans.data.map(val => new FaqAnswer(val))
+        };
     }
     /**
      * Retrieves a single FAQ answer by its ID.

@@ -37,7 +37,7 @@ class SalesReport extends stock_universal_1.DatabaseAuto {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makeGet(`/salesreport/${url}/${offset}/${limit}/${companyId}`);
         const salesreports = await (0, rxjs_1.lastValueFrom)(observer$);
         return {
-            cousnt: salesreports.count,
+            count: salesreports.count,
             salesreports: salesreports.data.map((val) => new SalesReport(val))
         };
     }

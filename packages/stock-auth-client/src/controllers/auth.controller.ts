@@ -115,11 +115,10 @@ export class AuthController {
    */
   async recover(userInfo:
     { url: string; emailPhone: string }): Promise<Iauthresponse> {
-    const recoveryUrl = `/user/recover/${userInfo.emailPhone}`;
     StockAuthClient.logger
-      .debug('AuthService:recover:: - recoveryUrl : %s', recoveryUrl);
+      .debug('AuthService:recover:: - recoveryUrl : %s', userInfo.url);
     const observer$ = StockAuthClient.ehttp
-      .makePost(recoveryUrl, userInfo);
+      .makePost(userInfo.url, userInfo);
     return lastValueFrom(observer$) as Promise<Iauthresponse>;
   }
 
