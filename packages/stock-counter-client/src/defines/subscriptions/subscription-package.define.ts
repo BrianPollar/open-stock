@@ -1,8 +1,9 @@
-import { Isuccess } from '@open-stock/stock-universal';
+import { DatabaseAuto, IsubscriptionPackage, Isuccess } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
 import { StockCounterClient } from '../../stock-counter-client';
 
-export class SubscriptionPackange {
+export class SubscriptionPackange
+  extends DatabaseAuto {
   name: string;
   ammount: number;
   duration: number;
@@ -10,6 +11,7 @@ export class SubscriptionPackange {
   features: [];
 
   constructor(data) {
+    super(data);
     this.name = data.name;
     this.ammount = data.ammount;
     this.duration = data.duration;
@@ -25,12 +27,11 @@ export class SubscriptionPackange {
       .map((val) => new SubscriptionPackange(val));
   }
 
-  static async addSubscriptionPackange(
-    companyId: string,
-    subscriptionPackages
+  static async addSubscriptionPackage(
+    subscriptionPackage: IsubscriptionPackage
   ) {
     const observer$ = StockCounterClient.ehttp
-      .makePost(`/subscriptionpackage/create/${companyId}`, subscriptionPackages);
+      .makePost('/subscriptionpackage/create', subscriptionPackage);
     return await lastValueFrom(observer$) as Isuccess;
   }
 
@@ -39,6 +40,12 @@ export class SubscriptionPackange {
   ) {
     const observer$ = StockCounterClient.ehttp
       .makePut(`/subscriptionpackage/deleteone/${id}`, {});
+    return await lastValueFrom(observer$) as Isuccess;
+  }
+
+  async updateSubscriptionPackage(subscriptionPackange: IsubscriptionPackage) {
+    const observer$ = StockCounterClient.ehttp
+      .makePut('/subscriptionpackage/updateone', subscriptionPackange);
     return await lastValueFrom(observer$) as Isuccess;
   }
 }

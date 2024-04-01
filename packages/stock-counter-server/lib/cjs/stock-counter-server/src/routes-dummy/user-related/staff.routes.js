@@ -14,7 +14,7 @@ exports.staffRoutesDummy.post('/create/:companyIdParam', (req, res) => {
 exports.staffRoutesDummy.get('/getone/:id/:companyIdParam', (req, res) => {
     res.status(200).send((0, stock_counter_mocks_1.createMockStaff)());
 });
-exports.staffRoutesDummy.get('/getall/:offset/:limit/:role/:companyIdParam', (req, res) => {
+exports.staffRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) => {
     const response = {
         count: req.params.limit,
         data: (0, stock_counter_mocks_1.createMockStaffs)(Number(req.params.limit))

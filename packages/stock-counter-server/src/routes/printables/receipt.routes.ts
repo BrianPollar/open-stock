@@ -23,6 +23,7 @@ import express from 'express';
 import { userLean } from '@open-stock/stock-auth-server';
 import { receiptLean, receiptMain } from '../../models/printables/receipt.model';
 import { invoiceRelatedLean } from '../../models/printables/related/invoicerelated.model';
+import { requireActiveCompany, requireCanUseFeature } from '../misc/company-auth';
 import { makePaymentInstall } from '../paymentrelated/paymentrelated';
 import { deleteAllLinked, makeInvoiceRelatedPdct, relegateInvRelatedCreation, updateInvoiceRelated } from './related/invoicerelated';
 
@@ -31,7 +32,7 @@ import { deleteAllLinked, makeInvoiceRelatedPdct, relegateInvRelatedCreation, up
  */
 export const receiptRoutes = express.Router();
 
-receiptRoutes.post('/create/:companyIdParam', requireAuth, roleAuthorisation('printables', 'create'), async(req, res) => {
+receiptRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('printables', 'create'), async(req, res) => {
   const { receipt, invoiceRelated } = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -75,7 +76,7 @@ receiptRoutes.post('/create/:companyIdParam', requireAuth, roleAuthorisation('pr
   return res.status(200).send({ success: added });
 });
 
-receiptRoutes.get('/getone/:urId/:companyIdParam', requireAuth, roleAuthorisation('printables', 'read'), async(req, res) => {
+receiptRoutes.get('/getone/:urId/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('printables', 'read'), async(req, res) => {
   const { urId } = req.params;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -104,7 +105,7 @@ receiptRoutes.get('/getone/:urId/:companyIdParam', requireAuth, roleAuthorisatio
   return res.status(200).send(returned);
 });
 
-receiptRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, roleAuthorisation('printables', 'read'), async(req, res) => {
+receiptRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('printables', 'read'), async(req, res) => {
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -140,7 +141,7 @@ receiptRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, roleAut
   return res.status(200).send(response);
 });
 
-receiptRoutes.put('/deleteone/:companyIdParam', requireAuth, roleAuthorisation('printables', 'delete'), async(req, res) => {
+receiptRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('printables', 'delete'), async(req, res) => {
   const { id, invoiceRelated, creationType, stage } = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -157,7 +158,7 @@ receiptRoutes.put('/deleteone/:companyIdParam', requireAuth, roleAuthorisation('
   }
 });
 
-receiptRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, roleAuthorisation('printables', 'read'), async(req, res) => {
+receiptRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('printables', 'read'), async(req, res) => {
   const { searchterm, searchKey } = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -192,7 +193,7 @@ receiptRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, roleAu
 });
 
 
-receiptRoutes.put('/update/:companyIdParam', requireAuth, roleAuthorisation('printables', 'update'), async(req, res) => {
+receiptRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('printables', 'update'), async(req, res) => {
   const { updatedReceipt, invoiceRelated } = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -214,7 +215,7 @@ receiptRoutes.put('/update/:companyIdParam', requireAuth, roleAuthorisation('pri
   return res.status(200).send({ success: true });
 });
 
-receiptRoutes.put('/deletemany/:companyIdParam', requireAuth, roleAuthorisation('printables', 'delete'), async(req, res) => {
+receiptRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('printables', 'delete'), async(req, res) => {
   const { credentials } = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;

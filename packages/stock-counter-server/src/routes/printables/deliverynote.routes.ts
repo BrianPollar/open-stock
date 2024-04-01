@@ -8,6 +8,7 @@ import { getLogger } from 'log4js';
 import { deliveryNoteLean, deliveryNoteMain } from '../../models/printables/deliverynote.model';
 import { receiptLean } from '../../models/printables/receipt.model';
 import { invoiceRelatedLean } from '../../models/printables/related/invoicerelated.model';
+import { requireActiveCompany, requireCanUseFeature } from '../misc/company-auth';
 import {
   deleteAllLinked,
   makeInvoiceRelatedPdct,
@@ -36,7 +37,7 @@ export const deliveryNoteRoutes = express.Router();
  * @param {Object} res - Express response object
  * @returns {Object} Success status and saved delivery note data
  */
-deliveryNoteRoutes.post('/create/:companyIdParam', requireAuth, roleAuthorisation('printables', 'create'), async(req, res) => {
+deliveryNoteRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('printables', 'create'), async(req, res) => {
   const { deliveryNote, invoiceRelated } = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -89,7 +90,7 @@ deliveryNoteRoutes.post('/create/:companyIdParam', requireAuth, roleAuthorisatio
  * @param {Object} res - Express response object
  * @returns {Object} Delivery note data with related invoice data
  */
-deliveryNoteRoutes.get('/getone/:urId/:companyIdParam', requireAuth, roleAuthorisation('printables', 'read'), async(req, res) => {
+deliveryNoteRoutes.get('/getone/:urId/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('printables', 'read'), async(req, res) => {
   const { urId } = req.params;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -132,7 +133,7 @@ deliveryNoteRoutes.get('/getone/:urId/:companyIdParam', requireAuth, roleAuthori
  * @param {Object} res - Express response object
  * @returns {Array} Array of delivery note data with related invoice data
  */
-deliveryNoteRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, roleAuthorisation('printables', 'read'), async(req, res) => {
+deliveryNoteRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('printables', 'read'), async(req, res) => {
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -183,7 +184,7 @@ deliveryNoteRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, ro
  * @param {Object} res - Express response object
  * @returns {Object} Success status of the deletion operation
  */
-deliveryNoteRoutes.put('/deleteone/:companyIdParam', requireAuth, roleAuthorisation('printables', 'delete'), async(req, res) => {
+deliveryNoteRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('printables', 'delete'), async(req, res) => {
   const { id, invoiceRelated, creationType, stage } = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -215,7 +216,7 @@ deliveryNoteRoutes.put('/deleteone/:companyIdParam', requireAuth, roleAuthorisat
  * @param {Object} res - Express response object
  * @returns {Array} Array of delivery note data with related invoice data
  */
-deliveryNoteRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, roleAuthorisation('printables', 'read'), async(req, res) => {
+deliveryNoteRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('printables', 'read'), async(req, res) => {
   const { searchterm, searchKey } = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -250,7 +251,7 @@ deliveryNoteRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, r
 });
 
 
-deliveryNoteRoutes.put('/deletemany/:companyIdParam', requireAuth, roleAuthorisation('printables', 'delete'), async(req, res) => {
+deliveryNoteRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('printables', 'delete'), async(req, res) => {
   const { credentials } = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;

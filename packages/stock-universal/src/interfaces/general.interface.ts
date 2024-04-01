@@ -591,6 +591,8 @@ extends DatabaseAuto {
 
 export interface IcompanySubscription
 extends DatabaseAuto {
+  companyId: string;
+  active: boolean;
   sunscriprionId: string;
   features: IsubscriptionFeature[];
   startDate: Date;

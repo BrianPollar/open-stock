@@ -6,6 +6,7 @@ import express from 'express';
 import { getLogger } from 'log4js';
 import { faqLean, faqMain } from '../models/faq.model';
 import { faqanswerLean, faqanswerMain } from '../models/faqanswer.model';
+import { requireActiveCompany, requireCanUseFeature } from './misc/company-auth';
 
 /** Logger for faqRoutes */
 const faqRoutesLogger = getLogger('routes/faqRoutes');
@@ -168,7 +169,7 @@ faqRoutes.delete('/deleteone/:id/:companyIdParam', async(req, res) => {
  * @param {Object} res - Express response object
  * @returns {Object} Success status and saved FAQ answer object
  */
-faqRoutes.post('/createans/:companyIdParam', requireAuth, roleAuthorisation('faqs', 'create'), async(req, res) => {
+faqRoutes.post('/createans/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('faqs', 'create'), async(req, res) => {
   const faq = req.body.faq;
   // const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -238,7 +239,7 @@ faqRoutes.get('/getallans/:faqId/:companyIdParam', async(req, res) => {
  * @param {Object} res - Express response object
  * @returns {Object} Success status and deleted FAQ answer object
  */
-faqRoutes.delete('/deleteoneans/:id/:companyIdParam', requireAuth, roleAuthorisation('faqs', 'delete'), async(req, res) => {
+faqRoutes.delete('/deleteoneans/:id/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('faqs', 'delete'), async(req, res) => {
   const { id } = req.params;
   // const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;

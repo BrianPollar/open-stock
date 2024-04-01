@@ -15,6 +15,7 @@ import express from 'express';
 import { getLogger } from 'log4js';
 import { customerLean, customerMain } from '../../models/user-related/customer.model';
 import { removeManyUsers, removeOneUser } from './locluser.routes';
+import { requireActiveCompany, requireCanUseFeature } from '../misc/company-auth';
 
 /** Logger for customer routes */
 const customerRoutesLogger = getLogger('routes/customerRoutes');
@@ -35,7 +36,7 @@ export const customerRoutes = express.Router();
  * @param {callback} middleware - Express middleware
  * @returns {Promise} - Promise representing the HTTP response
  */
-customerRoutes.post('/create/:companyIdParam', requireAuth, roleAuthorisation('users', 'create'), async(req, res) => {
+customerRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('users', 'create'), async(req, res) => {
   const customer = req.body.customer;
   const newCustomer = new customerMain(customer);
   let errResponse: Isuccess;
@@ -215,7 +216,7 @@ customerRoutes.put('/update/:companyIdParam', requireAuth, roleAuthorisation('us
  * @param {callback} middleware - Express middleware
  * @returns {Promise} - Promise representing the HTTP response
  */
-customerRoutes.put('/deleteone/:companyIdParam', requireAuth, roleAuthorisation('users', 'delete'), removeOneUser, deleteFiles, async(req, res) => {
+customerRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('users', 'delete'), removeOneUser, deleteFiles, async(req, res) => {
   const { id } = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -245,7 +246,7 @@ customerRoutes.put('/deleteone/:companyIdParam', requireAuth, roleAuthorisation(
  * @param {callback} middleware - Express middleware
  * @returns {Promise} - Promise representing the HTTP response
  */
-customerRoutes.put('/deletemany/:companyIdParam', requireAuth, roleAuthorisation('users', 'delete'), removeManyUsers, deleteFiles, async(req, res) => {
+customerRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('users', 'delete'), removeManyUsers, deleteFiles, async(req, res) => {
   const { ids } = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;

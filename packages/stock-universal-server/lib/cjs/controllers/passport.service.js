@@ -41,7 +41,7 @@ const roleAuthorisation = (nowRole, permProp) => {
     // Create a middleware function that checks the user's permissions.
     return (req, res, next) => {
         // Get the user's permissions from the request object.
-        const { permissions } = req.user;
+        const { permissions, companyPermissions } = req.user;
         // If the user has the required permission, then call the next middleware function.
         if (permissions[nowRole] &&
             permissions[nowRole][permProp] &&

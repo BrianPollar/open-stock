@@ -51,7 +51,8 @@ export const roleAuthorisation = (nowRole: TroleAuth, permProp: TroleAuthProp) =
     res,
     next) => {
     // Get the user's permissions from the request object.
-    const { permissions } = (req as Icustomrequest).user;
+    const { permissions, companyPermissions } = (req as Icustomrequest).user;
+
 
     // If the user has the required permission, then call the next middleware function.
     if (permissions[nowRole] &&
@@ -67,6 +68,7 @@ export const roleAuthorisation = (nowRole: TroleAuth, permProp: TroleAuthProp) =
     }
   };
 };
+
 
 // This function defines a function that gets the JWT token from the request object.
 

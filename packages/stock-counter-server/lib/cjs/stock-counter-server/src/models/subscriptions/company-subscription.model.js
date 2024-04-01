@@ -6,6 +6,8 @@ const database_controller_1 = require("../../controllers/database.controller");
 const uniqueValidator = require('mongoose-unique-validator');
 /** FAQ schema */
 const companySubscriptionSchema = new mongoose_1.Schema({
+    companyId: { type: String },
+    active: { type: Boolean, default: false },
     subscriprionId: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
     startDate: { type: Date, required: [true, 'cannot be empty.'], index: true },
     endDate: { type: Date, required: [true, 'cannot be empty.'], index: true },
@@ -15,6 +17,8 @@ const companySubscriptionSchema = new mongoose_1.Schema({
 companySubscriptionSchema.plugin(uniqueValidator);
 /** Primary selection object for FAQ */
 const companySubscriptionselect = {
+    companyId: 1,
+    active: 1,
     subscriprionId: 1,
     startDate: 1,
     endDate: 1,

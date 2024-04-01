@@ -27,6 +27,7 @@ import { getLogger } from 'log4js';
 import { receiptLean } from '../models/printables/receipt.model';
 import { pesapalPaymentInstance } from '../stock-counter-server';
 import { relegateInvRelatedCreation } from './printables/related/invoicerelated';
+import { requireActiveCompany, requireCanUseFeature } from './misc/company-auth';
 
 const paymentRoutesLogger = getLogger('routes/paymentRoutes');
 
@@ -190,7 +191,7 @@ paymentRoutes.get('/getone/:id/:companyIdParam', requireAuth, async(req, res) =>
   return res.status(200).send(returned);
 });
 
-paymentRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, roleAuthorisation('payments', 'read'), async(req, res) => {
+paymentRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('payments', 'read'), async(req, res) => {
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -298,7 +299,7 @@ paymentRoutes.put('/deleteone/:companyIdParam', requireAuth, async(req, res) => 
   }
 });
 
-paymentRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, roleAuthorisation('payments', 'read'), async(req, res) => {
+paymentRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('payments', 'read'), async(req, res) => {
   const { searchterm, searchKey } = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -343,7 +344,7 @@ paymentRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, roleAu
   return res.status(200).send(response);
 });
 
-paymentRoutes.put('/deletemany/:companyIdParam', requireAuth, roleAuthorisation('payments', 'delete'), async(req, res) => {
+paymentRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('payments', 'delete'), async(req, res) => {
   const { credentials } = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;

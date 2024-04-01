@@ -5,6 +5,7 @@ import express from 'express';
 import { getLogger } from 'log4js';
 import { itemLean } from '../models/item.model';
 import { itemOfferLean, itemOfferMain } from '../models/itemoffer.model';
+import { requireActiveCompany, requireCanUseFeature } from './misc/company-auth';
 
 /** Logger for item offer routes */
 const itemOfferRoutesLogger = getLogger('routes/itemOfferRoutes');
@@ -25,7 +26,7 @@ export const itemOfferRoutes = express.Router();
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>} - Promise representing the result of the HTTP request
  */
-itemOfferRoutes.post('/create/:companyIdParam', requireAuth, roleAuthorisation('items', 'create'), async(req, res) => {
+itemOfferRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('items', 'create'), async(req, res) => {
   const { itemoffer } = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -155,7 +156,7 @@ itemOfferRoutes.get('/getone/:id/:companyIdParam', async(req, res) => {
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>} - Promise representing the result of the HTTP request
  */
-itemOfferRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, roleAuthorisation('items', 'delete'), async(req, res) => {
+itemOfferRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('items', 'delete'), async(req, res) => {
   const { id } = req.params;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -184,7 +185,7 @@ itemOfferRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, roleAuthor
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>} - Promise representing the result of the HTTP request
  */
-itemOfferRoutes.put('/deletemany/:companyIdParam', requireAuth, roleAuthorisation('items', 'delete'), async(req, res) => {
+itemOfferRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('items', 'delete'), async(req, res) => {
   const { ids } = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;

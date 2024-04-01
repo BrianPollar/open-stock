@@ -15,8 +15,7 @@ staffRoutesDummy.post('/create/:companyIdParam', (req, res) => {
 staffRoutesDummy.get('/getone/:id/:companyIdParam', (req, res) => {
   res.status(200).send(createMockStaff());
 });
-
-staffRoutesDummy.get('/getall/:offset/:limit/:role/:companyIdParam', (req, res) => {
+staffRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) => {
   const response: IdataArrayResponse = {
     count: req.params.limit,
     data: createMockStaffs(Number(req.params.limit))

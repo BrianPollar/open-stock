@@ -15,6 +15,8 @@ export declare let companySubscriptionLean: Model<TcompanySubscription>;
  * Selects the companySubscriptionselect constant from the companySubscription.model module.
  */
 export declare const companySubscriptionSelect: {
+    companyId: number;
+    active: number;
     subscriprionId: number;
     startDate: number;
     endDate: number;

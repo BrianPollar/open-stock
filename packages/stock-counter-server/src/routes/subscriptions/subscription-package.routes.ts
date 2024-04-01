@@ -13,10 +13,25 @@ const subscriptionPackageRoutesLogger = getLogger('routes/subscriptionPackageRou
  */
 export const subscriptionPackageRoutes = express.Router();
 
-subscriptionPackageRoutes.post('/create/:companyIdParam', requireAuth, roleAuthorisation('users', 'create'), async(req, res) => {
+subscriptionPackageRoutes.post('/create', requireAuth, roleAuthorisation('users', 'create'), async(req, res) => {
   const { subscriptionPackages } = req.body;
   const newPkg = new subscriptionPackageMain(subscriptionPackages);
   await newPkg.save();
+  return res.status(200).send({ success: true, status: 200 });
+});
+
+
+subscriptionPackageRoutes.post('/uodateone', requireAuth, roleAuthorisation('users', 'create'), async(req, res) => {
+  const { subscriptionPackage } = req.body;
+  const subPackage = await subscriptionPackageLean
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    .findOneAndUpdate({ _id: subscriptionPackage._id });
+  subPackage.name = subscriptionPackage.name || subPackage.name;
+  subPackage.ammount = subscriptionPackage.ammount || subPackage.ammount;
+  subPackage.duration = subscriptionPackage.duration || subPackage.duration;
+  subPackage.active = subscriptionPackage.active || subPackage.active;
+  subPackage.features = subscriptionPackage.features || subPackage.features;
+  await subPackage.save();
   return res.status(200).send({ success: true, status: 200 });
 });
 

@@ -5,6 +5,7 @@ import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringi
 import express from 'express';
 import { getLogger } from 'log4js';
 import { expenseLean, expenseMain } from '../models/expense.model';
+import { requireActiveCompany, requireCanUseFeature } from './misc/company-auth';
 
 /** Logger for expense routes */
 const expenseRoutesLogger = getLogger('routes/expenseRoutes');
@@ -23,7 +24,7 @@ export const expenseRoutes = express.Router();
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware
  */
-expenseRoutes.post('/create/:companyIdParam', requireAuth, roleAuthorisation('printables', 'create'), async(req, res) => {
+expenseRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('printables', 'create'), async(req, res) => {
   const expense = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -71,7 +72,7 @@ expenseRoutes.post('/create/:companyIdParam', requireAuth, roleAuthorisation('pr
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware
  */
-expenseRoutes.put('/update/:companyIdParam', requireAuth, roleAuthorisation('printables', 'update'), async(req, res) => {
+expenseRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('printables', 'update'), async(req, res) => {
   const updatedExpense = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -126,7 +127,7 @@ expenseRoutes.put('/update/:companyIdParam', requireAuth, roleAuthorisation('pri
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware
  */
-expenseRoutes.get('/getone/:id/:companyIdParam', requireAuth, roleAuthorisation('printables', 'read'), async(req, res) => {
+expenseRoutes.get('/getone/:id/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('printables', 'read'), async(req, res) => {
   const { id } = req.params;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -151,7 +152,7 @@ expenseRoutes.get('/getone/:id/:companyIdParam', requireAuth, roleAuthorisation(
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware
  */
-expenseRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, roleAuthorisation('printables', 'read'), async(req, res) => {
+expenseRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('printables', 'read'), async(req, res) => {
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -180,7 +181,7 @@ expenseRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, roleAut
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware
  */
-expenseRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, async(req, res) => {
+expenseRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), async(req, res) => {
   const { id } = req.params;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -207,7 +208,7 @@ expenseRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, async(req, r
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware
  */
-expenseRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, roleAuthorisation('printables', 'read'), async(req, res) => {
+expenseRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('printables', 'read'), async(req, res) => {
   const { searchterm, searchKey } = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -241,7 +242,7 @@ expenseRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, roleAu
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware
  */
-expenseRoutes.put('/deletemany/:companyIdParam', requireAuth, roleAuthorisation('printables', 'delete'), async(req, res) => {
+expenseRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('printables', 'delete'), async(req, res) => {
   const { ids } = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;

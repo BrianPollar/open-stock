@@ -394,7 +394,7 @@ companyAuthRoutes.get('/getonecompany/:urId/:companyIdParam', requireAuth, roleA
     }
     return res.status(200).send(oneUser);
 });
-companyAuthRoutes.get('/getcompanys//:offset/:limit/:companyIdParam', requireAuth, roleAuthorisation('users', 'read'), async (req, res) => {
+companyAuthRoutes.get('/getcompanys/:offset/:limit/:companyIdParam', requireAuth, roleAuthorisation('users', 'read'), async (req, res) => {
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;

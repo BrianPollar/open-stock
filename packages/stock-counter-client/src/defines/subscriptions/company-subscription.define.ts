@@ -1,4 +1,4 @@
-import { Isuccess } from '@open-stock/stock-universal';
+import { IdataArrayResponse, Isuccess } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
 import { StockCounterClient } from '../../stock-counter-client';
 
@@ -23,9 +23,11 @@ export class CompanySubscription {
   ) {
     const observer$ = StockCounterClient.ehttp
       .makeGet(`/companysubscription/getall/${offset}/${limit}/${companyId}`);
-    const companysubscriptions = await lastValueFrom(observer$) as unknown[];
-    return companysubscriptions
-      .map((val) => new CompanySubscription(val));
+    const companysubscriptions = await lastValueFrom(observer$) as IdataArrayResponse;
+    return {
+      count: companysubscriptions.count,
+      companysubscriptions: companysubscriptions.data
+        .map((val) => new CompanySubscription(val)) };
   }
   static async subscribe(
     companyId: string,

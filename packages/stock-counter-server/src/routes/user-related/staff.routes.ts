@@ -6,6 +6,7 @@ import express from 'express';
 import { getLogger } from 'log4js';
 import { staffLean, staffMain } from '../../models/user-related/staff.model';
 import { removeManyUsers, removeOneUser } from './locluser.routes';
+import { requireActiveCompany, requireCanUseFeature } from '../misc/company-auth';
 
 
 const staffRoutesLogger = getLogger('routes/staffRoutes');
@@ -189,7 +190,7 @@ staffRoutes.post('/search/:limit/:offset/:companyIdParam', async(req, res) => {
   return res.status(200).send(response);
 });
 
-staffRoutes.put('/update/:companyIdParam', requireAuth, roleAuthorisation('users', 'update'), async(req, res) => {
+staffRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('users', 'update'), async(req, res) => {
   const updatedStaff = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -233,7 +234,7 @@ staffRoutes.put('/update/:companyIdParam', requireAuth, roleAuthorisation('users
   return res.status(200).send({ success: Boolean(updated) });
 });
 
-staffRoutes.put('/deleteone/:companyIdParam', requireAuth, roleAuthorisation('users', 'delete'), removeOneUser, deleteFiles, async(req, res) => {
+staffRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('users', 'delete'), removeOneUser, deleteFiles, async(req, res) => {
   const { id } = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -251,7 +252,7 @@ staffRoutes.put('/deleteone/:companyIdParam', requireAuth, roleAuthorisation('us
   }
 });
 
-staffRoutes.put('/deletemany/:companyIdParam', requireAuth, roleAuthorisation('users', 'delete'), removeManyUsers, deleteFiles, async(req, res) => {
+staffRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('users', 'delete'), removeManyUsers, deleteFiles, async(req, res) => {
   const { ids } = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;

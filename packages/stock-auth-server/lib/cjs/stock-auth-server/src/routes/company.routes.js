@@ -399,7 +399,7 @@ exports.companyAuthRoutes.get('/getonecompany/:urId/:companyIdParam', stock_univ
     }
     return res.status(200).send(oneUser);
 });
-exports.companyAuthRoutes.get('/getcompanys//:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('users', 'read'), async (req, res) => {
+exports.companyAuthRoutes.get('/getcompanys/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('users', 'read'), async (req, res) => {
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
