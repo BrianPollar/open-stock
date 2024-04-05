@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.invoicesReportRoutes = void 0;
 const tslib_1 = require("tslib");
+const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
 const log4js_1 = require("log4js");
@@ -23,7 +24,7 @@ exports.invoicesReportRoutes = express_1.default.Router();
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware
  */
-exports.invoicesReportRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'create'), async (req, res) => {
+exports.invoicesReportRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_auth_server_1.requireCanUseFeature)('report'), (0, stock_universal_server_1.roleAuthorisation)('reports', 'create'), async (req, res, next) => {
     const invoicesReport = req.body.invoicesReport;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -52,8 +53,8 @@ exports.invoicesReportRoutes.post('/create/:companyIdParam', stock_universal_ser
     if (errResponse) {
         return res.status(403).send(errResponse);
     }
-    return res.status(200).send({ success: true });
-});
+    return next();
+}, stock_auth_server_1.requireUpdateSubscriptionRecord);
 /**
  * Route to get a single invoices report by urId
  * @name GET /getone/:urId
@@ -63,7 +64,7 @@ exports.invoicesReportRoutes.post('/create/:companyIdParam', stock_universal_ser
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware
  */
-exports.invoicesReportRoutes.get('/getone/:urId/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'read'), async (req, res) => {
+exports.invoicesReportRoutes.get('/getone/:urId/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'read'), async (req, res) => {
     const { urId } = req.params;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -84,7 +85,7 @@ exports.invoicesReportRoutes.get('/getone/:urId/:companyIdParam', stock_universa
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware
  */
-exports.invoicesReportRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'read'), async (req, res) => {
+exports.invoicesReportRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'read'), async (req, res) => {
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -114,7 +115,7 @@ exports.invoicesReportRoutes.get('/getall/:offset/:limit/:companyIdParam', stock
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware
  */
-exports.invoicesReportRoutes.delete('/deleteone/:id/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'delete'), async (req, res) => {
+exports.invoicesReportRoutes.delete('/deleteone/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'delete'), async (req, res) => {
     const { id } = req.params;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -141,7 +142,7 @@ exports.invoicesReportRoutes.delete('/deleteone/:id/:companyIdParam', stock_univ
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware
  */
-exports.invoicesReportRoutes.post('/search/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'read'), async (req, res) => {
+exports.invoicesReportRoutes.post('/search/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'read'), async (req, res) => {
     const { searchterm, searchKey } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -172,7 +173,7 @@ exports.invoicesReportRoutes.post('/search/:offset/:limit/:companyIdParam', stoc
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware
  */
-exports.invoicesReportRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'delete'), async (req, res) => {
+exports.invoicesReportRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'delete'), async (req, res) => {
     const { ids } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;

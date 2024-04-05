@@ -2,9 +2,9 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createMockDeleteCredentialsLocalUser = exports.createMockBlockedReasons = exports.createMockFileMeta = exports.createMockCompanys = exports.createMockCompany = exports.createMockUsers = exports.createMockUser = exports.createMockBilling = exports.createMockAddress = exports.createMockCompanyPerm = exports.createMockUserperm = exports.createPermProp = void 0;
 const en_US_1 = require("@faker-js/faker/locale/en_US");
+const company_define_1 = require("../stock-auth-client/src/defines/company.define");
 const user_define_1 = require("../stock-auth-client/src/defines/user.define");
 const mocks_1 = require("./mocks");
-const company_define_1 = require("../stock-auth-client/src/defines/company.define");
 const createPermProp = (state = 'normal') => {
     return {
         create: state !== 'normal',
@@ -22,9 +22,19 @@ const createMockUserperm = (state = 'normal') => {
         users: (0, exports.createPermProp)(state),
         items: (0, exports.createPermProp)(state),
         faqs: (0, exports.createPermProp)(state),
-        videos: (0, exports.createPermProp)(state),
-        printables: (0, exports.createPermProp)(state),
-        buyer: (0, exports.createPermProp)(state)
+        buyer: state !== 'normal',
+        customers: (0, exports.createPermProp)(state),
+        staffs: (0, exports.createPermProp)(state),
+        estimates: (0, exports.createPermProp)(state),
+        invoices: (0, exports.createPermProp)(state),
+        decoys: (0, exports.createPermProp)(state),
+        offers: (0, exports.createPermProp)(state),
+        jobCards: (0, exports.createPermProp)(state),
+        deliveryNotes: (0, exports.createPermProp)(state),
+        receipts: (0, exports.createPermProp)(state),
+        expenses: (0, exports.createPermProp)(state),
+        reports: (0, exports.createPermProp)(state),
+        companyAdminAccess: state !== 'normal'
     };
 };
 exports.createMockUserperm = createMockUserperm;

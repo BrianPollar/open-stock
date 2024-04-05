@@ -120,7 +120,7 @@ tslib_1.__exportStar(require("./routes/printables/report/taxreport.routes"), exp
 tslib_1.__exportStar(require("./routes/printables/settings/invoicesettings.routes"), exports);
 tslib_1.__exportStar(require("./routes/user-related/customer.routes"), exports);
 tslib_1.__exportStar(require("./routes/user-related/staff.routes"), exports);
-tslib_1.__exportStar(require("./routes/misc/company-auth"), exports);
+tslib_1.__exportStar(require("@open-stock/stock-auth-server/src/routes/company-auth"), exports);
 tslib_1.__exportStar(require("./routes/cookies.routes"), exports);
 tslib_1.__exportStar(require("./routes/deliverycity.routes"), exports);
 tslib_1.__exportStar(require("./routes/expense.routes"), exports);

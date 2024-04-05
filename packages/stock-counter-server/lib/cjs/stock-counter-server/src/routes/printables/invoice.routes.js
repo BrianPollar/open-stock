@@ -81,7 +81,7 @@ exports.invoiceRoutes = express_1.default.Router();
  * @param res - The response object.
  * @returns A response indicating the success status of the operation.
  */
-exports.invoiceRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'create'), async (req, res) => {
+exports.invoiceRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_auth_server_1.requireCanUseFeature)('invoice'), (0, stock_universal_server_1.roleAuthorisation)('invoices', 'create'), async (req, res, next) => {
     const { invoice, invoiceRelated } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -89,15 +89,18 @@ exports.invoiceRoutes.post('/create/:companyIdParam', stock_universal_server_1.r
     invoice.companyId = queryId;
     invoiceRelated.companyId = queryId;
     const response = await (0, exports.saveInvoice)(invoice, invoiceRelated, queryId);
-    return res.status(response.status).send({ success: response.success });
-});
+    if (!response.success) {
+        return res.status(response.status).send({ success: response.success });
+    }
+    return next();
+}, stock_auth_server_1.requireUpdateSubscriptionRecord);
 /**
  * Endpoint for updating an existing invoice.
  * @param req - The request object.
  * @param res - The response object.
  * @returns A response indicating the success status of the operation.
  */
-exports.invoiceRoutes.put('/update/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'update'), async (req, res) => {
+exports.invoiceRoutes.put('/update/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('invoices', 'update'), async (req, res) => {
     const { updatedInvoice, invoiceRelated } = req.body.invoice;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -146,7 +149,7 @@ exports.invoiceRoutes.put('/update/:companyIdParam', stock_universal_server_1.re
  * @param res - The response object.
  * @returns A response containing the requested invoice and its related information.
  */
-exports.invoiceRoutes.get('/getone/:invoiceId/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'read'), async (req, res) => {
+exports.invoiceRoutes.get('/getone/:invoiceId/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('invoices', 'read'), async (req, res) => {
     const { invoiceId } = req.params;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -163,7 +166,7 @@ exports.invoiceRoutes.get('/getone/:invoiceId/:companyIdParam', stock_universal_
     }
     return res.status(200).send(returned);
 });
-exports.invoiceRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'read'), async (req, res) => {
+exports.invoiceRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('invoices', 'read'), async (req, res) => {
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -194,7 +197,7 @@ exports.invoiceRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_univer
     };
     return res.status(200).send(response);
 });
-exports.invoiceRoutes.put('/deleteone/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'delete'), async (req, res) => {
+exports.invoiceRoutes.put('/deleteone/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('invoices', 'delete'), async (req, res) => {
     const { id, invoiceRelated, creationType, stage } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -211,7 +214,7 @@ exports.invoiceRoutes.put('/deleteone/:companyIdParam', stock_universal_server_1
         return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
-exports.invoiceRoutes.post('/search/:limit/:offset/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'read'), async (req, res) => {
+exports.invoiceRoutes.post('/search/:limit/:offset/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('invoices', 'read'), async (req, res) => {
     const { searchterm, searchKey } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -243,7 +246,7 @@ exports.invoiceRoutes.post('/search/:limit/:offset/:companyIdParam', stock_unive
     };
     return res.status(200).send(response);
 });
-exports.invoiceRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'delete'), async (req, res) => {
+exports.invoiceRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('invoices', 'delete'), async (req, res) => {
     const { credentials } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -263,7 +266,7 @@ exports.invoiceRoutes.put('/deletemany/:companyIdParam', stock_universal_server_
     return res.status(200).send({ success: true });
 });
 // payments
-exports.invoiceRoutes.post('/createpayment/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'create'), async (req, res) => {
+exports.invoiceRoutes.post('/createpayment/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('invoices', 'create'), async (req, res) => {
     const pay = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -295,7 +298,7 @@ exports.invoiceRoutes.post('/createpayment/:companyIdParam', stock_universal_ser
     await (0, invoicerelated_1.updateInvoiceRelatedPayments)(saved, queryId);
     return res.status(200).send({ success: true });
 });
-exports.invoiceRoutes.put('/updatepayment/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'update'), async (req, res) => {
+exports.invoiceRoutes.put('/updatepayment/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('invoices', 'update'), async (req, res) => {
     const pay = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -332,7 +335,7 @@ exports.invoiceRoutes.put('/updatepayment/:companyIdParam', stock_universal_serv
     }
     return res.status(200).send({ success: true });
 });
-exports.invoiceRoutes.get('/getonepayment/:urId/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'read'), async (req, res) => {
+exports.invoiceRoutes.get('/getonepayment/:urId/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('invoices', 'read'), async (req, res) => {
     const { urId } = req.params;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -342,7 +345,7 @@ exports.invoiceRoutes.get('/getonepayment/:urId/:companyIdParam', stock_universa
         .lean();
     return res.status(200).send(invoicePay);
 });
-exports.invoiceRoutes.get('/getallpayments/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'read'), async (req, res) => {
+exports.invoiceRoutes.get('/getallpayments/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('invoices', 'read'), async (req, res) => {
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
@@ -358,7 +361,7 @@ exports.invoiceRoutes.get('/getallpayments/:companyIdParam', stock_universal_ser
     };
     return res.status(200).send(response);
 });
-exports.invoiceRoutes.put('/deleteonepayment/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'delete'), async (req, res) => {
+exports.invoiceRoutes.put('/deleteonepayment/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('invoices', 'delete'), async (req, res) => {
     const { id, invoiceRelated, creationType, stage } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -375,7 +378,7 @@ exports.invoiceRoutes.put('/deleteonepayment/:companyIdParam', stock_universal_s
         return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
-exports.invoiceRoutes.put('/deletemanypayments/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'delete'), async (req, res) => {
+exports.invoiceRoutes.put('/deletemanypayments/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('invoices', 'delete'), async (req, res) => {
     const { ids } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;

@@ -225,7 +225,7 @@ exports.orderRoutes.get('/getone/:id/:companyIdParam', stock_universal_server_1.
     }
     return res.status(200).send(returned);
 });
-exports.orderRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('orders', 'read'), async (req, res) => {
+exports.orderRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('orders', 'read'), async (req, res) => {
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -316,7 +316,7 @@ exports.orderRoutes.put('/deleteone/:companyIdParam', stock_universal_server_1.r
         return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
-exports.orderRoutes.put('/appendDelivery/:orderId/:status/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('orders', 'update'), async (req, res) => {
+exports.orderRoutes.put('/appendDelivery/:orderId/:status/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('orders', 'update'), async (req, res) => {
     const { orderId } = req.params;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -350,7 +350,7 @@ exports.orderRoutes.put('/appendDelivery/:orderId/:status/:companyIdParam', stoc
     }
     return res.status(200).send({ success: true });
 });
-exports.orderRoutes.post('/search/:limit/:offset/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('orders', 'read'), async (req, res) => {
+exports.orderRoutes.post('/search/:limit/:offset/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('orders', 'read'), async (req, res) => {
     const { searchterm, searchKey } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -397,7 +397,7 @@ exports.orderRoutes.post('/search/:limit/:offset/:companyIdParam', stock_univers
     };
     return res.status(200).send(response);
 });
-exports.orderRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('orders', 'delete'), async (req, res) => {
+exports.orderRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('orders', 'delete'), async (req, res) => {
     const { credentials } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;

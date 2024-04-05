@@ -33,8 +33,6 @@ tslib_1.__exportStar(require("./defines/reports/salesreport.define"), exports);
 tslib_1.__exportStar(require("./defines/reports/taxreport.define"), exports);
 tslib_1.__exportStar(require("./defines/review.define"), exports);
 tslib_1.__exportStar(require("./defines/settings/invoicesetting.define"), exports);
-tslib_1.__exportStar(require("./defines/subscriptions/company-subscription.define"), exports);
-tslib_1.__exportStar(require("./defines/subscriptions/subscription-package.define"), exports);
 tslib_1.__exportStar(require("./defines/user-related/customer.define"), exports);
 tslib_1.__exportStar(require("./defines/user-related/staff.define"), exports);
 tslib_1.__exportStar(require("./defines/user-related/userbase.define"), exports);

@@ -37,9 +37,12 @@ export const roleAuthorisation = (nowRole, permProp) => {
     // Create a middleware function that checks the user's permissions.
     return (req, res, next) => {
         // Get the user's permissions from the request object.
-        const { permissions, companyPermissions } = req.user;
+        const { permissions } = req.user;
+        if (nowRole !== 'buyer' && permissions.companyAdminAccess) {
+            return next();
+        }
         // If the user has the required permission, then call the next middleware function.
-        if (permissions[nowRole] &&
+        if (permissions[nowRole] === true || permissions[nowRole] &&
             permissions[nowRole][permProp] &&
             permissions[nowRole][permProp] === true) {
             passportLogger.debug('roleAuthorisation - permissions', permissions);

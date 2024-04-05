@@ -117,7 +117,7 @@ export * from './routes/printables/report/taxreport.routes';
 export * from './routes/printables/settings/invoicesettings.routes';
 export * from './routes/user-related/customer.routes';
 export * from './routes/user-related/staff.routes';
-export * from './routes/misc/company-auth';
+export * from '@open-stock/stock-auth-server/src/routes/company-auth';
 export * from './routes/cookies.routes';
 export * from './routes/deliverycity.routes';
 export * from './routes/expense.routes';

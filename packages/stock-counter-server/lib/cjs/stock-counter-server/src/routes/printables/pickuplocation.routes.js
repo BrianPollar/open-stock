@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.pickupLocationRoutes = void 0;
 const tslib_1 = require("tslib");
+const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
 const log4js_1 = require("log4js");
@@ -24,7 +25,7 @@ exports.pickupLocationRoutes = express_1.default.Router();
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>}
  */
-exports.pickupLocationRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'create'), async (req, res) => {
+exports.pickupLocationRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, async (req, res) => {
     const pickupLocation = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -63,7 +64,7 @@ exports.pickupLocationRoutes.post('/create/:companyIdParam', stock_universal_ser
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>}
  */
-exports.pickupLocationRoutes.put('/update/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'update'), async (req, res) => {
+exports.pickupLocationRoutes.put('/update/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, async (req, res) => {
     const updatedPickupLocation = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -113,7 +114,7 @@ exports.pickupLocationRoutes.put('/update/:companyIdParam', stock_universal_serv
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>}
  */
-exports.pickupLocationRoutes.get('/getone/:id/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'read'), async (req, res) => {
+exports.pickupLocationRoutes.get('/getone/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, async (req, res) => {
     const { id } = req.params;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -138,7 +139,7 @@ exports.pickupLocationRoutes.get('/getone/:id/:companyIdParam', stock_universal_
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>}
  */
-exports.pickupLocationRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'read'), async (req, res) => {
+exports.pickupLocationRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, async (req, res) => {
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -167,7 +168,7 @@ exports.pickupLocationRoutes.get('/getall/:offset/:limit/:companyIdParam', stock
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>}
  */
-exports.pickupLocationRoutes.delete('/deleteone/:id/:companyIdParam', stock_universal_server_1.requireAuth, async (req, res) => {
+exports.pickupLocationRoutes.delete('/deleteone/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, async (req, res) => {
     const { id } = req.params;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -195,7 +196,7 @@ exports.pickupLocationRoutes.delete('/deleteone/:id/:companyIdParam', stock_univ
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>}
  */
-exports.pickupLocationRoutes.post('/search/:limit/:offset/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'read'), async (req, res) => {
+exports.pickupLocationRoutes.post('/search/:limit/:offset/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, async (req, res) => {
     const { searchterm, searchKey } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -225,7 +226,7 @@ exports.pickupLocationRoutes.post('/search/:limit/:offset/:companyIdParam', stoc
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>}
  */
-exports.pickupLocationRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'delete'), async (req, res) => {
+exports.pickupLocationRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, async (req, res) => {
     const { ids } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;

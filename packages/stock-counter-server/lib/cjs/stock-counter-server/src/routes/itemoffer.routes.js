@@ -2,6 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.itemOfferRoutes = void 0;
 const tslib_1 = require("tslib");
+/* eslint-disable @typescript-eslint/no-misused-promises */
+const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
 const log4js_1 = require("log4js");
@@ -24,7 +26,7 @@ exports.itemOfferRoutes = express_1.default.Router();
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>} - Promise representing the result of the HTTP request
  */
-exports.itemOfferRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('items', 'create'), async (req, res) => {
+exports.itemOfferRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_auth_server_1.requireCanUseFeature)('offer'), (0, stock_universal_server_1.roleAuthorisation)('items', 'create'), async (req, res, next) => {
     const { itemoffer } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -59,8 +61,11 @@ exports.itemOfferRoutes.post('/create/:companyIdParam', stock_universal_server_1
     if (errResponse) {
         return res.status(403).send(errResponse);
     }
-    return res.status(200).send({ success: Boolean(saved) });
-});
+    if (Boolean(saved)) {
+        return res.status(403).send('unknown error');
+    }
+    return next();
+}, stock_auth_server_1.requireUpdateSubscriptionRecord);
 /**
  * Route for getting all item offers
  * @name GET /getall/:type/:offset/:limit
@@ -151,7 +156,7 @@ exports.itemOfferRoutes.get('/getone/:id/:companyIdParam', async (req, res) => {
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>} - Promise representing the result of the HTTP request
  */
-exports.itemOfferRoutes.delete('/deleteone/:id/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('items', 'delete'), async (req, res) => {
+exports.itemOfferRoutes.delete('/deleteone/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'delete'), async (req, res) => {
     const { id } = req.params;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -180,7 +185,7 @@ exports.itemOfferRoutes.delete('/deleteone/:id/:companyIdParam', stock_universal
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>} - Promise representing the result of the HTTP request
  */
-exports.itemOfferRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('items', 'delete'), async (req, res) => {
+exports.itemOfferRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'delete'), async (req, res) => {
     const { ids } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;

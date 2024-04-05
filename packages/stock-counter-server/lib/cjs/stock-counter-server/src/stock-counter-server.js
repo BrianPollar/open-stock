@@ -49,16 +49,12 @@ const taxreport_routes_2 = require("./routes-dummy/printables/report/taxreport.r
 const invoicesettings_routes_2 = require("./routes-dummy/printables/settings/invoicesettings.routes");
 const promo_routes_2 = require("./routes-dummy/promo.routes");
 const review_routes_2 = require("./routes-dummy/review.routes");
-const company_subscription_routes_1 = require("./routes-dummy/subscriptions/company-subscription.routes");
-const subscription_package_routes_1 = require("./routes-dummy/subscriptions/subscription-package.routes");
 const customer_routes_1 = require("./routes-dummy/user-related/customer.routes");
 const locluser_routes_1 = require("./routes-dummy/user-related/locluser.routes");
 const staff_routes_1 = require("./routes-dummy/user-related/staff.routes");
 const itemdecoy_routes_2 = require("./routes/itemdecoy.routes");
 const itemoffer_routes_2 = require("./routes/itemoffer.routes");
 const invoicerelated_route_2 = require("./routes/printables/related/invoicerelated.route");
-const company_subscription_routes_2 = require("./routes/subscriptions/company-subscription.routes");
-const subscription_package_routes_2 = require("./routes/subscriptions/subscription-package.routes");
 const customer_routes_2 = require("./routes/user-related/customer.routes");
 const locluser_routes_2 = require("./routes/user-related/locluser.routes");
 const staff_routes_2 = require("./routes/user-related/staff.routes");
@@ -114,9 +110,6 @@ const runStockCounterServer = async (config, paymentInstance) => {
         stockCounterRouter.use('/customer', customer_routes_2.customerRoutes);
         stockCounterRouter.use('/staff', staff_routes_2.staffRoutes);
         stockCounterRouter.use('/localuser', locluser_routes_2.localUserRoutes);
-        // subscriptions
-        stockCounterRouter.use('/subscriptionpackage', subscription_package_routes_2.subscriptionPackageRoutes);
-        stockCounterRouter.use('/companysubscription', company_subscription_routes_2.companySubscriptionRoutes);
     }
     else {
         stockCounterRouter.use('/review', review_routes_2.reviewRoutesDummy);
@@ -152,9 +145,6 @@ const runStockCounterServer = async (config, paymentInstance) => {
         stockCounterRouter.use('/customer', customer_routes_1.customerRoutesDummy);
         stockCounterRouter.use('/staff', staff_routes_1.staffRoutesDummy);
         stockCounterRouter.use('/localuser', locluser_routes_1.localUserRoutesDummy);
-        // subscriptions
-        stockCounterRouter.use('/subscriptionpackage', subscription_package_routes_1.subscriptionPackageRoutesDummy);
-        stockCounterRouter.use('/companysubscription', company_subscription_routes_1.companySubscriptionRoutesDummy);
     }
     (0, stock_counter_local_1.createStockCounterServerLocals)(config.pesapalNotificationRedirectUrl);
     return Promise.resolve({ stockCounterRouter });

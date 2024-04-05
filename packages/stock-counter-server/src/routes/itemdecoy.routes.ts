@@ -1,10 +1,10 @@
+import { requireActiveCompany, requireCanUseFeature, requireUpdateSubscriptionRecord } from '@open-stock/stock-auth-server';
 import { Icustomrequest, IdataArrayResponse, Iitem, Isuccess } from '@open-stock/stock-universal';
 import { fileMetaLean, makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { getLogger } from 'log4js';
 import { itemLean } from '../models/item.model';
 import { itemDecoyLean, itemDecoyMain } from '../models/itemdecoy.model';
-import { requireActiveCompany, requireCanUseFeature } from './misc/company-auth';
 
 /** Logger for item decoy routes */
 const itemDecoyRoutesLogger = getLogger('routes/itemDecoyRoutes');
@@ -20,7 +20,7 @@ export const itemDecoyRoutes = express.Router();
  * @param {Object} itemdecoy - The decoy object to create.
  * @returns {Promise<Isuccess>} A promise that resolves to a success object.
  */
-itemDecoyRoutes.post('/create/:how/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('items', 'create'), async(req, res) => {
+itemDecoyRoutes.post('/create/:how/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('decoy'), roleAuthorisation('items', 'create'), async(req, res, next) => {
   const { how } = req.params;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -104,8 +104,11 @@ itemDecoyRoutes.post('/create/:how/:companyIdParam', requireAuth, requireActiveC
   if (errResponse) {
     return res.status(403).send(errResponse);
   }
-  return res.status(200).send({ success: Boolean(saved) });
-});
+  if (!Boolean(saved)) {
+    return res.status(403).send('unknown error');
+  }
+  return next();
+}, requireUpdateSubscriptionRecord);
 
 /**
  * Get a list of all item decoys.
@@ -179,7 +182,7 @@ itemDecoyRoutes.get('/getone/:id/:companyIdParam', async(req, res) => {
  * @param {string} id - The ID of the item decoy to delete.
  * @returns {Promise<Object>} A promise that resolves to a success object.
  */
-itemDecoyRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('items', 'delete'), async(req, res) => {
+itemDecoyRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('items', 'delete'), async(req, res) => {
   const { id } = req.params;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -202,7 +205,7 @@ itemDecoyRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, requireAct
  * @param {string[]} ids - An array of IDs of the item decoys to delete.
  * @returns {Promise<Object>} A promise that resolves to a success object.
  */
-itemDecoyRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('items', 'delete'), async(req, res) => {
+itemDecoyRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('items', 'delete'), async(req, res) => {
   const { ids } = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;

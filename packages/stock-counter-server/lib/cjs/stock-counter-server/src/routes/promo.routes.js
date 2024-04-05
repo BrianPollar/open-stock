@@ -3,6 +3,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.promocodeRoutes = void 0;
 const tslib_1 = require("tslib");
+const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const stock_universal_1 = require("@open-stock/stock-universal");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
@@ -25,7 +26,7 @@ exports.promocodeRoutes = express_1.default.Router();
  * @param {string} roomId - ID of the room the promocode applies to
  * @returns {Promise<Isuccess>} - Promise representing the success or failure of the operation
  */
-exports.promocodeRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('items', 'create'), async (req, res) => {
+exports.promocodeRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'create'), async (req, res) => {
     const { items, amount, roomId } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -80,7 +81,7 @@ exports.promocodeRoutes.post('/create/:companyIdParam', stock_universal_server_1
  * @param {string} id - ID of the promocode to retrieve
  * @returns {Promise<object>} - Promise representing the retrieved promocode
  */
-exports.promocodeRoutes.get('/getone/:id/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('items', 'read'), async (req, res) => {
+exports.promocodeRoutes.get('/getone/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'read'), async (req, res) => {
     const { id } = req.params;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -124,7 +125,7 @@ exports.promocodeRoutes.get('/getonebycode/:code/:companyIdParam', stock_univers
  * @param {string} limit - Limit for pagination
  * @returns {Promise<object[]>} - Promise representing the retrieved promocodes
  */
-exports.promocodeRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('items', 'read'), async (req, res) => {
+exports.promocodeRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'read'), async (req, res) => {
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -156,7 +157,7 @@ exports.promocodeRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_univ
  * @param {string} id - ID of the promocode to delete
  * @returns {Promise<Isuccess>} - Promise representing the success or failure of the operation
  */
-exports.promocodeRoutes.delete('/deleteone/:id/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('items', 'delete'), async (req, res) => {
+exports.promocodeRoutes.delete('/deleteone/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'delete'), async (req, res) => {
     const { id } = req.params;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;

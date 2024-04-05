@@ -1,10 +1,10 @@
+import { requireActiveCompany, user } from '@open-stock/stock-auth-server';
+import { deleteFiles, requireAuth, roleAuthorisation, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
+import { getLogger } from 'log4js';
 import { invoiceRelatedLean } from '../../models/printables/related/invoicerelated.model';
 import { customerLean } from '../../models/user-related/customer.model';
 import { staffLean } from '../../models/user-related/staff.model';
-import { getLogger } from 'log4js';
-import { deleteFiles, requireAuth, roleAuthorisation, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
-import { user } from '@open-stock/stock-auth-server';
 /**
  * Removes one user from the database.
  * @param req - Express Request object.
@@ -110,10 +110,10 @@ export const canRemoveOneUser = async (id) => {
 const localUserRoutesLogger = getLogger('routes/customerRoutes');
 /** Express Router for local user routes. */
 export const localUserRoutes = express.Router();
-localUserRoutes.put('/deleteone/:companyIdParam', requireAuth, roleAuthorisation('users', 'delete'), removeOneUser, deleteFiles, (req, res) => {
+localUserRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('users', 'delete'), removeOneUser, deleteFiles, (req, res) => {
     return res.status(200).send({ success: true });
 });
-localUserRoutes.put('/deletemany/:companyIdParam', requireAuth, roleAuthorisation('users', 'delete'), removeManyUsers, deleteFiles, (req, res) => {
+localUserRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('users', 'delete'), removeManyUsers, deleteFiles, (req, res) => {
     return res.status(200).send({ success: true });
 });
 //# sourceMappingURL=locluser.routes.js.map

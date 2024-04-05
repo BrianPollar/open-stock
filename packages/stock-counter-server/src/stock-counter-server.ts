@@ -46,16 +46,12 @@ import { taxReportRoutesDummy } from './routes-dummy/printables/report/taxreport
 import { invoiceSettingRoutesDummy } from './routes-dummy/printables/settings/invoicesettings.routes';
 import { promocodeRoutesDummy } from './routes-dummy/promo.routes';
 import { reviewRoutesDummy } from './routes-dummy/review.routes';
-import { companySubscriptionRoutesDummy } from './routes-dummy/subscriptions/company-subscription.routes';
-import { subscriptionPackageRoutesDummy } from './routes-dummy/subscriptions/subscription-package.routes';
 import { customerRoutesDummy } from './routes-dummy/user-related/customer.routes';
 import { localUserRoutesDummy } from './routes-dummy/user-related/locluser.routes';
 import { staffRoutesDummy } from './routes-dummy/user-related/staff.routes';
 import { itemDecoyRoutes } from './routes/itemdecoy.routes';
 import { itemOfferRoutes } from './routes/itemoffer.routes';
 import { invoiceRelateRoutes } from './routes/printables/related/invoicerelated.route';
-import { companySubscriptionRoutes } from './routes/subscriptions/company-subscription.routes';
-import { subscriptionPackageRoutes } from './routes/subscriptions/subscription-package.routes';
 import { customerRoutes } from './routes/user-related/customer.routes';
 import { localUserRoutes } from './routes/user-related/locluser.routes';
 import { staffRoutes } from './routes/user-related/staff.routes';
@@ -176,10 +172,6 @@ export const runStockCounterServer = async(
     stockCounterRouter.use('/customer', customerRoutes);
     stockCounterRouter.use('/staff', staffRoutes);
     stockCounterRouter.use('/localuser', localUserRoutes);
-
-    // subscriptions
-    stockCounterRouter.use('/subscriptionpackage', subscriptionPackageRoutes);
-    stockCounterRouter.use('/companysubscription', companySubscriptionRoutes);
   } else {
     stockCounterRouter.use('/review', reviewRoutesDummy);
     stockCounterRouter.use('/item', itemRoutesDummy);
@@ -222,10 +214,6 @@ export const runStockCounterServer = async(
     stockCounterRouter.use('/customer', customerRoutesDummy);
     stockCounterRouter.use('/staff', staffRoutesDummy);
     stockCounterRouter.use('/localuser', localUserRoutesDummy);
-
-    // subscriptions
-    stockCounterRouter.use('/subscriptionpackage', subscriptionPackageRoutesDummy);
-    stockCounterRouter.use('/companysubscription', companySubscriptionRoutesDummy);
   }
   createStockCounterServerLocals(config.pesapalNotificationRedirectUrl);
   return Promise.resolve({ stockCounterRouter });

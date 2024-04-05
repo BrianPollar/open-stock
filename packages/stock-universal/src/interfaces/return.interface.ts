@@ -1,4 +1,4 @@
-import { Icompany, Iuser } from './general.interface';
+import { Icompany, IcompanySubscription, Iuser } from './general.interface';
 
 // This file imports the `Iuser` interface from the `general.interface` file.
 
@@ -74,6 +74,8 @@ export interface Iauthresponse {
    * The response status, if any.
    */
   status?: number;
+  /** */
+  activeSubscription?: IcompanySubscription;
 }
 
 // This interface defines the properties of an authentication response.

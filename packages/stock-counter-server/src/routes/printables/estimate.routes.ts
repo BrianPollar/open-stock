@@ -1,4 +1,4 @@
-import { userLean } from '@open-stock/stock-auth-server';
+import { requireActiveCompany, requireCanUseFeature, requireUpdateSubscriptionRecord, userLean } from '@open-stock/stock-auth-server';
 import { Icustomrequest, IdataArrayResponse, IinvoiceRelated, Isuccess, Iuser, TestimateStage } from '@open-stock/stock-universal';
 import { offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
@@ -6,7 +6,6 @@ import { getLogger } from 'log4js';
 import { estimateLean, estimateMain } from '../../models/printables/estimate.model';
 import { receiptLean } from '../../models/printables/receipt.model';
 import { invoiceRelatedLean, invoiceRelatedMain } from '../../models/printables/related/invoicerelated.model';
-import { requireActiveCompany, requireCanUseFeature } from '../misc/company-auth';
 import { deleteAllLinked, makeInvoiceRelatedPdct, relegateInvRelatedCreation } from './related/invoicerelated';
 
 /** Logger for estimate routes */
@@ -64,7 +63,7 @@ export const estimateRoutes = express.Router();
  * @param res The response object.
  * @returns A success object with a boolean indicating whether the operation was successful.
  */
-estimateRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('printables', 'create'), async(req, res) => {
+estimateRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('estimate'), roleAuthorisation('estimates', 'create'), async(req, res, next) => {
   const { estimate, invoiceRelated } = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -104,8 +103,8 @@ estimateRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany
   if (errResponse) {
     return res.status(403).send(errResponse);
   }
-  return res.status(200).send({ success: Boolean(saved) });
-});
+  return next();
+}, requireUpdateSubscriptionRecord);
 
 /**
  * Gets an estimate and its associated invoice related object by estimate ID.
@@ -113,7 +112,7 @@ estimateRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany
  * @param res The response object.
  * @returns The invoice related object associated with the estimate.
  */
-estimateRoutes.get('/getone/:estimateId/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('printables', 'read'), async(req, res) => {
+estimateRoutes.get('/getone/:estimateId/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('estimates', 'read'), async(req, res) => {
   const { estimateId } = req.params;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -140,7 +139,7 @@ estimateRoutes.get('/getone/:estimateId/:companyIdParam', requireAuth, requireAc
  * @param res The response object.
  * @returns An array of invoice related objects associated with the estimates.
  */
-estimateRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('printables', 'read'), async(req, res) => {
+estimateRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('estimates', 'read'), async(req, res) => {
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -179,7 +178,7 @@ estimateRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requir
  * @param res The response object.
  * @returns A success object with a boolean indicating whether the operation was successful.
  */
-estimateRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), async(req, res) => {
+estimateRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompany, async(req, res) => {
   const { id, invoiceRelated, creationType, stage } = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -202,7 +201,7 @@ estimateRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompa
  * @param res The response object.
  * @returns An array of invoice related objects associated with the matching estimates.
  */
-estimateRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('printables', 'read'), async(req, res) => {
+estimateRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('estimates', 'read'), async(req, res) => {
   const { searchterm, searchKey } = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -236,7 +235,7 @@ estimateRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, requi
   return res.status(200).send(response);
 });
 
-estimateRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('printables', 'delete'), async(req, res) => {
+estimateRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('estimates', 'delete'), async(req, res) => {
   const { credentials } = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;

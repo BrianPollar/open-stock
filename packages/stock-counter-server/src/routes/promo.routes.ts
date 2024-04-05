@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
 
+import { requireActiveCompany } from '@open-stock/stock-auth-server';
 import { Icustomrequest, IdataArrayResponse, Isuccess, makeRandomString } from '@open-stock/stock-universal';
 import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { getLogger } from 'log4js';
 import { promocodeLean, promocodeMain } from '../models/promocode.model';
-import { requireActiveCompany } from './misc/company-auth';
 
 /** Logger for promocode routes */
 const promocodeRoutesLogger = getLogger('routes/promocodeRoutes');

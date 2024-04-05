@@ -1,8 +1,8 @@
 import { faker } from '@faker-js/faker/locale/en_US';
-import { Icompany, IdeleteCredentialsLocalUser, IfileMeta, IcompanyPerm, IpermProp, Iuser, Iuserperm, Iaddress } from '@open-stock/stock-universal';
+import { Iaddress, Icompany, IcompanyPerm, IdeleteCredentialsLocalUser, IfileMeta, IpermProp, Iuser, Iuserperm } from '@open-stock/stock-universal';
+import { Company } from '../stock-auth-client/src/defines/company.define';
 import { User } from '../stock-auth-client/src/defines/user.define';
 import { createMockDatabaseAuto } from './mocks';
-import { Company } from '../stock-auth-client/src/defines/company.define';
 
 export const createPermProp = (state = 'normal'): IpermProp => {
   return {
@@ -21,9 +21,19 @@ export const createMockUserperm = (state = 'normal'): Iuserperm => {
     users: createPermProp(state),
     items: createPermProp(state),
     faqs: createPermProp(state),
-    videos: createPermProp(state),
-    printables: createPermProp(state),
-    buyer: createPermProp(state)
+    buyer: state !== 'normal',
+    customers: createPermProp(state),
+    staffs: createPermProp(state),
+    estimates: createPermProp(state),
+    invoices: createPermProp(state),
+    decoys: createPermProp(state),
+    offers: createPermProp(state),
+    jobCards: createPermProp(state),
+    deliveryNotes: createPermProp(state),
+    receipts: createPermProp(state),
+    expenses: createPermProp(state),
+    reports: createPermProp(state),
+    companyAdminAccess: state !== 'normal'
   };
 };
 

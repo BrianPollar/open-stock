@@ -3,6 +3,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.faqRoutes = void 0;
 const tslib_1 = require("tslib");
+const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
 const log4js_1 = require("log4js");
@@ -164,7 +165,7 @@ exports.faqRoutes.delete('/deleteone/:id/:companyIdParam', async (req, res) => {
  * @param {Object} res - Express response object
  * @returns {Object} Success status and saved FAQ answer object
  */
-exports.faqRoutes.post('/createans/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('faqs', 'create'), async (req, res) => {
+exports.faqRoutes.post('/createans/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('faqs', 'create'), async (req, res) => {
     const faq = req.body.faq;
     // const { companyId } = (req as Icustomrequest).user;
     const { companyIdParam } = req.params;
@@ -232,7 +233,7 @@ exports.faqRoutes.get('/getallans/:faqId/:companyIdParam', async (req, res) => {
  * @param {Object} res - Express response object
  * @returns {Object} Success status and deleted FAQ answer object
  */
-exports.faqRoutes.delete('/deleteoneans/:id/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('faqs', 'delete'), async (req, res) => {
+exports.faqRoutes.delete('/deleteoneans/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('faqs', 'delete'), async (req, res) => {
     const { id } = req.params;
     // const { companyId } = (req as Icustomrequest).user;
     const { companyIdParam } = req.params;

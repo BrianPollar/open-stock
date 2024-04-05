@@ -2,6 +2,7 @@
 /** The  connectAuthDatabase  function connects to the authentication database by creating the required models.*/
 import { createCompanyModel } from './models/company.model';
 import { createEmailtokenModel } from './models/emailtoken.model';
+import { createSubscriptionPackageModel } from './models/subscriptions/company-subscription.model';
 import { createUserModel } from './models/user.model';
 import { createUseripModel } from './models/userip.model';
 import { IStockAuthServerConfig } from './stock-auth-server';
@@ -35,4 +36,6 @@ export const connectAuthDatabase = async(databaseUrl: string): Promise<void> => 
   await createUserModel(databaseUrl);
   await createCompanyModel(databaseUrl);
   await createUseripModel(databaseUrl);
+  await createSubscriptionPackageModel(databaseUrl);
+  await createSubscriptionPackageModel(databaseUrl);
 };

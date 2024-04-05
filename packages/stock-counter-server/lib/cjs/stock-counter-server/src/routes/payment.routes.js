@@ -170,7 +170,7 @@ exports.paymentRoutes.get('/getone/:id/:companyIdParam', stock_universal_server_
     }
     return res.status(200).send(returned);
 });
-exports.paymentRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('payments', 'read'), async (req, res) => {
+exports.paymentRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('payments', 'read'), async (req, res) => {
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -268,7 +268,7 @@ exports.paymentRoutes.put('/deleteone/:companyIdParam', stock_universal_server_1
         return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
-exports.paymentRoutes.post('/search/:limit/:offset/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('payments', 'read'), async (req, res) => {
+exports.paymentRoutes.post('/search/:limit/:offset/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('payments', 'read'), async (req, res) => {
     const { searchterm, searchKey } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -308,7 +308,7 @@ exports.paymentRoutes.post('/search/:limit/:offset/:companyIdParam', stock_unive
     };
     return res.status(200).send(response);
 });
-exports.paymentRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('payments', 'delete'), async (req, res) => {
+exports.paymentRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('payments', 'delete'), async (req, res) => {
     const { credentials } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;

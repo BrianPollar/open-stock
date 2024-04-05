@@ -1,5 +1,5 @@
 import { DatabaseAuto } from '../defines/base.define';
-import { TexpoMode, TpayType, TpaymentMethod, TpriceCurrenncy, TuserDispNameFormat } from '../types/union.types';
+import { TexpoMode, TpayType, TpaymentMethod, TpriceCurrenncy, TsubscriptionFeature, TuserDispNameFormat } from '../types/union.types';
 import { IinvoiceRelated, IurId } from './inventory.interface';
 import { Iitem } from './item.interface';
 /**
@@ -374,14 +374,24 @@ export interface IpermProp {
  * Represents the permissions of a user.
  */
 export interface Iuserperm {
-    orders: IpermProp;
-    payments: IpermProp;
-    users: IpermProp;
-    items: IpermProp;
-    faqs: IpermProp;
-    videos: IpermProp;
-    printables: IpermProp;
-    buyer: IpermProp;
+    orders?: IpermProp | boolean;
+    payments?: IpermProp | boolean;
+    users?: IpermProp | boolean;
+    items?: IpermProp | boolean;
+    faqs?: IpermProp | boolean;
+    buyer?: boolean;
+    customers?: IpermProp | boolean;
+    staffs?: IpermProp | boolean;
+    estimates?: IpermProp | boolean;
+    invoices?: IpermProp | boolean;
+    decoys?: IpermProp | boolean;
+    offers?: IpermProp | boolean;
+    jobCards?: IpermProp | boolean;
+    deliveryNotes?: IpermProp | boolean;
+    receipts?: IpermProp | boolean;
+    expenses?: IpermProp | boolean;
+    reports?: IpermProp | boolean;
+    companyAdminAccess: boolean;
 }
 /**
  * Represents the interface for a company's permission.
@@ -506,6 +516,7 @@ export interface IfileMeta extends IdatabaseAuto {
     photoColor?: string;
 }
 export interface IsubscriptionFeature {
+    type: TsubscriptionFeature;
     name: string;
     limitSize: number;
     remainingSize?: number;

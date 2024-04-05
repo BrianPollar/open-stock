@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.itemDecoyRoutes = void 0;
 const tslib_1 = require("tslib");
+const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
 const log4js_1 = require("log4js");
@@ -19,7 +20,7 @@ exports.itemDecoyRoutes = express_1.default.Router();
  * @param {Object} itemdecoy - The decoy object to create.
  * @returns {Promise<Isuccess>} A promise that resolves to a success object.
  */
-exports.itemDecoyRoutes.post('/create/:how/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('items', 'create'), async (req, res) => {
+exports.itemDecoyRoutes.post('/create/:how/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_auth_server_1.requireCanUseFeature)('decoy'), (0, stock_universal_server_1.roleAuthorisation)('items', 'create'), async (req, res, next) => {
     const { how } = req.params;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -97,8 +98,11 @@ exports.itemDecoyRoutes.post('/create/:how/:companyIdParam', stock_universal_ser
     if (errResponse) {
         return res.status(403).send(errResponse);
     }
-    return res.status(200).send({ success: Boolean(saved) });
-});
+    if (!Boolean(saved)) {
+        return res.status(403).send('unknown error');
+    }
+    return next();
+}, stock_auth_server_1.requireUpdateSubscriptionRecord);
 /**
  * Get a list of all item decoys.
  * @param {string} offset - The offset to start at.
@@ -169,7 +173,7 @@ exports.itemDecoyRoutes.get('/getone/:id/:companyIdParam', async (req, res) => {
  * @param {string} id - The ID of the item decoy to delete.
  * @returns {Promise<Object>} A promise that resolves to a success object.
  */
-exports.itemDecoyRoutes.delete('/deleteone/:id/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('items', 'delete'), async (req, res) => {
+exports.itemDecoyRoutes.delete('/deleteone/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'delete'), async (req, res) => {
     const { id } = req.params;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -192,7 +196,7 @@ exports.itemDecoyRoutes.delete('/deleteone/:id/:companyIdParam', stock_universal
  * @param {string[]} ids - An array of IDs of the item decoys to delete.
  * @returns {Promise<Object>} A promise that resolves to a success object.
  */
-exports.itemDecoyRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('items', 'delete'), async (req, res) => {
+exports.itemDecoyRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'delete'), async (req, res) => {
     const { ids } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;

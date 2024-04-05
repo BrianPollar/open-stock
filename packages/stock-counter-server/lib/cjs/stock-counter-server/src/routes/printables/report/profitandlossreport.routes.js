@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.profitAndLossReportRoutes = void 0;
 const tslib_1 = require("tslib");
+const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
 const log4js_1 = require("log4js");
@@ -19,7 +20,7 @@ exports.profitAndLossReportRoutes = express_1.default.Router();
  * @param req - The request object.
  * @param res - The response object.
  */
-exports.profitAndLossReportRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'create'), async (req, res) => {
+exports.profitAndLossReportRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_auth_server_1.requireCanUseFeature)('report'), (0, stock_universal_server_1.roleAuthorisation)('reports', 'create'), async (req, res, next) => {
     const profitAndLossReport = req.body.profitAndLossReport;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -50,14 +51,14 @@ exports.profitAndLossReportRoutes.post('/create/:companyIdParam', stock_universa
     if (errResponse) {
         return res.status(403).send(errResponse);
     }
-    return res.status(200).send({ success: Boolean(saved) });
-});
+    return next();
+}, stock_auth_server_1.requireUpdateSubscriptionRecord);
 /**
  * Get a single profit and loss report by URID.
  * @param req - The request object.
  * @param res - The response object.
  */
-exports.profitAndLossReportRoutes.get('/getone/:urId/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'read'), async (req, res) => {
+exports.profitAndLossReportRoutes.get('/getone/:urId/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'read'), async (req, res) => {
     const { urId } = req.params;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -74,7 +75,7 @@ exports.profitAndLossReportRoutes.get('/getone/:urId/:companyIdParam', stock_uni
  * @param req - The request object.
  * @param res - The response object.
  */
-exports.profitAndLossReportRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'read'), async (req, res) => {
+exports.profitAndLossReportRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'read'), async (req, res) => {
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -100,7 +101,7 @@ exports.profitAndLossReportRoutes.get('/getall/:offset/:limit/:companyIdParam', 
  * @param req - The request object.
  * @param res - The response object.
  */
-exports.profitAndLossReportRoutes.delete('/deleteone/:id/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'delete'), async (req, res) => {
+exports.profitAndLossReportRoutes.delete('/deleteone/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'delete'), async (req, res) => {
     const { id } = req.params;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -123,7 +124,7 @@ exports.profitAndLossReportRoutes.delete('/deleteone/:id/:companyIdParam', stock
  * @param req - The request object.
  * @param res - The response object.
  */
-exports.profitAndLossReportRoutes.post('/search/:limit/:offset/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'read'), async (req, res) => {
+exports.profitAndLossReportRoutes.post('/search/:limit/:offset/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'read'), async (req, res) => {
     const { searchterm, searchKey } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -150,7 +151,7 @@ exports.profitAndLossReportRoutes.post('/search/:limit/:offset/:companyIdParam',
  * @param req - The request object.
  * @param res - The response object.
  */
-exports.profitAndLossReportRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'delete'), async (req, res) => {
+exports.profitAndLossReportRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'delete'), async (req, res) => {
     const { ids } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;

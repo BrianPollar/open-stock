@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-misused-promises */
+import { requireActiveCompany, requireCanUseFeature, requireUpdateSubscriptionRecord } from '@open-stock/stock-auth-server';
 import { fileMetaLean, makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { getLogger } from 'log4js';
@@ -20,7 +22,7 @@ export const itemOfferRoutes = express.Router();
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>} - Promise representing the result of the HTTP request
  */
-itemOfferRoutes.post('/create/:companyIdParam', requireAuth, roleAuthorisation('items', 'create'), async (req, res) => {
+itemOfferRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('offer'), roleAuthorisation('items', 'create'), async (req, res, next) => {
     const { itemoffer } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -55,8 +57,11 @@ itemOfferRoutes.post('/create/:companyIdParam', requireAuth, roleAuthorisation('
     if (errResponse) {
         return res.status(403).send(errResponse);
     }
-    return res.status(200).send({ success: Boolean(saved) });
-});
+    if (Boolean(saved)) {
+        return res.status(403).send('unknown error');
+    }
+    return next();
+}, requireUpdateSubscriptionRecord);
 /**
  * Route for getting all item offers
  * @name GET /getall/:type/:offset/:limit
@@ -147,7 +152,7 @@ itemOfferRoutes.get('/getone/:id/:companyIdParam', async (req, res) => {
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>} - Promise representing the result of the HTTP request
  */
-itemOfferRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, roleAuthorisation('items', 'delete'), async (req, res) => {
+itemOfferRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('items', 'delete'), async (req, res) => {
     const { id } = req.params;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -176,7 +181,7 @@ itemOfferRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, roleAuthor
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>} - Promise representing the result of the HTTP request
  */
-itemOfferRoutes.put('/deletemany/:companyIdParam', requireAuth, roleAuthorisation('items', 'delete'), async (req, res) => {
+itemOfferRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('items', 'delete'), async (req, res) => {
     const { ids } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;

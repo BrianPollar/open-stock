@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
-import { userAboutSelect, userLean } from '@open-stock/stock-auth-server';
+import { requireActiveCompany, userAboutSelect, userLean } from '@open-stock/stock-auth-server';
 import { fileMetaLean, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { getLogger } from 'log4js';
@@ -221,7 +221,7 @@ orderRoutes.get('/getone/:id/:companyIdParam', requireAuth, async (req, res) => 
     }
     return res.status(200).send(returned);
 });
-orderRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, roleAuthorisation('orders', 'read'), async (req, res) => {
+orderRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('orders', 'read'), async (req, res) => {
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -312,7 +312,7 @@ orderRoutes.put('/deleteone/:companyIdParam', requireAuth, async (req, res) => {
         return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
-orderRoutes.put('/appendDelivery/:orderId/:status/:companyIdParam', requireAuth, roleAuthorisation('orders', 'update'), async (req, res) => {
+orderRoutes.put('/appendDelivery/:orderId/:status/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('orders', 'update'), async (req, res) => {
     const { orderId } = req.params;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -346,7 +346,7 @@ orderRoutes.put('/appendDelivery/:orderId/:status/:companyIdParam', requireAuth,
     }
     return res.status(200).send({ success: true });
 });
-orderRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, roleAuthorisation('orders', 'read'), async (req, res) => {
+orderRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('orders', 'read'), async (req, res) => {
     const { searchterm, searchKey } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -393,7 +393,7 @@ orderRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, roleAuth
     };
     return res.status(200).send(response);
 });
-orderRoutes.put('/deletemany/:companyIdParam', requireAuth, roleAuthorisation('orders', 'delete'), async (req, res) => {
+orderRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('orders', 'delete'), async (req, res) => {
     const { credentials } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;

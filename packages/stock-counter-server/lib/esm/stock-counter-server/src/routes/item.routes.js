@@ -25,7 +25,7 @@
  * @requires itemOfferMain
  * @requires itemDecoyMain
  */
-import { companyLean } from '@open-stock/stock-auth-server';
+import { companyLean, requireActiveCompany, requireCanUseFeature, requireUpdateSubscriptionRecord } from '@open-stock/stock-auth-server';
 import { makeRandomString } from '@open-stock/stock-universal';
 import { appendBody, deleteFiles, fileMetaLean, makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, saveMetaToDb, stringifyMongooseErr, uploadFiles, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
@@ -158,7 +158,7 @@ export const removeReview = async (req, res) => {
  * @param {Response} res - The express response object
  * @returns {Promise<Response>} - The express response object with a success status and saved item data
  */
-itemRoutes.post('/create/:companyIdParam', requireAuth, roleAuthorisation('items', 'create'), uploadFiles, appendBody, saveMetaToDb, async (req, res) => {
+itemRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('item'), roleAuthorisation('items', 'create'), uploadFiles, appendBody, saveMetaToDb, async (req, res, next) => {
     const item = req.body.item;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -198,8 +198,11 @@ itemRoutes.post('/create/:companyIdParam', requireAuth, roleAuthorisation('items
     if (errResponse) {
         return res.status(403).send(errResponse);
     }
-    return res.status(200).send({ success: Boolean(saved) });
-});
+    if (!Boolean(saved)) {
+        return res.status(403).send('unknown error');
+    }
+    return next();
+}, requireUpdateSubscriptionRecord);
 /**
  * Updates an existing item
  * @function
@@ -210,7 +213,7 @@ itemRoutes.post('/create/:companyIdParam', requireAuth, roleAuthorisation('items
  * @param {Response} res - The express response object
  * @returns {Promise<Response>} - The express response object with a success status
  */
-itemRoutes.put('/update/:companyIdParam', requireAuth, roleAuthorisation('items', 'update'), async (req, res) => {
+itemRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('items', 'update'), async (req, res) => {
     const updatedProduct = req.body.item;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -261,7 +264,7 @@ itemRoutes.put('/update/:companyIdParam', requireAuth, roleAuthorisation('items'
     }
     return res.status(200).send({ success: Boolean(updated) });
 });
-itemRoutes.post('/updateimg/:companyIdParam', requireAuth, roleAuthorisation('items', 'update'), uploadFiles, appendBody, saveMetaToDb, async (req, res) => {
+itemRoutes.post('/updateimg/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('items', 'update'), uploadFiles, appendBody, saveMetaToDb, async (req, res) => {
     const updatedProduct = req.body.item;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -818,7 +821,7 @@ itemRoutes.get('/getoffered/:companyIdParam', async (req, res) => {
     const filtered = newItems.filter(p => p.sponsored?.length && p.sponsored?.length > 0);
     return res.status(200).send(filtered);
 });
-itemRoutes.put('/addsponsored/:id/:companyIdParam', requireAuth, roleAuthorisation('items', 'update'), deleteFiles, async (req, res) => {
+itemRoutes.put('/addsponsored/:id/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('items', 'update'), deleteFiles, async (req, res) => {
     const { id } = req.params;
     const { sponsored } = req.body;
     const { companyId } = req.user;
@@ -853,7 +856,7 @@ itemRoutes.put('/addsponsored/:id/:companyIdParam', requireAuth, roleAuthorisati
     }
     return res.status(200).send({ success: true });
 });
-itemRoutes.put('/updatesponsored/:id/:companyIdParam', requireAuth, roleAuthorisation('items', 'update'), deleteFiles, async (req, res) => {
+itemRoutes.put('/updatesponsored/:id/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('items', 'update'), deleteFiles, async (req, res) => {
     const { id } = req.params;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -893,7 +896,7 @@ itemRoutes.put('/updatesponsored/:id/:companyIdParam', requireAuth, roleAuthoris
     }
     return res.status(200).send({ success: true });
 });
-itemRoutes.delete('/deletesponsored/:id/:spnsdId/:companyIdParam', requireAuth, roleAuthorisation('items', 'delete'), deleteFiles, async (req, res) => {
+itemRoutes.delete('/deletesponsored/:id/:spnsdId/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('items', 'delete'), deleteFiles, async (req, res) => {
     const { id, spnsdId } = req.params;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -932,7 +935,7 @@ itemRoutes.delete('/deletesponsored/:id/:spnsdId/:companyIdParam', requireAuth, 
     }
     return res.status(200).send({ success: true });
 });
-itemRoutes.put('/deleteone/:id/:companyIdParam', requireAuth, roleAuthorisation('items', 'delete'), deleteFiles, async (req, res) => {
+itemRoutes.put('/deleteone/:id/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('items', 'delete'), deleteFiles, async (req, res) => {
     const { id } = req.params;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -950,7 +953,7 @@ itemRoutes.put('/deleteone/:id/:companyIdParam', requireAuth, roleAuthorisation(
         return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
-itemRoutes.put('/deleteimages/:companyIdParam', requireAuth, roleAuthorisation('items', 'delete'), deleteFiles, async (req, res) => {
+itemRoutes.put('/deleteimages/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('items', 'delete'), deleteFiles, async (req, res) => {
     const filesWithDir = req.body.filesWithDir;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -1083,7 +1086,7 @@ itemRoutes.post('/search/:limit/:offset/:companyIdParam', async (req, res) => {
     };
     return res.status(200).send(response);
 });
-itemRoutes.put('/deletemany/:companyIdParam', requireAuth, roleAuthorisation('items', 'delete'), deleteFiles, async (req, res) => {
+itemRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('items', 'delete'), deleteFiles, async (req, res) => {
     const { ids } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;

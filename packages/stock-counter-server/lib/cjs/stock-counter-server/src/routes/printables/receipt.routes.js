@@ -14,7 +14,7 @@ const invoicerelated_1 = require("./related/invoicerelated");
  * Router for handling receipt routes.
  */
 exports.receiptRoutes = express_1.default.Router();
-exports.receiptRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'create'), async (req, res) => {
+exports.receiptRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_auth_server_1.requireCanUseFeature)('receipt'), (0, stock_universal_server_1.roleAuthorisation)('receipts', 'create'), async (req, res, next) => {
     const { receipt, invoiceRelated } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -54,9 +54,9 @@ exports.receiptRoutes.post('/create/:companyIdParam', stock_universal_server_1.r
       return res.status(403).send(errResponse);
     }
     await updateInvoiceRelated(invoiceRelated);*/
-    return res.status(200).send({ success: added });
-});
-exports.receiptRoutes.get('/getone/:urId/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'read'), async (req, res) => {
+    return next();
+}, stock_auth_server_1.requireUpdateSubscriptionRecord);
+exports.receiptRoutes.get('/getone/:urId/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('receipts', 'read'), async (req, res) => {
     const { urId } = req.params;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -82,7 +82,7 @@ exports.receiptRoutes.get('/getone/:urId/:companyIdParam', stock_universal_serve
     }
     return res.status(200).send(returned);
 });
-exports.receiptRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'read'), async (req, res) => {
+exports.receiptRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('receipts', 'read'), async (req, res) => {
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -116,7 +116,7 @@ exports.receiptRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_univer
     };
     return res.status(200).send(response);
 });
-exports.receiptRoutes.put('/deleteone/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'delete'), async (req, res) => {
+exports.receiptRoutes.put('/deleteone/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('receipts', 'delete'), async (req, res) => {
     const { id, invoiceRelated, creationType, stage } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -133,7 +133,7 @@ exports.receiptRoutes.put('/deleteone/:companyIdParam', stock_universal_server_1
         return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
-exports.receiptRoutes.post('/search/:limit/:offset/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'read'), async (req, res) => {
+exports.receiptRoutes.post('/search/:limit/:offset/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('receipts', 'read'), async (req, res) => {
     const { searchterm, searchKey } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -165,7 +165,7 @@ exports.receiptRoutes.post('/search/:limit/:offset/:companyIdParam', stock_unive
     };
     return res.status(200).send(response);
 });
-exports.receiptRoutes.put('/update/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'update'), async (req, res) => {
+exports.receiptRoutes.put('/update/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('receipts', 'update'), async (req, res) => {
     const { updatedReceipt, invoiceRelated } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -186,7 +186,7 @@ exports.receiptRoutes.put('/update/:companyIdParam', stock_universal_server_1.re
     await (0, invoicerelated_1.updateInvoiceRelated)(invoiceRelated, queryId);
     return res.status(200).send({ success: true });
 });
-exports.receiptRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'delete'), async (req, res) => {
+exports.receiptRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('receipts', 'delete'), async (req, res) => {
     const { credentials } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;

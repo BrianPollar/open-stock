@@ -14,7 +14,7 @@ const staffRoutesLogger = (0, log4js_1.getLogger)('routes/staffRoutes');
  * Router for staff related routes.
  */
 exports.staffRoutes = express_1.default.Router();
-exports.staffRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('users', 'create'), stock_auth_server_1.loginFactorRelgator, async (req, res) => {
+exports.staffRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_auth_server_1.requireCanUseFeature)('report'), (0, stock_universal_server_1.roleAuthorisation)('users', 'create'), stock_auth_server_1.loginFactorRelgator, async (req, res, next) => {
     const staff = req.body.staff;
     const newStaff = new staff_model_1.staffMain(staff);
     let errResponse;
@@ -42,8 +42,8 @@ exports.staffRoutes.post('/create/:companyIdParam', stock_universal_server_1.req
     if (errResponse) {
         return res.status(403).send(errResponse);
     }
-    return res.status(200).send({ success: Boolean(saved) });
-});
+    return next();
+}, stock_auth_server_1.requireUpdateSubscriptionRecord);
 exports.staffRoutes.get('/getone/:id/:companyIdParam', async (req, res) => {
     const { id } = req.params;
     const { companyId } = req.user;
@@ -181,7 +181,7 @@ exports.staffRoutes.post('/search/:limit/:offset/:companyIdParam', async (req, r
     };
     return res.status(200).send(response);
 });
-exports.staffRoutes.put('/update/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('users', 'update'), async (req, res) => {
+exports.staffRoutes.put('/update/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('users', 'update'), async (req, res) => {
     const updatedStaff = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -224,7 +224,7 @@ exports.staffRoutes.put('/update/:companyIdParam', stock_universal_server_1.requ
     }
     return res.status(200).send({ success: Boolean(updated) });
 });
-exports.staffRoutes.put('/deleteone/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('users', 'delete'), locluser_routes_1.removeOneUser, stock_universal_server_1.deleteFiles, async (req, res) => {
+exports.staffRoutes.put('/deleteone/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('users', 'delete'), locluser_routes_1.removeOneUser, stock_universal_server_1.deleteFiles, async (req, res) => {
     const { id } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -242,7 +242,7 @@ exports.staffRoutes.put('/deleteone/:companyIdParam', stock_universal_server_1.r
         return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
-exports.staffRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('users', 'delete'), locluser_routes_1.removeManyUsers, stock_universal_server_1.deleteFiles, async (req, res) => {
+exports.staffRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('users', 'delete'), locluser_routes_1.removeManyUsers, stock_universal_server_1.deleteFiles, async (req, res) => {
     const { ids } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;

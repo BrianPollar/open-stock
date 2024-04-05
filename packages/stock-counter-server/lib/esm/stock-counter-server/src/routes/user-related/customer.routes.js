@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
-import { userLean } from '@open-stock/stock-auth-server';
+import { requireActiveCompany, requireCanUseFeature, requireUpdateSubscriptionRecord, userLean } from '@open-stock/stock-auth-server';
 import { deleteFiles, fileMetaLean, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { getLogger } from 'log4js';
@@ -22,7 +22,7 @@ export const customerRoutes = express.Router();
  * @param {callback} middleware - Express middleware
  * @returns {Promise} - Promise representing the HTTP response
  */
-customerRoutes.post('/create/:companyIdParam', requireAuth, roleAuthorisation('users', 'create'), async (req, res) => {
+customerRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('report'), roleAuthorisation('users', 'create'), async (req, res, next) => {
     const customer = req.body.customer;
     const newCustomer = new customerMain(customer);
     let errResponse;
@@ -53,8 +53,8 @@ customerRoutes.post('/create/:companyIdParam', requireAuth, roleAuthorisation('u
     if (errResponse) {
         return res.status(403).send(errResponse);
     }
-    return res.status(200).send({ success: Boolean(saved) });
-});
+    return next();
+}, requireUpdateSubscriptionRecord);
 /**
  * Route for getting a single customer by ID.
  * @name GET /getone/:id
@@ -197,7 +197,7 @@ customerRoutes.put('/update/:companyIdParam', requireAuth, roleAuthorisation('us
  * @param {callback} middleware - Express middleware
  * @returns {Promise} - Promise representing the HTTP response
  */
-customerRoutes.put('/deleteone/:companyIdParam', requireAuth, roleAuthorisation('users', 'delete'), removeOneUser, deleteFiles, async (req, res) => {
+customerRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('users', 'delete'), removeOneUser, deleteFiles, async (req, res) => {
     const { id } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -227,7 +227,7 @@ customerRoutes.put('/deleteone/:companyIdParam', requireAuth, roleAuthorisation(
  * @param {callback} middleware - Express middleware
  * @returns {Promise} - Promise representing the HTTP response
  */
-customerRoutes.put('/deletemany/:companyIdParam', requireAuth, roleAuthorisation('users', 'delete'), removeManyUsers, deleteFiles, async (req, res) => {
+customerRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('users', 'delete'), removeManyUsers, deleteFiles, async (req, res) => {
     const { ids } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;

@@ -58,7 +58,7 @@ exports.estimateRoutes = express_1.default.Router();
  * @param res The response object.
  * @returns A success object with a boolean indicating whether the operation was successful.
  */
-exports.estimateRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'create'), async (req, res) => {
+exports.estimateRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_auth_server_1.requireCanUseFeature)('estimate'), (0, stock_universal_server_1.roleAuthorisation)('estimates', 'create'), async (req, res, next) => {
     const { estimate, invoiceRelated } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -98,15 +98,15 @@ exports.estimateRoutes.post('/create/:companyIdParam', stock_universal_server_1.
     if (errResponse) {
         return res.status(403).send(errResponse);
     }
-    return res.status(200).send({ success: Boolean(saved) });
-});
+    return next();
+}, stock_auth_server_1.requireUpdateSubscriptionRecord);
 /**
  * Gets an estimate and its associated invoice related object by estimate ID.
  * @param req The request object.
  * @param res The response object.
  * @returns The invoice related object associated with the estimate.
  */
-exports.estimateRoutes.get('/getone/:estimateId/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'read'), async (req, res) => {
+exports.estimateRoutes.get('/getone/:estimateId/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('estimates', 'read'), async (req, res) => {
     const { estimateId } = req.params;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -130,7 +130,7 @@ exports.estimateRoutes.get('/getone/:estimateId/:companyIdParam', stock_universa
  * @param res The response object.
  * @returns An array of invoice related objects associated with the estimates.
  */
-exports.estimateRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'read'), async (req, res) => {
+exports.estimateRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('estimates', 'read'), async (req, res) => {
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -167,7 +167,7 @@ exports.estimateRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_unive
  * @param res The response object.
  * @returns A success object with a boolean indicating whether the operation was successful.
  */
-exports.estimateRoutes.put('/deleteone/:companyIdParam', stock_universal_server_1.requireAuth, async (req, res) => {
+exports.estimateRoutes.put('/deleteone/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, async (req, res) => {
     const { id, invoiceRelated, creationType, stage } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -190,7 +190,7 @@ exports.estimateRoutes.put('/deleteone/:companyIdParam', stock_universal_server_
  * @param res The response object.
  * @returns An array of invoice related objects associated with the matching estimates.
  */
-exports.estimateRoutes.post('/search/:limit/:offset/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'read'), async (req, res) => {
+exports.estimateRoutes.post('/search/:limit/:offset/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('estimates', 'read'), async (req, res) => {
     const { searchterm, searchKey } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -222,7 +222,7 @@ exports.estimateRoutes.post('/search/:limit/:offset/:companyIdParam', stock_univ
     };
     return res.status(200).send(response);
 });
-exports.estimateRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'delete'), async (req, res) => {
+exports.estimateRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('estimates', 'delete'), async (req, res) => {
     const { credentials } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;

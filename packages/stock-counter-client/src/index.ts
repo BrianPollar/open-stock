@@ -30,8 +30,6 @@ export * from './defines/reports/salesreport.define';
 export * from './defines/reports/taxreport.define';
 export * from './defines/review.define';
 export * from './defines/settings/invoicesetting.define';
-export * from './defines/subscriptions/company-subscription.define';
-export * from './defines/subscriptions/subscription-package.define';
 export * from './defines/user-related/customer.define';
 export * from './defines/user-related/staff.define';
 export * from './defines/user-related/userbase.define';

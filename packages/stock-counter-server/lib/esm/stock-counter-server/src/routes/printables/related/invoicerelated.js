@@ -1,12 +1,12 @@
+import { user } from '@open-stock/stock-auth-server';
+import { getCurrentNotificationSettings } from '@open-stock/stock-notif-server';
 import { stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { getLogger } from 'log4js';
 import { deliveryNoteLean, deliveryNoteMain } from '../../../models/printables/deliverynote.model';
 import { estimateLean, estimateMain } from '../../../models/printables/estimate.model';
 import { invoiceLean, invoiceMain } from '../../../models/printables/invoice.model';
 import { receiptMain } from '../../../models/printables/receipt.model';
 import { invoiceRelatedLean, invoiceRelatedMain } from '../../../models/printables/related/invoicerelated.model';
-import { getLogger } from 'log4js';
-import { getCurrentNotificationSettings } from '@open-stock/stock-notif-server';
-import { user } from '@open-stock/stock-auth-server';
 import { pesapalNotifRedirectUrl } from '../../../stock-counter-local';
 /**
  * Logger for the 'InvoiceRelated' routes.
@@ -209,7 +209,7 @@ export const relegateInvRelatedCreation = async (invoiceRelated, queryId, extraN
                 .lean().select({ permissions: 1 });
             const ids = [];
             for (const cuser of capableUsers) {
-                if (cuser.permissions.printables) {
+                if (cuser.permissions.invoices) {
                     ids.push(cuser._id);
                 }
             }

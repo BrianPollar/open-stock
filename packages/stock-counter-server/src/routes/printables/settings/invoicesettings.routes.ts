@@ -1,9 +1,9 @@
+import { requireActiveCompany, requireCanUseFeature, requireUpdateSubscriptionRecord } from '@open-stock/stock-auth-server';
 import { Icustomrequest, IdataArrayResponse, Isuccess } from '@open-stock/stock-universal';
 import { appendBody, deleteFiles, offsetLimitRelegator, requireAuth, roleAuthorisation, saveMetaToDb, stringifyMongooseErr, uploadFiles, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { getLogger } from 'log4js';
 import { invoiceSettingLean, invoiceSettingMain } from '../../../models/printables/settings/invoicesettings.model';
-import { requireActiveCompany, requireCanUseFeature } from '../../misc/company-auth';
 
 /** Logger for invoice setting routes */
 const invoiceSettingRoutesLogger = getLogger('routes/invoiceSettingRoutes');
@@ -22,7 +22,7 @@ export const invoiceSettingRoutes = express.Router();
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware
  */
-invoiceSettingRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('printables', 'create'), async(req, res) => {
+invoiceSettingRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('report'), roleAuthorisation('invoices', 'create'), async(req, res, next) => {
   const invoiceSetting = req.body.invoicesettings;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -49,8 +49,8 @@ invoiceSettingRoutes.post('/create/:companyIdParam', requireAuth, requireActiveC
   if (errResponse) {
     return res.status(403).send(errResponse);
   }
-  return res.status(200).send({ success: Boolean(saved) });
-});
+  return next();
+}, requireUpdateSubscriptionRecord);
 
 /**
  * Route for creating a new invoice setting with image
@@ -61,7 +61,7 @@ invoiceSettingRoutes.post('/create/:companyIdParam', requireAuth, requireActiveC
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware
  */
-invoiceSettingRoutes.post('/createimg/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('printables', 'create'), uploadFiles, appendBody, saveMetaToDb, async(req, res) => {
+invoiceSettingRoutes.post('/createimg/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'create'), uploadFiles, appendBody, saveMetaToDb, async(req, res) => {
   const invoiceSetting = req.body.invoicesettings;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -118,7 +118,7 @@ invoiceSettingRoutes.post('/createimg/:companyIdParam', requireAuth, requireActi
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware
  */
-invoiceSettingRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('printables', 'update'), async(req, res) => {
+invoiceSettingRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'update'), async(req, res) => {
   const updatedInvoiceSetting = req.body.invoicesettings;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -172,7 +172,7 @@ invoiceSettingRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCo
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware
  */
-invoiceSettingRoutes.put('/updateimg/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), uploadFiles, appendBody, saveMetaToDb, deleteFiles, async(req, res) => {
+invoiceSettingRoutes.put('/updateimg/:companyIdParam', requireAuth, requireActiveCompany, uploadFiles, appendBody, saveMetaToDb, deleteFiles, async(req, res) => {
   const updatedInvoiceSetting = req.body.invoicesettings;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -233,7 +233,7 @@ invoiceSettingRoutes.put('/updateimg/:companyIdParam', requireAuth, requireActiv
   return res.status(200).send({ success: Boolean(updated) });
 });
 
-invoiceSettingRoutes.get('/getone/:id/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('printables', 'read'), async(req, res) => {
+invoiceSettingRoutes.get('/getone/:id/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'read'), async(req, res) => {
   const { id } = req.params;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -249,7 +249,7 @@ invoiceSettingRoutes.get('/getone/:id/:companyIdParam', requireAuth, requireActi
   return res.status(200).send(invoiceSetting);
 });
 
-invoiceSettingRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('printables', 'read'), async(req, res) => {
+invoiceSettingRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'read'), async(req, res) => {
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -288,7 +288,7 @@ invoiceSettingRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, async
   }
 });
 
-invoiceSettingRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('printables', 'read'), async(req, res) => {
+invoiceSettingRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'read'), async(req, res) => {
   const { searchterm, searchKey } = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -309,7 +309,7 @@ invoiceSettingRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth,
   return res.status(200).send(response);
 });
 
-invoiceSettingRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('printables', 'delete'), async(req, res) => {
+invoiceSettingRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'delete'), async(req, res) => {
   const { ids } = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;

@@ -1,3 +1,4 @@
+import { requireActiveCompany, requireCanUseFeature, requireUpdateSubscriptionRecord } from '@open-stock/stock-auth-server';
 import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { getLogger } from 'log4js';
@@ -15,7 +16,7 @@ export const profitAndLossReportRoutes = express.Router();
  * @param req - The request object.
  * @param res - The response object.
  */
-profitAndLossReportRoutes.post('/create/:companyIdParam', requireAuth, roleAuthorisation('printables', 'create'), async (req, res) => {
+profitAndLossReportRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('report'), roleAuthorisation('reports', 'create'), async (req, res, next) => {
     const profitAndLossReport = req.body.profitAndLossReport;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -46,14 +47,14 @@ profitAndLossReportRoutes.post('/create/:companyIdParam', requireAuth, roleAutho
     if (errResponse) {
         return res.status(403).send(errResponse);
     }
-    return res.status(200).send({ success: Boolean(saved) });
-});
+    return next();
+}, requireUpdateSubscriptionRecord);
 /**
  * Get a single profit and loss report by URID.
  * @param req - The request object.
  * @param res - The response object.
  */
-profitAndLossReportRoutes.get('/getone/:urId/:companyIdParam', requireAuth, roleAuthorisation('printables', 'read'), async (req, res) => {
+profitAndLossReportRoutes.get('/getone/:urId/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'read'), async (req, res) => {
     const { urId } = req.params;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -70,7 +71,7 @@ profitAndLossReportRoutes.get('/getone/:urId/:companyIdParam', requireAuth, role
  * @param req - The request object.
  * @param res - The response object.
  */
-profitAndLossReportRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, roleAuthorisation('printables', 'read'), async (req, res) => {
+profitAndLossReportRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'read'), async (req, res) => {
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -96,7 +97,7 @@ profitAndLossReportRoutes.get('/getall/:offset/:limit/:companyIdParam', requireA
  * @param req - The request object.
  * @param res - The response object.
  */
-profitAndLossReportRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, roleAuthorisation('printables', 'delete'), async (req, res) => {
+profitAndLossReportRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'delete'), async (req, res) => {
     const { id } = req.params;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -119,7 +120,7 @@ profitAndLossReportRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, 
  * @param req - The request object.
  * @param res - The response object.
  */
-profitAndLossReportRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, roleAuthorisation('printables', 'read'), async (req, res) => {
+profitAndLossReportRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'read'), async (req, res) => {
     const { searchterm, searchKey } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -146,7 +147,7 @@ profitAndLossReportRoutes.post('/search/:limit/:offset/:companyIdParam', require
  * @param req - The request object.
  * @param res - The response object.
  */
-profitAndLossReportRoutes.put('/deletemany/:companyIdParam', requireAuth, roleAuthorisation('printables', 'delete'), async (req, res) => {
+profitAndLossReportRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'delete'), async (req, res) => {
     const { ids } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;

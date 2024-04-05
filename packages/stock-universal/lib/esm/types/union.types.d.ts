@@ -204,7 +204,7 @@ export type TpayType = 'nonSubscription' | 'subscription';
  * Represents a union type for role authorization.
  * @typedef {('orders' | 'payments' | 'users' | 'items' | 'faqs' | 'videos' | 'printables' | 'buyer')} TroleAuth
  */
-export type TroleAuth = 'orders' | 'payments' | 'users' | 'items' | 'faqs' | 'videos' | 'printables' | 'buyer';
+export type TroleAuth = 'orders' | 'payments' | 'users' | 'items' | 'faqs' | 'buyer' | 'customers' | 'staffs' | 'estimates' | 'invoices' | 'decoys' | 'offers' | 'jobCards' | 'deliveryNotes' | 'receipts' | 'expenses' | 'reports';
 /**
  * Represents the possible values for the TroleAuthProp type.
  * - 'create': Indicates the permission to create.
@@ -213,3 +213,4 @@ export type TroleAuth = 'orders' | 'payments' | 'users' | 'items' | 'faqs' | 'vi
  * - 'delete': Indicates the permission to delete.
  */
 export type TroleAuthProp = 'create' | 'read' | 'update' | 'delete';
+export type TsubscriptionFeature = 'customer' | 'staff' | 'estimate' | 'invoice' | 'item' | 'decoy' | 'offer' | 'order' | 'job-card' | 'delivery-note' | 'receipt' | 'expense' | 'report';

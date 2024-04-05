@@ -28,7 +28,8 @@ import { generateToken, setUserInfo } from '../controllers/universial.controller
 import { companyLean, companyMain } from '../models/company.model';
 import { userAuthSelect } from '../models/user.model';
 import { stockAuthConfig } from '../stock-auth-local';
-import { loginFactorRelgator } from './superadmin.routes';
+import { requireActiveCompany } from './company-auth';
+import { requireSuperAdmin, signupFactorRelgator } from './superadmin.routes';
 // import { notifConfig } from '../../config/notif.config';
 // import { createNotifications, NotificationController } from '../controllers/notifications.controller';
 // const passport = require('passport');
@@ -65,22 +66,8 @@ export const companyLoginRelegator = async(req: Request, res: Response) => {
       return null;
     });
 
-  const permProp = {
-    create: true,
-    read: true,
-    update: true,
-    delete: true
-  };
-
   const permissions = {
-    orders: permProp,
-    payments: permProp,
-    users: permProp,
-    items: permProp,
-    faqs: permProp,
-    videos: permProp,
-    printables: permProp,
-    buyer: permProp
+    companyAdminAccess: true
   };
 
   // delete user.password; //we do not want to send back password
@@ -142,22 +129,8 @@ companyAuthRoutes.get('/authexpress/:companyIdParam', requireAuth, async(req, re
     return res.status(401).send(response);
   }
 
-  const permProp = {
-    create: true,
-    read: true,
-    update: true,
-    delete: true
-  };
-
   const permissions = {
-    orders: permProp,
-    payments: permProp,
-    users: permProp,
-    items: permProp,
-    faqs: permProp,
-    videos: permProp,
-    printables: permProp,
-    buyer: permProp
+    companyAdminAccess: true
   };
 
   const userInfo: Iauthtoken = setUserInfo(
@@ -191,7 +164,7 @@ companyAuthRoutes.post('/signup', (req, res, next) => {
   const user = req.body;
   req.body.user = user;
   return next();
-}, isTooCommonPhrase, isInAdictionaryOnline, loginFactorRelgator, (req, res) => {
+}, isTooCommonPhrase, isInAdictionaryOnline, signupFactorRelgator, (req, res) => {
   return res.status(401).send({ success: false, msg: 'unauthourised' });
 });
 
@@ -249,7 +222,7 @@ companyAuthRoutes.put('/resetpaswd', async(req, res, next) => {
   return next();
 }, resetAccountFactory);
 
-companyAuthRoutes.post('/updateprofileimg/:companyIdParam', requireAuth, uploadFiles, appendBody, saveMetaToDb, async(req, res) => {
+companyAuthRoutes.post('/updateprofileimg/:companyIdParam', requireAuth, requireActiveCompany, uploadFiles, appendBody, saveMetaToDb, async(req, res) => {
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
@@ -301,7 +274,7 @@ companyAuthRoutes.post('/updateprofileimg/:companyIdParam', requireAuth, uploadF
   return res.status(status).send(response);
 });
 
-companyAuthRoutes.put('/blockunblock/:companyIdParam', requireAuth, roleAuthorisation('users', 'update'), async(req, res) => {
+companyAuthRoutes.put('/blockunblock/:companyIdParam', requireAuth, requireSuperAdmin, async(req, res) => {
   const { companyId } = (req as unknown as Icustomrequest).user;
   companyAuthLogger.debug('blockunblock');
   const { companyIdParam } = req.params;
@@ -339,7 +312,7 @@ companyAuthRoutes.put('/blockunblock/:companyIdParam', requireAuth, roleAuthoris
 });
 
 
-companyAuthRoutes.post('/addcompany', requireAuth, roleAuthorisation('users', 'create'), uploadFiles, appendBody, saveMetaToDb, async(req, res) => {
+companyAuthRoutes.post('/addcompany', requireAuth, requireSuperAdmin, uploadFiles, appendBody, saveMetaToDb, async(req, res) => {
   const companyData = req.body.company;
   const parsed = req.body.parsed;
   if (parsed) {
@@ -391,7 +364,7 @@ companyAuthRoutes.post('/addcompany', requireAuth, roleAuthorisation('users', 'c
   return res.status(status).send(response);
 });
 
-companyAuthRoutes.post('/addcompanyimg/:companyIdParam', requireAuth, roleAuthorisation('users', 'create'), uploadFiles, appendBody, saveMetaToDb, async(req, res) => {
+companyAuthRoutes.post('/addcompanyimg/:companyIdParam', requireAuth, requireSuperAdmin, uploadFiles, appendBody, saveMetaToDb, async(req, res) => {
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
@@ -447,7 +420,7 @@ companyAuthRoutes.post('/addcompanyimg/:companyIdParam', requireAuth, roleAuthor
 });
 
 
-companyAuthRoutes.get('/getonecompany/:urId/:companyIdParam', requireAuth, roleAuthorisation('users', 'read'), async(req, res) => {
+companyAuthRoutes.get('/getonecompany/:urId/:companyIdParam', requireAuth, requireSuperAdmin, async(req, res) => {
   const { urId } = req.params;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -464,7 +437,7 @@ companyAuthRoutes.get('/getonecompany/:urId/:companyIdParam', requireAuth, roleA
   return res.status(200).send(oneUser);
 });
 
-companyAuthRoutes.get('/getcompanys/:offset/:limit/:companyIdParam', requireAuth, roleAuthorisation('users', 'read'), async(req, res) => {
+companyAuthRoutes.get('/getcompanys/:offset/:limit/:companyIdParam', requireAuth, requireSuperAdmin, async(req, res) => {
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
@@ -492,7 +465,7 @@ companyAuthRoutes.get('/getcompanys/:offset/:limit/:companyIdParam', requireAuth
   return res.status(200).send(response);
 });
 
-companyAuthRoutes.put('/updatecompanybulk/:companyIdParam', requireAuth, roleAuthorisation('items', 'update'), async(req, res) => {
+companyAuthRoutes.put('/updatecompanybulk/:companyIdParam', requireAuth, requireSuperAdmin, async(req, res) => {
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
@@ -542,7 +515,7 @@ companyAuthRoutes.put('/updatecompanybulk/:companyIdParam', requireAuth, roleAut
   return res.status(status).send(response);
 });
 
-companyAuthRoutes.post('/updatecompanybulkimg/:companyIdParam', requireAuth, roleAuthorisation('items', 'create'), uploadFiles, appendBody, saveMetaToDb, async(req, res) => {
+companyAuthRoutes.post('/updatecompanybulkimg/:companyIdParam', requireAuth, requireSuperAdmin, uploadFiles, appendBody, saveMetaToDb, async(req, res) => {
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const updatedUser = req.body.user;
@@ -629,7 +602,7 @@ companyAuthRoutes.post('/updatecompanybulkimg/:companyIdParam', requireAuth, rol
     }
 });*/
 
-companyAuthRoutes.put('/deleteone/:companyIdParam', requireAuth, roleAuthorisation('users', 'delete'), deleteFiles, async(req, res) => {
+companyAuthRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('users', 'delete'), deleteFiles, async(req, res) => {
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
@@ -648,7 +621,7 @@ companyAuthRoutes.put('/deleteone/:companyIdParam', requireAuth, roleAuthorisati
 });
 
 
-companyAuthRoutes.put('/deleteimages/:companyIdParam', requireAuth, roleAuthorisation('items', 'delete'), deleteFiles, async(req, res) => {
+companyAuthRoutes.put('/deleteimages/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('items', 'delete'), deleteFiles, async(req, res) => {
   const filesWithDir: IfileMeta[] = req.body.filesWithDir;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;

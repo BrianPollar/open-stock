@@ -1,4 +1,4 @@
-import { userLean } from '@open-stock/stock-auth-server';
+import { requireActiveCompany, requireCanUseFeature, requireUpdateSubscriptionRecord, userLean } from '@open-stock/stock-auth-server';
 import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { getLogger } from 'log4js';
@@ -76,7 +76,7 @@ export const invoiceRoutes = express.Router();
  * @param res - The response object.
  * @returns A response indicating the success status of the operation.
  */
-invoiceRoutes.post('/create/:companyIdParam', requireAuth, roleAuthorisation('printables', 'create'), async (req, res) => {
+invoiceRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('invoice'), roleAuthorisation('invoices', 'create'), async (req, res, next) => {
     const { invoice, invoiceRelated } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -84,15 +84,18 @@ invoiceRoutes.post('/create/:companyIdParam', requireAuth, roleAuthorisation('pr
     invoice.companyId = queryId;
     invoiceRelated.companyId = queryId;
     const response = await saveInvoice(invoice, invoiceRelated, queryId);
-    return res.status(response.status).send({ success: response.success });
-});
+    if (!response.success) {
+        return res.status(response.status).send({ success: response.success });
+    }
+    return next();
+}, requireUpdateSubscriptionRecord);
 /**
  * Endpoint for updating an existing invoice.
  * @param req - The request object.
  * @param res - The response object.
  * @returns A response indicating the success status of the operation.
  */
-invoiceRoutes.put('/update/:companyIdParam', requireAuth, roleAuthorisation('printables', 'update'), async (req, res) => {
+invoiceRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'update'), async (req, res) => {
     const { updatedInvoice, invoiceRelated } = req.body.invoice;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -141,7 +144,7 @@ invoiceRoutes.put('/update/:companyIdParam', requireAuth, roleAuthorisation('pri
  * @param res - The response object.
  * @returns A response containing the requested invoice and its related information.
  */
-invoiceRoutes.get('/getone/:invoiceId/:companyIdParam', requireAuth, roleAuthorisation('printables', 'read'), async (req, res) => {
+invoiceRoutes.get('/getone/:invoiceId/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'read'), async (req, res) => {
     const { invoiceId } = req.params;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -158,7 +161,7 @@ invoiceRoutes.get('/getone/:invoiceId/:companyIdParam', requireAuth, roleAuthori
     }
     return res.status(200).send(returned);
 });
-invoiceRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, roleAuthorisation('printables', 'read'), async (req, res) => {
+invoiceRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'read'), async (req, res) => {
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -189,7 +192,7 @@ invoiceRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, roleAut
     };
     return res.status(200).send(response);
 });
-invoiceRoutes.put('/deleteone/:companyIdParam', requireAuth, roleAuthorisation('printables', 'delete'), async (req, res) => {
+invoiceRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'delete'), async (req, res) => {
     const { id, invoiceRelated, creationType, stage } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -206,7 +209,7 @@ invoiceRoutes.put('/deleteone/:companyIdParam', requireAuth, roleAuthorisation('
         return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
-invoiceRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, roleAuthorisation('printables', 'read'), async (req, res) => {
+invoiceRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'read'), async (req, res) => {
     const { searchterm, searchKey } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -238,7 +241,7 @@ invoiceRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, roleAu
     };
     return res.status(200).send(response);
 });
-invoiceRoutes.put('/deletemany/:companyIdParam', requireAuth, roleAuthorisation('printables', 'delete'), async (req, res) => {
+invoiceRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'delete'), async (req, res) => {
     const { credentials } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -258,7 +261,7 @@ invoiceRoutes.put('/deletemany/:companyIdParam', requireAuth, roleAuthorisation(
     return res.status(200).send({ success: true });
 });
 // payments
-invoiceRoutes.post('/createpayment/:companyIdParam', requireAuth, roleAuthorisation('printables', 'create'), async (req, res) => {
+invoiceRoutes.post('/createpayment/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'create'), async (req, res) => {
     const pay = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -290,7 +293,7 @@ invoiceRoutes.post('/createpayment/:companyIdParam', requireAuth, roleAuthorisat
     await updateInvoiceRelatedPayments(saved, queryId);
     return res.status(200).send({ success: true });
 });
-invoiceRoutes.put('/updatepayment/:companyIdParam', requireAuth, roleAuthorisation('printables', 'update'), async (req, res) => {
+invoiceRoutes.put('/updatepayment/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'update'), async (req, res) => {
     const pay = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -327,7 +330,7 @@ invoiceRoutes.put('/updatepayment/:companyIdParam', requireAuth, roleAuthorisati
     }
     return res.status(200).send({ success: true });
 });
-invoiceRoutes.get('/getonepayment/:urId/:companyIdParam', requireAuth, roleAuthorisation('printables', 'read'), async (req, res) => {
+invoiceRoutes.get('/getonepayment/:urId/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'read'), async (req, res) => {
     const { urId } = req.params;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -337,7 +340,7 @@ invoiceRoutes.get('/getonepayment/:urId/:companyIdParam', requireAuth, roleAutho
         .lean();
     return res.status(200).send(invoicePay);
 });
-invoiceRoutes.get('/getallpayments/:companyIdParam', requireAuth, roleAuthorisation('printables', 'read'), async (req, res) => {
+invoiceRoutes.get('/getallpayments/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'read'), async (req, res) => {
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
@@ -353,7 +356,7 @@ invoiceRoutes.get('/getallpayments/:companyIdParam', requireAuth, roleAuthorisat
     };
     return res.status(200).send(response);
 });
-invoiceRoutes.put('/deleteonepayment/:companyIdParam', requireAuth, roleAuthorisation('printables', 'delete'), async (req, res) => {
+invoiceRoutes.put('/deleteonepayment/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'delete'), async (req, res) => {
     const { id, invoiceRelated, creationType, stage } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -370,7 +373,7 @@ invoiceRoutes.put('/deleteonepayment/:companyIdParam', requireAuth, roleAuthoris
         return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
-invoiceRoutes.put('/deletemanypayments/:companyIdParam', requireAuth, roleAuthorisation('printables', 'delete'), async (req, res) => {
+invoiceRoutes.put('/deletemanypayments/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'delete'), async (req, res) => {
     const { ids } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;

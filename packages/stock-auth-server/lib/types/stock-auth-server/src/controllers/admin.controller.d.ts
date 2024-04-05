@@ -7,54 +7,8 @@ export declare const defineAdmin: () => {
     name: string;
     admin: boolean;
     permissions: {
-        orders: {
-            create: boolean;
-            read: boolean;
-            update: boolean;
-            delete: boolean;
-        };
-        payments: {
-            create: boolean;
-            read: boolean;
-            update: boolean;
-            delete: boolean;
-        };
-        users: {
-            create: boolean;
-            read: boolean;
-            update: boolean;
-            delete: boolean;
-        };
-        items: {
-            create: boolean;
-            read: boolean;
-            update: boolean;
-            delete: boolean;
-        };
-        faqs: {
-            create: boolean;
-            read: boolean;
-            update: boolean;
-            delete: boolean;
-        };
-        videos: {
-            create: boolean;
-            read: boolean;
-            update: boolean;
-            delete: boolean;
-        };
-        printables: {
-            create: boolean;
-            read: boolean;
-            update: boolean;
-            delete: boolean;
-        };
-        buyer: {
-            create: boolean;
-            read: boolean;
-            update: boolean;
-            delete: boolean;
-        };
+        buyer: boolean;
+        companyAdminAccess: boolean;
     };
 };
 /**

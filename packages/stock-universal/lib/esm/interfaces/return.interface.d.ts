@@ -1,4 +1,4 @@
-import { Icompany, Iuser } from './general.interface';
+import { Icompany, IcompanySubscription, Iuser } from './general.interface';
 /**
  * Represents the response object for a successful operation.
  */
@@ -64,6 +64,8 @@ export interface Iauthresponse {
      * The response status, if any.
      */
     status?: number;
+    /** */
+    activeSubscription?: IcompanySubscription;
 }
 export interface IdataArrayResponse {
     count: number;

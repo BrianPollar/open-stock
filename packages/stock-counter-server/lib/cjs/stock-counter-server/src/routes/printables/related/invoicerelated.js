@@ -1,15 +1,15 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteAllLinked = exports.deleteManyInvoiceRelated = exports.makeInvoiceRelatedPdct = exports.relegateInvRelatedCreation = exports.updateInvoiceRelated = exports.updateInvoiceRelatedPayments = void 0;
+const stock_auth_server_1 = require("@open-stock/stock-auth-server");
+const stock_notif_server_1 = require("@open-stock/stock-notif-server");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
+const log4js_1 = require("log4js");
 const deliverynote_model_1 = require("../../../models/printables/deliverynote.model");
 const estimate_model_1 = require("../../../models/printables/estimate.model");
 const invoice_model_1 = require("../../../models/printables/invoice.model");
 const receipt_model_1 = require("../../../models/printables/receipt.model");
 const invoicerelated_model_1 = require("../../../models/printables/related/invoicerelated.model");
-const log4js_1 = require("log4js");
-const stock_notif_server_1 = require("@open-stock/stock-notif-server");
-const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const stock_counter_local_1 = require("../../../stock-counter-local");
 /**
  * Logger for the 'InvoiceRelated' routes.
@@ -214,7 +214,7 @@ const relegateInvRelatedCreation = async (invoiceRelated, queryId, extraNotifDes
                 .lean().select({ permissions: 1 });
             const ids = [];
             for (const cuser of capableUsers) {
-                if (cuser.permissions.printables) {
+                if (cuser.permissions.invoices) {
                     ids.push(cuser._id);
                 }
             }

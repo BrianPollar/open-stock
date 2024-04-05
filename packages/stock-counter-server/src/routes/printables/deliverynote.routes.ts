@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
 
-import { userLean } from '@open-stock/stock-auth-server';
+import { requireActiveCompany, requireCanUseFeature, requireUpdateSubscriptionRecord, userLean } from '@open-stock/stock-auth-server';
 import { Icustomrequest, IdataArrayResponse, IinvoiceRelated, Isuccess, Iuser } from '@open-stock/stock-universal';
 import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
@@ -8,7 +8,6 @@ import { getLogger } from 'log4js';
 import { deliveryNoteLean, deliveryNoteMain } from '../../models/printables/deliverynote.model';
 import { receiptLean } from '../../models/printables/receipt.model';
 import { invoiceRelatedLean } from '../../models/printables/related/invoicerelated.model';
-import { requireActiveCompany, requireCanUseFeature } from '../misc/company-auth';
 import {
   deleteAllLinked,
   makeInvoiceRelatedPdct,
@@ -37,7 +36,7 @@ export const deliveryNoteRoutes = express.Router();
  * @param {Object} res - Express response object
  * @returns {Object} Success status and saved delivery note data
  */
-deliveryNoteRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('printables', 'create'), async(req, res) => {
+deliveryNoteRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('delivery-note'), roleAuthorisation('deliveryNotes', 'create'), async(req, res, next) => {
   const { deliveryNote, invoiceRelated } = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -76,8 +75,8 @@ deliveryNoteRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCom
     return res.status(403).send(errResponse);
   }
   await updateInvoiceRelated(invoiceRelated, companyId);
-  return res.status(200).send({ success: Boolean(saved) });
-});
+  return next();
+}, requireUpdateSubscriptionRecord);
 
 /**
  * Route to get a delivery note by UR ID
@@ -90,7 +89,7 @@ deliveryNoteRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCom
  * @param {Object} res - Express response object
  * @returns {Object} Delivery note data with related invoice data
  */
-deliveryNoteRoutes.get('/getone/:urId/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('printables', 'read'), async(req, res) => {
+deliveryNoteRoutes.get('/getone/:urId/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('deliveryNotes', 'read'), async(req, res) => {
   const { urId } = req.params;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -133,7 +132,7 @@ deliveryNoteRoutes.get('/getone/:urId/:companyIdParam', requireAuth, requireActi
  * @param {Object} res - Express response object
  * @returns {Array} Array of delivery note data with related invoice data
  */
-deliveryNoteRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('printables', 'read'), async(req, res) => {
+deliveryNoteRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('deliveryNotes', 'read'), async(req, res) => {
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -184,7 +183,7 @@ deliveryNoteRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, re
  * @param {Object} res - Express response object
  * @returns {Object} Success status of the deletion operation
  */
-deliveryNoteRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('printables', 'delete'), async(req, res) => {
+deliveryNoteRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('deliveryNotes', 'delete'), async(req, res) => {
   const { id, invoiceRelated, creationType, stage } = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -216,7 +215,7 @@ deliveryNoteRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveC
  * @param {Object} res - Express response object
  * @returns {Array} Array of delivery note data with related invoice data
  */
-deliveryNoteRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('printables', 'read'), async(req, res) => {
+deliveryNoteRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('deliveryNotes', 'read'), async(req, res) => {
   const { searchterm, searchKey } = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -251,7 +250,7 @@ deliveryNoteRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, r
 });
 
 
-deliveryNoteRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('printables', 'delete'), async(req, res) => {
+deliveryNoteRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('deliveryNotes', 'delete'), async(req, res) => {
   const { credentials } = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;

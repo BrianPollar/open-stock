@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
+import { requireActiveCompany } from '@open-stock/stock-auth-server';
 import { makeRandomString } from '@open-stock/stock-universal';
 import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
@@ -21,7 +22,7 @@ export const promocodeRoutes = express.Router();
  * @param {string} roomId - ID of the room the promocode applies to
  * @returns {Promise<Isuccess>} - Promise representing the success or failure of the operation
  */
-promocodeRoutes.post('/create/:companyIdParam', requireAuth, roleAuthorisation('items', 'create'), async (req, res) => {
+promocodeRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('items', 'create'), async (req, res) => {
     const { items, amount, roomId } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -76,7 +77,7 @@ promocodeRoutes.post('/create/:companyIdParam', requireAuth, roleAuthorisation('
  * @param {string} id - ID of the promocode to retrieve
  * @returns {Promise<object>} - Promise representing the retrieved promocode
  */
-promocodeRoutes.get('/getone/:id/:companyIdParam', requireAuth, roleAuthorisation('items', 'read'), async (req, res) => {
+promocodeRoutes.get('/getone/:id/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('items', 'read'), async (req, res) => {
     const { id } = req.params;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -120,7 +121,7 @@ promocodeRoutes.get('/getonebycode/:code/:companyIdParam', requireAuth, async (r
  * @param {string} limit - Limit for pagination
  * @returns {Promise<object[]>} - Promise representing the retrieved promocodes
  */
-promocodeRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, roleAuthorisation('items', 'read'), async (req, res) => {
+promocodeRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('items', 'read'), async (req, res) => {
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -152,7 +153,7 @@ promocodeRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, roleA
  * @param {string} id - ID of the promocode to delete
  * @returns {Promise<Isuccess>} - Promise representing the success or failure of the operation
  */
-promocodeRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, roleAuthorisation('items', 'delete'), async (req, res) => {
+promocodeRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('items', 'delete'), async (req, res) => {
     const { id } = req.params;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;

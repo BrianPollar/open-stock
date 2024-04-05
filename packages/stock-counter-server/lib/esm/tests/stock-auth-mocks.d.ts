@@ -1,6 +1,6 @@
-import { IdeleteCredentialsLocalUser, IfileMeta, IcompanyPerm, IpermProp, Iuserperm, Iaddress } from '@open-stock/stock-universal';
-import { User } from '../stock-auth-client/src/defines/user.define';
+import { Iaddress, IcompanyPerm, IdeleteCredentialsLocalUser, IfileMeta, IpermProp, Iuserperm } from '@open-stock/stock-universal';
 import { Company } from '../stock-auth-client/src/defines/company.define';
+import { User } from '../stock-auth-client/src/defines/user.define';
 export declare const createPermProp: (state?: string) => IpermProp;
 /** createMockUserperm  function: This function takes a state parameter and returns an object representing user permissions. The permissions object is based on the state value, where each permission is set to  true  if the state is not equal to 'normal', and  false  otherwise*/
 export declare const createMockUserperm: (state?: string) => Iuserperm;

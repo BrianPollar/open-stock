@@ -30,7 +30,7 @@ exports.deliveryNoteRoutes = express_1.default.Router();
  * @param {Object} res - Express response object
  * @returns {Object} Success status and saved delivery note data
  */
-exports.deliveryNoteRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'create'), async (req, res) => {
+exports.deliveryNoteRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_auth_server_1.requireCanUseFeature)('delivery-note'), (0, stock_universal_server_1.roleAuthorisation)('deliveryNotes', 'create'), async (req, res, next) => {
     const { deliveryNote, invoiceRelated } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -69,8 +69,8 @@ exports.deliveryNoteRoutes.post('/create/:companyIdParam', stock_universal_serve
         return res.status(403).send(errResponse);
     }
     await (0, invoicerelated_1.updateInvoiceRelated)(invoiceRelated, companyId);
-    return res.status(200).send({ success: Boolean(saved) });
-});
+    return next();
+}, stock_auth_server_1.requireUpdateSubscriptionRecord);
 /**
  * Route to get a delivery note by UR ID
  * @name GET /getone/:urId
@@ -82,7 +82,7 @@ exports.deliveryNoteRoutes.post('/create/:companyIdParam', stock_universal_serve
  * @param {Object} res - Express response object
  * @returns {Object} Delivery note data with related invoice data
  */
-exports.deliveryNoteRoutes.get('/getone/:urId/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'read'), async (req, res) => {
+exports.deliveryNoteRoutes.get('/getone/:urId/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('deliveryNotes', 'read'), async (req, res) => {
     const { urId } = req.params;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -122,7 +122,7 @@ exports.deliveryNoteRoutes.get('/getone/:urId/:companyIdParam', stock_universal_
  * @param {Object} res - Express response object
  * @returns {Array} Array of delivery note data with related invoice data
  */
-exports.deliveryNoteRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'read'), async (req, res) => {
+exports.deliveryNoteRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('deliveryNotes', 'read'), async (req, res) => {
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -171,7 +171,7 @@ exports.deliveryNoteRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_u
  * @param {Object} res - Express response object
  * @returns {Object} Success status of the deletion operation
  */
-exports.deliveryNoteRoutes.put('/deleteone/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'delete'), async (req, res) => {
+exports.deliveryNoteRoutes.put('/deleteone/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('deliveryNotes', 'delete'), async (req, res) => {
     const { id, invoiceRelated, creationType, stage } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -203,7 +203,7 @@ exports.deliveryNoteRoutes.put('/deleteone/:companyIdParam', stock_universal_ser
  * @param {Object} res - Express response object
  * @returns {Array} Array of delivery note data with related invoice data
  */
-exports.deliveryNoteRoutes.post('/search/:limit/:offset/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'read'), async (req, res) => {
+exports.deliveryNoteRoutes.post('/search/:limit/:offset/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('deliveryNotes', 'read'), async (req, res) => {
     const { searchterm, searchKey } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -235,7 +235,7 @@ exports.deliveryNoteRoutes.post('/search/:limit/:offset/:companyIdParam', stock_
     };
     return res.status(200).send(response);
 });
-exports.deliveryNoteRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'delete'), async (req, res) => {
+exports.deliveryNoteRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('deliveryNotes', 'delete'), async (req, res) => {
     const { credentials } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;

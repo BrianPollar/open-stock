@@ -6,15 +6,15 @@
  */
 /* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable @typescript-eslint/no-misused-promises */
-import express, { Request, Response, NextFunction } from 'express';
-import { getLogger } from 'log4js';
-import { generateToken, sendTokenEmail, sendTokenPhone, setUserInfo } from '../controllers/universial.controller';
-import { user } from '../models/user.model';
-import { Iauthresponse, Iauthtoken, Isuccess, Iuser, Iuserperm } from '@open-stock/stock-universal';
+import { Iauthresponse, Iauthtoken, Icustomrequest, Isuccess, Iuser, Iuserperm } from '@open-stock/stock-universal';
 import { makeUrId, stringifyMongooseErr } from '@open-stock/stock-universal-server';
-import { stockAuthConfig } from '../stock-auth-local';
+import express, { NextFunction, Request, Response } from 'express';
+import { getLogger } from 'log4js';
 import { Document } from 'mongoose';
+import { generateToken, sendTokenEmail, sendTokenPhone, setUserInfo } from '../controllers/universial.controller';
 import { companyMain } from '../models/company.model';
+import { user } from '../models/user.model';
+import { stockAuthConfig } from '../stock-auth-local';
 // import { notifConfig } from '../../config/notif.config';
 // import { createNotifications, NotificationController } from '../controllers/notifications.controller';
 // const passport = require('passport');
@@ -36,7 +36,7 @@ const authLogger = getLogger('routes/auth');
  * @param next - The next function.
  * @returns A Promise that resolves to void.
  */
-export const loginFactorRelgator = async(req: Request, res: Response, next: NextFunction) => {
+export const signupFactorRelgator = async(req: Request, res: Response, next: NextFunction) => {
   const { emailPhone } = req.body.user;
   const from = req.body.from;
   const passwd = req.body.passwd;
@@ -85,46 +85,16 @@ export const loginFactorRelgator = async(req: Request, res: Response, next: Next
     count = await companyMain
     // eslint-disable-next-line @typescript-eslint/naming-convention
       .find({ }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
-    const permProp = {
-      create: true,
-      read: true,
-      update: true,
-      delete: true
-    };
     permissions = {
-      orders: permProp,
-      payments: permProp,
-      users: permProp,
-      items: permProp,
-      faqs: permProp,
-      videos: permProp,
-      printables: permProp,
-      buyer: permProp
+      companyAdminAccess: true
     };
   } else {
     count = await user
     // eslint-disable-next-line @typescript-eslint/naming-convention
       .find({ }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
-    const permProp = {
-      create: false,
-      read: false,
-      update: false,
-      delete: false
-    };
     permissions = {
-      orders: permProp,
-      payments: permProp,
-      users: permProp,
-      items: permProp,
-      faqs: permProp,
-      videos: permProp,
-      printables: permProp,
-      buyer: {
-        create: true,
-        read: true,
-        update: true,
-        delete: true
-      }
+      buyer: true,
+      companyAdminAccess: false
     };
   }
 
@@ -208,21 +178,8 @@ superAdminRoutes.post('/login', (req, res) => {
   const secret = process.env['accessKey'] ;
   const password = req.body.password;
   if (password === secret) {
-    const permProp = {
-      create: true,
-      read: true,
-      update: true,
-      delete: true
-    };
     const permissions = {
-      orders: permProp,
-      payments: permProp,
-      users: permProp,
-      items: permProp,
-      faqs: permProp,
-      videos: permProp,
-      printables: permProp,
-      buyer: permProp
+      companyAdminAccess: true
     };
     // delete user.password; //we do not want to send back password
     const userInfo: Iauthtoken = setUserInfo(
@@ -259,8 +216,18 @@ superAdminRoutes.post('/login', (req, res) => {
     } as Iauthresponse;
     return res.status(200).send(nowResponse);
   } else {
-    return res.status(401).send({ err: 'unauthourized ' });
+    return res.status(401).send({ success: false, err: 'unauthourized' });
   }
 });
 
-
+export const requireSuperAdmin = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const { userId } = (req as Icustomrequest).user;
+  if (userId !== 'superAdmin') {
+    return res.status(401).send({ success: false, err: 'unauthourized' });
+  }
+  return next();
+};

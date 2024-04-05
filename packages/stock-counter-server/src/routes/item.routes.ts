@@ -25,7 +25,7 @@
  * @requires itemOfferMain
  * @requires itemDecoyMain
  */
-import { companyLean } from '@open-stock/stock-auth-server';
+import { companyLean, requireActiveCompany, requireCanUseFeature, requireUpdateSubscriptionRecord } from '@open-stock/stock-auth-server';
 import { Icustomrequest, IdataArrayResponse, IfileMeta, Isuccess, makeRandomString } from '@open-stock/stock-universal';
 import { appendBody, deleteFiles, fileMetaLean, makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, saveMetaToDb, stringifyMongooseErr, uploadFiles, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express, { Request, Response } from 'express';
@@ -34,7 +34,6 @@ import { itemLean, itemMain } from '../models/item.model';
 import { itemDecoyMain } from '../models/itemdecoy.model';
 import { itemOfferMain } from '../models/itemoffer.model';
 import { reviewLean } from '../models/review.model';
-import { requireActiveCompany, requireCanUseFeature } from './misc/company-auth';
 
 /** The logger for the item routes */
 const itemRoutesLogger = getLogger('routes/itemRoutes');
@@ -166,7 +165,7 @@ export const removeReview = async(req: Request, res: Response): Promise<Response
  * @param {Response} res - The express response object
  * @returns {Promise<Response>} - The express response object with a success status and saved item data
  */
-itemRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('items', 'create'), uploadFiles, appendBody, saveMetaToDb, async(req, res): Promise<Response> => {
+itemRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('item'), roleAuthorisation('items', 'create'), uploadFiles, appendBody, saveMetaToDb, async(req, res, next): Promise<Response> => {
   const item = req.body.item;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -206,8 +205,11 @@ itemRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, re
   if (errResponse) {
     return res.status(403).send(errResponse);
   }
-  return res.status(200).send({ success: Boolean(saved) });
-});
+  if (!Boolean(saved)) {
+    return res.status(403).send('unknown error');
+  }
+  return next();
+}, requireUpdateSubscriptionRecord);
 
 /**
  * Updates an existing item
@@ -219,7 +221,7 @@ itemRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, re
  * @param {Response} res - The express response object
  * @returns {Promise<Response>} - The express response object with a success status
  */
-itemRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('items', 'update'), async(req, res): Promise<Response> => {
+itemRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('items', 'update'), async(req, res): Promise<Response> => {
   const updatedProduct = req.body.item;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -274,7 +276,7 @@ itemRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCompany, req
   return res.status(200).send({ success: Boolean(updated) });
 });
 
-itemRoutes.post('/updateimg/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('items', 'update'), uploadFiles, appendBody, saveMetaToDb, async(req, res) => {
+itemRoutes.post('/updateimg/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('items', 'update'), uploadFiles, appendBody, saveMetaToDb, async(req, res) => {
   const updatedProduct = req.body.item;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -861,7 +863,7 @@ itemRoutes.get('/getoffered/:companyIdParam', async(req, res) => {
   return res.status(200).send(filtered);
 });
 
-itemRoutes.put('/addsponsored/:id/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('items', 'update'), deleteFiles, async(req, res) => {
+itemRoutes.put('/addsponsored/:id/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('items', 'update'), deleteFiles, async(req, res) => {
   const { id } = req.params;
   const { sponsored } = req.body;
   const { companyId } = (req as Icustomrequest).user;
@@ -898,7 +900,7 @@ itemRoutes.put('/addsponsored/:id/:companyIdParam', requireAuth, requireActiveCo
   return res.status(200).send({ success: true });
 });
 
-itemRoutes.put('/updatesponsored/:id/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('items', 'update'), deleteFiles, async(req, res) => {
+itemRoutes.put('/updatesponsored/:id/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('items', 'update'), deleteFiles, async(req, res) => {
   const { id } = req.params;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -940,7 +942,7 @@ itemRoutes.put('/updatesponsored/:id/:companyIdParam', requireAuth, requireActiv
   return res.status(200).send({ success: true });
 });
 
-itemRoutes.delete('/deletesponsored/:id/:spnsdId/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('items', 'delete'), deleteFiles, async(req, res) => {
+itemRoutes.delete('/deletesponsored/:id/:spnsdId/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('items', 'delete'), deleteFiles, async(req, res) => {
   const { id, spnsdId } = req.params;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -982,7 +984,7 @@ itemRoutes.delete('/deletesponsored/:id/:spnsdId/:companyIdParam', requireAuth, 
 });
 
 
-itemRoutes.put('/deleteone/:id/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('items', 'delete'), deleteFiles, async(req, res) => {
+itemRoutes.put('/deleteone/:id/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('items', 'delete'), deleteFiles, async(req, res) => {
   const { id } = req.params;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -1000,7 +1002,7 @@ itemRoutes.put('/deleteone/:id/:companyIdParam', requireAuth, requireActiveCompa
   }
 });
 
-itemRoutes.put('/deleteimages/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('items', 'delete'), deleteFiles, async(req, res) => {
+itemRoutes.put('/deleteimages/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('items', 'delete'), deleteFiles, async(req, res) => {
   const filesWithDir: IfileMeta[] = req.body.filesWithDir;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -1133,7 +1135,7 @@ itemRoutes.post('/search/:limit/:offset/:companyIdParam', async(req, res) => {
   return res.status(200).send(response);
 });
 
-itemRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('items', 'delete'), deleteFiles, async(req, res) => {
+itemRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('items', 'delete'), deleteFiles, async(req, res) => {
   const { ids } = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;

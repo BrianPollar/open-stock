@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
-import { loginFactorRelgator, userLean } from '@open-stock/stock-auth-server';
+import { loginFactorRelgator, requireActiveCompany, requireCanUseFeature, requireUpdateSubscriptionRecord, userLean } from '@open-stock/stock-auth-server';
 import { deleteFiles, fileMetaLean, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { getLogger } from 'log4js';
@@ -10,7 +10,7 @@ const staffRoutesLogger = getLogger('routes/staffRoutes');
  * Router for staff related routes.
  */
 export const staffRoutes = express.Router();
-staffRoutes.post('/create/:companyIdParam', requireAuth, roleAuthorisation('users', 'create'), loginFactorRelgator, async (req, res) => {
+staffRoutes.post('/create/:companyIdParam', requireAuth, requireCanUseFeature('report'), roleAuthorisation('users', 'create'), loginFactorRelgator, async (req, res, next) => {
     const staff = req.body.staff;
     const newStaff = new staffMain(staff);
     let errResponse;
@@ -38,8 +38,8 @@ staffRoutes.post('/create/:companyIdParam', requireAuth, roleAuthorisation('user
     if (errResponse) {
         return res.status(403).send(errResponse);
     }
-    return res.status(200).send({ success: Boolean(saved) });
-});
+    return next();
+}, requireUpdateSubscriptionRecord);
 staffRoutes.get('/getone/:id/:companyIdParam', async (req, res) => {
     const { id } = req.params;
     const { companyId } = req.user;
@@ -177,7 +177,7 @@ staffRoutes.post('/search/:limit/:offset/:companyIdParam', async (req, res) => {
     };
     return res.status(200).send(response);
 });
-staffRoutes.put('/update/:companyIdParam', requireAuth, roleAuthorisation('users', 'update'), async (req, res) => {
+staffRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('users', 'update'), async (req, res) => {
     const updatedStaff = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -220,7 +220,7 @@ staffRoutes.put('/update/:companyIdParam', requireAuth, roleAuthorisation('users
     }
     return res.status(200).send({ success: Boolean(updated) });
 });
-staffRoutes.put('/deleteone/:companyIdParam', requireAuth, roleAuthorisation('users', 'delete'), removeOneUser, deleteFiles, async (req, res) => {
+staffRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('users', 'delete'), removeOneUser, deleteFiles, async (req, res) => {
     const { id } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -238,7 +238,7 @@ staffRoutes.put('/deleteone/:companyIdParam', requireAuth, roleAuthorisation('us
         return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
-staffRoutes.put('/deletemany/:companyIdParam', requireAuth, roleAuthorisation('users', 'delete'), removeManyUsers, deleteFiles, async (req, res) => {
+staffRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('users', 'delete'), removeManyUsers, deleteFiles, async (req, res) => {
     const { ids } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;

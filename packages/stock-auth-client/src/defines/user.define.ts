@@ -42,62 +42,7 @@ export class User extends DatabaseAuto {
   subAdmin = false;
   /** The user's permissions. */
   permissions: Iuserperm = {
-    /** Whether the user has permission to view orders. */
-    orders: {
-      create: false,
-      read: false,
-      update: false,
-      delete: false
-    },
-    /** Whether the user has permission to view payments. */
-    payments: {
-      create: false,
-      read: false,
-      update: false,
-      delete: false
-    },
-    /** Whether the user has permission to view other users. */
-    users: {
-      create: false,
-      read: false,
-      update: false,
-      delete: false
-    },
-    /** Whether the user has permission to view items. */
-    items: {
-      create: false,
-      read: false,
-      update: false,
-      delete: false
-    },
-    /** Whether the user has permission to view FAQs. */
-    faqs: {
-      create: false,
-      read: false,
-      update: false,
-      delete: false
-    },
-    /** Whether the user has permission to view videos. */
-    videos: {
-      create: false,
-      read: false,
-      update: false,
-      delete: false
-    },
-    /** Whether the user has permission to view printables. */
-    printables: {
-      create: false,
-      read: false,
-      update: false,
-      delete: false
-    },
-    /** Whether the user is a buyer. */
-    buyer: {
-      create: true,
-      read: true,
-      update: true,
-      delete: true
-    }
+    companyAdminAccess: false
   };
   /** The user's phone number. */
   phone: number;

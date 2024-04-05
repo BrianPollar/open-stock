@@ -14,7 +14,7 @@ import { itemLean } from '../models/item.model';
 import { invoiceRelatedLean, invoiceRelatedMain } from '../models/printables/related/invoicerelated.model';
 import { deleteAllPayOrderLinked, makePaymentInstall, makePaymentRelatedPdct, relegatePaymentRelatedCreation, updatePaymentRelated } from './paymentrelated/paymentrelated';
 // import * as url from 'url';
-import { userLean } from '@open-stock/stock-auth-server';
+import { requireActiveCompany, userLean } from '@open-stock/stock-auth-server';
 import { fileMetaLean, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import { getLogger } from 'log4js';
 import { receiptLean } from '../models/printables/receipt.model';
@@ -166,7 +166,7 @@ paymentRoutes.get('/getone/:id/:companyIdParam', requireAuth, async (req, res) =
     }
     return res.status(200).send(returned);
 });
-paymentRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, roleAuthorisation('payments', 'read'), async (req, res) => {
+paymentRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('payments', 'read'), async (req, res) => {
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -264,7 +264,7 @@ paymentRoutes.put('/deleteone/:companyIdParam', requireAuth, async (req, res) =>
         return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
-paymentRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, roleAuthorisation('payments', 'read'), async (req, res) => {
+paymentRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('payments', 'read'), async (req, res) => {
     const { searchterm, searchKey } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -304,7 +304,7 @@ paymentRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, roleAu
     };
     return res.status(200).send(response);
 });
-paymentRoutes.put('/deletemany/:companyIdParam', requireAuth, roleAuthorisation('payments', 'delete'), async (req, res) => {
+paymentRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('payments', 'delete'), async (req, res) => {
     const { credentials } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;

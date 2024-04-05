@@ -1,4 +1,5 @@
-import { offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { requireActiveCompany } from '@open-stock/stock-auth-server';
+import { offsetLimitRelegator, requireAuth, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { getLogger } from 'log4js';
 import { pickupLocationLean, pickupLocationMain } from '../../models/printables/pickuplocation.model';
@@ -20,7 +21,7 @@ export const pickupLocationRoutes = express.Router();
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>}
  */
-pickupLocationRoutes.post('/create/:companyIdParam', requireAuth, roleAuthorisation('printables', 'create'), async (req, res) => {
+pickupLocationRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, async (req, res) => {
     const pickupLocation = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -59,7 +60,7 @@ pickupLocationRoutes.post('/create/:companyIdParam', requireAuth, roleAuthorisat
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>}
  */
-pickupLocationRoutes.put('/update/:companyIdParam', requireAuth, roleAuthorisation('printables', 'update'), async (req, res) => {
+pickupLocationRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCompany, async (req, res) => {
     const updatedPickupLocation = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -109,7 +110,7 @@ pickupLocationRoutes.put('/update/:companyIdParam', requireAuth, roleAuthorisati
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>}
  */
-pickupLocationRoutes.get('/getone/:id/:companyIdParam', requireAuth, roleAuthorisation('printables', 'read'), async (req, res) => {
+pickupLocationRoutes.get('/getone/:id/:companyIdParam', requireAuth, requireActiveCompany, async (req, res) => {
     const { id } = req.params;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -134,7 +135,7 @@ pickupLocationRoutes.get('/getone/:id/:companyIdParam', requireAuth, roleAuthori
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>}
  */
-pickupLocationRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, roleAuthorisation('printables', 'read'), async (req, res) => {
+pickupLocationRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, async (req, res) => {
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -163,7 +164,7 @@ pickupLocationRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, 
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>}
  */
-pickupLocationRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, async (req, res) => {
+pickupLocationRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, requireActiveCompany, async (req, res) => {
     const { id } = req.params;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -191,7 +192,7 @@ pickupLocationRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, async
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>}
  */
-pickupLocationRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, roleAuthorisation('printables', 'read'), async (req, res) => {
+pickupLocationRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, requireActiveCompany, async (req, res) => {
     const { searchterm, searchKey } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -221,7 +222,7 @@ pickupLocationRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth,
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>}
  */
-pickupLocationRoutes.put('/deletemany/:companyIdParam', requireAuth, roleAuthorisation('printables', 'delete'), async (req, res) => {
+pickupLocationRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, async (req, res) => {
     const { ids } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;

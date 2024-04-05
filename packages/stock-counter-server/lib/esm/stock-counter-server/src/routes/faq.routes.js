@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
+import { requireActiveCompany } from '@open-stock/stock-auth-server';
 import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { getLogger } from 'log4js';
@@ -160,7 +161,7 @@ faqRoutes.delete('/deleteone/:id/:companyIdParam', async (req, res) => {
  * @param {Object} res - Express response object
  * @returns {Object} Success status and saved FAQ answer object
  */
-faqRoutes.post('/createans/:companyIdParam', requireAuth, roleAuthorisation('faqs', 'create'), async (req, res) => {
+faqRoutes.post('/createans/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('faqs', 'create'), async (req, res) => {
     const faq = req.body.faq;
     // const { companyId } = (req as Icustomrequest).user;
     const { companyIdParam } = req.params;
@@ -228,7 +229,7 @@ faqRoutes.get('/getallans/:faqId/:companyIdParam', async (req, res) => {
  * @param {Object} res - Express response object
  * @returns {Object} Success status and deleted FAQ answer object
  */
-faqRoutes.delete('/deleteoneans/:id/:companyIdParam', requireAuth, roleAuthorisation('faqs', 'delete'), async (req, res) => {
+faqRoutes.delete('/deleteoneans/:id/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('faqs', 'delete'), async (req, res) => {
     const { id } = req.params;
     // const { companyId } = (req as Icustomrequest).user;
     const { companyIdParam } = req.params;

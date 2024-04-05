@@ -5,29 +5,12 @@ const adminLogger = getLogger('controllers/AdminauthController');
  * @returns An admin object with the name "admin" and admin permissions for various actions.
  */
 export const defineAdmin = () => {
-    const permProp = {
-        create: true,
-        read: true,
-        update: true,
-        delete: true
-    };
     return {
         name: 'admin',
         admin: true,
         permissions: {
-            orders: permProp,
-            payments: permProp,
-            users: permProp,
-            items: permProp,
-            faqs: permProp,
-            videos: permProp,
-            printables: permProp,
-            buyer: {
-                create: false,
-                read: false,
-                update: false,
-                delete: false
-            }
+            buyer: false,
+            companyAdminAccess: true
         }
     };
 };

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
 
-import { userAboutSelect, userLean } from '@open-stock/stock-auth-server';
+import { requireActiveCompany, userAboutSelect, userLean } from '@open-stock/stock-auth-server';
 import { Icustomrequest, IdataArrayResponse, IinvoiceRelated, IpaymentRelated, Isuccess, Iuser } from '@open-stock/stock-universal';
 import { fileMetaLean, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
@@ -11,7 +11,6 @@ import { orderLean, orderMain } from '../models/order.model';
 import { paymentRelatedLean } from '../models/printables/paymentrelated/paymentrelated.model';
 import { receiptLean } from '../models/printables/receipt.model';
 import { invoiceRelatedLean } from '../models/printables/related/invoicerelated.model';
-import { requireActiveCompany, requireCanUseFeature } from './misc/company-auth';
 import {
   deleteAllPayOrderLinked,
   makePaymentRelatedPdct,
@@ -262,7 +261,7 @@ orderRoutes.get('/getone/:id/:companyIdParam', requireAuth, async(req, res) => {
   return res.status(200).send(returned);
 });
 
-orderRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('orders', 'read'), async(req, res) => {
+orderRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('orders', 'read'), async(req, res) => {
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -363,7 +362,7 @@ orderRoutes.put('/deleteone/:companyIdParam', requireAuth, async(req, res) => {
   }
 });
 
-orderRoutes.put('/appendDelivery/:orderId/:status/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('orders', 'update'), async(req, res) => {
+orderRoutes.put('/appendDelivery/:orderId/:status/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('orders', 'update'), async(req, res) => {
   const { orderId } = req.params;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -400,7 +399,7 @@ orderRoutes.put('/appendDelivery/:orderId/:status/:companyIdParam', requireAuth,
   return res.status(200).send({ success: true });
 });
 
-orderRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('orders', 'read'), async(req, res) => {
+orderRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('orders', 'read'), async(req, res) => {
   const { searchterm, searchKey } = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -452,7 +451,7 @@ orderRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, requireA
   return res.status(200).send(response);
 });
 
-orderRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('feature'), roleAuthorisation('orders', 'delete'), async(req, res) => {
+orderRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('orders', 'delete'), async(req, res) => {
   const { credentials } = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;

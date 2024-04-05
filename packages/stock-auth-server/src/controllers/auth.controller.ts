@@ -249,54 +249,7 @@ export const loginFactorRelgator = async(req, res, next) => {
   const urId = makeUrId(Number(count[0]?.urId || '0'));
 
   const permissions: Iuserperm = {
-    orders: {
-      create: false,
-      read: false,
-      update: false,
-      delete: false
-    },
-    payments: {
-      create: false,
-      read: false,
-      update: false,
-      delete: false
-    },
-    users: {
-      create: false,
-      read: false,
-      update: false,
-      delete: false
-    },
-    items: {
-      create: false,
-      read: false,
-      update: false,
-      delete: false
-    },
-    faqs: {
-      create: false,
-      read: false,
-      update: false,
-      delete: false
-    },
-    videos: {
-      create: false,
-      read: false,
-      update: false,
-      delete: false
-    },
-    printables: {
-      create: false,
-      read: false,
-      update: false,
-      delete: false
-    },
-    buyer: {
-      create: true,
-      read: true,
-      update: true,
-      delete: true
-    }
+    companyAdminAccess: false
   };
 
   const expireAt = Date.now();

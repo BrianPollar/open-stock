@@ -51,11 +51,13 @@ export const roleAuthorisation = (nowRole: TroleAuth, permProp: TroleAuthProp) =
     res,
     next) => {
     // Get the user's permissions from the request object.
-    const { permissions, companyPermissions } = (req as Icustomrequest).user;
+    const { permissions } = (req as Icustomrequest).user;
 
-
+    if (nowRole !== 'buyer' && permissions.companyAdminAccess) {
+      return next();
+    }
     // If the user has the required permission, then call the next middleware function.
-    if (permissions[nowRole] &&
+    if (permissions[nowRole] === true || permissions[nowRole] &&
         permissions[nowRole][permProp] &&
         permissions[nowRole][permProp] === true) {
       passportLogger.debug('roleAuthorisation - permissions', permissions);

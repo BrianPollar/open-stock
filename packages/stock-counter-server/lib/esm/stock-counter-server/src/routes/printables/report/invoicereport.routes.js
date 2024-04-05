@@ -1,3 +1,4 @@
+import { requireActiveCompany, requireCanUseFeature, requireUpdateSubscriptionRecord } from '@open-stock/stock-auth-server';
 import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { getLogger } from 'log4js';
@@ -19,7 +20,7 @@ export const invoicesReportRoutes = express.Router();
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware
  */
-invoicesReportRoutes.post('/create/:companyIdParam', requireAuth, roleAuthorisation('printables', 'create'), async (req, res) => {
+invoicesReportRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('report'), roleAuthorisation('reports', 'create'), async (req, res, next) => {
     const invoicesReport = req.body.invoicesReport;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -48,8 +49,8 @@ invoicesReportRoutes.post('/create/:companyIdParam', requireAuth, roleAuthorisat
     if (errResponse) {
         return res.status(403).send(errResponse);
     }
-    return res.status(200).send({ success: true });
-});
+    return next();
+}, requireUpdateSubscriptionRecord);
 /**
  * Route to get a single invoices report by urId
  * @name GET /getone/:urId
@@ -59,7 +60,7 @@ invoicesReportRoutes.post('/create/:companyIdParam', requireAuth, roleAuthorisat
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware
  */
-invoicesReportRoutes.get('/getone/:urId/:companyIdParam', requireAuth, roleAuthorisation('printables', 'read'), async (req, res) => {
+invoicesReportRoutes.get('/getone/:urId/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'read'), async (req, res) => {
     const { urId } = req.params;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -80,7 +81,7 @@ invoicesReportRoutes.get('/getone/:urId/:companyIdParam', requireAuth, roleAutho
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware
  */
-invoicesReportRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, roleAuthorisation('printables', 'read'), async (req, res) => {
+invoicesReportRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'read'), async (req, res) => {
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -110,7 +111,7 @@ invoicesReportRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, 
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware
  */
-invoicesReportRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, roleAuthorisation('printables', 'delete'), async (req, res) => {
+invoicesReportRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'delete'), async (req, res) => {
     const { id } = req.params;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -137,7 +138,7 @@ invoicesReportRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, roleA
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware
  */
-invoicesReportRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, roleAuthorisation('printables', 'read'), async (req, res) => {
+invoicesReportRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'read'), async (req, res) => {
     const { searchterm, searchKey } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -168,7 +169,7 @@ invoicesReportRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth,
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware
  */
-invoicesReportRoutes.put('/deletemany/:companyIdParam', requireAuth, roleAuthorisation('printables', 'delete'), async (req, res) => {
+invoicesReportRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'delete'), async (req, res) => {
     const { ids } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;

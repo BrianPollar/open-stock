@@ -164,7 +164,7 @@ exports.removeReview = removeReview;
  * @param {Response} res - The express response object
  * @returns {Promise<Response>} - The express response object with a success status and saved item data
  */
-exports.itemRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('items', 'create'), stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.saveMetaToDb, async (req, res) => {
+exports.itemRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_auth_server_1.requireCanUseFeature)('item'), (0, stock_universal_server_1.roleAuthorisation)('items', 'create'), stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.saveMetaToDb, async (req, res, next) => {
     const item = req.body.item;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -204,8 +204,11 @@ exports.itemRoutes.post('/create/:companyIdParam', stock_universal_server_1.requ
     if (errResponse) {
         return res.status(403).send(errResponse);
     }
-    return res.status(200).send({ success: Boolean(saved) });
-});
+    if (!Boolean(saved)) {
+        return res.status(403).send('unknown error');
+    }
+    return next();
+}, stock_auth_server_1.requireUpdateSubscriptionRecord);
 /**
  * Updates an existing item
  * @function
@@ -216,7 +219,7 @@ exports.itemRoutes.post('/create/:companyIdParam', stock_universal_server_1.requ
  * @param {Response} res - The express response object
  * @returns {Promise<Response>} - The express response object with a success status
  */
-exports.itemRoutes.put('/update/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('items', 'update'), async (req, res) => {
+exports.itemRoutes.put('/update/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'update'), async (req, res) => {
     const updatedProduct = req.body.item;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -267,7 +270,7 @@ exports.itemRoutes.put('/update/:companyIdParam', stock_universal_server_1.requi
     }
     return res.status(200).send({ success: Boolean(updated) });
 });
-exports.itemRoutes.post('/updateimg/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('items', 'update'), stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.saveMetaToDb, async (req, res) => {
+exports.itemRoutes.post('/updateimg/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'update'), stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.saveMetaToDb, async (req, res) => {
     const updatedProduct = req.body.item;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -824,7 +827,7 @@ exports.itemRoutes.get('/getoffered/:companyIdParam', async (req, res) => {
     const filtered = newItems.filter(p => p.sponsored?.length && p.sponsored?.length > 0);
     return res.status(200).send(filtered);
 });
-exports.itemRoutes.put('/addsponsored/:id/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('items', 'update'), stock_universal_server_1.deleteFiles, async (req, res) => {
+exports.itemRoutes.put('/addsponsored/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'update'), stock_universal_server_1.deleteFiles, async (req, res) => {
     const { id } = req.params;
     const { sponsored } = req.body;
     const { companyId } = req.user;
@@ -859,7 +862,7 @@ exports.itemRoutes.put('/addsponsored/:id/:companyIdParam', stock_universal_serv
     }
     return res.status(200).send({ success: true });
 });
-exports.itemRoutes.put('/updatesponsored/:id/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('items', 'update'), stock_universal_server_1.deleteFiles, async (req, res) => {
+exports.itemRoutes.put('/updatesponsored/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'update'), stock_universal_server_1.deleteFiles, async (req, res) => {
     const { id } = req.params;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -899,7 +902,7 @@ exports.itemRoutes.put('/updatesponsored/:id/:companyIdParam', stock_universal_s
     }
     return res.status(200).send({ success: true });
 });
-exports.itemRoutes.delete('/deletesponsored/:id/:spnsdId/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('items', 'delete'), stock_universal_server_1.deleteFiles, async (req, res) => {
+exports.itemRoutes.delete('/deletesponsored/:id/:spnsdId/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'delete'), stock_universal_server_1.deleteFiles, async (req, res) => {
     const { id, spnsdId } = req.params;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -938,7 +941,7 @@ exports.itemRoutes.delete('/deletesponsored/:id/:spnsdId/:companyIdParam', stock
     }
     return res.status(200).send({ success: true });
 });
-exports.itemRoutes.put('/deleteone/:id/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('items', 'delete'), stock_universal_server_1.deleteFiles, async (req, res) => {
+exports.itemRoutes.put('/deleteone/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'delete'), stock_universal_server_1.deleteFiles, async (req, res) => {
     const { id } = req.params;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -956,7 +959,7 @@ exports.itemRoutes.put('/deleteone/:id/:companyIdParam', stock_universal_server_
         return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
-exports.itemRoutes.put('/deleteimages/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('items', 'delete'), stock_universal_server_1.deleteFiles, async (req, res) => {
+exports.itemRoutes.put('/deleteimages/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'delete'), stock_universal_server_1.deleteFiles, async (req, res) => {
     const filesWithDir = req.body.filesWithDir;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -1089,7 +1092,7 @@ exports.itemRoutes.post('/search/:limit/:offset/:companyIdParam', async (req, re
     };
     return res.status(200).send(response);
 });
-exports.itemRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('items', 'delete'), stock_universal_server_1.deleteFiles, async (req, res) => {
+exports.itemRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'delete'), stock_universal_server_1.deleteFiles, async (req, res) => {
     const { ids } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;

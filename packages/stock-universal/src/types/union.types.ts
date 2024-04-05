@@ -409,9 +409,19 @@ export type TroleAuth =
   'users' |
   'items' |
   'faqs' |
-  'videos' |
-  'printables' |
-  'buyer';
+  'buyer' |
+  'customers' |
+  'staffs' |
+  'estimates' |
+  'invoices' |
+  'decoys' |
+  'offers' |
+  'jobCards' |
+  'deliveryNotes' |
+  'receipts' |
+  'expenses' |
+  'reports'
+  ;
 
 /**
  * Represents the possible values for the TroleAuthProp type.
@@ -425,3 +435,18 @@ export type TroleAuthProp =
   'read' |
   'update' |
   'delete';
+
+export type TsubscriptionFeature =
+  'customer' |
+  'staff' |
+  'estimate' |
+  'invoice' |
+  'item' |
+  'decoy' |
+  'offer' |
+  'order' |
+  'job-card' |
+  'delivery-note' |
+  'receipt' |
+  'expense' |
+  'report';

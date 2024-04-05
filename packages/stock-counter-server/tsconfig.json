@@ -10,6 +10,10 @@
     "esModuleInterop": true,
   },
   "include": [
-    "./src"
+    "./src",
+    "../stock-auth-server/src/routes/company-auth.ts",
+    "../stock-auth-server/src/models/subscriptions",
+    "../stock-auth-server/src/routes/subscriptions",
+    "../stock-auth-server/src/routes-dummy/subscriptions"
   ]
 }

@@ -2,13 +2,13 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.localUserRoutes = exports.canRemoveOneUser = exports.removeManyUsers = exports.removeOneUser = void 0;
 const tslib_1 = require("tslib");
+const stock_auth_server_1 = require("@open-stock/stock-auth-server");
+const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
+const log4js_1 = require("log4js");
 const invoicerelated_model_1 = require("../../models/printables/related/invoicerelated.model");
 const customer_model_1 = require("../../models/user-related/customer.model");
 const staff_model_1 = require("../../models/user-related/staff.model");
-const log4js_1 = require("log4js");
-const stock_universal_server_1 = require("@open-stock/stock-universal-server");
-const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 /**
  * Removes one user from the database.
  * @param req - Express Request object.
@@ -117,10 +117,10 @@ exports.canRemoveOneUser = canRemoveOneUser;
 const localUserRoutesLogger = (0, log4js_1.getLogger)('routes/customerRoutes');
 /** Express Router for local user routes. */
 exports.localUserRoutes = express_1.default.Router();
-exports.localUserRoutes.put('/deleteone/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('users', 'delete'), exports.removeOneUser, stock_universal_server_1.deleteFiles, (req, res) => {
+exports.localUserRoutes.put('/deleteone/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('users', 'delete'), exports.removeOneUser, stock_universal_server_1.deleteFiles, (req, res) => {
     return res.status(200).send({ success: true });
 });
-exports.localUserRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('users', 'delete'), exports.removeManyUsers, stock_universal_server_1.deleteFiles, (req, res) => {
+exports.localUserRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('users', 'delete'), exports.removeManyUsers, stock_universal_server_1.deleteFiles, (req, res) => {
     return res.status(200).send({ success: true });
 });
 //# sourceMappingURL=locluser.routes.js.map

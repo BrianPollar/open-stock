@@ -21,7 +21,7 @@ exports.invoiceRelateRoutes = express_1.default.Router();
  * @param id - The ID of the invoice related product to retrieve
  * @returns The retrieved invoice related product
  */
-exports.invoiceRelateRoutes.get('/getone/:id/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'read'), async (req, res) => {
+exports.invoiceRelateRoutes.get('/getone/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('invoices', 'read'), async (req, res) => {
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
@@ -49,7 +49,7 @@ exports.invoiceRelateRoutes.get('/getone/:id/:companyIdParam', stock_universal_s
  * @param limit - The maximum number of invoice related products to retrieve
  * @returns The retrieved invoice related products
  */
-exports.invoiceRelateRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'read'), async (req, res) => {
+exports.invoiceRelateRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('invoices', 'read'), async (req, res) => {
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -91,7 +91,7 @@ exports.invoiceRelateRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_
  * @param limit - The maximum number of invoice related products to retrieve
  * @returns The retrieved invoice related products
  */
-exports.invoiceRelateRoutes.post('/search/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'read'), async (req, res) => {
+exports.invoiceRelateRoutes.post('/search/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('invoices', 'read'), async (req, res) => {
     const { searchterm, searchKey } = req.body;
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const { companyId } = req.user;
@@ -131,7 +131,7 @@ exports.invoiceRelateRoutes.post('/search/:offset/:limit/:companyIdParam', stock
  * @param invoiceRelated - The updated invoice related product
  * @returns A success message if the update was successful
  */
-exports.invoiceRelateRoutes.put('/update/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('printables', 'update'), async (req, res) => {
+exports.invoiceRelateRoutes.put('/update/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('invoices', 'update'), async (req, res) => {
     const { invoiceRelated } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
