@@ -1,4 +1,4 @@
-import { Connection } from 'mongoose';
+import { ConnectOptions, Connection } from 'mongoose';
 export declare let mainConnection: Connection;
 export declare let mainConnectionLean: Connection;
 export declare let isNotifDbConnected: boolean;
@@ -13,4 +13,4 @@ export declare let isNotifDbConnected: boolean;
  * If the connection is already established, it returns immediately.
  * @param databaseConfigUrl - The URL of the notification database configuration.
  */
-export declare const connectNotifDatabase: (databaseConfigUrl: string) => Promise<void>;
+export declare const connectNotifDatabase: (databaseConfigUrl: string, dbOptions?: ConnectOptions) => Promise<void>;

@@ -1,7 +1,7 @@
 /// <reference types="mongoose/types/document" />
 /// <reference types="mongoose/types/models" />
-import { Document, Model } from 'mongoose';
 import { IprofitAndLossReport } from '@open-stock/stock-universal';
+import { ConnectOptions, Document, Model } from 'mongoose';
 /**
  * Represents the type for the profit and loss report.
  */
@@ -31,4 +31,4 @@ export declare const profitandlossReportSelect: {
  * @param main - Whether to create the main connection model. Defaults to true.
  * @param lean - Whether to create the lean connection model. Defaults to true.
  */
-export declare const createProfitandlossReportModel: (dbUrl: string, main?: boolean, lean?: boolean) => Promise<void>;
+export declare const createProfitandlossReportModel: (dbUrl: string, dbOptions?: ConnectOptions, main?: boolean, lean?: boolean) => Promise<void>;

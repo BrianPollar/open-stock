@@ -1,7 +1,7 @@
 /// <reference types="mongoose/types/document" />
 /// <reference types="mongoose/types/models" />
-import { Document, Model } from 'mongoose';
 import { IinvoiceRelated } from '@open-stock/stock-universal';
+import { ConnectOptions, Document, Model } from 'mongoose';
 /** model interface for invoiceRelated by */
 export type TinvoiceRelated = Document & IinvoiceRelated;
 /**
@@ -41,4 +41,4 @@ export declare const invoiceRelatedSelect: {
  * @param main - Indicates whether to create the main connection model. Default is true.
  * @param lean - Indicates whether to create the lean connection model. Default is true.
  */
-export declare const createInvoiceRelatedModel: (dbUrl: string, main?: boolean, lean?: boolean) => Promise<void>;
+export declare const createInvoiceRelatedModel: (dbUrl: string, dbOptions?: ConnectOptions, main?: boolean, lean?: boolean) => Promise<void>;

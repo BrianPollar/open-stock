@@ -38,9 +38,9 @@ export const deliverycitySelect = deliverycityselect;
  * @param main Whether to create a main connection or not.
  * @param lean Whether to create a lean connection or not.
  */
-export const createDeliverycityModel = async (dbUrl, main = true, lean = true) => {
+export const createDeliverycityModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     if (!isStockDbConnected) {
-        await connectStockDatabase(dbUrl);
+        await connectStockDatabase(dbUrl, dbOptions);
     }
     if (main) {
         deliverycityMain = mainConnection.model('Deliverycity', deliverycitySchema);

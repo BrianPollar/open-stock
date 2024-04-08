@@ -1,5 +1,5 @@
 import express from 'express';
-import { createMockCompany, createMockUser } from '../../../tests/stock-auth-mocks';
+import { createMockCompany, createMockCompanys, createMockUser } from '../../../tests/stock-auth-mocks';
 export const companyAuthRoutesDummy = express.Router();
 companyAuthRoutesDummy.get('/authexpress/:companyIdParam', (req, res) => {
     const nowResponse = {
@@ -42,6 +42,17 @@ companyAuthRoutesDummy.put('/blockunblock/:companyIdParam', (req, res) => {
 companyAuthRoutesDummy.post('/addcompanyimg/:companyIdParam', (req, res) => {
     // eslint-disable-next-line @typescript-eslint/naming-convention
     res.status(200).send({ success: true, _id: 'id' });
+});
+companyAuthRoutesDummy.get('/getonecompany/:urId/:companyIdParam', (req, res) => {
+    const company = createMockCompany();
+    return res.status(200).send(company);
+});
+companyAuthRoutesDummy.get('/getcompanys/:offset/:limit/:companyIdParam', (req, res) => {
+    const response = {
+        count: req.params.limit,
+        data: createMockCompanys(req.params.limit)
+    };
+    return res.status(200).send(response);
 });
 companyAuthRoutesDummy.put('/updatecompanybulk/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });

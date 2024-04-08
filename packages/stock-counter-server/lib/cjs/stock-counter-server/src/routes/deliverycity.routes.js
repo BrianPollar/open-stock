@@ -2,6 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deliverycityRoutes = void 0;
 const tslib_1 = require("tslib");
+/* eslint-disable @typescript-eslint/no-misused-promises */
+const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
 const log4js_1 = require("log4js");
@@ -25,7 +27,7 @@ exports.deliverycityRoutes = express_1.default.Router();
  * @param {Object} req.body.deliverycity - Delivery city object to create
  * @returns {Object} - Returns a success object with a boolean indicating if the city was saved successfully
  */
-exports.deliverycityRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('items', 'create'), async (req, res) => {
+exports.deliverycityRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireSuperAdmin, async (req, res) => {
     const deliverycity = req.body.deliverycity;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -127,7 +129,7 @@ exports.deliverycityRoutes.get('/getall/:offset/:limit/:companyIdParam', async (
  * @param {Object} req.body - Updated delivery city object
  * @returns {Object} - Returns a success object with a boolean indicating if the city was updated successfully
  */
-exports.deliverycityRoutes.put('/update/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('items', 'update'), async (req, res) => {
+exports.deliverycityRoutes.put('/update/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireSuperAdmin, async (req, res) => {
     const updatedCity = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -180,7 +182,7 @@ exports.deliverycityRoutes.put('/update/:companyIdParam', stock_universal_server
  * @param {string} req.params.id - ID of the delivery city to delete
  * @returns {Object} - Returns a success object with a boolean indicating if the city was deleted successfully
  */
-exports.deliverycityRoutes.delete('/deleteone/:id/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('items', 'delete'), async (req, res) => {
+exports.deliverycityRoutes.delete('/deleteone/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireSuperAdmin, async (req, res) => {
     const { id } = req.params;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -209,7 +211,7 @@ exports.deliverycityRoutes.delete('/deleteone/:id/:companyIdParam', stock_univer
  * @param {string[]} req.body.ids - Array of IDs of the delivery cities to delete
  * @returns {Object} - Returns a success object with a boolean indicating if the cities were deleted successfully
  */
-exports.deliverycityRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('items', 'delete'), async (req, res) => {
+exports.deliverycityRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireSuperAdmin, async (req, res) => {
     const { ids } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;

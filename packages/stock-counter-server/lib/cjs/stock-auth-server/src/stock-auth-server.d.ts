@@ -1,3 +1,5 @@
+/// <reference types="mongoose/types/connection" />
+import { ConnectOptions } from 'mongoose';
 /**
  * Represents the interface for local file paths.
  */
@@ -37,7 +39,10 @@ export interface IStockAuthServerConfig {
     adminAuth: IaAuth;
     authSecrets: IlAuth;
     localSettings: IlocalEnv;
-    databaseConfigUrl: string;
+    databaseConfig: {
+        url: string;
+        dbOptions?: ConnectOptions;
+    };
     localPath: IlocalPath;
     useDummyRoutes?: boolean;
 }

@@ -16,7 +16,7 @@ export const itemDecoyRoutes = express.Router();
  * @param {Object} itemdecoy - The decoy object to create.
  * @returns {Promise<Isuccess>} A promise that resolves to a success object.
  */
-itemDecoyRoutes.post('/create/:how/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('decoy'), roleAuthorisation('items', 'create'), async (req, res, next) => {
+itemDecoyRoutes.post('/create/:how/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('decoy'), roleAuthorisation('decoys', 'create'), async (req, res, next) => {
     const { how } = req.params;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -169,7 +169,7 @@ itemDecoyRoutes.get('/getone/:id/:companyIdParam', async (req, res) => {
  * @param {string} id - The ID of the item decoy to delete.
  * @returns {Promise<Object>} A promise that resolves to a success object.
  */
-itemDecoyRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('items', 'delete'), async (req, res) => {
+itemDecoyRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('decoys', 'delete'), async (req, res) => {
     const { id } = req.params;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -192,7 +192,7 @@ itemDecoyRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, requireAct
  * @param {string[]} ids - An array of IDs of the item decoys to delete.
  * @returns {Promise<Object>} A promise that resolves to a success object.
  */
-itemDecoyRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('items', 'delete'), async (req, res) => {
+itemDecoyRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('decoys', 'delete'), async (req, res) => {
     const { ids } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;

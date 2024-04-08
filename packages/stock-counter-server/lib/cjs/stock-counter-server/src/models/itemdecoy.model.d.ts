@@ -1,6 +1,6 @@
 /// <reference types="mongoose/types/document" />
 /// <reference types="mongoose/types/models" />
-import { Document, Model } from 'mongoose';
+import { ConnectOptions, Document, Model } from 'mongoose';
 /** model type for itemDecoy by */
 /**
  * Represents an item decoy in the system.
@@ -43,7 +43,8 @@ export declare const itemDecoySelect: {
 /**
  * Creates an ItemDecoy model with the specified database URL, main connection and lean connection.
  * @param dbUrl The URL of the database to connect to.
+ * @param dbOptions The options passed to the database connection.
  * @param main Whether to create the main connection or not. Defaults to true.
  * @param lean Whether to create the lean connection or not. Defaults to true.
  */
-export declare const createItemDecoyModel: (dbUrl: string, main?: boolean, lean?: boolean) => Promise<void>;
+export declare const createItemDecoyModel: (dbUrl: string, dbOptions?: ConnectOptions, main?: boolean, lean?: boolean) => Promise<void>;

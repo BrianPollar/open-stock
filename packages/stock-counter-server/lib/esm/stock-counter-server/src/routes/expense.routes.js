@@ -173,7 +173,7 @@ expenseRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, require
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware
  */
-expenseRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, requireActiveCompany, async (req, res) => {
+expenseRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('expenses', 'delete'), async (req, res) => {
     const { id } = req.params;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;

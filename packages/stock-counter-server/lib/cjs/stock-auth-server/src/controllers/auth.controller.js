@@ -4,6 +4,7 @@ exports.confirmAccountFactory = exports.recoverAccountFactory = exports.resetAcc
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const log4js_1 = require("log4js");
 const loginattemps_model_1 = require("../models/loginattemps.model");
+const company_subscription_model_1 = require("../models/subscriptions/company-subscription.model");
 const user_model_1 = require("../models/user.model");
 const userip_model_1 = require("../models/userip.model");
 const stock_auth_local_1 = require("../stock-auth-local");
@@ -378,6 +379,21 @@ const confirmAccountFactory = async (req, res) => {
     }
     else {
         response = await (0, universial_controller_1.validateEmail)(foundUser, type, 'signup', verifycode, null);
+    }
+    const now = new Date();
+    let filter;
+    if (foundUser.companyId) {
+        filter = { companyId: foundUser.companyId };
+    }
+    else {
+        filter = { companyId: foundUser._id };
+    }
+    const subsctn = await company_subscription_model_1.companySubscriptionLean.findOne(filter)
+        .lean()
+        .gte('endDate', now)
+        .sort({ endDate: 1 });
+    if (subsctn) {
+        response.response.activeSubscription = subsctn;
     }
     return res.status(response.status).send(response.response);
 };

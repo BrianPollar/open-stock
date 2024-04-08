@@ -82,9 +82,9 @@ exports.itemSelect = itemselect;
  * @param main - Whether to create the main connection for item operations (default: true)
  * @param lean - Whether to create the lean connection for item operations (default: true)
  */
-const createItemModel = async (dbUrl, main = true, lean = true) => {
+const createItemModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     if (!database_controller_1.isStockDbConnected) {
-        await (0, database_controller_1.connectStockDatabase)(dbUrl);
+        await (0, database_controller_1.connectStockDatabase)(dbUrl, dbOptions);
     }
     if (main) {
         exports.itemMain = database_controller_1.mainConnection.model('Item', itemSchema);

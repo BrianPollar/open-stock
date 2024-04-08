@@ -1,7 +1,7 @@
 /// <reference types="mongoose/types/document" />
 /// <reference types="mongoose/types/models" />
-import { Document, Model } from 'mongoose';
 import { IreviewMain } from '@open-stock/stock-universal';
+import { ConnectOptions, Document, Model } from 'mongoose';
 /**
  * Represents a review document with additional properties from IreviewMain.
  * @typeparam TDocument - The type of the document.
@@ -38,4 +38,4 @@ export declare const reviewSelect: {
  * @param main Indicates whether to create the main connection model.
  * @param lean Indicates whether to create the lean connection model.
  */
-export declare const createReviewModel: (dbUrl: string, main?: boolean, lean?: boolean) => Promise<void>;
+export declare const createReviewModel: (dbUrl: string, dbOptions?: ConnectOptions, main?: boolean, lean?: boolean) => Promise<void>;

@@ -1,7 +1,7 @@
 /// <reference types="mongoose/types/document" />
 /// <reference types="mongoose/types/models" />
-import { Document, Model } from 'mongoose';
 import { IinvoiceRelated, IpaymentRelated } from '@open-stock/stock-universal';
+import { ConnectOptions, Document, Model } from 'mongoose';
 /**
  * Represents an order in the system.
  */
@@ -31,7 +31,8 @@ export declare const orderSelect: {
 /**
  * Creates an order model with the given database URL, main flag, and lean flag.
  * @param dbUrl The URL of the database to connect to.
+ * @param dbOptions The options passed to the database connection.
  * @param main Whether to create the main connection model.
  * @param lean Whether to create the lean connection model.
  */
-export declare const createOrderModel: (dbUrl: string, main?: boolean, lean?: boolean) => Promise<void>;
+export declare const createOrderModel: (dbUrl: string, dbOptions?: ConnectOptions, main?: boolean, lean?: boolean) => Promise<void>;

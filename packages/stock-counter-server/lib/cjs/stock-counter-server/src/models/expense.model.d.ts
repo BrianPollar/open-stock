@@ -1,7 +1,7 @@
 /// <reference types="mongoose/types/document" />
 /// <reference types="mongoose/types/models" />
-import { Document, Model } from 'mongoose';
 import { Iexpense } from '@open-stock/stock-universal';
+import { ConnectOptions, Document, Model } from 'mongoose';
 /**
  * Represents a type that combines the Document interface with the Iexpense interface.
  */
@@ -29,7 +29,8 @@ export declare const expenseSelect: {
 /**
  * Creates an expense model with the given database URL, main connection and lean connection.
  * @param dbUrl The URL of the database to connect to.
+ * @param dbOptions The options passed to the database connection.
  * @param main Whether to create the model for the main connection.
  * @param lean Whether to create the model for the lean connection.
  */
-export declare const createExpenseModel: (dbUrl: string, main?: boolean, lean?: boolean) => Promise<void>;
+export declare const createExpenseModel: (dbUrl: string, dbOptions?: ConnectOptions, main?: boolean, lean?: boolean) => Promise<void>;

@@ -34,9 +34,9 @@ export const pickupLocationSelect = pickupLocationselect;
  * @param main Whether to create the model for the main connection.
  * @param lean Whether to create the model for the lean connection.
  */
-export const createPickupLocationModel = async (dbUrl, main = true, lean = true) => {
+export const createPickupLocationModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     if (!isStockDbConnected) {
-        await connectStockDatabase(dbUrl);
+        await connectStockDatabase(dbUrl, dbOptions);
     }
     if (main) {
         pickupLocationMain = mainConnection.model('PickupLocation', pickupLocationSchema);

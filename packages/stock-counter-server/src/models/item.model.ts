@@ -1,5 +1,5 @@
 import { Iitem } from '@open-stock/stock-universal';
-import { Document, Model, Schema } from 'mongoose';
+import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
 const uniqueValidator = require('mongoose-unique-validator');
 
@@ -104,9 +104,9 @@ export const itemSelect = itemselect;
  * @param main - Whether to create the main connection for item operations (default: true)
  * @param lean - Whether to create the lean connection for item operations (default: true)
  */
-export const createItemModel = async(dbUrl: string, main = true, lean = true) => {
+export const createItemModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
   if (!isStockDbConnected) {
-    await connectStockDatabase(dbUrl);
+    await connectStockDatabase(dbUrl, dbOptions);
   }
 
   if (main) {

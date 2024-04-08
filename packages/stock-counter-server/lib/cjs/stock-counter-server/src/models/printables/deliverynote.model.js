@@ -26,12 +26,13 @@ exports.deliveryNoteSelect = deliveryNoteselect;
 /**
  * Creates a delivery note model with the given database URL, main connection and lean connection.
  * @param dbUrl The URL of the database to connect to.
+ * @param dbOptions The options passed to the database connection.
  * @param main Whether to create the main connection or not. Defaults to true.
  * @param lean Whether to create the lean connection or not. Defaults to true.
  */
-const createDeliveryNoteModel = async (dbUrl, main = true, lean = true) => {
+const createDeliveryNoteModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     if (!database_controller_1.isStockDbConnected) {
-        await (0, database_controller_1.connectStockDatabase)(dbUrl);
+        await (0, database_controller_1.connectStockDatabase)(dbUrl, dbOptions);
     }
     if (main) {
         exports.deliveryNoteMain = database_controller_1.mainConnection.model('DeliveryNote', deliveryNoteSchema);

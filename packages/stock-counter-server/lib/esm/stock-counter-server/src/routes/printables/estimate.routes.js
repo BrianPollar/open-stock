@@ -162,7 +162,7 @@ estimateRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requir
  * @param res The response object.
  * @returns A success object with a boolean indicating whether the operation was successful.
  */
-estimateRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompany, async (req, res) => {
+estimateRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('estimates', 'delete'), async (req, res) => {
     const { id, invoiceRelated, creationType, stage } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;

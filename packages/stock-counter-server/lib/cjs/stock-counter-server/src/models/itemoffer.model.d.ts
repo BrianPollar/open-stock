@@ -1,6 +1,6 @@
 /// <reference types="mongoose/types/document" />
 /// <reference types="mongoose/types/models" />
-import { Document, Model } from 'mongoose';
+import { ConnectOptions, Document, Model } from 'mongoose';
 /**
  * Represents an item offer.
  */
@@ -50,4 +50,4 @@ export declare const itemOfferSelect: {
  * @param {boolean} [lean=true] - Whether to create the lean connection model.
  * @returns {Promise<void>} - A promise that resolves when the models have been created.
  */
-export declare const createItemOfferModel: (dbUrl: string, main?: boolean, lean?: boolean) => Promise<void>;
+export declare const createItemOfferModel: (dbUrl: string, dbOptions?: ConnectOptions, main?: boolean, lean?: boolean) => Promise<void>;

@@ -1,7 +1,7 @@
 /// <reference types="mongoose/types/document" />
 /// <reference types="mongoose/types/models" />
-import { Document, Model } from 'mongoose';
 import { IexpenseReport } from '@open-stock/stock-universal';
+import { ConnectOptions, Document, Model } from 'mongoose';
 /**
  * Represents a type for an expense report.
  * Extends the Document interface and the IexpenseReport interface.
@@ -31,4 +31,4 @@ export declare const expenseReportSelect: {
  * @param main - Whether to create a main connection for expense report operations.
  * @param lean - Whether to create a lean connection for expense report operations.
  */
-export declare const createExpenseReportModel: (dbUrl: string, main?: boolean, lean?: boolean) => Promise<void>;
+export declare const createExpenseReportModel: (dbUrl: string, dbOptions?: ConnectOptions, main?: boolean, lean?: boolean) => Promise<void>;

@@ -24,7 +24,7 @@ export const runStockAuthServer = async (config) => {
     }
     createStockAuthServerLocals(config);
     // connect models
-    await connectAuthDatabase(config.databaseConfigUrl);
+    await connectAuthDatabase(config.databaseConfig.url, config.databaseConfig.dbOptions);
     runPassport(config.authSecrets.jwtSecret);
     const stockAuthRouter = express.Router();
     if (!config.useDummyRoutes) {

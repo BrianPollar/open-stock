@@ -1,7 +1,7 @@
 /// <reference types="mongoose/types/document" />
 /// <reference types="mongoose/types/models" />
-import { Document, Model } from 'mongoose';
 import { IinvoiceRelated, IpaymentRelated } from '@open-stock/stock-universal';
+import { ConnectOptions, Document, Model } from 'mongoose';
 /**
  * Represents a payment document.
  */
@@ -31,7 +31,8 @@ export declare const paymentSelect: {
 /**
  * Creates a payment model with the specified database URL, main connection and lean connection.
  * @param dbUrl The URL of the database to connect to.
+ * @param dbOptions The options passed to the database connection.
  * @param main Whether to create the payment model for the main connection.
  * @param lean Whether to create the payment model for the lean connection.
  */
-export declare const createPaymentModel: (dbUrl: string, main?: boolean, lean?: boolean) => Promise<void>;
+export declare const createPaymentModel: (dbUrl: string, dbOptions?: ConnectOptions, main?: boolean, lean?: boolean) => Promise<void>;

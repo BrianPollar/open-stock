@@ -20,7 +20,7 @@ exports.itemDecoyRoutes = express_1.default.Router();
  * @param {Object} itemdecoy - The decoy object to create.
  * @returns {Promise<Isuccess>} A promise that resolves to a success object.
  */
-exports.itemDecoyRoutes.post('/create/:how/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_auth_server_1.requireCanUseFeature)('decoy'), (0, stock_universal_server_1.roleAuthorisation)('items', 'create'), async (req, res, next) => {
+exports.itemDecoyRoutes.post('/create/:how/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_auth_server_1.requireCanUseFeature)('decoy'), (0, stock_universal_server_1.roleAuthorisation)('decoys', 'create'), async (req, res, next) => {
     const { how } = req.params;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -173,7 +173,7 @@ exports.itemDecoyRoutes.get('/getone/:id/:companyIdParam', async (req, res) => {
  * @param {string} id - The ID of the item decoy to delete.
  * @returns {Promise<Object>} A promise that resolves to a success object.
  */
-exports.itemDecoyRoutes.delete('/deleteone/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'delete'), async (req, res) => {
+exports.itemDecoyRoutes.delete('/deleteone/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('decoys', 'delete'), async (req, res) => {
     const { id } = req.params;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -196,7 +196,7 @@ exports.itemDecoyRoutes.delete('/deleteone/:id/:companyIdParam', stock_universal
  * @param {string[]} ids - An array of IDs of the item decoys to delete.
  * @returns {Promise<Object>} A promise that resolves to a success object.
  */
-exports.itemDecoyRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'delete'), async (req, res) => {
+exports.itemDecoyRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('decoys', 'delete'), async (req, res) => {
     const { ids } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;

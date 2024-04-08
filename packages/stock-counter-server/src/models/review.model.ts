@@ -1,5 +1,5 @@
-import { Document, Model, Schema } from 'mongoose';
 import { IreviewMain } from '@open-stock/stock-universal';
+import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
 const uniqueValidator = require('mongoose-unique-validator');
 
@@ -77,9 +77,9 @@ export const reviewSelect = reviewselect;
  * @param main Indicates whether to create the main connection model.
  * @param lean Indicates whether to create the lean connection model.
  */
-export const createReviewModel = async(dbUrl: string, main = true, lean = true) => {
+export const createReviewModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
   if (!isStockDbConnected) {
-    await connectStockDatabase(dbUrl);
+    await connectStockDatabase(dbUrl, dbOptions);
   }
 
   if (main) {

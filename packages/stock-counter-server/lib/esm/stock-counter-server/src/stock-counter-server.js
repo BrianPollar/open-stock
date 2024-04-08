@@ -76,7 +76,7 @@ export const runStockCounterServer = async (config, paymentInstance) => {
         throw error;
     }
     // connect models
-    await connectStockCounterDatabase(config.databaseConfigUrl);
+    await connectStockCounterDatabase(config.databaseConfig.url, config.databaseConfig.dbOptions);
     pesapalPaymentInstance = paymentInstance;
     runPassport(config.authSecrets.jwtSecret);
     const stockCounterRouter = express.Router();

@@ -82,9 +82,9 @@ export const paymentRelatedSelect = paymentRelatedselect;
  * @param main - Indicates whether to create the main connection model. Default is true.
  * @param lean - Indicates whether to create the lean connection model. Default is true.
  */
-export const createPaymentRelatedModel = async (dbUrl, main = true, lean = true) => {
+export const createPaymentRelatedModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     if (!isStockDbConnected) {
-        await connectStockDatabase(dbUrl);
+        await connectStockDatabase(dbUrl, dbOptions);
     }
     if (main) {
         paymentRelatedMain = mainConnection.model('paymentRelated', paymentRelatedSchema);

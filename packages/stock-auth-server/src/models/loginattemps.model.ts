@@ -1,4 +1,4 @@
-import { Schema, Document, Model } from 'mongoose';
+import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 import { connectAuthDatabase, isAuthDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
 
 /**
@@ -48,12 +48,13 @@ export let loginAtemptsLean: Model<IloginAttempts>;
 /**
  * Creates a login attempts model with the given database URL.
  * @param dbUrl The URL of the database to connect to.
+ * @param dbOptions The options passed to the database connection.
  * @param main Whether to create the main connection model.
  * @param lean Whether to create the lean connection model.
  */
-export const createLoginAtemptsModel = async(dbUrl: string, main = true, lean = true) => {
+export const createLoginAtemptsModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
   if (!isAuthDbConnected) {
-    await connectAuthDatabase(dbUrl);
+    await connectAuthDatabase(dbUrl, dbOptions);
   }
 
   if (main) {

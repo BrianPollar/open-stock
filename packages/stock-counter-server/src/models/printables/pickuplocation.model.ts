@@ -1,5 +1,5 @@
-import { Document, Model, Schema } from 'mongoose';
 import { IpickupLocation } from '@open-stock/stock-universal';
+import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../controllers/database.controller';
 const uniqueValidator = require('mongoose-unique-validator');
 
@@ -48,9 +48,9 @@ export const pickupLocationSelect = pickupLocationselect;
  * @param main Whether to create the model for the main connection.
  * @param lean Whether to create the model for the lean connection.
  */
-export const createPickupLocationModel = async(dbUrl: string, main = true, lean = true) => {
+export const createPickupLocationModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
   if (!isStockDbConnected) {
-    await connectStockDatabase(dbUrl);
+    await connectStockDatabase(dbUrl, dbOptions);
   }
 
   if (main) {

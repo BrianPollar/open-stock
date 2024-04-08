@@ -36,9 +36,9 @@ exports.subscriptionSelect = subscriptionselect;
  * @param main - Whether to create the main connection.
  * @param lean - Whether to create the lean connection.
  */
-const createSubscriptionModel = async (dbUrl, main = true, lean = true) => {
+const createSubscriptionModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     if (!database_controller_1.isNotifDbConnected) {
-        await (0, database_controller_1.connectNotifDatabase)(dbUrl);
+        await (0, database_controller_1.connectNotifDatabase)(dbUrl, dbOptions);
     }
     if (main) {
         exports.subscriptionMain = database_controller_1.mainConnection.model('Subscription', subscriptionSchema);

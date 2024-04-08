@@ -4,7 +4,7 @@
  * @requires ../controllers/database.controller
  * @requires mongoose-unique-validator
  */
-import { Document, Model } from 'mongoose';
+import { ConnectOptions, Document, Model } from 'mongoose';
 /**
  * Interface for the subscription document.
  */
@@ -33,4 +33,4 @@ export declare const subscriptionSelect: {
  * @param main - Whether to create the main connection.
  * @param lean - Whether to create the lean connection.
  */
-export declare const createSubscriptionModel: (dbUrl: string, main?: boolean, lean?: boolean) => Promise<void>;
+export declare const createSubscriptionModel: (dbUrl: string, dbOptions?: ConnectOptions, main?: boolean, lean?: boolean) => Promise<void>;

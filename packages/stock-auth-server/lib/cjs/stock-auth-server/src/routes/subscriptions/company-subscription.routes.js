@@ -2,20 +2,19 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.companySubscriptionRoutes = void 0;
 const tslib_1 = require("tslib");
-/* eslint-disable @typescript-eslint/no-misused-promises */
-const company_subscription_model_1 = require("@open-stock/stock-auth-server/src/models/subscriptions/company-subscription.model");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
 const log4js_1 = require("log4js");
 const user_model_1 = require("../../models/user.model");
 const company_auth_1 = require("../company-auth");
+const company_subscription_model_1 = require("../../models/subscriptions/company-subscription.model");
 /** Logger for companySubscription routes */
 const companySubscriptionRoutesLogger = (0, log4js_1.getLogger)('routes/companySubscriptionRoutes');
 /**
  * Router for handling companySubscription-related routes.
  */
 exports.companySubscriptionRoutes = express_1.default.Router();
-exports.companySubscriptionRoutes.post('/subscribe/:companyIdParam', stock_universal_server_1.requireAuth, company_auth_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('users', 'create'), async (req, res) => {
+exports.companySubscriptionRoutes.post('/subscribe/:companyIdParam', stock_universal_server_1.requireAuth, company_auth_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('payments', 'create'), async (req, res) => {
     const { companySubscription } = req.body;
     const newCompSub = new company_subscription_model_1.companySubscriptionMain(companySubscription);
     await newCompSub.save();
@@ -41,7 +40,7 @@ exports.companySubscriptionRoutes.get('/getall/:offset/:limit/:companyIdParam', 
     };
     return res.status(200).send(response);
 });
-exports.companySubscriptionRoutes.put('/deleteone/:companyIdParam', stock_universal_server_1.requireAuth, company_auth_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('users', 'delete'), async (req, res) => {
+exports.companySubscriptionRoutes.put('/deleteone/:companyIdParam', stock_universal_server_1.requireAuth, company_auth_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('payments', 'delete'), async (req, res) => {
     const { id } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;

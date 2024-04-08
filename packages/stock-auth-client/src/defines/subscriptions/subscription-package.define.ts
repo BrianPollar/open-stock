@@ -1,4 +1,4 @@
-import { DatabaseAuto, IsubscriptionPackage } from '@open-stock/stock-universal';
+import { DatabaseAuto, IsubscriptionPackage, Isuccess } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
 import { StockAuthClient } from '../../stock-auth-client';
 
@@ -32,7 +32,7 @@ export class SubscriptionPackange
   ) {
     const observer$ = StockAuthClient.ehttp
       .makePost('/subscriptionpackage/create', subscriptionPackage);
-    return lastValueFrom(observer$) ;
+    return lastValueFrom(observer$) as Promise<Isuccess>;
   }
 
   static async deleteSubscriptionPackange(
@@ -40,12 +40,12 @@ export class SubscriptionPackange
   ) {
     const observer$ = StockAuthClient.ehttp
       .makePut(`/subscriptionpackage/deleteone/${id}`, {});
-    return lastValueFrom(observer$) ;
+    return lastValueFrom(observer$) as Promise<Isuccess>;
   }
 
   async updateSubscriptionPackage(subscriptionPackange: IsubscriptionPackage) {
     const observer$ = StockAuthClient.ehttp
       .makePut('/subscriptionpackage/updateone', subscriptionPackange);
-    return lastValueFrom(observer$) ;
+    return lastValueFrom(observer$) as Promise<Isuccess>;
   }
 }

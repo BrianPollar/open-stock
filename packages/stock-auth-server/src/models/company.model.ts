@@ -2,7 +2,7 @@
 import { sendSms, sendToken, setUpUser, verifyAuthyToken } from '@open-stock/stock-notif-server';
 import { Icompany } from '@open-stock/stock-universal';
 import bcrypt from 'bcrypt';
-import { Document, Model, Schema } from 'mongoose';
+import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 import { connectAuthDatabase, isAuthDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
 // Create authenticated Authy and Twilio API clients
 // const authy = require('authy')(config.authyKey);
@@ -236,9 +236,9 @@ export const companyAboutSelect = companyaboutSelect;
  * @param main Optional parameter indicating whether to create the main company model. Default is true.
  * @param lean Optional parameter indicating whether to create the lean company model. Default is true.
  */
-export const createCompanyModel = async(dbUrl: string, main = true, lean = true) => {
+export const createCompanyModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
   if (!isAuthDbConnected) {
-    await connectAuthDatabase(dbUrl);
+    await connectAuthDatabase(dbUrl, dbOptions);
   }
 
   if (main) {

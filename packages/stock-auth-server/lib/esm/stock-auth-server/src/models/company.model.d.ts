@@ -1,8 +1,7 @@
 /// <reference types="mongoose/types/document" />
-/// <reference types="mongoose/types/schematypes" />
 /// <reference types="mongoose/types/models" />
 import { Icompany } from '@open-stock/stock-universal';
-import { Document, Model, Schema } from 'mongoose';
+import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 /**
  * Represents a company document with additional fields from the Icompany interface.
  */
@@ -74,4 +73,4 @@ export declare const companyAboutSelect: {
  * @param main Optional parameter indicating whether to create the main company model. Default is true.
  * @param lean Optional parameter indicating whether to create the lean company model. Default is true.
  */
-export declare const createCompanyModel: (dbUrl: string, main?: boolean, lean?: boolean) => Promise<void>;
+export declare const createCompanyModel: (dbUrl: string, dbOptions?: ConnectOptions, main?: boolean, lean?: boolean) => Promise<void>;

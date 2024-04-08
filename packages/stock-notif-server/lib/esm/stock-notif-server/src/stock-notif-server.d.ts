@@ -21,12 +21,15 @@
 /// <reference types="mongoose/types/utility" />
 /// <reference types="mongoose/types/validation" />
 /// <reference types="mongoose/types/virtuals" />
-/// <reference types="mongoose" />
 /// <reference types="mongoose/types/inferschematype" />
+import { ConnectOptions } from 'mongoose';
 import { ItwilioAuthySecrets } from './stock-notif-local';
 export interface IstockNotifServerConfig {
     jwtSecret: string;
-    databaseConfigUrl: string;
+    databaseConfig: {
+        url: string;
+        dbOptions?: ConnectOptions;
+    };
     twilioAutyConfig: ItwilioAuthySecrets;
     useDummyRoutes?: boolean;
 }

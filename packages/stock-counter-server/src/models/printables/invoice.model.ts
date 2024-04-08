@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-type-arguments */
-import { Document, Model, Schema } from 'mongoose';
 import { IinvoiceRelatedRef } from '@open-stock/stock-universal';
+import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../controllers/database.controller';
 
 /**
@@ -42,12 +42,13 @@ export const invoiceSelect = invoiceselect;
 /**
  * Creates an invoice model with the given database URL, main flag, and lean flag.
  * @param dbUrl The URL of the database to connect to.
+ * @param dbOptions The options passed to the database connection.
  * @param main Whether to create the main invoice model.
  * @param lean Whether to create the lean invoice model.
  */
-export const createInvoiceModel = async(dbUrl: string, main = true, lean = true) => {
+export const createInvoiceModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
   if (!isStockDbConnected) {
-    await connectStockDatabase(dbUrl);
+    await connectStockDatabase(dbUrl, dbOptions);
   }
 
   if (main) {

@@ -1,6 +1,7 @@
 
 import {
   DatabaseAuto,
+  IdataArrayResponse,
   Ifile,
   IinvoiceSetting,
   IinvoiceSettingsBank,
@@ -44,12 +45,15 @@ export class InvoiceSettings extends DatabaseAuto {
     url = 'getall',
     offset = 0,
     limit = 20
-  ): Promise<InvoiceSettings[]> {
+  ) {
     const observer$ = StockCounterClient.ehttp
       .makeGet(`/invoicesettings/${url}/${offset}/${limit}/${companyId}`);
-    const invoiceSettings = await lastValueFrom(observer$) as IinvoiceSetting[];
-    return invoiceSettings
-      .map(val => new InvoiceSettings(val));
+    const { count, data } = await lastValueFrom(observer$) as IdataArrayResponse;
+    return {
+      count,
+      invoiceSettings: data
+        .map(val => new InvoiceSettings(val as IinvoiceSetting))
+    };
   }
 
   /**

@@ -1,5 +1,5 @@
-import { Document, Model, Schema } from 'mongoose';
 import { Ideliverycity } from '@open-stock/stock-universal';
+import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
 const uniqueValidator = require('mongoose-unique-validator');
 
@@ -52,9 +52,9 @@ export const deliverycitySelect = deliverycityselect;
  * @param main Whether to create a main connection or not.
  * @param lean Whether to create a lean connection or not.
  */
-export const createDeliverycityModel = async(dbUrl: string, main = true, lean = true) => {
+export const createDeliverycityModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
   if (!isStockDbConnected) {
-    await connectStockDatabase(dbUrl);
+    await connectStockDatabase(dbUrl, dbOptions);
   }
 
   if (main) {

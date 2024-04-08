@@ -1,7 +1,7 @@
 /// <reference types="mongoose/types/document" />
 /// <reference types="mongoose/types/models" />
-import { Document, Model } from 'mongoose';
 import { Ifaq } from '@open-stock/stock-universal';
+import { ConnectOptions, Document, Model } from 'mongoose';
 /**
  * Represents a FAQ document in the database.
  */
@@ -28,7 +28,8 @@ export declare const faqSelect: {
 /**
  * Creates a new FAQ model.
  * @param dbUrl The URL of the database to connect to.
+ * @param dbOptions The options passed to the database connection.
  * @param main Whether to create a main connection.
  * @param lean Whether to create a lean connection.
  */
-export declare const createFaqModel: (dbUrl: string, main?: boolean, lean?: boolean) => Promise<void>;
+export declare const createFaqModel: (dbUrl: string, dbOptions?: ConnectOptions, main?: boolean, lean?: boolean) => Promise<void>;

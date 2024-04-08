@@ -35,12 +35,13 @@ exports.staffSelect = staffselect;
 /**
  * Creates a new staff model with the given database URL.
  * @param dbUrl The URL of the database to connect to.
+ * @param dbOptions The options passed to the database connection.
  * @param main Whether to create the main connection for staff operations.
  * @param lean Whether to create the lean connection for staff operations.
  */
-const createStaffModel = async (dbUrl, main = true, lean = true) => {
+const createStaffModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     if (!database_controller_1.isStockDbConnected) {
-        await (0, database_controller_1.connectStockDatabase)(dbUrl);
+        await (0, database_controller_1.connectStockDatabase)(dbUrl, dbOptions);
     }
     if (main) {
         exports.staffMain = database_controller_1.mainConnection.model('Staff', staffSchema);

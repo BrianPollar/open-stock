@@ -3,8 +3,8 @@
  * @packageDocumentation
  */
 
-import { Document, Schema, Model } from 'mongoose';
 import { InotifSetting } from '@open-stock/stock-universal';
+import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 import { connectNotifDatabase, isNotifDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
 
 /**
@@ -53,9 +53,9 @@ export const notifSettingSelect = notifSettingselect;
  * @param {boolean} [main=true] - Whether to create the main connection.
  * @param {boolean} [lean=true] - Whether to create the lean connection.
  */
-export const createNotifStnModel = async(dbUrl: string, main = true, lean = true) => {
+export const createNotifStnModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
   if (!isNotifDbConnected) {
-    await connectNotifDatabase(dbUrl);
+    await connectNotifDatabase(dbUrl, dbOptions);
   }
 
   if (main) {

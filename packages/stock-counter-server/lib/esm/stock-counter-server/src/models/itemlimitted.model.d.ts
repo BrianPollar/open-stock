@@ -1,6 +1,6 @@
 /// <reference types="mongoose/types/document" />
 /// <reference types="mongoose/types/models" />
-import { Document, Model } from 'mongoose';
+import { ConnectOptions, Document, Model } from 'mongoose';
 /**
  * Represents an item with limited quantity.
  */
@@ -31,7 +31,8 @@ export declare const itemLimittedSelect: {
 /**
  * Creates an ItemLimitted model with the specified database URL, main connection and lean connection.
  * @param dbUrl The URL of the database to connect to.
+ * @param dbOptions The options passed to the database connection.
  * @param main Whether to create the model for the main connection.
  * @param lean Whether to create the model for the lean connection.
  */
-export declare const createItemLimittedModel: (dbUrl: string, main?: boolean, lean?: boolean) => Promise<void>;
+export declare const createItemLimittedModel: (dbUrl: string, dbOptions?: ConnectOptions, main?: boolean, lean?: boolean) => Promise<void>;

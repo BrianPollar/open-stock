@@ -420,8 +420,8 @@ export type TroleAuth =
   'deliveryNotes' |
   'receipts' |
   'expenses' |
-  'reports'
-  ;
+  'reports' |
+  'companyProfile';
 
 /**
  * Represents the possible values for the TroleAuthProp type.
@@ -449,4 +449,5 @@ export type TsubscriptionFeature =
   'delivery-note' |
   'receipt' |
   'expense' |
-  'report';
+  'report' |
+  'companyAdminAccess';

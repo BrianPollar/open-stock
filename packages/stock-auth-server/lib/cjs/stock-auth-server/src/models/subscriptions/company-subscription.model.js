@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createSubscriptionPackageModel = exports.companySubscriptionSelect = exports.companySubscriptionLean = exports.companySubscriptionMain = void 0;
+exports.createCompanySubscription = exports.companySubscriptionSelect = exports.companySubscriptionLean = exports.companySubscriptionMain = void 0;
 const mongoose_1 = require("mongoose");
 const database_controller_1 = require("../../../../stock-counter-server/src/controllers/database.controller");
 const uniqueValidator = require('mongoose-unique-validator');
@@ -32,12 +32,13 @@ exports.companySubscriptionSelect = companySubscriptionselect;
 /**
  * Creates a new company subscription model.
  * @param dbUrl The URL of the database to connect to.
+ * @param dbOptions The options passed to the database connection.
  * @param main Whether to create a main connection.
  * @param lean Whether to create a lean connection.
  */
-const createSubscriptionPackageModel = async (dbUrl, main = true, lean = true) => {
+const createCompanySubscription = async (dbUrl, dbOptions, main = true, lean = true) => {
     if (!database_controller_1.isStockDbConnected) {
-        await (0, database_controller_1.connectStockDatabase)(dbUrl);
+        await (0, database_controller_1.connectStockDatabase)(dbUrl, dbOptions);
     }
     if (main) {
         exports.companySubscriptionMain = database_controller_1.mainConnection.model('CompanySubscription', companySubscriptionSchema);
@@ -46,5 +47,5 @@ const createSubscriptionPackageModel = async (dbUrl, main = true, lean = true) =
         exports.companySubscriptionLean = database_controller_1.mainConnectionLean.model('CompanySubscription', companySubscriptionSchema);
     }
 };
-exports.createSubscriptionPackageModel = createSubscriptionPackageModel;
+exports.createCompanySubscription = createCompanySubscription;
 //# sourceMappingURL=company-subscription.model.js.map

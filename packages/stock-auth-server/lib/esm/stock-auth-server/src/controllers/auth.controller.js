@@ -1,6 +1,7 @@
 import { makeUrId, stringifyMongooseErr, verifyObjectIds } from '@open-stock/stock-universal-server';
 import { getLogger } from 'log4js';
 import { loginAtempts } from '../models/loginattemps.model';
+import { companySubscriptionLean } from '../models/subscriptions/company-subscription.model';
 import { user } from '../models/user.model';
 import { userip } from '../models/userip.model';
 import { stockAuthConfig } from '../stock-auth-local';
@@ -368,6 +369,21 @@ export const confirmAccountFactory = async (req, res) => {
     }
     else {
         response = await validateEmail(foundUser, type, 'signup', verifycode, null);
+    }
+    const now = new Date();
+    let filter;
+    if (foundUser.companyId) {
+        filter = { companyId: foundUser.companyId };
+    }
+    else {
+        filter = { companyId: foundUser._id };
+    }
+    const subsctn = await companySubscriptionLean.findOne(filter)
+        .lean()
+        .gte('endDate', now)
+        .sort({ endDate: 1 });
+    if (subsctn) {
+        response.response.activeSubscription = subsctn;
     }
     return res.status(response.status).send(response.response);
 };

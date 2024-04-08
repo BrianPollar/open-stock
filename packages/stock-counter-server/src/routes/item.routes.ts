@@ -942,7 +942,7 @@ itemRoutes.put('/updatesponsored/:id/:companyIdParam', requireAuth, requireActiv
   return res.status(200).send({ success: true });
 });
 
-itemRoutes.delete('/deletesponsored/:id/:spnsdId/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('items', 'delete'), deleteFiles, async(req, res) => {
+itemRoutes.delete('/deletesponsored/:id/:spnsdId/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('items', 'update'), deleteFiles, async(req, res) => {
   const { id, spnsdId } = req.params;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -982,7 +982,6 @@ itemRoutes.delete('/deletesponsored/:id/:spnsdId/:companyIdParam', requireAuth, 
 
   return res.status(200).send({ success: true });
 });
-
 
 itemRoutes.put('/deleteone/:id/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('items', 'delete'), deleteFiles, async(req, res) => {
   const { id } = req.params;

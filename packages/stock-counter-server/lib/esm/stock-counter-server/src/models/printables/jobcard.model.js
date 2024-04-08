@@ -37,12 +37,13 @@ export const jobCardSelect = jobCardselect;
 /**
  * Creates a job card model with the given database URL, main connection and lean connection.
  * @param dbUrl The URL of the database to connect to.
+ * @param dbOptions The options passed to the database connection.
  * @param main Whether to create a main connection or not. Defaults to true.
  * @param lean Whether to create a lean connection or not. Defaults to true.
  */
-export const createJobCardModel = async (dbUrl, main = true, lean = true) => {
+export const createJobCardModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     if (!isStockDbConnected) {
-        await connectStockDatabase(dbUrl);
+        await connectStockDatabase(dbUrl, dbOptions);
     }
     if (main) {
         jobCardMain = mainConnection.model('JobCard', jobCardSchema);

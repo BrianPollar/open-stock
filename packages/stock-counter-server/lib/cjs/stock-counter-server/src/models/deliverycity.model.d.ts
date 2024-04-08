@@ -1,7 +1,7 @@
 /// <reference types="mongoose/types/document" />
 /// <reference types="mongoose/types/models" />
-import { Document, Model } from 'mongoose';
 import { Ideliverycity } from '@open-stock/stock-universal';
+import { ConnectOptions, Document, Model } from 'mongoose';
 /**
  * Represents a delivery city.
  * @typedef {Document & Ideliverycity} Tdeliverycity
@@ -31,4 +31,4 @@ export declare const deliverycitySelect: {
  * @param main Whether to create a main connection or not.
  * @param lean Whether to create a lean connection or not.
  */
-export declare const createDeliverycityModel: (dbUrl: string, main?: boolean, lean?: boolean) => Promise<void>;
+export declare const createDeliverycityModel: (dbUrl: string, dbOptions?: ConnectOptions, main?: boolean, lean?: boolean) => Promise<void>;

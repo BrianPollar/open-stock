@@ -1,7 +1,7 @@
 /// <reference types="mongoose/types/document" />
 /// <reference types="mongoose/types/models" />
 import { Iuser } from '@open-stock/stock-universal';
-import { Document, Model } from 'mongoose';
+import { ConnectOptions, Document, Model } from 'mongoose';
 interface IschemaMethods {
     comparePassword: (...args: any[]) => void;
     sendAuthyToken: (...args: any[]) => void;
@@ -87,5 +87,5 @@ export declare const userAboutSelect: {
  * @param main Indicates whether to create the main user model.
  * @param lean Indicates whether to create the lean user model.
  */
-export declare const createUserModel: (dbUrl: string, main?: boolean, lean?: boolean) => Promise<void>;
+export declare const createUserModel: (dbUrl: string, dbOptions?: ConnectOptions, main?: boolean, lean?: boolean) => Promise<void>;
 export {};

@@ -21,9 +21,11 @@ import {
 import { appendBody, deleteFiles, fileMetaLean, makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, saveMetaToDb, stringifyMongooseErr, uploadFiles, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express, { Request, Response } from 'express';
 import { getLogger } from 'log4js';
+import { now } from 'mongoose';
 import { checkIpAndAttempt, confirmAccountFactory, determineIfIsPhoneAndMakeFilterObj, isInAdictionaryOnline, isTooCommonPhrase, recoverAccountFactory, resetAccountFactory } from '../controllers/auth.controller';
 import { generateToken, sendTokenEmail, setUserInfo } from '../controllers/universial.controller';
 import { companyLean } from '../models/company.model';
+import { companySubscriptionLean } from '../models/subscriptions/company-subscription.model';
 import { user, userAuthSelect, userLean } from '../models/user.model';
 import { stockAuthConfig } from '../stock-auth-local';
 import { requireActiveCompany } from './company-auth';
@@ -79,10 +81,19 @@ export const userLoginRelegator = async(req: Request, res: Response) => {
   );
   const token = generateToken(
     userInfo, '1d', stockAuthConfig.authSecrets.jwtSecret);
+  let activeSubscription;
+  if (company) {
+    const subsctn = await companySubscriptionLean.findOne({ companyId: company._id })
+      .lean()
+      .gte('endDate', now)
+      .sort({ endDate: 1 });
+    activeSubscription = subsctn;
+  }
   const nowResponse: Iauthresponse = {
     success: true,
     user: foundUser as Iuser,
-    token
+    token,
+    activeSubscription
   };
   return res.status(200).send(nowResponse);
 };
@@ -224,7 +235,7 @@ userAuthRoutes.put('/resetpaswd', async(req, res, next) => {
   return next();
 }, resetAccountFactory);
 
-userAuthRoutes.post('/manuallyverify/:userId/:companyIdParam', requireAuth, roleAuthorisation('users', 'create'), async(req, res) => {
+userAuthRoutes.post('/manuallyverify/:userId/:companyIdParam', requireAuth, roleAuthorisation('users', 'update'), async(req, res) => {
   const { userId, companyIdParam } = req.params;
   const { companyId } = (req as Icustomrequest).user;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
@@ -821,7 +832,7 @@ userAuthRoutes.post('/adduserimg/:companyIdParam', requireAuth, roleAuthorisatio
   return res.status(status).send(response);
 });
 
-userAuthRoutes.put('/updateuserbulk/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('items', 'update'), async(req, res) => {
+userAuthRoutes.put('/updateuserbulk/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('users', 'update'), async(req, res) => {
   const updatedUser = req.body.user;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -873,7 +884,7 @@ userAuthRoutes.put('/updateuserbulk/:companyIdParam', requireAuth, requireActive
   return res.status(status).send(response);
 });
 
-userAuthRoutes.post('/updateuserbulkimg/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('items', 'update'), uploadFiles, appendBody, saveMetaToDb, async(req, res) => {
+userAuthRoutes.post('/updateuserbulkimg/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('users', 'update'), uploadFiles, appendBody, saveMetaToDb, async(req, res) => {
   const updatedUser = req.body.user;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -985,7 +996,7 @@ userAuthRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompa
   }
 });
 
-userAuthRoutes.put('/deleteimages/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('items', 'delete'), deleteFiles, async(req, res) => {
+userAuthRoutes.put('/deleteimages/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('users', 'delete'), deleteFiles, async(req, res) => {
   const filesWithDir: IfileMeta[] = req.body.filesWithDir;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;

@@ -1,4 +1,4 @@
-import { DatabaseAuto, IsubscriptionPackage } from '@open-stock/stock-universal';
+import { DatabaseAuto, IsubscriptionPackage, Isuccess } from '@open-stock/stock-universal';
 export declare class SubscriptionPackange extends DatabaseAuto {
     name: string;
     ammount: number;
@@ -7,7 +7,7 @@ export declare class SubscriptionPackange extends DatabaseAuto {
     features: [];
     constructor(data: any);
     static getSubscriptionPackanges(): Promise<SubscriptionPackange[]>;
-    static addSubscriptionPackage(subscriptionPackage: IsubscriptionPackage): Promise<unknown>;
-    static deleteSubscriptionPackange(id: string): Promise<unknown>;
-    updateSubscriptionPackage(subscriptionPackange: IsubscriptionPackage): Promise<unknown>;
+    static addSubscriptionPackage(subscriptionPackage: IsubscriptionPackage): Promise<Isuccess>;
+    static deleteSubscriptionPackange(id: string): Promise<Isuccess>;
+    updateSubscriptionPackage(subscriptionPackange: IsubscriptionPackage): Promise<Isuccess>;
 }

@@ -15,12 +15,12 @@ export let isNotifDbConnected = false;
  * If the connection is already established, it returns immediately.
  * @param databaseConfigUrl - The URL of the notification database configuration.
  */
-export const connectNotifDatabase = async (databaseConfigUrl) => {
+export const connectNotifDatabase = async (databaseConfigUrl, dbOptions) => {
     if (isNotifDbConnected) {
         return;
     }
-    mainConnection = await makeNewConnection(databaseConfigUrl, 'mainConnection');
-    mainConnectionLean = await makeNewConnection(databaseConfigUrl, 'mainConnection');
+    mainConnection = await makeNewConnection(databaseConfigUrl, dbOptions);
+    mainConnectionLean = await makeNewConnection(databaseConfigUrl, dbOptions);
     isNotifDbConnected = true;
 };
 process.on('SIGINT', () => {

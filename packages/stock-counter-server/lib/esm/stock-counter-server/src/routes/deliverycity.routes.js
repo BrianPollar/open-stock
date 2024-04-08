@@ -1,4 +1,6 @@
-import { offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+/* eslint-disable @typescript-eslint/no-misused-promises */
+import { requireSuperAdmin } from '@open-stock/stock-auth-server';
+import { offsetLimitRelegator, requireAuth, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { getLogger } from 'log4js';
 import { deliverycityLean, deliverycityMain } from '../models/deliverycity.model';
@@ -21,7 +23,7 @@ export const deliverycityRoutes = express.Router();
  * @param {Object} req.body.deliverycity - Delivery city object to create
  * @returns {Object} - Returns a success object with a boolean indicating if the city was saved successfully
  */
-deliverycityRoutes.post('/create/:companyIdParam', requireAuth, roleAuthorisation('items', 'create'), async (req, res) => {
+deliverycityRoutes.post('/create/:companyIdParam', requireAuth, requireSuperAdmin, async (req, res) => {
     const deliverycity = req.body.deliverycity;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -123,7 +125,7 @@ deliverycityRoutes.get('/getall/:offset/:limit/:companyIdParam', async (req, res
  * @param {Object} req.body - Updated delivery city object
  * @returns {Object} - Returns a success object with a boolean indicating if the city was updated successfully
  */
-deliverycityRoutes.put('/update/:companyIdParam', requireAuth, roleAuthorisation('items', 'update'), async (req, res) => {
+deliverycityRoutes.put('/update/:companyIdParam', requireAuth, requireSuperAdmin, async (req, res) => {
     const updatedCity = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -176,7 +178,7 @@ deliverycityRoutes.put('/update/:companyIdParam', requireAuth, roleAuthorisation
  * @param {string} req.params.id - ID of the delivery city to delete
  * @returns {Object} - Returns a success object with a boolean indicating if the city was deleted successfully
  */
-deliverycityRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, roleAuthorisation('items', 'delete'), async (req, res) => {
+deliverycityRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, requireSuperAdmin, async (req, res) => {
     const { id } = req.params;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -205,7 +207,7 @@ deliverycityRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, roleAut
  * @param {string[]} req.body.ids - Array of IDs of the delivery cities to delete
  * @returns {Object} - Returns a success object with a boolean indicating if the cities were deleted successfully
  */
-deliverycityRoutes.put('/deletemany/:companyIdParam', requireAuth, roleAuthorisation('items', 'delete'), async (req, res) => {
+deliverycityRoutes.put('/deletemany/:companyIdParam', requireAuth, requireSuperAdmin, async (req, res) => {
     const { ids } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;

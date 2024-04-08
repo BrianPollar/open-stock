@@ -391,6 +391,7 @@ export interface Iuserperm {
     receipts?: IpermProp | boolean;
     expenses?: IpermProp | boolean;
     reports?: IpermProp | boolean;
+    companyProfile?: boolean;
     companyAdminAccess: boolean;
 }
 /**

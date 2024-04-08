@@ -26,6 +26,7 @@ import { getLogger } from 'log4js';
 import { checkIpAndAttempt, confirmAccountFactory, determineIfIsPhoneAndMakeFilterObj, isInAdictionaryOnline, isTooCommonPhrase, recoverAccountFactory, resetAccountFactory } from '../controllers/auth.controller';
 import { generateToken, setUserInfo } from '../controllers/universial.controller';
 import { companyLean, companyMain } from '../models/company.model';
+import { companySubscriptionLean } from '../models/subscriptions/company-subscription.model';
 import { userAuthSelect } from '../models/user.model';
 import { stockAuthConfig } from '../stock-auth-local';
 import { requireActiveCompany } from './company-auth';
@@ -81,10 +82,17 @@ export const companyLoginRelegator = async(req: Request, res: Response) => {
   );
   const token = generateToken(
     userInfo, '1d', stockAuthConfig.authSecrets.jwtSecret);
+  const now = new Date();
+  const subsctn = await companySubscriptionLean.findOne({ companyId: foundCompany._id })
+    .lean()
+    .gte('endDate', now)
+    .sort({ endDate: 1 });
+
   const nowResponse: Iauthresponse = {
     success: true,
     user: foundCompany as Iuser,
-    token
+    token,
+    activeSubscription: subsctn
   };
   return res.status(200).send(nowResponse);
 };
@@ -311,7 +319,6 @@ companyAuthRoutes.put('/blockunblock/:companyIdParam', requireAuth, requireSuper
   return res.status(status).send(response);
 });
 
-
 companyAuthRoutes.post('/addcompany', requireAuth, requireSuperAdmin, uploadFiles, appendBody, saveMetaToDb, async(req, res) => {
   const companyData = req.body.company;
   const parsed = req.body.parsed;
@@ -418,7 +425,6 @@ companyAuthRoutes.post('/addcompanyimg/:companyIdParam', requireAuth, requireSup
   }
   return res.status(status).send(response);
 });
-
 
 companyAuthRoutes.get('/getonecompany/:urId/:companyIdParam', requireAuth, requireSuperAdmin, async(req, res) => {
   const { urId } = req.params;
@@ -579,10 +585,11 @@ companyAuthRoutes.post('/updatecompanybulkimg/:companyIdParam', requireAuth, req
   return res.status(status).send(response);
 });
 
-/* companyAuthRoutes.put('/deletemany/:companyIdParam', requireAuth, roleAuthorisation('users'), deleteFiles, async(req, res) => {
+companyAuthRoutes.put('/deletemany/:companyIdParam', requireAuth, requireSuperAdmin, deleteFiles, async(req, res) => {
   const { companyId } = (req as Icustomrequest).user;
-  const { companyIdParam } = req.params
+  const { companyIdParam } = req.params;
   const { ids } = req.body;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectIds([...ids, ...[queryId]]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
@@ -591,16 +598,16 @@ companyAuthRoutes.post('/updatecompanybulkimg/:companyIdParam', requireAuth, req
   const deleted = await companyMain
     // eslint-disable-next-line @typescript-eslint/naming-convention
     .deleteMany({ _id: { $in: ids }, companyId: queryId }).catch(err => {
-      companyAuthLogger.error('deletemany users failed with error: ' + err.message)
-    return null;
+      companyAuthLogger.error('deletemany users failed with error: ' + err.message);
+      return null;
     });
 
-    if (Boolean(deleted)) {
-      return res.status(200).send({ success: Boolean(deleted) });
-    } else {
-      return res.status(404).send({ success: Boolean(deleted), err: 'could not delete selected items, try again in a while' });
-    }
-});*/
+  if (Boolean(deleted)) {
+    return res.status(200).send({ success: Boolean(deleted) });
+  } else {
+    return res.status(404).send({ success: Boolean(deleted), err: 'could not delete selected items, try again in a while' });
+  }
+});
 
 companyAuthRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('users', 'delete'), deleteFiles, async(req, res) => {
   const { companyId } = (req as Icustomrequest).user;
@@ -621,7 +628,7 @@ companyAuthRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCo
 });
 
 
-companyAuthRoutes.put('/deleteimages/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('items', 'delete'), deleteFiles, async(req, res) => {
+companyAuthRoutes.put('/deleteimages/:companyIdParam', requireAuth, requireActiveCompany, deleteFiles, async(req, res) => {
   const filesWithDir: IfileMeta[] = req.body.filesWithDir;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;

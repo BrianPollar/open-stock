@@ -1,6 +1,6 @@
 /// <reference types="mongoose/types/document" />
 /// <reference types="mongoose/types/models" />
-import { Document, Model } from 'mongoose';
+import { ConnectOptions, Document, Model } from 'mongoose';
 /**
  * Represents a user IP model.
  */
@@ -45,7 +45,8 @@ export declare let useripLean: Model<IUserip>;
 /**
  * Creates an email token model with the given database URL, main flag, and lean flag.
  * @param dbUrl The URL of the database to connect to.
+ * @param dbOptions The options passed to the database connection.
  * @param main Whether to create the main email token model.
  * @param lean Whether to create the lean email token model.
  */
-export declare const createUseripModel: (dbUrl: string, main?: boolean, lean?: boolean) => Promise<void>;
+export declare const createUseripModel: (dbUrl: string, dbOptions?: ConnectOptions, main?: boolean, lean?: boolean) => Promise<void>;

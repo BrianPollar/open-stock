@@ -183,7 +183,6 @@ invoiceRoutes.get('/getone/:invoiceId/:companyIdParam', requireAuth, requireActi
   return res.status(200).send(returned);
 });
 
-
 invoiceRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'read'), async(req, res) => {
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
   const { companyId } = (req as Icustomrequest).user;

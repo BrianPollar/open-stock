@@ -2,7 +2,7 @@
 import { sendSms, sendToken, setUpUser, verifyAuthyToken } from '@open-stock/stock-notif-server';
 import { Iuser } from '@open-stock/stock-universal';
 import bcrypt from 'bcrypt';
-import { Document, Model, Schema } from 'mongoose';
+import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 import { connectAuthDatabase, isAuthDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
 // Create authenticated Authy and Twilio API clients
 // const authy = require('authy')(config.authyKey);
@@ -311,9 +311,9 @@ export const userAboutSelect = useraboutSelect;
  * @param main Indicates whether to create the main user model.
  * @param lean Indicates whether to create the lean user model.
  */
-export const createUserModel = async(dbUrl: string, main = true, lean = true) => {
+export const createUserModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
   if (!isAuthDbConnected) {
-    await connectAuthDatabase(dbUrl);
+    await connectAuthDatabase(dbUrl, dbOptions);
   }
 
   if (main) {

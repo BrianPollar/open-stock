@@ -20,7 +20,10 @@ export declare class InvoiceSettings extends DatabaseAuto {
      * @param {number} [limit=0] - The maximum number of invoice settings to retrieve.
      * @returns {Promise<InvoiceSettings[]>} An array of InvoiceSettings objects.
      */
-    static getInvoiceSettings(companyId: string, url?: string, offset?: number, limit?: number): Promise<InvoiceSettings[]>;
+    static getInvoiceSettings(companyId: string, url?: string, offset?: number, limit?: number): Promise<{
+        count: number;
+        invoiceSettings: InvoiceSettings[];
+    }>;
     /**
      * Retrieves a specific invoice settings object from the server based on its ID.
      * @param companyId - The ID of the company

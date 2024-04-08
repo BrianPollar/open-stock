@@ -5,7 +5,7 @@
  * @requires mongoose-unique-validator
  */
 
-import { Document, Model, Schema } from 'mongoose';
+import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 import { connectNotifDatabase, isNotifDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
 const uniqueValidator = require('mongoose-unique-validator');
 
@@ -57,9 +57,9 @@ export const subscriptionSelect = subscriptionselect;
  * @param main - Whether to create the main connection.
  * @param lean - Whether to create the lean connection.
  */
-export const createSubscriptionModel = async(dbUrl: string, main = true, lean = true) => {
+export const createSubscriptionModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
   if (!isNotifDbConnected) {
-    await connectNotifDatabase(dbUrl);
+    await connectNotifDatabase(dbUrl, dbOptions);
   }
 
   if (main) {

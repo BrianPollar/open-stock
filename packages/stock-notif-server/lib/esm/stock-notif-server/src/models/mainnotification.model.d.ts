@@ -2,8 +2,8 @@
  * @fileoverview This file contains the Mongoose schema and model for the main notification object.
  * @packageDocumentation
  */
-import { Document, Model } from 'mongoose';
 import { Iactionwithall, TnotifType } from '@open-stock/stock-universal';
+import { ConnectOptions, Document, Model } from 'mongoose';
 /** Interface for the main notification object. */
 export interface IMainnotification extends Document {
     /** Actions to be taken for the notification. */
@@ -38,7 +38,8 @@ export declare let mainnotificationLean: Model<IMainnotification>;
 /**
  * Creates the Mongoose models for the main notification object.
  * @param dbUrl The URL of the database to connect to.
+ * @param dbOptions The options passed to the database connection.
  * @param main Whether to create the main Mongoose model or not.
  * @param lean Whether to create the lean Mongoose model or not.
  */
-export declare const createNotificationsModel: (dbUrl: string, main?: boolean, lean?: boolean) => Promise<void>;
+export declare const createNotificationsModel: (dbUrl: string, dbOptions?: ConnectOptions, main?: boolean, lean?: boolean) => Promise<void>;

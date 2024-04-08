@@ -47,6 +47,17 @@ exports.companyAuthRoutesDummy.post('/addcompanyimg/:companyIdParam', (req, res)
     // eslint-disable-next-line @typescript-eslint/naming-convention
     res.status(200).send({ success: true, _id: 'id' });
 });
+exports.companyAuthRoutesDummy.get('/getonecompany/:urId/:companyIdParam', (req, res) => {
+    const company = (0, stock_auth_mocks_1.createMockCompany)();
+    return res.status(200).send(company);
+});
+exports.companyAuthRoutesDummy.get('/getcompanys/:offset/:limit/:companyIdParam', (req, res) => {
+    const response = {
+        count: req.params.limit,
+        data: (0, stock_auth_mocks_1.createMockCompanys)(req.params.limit)
+    };
+    return res.status(200).send(response);
+});
 exports.companyAuthRoutesDummy.put('/updatecompanybulk/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });
 });

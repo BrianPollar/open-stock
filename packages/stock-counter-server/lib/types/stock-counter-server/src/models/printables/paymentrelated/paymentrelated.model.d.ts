@@ -1,7 +1,7 @@
 /// <reference types="mongoose/types/document" />
 /// <reference types="mongoose/types/models" />
 import { IpaymentRelated } from '@open-stock/stock-universal';
-import { Document, Model } from 'mongoose';
+import { ConnectOptions, Document, Model } from 'mongoose';
 /** model type for paymentRelated by */
 export type TpaymentRelated = Document & IpaymentRelated & {
     pesaPalorderTrackingId: string;
@@ -38,4 +38,4 @@ export declare const paymentRelatedSelect: {
  * @param main - Indicates whether to create the main connection model. Default is true.
  * @param lean - Indicates whether to create the lean connection model. Default is true.
  */
-export declare const createPaymentRelatedModel: (dbUrl: string, main?: boolean, lean?: boolean) => Promise<void>;
+export declare const createPaymentRelatedModel: (dbUrl: string, dbOptions?: ConnectOptions, main?: boolean, lean?: boolean) => Promise<void>;

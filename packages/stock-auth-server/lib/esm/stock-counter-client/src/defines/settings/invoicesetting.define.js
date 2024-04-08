@@ -27,9 +27,12 @@ export class InvoiceSettings extends DatabaseAuto {
     static async getInvoiceSettings(companyId, url = 'getall', offset = 0, limit = 20) {
         const observer$ = StockCounterClient.ehttp
             .makeGet(`/invoicesettings/${url}/${offset}/${limit}/${companyId}`);
-        const invoiceSettings = await lastValueFrom(observer$);
-        return invoiceSettings
-            .map(val => new InvoiceSettings(val));
+        const { count, data } = await lastValueFrom(observer$);
+        return {
+            count,
+            invoiceSettings: data
+                .map(val => new InvoiceSettings(val))
+        };
     }
     /**
      * Retrieves a specific invoice settings object from the server based on its ID.

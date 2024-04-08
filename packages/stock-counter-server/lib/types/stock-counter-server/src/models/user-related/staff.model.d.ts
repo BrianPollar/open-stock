@@ -1,7 +1,7 @@
 /// <reference types="mongoose/types/document" />
 /// <reference types="mongoose/types/models" />
-import { Document, Model } from 'mongoose';
 import { Istaff } from '@open-stock/stock-universal';
+import { ConnectOptions, Document, Model } from 'mongoose';
 /**
  * Represents a staff member.
  * @typedef {Document & Istaff} Tstaff
@@ -31,7 +31,8 @@ export declare const staffSelect: {
 /**
  * Creates a new staff model with the given database URL.
  * @param dbUrl The URL of the database to connect to.
+ * @param dbOptions The options passed to the database connection.
  * @param main Whether to create the main connection for staff operations.
  * @param lean Whether to create the lean connection for staff operations.
  */
-export declare const createStaffModel: (dbUrl: string, main?: boolean, lean?: boolean) => Promise<void>;
+export declare const createStaffModel: (dbUrl: string, dbOptions?: ConnectOptions, main?: boolean, lean?: boolean) => Promise<void>;

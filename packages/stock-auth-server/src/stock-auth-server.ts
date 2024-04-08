@@ -10,6 +10,7 @@ import { companySubscriptionRoutes } from './routes/subscriptions/company-subscr
 import { subscriptionPackageRoutes } from './routes/subscriptions/subscription-package.routes';
 import { userAuthRoutes } from './routes/user.routes';
 import { connectAuthDatabase, createStockAuthServerLocals, isStockAuthServerRunning, stockAuthConfig } from './stock-auth-local';
+import { ConnectOptions } from 'mongoose';
 
 /**
  * Represents the interface for local file paths.
@@ -54,7 +55,10 @@ export interface IStockAuthServerConfig {
   adminAuth: IaAuth;
   authSecrets: IlAuth;
   localSettings: IlocalEnv;
-  databaseConfigUrl: string;
+  databaseConfig: {
+    url: string;
+    dbOptions?: ConnectOptions;
+  };
   localPath: IlocalPath;
   useDummyRoutes?: boolean;
 }
@@ -74,7 +78,7 @@ export const runStockAuthServer = async(config: IStockAuthServerConfig) => {
   }
   createStockAuthServerLocals(config);
   // connect models
-  await connectAuthDatabase(config.databaseConfigUrl);
+  await connectAuthDatabase(config.databaseConfig.url, config.databaseConfig.dbOptions);
   runPassport(config.authSecrets.jwtSecret);
   const stockAuthRouter = express.Router();
 

@@ -62,9 +62,9 @@ export const reviewSelect = reviewselect;
  * @param main Indicates whether to create the main connection model.
  * @param lean Indicates whether to create the lean connection model.
  */
-export const createReviewModel = async (dbUrl, main = true, lean = true) => {
+export const createReviewModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     if (!isStockDbConnected) {
-        await connectStockDatabase(dbUrl);
+        await connectStockDatabase(dbUrl, dbOptions);
     }
     if (main) {
         reviewMain = mainConnection.model('Review', reviewSchema);

@@ -1,7 +1,7 @@
 /// <reference types="mongoose/types/document" />
 /// <reference types="mongoose/types/models" />
-import { Document, Model } from 'mongoose';
 import { IinvoiceRelatedRef, IurId } from '@open-stock/stock-universal';
+import { ConnectOptions, Document, Model } from 'mongoose';
 /**
  * Represents a receipt document.
  */
@@ -51,7 +51,8 @@ export declare const receiptSelect: {
 /**
  * Creates a new receipt model with the given database URL.
  * @param dbUrl The URL of the database to connect to.
+ * @param dbOptions The options passed to the database connection.
  * @param main Whether to create the main connection model.
  * @param lean Whether to create the lean connection model.
  */
-export declare const createReceiptModel: (dbUrl: string, main?: boolean, lean?: boolean) => Promise<void>;
+export declare const createReceiptModel: (dbUrl: string, dbOptions?: ConnectOptions, main?: boolean, lean?: boolean) => Promise<void>;

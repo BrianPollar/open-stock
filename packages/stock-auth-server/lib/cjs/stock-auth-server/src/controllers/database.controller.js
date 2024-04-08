@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.connectAuthDatabase = exports.isAuthDbConnected = exports.mainConnectionLean = exports.mainConnection = void 0;
-const log4js_1 = require("log4js");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
+const log4js_1 = require("log4js");
 /** The  dbConnectionsLogger  is a logger instance used for logging database connection-related messages. */
 const dbConnectionsLogger = (0, log4js_1.getLogger)('DbConnections');
 /**  The  isAuthDbConnected  variable is a flag to indicate whether the authentication database is connected. */
@@ -15,12 +15,12 @@ exports.isAuthDbConnected = false;
  *
  * @param databaseConfigUrl - The URL of the database configuration.
  */
-const connectAuthDatabase = async (databaseConfigUrl) => {
+const connectAuthDatabase = async (databaseConfigUrl, dbOptions) => {
     if (exports.isAuthDbConnected) {
         return;
     }
-    exports.mainConnection = await (0, stock_universal_server_1.makeNewConnection)(databaseConfigUrl, 'mainConnection');
-    exports.mainConnectionLean = await (0, stock_universal_server_1.makeNewConnection)(databaseConfigUrl, 'mainConnection');
+    exports.mainConnection = await (0, stock_universal_server_1.makeNewConnection)(databaseConfigUrl, dbOptions);
+    exports.mainConnectionLean = await (0, stock_universal_server_1.makeNewConnection)(databaseConfigUrl, dbOptions);
     exports.isAuthDbConnected = true;
 };
 exports.connectAuthDatabase = connectAuthDatabase;

@@ -48,12 +48,13 @@ export let mainnotificationLean;
 /**
  * Creates the Mongoose models for the main notification object.
  * @param dbUrl The URL of the database to connect to.
+ * @param dbOptions The options passed to the database connection.
  * @param main Whether to create the main Mongoose model or not.
  * @param lean Whether to create the lean Mongoose model or not.
  */
-export const createNotificationsModel = async (dbUrl, main = true, lean = true) => {
+export const createNotificationsModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     if (!isNotifDbConnected) {
-        await connectNotifDatabase(dbUrl);
+        await connectNotifDatabase(dbUrl, dbOptions);
     }
     if (main) {
         mainnotificationMain = mainConnection.model('Mainnotification', mainnotificationSchema);

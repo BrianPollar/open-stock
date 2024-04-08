@@ -6,17 +6,17 @@ const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
 const twilio_controller_1 = require("./controllers/twilio.controller");
 const notifsetting_model_1 = require("./models/notifsetting.model");
+const mail_routes_1 = require("./routes-dummy/mail.routes");
 const notification_routes_1 = require("./routes-dummy/notification.routes");
+const mail_routes_2 = require("./routes/mail.routes");
 const notification_routes_2 = require("./routes/notification.routes");
 const stock_notif_local_1 = require("./stock-notif-local");
-const mail_routes_1 = require("./routes-dummy/mail.routes");
-const mail_routes_2 = require("./routes/mail.routes");
 const runStockNotificationServer = async (config) => {
     if (!(0, stock_universal_server_1.isUniversalServerRunning)()) {
         const error = new Error('File loacations must be handled properly, please start by firing up that server');
         throw error;
     }
-    await (0, stock_notif_local_1.createNotificationsDatabase)(config.databaseConfigUrl);
+    await (0, stock_notif_local_1.createNotificationsDatabase)(config.databaseConfig.url, config.databaseConfig.dbOptions);
     (0, stock_universal_server_1.runPassport)(config.jwtSecret);
     const twilioAuthy = (0, twilio_controller_1.makeAuthyTwilio)(config.twilioAutyConfig.authyKey, config.twilioAutyConfig.accountSid, config.twilioAutyConfig.authToken);
     stock_notif_local_1.notificationSettings.twilioClient = twilioAuthy.twilioClient;

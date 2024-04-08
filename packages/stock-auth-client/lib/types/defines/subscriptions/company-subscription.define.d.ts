@@ -1,4 +1,4 @@
-import { IsubscriptionFeature } from '@open-stock/stock-universal';
+import { IsubscriptionFeature, Isuccess } from '@open-stock/stock-universal';
 export declare class CompanySubscription {
     subscriprionId: string;
     startDate: Date;
@@ -9,6 +9,6 @@ export declare class CompanySubscription {
         count: number;
         companysubscriptions: CompanySubscription[];
     }>;
-    static subscribe(companyId: string, companySubscription: any): Promise<unknown>;
-    static deleteCompanySubscription(companyId: string, id: string): Promise<unknown>;
+    static subscribe(companyId: string, companySubscription: any): Promise<Isuccess>;
+    static deleteCompanySubscription(companyId: string, id: string): Promise<Isuccess>;
 }

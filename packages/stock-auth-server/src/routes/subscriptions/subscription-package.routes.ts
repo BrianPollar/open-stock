@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
-import { subscriptionPackageLean, subscriptionPackageMain } from '@open-stock/stock-auth-server/src/models/subscriptions/subscription-package.model';
 import { Icustomrequest } from '@open-stock/stock-universal';
 import { requireAuth } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { getLogger } from 'log4js';
+import { subscriptionPackageLean, subscriptionPackageMain } from '../../models/subscriptions/subscription-package.model';
 import { requireSuperAdmin } from '../superadmin.routes';
 
 /** Logger for subscriptionPackage routes */

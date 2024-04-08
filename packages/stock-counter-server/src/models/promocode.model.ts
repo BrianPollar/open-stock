@@ -1,4 +1,4 @@
-import { Document, Model, Schema } from 'mongoose';
+import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
 const uniqueValidator = require('mongoose-unique-validator');
 
@@ -89,9 +89,9 @@ export const promocodeSelect = promocodeselect;
  * @param main Optional parameter indicating whether to create the main promocode model. Default is true.
  * @param lean Optional parameter indicating whether to create the lean promocode model. Default is true.
  */
-export const createPromocodeModel = async(dbUrl: string, main = true, lean = true) => {
+export const createPromocodeModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
   if (!isStockDbConnected) {
-    await connectStockDatabase(dbUrl);
+    await connectStockDatabase(dbUrl, dbOptions);
   }
 
   if (main) {

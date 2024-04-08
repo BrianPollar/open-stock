@@ -1,3 +1,5 @@
+/** The  connectAuthDatabase  function connects to the authentication database by creating the required models.*/
+import { ConnectOptions } from 'mongoose';
 import { IStockAuthServerConfig } from './stock-auth-server';
 /**
  * Configuration object for the stock-auth-local module.
@@ -17,4 +19,4 @@ export declare const createStockAuthServerLocals: (config: IStockAuthServerConfi
  * @param {string} databaseUrl - The URL of the authentication database.
  * @returns {Promise<void>}
  */
-export declare const connectAuthDatabase: (databaseUrl: string) => Promise<void>;
+export declare const connectAuthDatabase: (databaseUrl: string, dbOptions?: ConnectOptions) => Promise<void>;

@@ -32,11 +32,11 @@ exports.createStockNotifServerLocals = createStockNotifServerLocals;
  * @param databaseUrl The URL of the database.
  * @returns A promise that resolves when the database is created.
  */
-const createNotificationsDatabase = (databaseUrl) => {
-    return Promise.all([
-        (0, mainnotification_model_1.createNotificationsModel)(databaseUrl),
-        (0, notifsetting_model_1.createNotifStnModel)(databaseUrl),
-        (0, subscriptions_model_1.createSubscriptionModel)(databaseUrl)
+const createNotificationsDatabase = async (databaseUrl, dbOptions) => {
+    await Promise.all([
+        (0, mainnotification_model_1.createNotificationsModel)(databaseUrl, dbOptions),
+        (0, notifsetting_model_1.createNotifStnModel)(databaseUrl, dbOptions),
+        (0, subscriptions_model_1.createSubscriptionModel)(databaseUrl, dbOptions)
     ]);
 };
 exports.createNotificationsDatabase = createNotificationsDatabase;

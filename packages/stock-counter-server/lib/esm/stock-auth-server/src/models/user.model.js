@@ -268,9 +268,9 @@ export const userAboutSelect = useraboutSelect;
  * @param main Indicates whether to create the main user model.
  * @param lean Indicates whether to create the lean user model.
  */
-export const createUserModel = async (dbUrl, main = true, lean = true) => {
+export const createUserModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     if (!isAuthDbConnected) {
-        await connectAuthDatabase(dbUrl);
+        await connectAuthDatabase(dbUrl, dbOptions);
     }
     if (main) {
         user = mainConnection.model('User', userSchema);

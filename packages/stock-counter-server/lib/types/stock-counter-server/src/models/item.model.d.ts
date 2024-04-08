@@ -1,7 +1,7 @@
 /// <reference types="mongoose/types/document" />
 /// <reference types="mongoose/types/models" />
 import { Iitem } from '@open-stock/stock-universal';
-import { Document, Model } from 'mongoose';
+import { ConnectOptions, Document, Model } from 'mongoose';
 /**
  * Represents the type of the item model.
  * Extends the Document type and allows any additional properties.
@@ -57,4 +57,4 @@ export declare const itemSelect: {
  * @param main - Whether to create the main connection for item operations (default: true)
  * @param lean - Whether to create the lean connection for item operations (default: true)
  */
-export declare const createItemModel: (dbUrl: string, main?: boolean, lean?: boolean) => Promise<void>;
+export declare const createItemModel: (dbUrl: string, dbOptions?: ConnectOptions, main?: boolean, lean?: boolean) => Promise<void>;

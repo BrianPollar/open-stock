@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-type-arguments */
 import { Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../controllers/database.controller';
 const uniqueValidator = require('mongoose-unique-validator');
@@ -42,12 +41,13 @@ export const receiptSelect = receiptselect;
 /**
  * Creates a new receipt model with the given database URL.
  * @param dbUrl The URL of the database to connect to.
+ * @param dbOptions The options passed to the database connection.
  * @param main Whether to create the main connection model.
  * @param lean Whether to create the lean connection model.
  */
-export const createReceiptModel = async (dbUrl, main = true, lean = true) => {
+export const createReceiptModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     if (!isStockDbConnected) {
-        await connectStockDatabase(dbUrl);
+        await connectStockDatabase(dbUrl, dbOptions);
     }
     if (main) {
         receiptMain = mainConnection.model('Receipt', receiptSchema);

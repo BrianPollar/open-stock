@@ -5,9 +5,11 @@ const tslib_1 = require("tslib");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
 const log4js_1 = require("log4js");
+const mongoose_1 = require("mongoose");
 const auth_controller_1 = require("../controllers/auth.controller");
 const universial_controller_1 = require("../controllers/universial.controller");
 const company_model_1 = require("../models/company.model");
+const company_subscription_model_1 = require("../models/subscriptions/company-subscription.model");
 const user_model_1 = require("../models/user.model");
 const stock_auth_local_1 = require("../stock-auth-local");
 const company_auth_1 = require("./company-auth");
@@ -48,10 +50,19 @@ const userLoginRelegator = async (req, res) => {
     // delete user.password; //we do not want to send back password
     const userInfo = (0, universial_controller_1.setUserInfo)(foundUser._id, foundUser.permissions, foundUser.companyId, { active: !company.blocked });
     const token = (0, universial_controller_1.generateToken)(userInfo, '1d', stock_auth_local_1.stockAuthConfig.authSecrets.jwtSecret);
+    let activeSubscription;
+    if (company) {
+        const subsctn = await company_subscription_model_1.companySubscriptionLean.findOne({ companyId: company._id })
+            .lean()
+            .gte('endDate', mongoose_1.now)
+            .sort({ endDate: 1 });
+        activeSubscription = subsctn;
+    }
     const nowResponse = {
         success: true,
         user: foundUser,
-        token
+        token,
+        activeSubscription
     };
     return res.status(200).send(nowResponse);
 };
@@ -173,7 +184,7 @@ exports.userAuthRoutes.put('/resetpaswd', async (req, res, next) => {
     req.body.foundUser = foundUser;
     return next();
 }, auth_controller_1.resetAccountFactory);
-exports.userAuthRoutes.post('/manuallyverify/:userId/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('users', 'create'), async (req, res) => {
+exports.userAuthRoutes.post('/manuallyverify/:userId/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('users', 'update'), async (req, res) => {
     const { userId, companyIdParam } = req.params;
     const { companyId } = req.user;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
@@ -749,7 +760,7 @@ exports.userAuthRoutes.post('/adduserimg/:companyIdParam', stock_universal_serve
     }
     return res.status(status).send(response);
 });
-exports.userAuthRoutes.put('/updateuserbulk/:companyIdParam', stock_universal_server_1.requireAuth, company_auth_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'update'), async (req, res) => {
+exports.userAuthRoutes.put('/updateuserbulk/:companyIdParam', stock_universal_server_1.requireAuth, company_auth_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('users', 'update'), async (req, res) => {
     const updatedUser = req.body.user;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -797,7 +808,7 @@ exports.userAuthRoutes.put('/updateuserbulk/:companyIdParam', stock_universal_se
     });
     return res.status(status).send(response);
 });
-exports.userAuthRoutes.post('/updateuserbulkimg/:companyIdParam', stock_universal_server_1.requireAuth, company_auth_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'update'), stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.saveMetaToDb, async (req, res) => {
+exports.userAuthRoutes.post('/updateuserbulkimg/:companyIdParam', stock_universal_server_1.requireAuth, company_auth_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('users', 'update'), stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.saveMetaToDb, async (req, res) => {
     const updatedUser = req.body.user;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -899,7 +910,7 @@ exports.userAuthRoutes.put('/deleteone/:companyIdParam', stock_universal_server_
         return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
-exports.userAuthRoutes.put('/deleteimages/:companyIdParam', stock_universal_server_1.requireAuth, company_auth_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'delete'), stock_universal_server_1.deleteFiles, async (req, res) => {
+exports.userAuthRoutes.put('/deleteimages/:companyIdParam', stock_universal_server_1.requireAuth, company_auth_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('users', 'delete'), stock_universal_server_1.deleteFiles, async (req, res) => {
     const filesWithDir = req.body.filesWithDir;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;

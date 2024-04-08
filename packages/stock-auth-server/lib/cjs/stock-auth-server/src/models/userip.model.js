@@ -16,12 +16,13 @@ useripSchema.plugin(uniqueValidator);
 /**
  * Creates an email token model with the given database URL, main flag, and lean flag.
  * @param dbUrl The URL of the database to connect to.
+ * @param dbOptions The options passed to the database connection.
  * @param main Whether to create the main email token model.
  * @param lean Whether to create the lean email token model.
  */
-const createUseripModel = async (dbUrl, main = true, lean = true) => {
+const createUseripModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     if (!database_controller_1.isAuthDbConnected) {
-        await (0, database_controller_1.connectAuthDatabase)(dbUrl);
+        await (0, database_controller_1.connectAuthDatabase)(dbUrl, dbOptions);
     }
     if (main) {
         exports.userip = database_controller_1.mainConnection.model('userip', useripSchema);

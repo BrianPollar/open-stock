@@ -57,9 +57,9 @@ export const promocodeSelect = promocodeselect;
  * @param main Optional parameter indicating whether to create the main promocode model. Default is true.
  * @param lean Optional parameter indicating whether to create the lean promocode model. Default is true.
  */
-export const createPromocodeModel = async (dbUrl, main = true, lean = true) => {
+export const createPromocodeModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     if (!isStockDbConnected) {
-        await connectStockDatabase(dbUrl);
+        await connectStockDatabase(dbUrl, dbOptions);
     }
     if (main) {
         promocodeMain = mainConnection.model('promocode', promocodeSchema);

@@ -1,6 +1,6 @@
 /// <reference types="mongoose/types/document" />
 /// <reference types="mongoose/types/models" />
-import { Document, Model } from 'mongoose';
+import { ConnectOptions, Document, Model } from 'mongoose';
 /**
  * Represents a promotional code.
  */
@@ -50,4 +50,4 @@ export declare const promocodeSelect: {
  * @param main Optional parameter indicating whether to create the main promocode model. Default is true.
  * @param lean Optional parameter indicating whether to create the lean promocode model. Default is true.
  */
-export declare const createPromocodeModel: (dbUrl: string, main?: boolean, lean?: boolean) => Promise<void>;
+export declare const createPromocodeModel: (dbUrl: string, dbOptions?: ConnectOptions, main?: boolean, lean?: boolean) => Promise<void>;

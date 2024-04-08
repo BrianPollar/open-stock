@@ -167,7 +167,7 @@ exports.estimateRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_unive
  * @param res The response object.
  * @returns A success object with a boolean indicating whether the operation was successful.
  */
-exports.estimateRoutes.put('/deleteone/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, async (req, res) => {
+exports.estimateRoutes.put('/deleteone/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('estimates', 'delete'), async (req, res) => {
     const { id, invoiceRelated, creationType, stage } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;

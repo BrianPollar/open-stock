@@ -14,7 +14,7 @@ const staffRoutesLogger = getLogger('routes/staffRoutes');
  */
 export const staffRoutes = express.Router();
 
-staffRoutes.post('/create/:companyIdParam', requireAuth, requireCanUseFeature('report'), roleAuthorisation('users', 'create'), loginFactorRelgator, async(req, res, next) => {
+staffRoutes.post('/create/:companyIdParam', requireAuth, requireCanUseFeature('report'), roleAuthorisation('staffs', 'create'), loginFactorRelgator, async(req, res, next) => {
   const staff = req.body.staff;
   const newStaff = new staffMain(staff);
   let errResponse: Isuccess;
@@ -188,7 +188,7 @@ staffRoutes.post('/search/:limit/:offset/:companyIdParam', async(req, res) => {
   return res.status(200).send(response);
 });
 
-staffRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('users', 'update'), async(req, res) => {
+staffRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('staffs', 'update'), async(req, res) => {
   const updatedStaff = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -232,7 +232,7 @@ staffRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCompany, ro
   return res.status(200).send({ success: Boolean(updated) });
 });
 
-staffRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('users', 'delete'), removeOneUser, deleteFiles, async(req, res) => {
+staffRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('staffs', 'delete'), removeOneUser, deleteFiles, async(req, res) => {
   const { id } = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -250,7 +250,7 @@ staffRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompany,
   }
 });
 
-staffRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('users', 'delete'), removeManyUsers, deleteFiles, async(req, res) => {
+staffRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('staffs', 'delete'), removeManyUsers, deleteFiles, async(req, res) => {
   const { ids } = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;

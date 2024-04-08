@@ -9,5 +9,5 @@ export declare const superAdminRoutes: any;
  * @param next - The next function.
  * @returns A Promise that resolves to void.
  */
-export declare const signupFactorRelgator: (req: Request, res: Response, next: NextFunction) => Promise<any>;
-export declare const requireSuperAdmin: (req: Request, res: Response, next: NextFunction) => any;
+export declare const signupFactorRelgator: (req: any, res: any, next: any) => Promise<any>;
+export declare const requireSuperAdmin: (req: any, res: any, next: any) => any;

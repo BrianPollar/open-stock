@@ -1,7 +1,7 @@
 /// <reference types="mongoose/types/document" />
 /// <reference types="mongoose/types/models" />
 import { IcompanySubscription } from '@open-stock/stock-universal';
-import { Document, Model } from 'mongoose';
+import { ConnectOptions, Document, Model } from 'mongoose';
 export type TcompanySubscription = Document & IcompanySubscription;
 /**
  * Represents the main company subscription model.
@@ -25,7 +25,8 @@ export declare const companySubscriptionSelect: {
 /**
  * Creates a new company subscription model.
  * @param dbUrl The URL of the database to connect to.
+ * @param dbOptions The options passed to the database connection.
  * @param main Whether to create a main connection.
  * @param lean Whether to create a lean connection.
  */
-export declare const createSubscriptionPackageModel: (dbUrl: string, main?: boolean, lean?: boolean) => Promise<void>;
+export declare const createCompanySubscription: (dbUrl: string, dbOptions?: ConnectOptions, main?: boolean, lean?: boolean) => Promise<void>;

@@ -1,4 +1,6 @@
+/// <reference types="mongoose/types/connection" />
 import { IlAuth } from '@open-stock/stock-auth-server';
+import { ConnectOptions } from 'mongoose';
 import { PesaPalController } from 'pesapal3';
 /**
  * Represents the configuration object for the StockCounterServer.
@@ -9,9 +11,12 @@ export interface IstockcounterServerConfig {
      */
     authSecrets: IlAuth;
     /**
-    * The database configuration URL.
+    * The database configuration.
     */
-    databaseConfigUrl: string;
+    databaseConfig: {
+        url: string;
+        dbOptions?: ConnectOptions;
+    };
     /**
     * The URL for the notification redirect.
     */

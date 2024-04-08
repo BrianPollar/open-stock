@@ -36,12 +36,13 @@ export const customerSelect = customerselect;
 /**
  * Creates a new customer model and connects to the database.
  * @param dbUrl The URL of the database to connect to.
+ * @param dbOptions The options passed to the database connection.
  * @param main Whether to create the main connection.
  * @param lean Whether to create the lean connection.
  */
-export const createCustomerModel = async (dbUrl, main = true, lean = true) => {
+export const createCustomerModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     if (!isStockDbConnected) {
-        await connectStockDatabase(dbUrl);
+        await connectStockDatabase(dbUrl, dbOptions);
     }
     if (main) {
         customerMain = mainConnection.model('Customer', customerSchema);

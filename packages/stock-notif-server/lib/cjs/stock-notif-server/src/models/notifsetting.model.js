@@ -34,9 +34,9 @@ exports.notifSettingSelect = notifSettingselect;
  * @param {boolean} [main=true] - Whether to create the main connection.
  * @param {boolean} [lean=true] - Whether to create the lean connection.
  */
-const createNotifStnModel = async (dbUrl, main = true, lean = true) => {
+const createNotifStnModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     if (!database_controller_1.isNotifDbConnected) {
-        await (0, database_controller_1.connectNotifDatabase)(dbUrl);
+        await (0, database_controller_1.connectNotifDatabase)(dbUrl, dbOptions);
     }
     if (main) {
         exports.notifSettingMain = database_controller_1.mainConnection.model('NotifSetting', notifSettingSchema);

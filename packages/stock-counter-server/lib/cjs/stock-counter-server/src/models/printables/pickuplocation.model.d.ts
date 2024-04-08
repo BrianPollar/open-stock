@@ -1,7 +1,7 @@
 /// <reference types="mongoose/types/document" />
 /// <reference types="mongoose/types/models" />
-import { Document, Model } from 'mongoose';
 import { IpickupLocation } from '@open-stock/stock-universal';
+import { ConnectOptions, Document, Model } from 'mongoose';
 /**
  * Represents a pickup location.
  * @typedef {Document & IpickupLocation} TpickupLocation
@@ -29,4 +29,4 @@ export declare const pickupLocationSelect: {
  * @param main Whether to create the model for the main connection.
  * @param lean Whether to create the model for the lean connection.
  */
-export declare const createPickupLocationModel: (dbUrl: string, main?: boolean, lean?: boolean) => Promise<void>;
+export declare const createPickupLocationModel: (dbUrl: string, dbOptions?: ConnectOptions, main?: boolean, lean?: boolean) => Promise<void>;

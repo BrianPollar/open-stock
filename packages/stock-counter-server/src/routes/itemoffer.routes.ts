@@ -26,7 +26,7 @@ export const itemOfferRoutes = express.Router();
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>} - Promise representing the result of the HTTP request
  */
-itemOfferRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('offer'), roleAuthorisation('items', 'create'), async(req, res, next) => {
+itemOfferRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('offer'), roleAuthorisation('offers', 'create'), async(req, res, next) => {
   const { itemoffer } = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -159,7 +159,7 @@ itemOfferRoutes.get('/getone/:id/:companyIdParam', async(req, res) => {
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>} - Promise representing the result of the HTTP request
  */
-itemOfferRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('items', 'delete'), async(req, res) => {
+itemOfferRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('offers', 'delete'), async(req, res) => {
   const { id } = req.params;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -188,7 +188,7 @@ itemOfferRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, requireAct
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>} - Promise representing the result of the HTTP request
  */
-itemOfferRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('items', 'delete'), async(req, res) => {
+itemOfferRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('offers', 'delete'), async(req, res) => {
   const { ids } = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;

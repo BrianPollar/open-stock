@@ -2,7 +2,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.mailSenderRoutes = exports.sendRandomEmail = void 0;
 const tslib_1 = require("tslib");
-const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
 const log4js_1 = require("log4js");
 const notifications_controller_1 = require("../controllers/notifications.controller");
@@ -105,7 +104,7 @@ exports.sendRandomEmail = sendRandomEmail;
  * Router for handling mailPackage-related routes.
  */
 exports.mailSenderRoutes = express_1.default.Router();
-exports.mailSenderRoutes.post('/sendmail', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('users', 'create'), async (req, res) => {
+exports.mailSenderRoutes.post('/sendmail', async (req, res) => {
     const { emailFrom, emailTo, subject, message } = req.body;
     const sent = await (0, exports.sendRandomEmail)(emailFrom, emailTo, subject, message);
     if (!sent) {

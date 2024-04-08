@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-type-arguments */
 import { Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../controllers/database.controller';
 const estimateSchema = new Schema({
@@ -30,9 +29,9 @@ export const estimateSelect = estimateselect;
  * @param main - A flag indicating whether to create the main connection model.
  * @param lean - A flag indicating whether to create the lean connection model.
  */
-export const createEstimateModel = async (dbUrl, main = true, lean = true) => {
+export const createEstimateModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     if (!isStockDbConnected) {
-        await connectStockDatabase(dbUrl);
+        await connectStockDatabase(dbUrl, dbOptions);
     }
     if (main) {
         estimateMain = mainConnection.model('Estimate', estimateSchema);

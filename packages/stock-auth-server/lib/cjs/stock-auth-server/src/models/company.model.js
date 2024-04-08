@@ -199,9 +199,9 @@ exports.companyAboutSelect = companyaboutSelect;
  * @param main Optional parameter indicating whether to create the main company model. Default is true.
  * @param lean Optional parameter indicating whether to create the lean company model. Default is true.
  */
-const createCompanyModel = async (dbUrl, main = true, lean = true) => {
+const createCompanyModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     if (!database_controller_1.isAuthDbConnected) {
-        await (0, database_controller_1.connectAuthDatabase)(dbUrl);
+        await (0, database_controller_1.connectAuthDatabase)(dbUrl, dbOptions);
     }
     if (main) {
         exports.companyMain = database_controller_1.mainConnection.model('Company', exports.companySchema);

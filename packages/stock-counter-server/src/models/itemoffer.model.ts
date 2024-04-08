@@ -1,4 +1,4 @@
-import { Document, Model, Schema } from 'mongoose';
+import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
 const uniqueValidator = require('mongoose-unique-validator');
 
@@ -78,9 +78,9 @@ export const itemOfferSelect = itemOfferselect;
  * @param {boolean} [lean=true] - Whether to create the lean connection model.
  * @returns {Promise<void>} - A promise that resolves when the models have been created.
  */
-export const createItemOfferModel = async(dbUrl: string, main = true, lean = true) => {
+export const createItemOfferModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
   if (!isStockDbConnected) {
-    await connectStockDatabase(dbUrl);
+    await connectStockDatabase(dbUrl, dbOptions);
   }
 
   if (main) {

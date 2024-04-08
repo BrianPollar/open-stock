@@ -250,7 +250,7 @@ exports.paymentRoutes.get('/getmypayments/:companyIdParam', stock_universal_serv
     };
     return res.status(200).send(response);
 });
-exports.paymentRoutes.put('/deleteone/:companyIdParam', stock_universal_server_1.requireAuth, async (req, res) => {
+exports.paymentRoutes.put('/deleteone/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireSuperAdmin, async (req, res) => {
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;

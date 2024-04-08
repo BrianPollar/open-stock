@@ -10,12 +10,12 @@ export let isStockDbConnected = false;
  *
  * @param databaseConfigUrl The URL of the database configuration.
  */
-export const connectStockDatabase = async (databaseConfigUrl) => {
+export const connectStockDatabase = async (databaseConfigUrl, dbOptions) => {
     if (isStockDbConnected) {
         return;
     }
-    mainConnection = await makeNewConnection(databaseConfigUrl, 'mainConnection');
-    mainConnectionLean = await makeNewConnection(databaseConfigUrl, 'mainConnection');
+    mainConnection = await makeNewConnection(databaseConfigUrl, dbOptions);
+    mainConnectionLean = await makeNewConnection(databaseConfigUrl, dbOptions);
     isStockDbConnected = true;
 };
 process.on('SIGINT', () => {

@@ -191,7 +191,6 @@ receiptRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, requir
   return res.status(200).send(response);
 });
 
-
 receiptRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('receipts', 'update'), async(req, res) => {
   const { updatedReceipt, invoiceRelated } = req.body;
   const { companyId } = (req as Icustomrequest).user;

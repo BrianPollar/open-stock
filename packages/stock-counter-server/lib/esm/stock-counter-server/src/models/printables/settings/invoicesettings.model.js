@@ -30,9 +30,9 @@ export const invoiceSettingSelect = invoiceSettingselect;
  * @param {boolean} [lean=true] - Whether to create the lean connection model.
  * @returns {Promise<void>} - A promise that resolves when the model is created.
  */
-export const createInvoiceSettingModel = async (dbUrl, main = true, lean = true) => {
+export const createInvoiceSettingModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     if (!isStockDbConnected) {
-        await connectStockDatabase(dbUrl);
+        await connectStockDatabase(dbUrl, dbOptions);
     }
     if (main) {
         invoiceSettingMain = mainConnection.model('InvoiceSetting', invoiceSettingSchema);

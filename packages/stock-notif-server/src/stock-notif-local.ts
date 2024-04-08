@@ -1,3 +1,4 @@
+import { ConnectOptions } from 'mongoose';
 import { createNotificationsModel } from './models/mainnotification.model';
 import { createNotifStnModel } from './models/notifsetting.model';
 import { createSubscriptionModel } from './models/subscriptions.model';
@@ -55,10 +56,10 @@ export const createStockNotifServerLocals = () => {
  * @param databaseUrl The URL of the database.
  * @returns A promise that resolves when the database is created.
  */
-export const createNotificationsDatabase = (databaseUrl: string): Promise<void[]> => {
-  return Promise.all([
-    createNotificationsModel(databaseUrl),
-    createNotifStnModel(databaseUrl),
-    createSubscriptionModel(databaseUrl)
+export const createNotificationsDatabase = async(databaseUrl: string, dbOptions?: ConnectOptions): Promise<void> => {
+  await Promise.all([
+    createNotificationsModel(databaseUrl, dbOptions),
+    createNotifStnModel(databaseUrl, dbOptions),
+    createSubscriptionModel(databaseUrl, dbOptions)
   ]);
 };

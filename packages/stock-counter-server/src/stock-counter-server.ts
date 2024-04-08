@@ -22,6 +22,7 @@ import { reviewRoutes } from './routes/review.routes';
 // import { paymentInstallsRoutes } from './routes/paymentrelated/paymentinstalls.routes';
 import { IlAuth, isAuthServerRunning } from '@open-stock/stock-auth-server';
 import { runPassport } from '@open-stock/stock-universal-server';
+import { ConnectOptions } from 'mongoose';
 import { PesaPalController } from 'pesapal3';
 import { cookiesRoutesDummy } from './routes-dummy/cookies.routes';
 import { deliverycityRoutesDummy } from './routes-dummy/deliverycity.routes';
@@ -66,9 +67,12 @@ export interface IstockcounterServerConfig {
    */
   authSecrets: IlAuth;
   /**
-  * The database configuration URL.
+  * The database configuration.
   */
-  databaseConfigUrl: string;
+  databaseConfig: {
+    url: string;
+    dbOptions?: ConnectOptions;
+  };
   /**
   * The URL for the notification redirect.
   */
@@ -123,7 +127,7 @@ export const runStockCounterServer = async(
     throw error;
   }
   // connect models
-  await connectStockCounterDatabase(config.databaseConfigUrl);
+  await connectStockCounterDatabase(config.databaseConfig.url, config.databaseConfig.dbOptions);
 
   pesapalPaymentInstance = paymentInstance;
 

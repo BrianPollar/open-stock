@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createTaxReportModel = exports.taxReportSelect = exports.taxReportLean = exports.taxReportMain = void 0;
-/* eslint-disable @typescript-eslint/no-unnecessary-type-arguments */
 const mongoose_1 = require("mongoose");
 const database_controller_1 = require("../../../controllers/database.controller");
 const uniqueValidator = require('mongoose-unique-validator');
@@ -33,12 +32,13 @@ exports.taxReportSelect = taxReportselect;
 /**
  * Creates a tax report model with the given database URL, main connection and lean connection.
  * @param dbUrl The URL of the database to connect to.
+ * @param dbOptions The options passed to the database connection.
  * @param main Whether to create the main connection or not. Defaults to true.
  * @param lean Whether to create the lean connection or not. Defaults to true.
  */
-const createTaxReportModel = async (dbUrl, main = true, lean = true) => {
+const createTaxReportModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     if (!database_controller_1.isStockDbConnected) {
-        await (0, database_controller_1.connectStockDatabase)(dbUrl);
+        await (0, database_controller_1.connectStockDatabase)(dbUrl, dbOptions);
     }
     if (main) {
         exports.taxReportMain = database_controller_1.mainConnection.model('taxReport', taxReportSchema);

@@ -2,11 +2,10 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.subscriptionPackageRoutes = void 0;
 const tslib_1 = require("tslib");
-/* eslint-disable @typescript-eslint/no-misused-promises */
-const subscription_package_model_1 = require("@open-stock/stock-auth-server/src/models/subscriptions/subscription-package.model");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
 const log4js_1 = require("log4js");
+const subscription_package_model_1 = require("../../models/subscriptions/subscription-package.model");
 const superadmin_routes_1 = require("../superadmin.routes");
 /** Logger for subscriptionPackage routes */
 const subscriptionPackageRoutesLogger = (0, log4js_1.getLogger)('routes/subscriptionPackageRoutes');

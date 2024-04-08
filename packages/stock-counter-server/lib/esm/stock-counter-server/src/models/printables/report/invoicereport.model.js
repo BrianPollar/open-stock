@@ -37,9 +37,9 @@ export const invoicesReportSelect = invoicesReportselect;
  * @param main - Whether to create the main connection for invoicesReports Operations.
  * @param lean - Whether to create the lean connection for invoicesReports Operations.
  */
-export const createInvoicesReportModel = async (dbUrl, main = true, lean = true) => {
+export const createInvoicesReportModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     if (!isStockDbConnected) {
-        await connectStockDatabase(dbUrl);
+        await connectStockDatabase(dbUrl, dbOptions);
     }
     if (main) {
         invoicesReportMain = mainConnection.model('invoicesReport', invoicesReportSchema);

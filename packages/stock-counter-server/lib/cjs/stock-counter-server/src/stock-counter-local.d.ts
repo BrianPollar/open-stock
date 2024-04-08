@@ -1,3 +1,4 @@
+import { ConnectOptions } from 'mongoose';
 /**
  * Indicates whether the stock counter server is currently running.
  */
@@ -17,4 +18,4 @@ export declare const createStockCounterServerLocals: (notifRedirectUrl: string) 
  * @param databaseUrl The database URL for the server.
  * @returns A promise with the database models.
  */
-export declare const connectStockCounterDatabase: (databaseUrl: string) => Promise<[void, void, void, void, void, void, void, void, void, void, void, void, void, void, void, void, void, void, void, void, void, void, void, void, void, void, void, void]>;
+export declare const connectStockCounterDatabase: (databaseUrl: string, dbOptions?: ConnectOptions) => Promise<[void, void, void, void, void, void, void, void, void, void, void, void, void, void, void, void, void, void, void, void, void, void, void, void, void, void, void, void]>;

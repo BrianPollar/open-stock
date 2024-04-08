@@ -14,7 +14,7 @@ import { itemLean } from '../models/item.model';
 import { invoiceRelatedLean, invoiceRelatedMain } from '../models/printables/related/invoicerelated.model';
 import { deleteAllPayOrderLinked, makePaymentInstall, makePaymentRelatedPdct, relegatePaymentRelatedCreation, updatePaymentRelated } from './paymentrelated/paymentrelated';
 // import * as url from 'url';
-import { requireActiveCompany, userLean } from '@open-stock/stock-auth-server';
+import { requireActiveCompany, requireSuperAdmin, userLean } from '@open-stock/stock-auth-server';
 import { fileMetaLean, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import { getLogger } from 'log4js';
 import { receiptLean } from '../models/printables/receipt.model';
@@ -246,7 +246,7 @@ paymentRoutes.get('/getmypayments/:companyIdParam', requireAuth, async (req, res
     };
     return res.status(200).send(response);
 });
-paymentRoutes.put('/deleteone/:companyIdParam', requireAuth, async (req, res) => {
+paymentRoutes.put('/deleteone/:companyIdParam', requireAuth, requireSuperAdmin, async (req, res) => {
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;

@@ -1,5 +1,5 @@
 /// <reference types="mongoose/types/connection" />
-import { Connection } from 'mongoose';
+import { ConnectOptions, Connection } from 'mongoose';
 /** The  mainConnection  and  mainConnectionLean  variables are used to store the main connections to the database*/
 export declare let mainConnection: Connection;
 export declare let mainConnectionLean: Connection;
@@ -13,4 +13,4 @@ export declare let isAuthDbConnected: boolean;
  *
  * @param databaseConfigUrl - The URL of the database configuration.
  */
-export declare const connectAuthDatabase: (databaseConfigUrl: string) => Promise<void>;
+export declare const connectAuthDatabase: (databaseConfigUrl: string, dbOptions?: ConnectOptions) => Promise<void>;

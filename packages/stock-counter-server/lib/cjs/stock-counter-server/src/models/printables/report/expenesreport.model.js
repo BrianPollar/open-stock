@@ -32,9 +32,9 @@ exports.expenseReportSelect = expenseReportselect;
  * @param main - Whether to create a main connection for expense report operations.
  * @param lean - Whether to create a lean connection for expense report operations.
  */
-const createExpenseReportModel = async (dbUrl, main = true, lean = true) => {
+const createExpenseReportModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     if (!database_controller_1.isStockDbConnected) {
-        await (0, database_controller_1.connectStockDatabase)(dbUrl);
+        await (0, database_controller_1.connectStockDatabase)(dbUrl, dbOptions);
     }
     if (main) {
         exports.expenseReportMain = database_controller_1.mainConnection.model('expenseReport', expenseReportSchema);

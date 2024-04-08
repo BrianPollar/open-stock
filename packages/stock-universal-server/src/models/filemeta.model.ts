@@ -1,6 +1,6 @@
-import { Schema, Model } from 'mongoose';
-import { connectUniversalDatabase, isUniversalDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
 import { IfileMeta } from '@open-stock/stock-universal';
+import { Model, Schema } from 'mongoose';
+import { connectUniversalDatabase, isUniversalDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
 
 const uniqueValidator = require('mongoose-unique-validator');
 
@@ -30,6 +30,7 @@ export let fileMetaLean: Model<IfileMeta>;
 /**
  * Creates an file meta model with the given database URL, main flag, and lean flag.
  * @param dbUrl The URL of the database to connect to.
+ * @param dbOptions The options passed to the database connection.
  * @param main Whether to create the main email token model.
  * @param lean Whether to create the lean email token model.
  */

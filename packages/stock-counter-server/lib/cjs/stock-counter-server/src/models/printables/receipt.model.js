@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createReceiptModel = exports.receiptSelect = exports.receiptLean = exports.receiptMain = void 0;
-/* eslint-disable @typescript-eslint/no-unnecessary-type-arguments */
 const mongoose_1 = require("mongoose");
 const database_controller_1 = require("../../controllers/database.controller");
 const uniqueValidator = require('mongoose-unique-validator');
@@ -37,12 +36,13 @@ exports.receiptSelect = receiptselect;
 /**
  * Creates a new receipt model with the given database URL.
  * @param dbUrl The URL of the database to connect to.
+ * @param dbOptions The options passed to the database connection.
  * @param main Whether to create the main connection model.
  * @param lean Whether to create the lean connection model.
  */
-const createReceiptModel = async (dbUrl, main = true, lean = true) => {
+const createReceiptModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     if (!database_controller_1.isStockDbConnected) {
-        await (0, database_controller_1.connectStockDatabase)(dbUrl);
+        await (0, database_controller_1.connectStockDatabase)(dbUrl, dbOptions);
     }
     if (main) {
         exports.receiptMain = database_controller_1.mainConnection.model('Receipt', receiptSchema);

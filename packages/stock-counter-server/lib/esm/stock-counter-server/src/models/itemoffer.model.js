@@ -46,9 +46,9 @@ export const itemOfferSelect = itemOfferselect;
  * @param {boolean} [lean=true] - Whether to create the lean connection model.
  * @returns {Promise<void>} - A promise that resolves when the models have been created.
  */
-export const createItemOfferModel = async (dbUrl, main = true, lean = true) => {
+export const createItemOfferModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     if (!isStockDbConnected) {
-        await connectStockDatabase(dbUrl);
+        await connectStockDatabase(dbUrl, dbOptions);
     }
     if (main) {
         itemOfferMain = mainConnection.model('ItemOffer', itemOfferSchema);

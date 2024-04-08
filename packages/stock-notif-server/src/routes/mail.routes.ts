@@ -1,4 +1,3 @@
-import { requireAuth, roleAuthorisation } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { getLogger } from 'log4js';
 import { sendMail } from '../controllers/notifications.controller';
@@ -115,7 +114,7 @@ height: 100%;
  */
 export const mailSenderRoutes = express.Router();
 
-mailSenderRoutes.post('/sendmail', requireAuth, roleAuthorisation('users', 'create'), async(req, res) => {
+mailSenderRoutes.post('/sendmail', async(req, res) => {
   const { emailFrom, emailTo, subject, message } = req.body;
   const sent = await sendRandomEmail(emailFrom, emailTo, subject, message);
   if (!sent) {

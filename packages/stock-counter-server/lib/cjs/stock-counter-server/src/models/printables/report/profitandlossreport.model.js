@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createProfitandlossReportModel = exports.profitandlossReportSelect = exports.profitandlossReportLean = exports.profitandlossReportMain = void 0;
-/* eslint-disable @typescript-eslint/no-unnecessary-type-arguments */
 const mongoose_1 = require("mongoose");
 const database_controller_1 = require("../../../controllers/database.controller");
 const uniqueValidator = require('mongoose-unique-validator');
@@ -36,9 +35,9 @@ exports.profitandlossReportSelect = profitandlossReportselect;
  * @param main - Whether to create the main connection model. Defaults to true.
  * @param lean - Whether to create the lean connection model. Defaults to true.
  */
-const createProfitandlossReportModel = async (dbUrl, main = true, lean = true) => {
+const createProfitandlossReportModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     if (!database_controller_1.isStockDbConnected) {
-        await (0, database_controller_1.connectStockDatabase)(dbUrl);
+        await (0, database_controller_1.connectStockDatabase)(dbUrl, dbOptions);
     }
     if (main) {
         exports.profitandlossReportMain = database_controller_1.mainConnection.model('profitandlossReport', profitandlossReportSchema);

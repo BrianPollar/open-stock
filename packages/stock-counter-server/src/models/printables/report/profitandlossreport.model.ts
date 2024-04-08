@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-type-arguments */
-import { Document, Model, Schema } from 'mongoose';
 import { IprofitAndLossReport } from '@open-stock/stock-universal';
+import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../../controllers/database.controller';
 const uniqueValidator = require('mongoose-unique-validator');
 
@@ -55,9 +55,9 @@ export const profitandlossReportSelect = profitandlossReportselect;
  * @param main - Whether to create the main connection model. Defaults to true.
  * @param lean - Whether to create the lean connection model. Defaults to true.
  */
-export const createProfitandlossReportModel = async(dbUrl: string, main = true, lean = true) => {
+export const createProfitandlossReportModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
   if (!isStockDbConnected) {
-    await connectStockDatabase(dbUrl);
+    await connectStockDatabase(dbUrl, dbOptions);
   }
 
   if (main) {

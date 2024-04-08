@@ -1,3 +1,4 @@
+import { ConnectOptions } from 'mongoose';
 /**
  * Interface representing Twilio Authy secrets.
  */
@@ -37,4 +38,4 @@ export declare const createStockNotifServerLocals: () => void;
  * @param databaseUrl The URL of the database.
  * @returns A promise that resolves when the database is created.
  */
-export declare const createNotificationsDatabase: (databaseUrl: string) => Promise<void[]>;
+export declare const createNotificationsDatabase: (databaseUrl: string, dbOptions?: ConnectOptions) => Promise<void>;

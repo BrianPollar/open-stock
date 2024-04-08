@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createSalesReportModel = exports.salesReportSelect = exports.salesReportLean = exports.salesReportMain = void 0;
-/* eslint-disable @typescript-eslint/no-unnecessary-type-arguments */
 const mongoose_1 = require("mongoose");
 const database_controller_1 = require("../../../controllers/database.controller");
 const uniqueValidator = require('mongoose-unique-validator');
@@ -33,12 +32,13 @@ exports.salesReportSelect = salesReportselect;
 /**
  * Creates a sales report model with the given database URL, main connection and lean connection.
  * @param dbUrl The URL of the database to connect to.
+ * @param dbOptions The options passed to the database connection.
  * @param main Whether to create a main connection or not. Defaults to true.
  * @param lean Whether to create a lean connection or not. Defaults to true.
  */
-const createSalesReportModel = async (dbUrl, main = true, lean = true) => {
+const createSalesReportModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     if (!database_controller_1.isStockDbConnected) {
-        await (0, database_controller_1.connectStockDatabase)(dbUrl);
+        await (0, database_controller_1.connectStockDatabase)(dbUrl, dbOptions);
     }
     if (main) {
         exports.salesReportMain = database_controller_1.mainConnection.model('salesReport', salesReportSchema);

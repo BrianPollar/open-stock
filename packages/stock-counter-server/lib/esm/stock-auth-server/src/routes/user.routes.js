@@ -1,9 +1,11 @@
 import { appendBody, deleteFiles, fileMetaLean, makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, saveMetaToDb, stringifyMongooseErr, uploadFiles, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { getLogger } from 'log4js';
+import { now } from 'mongoose';
 import { checkIpAndAttempt, confirmAccountFactory, determineIfIsPhoneAndMakeFilterObj, isInAdictionaryOnline, isTooCommonPhrase, recoverAccountFactory, resetAccountFactory } from '../controllers/auth.controller';
 import { generateToken, sendTokenEmail, setUserInfo } from '../controllers/universial.controller';
 import { companyLean } from '../models/company.model';
+import { companySubscriptionLean } from '../models/subscriptions/company-subscription.model';
 import { user, userAuthSelect, userLean } from '../models/user.model';
 import { stockAuthConfig } from '../stock-auth-local';
 import { requireActiveCompany } from './company-auth';
@@ -44,10 +46,19 @@ export const userLoginRelegator = async (req, res) => {
     // delete user.password; //we do not want to send back password
     const userInfo = setUserInfo(foundUser._id, foundUser.permissions, foundUser.companyId, { active: !company.blocked });
     const token = generateToken(userInfo, '1d', stockAuthConfig.authSecrets.jwtSecret);
+    let activeSubscription;
+    if (company) {
+        const subsctn = await companySubscriptionLean.findOne({ companyId: company._id })
+            .lean()
+            .gte('endDate', now)
+            .sort({ endDate: 1 });
+        activeSubscription = subsctn;
+    }
     const nowResponse = {
         success: true,
         user: foundUser,
-        token
+        token,
+        activeSubscription
     };
     return res.status(200).send(nowResponse);
 };
@@ -168,7 +179,7 @@ userAuthRoutes.put('/resetpaswd', async (req, res, next) => {
     req.body.foundUser = foundUser;
     return next();
 }, resetAccountFactory);
-userAuthRoutes.post('/manuallyverify/:userId/:companyIdParam', requireAuth, roleAuthorisation('users', 'create'), async (req, res) => {
+userAuthRoutes.post('/manuallyverify/:userId/:companyIdParam', requireAuth, roleAuthorisation('users', 'update'), async (req, res) => {
     const { userId, companyIdParam } = req.params;
     const { companyId } = req.user;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
@@ -744,7 +755,7 @@ userAuthRoutes.post('/adduserimg/:companyIdParam', requireAuth, roleAuthorisatio
     }
     return res.status(status).send(response);
 });
-userAuthRoutes.put('/updateuserbulk/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('items', 'update'), async (req, res) => {
+userAuthRoutes.put('/updateuserbulk/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('users', 'update'), async (req, res) => {
     const updatedUser = req.body.user;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -792,7 +803,7 @@ userAuthRoutes.put('/updateuserbulk/:companyIdParam', requireAuth, requireActive
     });
     return res.status(status).send(response);
 });
-userAuthRoutes.post('/updateuserbulkimg/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('items', 'update'), uploadFiles, appendBody, saveMetaToDb, async (req, res) => {
+userAuthRoutes.post('/updateuserbulkimg/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('users', 'update'), uploadFiles, appendBody, saveMetaToDb, async (req, res) => {
     const updatedUser = req.body.user;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -894,7 +905,7 @@ userAuthRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompa
         return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
-userAuthRoutes.put('/deleteimages/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('items', 'delete'), deleteFiles, async (req, res) => {
+userAuthRoutes.put('/deleteimages/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('users', 'delete'), deleteFiles, async (req, res) => {
     const filesWithDir = req.body.filesWithDir;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;

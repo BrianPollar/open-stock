@@ -1,5 +1,5 @@
 import { IcompanySubscription } from '@open-stock/stock-universal';
-import { Document, Model, Schema } from 'mongoose';
+import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../../../stock-counter-server/src/controllers/database.controller';
 const uniqueValidator = require('mongoose-unique-validator');
 
@@ -48,12 +48,13 @@ export const companySubscriptionSelect = companySubscriptionselect;
 /**
  * Creates a new company subscription model.
  * @param dbUrl The URL of the database to connect to.
+ * @param dbOptions The options passed to the database connection.
  * @param main Whether to create a main connection.
  * @param lean Whether to create a lean connection.
  */
-export const createSubscriptionPackageModel = async(dbUrl: string, main = true, lean = true) => {
+export const createCompanySubscription = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
   if (!isStockDbConnected) {
-    await connectStockDatabase(dbUrl);
+    await connectStockDatabase(dbUrl, dbOptions);
   }
 
   if (main) {

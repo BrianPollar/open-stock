@@ -1,5 +1,5 @@
-import { Document, Model, Schema } from 'mongoose';
 import { IinvoiceSetting } from '@open-stock/stock-universal';
+import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../../controllers/database.controller';
 
 /** model type for invoiceSetting by */
@@ -40,9 +40,9 @@ export const invoiceSettingSelect = invoiceSettingselect;
  * @param {boolean} [lean=true] - Whether to create the lean connection model.
  * @returns {Promise<void>} - A promise that resolves when the model is created.
  */
-export const createInvoiceSettingModel = async(dbUrl: string, main = true, lean = true) => {
+export const createInvoiceSettingModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
   if (!isStockDbConnected) {
-    await connectStockDatabase(dbUrl);
+    await connectStockDatabase(dbUrl, dbOptions);
   }
 
   if (main) {

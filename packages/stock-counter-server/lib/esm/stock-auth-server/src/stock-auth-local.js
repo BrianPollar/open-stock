@@ -1,7 +1,7 @@
-/** The  connectAuthDatabase  function connects to the authentication database by creating the required models.*/
 import { createCompanyModel } from './models/company.model';
 import { createEmailtokenModel } from './models/emailtoken.model';
-import { createSubscriptionPackageModel } from './models/subscriptions/company-subscription.model';
+import { createCompanySubscription } from './models/subscriptions/company-subscription.model';
+import { createSubscriptionPackageModel } from './models/subscriptions/subscription-package.model';
 import { createUserModel } from './models/user.model';
 import { createUseripModel } from './models/userip.model';
 /**
@@ -25,12 +25,12 @@ export const createStockAuthServerLocals = (config) => {
  * @param {string} databaseUrl - The URL of the authentication database.
  * @returns {Promise<void>}
  */
-export const connectAuthDatabase = async (databaseUrl) => {
-    await createEmailtokenModel(databaseUrl);
-    await createUserModel(databaseUrl);
-    await createCompanyModel(databaseUrl);
+export const connectAuthDatabase = async (databaseUrl, dbOptions) => {
+    await createEmailtokenModel(databaseUrl, dbOptions);
+    await createUserModel(databaseUrl, dbOptions);
+    await createCompanyModel(databaseUrl, dbOptions);
     await createUseripModel(databaseUrl);
-    await createSubscriptionPackageModel(databaseUrl);
-    await createSubscriptionPackageModel(databaseUrl);
+    await createSubscriptionPackageModel(databaseUrl, dbOptions);
+    await createCompanySubscription(databaseUrl, dbOptions);
 };
 //# sourceMappingURL=stock-auth-local.js.map

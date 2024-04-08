@@ -16,12 +16,12 @@ exports.isNotifDbConnected = false;
  * If the connection is already established, it returns immediately.
  * @param databaseConfigUrl - The URL of the notification database configuration.
  */
-const connectNotifDatabase = async (databaseConfigUrl) => {
+const connectNotifDatabase = async (databaseConfigUrl, dbOptions) => {
     if (exports.isNotifDbConnected) {
         return;
     }
-    exports.mainConnection = await (0, stock_universal_server_1.makeNewConnection)(databaseConfigUrl, 'mainConnection');
-    exports.mainConnectionLean = await (0, stock_universal_server_1.makeNewConnection)(databaseConfigUrl, 'mainConnection');
+    exports.mainConnection = await (0, stock_universal_server_1.makeNewConnection)(databaseConfigUrl, dbOptions);
+    exports.mainConnectionLean = await (0, stock_universal_server_1.makeNewConnection)(databaseConfigUrl, dbOptions);
     exports.isNotifDbConnected = true;
 };
 exports.connectNotifDatabase = connectNotifDatabase;

@@ -34,12 +34,13 @@ export const subscriptionPackageSelect = subscriptionPackageselect;
 /**
  * Creates a new subscription package model.
  * @param dbUrl The URL of the database to connect to.
+ * @param dbOptions The options passed to the database connection.
  * @param main Whether to create a main connection.
  * @param lean Whether to create a lean connection.
  */
-export const createSubscriptionPackageModel = async (dbUrl, main = true, lean = true) => {
+export const createSubscriptionPackageModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     if (!isStockDbConnected) {
-        await connectStockDatabase(dbUrl);
+        await connectStockDatabase(dbUrl, dbOptions);
     }
     if (main) {
         subscriptionPackageMain = mainConnection.model('SubscriptionPackage', subscriptionPackageSchema);

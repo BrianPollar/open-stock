@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-type-arguments */
-import { Document, Model, Schema } from 'mongoose';
 import { IinvoiceRelatedRef } from '@open-stock/stock-universal';
+import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../controllers/database.controller';
 
 /**
@@ -42,9 +42,9 @@ export const estimateSelect = estimateselect;
  * @param main - A flag indicating whether to create the main connection model.
  * @param lean - A flag indicating whether to create the lean connection model.
  */
-export const createEstimateModel = async(dbUrl: string, main = true, lean = true) => {
+export const createEstimateModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
   if (!isStockDbConnected) {
-    await connectStockDatabase(dbUrl);
+    await connectStockDatabase(dbUrl, dbOptions);
   }
 
   if (main) {

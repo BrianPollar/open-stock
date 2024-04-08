@@ -902,7 +902,7 @@ exports.itemRoutes.put('/updatesponsored/:id/:companyIdParam', stock_universal_s
     }
     return res.status(200).send({ success: true });
 });
-exports.itemRoutes.delete('/deletesponsored/:id/:spnsdId/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'delete'), stock_universal_server_1.deleteFiles, async (req, res) => {
+exports.itemRoutes.delete('/deletesponsored/:id/:spnsdId/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'update'), stock_universal_server_1.deleteFiles, async (req, res) => {
     const { id, spnsdId } = req.params;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;

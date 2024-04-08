@@ -1,7 +1,7 @@
 /// <reference types="mongoose/types/document" />
 /// <reference types="mongoose/types/models" />
-import { Document, Model } from 'mongoose';
 import { IinvoiceRelatedRef } from '@open-stock/stock-universal';
+import { ConnectOptions, Document, Model } from 'mongoose';
 /**
  * Represents a testimate, which is a document related to an invoice.
  */
@@ -27,4 +27,4 @@ export declare const estimateSelect: {
  * @param main - A flag indicating whether to create the main connection model.
  * @param lean - A flag indicating whether to create the lean connection model.
  */
-export declare const createEstimateModel: (dbUrl: string, main?: boolean, lean?: boolean) => Promise<void>;
+export declare const createEstimateModel: (dbUrl: string, dbOptions?: ConnectOptions, main?: boolean, lean?: boolean) => Promise<void>;

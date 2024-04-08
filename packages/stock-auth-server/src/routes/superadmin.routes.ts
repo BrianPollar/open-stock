@@ -8,7 +8,7 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
 import { Iauthresponse, Iauthtoken, Icustomrequest, Isuccess, Iuser, Iuserperm } from '@open-stock/stock-universal';
 import { makeUrId, stringifyMongooseErr } from '@open-stock/stock-universal-server';
-import express, { NextFunction, Request, Response } from 'express';
+import express from 'express';
 import { getLogger } from 'log4js';
 import { Document } from 'mongoose';
 import { generateToken, sendTokenEmail, sendTokenPhone, setUserInfo } from '../controllers/universial.controller';
@@ -36,7 +36,7 @@ const authLogger = getLogger('routes/auth');
  * @param next - The next function.
  * @returns A Promise that resolves to void.
  */
-export const signupFactorRelgator = async(req: Request, res: Response, next: NextFunction) => {
+export const signupFactorRelgator = async(req, res, next) => {
   const { emailPhone } = req.body.user;
   const from = req.body.from;
   const passwd = req.body.passwd;
@@ -221,9 +221,9 @@ superAdminRoutes.post('/login', (req, res) => {
 });
 
 export const requireSuperAdmin = (
-  req: Request,
-  res: Response,
-  next: NextFunction
+  req,
+  res,
+  next
 ) => {
   const { userId } = (req as Icustomrequest).user;
   if (userId !== 'superAdmin') {

@@ -1,4 +1,4 @@
-import { IdataArrayResponse, IsubscriptionFeature } from '@open-stock/stock-universal';
+import { IdataArrayResponse, IsubscriptionFeature, Isuccess } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
 import { StockAuthClient } from '../../stock-auth-client';
 
@@ -35,7 +35,7 @@ export class CompanySubscription {
   ) {
     const observer$ = StockAuthClient.ehttp
       .makePost(`/companysubscription/subscribe/${companyId}`, companySubscription);
-    return lastValueFrom(observer$) ;
+    return lastValueFrom(observer$) as Promise<Isuccess>;
   }
 
   static async deleteCompanySubscription(
@@ -44,6 +44,6 @@ export class CompanySubscription {
   ) {
     const observer$ = StockAuthClient.ehttp
       .makePut(`/companysubscription/deleteone/${companyId}`, { id });
-    return lastValueFrom(observer$) ;
+    return lastValueFrom(observer$) as Promise<Isuccess>;
   }
 }

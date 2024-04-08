@@ -30,9 +30,12 @@ class InvoiceSettings extends stock_universal_1.DatabaseAuto {
     static async getInvoiceSettings(companyId, url = 'getall', offset = 0, limit = 20) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
             .makeGet(`/invoicesettings/${url}/${offset}/${limit}/${companyId}`);
-        const invoiceSettings = await (0, rxjs_1.lastValueFrom)(observer$);
-        return invoiceSettings
-            .map(val => new InvoiceSettings(val));
+        const { count, data } = await (0, rxjs_1.lastValueFrom)(observer$);
+        return {
+            count,
+            invoiceSettings: data
+                .map(val => new InvoiceSettings(val))
+        };
     }
     /**
      * Retrieves a specific invoice settings object from the server based on its ID.

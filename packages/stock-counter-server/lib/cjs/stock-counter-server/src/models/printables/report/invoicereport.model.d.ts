@@ -1,7 +1,7 @@
 /// <reference types="mongoose/types/document" />
 /// <reference types="mongoose/types/models" />
-import { Document, Model } from 'mongoose';
 import { IinvoicesReport } from '@open-stock/stock-universal';
+import { ConnectOptions, Document, Model } from 'mongoose';
 /**
  * Represents a TinvoicesReport, which is a document that combines the properties of a Document and IinvoicesReport.
  */
@@ -30,4 +30,4 @@ export declare const invoicesReportSelect: {
  * @param main - Whether to create the main connection for invoicesReports Operations.
  * @param lean - Whether to create the lean connection for invoicesReports Operations.
  */
-export declare const createInvoicesReportModel: (dbUrl: string, main?: boolean, lean?: boolean) => Promise<void>;
+export declare const createInvoicesReportModel: (dbUrl: string, dbOptions?: ConnectOptions, main?: boolean, lean?: boolean) => Promise<void>;

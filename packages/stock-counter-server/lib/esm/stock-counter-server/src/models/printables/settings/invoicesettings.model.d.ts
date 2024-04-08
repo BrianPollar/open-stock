@@ -1,7 +1,7 @@
 /// <reference types="mongoose/types/document" />
 /// <reference types="mongoose/types/models" />
-import { Document, Model } from 'mongoose';
 import { IinvoiceSetting } from '@open-stock/stock-universal';
+import { ConnectOptions, Document, Model } from 'mongoose';
 /** model type for invoiceSetting by */
 export type TinvoiceSetting = Document & IinvoiceSetting;
 /** main connection for invoices Operations*/
@@ -24,4 +24,4 @@ export declare const invoiceSettingSelect: {
  * @param {boolean} [lean=true] - Whether to create the lean connection model.
  * @returns {Promise<void>} - A promise that resolves when the model is created.
  */
-export declare const createInvoiceSettingModel: (dbUrl: string, main?: boolean, lean?: boolean) => Promise<void>;
+export declare const createInvoiceSettingModel: (dbUrl: string, dbOptions?: ConnectOptions, main?: boolean, lean?: boolean) => Promise<void>;

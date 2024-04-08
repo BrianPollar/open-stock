@@ -1,5 +1,5 @@
-import { getLogger } from 'log4js';
 import { makeNewConnection } from '@open-stock/stock-universal-server';
+import { getLogger } from 'log4js';
 /** The  dbConnectionsLogger  is a logger instance used for logging database connection-related messages. */
 const dbConnectionsLogger = getLogger('DbConnections');
 /** The  mainConnection  and  mainConnectionLean  variables are used to store the main connections to the database*/
@@ -15,12 +15,12 @@ export let isAuthDbConnected = false;
  *
  * @param databaseConfigUrl - The URL of the database configuration.
  */
-export const connectAuthDatabase = async (databaseConfigUrl) => {
+export const connectAuthDatabase = async (databaseConfigUrl, dbOptions) => {
     if (isAuthDbConnected) {
         return;
     }
-    mainConnection = await makeNewConnection(databaseConfigUrl, 'mainConnection');
-    mainConnectionLean = await makeNewConnection(databaseConfigUrl, 'mainConnection');
+    mainConnection = await makeNewConnection(databaseConfigUrl, dbOptions);
+    mainConnectionLean = await makeNewConnection(databaseConfigUrl, dbOptions);
     isAuthDbConnected = true;
 };
 /**

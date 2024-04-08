@@ -2,8 +2,8 @@
  * @fileoverview This file contains the definition of the notification settings model.
  * @packageDocumentation
  */
-import { Document, Model } from 'mongoose';
 import { InotifSetting } from '@open-stock/stock-universal';
+import { ConnectOptions, Document, Model } from 'mongoose';
 /**
  * Represents the type for a notification setting.
  * Extends the Document interface and the InotifSetting interface.
@@ -34,4 +34,4 @@ export declare const notifSettingSelect: {
  * @param {boolean} [main=true] - Whether to create the main connection.
  * @param {boolean} [lean=true] - Whether to create the lean connection.
  */
-export declare const createNotifStnModel: (dbUrl: string, main?: boolean, lean?: boolean) => Promise<void>;
+export declare const createNotifStnModel: (dbUrl: string, dbOptions?: ConnectOptions, main?: boolean, lean?: boolean) => Promise<void>;

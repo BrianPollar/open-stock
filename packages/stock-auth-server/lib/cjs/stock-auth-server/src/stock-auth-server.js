@@ -28,7 +28,7 @@ const runStockAuthServer = async (config) => {
     }
     (0, stock_auth_local_1.createStockAuthServerLocals)(config);
     // connect models
-    await (0, stock_auth_local_1.connectAuthDatabase)(config.databaseConfigUrl);
+    await (0, stock_auth_local_1.connectAuthDatabase)(config.databaseConfig.url, config.databaseConfig.dbOptions);
     (0, stock_universal_server_1.runPassport)(config.authSecrets.jwtSecret);
     const stockAuthRouter = express_1.default.Router();
     if (!config.useDummyRoutes) {

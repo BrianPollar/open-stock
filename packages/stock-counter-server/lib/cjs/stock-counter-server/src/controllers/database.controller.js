@@ -11,12 +11,12 @@ exports.isStockDbConnected = false;
  *
  * @param databaseConfigUrl The URL of the database configuration.
  */
-const connectStockDatabase = async (databaseConfigUrl) => {
+const connectStockDatabase = async (databaseConfigUrl, dbOptions) => {
     if (exports.isStockDbConnected) {
         return;
     }
-    exports.mainConnection = await (0, stock_universal_server_1.makeNewConnection)(databaseConfigUrl, 'mainConnection');
-    exports.mainConnectionLean = await (0, stock_universal_server_1.makeNewConnection)(databaseConfigUrl, 'mainConnection');
+    exports.mainConnection = await (0, stock_universal_server_1.makeNewConnection)(databaseConfigUrl, dbOptions);
+    exports.mainConnectionLean = await (0, stock_universal_server_1.makeNewConnection)(databaseConfigUrl, dbOptions);
     exports.isStockDbConnected = true;
 };
 exports.connectStockDatabase = connectStockDatabase;

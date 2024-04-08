@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createInvoiceRelatedModel = exports.invoiceRelatedSelect = exports.invoiceRelatedLean = exports.invoiceRelatedMain = void 0;
-/* eslint-disable @typescript-eslint/no-unnecessary-type-arguments */
 const mongoose_1 = require("mongoose");
 const database_controller_1 = require("../../../controllers/database.controller");
 /**
@@ -79,9 +78,9 @@ exports.invoiceRelatedSelect = invoiceRelatedselect;
  * @param main - Indicates whether to create the main connection model. Default is true.
  * @param lean - Indicates whether to create the lean connection model. Default is true.
  */
-const createInvoiceRelatedModel = async (dbUrl, main = true, lean = true) => {
+const createInvoiceRelatedModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     if (!database_controller_1.isStockDbConnected) {
-        await (0, database_controller_1.connectStockDatabase)(dbUrl);
+        await (0, database_controller_1.connectStockDatabase)(dbUrl, dbOptions);
     }
     if (main) {
         exports.invoiceRelatedMain = database_controller_1.mainConnection.model('invoiceRelated', invoiceRelatedSchema);
