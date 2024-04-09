@@ -15,12 +15,12 @@ exports.isUniversalDbConnected = false;
  *
  * @param databaseConfigUrl - The URL of the database configuration.
  */
-const connectUniversalDatabase = async (databaseConfigUrl) => {
+const connectUniversalDatabase = async (databaseConfigUrl, dbOptions) => {
     if (exports.isUniversalDbConnected) {
         return;
     }
-    exports.mainConnection = await (0, connections_1.makeNewConnection)(databaseConfigUrl, 'mainConnection');
-    exports.mainConnectionLean = await (0, connections_1.makeNewConnection)(databaseConfigUrl, 'mainConnection');
+    exports.mainConnection = await (0, connections_1.makeNewConnection)(databaseConfigUrl, dbOptions);
+    exports.mainConnectionLean = await (0, connections_1.makeNewConnection)(databaseConfigUrl, dbOptions);
     exports.isUniversalDbConnected = true;
 };
 exports.connectUniversalDatabase = connectUniversalDatabase;

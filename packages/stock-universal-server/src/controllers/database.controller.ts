@@ -1,5 +1,5 @@
 import { getLogger } from 'log4js';
-import { Connection } from 'mongoose';
+import { ConnectOptions, Connection } from 'mongoose';
 import { makeNewConnection } from '../dbconnections/connections';
 
 /** The  dbConnectionsLogger  is a logger instance used for logging database connection-related messages. */
@@ -20,12 +20,12 @@ export let isUniversalDbConnected = false;
  *
  * @param databaseConfigUrl - The URL of the database configuration.
  */
-export const connectUniversalDatabase = async(databaseConfigUrl: string) => {
+export const connectUniversalDatabase = async(databaseConfigUrl: string, dbOptions?: ConnectOptions) => {
   if (isUniversalDbConnected) {
     return;
   }
-  mainConnection = await makeNewConnection(databaseConfigUrl, 'mainConnection');
-  mainConnectionLean = await makeNewConnection(databaseConfigUrl, 'mainConnection');
+  mainConnection = await makeNewConnection(databaseConfigUrl, dbOptions);
+  mainConnectionLean = await makeNewConnection(databaseConfigUrl, dbOptions);
   isUniversalDbConnected = true;
 };
 

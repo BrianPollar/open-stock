@@ -7,7 +7,7 @@ import { createMockNotif, createMockNotifs } from '../../../tests/stock-notif-mo
  */
 export const notifnRoutesDummy = express.Router();
 
-notifnRoutesDummy.get('/getmynotifn/:companyIdParam', (req, res) => {
+notifnRoutesDummy.get('/getmynotifn/:offset/:limit/:companyIdParam', (req, res) => {
   const response: IdataArrayResponse = {
     count: 10,
     data: createMockNotifs(10)
@@ -15,7 +15,7 @@ notifnRoutesDummy.get('/getmynotifn/:companyIdParam', (req, res) => {
   res.status(200).send(response);
 });
 
-notifnRoutesDummy.get('/getmyavailnotifn/:companyIdParam', (req, res) => {
+notifnRoutesDummy.get('/getmyavailnotifn/:offset/:limit/:companyIdParam', (req, res) => {
   const response: IdataArrayResponse = {
     count: 10,
     data: createMockNotifs(10)

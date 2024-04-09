@@ -12,7 +12,8 @@ const subscriptions_model_1 = require("../models/subscriptions.model");
  * Router for handling notification routes.
  */
 exports.notifnRoutes = express_1.default.Router();
-exports.notifnRoutes.get('/getmynotifn/:companyIdParam', stock_universal_server_1.requireAuth, async (req, res) => {
+exports.notifnRoutes.get('/getmynotifn/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, async (req, res) => {
+    const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const { userId } = req.user;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -24,6 +25,8 @@ exports.notifnRoutes.get('/getmynotifn/:companyIdParam', stock_universal_server_
     const all = await Promise.all([
         mainnotification_model_1.mainnotificationLean
             .find({ userId, active: true, viewed: { $nin: [userId] }, companyId: queryId })
+            .skip(offset)
+            .limit(limit)
             .lean()
             .sort({ name: 'asc' }),
         mainnotification_model_1.mainnotificationLean.countDocuments({ userId, active: true, viewed: { $nin: [userId] }, companyId: queryId })
@@ -34,13 +37,16 @@ exports.notifnRoutes.get('/getmynotifn/:companyIdParam', stock_universal_server_
     };
     return res.status(200).send(response);
 });
-exports.notifnRoutes.get('/getmyavailnotifn/:companyIdParam', stock_universal_server_1.requireAuth, async (req, res) => {
+exports.notifnRoutes.get('/getmyavailnotifn/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, async (req, res) => {
+    const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
     const all = await Promise.all([
         mainnotification_model_1.mainnotificationLean
             .find({ active: true, companyId: queryId })
+            .skip(offset)
+            .limit(limit)
             .lean()
             .sort({ name: 'asc' }),
         mainnotification_model_1.mainnotificationLean.countDocuments({ active: true, companyId: queryId })

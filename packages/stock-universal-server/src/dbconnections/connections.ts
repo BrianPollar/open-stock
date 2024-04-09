@@ -1,5 +1,5 @@
-import mongoose from 'mongoose';
 import { getLogger } from 'log4js';
+import mongoose, { ConnectOptions } from 'mongoose';
 
 // This var creates a dbConnectionsLogger named `DbConnections`.
 const dbConnectionsLogger = getLogger('DbConnections');
@@ -12,10 +12,10 @@ const dbConnectionsLogger = getLogger('DbConnections');
  */
 export const makeNewConnection = async(
   uri: string,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  coonType) => {
+  dbOptions?: ConnectOptions
+) => {
   // Create a new MongoDB connection instance.
-  const db = await mongoose.createConnection(uri).asPromise();
+  const db = await mongoose.createConnection(uri, dbOptions).asPromise();
 
   // Set up an error handler that logs errors to the console.
   db.on('error', (error) => {

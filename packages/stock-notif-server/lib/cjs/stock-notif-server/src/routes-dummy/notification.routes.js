@@ -8,14 +8,14 @@ const stock_notif_mocks_1 = require("../../../tests/stock-notif-mocks");
  * Router for handling notification routes.
  */
 exports.notifnRoutesDummy = express_1.default.Router();
-exports.notifnRoutesDummy.get('/getmynotifn/:companyIdParam', (req, res) => {
+exports.notifnRoutesDummy.get('/getmynotifn/:offset/:limit/:companyIdParam', (req, res) => {
     const response = {
         count: 10,
         data: (0, stock_notif_mocks_1.createMockNotifs)(10)
     };
     res.status(200).send(response);
 });
-exports.notifnRoutesDummy.get('/getmyavailnotifn/:companyIdParam', (req, res) => {
+exports.notifnRoutesDummy.get('/getmyavailnotifn/:offset/:limit/:companyIdParam', (req, res) => {
     const response = {
         count: 10,
         data: (0, stock_notif_mocks_1.createMockNotifs)(10)

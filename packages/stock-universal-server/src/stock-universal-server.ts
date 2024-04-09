@@ -5,7 +5,7 @@ import { connectUniversalDatabase, createStockUniversalServerLocals, isStockUniv
  * @param databaseConfigUrl - The URL of the database configuration.
  * @returns A promise that resolves to an object indicating whether the stock universal server is running.
  */
-export const runStockUniversalServer = async(databaseConfigUrl: string) => {
+export const runStockUniversalServer = async(databaseConfigUrl: string) => { // TODO db options
   createStockUniversalServerLocals();
   // connect models
   await connectUniversalDatabase(databaseConfigUrl);

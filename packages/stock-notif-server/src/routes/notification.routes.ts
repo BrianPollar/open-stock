@@ -21,7 +21,7 @@
  */
 /* eslint-disable @typescript-eslint/no-misused-promises */
 import { Icustomrequest, IdataArrayResponse, Isuccess } from '@open-stock/stock-universal';
-import { requireAuth, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { offsetLimitRelegator, requireAuth, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { updateNotifnViewed } from '../controllers/notifications.controller';
 import { mainnotificationLean, mainnotificationMain } from '../models/mainnotification.model';
@@ -34,7 +34,8 @@ import { subscriptionLean, subscriptionMain } from '../models/subscriptions.mode
  */
 export const notifnRoutes = express.Router();
 
-notifnRoutes.get('/getmynotifn/:companyIdParam', requireAuth, async(req, res) => {
+notifnRoutes.get('/getmynotifn/:offset/:limit/:companyIdParam', requireAuth, async(req, res) => {
+  const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
   const { userId } = (req as unknown as Icustomrequest).user;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -46,6 +47,8 @@ notifnRoutes.get('/getmynotifn/:companyIdParam', requireAuth, async(req, res) =>
   const all = await Promise.all([
     mainnotificationLean
       .find({ userId, active: true, viewed: { $nin: [userId] }, companyId: queryId })
+      .skip(offset)
+      .limit(limit)
       .lean()
       .sort({ name: 'asc' }),
     mainnotificationLean.countDocuments({ userId, active: true, viewed: { $nin: [userId] }, companyId: queryId })
@@ -57,13 +60,16 @@ notifnRoutes.get('/getmynotifn/:companyIdParam', requireAuth, async(req, res) =>
   return res.status(200).send(response);
 });
 
-notifnRoutes.get('/getmyavailnotifn/:companyIdParam', requireAuth, async(req, res) => {
+notifnRoutes.get('/getmyavailnotifn/:offset/:limit/:companyIdParam', requireAuth, async(req, res) => {
+  const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const all = await Promise.all([
     mainnotificationLean
       .find({ active: true, companyId: queryId })
+      .skip(offset)
+      .limit(limit)
       .lean()
       .sort({ name: 'asc' }),
     mainnotificationLean.countDocuments({ active: true, companyId: queryId })

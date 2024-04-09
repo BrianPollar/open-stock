@@ -2,8 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.disconnectMongoose = exports.makeNewConnection = void 0;
 const tslib_1 = require("tslib");
-const mongoose_1 = tslib_1.__importDefault(require("mongoose"));
 const log4js_1 = require("log4js");
+const mongoose_1 = tslib_1.__importDefault(require("mongoose"));
 // This var creates a dbConnectionsLogger named `DbConnections`.
 const dbConnectionsLogger = (0, log4js_1.getLogger)('DbConnections');
 /**
@@ -12,11 +12,9 @@ const dbConnectionsLogger = (0, log4js_1.getLogger)('DbConnections');
  * @param coonType - The type of connection.
  * @returns The connection object.
  */
-const makeNewConnection = async (uri, 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-coonType) => {
+const makeNewConnection = async (uri, dbOptions) => {
     // Create a new MongoDB connection instance.
-    const db = await mongoose_1.default.createConnection(uri).asPromise();
+    const db = await mongoose_1.default.createConnection(uri, dbOptions).asPromise();
     // Set up an error handler that logs errors to the console.
     db.on('error', (error) => {
         dbConnectionsLogger.error(`MONGODB ERROR :: 

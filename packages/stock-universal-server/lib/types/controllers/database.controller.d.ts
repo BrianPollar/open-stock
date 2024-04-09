@@ -1,4 +1,4 @@
-import { Connection } from 'mongoose';
+import { ConnectOptions, Connection } from 'mongoose';
 /** The  mainConnection  and  mainConnectionLean  variables are used to store the main connections to the database*/
 export declare let mainConnection: Connection;
 export declare let mainConnectionLean: Connection;
@@ -12,4 +12,4 @@ export declare let isUniversalDbConnected: boolean;
  *
  * @param databaseConfigUrl - The URL of the database configuration.
  */
-export declare const connectUniversalDatabase: (databaseConfigUrl: string) => Promise<void>;
+export declare const connectUniversalDatabase: (databaseConfigUrl: string, dbOptions?: ConnectOptions) => Promise<void>;

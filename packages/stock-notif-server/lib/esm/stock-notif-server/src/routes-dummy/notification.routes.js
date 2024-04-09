@@ -4,14 +4,14 @@ import { createMockNotif, createMockNotifs } from '../../../tests/stock-notif-mo
  * Router for handling notification routes.
  */
 export const notifnRoutesDummy = express.Router();
-notifnRoutesDummy.get('/getmynotifn/:companyIdParam', (req, res) => {
+notifnRoutesDummy.get('/getmynotifn/:offset/:limit/:companyIdParam', (req, res) => {
     const response = {
         count: 10,
         data: createMockNotifs(10)
     };
     res.status(200).send(response);
 });
-notifnRoutesDummy.get('/getmyavailnotifn/:companyIdParam', (req, res) => {
+notifnRoutesDummy.get('/getmyavailnotifn/:offset/:limit/:companyIdParam', (req, res) => {
     const response = {
         count: 10,
         data: createMockNotifs(10)
