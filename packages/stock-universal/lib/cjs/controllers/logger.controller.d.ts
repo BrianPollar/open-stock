@@ -2,6 +2,7 @@
  * The LoggerController class provides logging functionality for the application.
  */
 export declare class LoggerController {
+    appName: string;
     private pDebug;
     private pWarn;
     private pError;
@@ -10,7 +11,7 @@ export declare class LoggerController {
      * The constructor for the LoggerController class.
      * Sets the logging functions for the private properties and the colors for the logs.
      */
-    constructor();
+    constructor(appName?: string);
     /**
      * The getter for the `debug` property.
      * @returns The debug logger.

@@ -1,5 +1,5 @@
-import { IsubscriptionFeature, Isuccess } from '@open-stock/stock-universal';
-export declare class CompanySubscription {
+import { DatabaseAuto, IsubscriptionFeature, Isuccess } from '@open-stock/stock-universal';
+export declare class CompanySubscription extends DatabaseAuto {
     subscriprionId: string;
     startDate: Date;
     endDate: Date;

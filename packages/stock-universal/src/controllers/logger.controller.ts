@@ -9,6 +9,7 @@ const APP_NAME = 'OPEN-STOCK';
 // The following line is commented out because it is not safe to modify `localStorage` directly.
 // eslint-disable-next-line @typescript-eslint/dot-notation
 // localStorage['debug'] = 'for:* stock-counter:*';
+// localStorage['debug'] = 'OPEN-STOCK:*';
 
 // This class is a logger controller.
 
@@ -16,23 +17,30 @@ const APP_NAME = 'OPEN-STOCK';
  * The LoggerController class provides logging functionality for the application.
  */
 export class LoggerController {
+  appName: string;
   // The private property `pDebug` is a debug logger.
-  private pDebug = debug(`${APP_NAME}:DEBUG`);
+  private pDebug;
 
   // The private property `pWarn` is a warning logger.
-  private pWarn = debug(`${APP_NAME}:WARN`);
+  private pWarn;
 
   // The private property `pError` is an error logger.
-  private pError = debug(`${APP_NAME}:ERROR`);
+  private pError;
 
   // The private property `pTrace` is a trace logger.
-  private pTrace = debug(`${APP_NAME}:TRACE`);
+  private pTrace;
 
   /**
    * The constructor for the LoggerController class.
    * Sets the logging functions for the private properties and the colors for the logs.
    */
-  constructor() {
+  constructor(appName = APP_NAME) {
+    localStorage['debug'] = `${appName}:*`;
+    this.pDebug = debug(`${appName}:DEBUG`);
+    this. pWarn = debug(`${appName}:WARN`);
+    this.pError = debug(`${appName}:ERROR`);
+    this.pTrace = debug(`${appName}:TRACE`);
+
     // Set the logging functions for the private properties.
     this.pDebug.log = console.info.bind(console);
     this.pWarn.log = console.warn.bind(console);

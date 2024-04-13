@@ -1,10 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CompanySubscription = void 0;
+const stock_universal_1 = require("@open-stock/stock-universal");
 const rxjs_1 = require("rxjs");
 const stock_auth_client_1 = require("../../stock-auth-client");
-class CompanySubscription {
+class CompanySubscription extends stock_universal_1.DatabaseAuto {
     constructor(data) {
+        super(data);
         this.subscriprionId = data.subscriprionId;
         this.startDate = data.startDate;
         this.endDate = data.endDate;

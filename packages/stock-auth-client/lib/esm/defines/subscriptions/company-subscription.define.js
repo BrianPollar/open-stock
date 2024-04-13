@@ -1,7 +1,9 @@
+import { DatabaseAuto } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
 import { StockAuthClient } from '../../stock-auth-client';
-export class CompanySubscription {
+export class CompanySubscription extends DatabaseAuto {
     constructor(data) {
+        super(data);
         this.subscriprionId = data.subscriprionId;
         this.startDate = data.startDate;
         this.endDate = data.endDate;
