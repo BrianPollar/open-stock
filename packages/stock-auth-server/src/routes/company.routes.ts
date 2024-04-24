@@ -6,7 +6,7 @@
  */
 /* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable @typescript-eslint/no-misused-promises */
-import { Iauthresponse, Iauthtoken, Icompany, Icustomrequest, IdataArrayResponse, IfileMeta, Isuccess, Iuser } from '@open-stock/stock-universal';
+import { Iauthresponse, Icustomrequest, IdataArrayResponse, IfileMeta, Isuccess } from '@open-stock/stock-universal';
 import {
   appendBody,
   deleteFiles,
@@ -21,16 +21,12 @@ import {
   verifyObjectId,
   verifyObjectIds
 } from '@open-stock/stock-universal-server';
-import express, { Request, Response } from 'express';
+import express from 'express';
 import { getLogger } from 'log4js';
-import { checkIpAndAttempt, confirmAccountFactory, determineIfIsPhoneAndMakeFilterObj, isInAdictionaryOnline, isTooCommonPhrase, recoverAccountFactory, resetAccountFactory } from '../controllers/auth.controller';
-import { generateToken, setUserInfo } from '../controllers/universial.controller';
 import { companyLean, companyMain } from '../models/company.model';
-import { companySubscriptionLean } from '../models/subscriptions/company-subscription.model';
-import { userAuthSelect } from '../models/user.model';
-import { stockAuthConfig } from '../stock-auth-local';
+import { user } from '../models/user.model';
 import { requireActiveCompany } from './company-auth';
-import { requireSuperAdmin, signupFactorRelgator } from './superadmin.routes';
+import { requireSuperAdmin } from './superadmin.routes';
 // import { notifConfig } from '../../config/notif.config';
 // import { createNotifications, NotificationController } from '../controllers/notifications.controller';
 // const passport = require('passport');
@@ -52,7 +48,7 @@ const companyAuthLogger = getLogger('routes/company');
  * @param res - The response object.
  * @returns The response with the authentication token and user information.
  */
-export const companyLoginRelegator = async(req: Request, res: Response) => {
+/* export const companyLoginRelegator = async(req: Request, res: Response) => {
   const { emailPhone } = req.body;
 
   const { query } = determineIfIsPhoneAndMakeFilterObj(emailPhone);
@@ -83,7 +79,7 @@ export const companyLoginRelegator = async(req: Request, res: Response) => {
   const token = generateToken(
     userInfo, '1d', stockAuthConfig.authSecrets.jwtSecret);
   const now = new Date();
-  const subsctn = await companySubscriptionLean.findOne({ companyId: foundCompany._id })
+  const subsctn = await companySubscriptionLean.findOne({ companyId: foundCompany._id, status: 'paid' })
     .lean()
     .gte('endDate', now)
     .sort({ endDate: 1 });
@@ -95,10 +91,10 @@ export const companyLoginRelegator = async(req: Request, res: Response) => {
     activeSubscription: subsctn
   };
   return res.status(200).send(nowResponse);
-};
+};*/
 
-companyAuthRoutes.get('/authexpress/:companyIdParam', requireAuth, async(req, res) => {
-  const { userId, companyId } = (req as Icustomrequest).user;
+/* companyAuthRoutes.get('/authexpress/:companyIdParam', requireAuth, async(req, res) => {
+  const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
@@ -107,7 +103,7 @@ companyAuthRoutes.get('/authexpress/:companyIdParam', requireAuth, async(req, re
   }
 
   const foundCompany = await companyLean
-    .findById(userId)
+    .findById(queryId)
     .populate({ path: 'profilePic', model: fileMetaLean })
     .populate({ path: 'profileCoverPic', model: fileMetaLean })
     .populate({ path: 'photos', model: fileMetaLean })
@@ -157,30 +153,37 @@ companyAuthRoutes.get('/authexpress/:companyIdParam', requireAuth, async(req, re
     token
   };
   return res.status(200).send(nowResponse);
-});
+});*/
 
-companyAuthRoutes.post('/login', (req, res, next) => {
-  req.body.from = 'user';
+/* companyAuthRoutes.post('/login', async(req, res, next) => {
+  req.body.from = 'company';
   const { emailPhone } = req.body;
   companyAuthLogger.debug(`login attempt,
     emailPhone: ${emailPhone}`);
+  const { query, isPhone } = determineIfIsPhoneAndMakeFilterObj(emailPhone);
+  const foundUser = await companyMain.findOne({ ...query, ... { verified: true } });
+  if (!foundUser) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
+  req.body.isPhone = isPhone;
+  req.body.foundUser = foundUser;
   return next();
-}, checkIpAndAttempt, companyLoginRelegator);
+}, checkIpAndAttempt, companyLoginRelegator);*/
 
 
-companyAuthRoutes.post('/signup', (req, res, next) => {
+/* companyAuthRoutes.post('/signup', (req, res, next) => {
   const user = req.body;
   req.body.user = user;
   return next();
 }, isTooCommonPhrase, isInAdictionaryOnline, signupFactorRelgator, (req, res) => {
   return res.status(401).send({ success: false, msg: 'unauthourised' });
-});
+});*/
 
-companyAuthRoutes.post('/recover', async(req, res, next) => {
+/* companyAuthRoutes.post('/recover', async(req, res, next) => {
   const emailPhone = req.body.emailPhone;
   const emailOrPhone = emailPhone === 'phone' ? 'phone' : 'email';
   let query;
-  companyAuthLogger.debug(`recover, 
+  companyAuthLogger.debug(`recover,
     emailphone: ${emailPhone}, emailOrPhone: ${emailOrPhone}`);
 
   if (emailOrPhone === 'phone') {
@@ -189,9 +192,9 @@ companyAuthRoutes.post('/recover', async(req, res, next) => {
   const foundCompany = await companyMain.findOne(query);
   req.body.foundUser = foundCompany;
   return next();
-}, recoverAccountFactory);
+}, recoverAccountFactory);*/
 
-companyAuthRoutes.post('/confirm', async(req, res, next) => {
+/* companyAuthRoutes.post('/confirm', async(req, res, next) => {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const { _id, verifycode, how } = req.body;
   companyAuthLogger.debug(`verify, verifycode: ${verifycode}, how: ${how}`);
@@ -208,12 +211,12 @@ companyAuthRoutes.post('/confirm', async(req, res, next) => {
   const foundCompany = await companyMain.findById(_id);
   req.body.foundUser = foundCompany;
   return next();
-}, confirmAccountFactory);
+}, confirmAccountFactory);*/
 
-companyAuthRoutes.put('/resetpaswd', async(req, res, next) => {
+/* companyAuthRoutes.put('/resetpaswd', async(req, res, next) => {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const { _id, verifycode } = req.body;
-  companyAuthLogger.debug(`resetpassword, 
+  companyAuthLogger.debug(`resetpassword,
     verifycode: ${verifycode}`);
   const isValid = verifyObjectId(_id);
   if (!isValid) {
@@ -228,7 +231,7 @@ companyAuthRoutes.put('/resetpaswd', async(req, res, next) => {
   const foundCompany = await companyMain.findById(_id);
   req.body.foundUser = foundCompany;
   return next();
-}, resetAccountFactory);
+}, resetAccountFactory);*/
 
 companyAuthRoutes.post('/updateprofileimg/:companyIdParam', requireAuth, requireActiveCompany, uploadFiles, appendBody, saveMetaToDb, async(req, res) => {
   const { companyId } = (req as Icustomrequest).user;
@@ -283,16 +286,14 @@ companyAuthRoutes.post('/updateprofileimg/:companyIdParam', requireAuth, require
 });
 
 companyAuthRoutes.put('/blockunblock/:companyIdParam', requireAuth, requireSuperAdmin, async(req, res) => {
-  const { companyId } = (req as unknown as Icustomrequest).user;
   companyAuthLogger.debug('blockunblock');
   const { companyIdParam } = req.params;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const isValid = verifyObjectId(queryId);
+  const isValid = verifyObjectId(companyIdParam);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const foundCompany = await companyMain
-    .findById(queryId);
+    .findById(companyIdParam);
   if (!foundCompany) {
     return res.status(401).send({
       success: false,
@@ -319,27 +320,13 @@ companyAuthRoutes.put('/blockunblock/:companyIdParam', requireAuth, requireSuper
   return res.status(status).send(response);
 });
 
-companyAuthRoutes.post('/addcompany', requireAuth, requireSuperAdmin, uploadFiles, appendBody, saveMetaToDb, async(req, res) => {
+companyAuthRoutes.post('/addcompany', requireAuth, requireSuperAdmin, async(req, res) => {
   const companyData = req.body.company;
-  const parsed = req.body.parsed;
-  if (parsed) {
-    if (parsed.profilePic) {
-      companyData.profilePic = parsed.profilePic || companyData.profilePic;
-    }
-
-    if (parsed.coverPic) {
-      companyData.profileCoverPic = parsed.coverPic || companyData.profileCoverPic;
-    }
-
-    if (parsed.newFiles) {
-      const oldPhotos = companyData.photos;
-      companyData.photos = oldPhotos.concat(parsed.newFiles);
-    }
-  }
-  const count = await companyMain
+  const userData = req.body.user;
+  const countCompany = await companyMain
     // eslint-disable-next-line @typescript-eslint/naming-convention
     .find({ }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
-  companyData.urId = makeUrId(Number(count[0]?.urId || '0'));
+  companyData.urId = makeUrId(Number(countCompany[0]?.urId || '0'));
   const newCompany = new companyMain(companyData);
 
   let status = 200;
@@ -359,7 +346,7 @@ companyAuthRoutes.post('/addcompany', requireAuth, requireSuperAdmin, uploadFile
     response = errResponse;
   });
   if (!response.err && savedCompany) {
-    const type = 'link';
+    // const type = 'link';
     response = {
       success: true,
       // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -367,19 +354,45 @@ companyAuthRoutes.post('/addcompany', requireAuth, requireSuperAdmin, uploadFile
     };
     /* await sendTokenEmail(
       savedCompany, type, stockAuthConfig.localSettings.appOfficialName);*/
+  } else {
+    return res.status(status).send(response);
   }
+
+  const countUser = await user
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    .find({ }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+  userData.urId = makeUrId(Number(countUser[0]?.urId || '0'));
+  userData.companyId = (savedCompany as any)._id;
+  const newUser = new user(userData);
+
+  const savedUser = await newUser.save().catch((err) => {
+    status = 403;
+    const errResponse: Isuccess = {
+      success: false
+    };
+    if (err && err.errors) {
+      errResponse.err = stringifyMongooseErr(err.errors);
+    } else {
+      errResponse.err = `we are having problems connecting to our databases, 
+      try again in a while`;
+    }
+    response = errResponse;
+  });
+
+  if (!response.err && savedUser) {
+    savedCompany.owner = (savedUser as any)._id;
+    await savedCompany.save();
+    response = {
+      success: true,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      _id: savedCompany._id
+    };
+  }
+
   return res.status(status).send(response);
 });
 
 companyAuthRoutes.post('/addcompanyimg/:companyIdParam', requireAuth, requireSuperAdmin, uploadFiles, appendBody, saveMetaToDb, async(req, res) => {
-  const { companyId } = (req as Icustomrequest).user;
-  const { companyIdParam } = req.params;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const isValid = verifyObjectId(queryId);
-  if (!isValid) {
-    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-  }
-  // const isValid = verifyObjectId(queryId);
   const companyData = req.body.company;
   const parsed = req.body.parsed;
   if (parsed) {
@@ -398,7 +411,7 @@ companyAuthRoutes.post('/addcompanyimg/:companyIdParam', requireAuth, requireSup
   }
   const count = await companyMain
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+    .find({ }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
   companyData.urId = makeUrId(Number(count[0]?.urId || '0'));
   const newCompany = new companyMain(companyData);
   let status = 200;
@@ -427,63 +440,60 @@ companyAuthRoutes.post('/addcompanyimg/:companyIdParam', requireAuth, requireSup
 });
 
 companyAuthRoutes.get('/getonecompany/:urId/:companyIdParam', requireAuth, requireSuperAdmin, async(req, res) => {
-  const { urId } = req.params;
-  const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const oneUser = await companyLean
-    .findOne({ urId, queryId })
+  const isValid = verifyObjectId(companyIdParam);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
+  const oneCompany = await companyLean
+    .findById(companyIdParam)
     .populate({ path: 'profilePic', model: fileMetaLean })
     .populate({ path: 'profileCoverPic', model: fileMetaLean })
     .populate({ path: 'photos', model: fileMetaLean })
     .lean();
-  if (!oneUser.companyId) {
+  if (!oneCompany) {
     return res.status(200).send({});
   }
-  return res.status(200).send(oneUser);
+  return res.status(200).send(oneCompany);
 });
 
 companyAuthRoutes.get('/getcompanys/:offset/:limit/:companyIdParam', requireAuth, requireSuperAdmin, async(req, res) => {
-  const { companyId } = (req as Icustomrequest).user;
-  const { companyIdParam } = req.params;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
   const currOffset = offset === 0 ? 0 : offset;
   const currLimit = limit === 0 ? 1000 : limit;
 
   const all = await Promise.all([
     companyLean
-      .find({ companyId: queryId })
-      .sort({ firstName: 1 })
+      .find({ })
+      .sort({ createdAt: 1 })
       .limit(Number(currLimit))
       .skip(Number(currOffset))
       .populate({ path: 'profilePic', model: fileMetaLean })
       .populate({ path: 'profileCoverPic', model: fileMetaLean })
       .populate({ path: 'photos', model: fileMetaLean })
       .lean(),
-    companyLean.countDocuments({ companyId: queryId })
+    companyLean.countDocuments()
   ]);
   const filteredFaqs = all[0].filter(data => !data.blocked);
   const response: IdataArrayResponse = {
     count: all[1],
     data: filteredFaqs
   };
+  console.log('response ISSSSSSS', response);
   return res.status(200).send(response);
 });
 
 companyAuthRoutes.put('/updatecompanybulk/:companyIdParam', requireAuth, requireSuperAdmin, async(req, res) => {
-  const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const updatedUser = req.body.user;
-  const isValid = verifyObjectId(queryId);
+  const updatedCompany = req.body.company;
+  const isValid = verifyObjectId(companyIdParam);
   if (!isValid) {
     return res.status(401).send({ success: false, err: 'unauthourised' });
   }
 
   const foundCompany = await companyMain
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    .findByIdAndUpdate(queryId);
+    .findByIdAndUpdate(companyIdParam);
   if (!foundCompany) {
     return res.status(404).send({ success: false });
   }
@@ -491,15 +501,15 @@ companyAuthRoutes.put('/updatecompanybulk/:companyIdParam', requireAuth, require
   if (!foundCompany.urId) {
     const count = await companyMain
       // eslint-disable-next-line @typescript-eslint/naming-convention
-      .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+      .find().sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     foundCompany.urId = makeUrId(Number(count[0]?.urId || '0'));
   }
 
-  delete updatedUser._id;
-  const keys = Object.keys(updatedUser);
+  delete updatedCompany._id;
+  const keys = Object.keys(updatedCompany);
   keys.forEach(key => {
-    if (foundCompany[key] && key !== '_id' && key !== 'userId' && key !== 'profilePic' && key !== 'profileCoverPic' && key !== 'photos') {
-      foundCompany[key] = updatedUser[key] || foundCompany[key];
+    if (foundCompany[key] && key !== '_id' && key !== 'profilePic' && key !== 'profileCoverPic' && key !== 'photos') {
+      foundCompany[key] = updatedCompany[key] || foundCompany[key];
     }
   });
 
@@ -522,17 +532,15 @@ companyAuthRoutes.put('/updatecompanybulk/:companyIdParam', requireAuth, require
 });
 
 companyAuthRoutes.post('/updatecompanybulkimg/:companyIdParam', requireAuth, requireSuperAdmin, uploadFiles, appendBody, saveMetaToDb, async(req, res) => {
-  const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
-  const updatedUser = req.body.user;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const isValid = verifyObjectId(companyId);
+  const updatedCompany = req.body.user;
+  const isValid = verifyObjectId(companyIdParam);
   if (!isValid) {
     return res.status(401).send({ success: false, err: 'unauthourised' });
   }
   const foundCompany = await companyMain
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    .findOneAndUpdate({ companyId: queryId });
+    .findOneAndUpdate({ companyId: companyIdParam });
   if (!foundCompany) {
     return res.status(404).send({ success: false });
   }
@@ -540,7 +548,7 @@ companyAuthRoutes.post('/updatecompanybulkimg/:companyIdParam', requireAuth, req
   if (!foundCompany.urId) {
     const count = await companyMain
       // eslint-disable-next-line @typescript-eslint/naming-convention
-      .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+      .find({ companyId: companyIdParam }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     foundCompany.urId = makeUrId(Number(count[0]?.urId || '0'));
   }
   const parsed = req.body.parsed;
@@ -558,12 +566,12 @@ companyAuthRoutes.post('/updatecompanybulkimg/:companyIdParam', requireAuth, req
       foundCompany.photos = oldPhotos.concat(parsed.newFiles) as string[];
     }
   }
-  delete updatedUser._id;
+  delete updatedCompany._id;
 
-  const keys = Object.keys(updatedUser);
+  const keys = Object.keys(updatedCompany);
   keys.forEach(key => {
     if (foundCompany[key] && key !== '_id') {
-      foundCompany[key] = updatedUser[key] || foundCompany[key];
+      foundCompany[key] = updatedCompany[key] || foundCompany[key];
     }
   });
 
@@ -586,18 +594,15 @@ companyAuthRoutes.post('/updatecompanybulkimg/:companyIdParam', requireAuth, req
 });
 
 companyAuthRoutes.put('/deletemany/:companyIdParam', requireAuth, requireSuperAdmin, deleteFiles, async(req, res) => {
-  const { companyId } = (req as Icustomrequest).user;
-  const { companyIdParam } = req.params;
   const { ids } = req.body;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const isValid = verifyObjectIds([...ids, ...[queryId]]);
+  const isValid = verifyObjectIds([...ids]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
 
   const deleted = await companyMain
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    .deleteMany({ _id: { $in: ids }, companyId: queryId }).catch(err => {
+    .deleteMany({ _id: { $in: ids } }).catch(err => {
       companyAuthLogger.error('deletemany users failed with error: ' + err.message);
       return null;
     });

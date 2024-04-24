@@ -36,6 +36,10 @@ receiptRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany,
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectId(queryId);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   receipt.companyId = queryId;
   invoiceRelated.companyId = queryId;
   const count = await receiptMain
@@ -49,7 +53,7 @@ receiptRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany,
   }
 
   receipt.invoiceRelated = invoiceRelatedRes.id;
-  const added = await makePaymentInstall(receipt, invoiceRelatedRes.id, queryId);
+  await makePaymentInstall(receipt, invoiceRelatedRes.id, queryId);
   // const newReceipt = new receiptMain(receipt);
   /* let errResponse: Isuccess;
   const saved = await newReceipt.save()
@@ -73,13 +77,17 @@ receiptRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany,
   }
   await updateInvoiceRelated(invoiceRelated);*/
   return next();
-}, requireUpdateSubscriptionRecord);
+}, requireUpdateSubscriptionRecord('receipt'));
 
 receiptRoutes.get('/getone/:urId/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('receipts', 'read'), async(req, res) => {
   const { urId } = req.params;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectId(queryId);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   const receipt = await receiptLean
     .findOne({ urId, queryId })
     .lean()
@@ -109,6 +117,10 @@ receiptRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, require
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectId(queryId);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   const all = await Promise.all([
     receiptLean
       .find({ companyId: queryId })
@@ -162,6 +174,10 @@ receiptRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, requir
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectId(queryId);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
   const all = await Promise.all([
     receiptLean
@@ -198,7 +214,7 @@ receiptRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCompany, 
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   updatedReceipt.companyId = queryId;
   invoiceRelated.companyId = queryId;
-  const isValid = verifyObjectId(updatedReceipt._id);
+  const isValid = verifyObjectIds([updatedReceipt._id, queryId]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -218,6 +234,10 @@ receiptRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompa
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectId(queryId);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   if (!credentials || credentials?.length < 1) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }

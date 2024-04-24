@@ -1,5 +1,5 @@
 
-import { DatabaseAuto, Iaddress, Ibilling, Icompany, IdataArrayResponse, Ifile, IfileMeta, Isuccess, Iuser, Iuserperm, TuserDispNameFormat } from '@open-stock/stock-universal';
+import { DatabaseAuto, Iaddress, Ibilling, Icompany, IdataArrayResponse, Ifile, IfileMeta, Isuccess, Iuser, Iuserperm, TuserDispNameFormat, TuserType } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
 import { StockAuthClient } from '../stock-auth-client';
 import { Company } from './company.define';
@@ -58,6 +58,7 @@ export class User extends DatabaseAuto {
   extraCompanyDetails: string;
   /** The format for displaying the user's name. */
   userDispNameFormat: TuserDispNameFormat = 'firstLast';
+  userType?: TuserType;
 
   /**
    * Creates a new User instance.
@@ -340,6 +341,7 @@ export class User extends DatabaseAuto {
       this.salutation = data.salutation || this.salutation;
       this.extraCompanyDetails = data.extraCompanyDetails || this.extraCompanyDetails;
       this.userDispNameFormat = data.userDispNameFormat || this.userDispNameFormat;
+      this.userType = data.userType || this.userType;
     }
 
     this.makeAdmin();

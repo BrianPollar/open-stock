@@ -87,7 +87,7 @@ export const createMockUser = (incrementor = 0) => {
     did: faker.string.sample(10),
     aid: faker.string.sample(10),
     photos: [createMockFileMeta(), createMockFileMeta()],
-    admin: String(incrementor % 2 !== 0),
+    admin: incrementor % 2 !== 0,
     subAdmin: incrementor % 2 !== 0,
     permissions: createMockUserperm(),
     phone: faker.number.int(),
@@ -123,15 +123,14 @@ export const createMockCompany = (incrementor = 0) => {
     profileCoverPic: createMockFileMeta(),
     password: 'password',
     websiteAddress: 'https://www.google.com',
-    pesapalCallbackUrl: 'https://www.google.com',
-    pesapalCancellationUrl: 'https://www.google.com',
     photos: [],
     blocked: Boolean(incrementor % 2),
     verified: Boolean(incrementor % 2),
     expireAt: '',
     blockedReasons: createMockBlockedReasons(),
     left: false,
-    dateLeft: new Date()
+    dateLeft: new Date(),
+    owner: faker.string.uuid()
   };
   return new Company(companyDetails);
 };

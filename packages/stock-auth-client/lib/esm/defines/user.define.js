@@ -295,6 +295,7 @@ export class User extends DatabaseAuto {
             this.salutation = data.salutation || this.salutation;
             this.extraCompanyDetails = data.extraCompanyDetails || this.extraCompanyDetails;
             this.userDispNameFormat = data.userDispNameFormat || this.userDispNameFormat;
+            this.userType = data.userType || this.userType;
         }
         this.makeAdmin();
     }

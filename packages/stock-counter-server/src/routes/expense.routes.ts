@@ -27,17 +27,17 @@ export const expenseRoutes = express.Router();
 expenseRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('expense'), roleAuthorisation('expenses', 'create'), async(req, res, next) => {
   const expense = req.body;
   const { companyId } = (req as Icustomrequest).user;
-  const { companyIdParam } = req.params;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  expense.companyId = queryId;
-  const isValid = verifyObjectId(queryId);
-  if (!isValid) {
-    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  if (companyId !== 'superAdmin') {
+    const isValid = verifyObjectId(companyId);
+    if (!isValid) {
+      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
   }
+  expense.companyId = companyId;
 
   const count = await expenseMain
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+    .find({ companyId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
   expense.urId = makeUrId(Number(count[0]?.urId || '0'));
   const newExpense = new expenseMain(expense);
   let errResponse: Isuccess;
@@ -56,7 +56,6 @@ expenseRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany,
       }
       return errResponse;
     });
-
   if (errResponse) {
     return res.status(403).send(errResponse);
   }
@@ -64,7 +63,7 @@ expenseRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany,
     return res.status(403).send('unknown error occered');
   }
   return next();
-}, requireUpdateSubscriptionRecord);
+}, requireUpdateSubscriptionRecord('expense'));
 
 /**
  * Update an existing expense
@@ -78,17 +77,21 @@ expenseRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany,
 expenseRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('expenses', 'update'), async(req, res) => {
   const updatedExpense = req.body;
   const { companyId } = (req as Icustomrequest).user;
-  const { companyIdParam } = req.params;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  updatedExpense.companyId = queryId;
-  const isValid = verifyObjectIds([updatedExpense._id, queryId]);
+  let ids: string[];
+  if (companyId !== 'superAdmin') {
+    ids = [updatedExpense._id, companyId];
+  } else {
+    ids = [updatedExpense._id];
+  }
+  const isValid = verifyObjectIds(ids);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
+  updatedExpense.companyId = companyId;
 
   const expense = await expenseMain
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    .findOneAndUpdate({ _id: updatedExpense._id, companyId: queryId });
+    .findOneAndUpdate({ _id: updatedExpense._id, companyId });
   if (!expense) {
     return res.status(404).send({ success: false });
   }
@@ -133,15 +136,9 @@ expenseRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCompany, 
 expenseRoutes.get('/getone/:id/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('expenses', 'read'), async(req, res) => {
   const { id } = req.params;
   const { companyId } = (req as Icustomrequest).user;
-  const { companyIdParam } = req.params;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const isValid = verifyObjectIds([id, queryId]);
-  if (!isValid) {
-    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-  }
   const expense = await expenseLean
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    .findOne({ _id: id, companyId: queryId })
+    .findOne({ _id: id, companyId })
     .lean();
   return res.status(200).send(expense);
 });
@@ -158,15 +155,13 @@ expenseRoutes.get('/getone/:id/:companyIdParam', requireAuth, requireActiveCompa
 expenseRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('expenses', 'read'), async(req, res) => {
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
   const { companyId } = (req as Icustomrequest).user;
-  const { companyIdParam } = req.params;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const all = await Promise.all([
     expenseLean
-      .find({ companyId: queryId })
+      .find({ companyId })
       .skip(offset)
       .limit(limit)
       .lean(),
-    expenseLean.countDocuments({ companyId: queryId })
+    expenseLean.countDocuments({ companyId })
   ]);
   const response: IdataArrayResponse = {
     count: all[1],
@@ -187,14 +182,12 @@ expenseRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, require
 expenseRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('expenses', 'delete'), async(req, res) => {
   const { id } = req.params;
   const { companyId } = (req as Icustomrequest).user;
-  const { companyIdParam } = req.params;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const isValid = verifyObjectIds([id, queryId]);
+  const isValid = verifyObjectIds([id]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  const deleted = await expenseMain.findOneAndDelete({ _id: id, companyId: queryId });
+  const deleted = await expenseMain.findOneAndDelete({ _id: id, companyId });
   if (Boolean(deleted)) {
     return res.status(200).send({ success: Boolean(deleted) });
   } else {
@@ -214,20 +207,14 @@ expenseRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, requireActiv
 expenseRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('expenses', 'read'), async(req, res) => {
   const { searchterm, searchKey } = req.body;
   const { companyId } = (req as Icustomrequest).user;
-  const { companyIdParam } = req.params;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const isValid = verifyObjectId(queryId);
-  if (!isValid) {
-    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-  }
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
   const all = await Promise.all([
     expenseLean
-      .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+      .find({ companyId, [searchKey]: { $regex: searchterm, $options: 'i' } })
       .skip(offset)
       .limit(limit)
       .lean(),
-    expenseLean.countDocuments({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+    expenseLean.countDocuments({ companyId, [searchKey]: { $regex: searchterm, $options: 'i' } })
   ]);
   const response: IdataArrayResponse = {
     count: all[1],
@@ -248,16 +235,14 @@ expenseRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, requir
 expenseRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('expenses', 'delete'), async(req, res) => {
   const { ids } = req.body;
   const { companyId } = (req as Icustomrequest).user;
-  const { companyIdParam } = req.params;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const isValid = verifyObjectIds([...ids, ...[queryId]]);
+  const isValid = verifyObjectIds([...ids]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
 
   const deleted = await expenseMain
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    .deleteMany({ _id: { $in: ids }, companyId: queryId })
+    .deleteMany({ _id: { $in: ids }, companyId })
     .catch(err => {
       expenseRoutesLogger.error('deletemany - err: ', err);
       return null;

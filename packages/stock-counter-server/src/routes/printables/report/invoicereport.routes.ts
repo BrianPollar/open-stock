@@ -1,6 +1,6 @@
 import { requireActiveCompany, requireCanUseFeature, requireUpdateSubscriptionRecord } from '@open-stock/stock-auth-server';
 import { Icustomrequest, IdataArrayResponse, Isuccess } from '@open-stock/stock-universal';
-import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { getLogger } from 'log4js';
 import { paymentLean } from '../../../models/payment.model';
@@ -29,6 +29,10 @@ invoicesReportRoutes.post('/create/:companyIdParam', requireAuth, requireActiveC
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectId(queryId);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   invoicesReport.companyId = queryId;
   const count = await invoicesReportMain
     // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -54,7 +58,7 @@ invoicesReportRoutes.post('/create/:companyIdParam', requireAuth, requireActiveC
     return res.status(403).send(errResponse);
   }
   return next();
-}, requireUpdateSubscriptionRecord);
+}, requireUpdateSubscriptionRecord('report'));
 
 /**
  * Route to get a single invoices report by urId
@@ -70,6 +74,10 @@ invoicesReportRoutes.get('/getone/:urId/:companyIdParam', requireAuth, requireAc
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectId(queryId);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   const invoicesReport = await invoicesReportLean
     .findOne({ urId, queryId })
     .lean()
@@ -92,6 +100,10 @@ invoicesReportRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, 
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectId(queryId);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   const all = await Promise.all([
     invoicesReportLean
       .find({ companyId: queryId })
@@ -150,6 +162,10 @@ invoicesReportRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth,
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectId(queryId);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
   const all = await Promise.all([
     invoicesReportLean

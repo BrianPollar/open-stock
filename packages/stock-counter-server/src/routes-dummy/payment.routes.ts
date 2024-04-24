@@ -27,7 +27,7 @@ paymentRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) => {
   res.status(200).send(response);
 });
 
-paymentRoutesDummy.get('/getmypayments/:companyIdParam', (req, res) => {
+paymentRoutesDummy.get('/getmypayments/:offset/:limit/:companyIdParam', (req, res) => {
   const response: IdataArrayResponse = {
     count: req.params.limit,
     data: createMockPayments(Number(req.params.limit))

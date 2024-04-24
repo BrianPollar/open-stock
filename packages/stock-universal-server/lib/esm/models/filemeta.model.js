@@ -27,9 +27,9 @@ export let fileMetaLean;
  * @param main Whether to create the main email token model.
  * @param lean Whether to create the lean email token model.
  */
-export const createFileMetaModel = async (dbUrl, main = true, lean = true) => {
+export const createFileMetaModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     if (!isUniversalDbConnected) {
-        await connectUniversalDatabase(dbUrl);
+        await connectUniversalDatabase(dbUrl, dbOptions);
     }
     if (main) {
         fileMeta = mainConnection.model('FileMeta', fileMetaSchema);

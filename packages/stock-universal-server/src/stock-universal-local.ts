@@ -1,3 +1,4 @@
+import { ConnectOptions } from 'mongoose';
 import { createFileMetaModel } from './models/filemeta.model';
 
 /**
@@ -17,6 +18,6 @@ export const createStockUniversalServerLocals = () => {
  * @param {string} databaseUrl - The URL of the authentication database.
  * @returns {Promise<void>}
  */
-export const connectUniversalDatabase = async(databaseUrl: string): Promise<void> => {
-  await createFileMetaModel(databaseUrl);
+export const connectUniversalDatabase = async(databaseUrl: string, dbOptions?: ConnectOptions): Promise<void> => {
+  await createFileMetaModel(databaseUrl, dbOptions);
 };

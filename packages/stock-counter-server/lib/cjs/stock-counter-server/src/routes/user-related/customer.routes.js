@@ -26,7 +26,7 @@ exports.customerRoutes = express_1.default.Router();
  * @param {callback} middleware - Express middleware
  * @returns {Promise} - Promise representing the HTTP response
  */
-exports.customerRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_auth_server_1.requireCanUseFeature)('report'), (0, stock_universal_server_1.roleAuthorisation)('users', 'create'), async (req, res, next) => {
+exports.customerRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_auth_server_1.requireCanUseFeature)('customer'), (0, stock_universal_server_1.roleAuthorisation)('users', 'create'), async (req, res, next) => {
     const customer = req.body.customer;
     const newCustomer = new customer_model_1.customerMain(customer);
     let errResponse;
@@ -38,7 +38,7 @@ exports.customerRoutes.post('/create/:companyIdParam', stock_universal_server_1.
      * @param {Customer} newCustomer - The new customer to be saved.
      * @returns {Promise} - Promise representing the saved customer
      */
-    const saved = await newCustomer.save()
+    await newCustomer.save()
         .catch(err => {
         customerRoutesLogger.error('create - err: ', err);
         errResponse = {
@@ -58,7 +58,7 @@ exports.customerRoutes.post('/create/:companyIdParam', stock_universal_server_1.
         return res.status(403).send(errResponse);
     }
     return next();
-}, stock_auth_server_1.requireUpdateSubscriptionRecord);
+}, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('customer'));
 /**
  * Route for getting a single customer by ID.
  * @name GET /getone/:id
@@ -69,7 +69,7 @@ exports.customerRoutes.post('/create/:companyIdParam', stock_universal_server_1.
  * @param {callback} middleware - Express middleware
  * @returns {Promise} - Promise representing the HTTP response
  */
-exports.customerRoutes.get('/getone/:id/:companyIdParam', async (req, res) => {
+exports.customerRoutes.get('/getone/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('customers', 'read'), async (req, res) => {
     const { id } = req.params;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -105,11 +105,15 @@ exports.customerRoutes.get('/getone/:id/:companyIdParam', async (req, res) => {
  * @param {callback} middleware - Express middleware
  * @returns {Promise} - Promise representing the HTTP response
  */
-exports.customerRoutes.get('/getall/:offset/:limit/:companyIdParam', async (req, res) => {
+exports.customerRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('customers', 'read'), async (req, res) => {
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const all = await Promise.all([
         customer_model_1.customerLean
             .find({ companyId: queryId })
@@ -147,13 +151,13 @@ exports.customerRoutes.get('/getall/:offset/:limit/:companyIdParam', async (req,
  * @param {callback} middleware - Express middleware
  * @returns {Promise} - Promise representing the HTTP response
  */
-exports.customerRoutes.put('/update/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('users', 'update'), async (req, res) => {
+exports.customerRoutes.put('/update/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('customers', 'update'), async (req, res) => {
     const updatedCustomer = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
     updatedCustomer.companyId = queryId;
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(updatedCustomer._id);
+    const isValid = (0, stock_universal_server_1.verifyObjectIds)([updatedCustomer._id, queryId]);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
@@ -201,7 +205,7 @@ exports.customerRoutes.put('/update/:companyIdParam', stock_universal_server_1.r
  * @param {callback} middleware - Express middleware
  * @returns {Promise} - Promise representing the HTTP response
  */
-exports.customerRoutes.put('/deleteone/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('users', 'delete'), locluser_routes_1.removeOneUser, stock_universal_server_1.deleteFiles, async (req, res) => {
+exports.customerRoutes.put('/deleteone/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('customers', 'delete'), locluser_routes_1.removeOneUser, stock_universal_server_1.deleteFiles, async (req, res) => {
     const { id } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -231,11 +235,15 @@ exports.customerRoutes.put('/deleteone/:companyIdParam', stock_universal_server_
  * @param {callback} middleware - Express middleware
  * @returns {Promise} - Promise representing the HTTP response
  */
-exports.customerRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('users', 'delete'), locluser_routes_1.removeManyUsers, stock_universal_server_1.deleteFiles, async (req, res) => {
+exports.customerRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('customers', 'delete'), locluser_routes_1.removeManyUsers, stock_universal_server_1.deleteFiles, async (req, res) => {
     const { ids } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const deleted = await customer_model_1.customerMain
         // eslint-disable-next-line @typescript-eslint/naming-convention
         .deleteMany({ companyId: queryId, _id: { $in: ids } })

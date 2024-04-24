@@ -1,4 +1,4 @@
-import { Iauthresponse } from '@open-stock/stock-universal';
+import { Iauthresponse, TuserType } from '@open-stock/stock-universal';
 /** The
  * AuthController  class
  * is responsible for handling
@@ -63,6 +63,7 @@ export declare class AuthController {
         password: string;
         firstName: string;
         lastName: string;
+        userType: TuserType;
     }): Promise<Iauthresponse>;
     /**
      * The recover() method is used for password recovery.

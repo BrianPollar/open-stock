@@ -1,6 +1,6 @@
 import { requireActiveCompany, requireCanUseFeature, requireUpdateSubscriptionRecord } from '@open-stock/stock-auth-server';
 import { Icustomrequest, IdataArrayResponse, Isuccess } from '@open-stock/stock-universal';
-import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { getLogger } from 'log4js';
 import { expenseLean } from '../../../models/expense.model';
@@ -25,6 +25,10 @@ profitAndLossReportRoutes.post('/create/:companyIdParam', requireAuth, requireAc
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectId(queryId);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   profitAndLossReport.companyId = queryId;
   const count = await profitandlossReportMain
     // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -33,7 +37,7 @@ profitAndLossReportRoutes.post('/create/:companyIdParam', requireAuth, requireAc
   const newProfitAndLossReport = new profitandlossReportMain(profitAndLossReport);
 
   let errResponse: Isuccess;
-  const saved = await newProfitAndLossReport.save()
+  await newProfitAndLossReport.save()
     .catch(err => {
       profitAndLossReportRoutesLogger.error('create - err: ', err);
       errResponse = {
@@ -53,7 +57,7 @@ profitAndLossReportRoutes.post('/create/:companyIdParam', requireAuth, requireAc
     return res.status(403).send(errResponse);
   }
   return next();
-}, requireUpdateSubscriptionRecord);
+}, requireUpdateSubscriptionRecord('report'));
 
 /**
  * Get a single profit and loss report by URID.
@@ -65,6 +69,10 @@ profitAndLossReportRoutes.get('/getone/:urId/:companyIdParam', requireAuth, requ
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectId(queryId);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   const profitAndLossReport = await profitandlossReportLean
     .findOne({ urId, queryId })
     .lean()
@@ -83,6 +91,10 @@ profitAndLossReportRoutes.get('/getall/:offset/:limit/:companyIdParam', requireA
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectId(queryId);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   const all = await Promise.all([
     profitandlossReportLean
       .find({ companyId: queryId })
@@ -133,6 +145,10 @@ profitAndLossReportRoutes.post('/search/:limit/:offset/:companyIdParam', require
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectId(queryId);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
   const all = await Promise.all([
     profitandlossReportLean

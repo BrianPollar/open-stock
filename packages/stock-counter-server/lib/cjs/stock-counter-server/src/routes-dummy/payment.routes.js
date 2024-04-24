@@ -24,7 +24,7 @@ exports.paymentRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, r
     };
     res.status(200).send(response);
 });
-exports.paymentRoutesDummy.get('/getmypayments/:companyIdParam', (req, res) => {
+exports.paymentRoutesDummy.get('/getmypayments/:offset/:limit/:companyIdParam', (req, res) => {
     const response = {
         count: req.params.limit,
         data: (0, stock_counter_mocks_1.createMockPayments)(Number(req.params.limit))

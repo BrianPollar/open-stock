@@ -1,9 +1,10 @@
+import { ConnectOptions } from 'mongoose';
 /**
  * Runs the stock universal server.
  * @param databaseConfigUrl - The URL of the database configuration.
  * @returns A promise that resolves to an object indicating whether the stock universal server is running.
  */
-export declare const runStockUniversalServer: (databaseConfigUrl: string) => Promise<{
+export declare const runStockUniversalServer: (databaseConfigUrl: string, dbOptions?: ConnectOptions) => Promise<{
     isStockUniversalServerRunning: boolean;
 }>;
 /**

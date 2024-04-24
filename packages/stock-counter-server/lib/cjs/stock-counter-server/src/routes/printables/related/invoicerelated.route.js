@@ -54,6 +54,10 @@ exports.invoiceRelateRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const all = await Promise.all([
         invoicerelated_model_1.invoiceRelatedLean
             .find({ companyId: queryId })
@@ -97,6 +101,10 @@ exports.invoiceRelateRoutes.post('/search/:offset/:limit/:companyIdParam', stock
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const all = await Promise.all([
         invoicerelated_model_1.invoiceRelatedLean
             .find({ queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
@@ -137,7 +145,7 @@ exports.invoiceRelateRoutes.put('/update/:companyIdParam', stock_universal_serve
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
     invoiceRelated.companyId = queryId;
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(invoiceRelated.invoiceRelated);
+    const isValid = (0, stock_universal_server_1.verifyObjectIds)([invoiceRelated.invoiceRelated, queryId]);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }

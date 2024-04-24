@@ -22,7 +22,7 @@ export const customerRoutes = express.Router();
  * @param {callback} middleware - Express middleware
  * @returns {Promise} - Promise representing the HTTP response
  */
-customerRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('report'), roleAuthorisation('users', 'create'), async (req, res, next) => {
+customerRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('customer'), roleAuthorisation('users', 'create'), async (req, res, next) => {
     const customer = req.body.customer;
     const newCustomer = new customerMain(customer);
     let errResponse;
@@ -34,7 +34,7 @@ customerRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany
      * @param {Customer} newCustomer - The new customer to be saved.
      * @returns {Promise} - Promise representing the saved customer
      */
-    const saved = await newCustomer.save()
+    await newCustomer.save()
         .catch(err => {
         customerRoutesLogger.error('create - err: ', err);
         errResponse = {
@@ -54,7 +54,7 @@ customerRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany
         return res.status(403).send(errResponse);
     }
     return next();
-}, requireUpdateSubscriptionRecord);
+}, requireUpdateSubscriptionRecord('customer'));
 /**
  * Route for getting a single customer by ID.
  * @name GET /getone/:id
@@ -65,7 +65,7 @@ customerRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany
  * @param {callback} middleware - Express middleware
  * @returns {Promise} - Promise representing the HTTP response
  */
-customerRoutes.get('/getone/:id/:companyIdParam', async (req, res) => {
+customerRoutes.get('/getone/:id/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('customers', 'read'), async (req, res) => {
     const { id } = req.params;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -101,11 +101,15 @@ customerRoutes.get('/getone/:id/:companyIdParam', async (req, res) => {
  * @param {callback} middleware - Express middleware
  * @returns {Promise} - Promise representing the HTTP response
  */
-customerRoutes.get('/getall/:offset/:limit/:companyIdParam', async (req, res) => {
+customerRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('customers', 'read'), async (req, res) => {
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = verifyObjectId(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const all = await Promise.all([
         customerLean
             .find({ companyId: queryId })
@@ -143,13 +147,13 @@ customerRoutes.get('/getall/:offset/:limit/:companyIdParam', async (req, res) =>
  * @param {callback} middleware - Express middleware
  * @returns {Promise} - Promise representing the HTTP response
  */
-customerRoutes.put('/update/:companyIdParam', requireAuth, roleAuthorisation('users', 'update'), async (req, res) => {
+customerRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('customers', 'update'), async (req, res) => {
     const updatedCustomer = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
     updatedCustomer.companyId = queryId;
-    const isValid = verifyObjectId(updatedCustomer._id);
+    const isValid = verifyObjectIds([updatedCustomer._id, queryId]);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
@@ -197,7 +201,7 @@ customerRoutes.put('/update/:companyIdParam', requireAuth, roleAuthorisation('us
  * @param {callback} middleware - Express middleware
  * @returns {Promise} - Promise representing the HTTP response
  */
-customerRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('users', 'delete'), removeOneUser, deleteFiles, async (req, res) => {
+customerRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('customers', 'delete'), removeOneUser, deleteFiles, async (req, res) => {
     const { id } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -227,11 +231,15 @@ customerRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompa
  * @param {callback} middleware - Express middleware
  * @returns {Promise} - Promise representing the HTTP response
  */
-customerRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('users', 'delete'), removeManyUsers, deleteFiles, async (req, res) => {
+customerRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('customers', 'delete'), removeManyUsers, deleteFiles, async (req, res) => {
     const { ids } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = verifyObjectId(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const deleted = await customerMain
         // eslint-disable-next-line @typescript-eslint/naming-convention
         .deleteMany({ companyId: queryId, _id: { $in: ids } })

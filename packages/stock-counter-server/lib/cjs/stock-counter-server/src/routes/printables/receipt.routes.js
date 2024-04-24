@@ -19,6 +19,10 @@ exports.receiptRoutes.post('/create/:companyIdParam', stock_universal_server_1.r
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     receipt.companyId = queryId;
     invoiceRelated.companyId = queryId;
     const count = await receipt_model_1.receiptMain
@@ -31,7 +35,7 @@ exports.receiptRoutes.post('/create/:companyIdParam', stock_universal_server_1.r
         return res.status(invoiceRelatedRes.status).send(invoiceRelatedRes);
     }
     receipt.invoiceRelated = invoiceRelatedRes.id;
-    const added = await (0, paymentrelated_1.makePaymentInstall)(receipt, invoiceRelatedRes.id, queryId);
+    await (0, paymentrelated_1.makePaymentInstall)(receipt, invoiceRelatedRes.id, queryId);
     // const newReceipt = new receiptMain(receipt);
     /* let errResponse: Isuccess;
     const saved = await newReceipt.save()
@@ -55,12 +59,16 @@ exports.receiptRoutes.post('/create/:companyIdParam', stock_universal_server_1.r
     }
     await updateInvoiceRelated(invoiceRelated);*/
     return next();
-}, stock_auth_server_1.requireUpdateSubscriptionRecord);
+}, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('receipt'));
 exports.receiptRoutes.get('/getone/:urId/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('receipts', 'read'), async (req, res) => {
     const { urId } = req.params;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const receipt = await receipt_model_1.receiptLean
         .findOne({ urId, queryId })
         .lean()
@@ -87,6 +95,10 @@ exports.receiptRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_univer
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const all = await Promise.all([
         receipt_model_1.receiptLean
             .find({ companyId: queryId })
@@ -138,6 +150,10 @@ exports.receiptRoutes.post('/search/:limit/:offset/:companyIdParam', stock_unive
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const all = await Promise.all([
         receipt_model_1.receiptLean
@@ -172,7 +188,7 @@ exports.receiptRoutes.put('/update/:companyIdParam', stock_universal_server_1.re
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
     updatedReceipt.companyId = queryId;
     invoiceRelated.companyId = queryId;
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(updatedReceipt._id);
+    const isValid = (0, stock_universal_server_1.verifyObjectIds)([updatedReceipt._id, queryId]);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
@@ -191,6 +207,10 @@ exports.receiptRoutes.put('/deletemany/:companyIdParam', stock_universal_server_
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     if (!credentials || credentials?.length < 1) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }

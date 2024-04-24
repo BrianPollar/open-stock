@@ -4,12 +4,22 @@ import express from 'express';
 import { companyAuthRoutesDummy } from './routes-dummy/company.routes';
 import { companySubscriptionRoutesDummy } from './routes-dummy/subscriptions/company-subscription.routes';
 import { subscriptionPackageRoutesDummy } from './routes-dummy/subscriptions/subscription-package.routes';
+import { superAdminRoutesDummy } from './routes-dummy/superadmin.routes';
 import { userAuthRoutesDummy } from './routes-dummy/user.routes';
 import { companyAuthRoutes } from './routes/company.routes';
 import { companySubscriptionRoutes } from './routes/subscriptions/company-subscription.routes';
 import { subscriptionPackageRoutes } from './routes/subscriptions/subscription-package.routes';
+import { superAdminRoutes } from './routes/superadmin.routes';
 import { userAuthRoutes } from './routes/user.routes';
 import { connectAuthDatabase, createStockAuthServerLocals, isStockAuthServerRunning, stockAuthConfig } from './stock-auth-local';
+/**
+ * The PesaPal payment instance for the server.
+ */
+export let pesapalPaymentInstance;
+/**
+ * The URL to redirect to when a notification is received.
+ */
+export let notifRedirectUrl;
 /**
  * Runs the stock authentication server by setting up the necessary configurations, connecting to the database, initializing passport authentication, and returning the authentication routes.
  * @param {IStockAuthServerConfig} config - The server configuration.
@@ -17,11 +27,12 @@ import { connectAuthDatabase, createStockAuthServerLocals, isStockAuthServerRunn
  * @param {*} app - The Express app.
  * @returns {Promise<{authRoutes, userLean}>}
  */
-export const runStockAuthServer = async (config) => {
+export const runStockAuthServer = async (config, paymentInstance) => {
     if (!isNotificationsServerRunning()) {
         const error = new Error('Notifications server is not running, please start by firing up that server');
         throw error;
     }
+    pesapalPaymentInstance = paymentInstance;
     createStockAuthServerLocals(config);
     // connect models
     await connectAuthDatabase(config.databaseConfig.url, config.databaseConfig.dbOptions);
@@ -33,6 +44,7 @@ export const runStockAuthServer = async (config) => {
         // subscriptions
         stockAuthRouter.use('/subscriptionpackage', subscriptionPackageRoutes);
         stockAuthRouter.use('/companysubscription', companySubscriptionRoutes);
+        stockAuthRouter.use('/admin', superAdminRoutes);
     }
     else {
         stockAuthRouter.use('/user', userAuthRoutesDummy);
@@ -40,6 +52,7 @@ export const runStockAuthServer = async (config) => {
         // subscriptions
         stockAuthRouter.use('/subscriptionpackage', subscriptionPackageRoutesDummy);
         stockAuthRouter.use('/companysubscription', companySubscriptionRoutesDummy);
+        stockAuthRouter.use('/admin', superAdminRoutesDummy);
     }
     return Promise.resolve({ stockAuthRouter });
 };

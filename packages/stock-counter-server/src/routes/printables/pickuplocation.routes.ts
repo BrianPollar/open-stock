@@ -36,6 +36,10 @@ pickupLocationRoutes.post('/create/:companyIdParam', requireAuth, requireActiveC
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectId(queryId);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   pickupLocation.companyId = queryId;
   const newPickupLocation = new pickupLocationMain(pickupLocation);
   let errResponse: Isuccess;
@@ -77,7 +81,7 @@ pickupLocationRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCo
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   updatedPickupLocation.companyId = queryId;
-  const isValid = verifyObjectId(updatedPickupLocation._id);
+  const isValid = verifyObjectIds([updatedPickupLocation._id, queryId]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -154,6 +158,10 @@ pickupLocationRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, 
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectId(queryId);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   const all = await Promise.all([
     pickupLocationLean
       .find({ companyId: queryId })
@@ -212,6 +220,10 @@ pickupLocationRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth,
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectId(queryId);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
   const all = await Promise.all([
     pickupLocationLean

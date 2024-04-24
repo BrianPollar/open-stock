@@ -29,6 +29,10 @@ exports.invoicesReportRoutes.post('/create/:companyIdParam', stock_universal_ser
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     invoicesReport.companyId = queryId;
     const count = await invoicereport_model_1.invoicesReportMain
         // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -54,7 +58,7 @@ exports.invoicesReportRoutes.post('/create/:companyIdParam', stock_universal_ser
         return res.status(403).send(errResponse);
     }
     return next();
-}, stock_auth_server_1.requireUpdateSubscriptionRecord);
+}, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('report'));
 /**
  * Route to get a single invoices report by urId
  * @name GET /getone/:urId
@@ -69,6 +73,10 @@ exports.invoicesReportRoutes.get('/getone/:urId/:companyIdParam', stock_universa
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const invoicesReport = await invoicereport_model_1.invoicesReportLean
         .findOne({ urId, queryId })
         .lean()
@@ -90,6 +98,10 @@ exports.invoicesReportRoutes.get('/getall/:offset/:limit/:companyIdParam', stock
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const all = await Promise.all([
         invoicereport_model_1.invoicesReportLean
             .find({ companyId: queryId })
@@ -147,6 +159,10 @@ exports.invoicesReportRoutes.post('/search/:offset/:limit/:companyIdParam', stoc
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const all = await Promise.all([
         invoicereport_model_1.invoicesReportLean

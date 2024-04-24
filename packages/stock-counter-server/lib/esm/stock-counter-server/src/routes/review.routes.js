@@ -1,4 +1,4 @@
-import { makeUrId, offsetLimitRelegator, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { makeUrId, offsetLimitRelegator, stringifyMongooseErr } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { getLogger } from 'log4js';
 import { reviewLean, reviewMain } from '../models/review.model';
@@ -26,14 +26,7 @@ export const reviewRoutes = express.Router();
  */
 reviewRoutes.post('/create/:companyIdParam', async (req, res, next) => {
     const review = req.body.review;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = verifyObjectId(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
-    review.companyId = queryId;
+    review.companyId = 'superAdmin';
     const count = (await reviewMain
         // eslint-disable-next-line @typescript-eslint/naming-convention
         .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 })[0]?.urId) || 0;
@@ -75,14 +68,9 @@ reviewRoutes.post('/create/:companyIdParam', async (req, res, next) => {
  */
 reviewRoutes.get('/getone/:id/:companyIdParam', async (req, res) => {
     const { id } = req.params;
-    const { companyIdParam } = req.params;
-    const isValid = verifyObjectIds([id, companyIdParam]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
     const review = await reviewLean
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        .findOne({ _id: id, companyId: companyIdParam })
+        .findOne({ _id: id })
         .lean();
     return res.status(200).send(review);
 });
@@ -98,16 +86,15 @@ reviewRoutes.get('/getone/:id/:companyIdParam', async (req, res) => {
  * @param {Object} res - Express response object
  * @returns {Array} Array of review objects
  */
-reviewRoutes.get('/getall/:id/:companyIdParam', async (req, res) => {
-    const { companyIdParam } = req.params;
+reviewRoutes.get('/getall/:id/:offset/:limit/:companyIdParam', async (req, res) => {
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     const all = await Promise.all([
         reviewLean
-            .find({ itemId: req.params.id, companyId: companyIdParam })
+            .find({ itemId: req.params.id })
             .skip(offset)
             .limit(limit)
             .lean(),
-        reviewLean.countDocuments({ itemId: req.params.id, companyId: companyIdParam })
+        reviewLean.countDocuments({ itemId: req.params.id })
     ]);
     const response = {
         count: all[1],
@@ -132,13 +119,8 @@ reviewRoutes.get('/getall/:id/:companyIdParam', async (req, res) => {
  */
 reviewRoutes.delete('/deleteone/:id/:itemId/:rating/:companyIdParam', async (req, res, next) => {
     const { id } = req.params;
-    const { companyIdParam } = req.params;
-    const isValid = verifyObjectIds([id, companyIdParam]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    const deleted = await reviewMain.findOneAndDelete({ _id: id, companyId: companyIdParam });
+    const deleted = await reviewMain.findOneAndDelete({ _id: id });
     if (Boolean(deleted)) {
         return next();
     }

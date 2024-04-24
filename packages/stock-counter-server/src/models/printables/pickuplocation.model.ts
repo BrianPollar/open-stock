@@ -10,7 +10,7 @@ const uniqueValidator = require('mongoose-unique-validator');
 export type TpickupLocation = Document & IpickupLocation;
 
 const pickupLocationSchema: Schema<TpickupLocation> = new Schema({
-  companyId: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
+  companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
   name: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
   contact: {}
 }, { timestamps: true });

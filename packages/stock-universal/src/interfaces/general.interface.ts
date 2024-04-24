@@ -1,5 +1,4 @@
-import { DatabaseAuto } from '../defines/base.define';
-import { TexpoMode, TpayType, TpaymentMethod, TpriceCurrenncy, TsubscriptionFeature, TuserDispNameFormat } from '../types/union.types';
+import { TcompanySubPayStatus, TexpoMode, TpayType, TpaymentMethod, TpriceCurrenncy, TsubscriptionFeature, TuserDispNameFormat, TuserType } from '../types/union.types';
 import {
   IinvoiceRelated,
   // IpaymentInstall,
@@ -18,7 +17,6 @@ export interface IdatabaseAuto {
   updatedAt?: Date;
 }
 
-
 /**
  * Represents an order with payment-related information.
  */
@@ -27,7 +25,6 @@ export interface Iorder
   price: number;
   deliveryDate: Date;
 }
-
 
 /**
  * Represents an address.
@@ -46,7 +43,6 @@ export interface Iaddress {
   email: string;
 }
 
-
 /**
  * Represents the billing information.
  */
@@ -57,7 +53,6 @@ export interface Ibilling {
   cvv: string;
   postalCode: string;
 }
-
 
 /**
  * Represents a company.
@@ -84,10 +79,6 @@ extends IurId {
   password: string;
   /** The website address of the company. */
   websiteAddress: string;
-  /** The callback URL for Pesapal. */
-  pesapalCallbackUrl: string;
-  /** The cancellation URL for Pesapal. */
-  pesapalCancellationUrl: string;
   /** The photos associated with the company. */
   photos: string[] | IfileMeta[];
   /** Indicates if the company is blocked. */
@@ -102,6 +93,10 @@ extends IurId {
   left?: boolean;
   /** The date when the company left. */
   dateLeft: Date;
+  /**
+    * The expiration date of the user's account.
+    */
+  owner: Iuser | string;
 }
 
 /**
@@ -184,7 +179,7 @@ export interface Iuser extends IdatabaseAuto {
   /**
    * The user's admin status.
    */
-  admin: string;
+  admin: boolean;
   /**
    * The user's permissions.
    */
@@ -260,7 +255,7 @@ export interface Iuser extends IdatabaseAuto {
   /**
    * The type of user.
    */
-  userType?: string;
+  userType?: TuserType;
   /**
    * The user's photos.
    */
@@ -589,7 +584,7 @@ export interface IsubscriptionFeature {
 }
 
 export interface IsubscriptionPackage
-extends DatabaseAuto {
+extends IdatabaseAuto {
   name: string;
   ammount: number;
   duration: number; // in months
@@ -598,11 +593,16 @@ extends DatabaseAuto {
 }
 
 export interface IcompanySubscription
-extends DatabaseAuto {
+extends IdatabaseAuto {
   companyId: string;
+  name: string;
+  ammount: number;
+  duration: number;
   active: boolean;
   sunscriprionId: string;
   features: IsubscriptionFeature[];
   startDate: Date;
   endDate: Date;
+  pesaPalorderTrackingId?: string;
+  status: TcompanySubPayStatus;
 }

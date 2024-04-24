@@ -31,12 +31,15 @@ class Item extends stock_universal_1.DatabaseAuto {
      * @param extraFilters Additional filters.
      * @returns An array of items that match the search criteria.
      */
-    static async searchItems(companyId, category, searchterm, searchKey, extraFilters, subCategory) {
+    static async searchItems(companyId, category, searchterm, searchKey, extraFilters, subCategory, offset = 0, limit = 20) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makePost(`/item/search/${companyId}`, { searchterm, searchKey, category, extraFilters, subCategory });
+            .makePost(`/item/search}/${offset}/${limit}/${companyId}`, { searchterm, searchKey, category, extraFilters, subCategory });
         const items = await (0, rxjs_1.lastValueFrom)(observer$);
-        return items
-            .map(val => new Item(val));
+        return {
+            count: items.count,
+            items: items.data
+                .map(val => new Item(val))
+        };
     }
     /**
      * Gets items.

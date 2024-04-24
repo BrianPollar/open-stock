@@ -1,9 +1,12 @@
-import { DatabaseAuto, IdataArrayResponse, IsubscriptionFeature, Isuccess } from '@open-stock/stock-universal';
+import { DatabaseAuto, IdataArrayResponse, IsubscriptionFeature, IsubscriptionPackage, Isuccess } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
 import { StockAuthClient } from '../../stock-auth-client';
 
 export class CompanySubscription
   extends DatabaseAuto {
+  name: string;
+  ammount: number;
+  duration: number;
   subscriprionId: string;
   startDate: Date;
   endDate: Date;
@@ -11,6 +14,9 @@ export class CompanySubscription
 
   constructor(data) {
     super(data);
+    this.name = data.name;
+    this.ammount = data.ammount;
+    this.duration = data.duration;
     this.subscriprionId = data.subscriprionId;
     this.startDate = data.startDate;
     this.endDate = data.endDate;
@@ -31,13 +37,14 @@ export class CompanySubscription
       companysubscriptions: companysubscriptions.data
         .map((val) => new CompanySubscription(val)) };
   }
+
   static async subscribe(
     companyId: string,
-    companySubscription
+    subscriptionPackage: Partial<IsubscriptionPackage>
   ) {
     const observer$ = StockAuthClient.ehttp
-      .makePost(`/companysubscription/subscribe/${companyId}`, companySubscription);
-    return lastValueFrom(observer$) as Promise<Isuccess>;
+      .makePost(`/companysubscription/subscribe/${companyId}`, subscriptionPackage);
+    return lastValueFrom(observer$) as Promise<Isuccess & {data}>;
   }
 
   static async deleteCompanySubscription(

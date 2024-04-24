@@ -4,6 +4,7 @@ import { createCompanySubscription } from './models/subscriptions/company-subscr
 import { createSubscriptionPackageModel } from './models/subscriptions/subscription-package.model';
 import { createUserModel } from './models/user.model';
 import { createUseripModel } from './models/userip.model';
+import { createLoginAtemptsModel } from './models/loginattemps.model';
 /**
  * Configuration object for the stock-auth-local module.
  */
@@ -32,5 +33,6 @@ export const connectAuthDatabase = async (databaseUrl, dbOptions) => {
     await createUseripModel(databaseUrl);
     await createSubscriptionPackageModel(databaseUrl, dbOptions);
     await createCompanySubscription(databaseUrl, dbOptions);
+    await createLoginAtemptsModel(databaseUrl, dbOptions);
 };
 //# sourceMappingURL=stock-auth-local.js.map

@@ -88,7 +88,7 @@ const createMockUser = (incrementor = 0) => {
         did: en_US_1.faker.string.sample(10),
         aid: en_US_1.faker.string.sample(10),
         photos: [(0, exports.createMockFileMeta)(), (0, exports.createMockFileMeta)()],
-        admin: String(incrementor % 2 !== 0),
+        admin: incrementor % 2 !== 0,
         subAdmin: incrementor % 2 !== 0,
         permissions: (0, exports.createMockUserperm)(),
         phone: en_US_1.faker.number.int(),
@@ -124,15 +124,14 @@ const createMockCompany = (incrementor = 0) => {
         profileCoverPic: (0, exports.createMockFileMeta)(),
         password: 'password',
         websiteAddress: 'https://www.google.com',
-        pesapalCallbackUrl: 'https://www.google.com',
-        pesapalCancellationUrl: 'https://www.google.com',
         photos: [],
         blocked: Boolean(incrementor % 2),
         verified: Boolean(incrementor % 2),
         expireAt: '',
         blockedReasons: (0, exports.createMockBlockedReasons)(),
         left: false,
-        dateLeft: new Date()
+        dateLeft: new Date(),
+        owner: en_US_1.faker.string.uuid()
     };
     return new company_define_1.Company(companyDetails);
 };

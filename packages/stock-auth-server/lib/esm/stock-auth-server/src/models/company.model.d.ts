@@ -31,8 +31,6 @@ export declare const companyAuthSelect: {
     profileCoverPic: number;
     createdAt: number;
     websiteAddress: number;
-    pesapalCallbackUrl: number;
-    pesapalCancellationUrl: number;
     photos: number;
     blocked: number;
     verified: number;
@@ -57,8 +55,6 @@ export declare const companyAboutSelect: {
     profileCoverPic: number;
     createdAt: number;
     websiteAddress: number;
-    pesapalCallbackUrl: number;
-    pesapalCancellationUrl: number;
     photos: number;
     blocked: number;
     verified: number;

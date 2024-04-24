@@ -63,6 +63,10 @@ exports.estimateRoutes.post('/create/:companyIdParam', stock_universal_server_1.
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     estimate.companyId = queryId;
     invoiceRelated.companyId = queryId;
     invoiceRelated.estimateId = await makeEstimateId(companyId);
@@ -79,7 +83,7 @@ exports.estimateRoutes.post('/create/:companyIdParam', stock_universal_server_1.
      * @param {Estimate} newEstimate - The new estimate to be saved.
      * @returns {Promise<{success: boolean, status: number, err?: string}>} - A promise that resolves to an object with success, status, and err properties.
      */
-    const saved = await newEstimate.save()
+    await newEstimate.save()
         .catch(err => {
         estimateRoutesogger.error('create - err: ', err);
         errResponse = {
@@ -99,7 +103,7 @@ exports.estimateRoutes.post('/create/:companyIdParam', stock_universal_server_1.
         return res.status(403).send(errResponse);
     }
     return next();
-}, stock_auth_server_1.requireUpdateSubscriptionRecord);
+}, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('estimate'));
 /**
  * Gets an estimate and its associated invoice related object by estimate ID.
  * @param req The request object.
@@ -111,6 +115,10 @@ exports.estimateRoutes.get('/getone/:estimateId/:companyIdParam', stock_universa
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     estimateId.companyId = queryId;
     const invoiceRelated = await invoicerelated_model_1.invoiceRelatedLean
         .findOne({ estimateId, companyId: queryId })
@@ -135,6 +143,10 @@ exports.estimateRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_unive
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const all = await Promise.all([
         estimate_model_1.estimateLean
             .find({ companyId: queryId })
@@ -195,6 +207,10 @@ exports.estimateRoutes.post('/search/:limit/:offset/:companyIdParam', stock_univ
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const all = await Promise.all([
         estimate_model_1.estimateLean
@@ -227,6 +243,10 @@ exports.estimateRoutes.put('/deletemany/:companyIdParam', stock_universal_server
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     if (!credentials || credentials?.length < 1) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }

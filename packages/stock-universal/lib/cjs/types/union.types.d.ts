@@ -194,6 +194,7 @@ export type TnotifType = 'orders' | 'payments' | 'users' | 'jobcards' | 'invoice
  * Represents the format options for displaying a user's display name.
  */
 export type TuserDispNameFormat = 'firstLast' | 'lastFirst' | 'companyName';
+export type TuserType = 'company' | 'staff' | 'eUser';
 /**
  * Represents the type of payment.
  * - `nonSubscription`: Indicates a non-subscription payment.
@@ -214,3 +215,4 @@ export type TroleAuth = 'orders' | 'payments' | 'users' | 'items' | 'faqs' | 'bu
  */
 export type TroleAuthProp = 'create' | 'read' | 'update' | 'delete';
 export type TsubscriptionFeature = 'customer' | 'staff' | 'estimate' | 'invoice' | 'item' | 'decoy' | 'offer' | 'order' | 'job-card' | 'delivery-note' | 'receipt' | 'expense' | 'report' | 'companyAdminAccess';
+export type TcompanySubPayStatus = 'paid' | 'failed' | 'canceled' | 'pending';

@@ -1,5 +1,5 @@
 import { requireActiveCompany, requireCanUseFeature, requireUpdateSubscriptionRecord } from '@open-stock/stock-auth-server';
-import { appendBody, deleteFiles, offsetLimitRelegator, requireAuth, roleAuthorisation, saveMetaToDb, stringifyMongooseErr, uploadFiles, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { appendBody, deleteFiles, offsetLimitRelegator, requireAuth, roleAuthorisation, saveMetaToDb, stringifyMongooseErr, uploadFiles, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { getLogger } from 'log4js';
 import { invoiceSettingLean, invoiceSettingMain } from '../../../models/printables/settings/invoicesettings.model';
@@ -23,10 +23,14 @@ invoiceSettingRoutes.post('/create/:companyIdParam', requireAuth, requireActiveC
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = verifyObjectId(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     invoiceSetting.companyId = queryId;
     const newJobCard = new invoiceSettingMain(invoiceSetting);
     let errResponse;
-    const saved = await newJobCard.save()
+    await newJobCard.save()
         .catch(err => {
         invoiceSettingRoutesLogger.error('create - err: ', err);
         errResponse = {
@@ -46,7 +50,7 @@ invoiceSettingRoutes.post('/create/:companyIdParam', requireAuth, requireActiveC
         return res.status(403).send(errResponse);
     }
     return next();
-}, requireUpdateSubscriptionRecord);
+}, requireUpdateSubscriptionRecord('report'));
 /**
  * Route for creating a new invoice setting with image
  * @name POST /createimg
@@ -61,6 +65,10 @@ invoiceSettingRoutes.post('/createimg/:companyIdParam', requireAuth, requireActi
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = verifyObjectId(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     invoiceSetting.companyId = queryId;
     if (req.body.newFiles) {
         if (invoiceSetting.generalSettings.defaultDigitalSignature === 'true' &&
@@ -239,6 +247,10 @@ invoiceSettingRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, 
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = verifyObjectId(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const all = await Promise.all([
         invoiceSettingLean
             .find({ companyId: queryId })
@@ -276,6 +288,10 @@ invoiceSettingRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth,
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = verifyObjectId(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     const all = await Promise.all([
         invoiceSettingLean

@@ -1,6 +1,16 @@
 import { user } from '@open-stock/stock-auth-server';
 import { getCurrentNotificationSettings } from '@open-stock/stock-notif-server';
-import { Iactionwithall, IinvoiceRelated, Iitem, Imainnotification, Ireceipt, Isuccess, Iuser, TestimateStage, TinvoiceType, TnotifType } from '@open-stock/stock-universal';
+import {
+  // Iactionwithall,
+  IinvoiceRelated,
+  Iitem,
+  Ireceipt,
+  Isuccess,
+  Iuser,
+  TestimateStage,
+  TinvoiceType
+  // TnotifType
+} from '@open-stock/stock-universal';
 import { stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import { getLogger } from 'log4js';
 import { deliveryNoteLean, deliveryNoteMain } from '../../../models/printables/deliverynote.model';
@@ -8,7 +18,7 @@ import { estimateLean, estimateMain } from '../../../models/printables/estimate.
 import { invoiceLean, invoiceMain } from '../../../models/printables/invoice.model';
 import { receiptMain } from '../../../models/printables/receipt.model';
 import { invoiceRelatedLean, invoiceRelatedMain } from '../../../models/printables/related/invoicerelated.model';
-import { pesapalNotifRedirectUrl } from '../../../stock-counter-local';
+// import { pesapalNotifRedirectUrl } from '../../../stock-counter-local';
 
 /**
  * Logger for the 'InvoiceRelated' routes.
@@ -178,13 +188,13 @@ export const relegateInvRelatedCreation = async(
 
     invoiceRelatedLogger.error('AFTER SAVE');
 
-    let route: string;
+    /* let route: string;
     let title = '';
-    let notifType: TnotifType;
+    let notifType: TnotifType;*/
     const stn = await getCurrentNotificationSettings();
 
     if (!bypassNotif && stn.invoices) {
-      switch (invoiceRelated.stage) {
+      /* switch (invoiceRelated.stage) {
         case 'estimate':
           route = 'estimates';
           title = 'New Estimate';
@@ -205,16 +215,15 @@ export const relegateInvRelatedCreation = async(
           title = 'New Reciept';
           notifType = 'invoices';
           break;
-      }
-
-      const actions: Iactionwithall[] = [{
+      }*/
+      /* const actions: Iactionwithall[] = [{
         operation: 'view',
         url: pesapalNotifRedirectUrl + route,
         action: '',
         title
-      }];
+      }];*
 
-      const notification: Imainnotification = {
+      /* const notification: Imainnotification = {
         actions,
         userId: invoiceRelated.billingUserId,
         title,
@@ -223,7 +232,7 @@ export const relegateInvRelatedCreation = async(
         notifType,
         // photo: string;
         expireAt: '200000'
-      };
+      };*/
 
       const capableUsers = await user.find({})
         .lean().select({ permissions: 1 });
@@ -235,7 +244,7 @@ export const relegateInvRelatedCreation = async(
         }
       }
 
-      const notifFilters = { id: { $in: ids } };
+      // const notifFilters = { id: { $in: ids } };
       /* await createNotifications({
         options: notification,
         filters: notifFilters

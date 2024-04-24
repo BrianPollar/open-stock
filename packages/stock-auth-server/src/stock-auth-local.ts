@@ -8,6 +8,7 @@ import { createSubscriptionPackageModel } from './models/subscriptions/subscript
 import { createUserModel } from './models/user.model';
 import { createUseripModel } from './models/userip.model';
 import { IStockAuthServerConfig } from './stock-auth-server';
+import { createLoginAtemptsModel } from './models/loginattemps.model';
 
 /**
  * Configuration object for the stock-auth-local module.
@@ -40,4 +41,5 @@ export const connectAuthDatabase = async(databaseUrl: string, dbOptions?: Connec
   await createUseripModel(databaseUrl);
   await createSubscriptionPackageModel(databaseUrl, dbOptions);
   await createCompanySubscription(databaseUrl, dbOptions);
+  await createLoginAtemptsModel(databaseUrl, dbOptions);
 };

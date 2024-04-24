@@ -7,10 +7,10 @@ const stock_universal_local_1 = require("./stock-universal-local");
  * @param databaseConfigUrl - The URL of the database configuration.
  * @returns A promise that resolves to an object indicating whether the stock universal server is running.
  */
-const runStockUniversalServer = async (databaseConfigUrl) => {
+const runStockUniversalServer = async (databaseConfigUrl, dbOptions) => {
     (0, stock_universal_local_1.createStockUniversalServerLocals)();
     // connect models
-    await (0, stock_universal_local_1.connectUniversalDatabase)(databaseConfigUrl);
+    await (0, stock_universal_local_1.connectUniversalDatabase)(databaseConfigUrl, dbOptions);
     return Promise.resolve({ isStockUniversalServerRunning: stock_universal_local_1.isStockUniversalServerRunning });
 };
 exports.runStockUniversalServer = runStockUniversalServer;

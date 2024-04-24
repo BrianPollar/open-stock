@@ -1,7 +1,6 @@
 import { appendBody, deleteFiles, fileMetaLean, makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, saveMetaToDb, stringifyMongooseErr, uploadFiles, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { getLogger } from 'log4js';
-import { now } from 'mongoose';
 import { checkIpAndAttempt, confirmAccountFactory, determineIfIsPhoneAndMakeFilterObj, isInAdictionaryOnline, isTooCommonPhrase, recoverAccountFactory, resetAccountFactory } from '../controllers/auth.controller';
 import { generateToken, sendTokenEmail, setUserInfo } from '../controllers/universial.controller';
 import { companyLean } from '../models/company.model';
@@ -32,8 +31,11 @@ export const userLoginRelegator = async (req, res) => {
     const { query } = determineIfIsPhoneAndMakeFilterObj(emailPhone);
     const foundUser = await userLean
         .findOne({ ...query, ...{ verified: true } })
+        .populate({ path: 'profilePic', model: fileMetaLean })
+        .populate({ path: 'profileCoverPic', model: fileMetaLean })
+        .populate({ path: 'photos', model: fileMetaLean })
         .lean()
-        .select(userAuthSelect)
+        // .select(userAuthSelect)
         .catch(err => {
         authLogger.error('Find user projection err', err);
         return null;
@@ -42,18 +44,34 @@ export const userLoginRelegator = async (req, res) => {
         return res.status(404).send({ msg: 'Account does not exist!' });
     }
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    const company = await companyLean.findById(foundUser?.companyId).lean().select({ blocked: 1, _id: 1 });
+    const company = await companyLean.findById(foundUser?.companyId)
+        .populate({ path: 'profilePic', model: fileMetaLean })
+        .populate({ path: 'profileCoverPic', model: fileMetaLean })
+        .populate({ path: 'photos', model: fileMetaLean })
+        .lean();
+    let permissions;
+    // TODO scan for all object id comparisons// ALSO does it affete find, I think not likely but test out
+    if (company && company.owner === foundUser._id.toString()) {
+        permissions = {
+            companyAdminAccess: true
+        };
+    }
+    else {
+        permissions = foundUser.permissions || {};
+    }
     // delete user.password; //we do not want to send back password
-    const userInfo = setUserInfo(foundUser._id, foundUser.permissions, foundUser.companyId, { active: !company.blocked });
+    const userInfo = setUserInfo(foundUser._id.toString(), permissions, foundUser.companyId, { active: !company.blocked });
     const token = generateToken(userInfo, '1d', stockAuthConfig.authSecrets.jwtSecret);
     let activeSubscription;
+    const now = new Date();
     if (company) {
-        const subsctn = await companySubscriptionLean.findOne({ companyId: company._id })
+        const subsctn = await companySubscriptionLean.findOne({ companyId: company._id, status: 'paid' })
             .lean()
             .gte('endDate', now)
             .sort({ endDate: 1 });
         activeSubscription = subsctn;
     }
+    foundUser.companyId = company;
     const nowResponse = {
         success: true,
         user: foundUser,
@@ -77,6 +95,7 @@ userAuthRoutes.get('/authexpress/:companyIdParam', requireAuth, async (req, res)
         .populate({ path: 'profileCoverPic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
         // eslint-disable-next-line @typescript-eslint/naming-convention
         .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+        // .populate({ path: 'companyId', model: companyLean })
         .lean()
         .select(userAuthSelect)
         .catch(err => {
@@ -103,7 +122,17 @@ userAuthRoutes.get('/authexpress/:companyIdParam', requireAuth, async (req, res)
         .findById(foundUser.companyId)
         // eslint-disable-next-line @typescript-eslint/naming-convention
         .lean().select({ blocked: 1, _id: 1 });
-    const userInfo = setUserInfo(foundUser._id, foundUser.permissions, foundUser.companyId, { active: !company.blocked });
+    let permissions;
+    if (company && company.owner === foundUser._id.toString()) {
+        permissions = {
+            companyAdminAccess: true
+        };
+    }
+    else {
+        permissions = foundUser.permissions;
+    }
+    const userInfo = setUserInfo(foundUser._id.toString(), permissions, foundUser.companyId, { active: !company.blocked });
+    foundUser.companyId = company;
     const token = generateToken(userInfo, '1d', stockAuthConfig.authSecrets.jwtSecret);
     const nowResponse = {
         success: true,
@@ -112,16 +141,23 @@ userAuthRoutes.get('/authexpress/:companyIdParam', requireAuth, async (req, res)
     };
     return res.status(200).send(nowResponse);
 });
-userAuthRoutes.post('/login', (req, res, next) => {
+userAuthRoutes.post('/login', async (req, res, next) => {
     req.body.from = 'user';
     const { emailPhone } = req.body;
     authLogger.debug(`login attempt,
     emailPhone: ${emailPhone}`);
+    const { query, isPhone } = determineIfIsPhoneAndMakeFilterObj(emailPhone);
+    const foundUser = await user.findOne({ ...query, ...{ verified: true } });
+    if (!foundUser) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
+    req.body.isPhone = isPhone;
+    req.body.foundUser = foundUser;
     return next();
 }, checkIpAndAttempt, userLoginRelegator);
 userAuthRoutes.post('/signup', (req, res, next) => {
     const user = req.body;
-    req.body.user = user;
+    req.body = user;
     return next();
 }, isTooCommonPhrase, isInAdictionaryOnline, signupFactorRelgator, (req, res) => {
     return res.status(401).send({ success: false, msg: 'unauthourised' });
@@ -500,8 +536,8 @@ userAuthRoutes.put('/updatepermissions/:userId/:companyIdParam', requireAuth, ro
     });
     return res.status(status).send(response);
 });
-userAuthRoutes.put('/blockunblock/:companyIdParam', requireAuth, requireSuperAdmin, async (req, res) => {
-    const { userId } = req.user;
+userAuthRoutes.put('/blockunblock/:userId', requireAuth, requireSuperAdmin, async (req, res) => {
+    const { userId } = req.paras;
     authLogger.debug('blockunblock');
     const isValid = verifyObjectId(userId);
     if (!isValid) {
@@ -603,6 +639,10 @@ userAuthRoutes.get('/getoneuser/:urId/:companyIdParam', requireAuth, roleAuthori
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = verifyObjectId(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const oneUser = await userLean
         .findOne({ urId, queryId })
         .populate({ path: 'profilePic', model: fileMetaLean })
@@ -610,7 +650,7 @@ userAuthRoutes.get('/getoneuser/:urId/:companyIdParam', requireAuth, roleAuthori
         .populate({ path: 'photos', model: fileMetaLean })
         .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc) })
         .lean();
-    if (!oneUser.companyId) {
+    if (!oneUser || !oneUser.companyId) {
         return res.status(200).send({});
     }
     return res.status(200).send(oneUser);
@@ -619,11 +659,16 @@ userAuthRoutes.get('/getusers/:where/:offset/:limit/:companyIdParam', requireAut
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = verifyObjectId(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const { where } = req.params;
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     const currOffset = offset === 0 ? 0 : offset;
     const currLimit = limit === 0 ? 1000 : limit;
     let filter;
+    authLogger.info('where is ', where);
     switch (where) {
         case 'manual':
             filter = {
@@ -641,10 +686,11 @@ userAuthRoutes.get('/getusers/:where/:offset/:limit/:companyIdParam', requireAut
             filter = { companyId: queryId };
             break;
     }
+    authLogger.info('filter is ', filter);
     const all = await Promise.all([
         userLean
-            .find(filter)
-            .sort({ firstName: 1 })
+            .find({ ...filter, ...{ userType: { $ne: 'company' } } })
+            .sort({ fname: 1 })
             .limit(Number(currLimit))
             .skip(Number(currOffset))
             .populate({ path: 'profilePic', model: fileMetaLean })
@@ -654,11 +700,13 @@ userAuthRoutes.get('/getusers/:where/:offset/:limit/:companyIdParam', requireAut
             .lean(),
         userLean.countDocuments(filter)
     ]);
+    authLogger.debug('aall[0] ', all[0]);
     const filteredFaqs = all[0].filter(data => !data.companyId.blocked);
     const response = {
         count: all[1],
         data: filteredFaqs
     };
+    authLogger.debug('response is   ', response);
     return res.status(200).send(response);
 });
 userAuthRoutes.post('/adduser/:companyIdParam', requireAuth, roleAuthorisation('users', 'create'), async (req, res) => {
@@ -674,6 +722,7 @@ userAuthRoutes.post('/adduser/:companyIdParam', requireAuth, roleAuthorisation('
         // eslint-disable-next-line @typescript-eslint/naming-convention
         .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     userData.urId = makeUrId(Number(count[0]?.urId || '0'));
+    userData.companyId = queryId;
     const newUser = new user(userData);
     let status = 200;
     let response = { success: true };

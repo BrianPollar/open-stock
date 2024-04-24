@@ -1,5 +1,9 @@
 import { Icustomrequest, TsubscriptionFeature } from '@open-stock/stock-universal';
-import { companySubscriptionLean } from '../models/subscriptions/company-subscription.model';
+import { getLogger } from 'log4js';
+import { companySubscriptionLean, companySubscriptionMain } from '../models/subscriptions/company-subscription.model';
+
+/** Logger for company auth */
+const companyAuthLogger = getLogger('company-auth');
 
 export const requireCanUseFeature = (
   feature: TsubscriptionFeature
@@ -9,6 +13,11 @@ export const requireCanUseFeature = (
     res,
     next
   ) => {
+    companyAuthLogger.info('requireCanUseFeature');
+    const { userId } = (req as Icustomrequest).user;
+    if (userId === 'superAdmin') {
+      return next();
+    }
     const now = new Date();
     const { companyId } = (req as Icustomrequest).user;
     const subsctn = await companySubscriptionLean.findOne({ companyId })
@@ -21,7 +30,7 @@ export const requireCanUseFeature = (
         .send('unauthorised no subscription found');
     }
 
-    const found = subsctn.features.find(val => val.name === feature);
+    const found = subsctn.features.find(val => val.type === feature);
     if (!found || found.limitSize === 0 || found.remainingSize === 0) {
       return res.status(401)
         .send({ success: false, err: 'unauthorised feature exhausted' });
@@ -36,6 +45,11 @@ export const requireActiveCompany = (
   res,
   next
 ) => {
+  companyAuthLogger.info('requireActiveCompany');
+  const { userId } = (req as Icustomrequest).user;
+  if (userId === 'superAdmin') {
+    return next();
+  }
   const { companyPermissions } = (req as Icustomrequest).user;
   // no company
   if (companyPermissions && !companyPermissions.active) {
@@ -53,10 +67,14 @@ export const requireUpdateSubscriptionRecord = (
     req,
     res
   ) => {
+    companyAuthLogger.info('requireUpdateSubscriptionRecord');
+    const { userId } = (req as Icustomrequest).user;
+    if (userId === 'superAdmin') {
+      return res.status(200).send({ success: true });
+    }
     const now = new Date();
     const { companyId } = (req as Icustomrequest).user;
-    const subsctn = await companySubscriptionLean.findOneAndUpdate({ companyId })
-      .lean()
+    const subsctn = await companySubscriptionMain.findOneAndUpdate({ companyId })
       .gte('endDate', now)
       .sort({ endDate: 1 });
 
@@ -66,8 +84,8 @@ export const requireUpdateSubscriptionRecord = (
     }
 
     const features = subsctn.features;
-    const foundIndex = features.findIndex(val => val.name === feature);
-    features[foundIndex].remainingSize--;
+    const foundIndex = features.findIndex(val => val.type === feature);
+    --features[foundIndex].remainingSize;
     const saved = await subsctn.save();
     return res.status(200).send({ success: Boolean(saved) });
   };

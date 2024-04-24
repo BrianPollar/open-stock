@@ -1,5 +1,8 @@
-import { DatabaseAuto, IsubscriptionFeature, Isuccess } from '@open-stock/stock-universal';
+import { DatabaseAuto, IsubscriptionFeature, IsubscriptionPackage, Isuccess } from '@open-stock/stock-universal';
 export declare class CompanySubscription extends DatabaseAuto {
+    name: string;
+    ammount: number;
+    duration: number;
     subscriprionId: string;
     startDate: Date;
     endDate: Date;
@@ -9,6 +12,8 @@ export declare class CompanySubscription extends DatabaseAuto {
         count: number;
         companysubscriptions: CompanySubscription[];
     }>;
-    static subscribe(companyId: string, companySubscription: any): Promise<Isuccess>;
+    static subscribe(companyId: string, subscriptionPackage: Partial<IsubscriptionPackage>): Promise<Isuccess & {
+        data: any;
+    }>;
     static deleteCompanySubscription(companyId: string, id: string): Promise<Isuccess>;
 }

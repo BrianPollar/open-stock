@@ -30,6 +30,10 @@ exports.pickupLocationRoutes.post('/create/:companyIdParam', stock_universal_ser
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     pickupLocation.companyId = queryId;
     const newPickupLocation = new pickuplocation_model_1.pickupLocationMain(pickupLocation);
     let errResponse;
@@ -70,7 +74,7 @@ exports.pickupLocationRoutes.put('/update/:companyIdParam', stock_universal_serv
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
     updatedPickupLocation.companyId = queryId;
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(updatedPickupLocation._id);
+    const isValid = (0, stock_universal_server_1.verifyObjectIds)([updatedPickupLocation._id, queryId]);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
@@ -144,6 +148,10 @@ exports.pickupLocationRoutes.get('/getall/:offset/:limit/:companyIdParam', stock
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const all = await Promise.all([
         pickuplocation_model_1.pickupLocationLean
             .find({ companyId: queryId })
@@ -201,6 +209,10 @@ exports.pickupLocationRoutes.post('/search/:limit/:offset/:companyIdParam', stoc
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const all = await Promise.all([
         pickuplocation_model_1.pickupLocationLean

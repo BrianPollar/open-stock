@@ -29,17 +29,9 @@ exports.faqRoutes = express_1.default.Router();
  */
 exports.faqRoutes.post('/create/:companyIdParam', async (req, res) => {
     const faq = req.body.faq;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    faq.companyId = queryId;
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
     const count = await faq_model_1.faqMain
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+        .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     faq.urId = (0, stock_universal_server_1.makeUrId)(Number(count[0]?.urId || '0'));
     const newFaq = new faq_model_1.faqMain(faq);
     let errResponse;
@@ -76,18 +68,26 @@ exports.faqRoutes.post('/create/:companyIdParam', async (req, res) => {
  * @returns {Object} The requested FAQ object
  */
 exports.faqRoutes.get('/getone/:id/:companyIdParam', async (req, res) => {
-    const { id } = req.params;
+    const { id, companyIdParam } = req.params;
     // const { companyId } = (req as Icustomrequest).user;
-    const { companyIdParam } = req.params;
-    // const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const queryId = companyIdParam;
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)([id, queryId]);
+    let ids;
+    let filter;
+    if (companyIdParam) {
+        ids = [id, companyIdParam];
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        filter = { _id: id, companyId: companyIdParam };
+    }
+    else {
+        ids = [id];
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        filter = { _id: id };
+    }
+    const isValid = (0, stock_universal_server_1.verifyObjectIds)(ids);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const faq = await faq_model_1.faqLean
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .findOne({ _id: id, companyId: queryId })
+        .findOne(filter)
         .lean();
     return res.status(200).send(faq);
 });
@@ -105,17 +105,13 @@ exports.faqRoutes.get('/getone/:id/:companyIdParam', async (req, res) => {
  */
 exports.faqRoutes.get('/getall/:offset/:limit/:companyIdParam', async (req, res) => {
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
-    // const { companyId } = (req as Icustomrequest).user;
-    const { companyIdParam } = req.params;
-    // const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const queryId = companyIdParam;
     const all = await Promise.all([
         faq_model_1.faqLean
-            .find({ companyId: queryId })
+            .find({})
             .skip(offset)
             .limit(limit)
             .lean(),
-        faq_model_1.faqLean.countDocuments({ companyId: queryId })
+        faq_model_1.faqLean.countDocuments({})
     ]);
     const response = {
         count: all[1],
@@ -134,18 +130,29 @@ exports.faqRoutes.get('/getall/:offset/:limit/:companyIdParam', async (req, res)
  * @param {Object} res - Express response object
  * @returns {Object} Success status and deleted FAQ object
  */
-exports.faqRoutes.delete('/deleteone/:id/:companyIdParam', async (req, res) => {
+exports.faqRoutes.delete('/deleteone/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, async (req, res) => {
     const { id } = req.params;
+    const { companyId } = req.user;
     // const { companyId } = (req as Icustomrequest).user;
     const { companyIdParam } = req.params;
-    // const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const queryId = companyIdParam;
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)([id, queryId]);
+    let filter;
+    let ids;
+    if (companyIdParam) {
+        ids = [id, companyIdParam];
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        filter = { _id: id, companyId: companyIdParam };
+    }
+    else {
+        ids = [id];
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        filter = { _id: id, companyId };
+    }
+    const isValid = (0, stock_universal_server_1.verifyObjectIds)(ids);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    const deleted = await faq_model_1.faqMain.findOneAndDelete({ _id: id, companyId: queryId });
+    const deleted = await faq_model_1.faqMain.findOneAndDelete(filter);
     if (Boolean(deleted)) {
         return res.status(200).send({ success: Boolean(deleted) });
     }
@@ -167,15 +174,15 @@ exports.faqRoutes.delete('/deleteone/:id/:companyIdParam', async (req, res) => {
  */
 exports.faqRoutes.post('/createans/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('faqs', 'create'), async (req, res) => {
     const faq = req.body.faq;
-    // const { companyId } = (req as Icustomrequest).user;
+    const { companyId } = req.user;
     const { companyIdParam } = req.params;
-    // const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const queryId = companyIdParam;
-    faq.companyId = queryId;
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    if (companyIdParam) {
+        const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
+        if (!isValid) {
+            return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+        }
     }
+    faq.companyId = companyId;
     const count = await faqanswer_model_1.faqanswerMain.countDocuments();
     faq.urId = (0, stock_universal_server_1.makeUrId)(count);
     const newFaqAns = new faqanswer_model_1.faqanswerMain(faq);
@@ -213,12 +220,8 @@ exports.faqRoutes.post('/createans/:companyIdParam', stock_universal_server_1.re
  * @returns {Object[]} Array of FAQ answer objects
  */
 exports.faqRoutes.get('/getallans/:faqId/:companyIdParam', async (req, res) => {
-    // const { companyId } = (req as Icustomrequest).user;
-    const { companyIdParam } = req.params;
-    // const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const queryId = companyIdParam;
     const faqsAns = await faqanswer_model_1.faqanswerLean
-        .find({ faq: req.params.faqId, companyId: queryId })
+        .find({ faq: req.params.faqId })
         .lean();
     return res.status(200).send(faqsAns);
 });
@@ -235,16 +238,13 @@ exports.faqRoutes.get('/getallans/:faqId/:companyIdParam', async (req, res) => {
  */
 exports.faqRoutes.delete('/deleteoneans/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('faqs', 'delete'), async (req, res) => {
     const { id } = req.params;
-    // const { companyId } = (req as Icustomrequest).user;
     const { companyIdParam } = req.params;
-    // const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const queryId = companyIdParam;
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)([id, queryId]);
+    const isValid = (0, stock_universal_server_1.verifyObjectIds)([id, companyIdParam]);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    const deleted = await faqanswer_model_1.faqanswerMain.findOneAndDelete({ _id: id, companyId: queryId })
+    const deleted = await faqanswer_model_1.faqanswerMain.findOneAndDelete({ _id: id, companyId: companyIdParam })
         .catch(err => {
         faqRoutesLogger.error('deleteoneans - err: ', err);
         return null;

@@ -58,8 +58,8 @@ export type Tuser = Document & Iuser & IschemaMethods;
  * @property {Date} updatedAt - User update date.
  */
 const userSchema: Schema<Tuser> = new Schema({
-  urId: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
-  companyId: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
+  urId: { type: String, required: [true, 'cannot be empty.'], index: true },
+  companyId: { type: String, index: true },
   fname: { type: String, index: true },
   lname: { type: String, index: true },
   companyName: { type: String, index: true },
@@ -73,7 +73,7 @@ const userSchema: Schema<Tuser> = new Schema({
   photos: [{ type: String }],
   age: { type: String },
   gender: { type: String },
-  admin: { type: String },
+  admin: { type: Boolean, default: false },
   permissions: {},
   email: { type: String },
   phone: { type: Number },
@@ -87,7 +87,7 @@ const userSchema: Schema<Tuser> = new Schema({
   countryCode: { type: Number, default: +256 },
   amountDue: { type: Number, default: 0 },
   manuallyAdded: { type: Boolean, default: false },
-  userType: { type: String, default: 'user' }
+  userType: { type: String, default: 'eUser' }
 },
 { timestamps: true }
 );

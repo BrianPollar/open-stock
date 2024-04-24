@@ -29,16 +29,7 @@ exports.deliverycityRoutes = express_1.default.Router();
  */
 exports.deliverycityRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireSuperAdmin, async (req, res) => {
     const deliverycity = req.body.deliverycity;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    deliverycity.companyId = queryId;
     const newDeliverycity = new deliverycity_model_1.deliverycityMain(deliverycity);
-    newDeliverycity.companyId = queryId;
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
     let errResponse;
     const saved = await newDeliverycity.save()
         .catch(err => {
@@ -101,16 +92,13 @@ exports.deliverycityRoutes.get('/getone/:id/:companyIdParam', async (req, res) =
  */
 exports.deliverycityRoutes.get('/getall/:offset/:limit/:companyIdParam', async (req, res) => {
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
     const all = await Promise.all([
         deliverycity_model_1.deliverycityLean
-            .find({ companyId: queryId })
+            .find({})
             .skip(offset)
             .limit(limit)
             .lean(),
-        deliverycity_model_1.deliverycityLean.countDocuments({ companyId: queryId })
+        deliverycity_model_1.deliverycityLean.countDocuments({})
     ]);
     const response = {
         count: all[1],
@@ -131,17 +119,13 @@ exports.deliverycityRoutes.get('/getall/:offset/:limit/:companyIdParam', async (
  */
 exports.deliverycityRoutes.put('/update/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireSuperAdmin, async (req, res) => {
     const updatedCity = req.body;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    updatedCity.companyId = queryId;
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)([updatedCity._id, queryId]);
+    const isValid = (0, stock_universal_server_1.verifyObjectIds)([updatedCity._id]);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const deliverycity = await deliverycity_model_1.deliverycityMain
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        .findOneAndUpdate({ _id: updatedCity._id, companyId: queryId });
+        .findOneAndUpdate({ _id: updatedCity._id });
     if (!deliverycity) {
         return res.status(404).send({ success: false });
     }
@@ -184,15 +168,12 @@ exports.deliverycityRoutes.put('/update/:companyIdParam', stock_universal_server
  */
 exports.deliverycityRoutes.delete('/deleteone/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireSuperAdmin, async (req, res) => {
     const { id } = req.params;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)([id, queryId]);
+    const isValid = (0, stock_universal_server_1.verifyObjectIds)([id]);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    const deleted = await deliverycity_model_1.deliverycityMain.findOneAndDelete({ _id: id, companyId: queryId });
+    const deleted = await deliverycity_model_1.deliverycityMain.findOneAndDelete({ _id: id });
     if (Boolean(deleted)) {
         return res.status(200).send({ success: Boolean(deleted) });
     }
@@ -213,16 +194,13 @@ exports.deliverycityRoutes.delete('/deleteone/:id/:companyIdParam', stock_univer
  */
 exports.deliverycityRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireSuperAdmin, async (req, res) => {
     const { ids } = req.body;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)([...ids, ...[queryId]]);
+    const isValid = (0, stock_universal_server_1.verifyObjectIds)([...ids]);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const deleted = await deliverycity_model_1.deliverycityMain
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        .deleteMany({ _id: { $in: ids }, companyId: queryId })
+        .deleteMany({ _id: { $in: ids } })
         .catch(err => {
         deliverycityRoutesLogger.error('deletemany - err: ', err);
         return null;

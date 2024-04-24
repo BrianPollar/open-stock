@@ -14,7 +14,7 @@ const staffRoutesLogger = (0, log4js_1.getLogger)('routes/staffRoutes');
  * Router for staff related routes.
  */
 exports.staffRoutes = express_1.default.Router();
-exports.staffRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_auth_server_1.requireCanUseFeature)('report'), (0, stock_universal_server_1.roleAuthorisation)('staffs', 'create'), stock_auth_server_1.loginFactorRelgator, async (req, res, next) => {
+exports.staffRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_auth_server_1.requireCanUseFeature)('staff'), (0, stock_universal_server_1.roleAuthorisation)('staffs', 'create'), async (req, res, next) => {
     const staff = req.body.staff;
     const newStaff = new staff_model_1.staffMain(staff);
     let errResponse;
@@ -23,7 +23,7 @@ exports.staffRoutes.post('/create/:companyIdParam', stock_universal_server_1.req
      * @param {Staff} newStaff - The new staff member to be saved.
      * @returns {Promise<Staff | ErrorResponse>} - A promise that resolves with the saved staff member or an error response.
      */
-    const saved = await newStaff.save()
+    await newStaff.save()
         .catch(err => {
         staffRoutesLogger.error('create - err: ', err);
         errResponse = {
@@ -43,8 +43,8 @@ exports.staffRoutes.post('/create/:companyIdParam', stock_universal_server_1.req
         return res.status(403).send(errResponse);
     }
     return next();
-}, stock_auth_server_1.requireUpdateSubscriptionRecord);
-exports.staffRoutes.get('/getone/:id/:companyIdParam', async (req, res) => {
+}, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('staff'));
+exports.staffRoutes.get('/getone/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('staffs', 'read'), async (req, res) => {
     const { id } = req.params;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -70,11 +70,15 @@ exports.staffRoutes.get('/getone/:id/:companyIdParam', async (req, res) => {
         .lean();
     return res.status(200).send(staff);
 });
-exports.staffRoutes.get('/getall/:offset/:limit/:companyIdParam', async (req, res) => {
+exports.staffRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('staffs', 'read'), async (req, res) => {
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const all = await Promise.all([
         staff_model_1.staffLean
             .find({ companyId: queryId })
@@ -101,11 +105,15 @@ exports.staffRoutes.get('/getall/:offset/:limit/:companyIdParam', async (req, re
     };
     return res.status(200).send(response);
 });
-exports.staffRoutes.get('/getbyrole/:offset/:limit/:role/:companyIdParam', async (req, res) => {
+exports.staffRoutes.get('/getbyrole/:offset/:limit/:role/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('staffs', 'read'), async (req, res) => {
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const { companyId } = req.user;
     const { companyIdParam, role } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const all = await Promise.all([
         staff_model_1.staffLean
             .find({ companyId: queryId })
@@ -132,12 +140,16 @@ exports.staffRoutes.get('/getbyrole/:offset/:limit/:role/:companyIdParam', async
     };
     return res.status(200).send(response);
 });
-exports.staffRoutes.post('/search/:limit/:offset/:companyIdParam', async (req, res) => {
+exports.staffRoutes.post('/search/:limit/:offset/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('staffs', 'read'), async (req, res) => {
     const { searchterm, searchKey, extraDetails } = req.body;
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     let filters;
     switch (searchKey) {
         case 'startDate':
@@ -187,7 +199,7 @@ exports.staffRoutes.put('/update/:companyIdParam', stock_universal_server_1.requ
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
     updatedStaff.companyId = queryId;
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(updatedStaff._id);
+    const isValid = (0, stock_universal_server_1.verifyObjectIds)([updatedStaff._id, queryId]);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }

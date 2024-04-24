@@ -30,14 +30,7 @@ exports.reviewRoutes = express_1.default.Router();
  */
 exports.reviewRoutes.post('/create/:companyIdParam', async (req, res, next) => {
     const review = req.body.review;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
-    review.companyId = queryId;
+    review.companyId = 'superAdmin';
     const count = (await review_model_1.reviewMain
         // eslint-disable-next-line @typescript-eslint/naming-convention
         .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 })[0]?.urId) || 0;
@@ -79,14 +72,9 @@ exports.reviewRoutes.post('/create/:companyIdParam', async (req, res, next) => {
  */
 exports.reviewRoutes.get('/getone/:id/:companyIdParam', async (req, res) => {
     const { id } = req.params;
-    const { companyIdParam } = req.params;
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)([id, companyIdParam]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
     const review = await review_model_1.reviewLean
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        .findOne({ _id: id, companyId: companyIdParam })
+        .findOne({ _id: id })
         .lean();
     return res.status(200).send(review);
 });
@@ -102,16 +90,15 @@ exports.reviewRoutes.get('/getone/:id/:companyIdParam', async (req, res) => {
  * @param {Object} res - Express response object
  * @returns {Array} Array of review objects
  */
-exports.reviewRoutes.get('/getall/:id/:companyIdParam', async (req, res) => {
-    const { companyIdParam } = req.params;
+exports.reviewRoutes.get('/getall/:id/:offset/:limit/:companyIdParam', async (req, res) => {
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const all = await Promise.all([
         review_model_1.reviewLean
-            .find({ itemId: req.params.id, companyId: companyIdParam })
+            .find({ itemId: req.params.id })
             .skip(offset)
             .limit(limit)
             .lean(),
-        review_model_1.reviewLean.countDocuments({ itemId: req.params.id, companyId: companyIdParam })
+        review_model_1.reviewLean.countDocuments({ itemId: req.params.id })
     ]);
     const response = {
         count: all[1],
@@ -136,13 +123,8 @@ exports.reviewRoutes.get('/getall/:id/:companyIdParam', async (req, res) => {
  */
 exports.reviewRoutes.delete('/deleteone/:id/:itemId/:rating/:companyIdParam', async (req, res, next) => {
     const { id } = req.params;
-    const { companyIdParam } = req.params;
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)([id, companyIdParam]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    const deleted = await review_model_1.reviewMain.findOneAndDelete({ _id: id, companyId: companyIdParam });
+    const deleted = await review_model_1.reviewMain.findOneAndDelete({ _id: id });
     if (Boolean(deleted)) {
         return next();
     }

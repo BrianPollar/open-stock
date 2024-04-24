@@ -96,6 +96,10 @@ invoiceRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany,
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectId(queryId);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   invoice.companyId = queryId;
   invoiceRelated.companyId = queryId;
   const response = await saveInvoice(invoice, invoiceRelated, queryId);
@@ -104,7 +108,7 @@ invoiceRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany,
     return res.status(response.status).send({ success: response.success });
   }
   return next();
-}, requireUpdateSubscriptionRecord);
+}, requireUpdateSubscriptionRecord('invoice'));
 
 /**
  * Endpoint for updating an existing invoice.
@@ -168,6 +172,10 @@ invoiceRoutes.get('/getone/:invoiceId/:companyIdParam', requireAuth, requireActi
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectId(queryId);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   const invoiceRelated = await invoiceRelatedLean
     .findOne({ invoiceId, companyId: queryId })
     .lean()
@@ -188,6 +196,10 @@ invoiceRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, require
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectId(queryId);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   const all = await Promise.all([
     invoiceLean
       .find({ companyId: queryId })
@@ -238,6 +250,10 @@ invoiceRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, requir
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectId(queryId);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
   const all = await Promise.all([
     invoiceLean
@@ -273,6 +289,10 @@ invoiceRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompa
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectId(queryId);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   if (!credentials || credentials?.length < 1) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -294,6 +314,10 @@ invoiceRoutes.post('/createpayment/:companyIdParam', requireAuth, requireActiveC
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectId(queryId);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   pay.companyId = queryId;
   const count = await receiptLean
   // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -331,7 +355,7 @@ invoiceRoutes.put('/updatepayment/:companyIdParam', requireAuth, requireActiveCo
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   pay.companyId = queryId;
-  const isValid = verifyObjectId(pay._id);
+  const isValid = verifyObjectIds([pay._id, queryId]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -380,6 +404,10 @@ invoiceRoutes.get('/getallpayments/:companyIdParam', requireAuth, requireActiveC
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectId(queryId);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   const all = await Promise.all([
     receiptLean
       .find({ companyId: queryId })

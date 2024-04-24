@@ -105,13 +105,10 @@ exports.promocodeRoutes.get('/getone/:id/:companyIdParam', stock_universal_serve
  * @param {string} code - Code of the promocode to retrieve
  * @returns {Promise<object>} - Promise representing the retrieved promocode
  */
-exports.promocodeRoutes.get('/getonebycode/:code/:companyIdParam', stock_universal_server_1.requireAuth, async (req, res) => {
+exports.promocodeRoutes.get('/getonebycode/:code/:companyIdParam', async (req, res) => {
     const { code } = req.params;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
     const promocode = await promocode_model_1.promocodeLean
-        .findOne({ code, companyId: queryId })
+        .findOne({ code })
         .lean();
     return res.status(200).send(promocode);
 });

@@ -6,7 +6,7 @@ import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectio
 export type TinvoiceSetting = Document & IinvoiceSetting;
 
 const invoiceSettingSchema: Schema = new Schema({
-  companyId: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
+  companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
   generalSettings: { },
   taxSettings: { },
   bankSettings: { }

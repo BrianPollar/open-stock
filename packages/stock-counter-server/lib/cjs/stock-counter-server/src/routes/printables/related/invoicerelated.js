@@ -10,7 +10,7 @@ const estimate_model_1 = require("../../../models/printables/estimate.model");
 const invoice_model_1 = require("../../../models/printables/invoice.model");
 const receipt_model_1 = require("../../../models/printables/receipt.model");
 const invoicerelated_model_1 = require("../../../models/printables/related/invoicerelated.model");
-const stock_counter_local_1 = require("../../../stock-counter-local");
+// import { pesapalNotifRedirectUrl } from '../../../stock-counter-local';
 /**
  * Logger for the 'InvoiceRelated' routes.
  */
@@ -167,49 +167,50 @@ const relegateInvRelatedCreation = async (invoiceRelated, queryId, extraNotifDes
             return errResponse;
         }
         invoiceRelatedLogger.error('AFTER SAVE');
-        let route;
+        /* let route: string;
         let title = '';
-        let notifType;
+        let notifType: TnotifType;*/
         const stn = await (0, stock_notif_server_1.getCurrentNotificationSettings)();
         if (!bypassNotif && stn.invoices) {
-            switch (invoiceRelated.stage) {
-                case 'estimate':
-                    route = 'estimates';
-                    title = 'New Estimate';
-                    notifType = 'invoices';
-                    break;
-                case 'invoice':
-                    route = 'invoices';
-                    title = 'New Invoice';
-                    notifType = 'invoices';
-                    break;
-                case 'deliverynote':
-                    route = 'deliverynotes';
-                    title = 'New Delivery Note';
-                    notifType = 'invoices';
-                    break;
-                case 'receipt':
-                    route = 'receipt';
-                    title = 'New Reciept';
-                    notifType = 'invoices';
-                    break;
-            }
-            const actions = [{
-                    operation: 'view',
-                    url: stock_counter_local_1.pesapalNotifRedirectUrl + route,
-                    action: '',
-                    title
-                }];
-            const notification = {
-                actions,
-                userId: invoiceRelated.billingUserId,
-                title,
-                body: extraNotifDesc,
-                icon: '',
-                notifType,
-                // photo: string;
-                expireAt: '200000'
-            };
+            /* switch (invoiceRelated.stage) {
+              case 'estimate':
+                route = 'estimates';
+                title = 'New Estimate';
+                notifType = 'invoices';
+                break;
+              case 'invoice':
+                route = 'invoices';
+                title = 'New Invoice';
+                notifType = 'invoices';
+                break;
+              case 'deliverynote':
+                route = 'deliverynotes';
+                title = 'New Delivery Note';
+                notifType = 'invoices';
+                break;
+              case 'receipt':
+                route = 'receipt';
+                title = 'New Reciept';
+                notifType = 'invoices';
+                break;
+            }*/
+            /* const actions: Iactionwithall[] = [{
+              operation: 'view',
+              url: pesapalNotifRedirectUrl + route,
+              action: '',
+              title
+            }];*
+      
+            /* const notification: Imainnotification = {
+              actions,
+              userId: invoiceRelated.billingUserId,
+              title,
+              body: extraNotifDesc,
+              icon: '',
+              notifType,
+              // photo: string;
+              expireAt: '200000'
+            };*/
             const capableUsers = await stock_auth_server_1.user.find({})
                 .lean().select({ permissions: 1 });
             const ids = [];
@@ -218,7 +219,7 @@ const relegateInvRelatedCreation = async (invoiceRelated, queryId, extraNotifDes
                     ids.push(cuser._id);
                 }
             }
-            const notifFilters = { id: { $in: ids } };
+            // const notifFilters = { id: { $in: ids } };
             /* await createNotifications({
               options: notification,
               filters: notifFilters

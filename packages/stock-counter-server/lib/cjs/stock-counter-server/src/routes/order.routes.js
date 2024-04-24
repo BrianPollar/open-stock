@@ -31,21 +31,47 @@ exports.orderRoutes = express_1.default.Router();
  * @param {Response} res - Express response object
  * @returns {Promise} - Promise representing the result of the operation
  */
-exports.orderRoutes.post('/makeorder/:companyIdParam', stock_universal_server_1.requireAuth, async (req, res) => {
-    const { userId } = req.user;
-    const { companyId } = req.user;
+exports.orderRoutes.post('/makeorder/:companyIdParam', async (req, res) => {
+    // const { userId } = (req as Icustomrequest).user;
+    // const { companyId } = (req as Icustomrequest).user;
     const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    // const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    /* const isValid = verifyObjectId(companyIdParam);
     if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }*/
+    const { order, payment, bagainCred, paymentRelated, invoiceRelated, userObj } = req.body;
+    const companyId = order.companyId || companyIdParam ? companyIdParam : 'superAdmin';
+    order.companyId = companyId;
+    payment.companyId = companyId;
+    paymentRelated.companyId = companyId;
+    invoiceRelated.companyId = companyId;
+    let userDoc;
+    if (!userObj._id) {
+        const found = await stock_auth_server_1.userLean.findOne({ phone: userObj.phone }).lean();
+        if (found) {
+            userDoc = found;
+        }
+        else {
+            const newUser = new stock_auth_server_1.user(userObj);
+            userDoc = await newUser.save();
+        }
     }
-    const { order, payment, bagainCred, paymentRelated, invoiceRelated } = req.body;
-    order.companyId = queryId;
-    payment.companyId = queryId;
-    paymentRelated.companyId = queryId;
-    invoiceRelated.companyId = queryId;
-    const done = await (0, payment_controller_1.paymentMethodDelegator)(paymentRelated, invoiceRelated, order.paymentMethod, order, payment, userId, companyId, bagainCred);
+    else {
+        const isValid = (0, stock_universal_server_1.verifyObjectId)(userObj._id);
+        if (!isValid) {
+            return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+        }
+        const found = await stock_auth_server_1.userLean.findById(userObj._id).lean();
+        if (!found) {
+            return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+        }
+        userDoc = found;
+    }
+    invoiceRelated.billingUser = userDoc.fname + ' ' + userDoc.lname;
+    invoiceRelated.billingUserId = userDoc._id;
+    invoiceRelated.billingUserPhoto = (typeof userDoc.profilePic === 'string') ? userDoc.profilePic : (userDoc.profilePic).url;
+    const done = await (0, payment_controller_1.paymentMethodDelegator)(paymentRelated, invoiceRelated, order.paymentMethod, order, payment, userDoc._id, companyIdParam, bagainCred);
     return res.status(done.status).send({ success: done.success, data: done });
 });
 exports.orderRoutes.post('/paysubscription/:companyIdParam', stock_universal_server_1.requireAuth, async (req, res) => {
@@ -268,13 +294,14 @@ exports.orderRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universa
     };
     return res.status(200).send(response);
 });
-exports.orderRoutes.get('/getmyorders/:companyIdParam', stock_universal_server_1.requireAuth, async (req, res) => {
+exports.orderRoutes.get('/getmyorders/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, async (req, res) => {
     const { userId } = req.user;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(userId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const orders = await order_model_1.orderLean
-        .find({ user: userId, companyId: queryId })
+        .find({ user: userId })
         .lean()
         .populate({ path: 'paymentRelated', model: paymentrelated_model_1.paymentRelatedLean })
         .populate({
@@ -355,6 +382,10 @@ exports.orderRoutes.post('/search/:limit/:offset/:companyIdParam', stock_univers
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const all = await Promise.all([
         order_model_1.orderLean

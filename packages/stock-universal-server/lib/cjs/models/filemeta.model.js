@@ -22,9 +22,9 @@ fileMetaSchema.plugin(uniqueValidator);
  * @param main Whether to create the main email token model.
  * @param lean Whether to create the lean email token model.
  */
-const createFileMetaModel = async (dbUrl, main = true, lean = true) => {
+const createFileMetaModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     if (!database_controller_1.isUniversalDbConnected) {
-        await (0, database_controller_1.connectUniversalDatabase)(dbUrl);
+        await (0, database_controller_1.connectUniversalDatabase)(dbUrl, dbOptions);
     }
     if (main) {
         exports.fileMeta = database_controller_1.mainConnection.model('FileMeta', fileMetaSchema);

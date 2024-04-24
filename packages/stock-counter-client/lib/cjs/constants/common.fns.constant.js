@@ -364,27 +364,27 @@ const applyBlockDateSelect = (data, where) => {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-return
             return data
                 // eslint-disable-next-line max-len
-                .filter(val => val.createdAt.getFullYear() === date.getFullYear() && val.createdAt.getMonth() === date.getMonth() && val.createdAt.getDate() === date.getDate());
+                .filter(val => new Date(val.createdAt).getFullYear() === date.getFullYear() && new Date(val.createdAt).getMonth() === date.getMonth() && new Date(val.createdAt).getDate() === date.getDate());
         case 'yesterday':
             // eslint-disable-next-line @typescript-eslint/no-unsafe-return
             return data
                 // eslint-disable-next-line max-len
-                .filter(val => val.createdAt.getFullYear() === date.getFullYear() && val.createdAt.getMonth() === date.getMonth() && val.createdAt.getDate() - 1 === date.getDate() - 1);
+                .filter(val => new Date(val.createdAt).getFullYear() === date.getFullYear() && new Date(val.createdAt).getMonth() === date.getMonth() && new Date(val.createdAt).getDate() - 1 === date.getDate() - 1);
         case 'last7days':
             // eslint-disable-next-line @typescript-eslint/no-unsafe-return
             return data
                 // eslint-disable-next-line max-len
-                .filter(val => val.createdAt.getFullYear() === date.getFullYear() && val.createdAt.getMonth() === date.getMonth() && val.createdAt.getDate() >= date.getDate() - 7);
+                .filter(val => new Date(val.createdAt).getFullYear() === date.getFullYear() && new Date(val.createdAt).getMonth() === date.getMonth() && new Date(val.createdAt).getDate() >= date.getDate() - 7);
         case 'thisMonth':
             // eslint-disable-next-line @typescript-eslint/no-unsafe-return
             return data
                 // eslint-disable-next-line max-len
-                .filter(val => val.createdAt.getFullYear() === date.getFullYear() && val.createdAt.getMonth() === date.getMonth());
+                .filter(val => new Date(val.createdAt).getFullYear() === date.getFullYear() && new Date(val.createdAt).getMonth() === date.getMonth());
         case 'lastMonth':
             // eslint-disable-next-line @typescript-eslint/no-unsafe-return
             return data
                 // eslint-disable-next-line max-len
-                .filter(val => val.createdAt.getFullYear() === date.getFullYear() && val.createdAt.getMonth() - 1 === date.getMonth() - 1);
+                .filter(val => new Date(val.createdAt).getFullYear() === date.getFullYear() && new Date(val.createdAt).getMonth() - 1 === date.getMonth() - 1);
     }
 };
 exports.applyBlockDateSelect = applyBlockDateSelect;

@@ -81,13 +81,14 @@ class Order extends payment_define_1.PaymentRelated {
      * @param nonce - The nonce to use for the request.
      * @returns An object indicating whether the creation was successful.
      */
-    static async makeOrder(companyId, paymentRelated, invoiceRelated, order, payment, bagainCred, nonce) {
+    static async makeOrder(companyId, paymentRelated, invoiceRelated, order, payment, user, bagainCred, nonce) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
             .makePost(`/order/makeorder/${companyId}`, {
             paymentRelated,
             invoiceRelated,
             order,
             payment,
+            userObj: user,
             bagainCred,
             nonce
         });

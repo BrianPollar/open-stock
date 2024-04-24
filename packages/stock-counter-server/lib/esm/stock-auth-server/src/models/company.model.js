@@ -1,6 +1,3 @@
-/* eslint-disable @typescript-eslint/no-var-requires */
-import { sendSms, sendToken, setUpUser, verifyAuthyToken } from '@open-stock/stock-notif-server';
-import bcrypt from 'bcrypt';
 import { Schema } from 'mongoose';
 import { connectAuthDatabase, isAuthDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
 // Create authenticated Authy and Twilio API clients
@@ -21,87 +18,16 @@ export const companySchema = new Schema({
     profileCoverPic: { type: String },
     photos: [],
     websiteAddress: { type: String },
-    pesapalCallbackUrl: { type: String },
-    pesapalCancellationUrl: { type: String },
-    password: { type: String, required: [true, 'cannot be empty.'] },
     blocked: { type: Boolean, default: false },
     verified: { type: Boolean, default: false },
     expireAt: { type: String },
-    blockedReasons: {}
+    blockedReasons: {},
+    owner: { type: String } // user
 }, { timestamps: true });
+companySchema.index({ createdAt: -1 });
 companySchema.index({ expireAt: 1 }, { expireAfterSeconds: 2628003 });
 // Apply the uniqueValidator plugin to companySchema.
 companySchema.plugin(uniqueValidator);
-// dealing with hasing password
-companySchema.pre('save', function (next) {
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const company = this;
-    // only hash the password if it has been modified (or is new)
-    if (!company.isModified('password')) {
-        return next();
-    }
-    // generate a salt
-    bcrypt.genSalt(10, function (err, salt) {
-        if (err) {
-            return next(err);
-        }
-        // hash the password using our new salt
-        bcrypt.hash(company.password, salt, function (err, hash) {
-            if (err) {
-                return next(err);
-            }
-            // override the cleartext password with the hashed one
-            company.password = hash;
-            next();
-        });
-    });
-});
-companySchema.methods['comparePassword'] = function (candidatePassword, cb) {
-    bcrypt.compare(candidatePassword, this.password, function (err, isMatch) {
-        if (err) {
-            return cb(err);
-        }
-        cb(null, isMatch);
-    });
-};
-// Send a verification token to the company (two step auth for login)
-companySchema.methods['sendAuthyToken'] = function (cb) {
-    if (!this.authyId) {
-        setUpUser(this.phone, 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        this.countryCode).then((res) => {
-            this.authyId = res.user.id;
-            this.save((err1, doc) => {
-                if (err1 || !doc) {
-                    return cb.call(this, err1);
-                }
-                // this = doc;
-                sendToken(this.authyId).then(resp => cb.call(this, null, resp)).catch(err => cb.call(this, err));
-            });
-        }).catch(err => cb.call(this, err));
-    }
-    else {
-        // Otherwise send token to a known company
-        sendToken(this.authyId).then((resp) => cb.call(this, null, resp)).catch(err => cb.call(this, err));
-    }
-};
-// Test a 2FA token
-companySchema.methods['verifyAuthyToken'] = function (otp, cb) {
-    verifyAuthyToken(this.authyId, otp).then(resp => {
-        cb.call(this, null, resp);
-    }).catch(err => {
-        cb.call(this, err);
-    });
-};
-// Send a text message via twilio to this company
-companySchema.methods['sendMessage'] = function (message, cb) {
-    // const self = this;
-    sendSms(this.phone, this.countryCode, message).then(() => {
-        cb.call(this, null);
-    }).catch(err => {
-        cb.call(this, err);
-    });
-};
 companySchema.methods['toAuthJSON'] = function () {
     return {
         urId: this.urId,
@@ -129,8 +55,6 @@ companySchema.methods['toProfileJSONFor'] = function () {
         profileCoverPic: this.profileCoverPic,
         createdAt: this.createdAt,
         websiteAddress: this.websiteAddress,
-        pesapalCallbackUrl: this.pesapalCallbackUrl,
-        pesapalCancellationUrl: this.pesapalCancellationUrl,
         photos: this.photos,
         blockedReasons: this.blockedReasons
     };
@@ -148,8 +72,6 @@ const companyAuthselect = {
     profileCoverPic: 1,
     createdAt: 1,
     websiteAddress: 1,
-    pesapalCallbackUrl: 1,
-    pesapalCancellationUrl: 1,
     photos: 1,
     blocked: 1,
     verified: 1,
@@ -171,8 +93,6 @@ const companyaboutSelect = {
     profileCoverPic: 1,
     createdAt: 1,
     websiteAddress: 1,
-    pesapalCallbackUrl: 1,
-    pesapalCancellationUrl: 1,
     photos: 1,
     blocked: 1,
     verified: 1,

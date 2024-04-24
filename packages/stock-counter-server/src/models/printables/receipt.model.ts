@@ -31,8 +31,8 @@ export type Treceipt = Document & IurId & IinvoiceRelatedRef & {
 };
 
 const receiptSchema: Schema<Treceipt> = new Schema({
-  urId: { type: String, unique: true },
-  companyId: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
+  urId: { type: String },
+  companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
   invoiceRelated: { type: String },
   ammountRcievd: { type: Number },
   paymentMode: { type: String },

@@ -22,6 +22,7 @@ const runPassport = (jwtSecret) => {
     };
     // Create a new JWT strategy instance.
     const jwtLogin = new jwtStrategy(jwtOptions, (jwtPayload, done) => {
+        passportLogger.info('jwtLogin');
         done(null, jwtPayload);
     });
     // Use the JWT strategy with Passport.

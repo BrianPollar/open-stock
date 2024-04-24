@@ -32,6 +32,10 @@ exports.expenseReportRoutes.post('/create/:companyIdParam', stock_universal_serv
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
     expenseReport.companyId = queryId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const count = await expenesreport_model_1.expenseReportMain
         // eslint-disable-next-line @typescript-eslint/naming-convention
         .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
@@ -56,7 +60,7 @@ exports.expenseReportRoutes.post('/create/:companyIdParam', stock_universal_serv
         return res.status(403).send(errResponse);
     }
     return next();
-}, stock_auth_server_1.requireUpdateSubscriptionRecord);
+}, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('report'));
 /**
  * Get a single expense report by UR ID
  * @name GET /getone/:urId
@@ -73,6 +77,10 @@ exports.expenseReportRoutes.get('/getone/:urId/:companyIdParam', stock_universal
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const expenseReport = await expenesreport_model_1.expenseReportLean
         .findOne({ urId, queryId })
         .lean()
@@ -95,6 +103,10 @@ exports.expenseReportRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const all = await Promise.all([
         expenesreport_model_1.expenseReportLean
             .find({ companyId: queryId })
@@ -158,6 +170,10 @@ exports.expenseReportRoutes.post('/search/:offset/:limit/:companyIdParam', stock
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const all = await Promise.all([
         expenesreport_model_1.expenseReportLean

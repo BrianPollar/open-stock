@@ -11,8 +11,8 @@ export type TexpenseReport = Document & IexpenseReport;
 
 /** Mongoose schema for the expense report document. */
 const expenseReportSchema: Schema<TexpenseReport> = new Schema({
-  urId: { type: String, unique: true },
-  companyId: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
+  urId: { type: String },
+  companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
   totalAmount: { type: Number },
   date: { type: Date },
   expenses: []

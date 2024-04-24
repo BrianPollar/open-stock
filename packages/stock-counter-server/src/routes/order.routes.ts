@@ -1,7 +1,14 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
 
-import { requireActiveCompany, userAboutSelect, userLean } from '@open-stock/stock-auth-server';
-import { Icustomrequest, IdataArrayResponse, IinvoiceRelated, IpaymentRelated, Isuccess, Iuser } from '@open-stock/stock-universal';
+import { Tuser, requireActiveCompany, user, userAboutSelect, userLean } from '@open-stock/stock-auth-server';
+import {
+  Icustomrequest,
+  IdataArrayResponse,
+  IinvoiceRelated,
+  IpaymentRelated,
+  Isuccess,
+  Iuser
+} from '@open-stock/stock-universal';
 import { fileMetaLean, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { getLogger } from 'log4js';
@@ -37,27 +44,52 @@ export const orderRoutes = express.Router();
  * @param {Response} res - Express response object
  * @returns {Promise} - Promise representing the result of the operation
  */
-orderRoutes.post('/makeorder/:companyIdParam', requireAuth, async(req, res) => {
-  const { userId } = (req as Icustomrequest).user;
-  const { companyId } = (req as Icustomrequest).user;
+orderRoutes.post('/makeorder/:companyIdParam', async(req, res) => {
+  // const { userId } = (req as Icustomrequest).user;
+  // const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const isValid = verifyObjectId(queryId);
+  // const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  /* const isValid = verifyObjectId(companyIdParam);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }*/
+  const { order, payment, bagainCred, paymentRelated, invoiceRelated, userObj } = req.body;
+  const companyId = order.companyId || companyIdParam ? companyIdParam : 'superAdmin';
+  order.companyId = companyId;
+  payment.companyId = companyId;
+  paymentRelated.companyId = companyId;
+  invoiceRelated.companyId = companyId;
+  let userDoc: Tuser;
+
+  if (!userObj._id) {
+    const found = await userLean.findOne({ phone: userObj.phone }).lean();
+    if (found) {
+      userDoc = found;
+    } else {
+      const newUser = new user(userObj);
+      userDoc = await newUser.save();
+    }
+  } else {
+    const isValid = verifyObjectId(userObj._id);
+    if (!isValid) {
+      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
+    const found = await userLean.findById(userObj._id).lean();
+    if (!found) {
+      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
+    userDoc = found;
   }
-  const { order, payment, bagainCred, paymentRelated, invoiceRelated } = req.body;
-  order.companyId = queryId;
-  payment.companyId = queryId;
-  paymentRelated.companyId = queryId;
-  invoiceRelated.companyId = queryId;
+  invoiceRelated.billingUser = userDoc.fname + ' ' + userDoc.lname;
+  invoiceRelated.billingUserId = userDoc._id;
+  invoiceRelated.billingUserPhoto = (typeof userDoc.profilePic === 'string') ? userDoc.profilePic : (userDoc.profilePic).url;
   const done = await paymentMethodDelegator(
     paymentRelated,
     invoiceRelated,
     order.paymentMethod,
     order, payment,
-    userId,
-    companyId,
+    userDoc._id,
+    companyIdParam,
     bagainCred
   );
   return res.status(done.status).send({ success: done.success, data: done });
@@ -309,13 +341,14 @@ orderRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requireAc
   return res.status(200).send(response);
 });
 
-orderRoutes.get('/getmyorders/:companyIdParam', requireAuth, async(req, res) => {
+orderRoutes.get('/getmyorders/:offset/:limit/:companyIdParam', requireAuth, async(req, res) => {
   const { userId } = (req as unknown as Icustomrequest).user;
-  const { companyId } = (req as Icustomrequest).user;
-  const { companyIdParam } = req.params;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectId(userId);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   const orders = await orderLean
-    .find({ user: userId, companyId: queryId })
+    .find({ user: userId })
     .lean()
     .populate({ path: 'paymentRelated', model: paymentRelatedLean })
     .populate({
@@ -404,6 +437,10 @@ orderRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, requireA
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectId(queryId);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
   const all = await Promise.all([
     orderLean

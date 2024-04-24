@@ -16,10 +16,15 @@ export declare let companySubscriptionLean: Model<TcompanySubscription>;
  */
 export declare const companySubscriptionSelect: {
     companyId: number;
+    name: number;
+    ammount: number;
+    duration: number;
     active: number;
     subscriprionId: number;
     startDate: number;
     endDate: number;
+    pesaPalorderTrackingId: number;
+    status: number;
     features: number;
 };
 /**

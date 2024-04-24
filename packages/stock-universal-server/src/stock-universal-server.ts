@@ -1,3 +1,4 @@
+import { ConnectOptions } from 'mongoose';
 import { connectUniversalDatabase, createStockUniversalServerLocals, isStockUniversalServerRunning } from './stock-universal-local';
 
 /**
@@ -5,10 +6,10 @@ import { connectUniversalDatabase, createStockUniversalServerLocals, isStockUniv
  * @param databaseConfigUrl - The URL of the database configuration.
  * @returns A promise that resolves to an object indicating whether the stock universal server is running.
  */
-export const runStockUniversalServer = async(databaseConfigUrl: string) => { // TODO db options
+export const runStockUniversalServer = async(databaseConfigUrl: string, dbOptions?: ConnectOptions) => { // TODO db options
   createStockUniversalServerLocals();
   // connect models
-  await connectUniversalDatabase(databaseConfigUrl);
+  await connectUniversalDatabase(databaseConfigUrl, dbOptions);
   return Promise.resolve({ isStockUniversalServerRunning });
 };
 

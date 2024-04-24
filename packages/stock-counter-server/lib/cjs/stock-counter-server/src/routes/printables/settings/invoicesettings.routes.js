@@ -27,10 +27,14 @@ exports.invoiceSettingRoutes.post('/create/:companyIdParam', stock_universal_ser
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     invoiceSetting.companyId = queryId;
     const newJobCard = new invoicesettings_model_1.invoiceSettingMain(invoiceSetting);
     let errResponse;
-    const saved = await newJobCard.save()
+    await newJobCard.save()
         .catch(err => {
         invoiceSettingRoutesLogger.error('create - err: ', err);
         errResponse = {
@@ -50,7 +54,7 @@ exports.invoiceSettingRoutes.post('/create/:companyIdParam', stock_universal_ser
         return res.status(403).send(errResponse);
     }
     return next();
-}, stock_auth_server_1.requireUpdateSubscriptionRecord);
+}, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('report'));
 /**
  * Route for creating a new invoice setting with image
  * @name POST /createimg
@@ -65,6 +69,10 @@ exports.invoiceSettingRoutes.post('/createimg/:companyIdParam', stock_universal_
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     invoiceSetting.companyId = queryId;
     if (req.body.newFiles) {
         if (invoiceSetting.generalSettings.defaultDigitalSignature === 'true' &&
@@ -243,6 +251,10 @@ exports.invoiceSettingRoutes.get('/getall/:offset/:limit/:companyIdParam', stock
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const all = await Promise.all([
         invoicesettings_model_1.invoiceSettingLean
             .find({ companyId: queryId })
@@ -280,6 +292,10 @@ exports.invoiceSettingRoutes.post('/search/:limit/:offset/:companyIdParam', stoc
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const all = await Promise.all([
         invoicesettings_model_1.invoiceSettingLean

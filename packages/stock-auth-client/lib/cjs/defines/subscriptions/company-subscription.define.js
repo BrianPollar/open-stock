@@ -7,6 +7,9 @@ const stock_auth_client_1 = require("../../stock-auth-client");
 class CompanySubscription extends stock_universal_1.DatabaseAuto {
     constructor(data) {
         super(data);
+        this.name = data.name;
+        this.ammount = data.ammount;
+        this.duration = data.duration;
         this.subscriprionId = data.subscriprionId;
         this.startDate = data.startDate;
         this.endDate = data.endDate;
@@ -22,9 +25,9 @@ class CompanySubscription extends stock_universal_1.DatabaseAuto {
                 .map((val) => new CompanySubscription(val))
         };
     }
-    static async subscribe(companyId, companySubscription) {
+    static async subscribe(companyId, subscriptionPackage) {
         const observer$ = stock_auth_client_1.StockAuthClient.ehttp
-            .makePost(`/companysubscription/subscribe/${companyId}`, companySubscription);
+            .makePost(`/companysubscription/subscribe/${companyId}`, subscriptionPackage);
         return (0, rxjs_1.lastValueFrom)(observer$);
     }
     static async deleteCompanySubscription(companyId, id) {

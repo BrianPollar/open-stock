@@ -9,7 +9,7 @@ import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectio
 export type Testimate = Document & IinvoiceRelatedRef;
 
 const estimateSchema: Schema<Testimate> = new Schema({
-  companyId: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
+  companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
   invoiceRelated: { type: String }
 }, { timestamps: true });
 

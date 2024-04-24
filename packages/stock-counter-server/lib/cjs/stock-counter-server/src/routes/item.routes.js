@@ -208,7 +208,7 @@ exports.itemRoutes.post('/create/:companyIdParam', stock_universal_server_1.requ
         return res.status(403).send('unknown error');
     }
     return next();
-}, stock_auth_server_1.requireUpdateSubscriptionRecord);
+}, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('item'));
 /**
  * Updates an existing item
  * @function
@@ -721,8 +721,6 @@ exports.itemRoutes.get('/filterstars/:starVal/:offset/:limit/:companyIdParam', a
         review_model_1.reviewLean.countDocuments(filter)
     ]);
     const newItems = all[0].filter(val => val.companyId);
-    const items = newItems
-        .map(val => val.itemId);
     const response = {
         count: all[1],
         data: newItems
@@ -1010,6 +1008,10 @@ exports.itemRoutes.post('/search/:limit/:offset/:companyIdParam', async (req, re
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     let filter;
     if (!category || category === 'all') {
         if (subCategory) {

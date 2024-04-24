@@ -20,12 +20,15 @@ class LoggerController {
      * The constructor for the LoggerController class.
      * Sets the logging functions for the private properties and the colors for the logs.
      */
-    constructor(appName = APP_NAME) {
-        localStorage['debug'] = `${appName}:*`;
-        this.pDebug = (0, debug_1.default)(`${appName}:DEBUG`);
-        this.pWarn = (0, debug_1.default)(`${appName}:WARN`);
-        this.pError = (0, debug_1.default)(`${appName}:ERROR`);
-        this.pTrace = (0, debug_1.default)(`${appName}:TRACE`);
+    constructor() {
+        // The private property `pDebug` is a debug logger.
+        this.pDebug = (0, debug_1.default)(`${APP_NAME}:DEBUG`);
+        // The private property `pWarn` is a warning logger.
+        this.pWarn = (0, debug_1.default)(`${APP_NAME}:WARN`);
+        // The private property `pError` is an error logger.
+        this.pError = (0, debug_1.default)(`${APP_NAME}:ERROR`);
+        // The private property `pTrace` is a trace logger.
+        this.pTrace = (0, debug_1.default)(`${APP_NAME}:TRACE`);
         // Set the logging functions for the private properties.
         this.pDebug.log = console.info.bind(console);
         this.pWarn.log = console.warn.bind(console);

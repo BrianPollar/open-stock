@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
 import { requireActiveCompany, requireCanUseFeature, requireUpdateSubscriptionRecord } from '@open-stock/stock-auth-server';
-import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { getLogger } from 'log4js';
 import { paymentLean } from '../../../models/payment.model';
@@ -28,6 +28,10 @@ taxReportRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompan
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = verifyObjectId(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     taxReport.companyId = queryId;
     const count = await taxReportMain
         // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -35,7 +39,7 @@ taxReportRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompan
     taxReport.urId = makeUrId(Number(count[0]?.urId || '0'));
     const newTaxReport = new taxReportMain(taxReport);
     let errResponse;
-    const saved = await newTaxReport.save()
+    await newTaxReport.save()
         .catch(err => {
         taxReportRoutesLogger.error('create - err: ', err);
         errResponse = {
@@ -55,7 +59,7 @@ taxReportRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompan
         return res.status(403).send(errResponse);
     }
     return next();
-}, requireUpdateSubscriptionRecord);
+}, requireUpdateSubscriptionRecord('report'));
 /**
  * Get a single tax report by UR ID
  * @name GET /getone/:urId
@@ -72,6 +76,10 @@ taxReportRoutes.get('/getone/:urId/:companyIdParam', requireAuth, requireActiveC
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = verifyObjectId(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const taxReport = await taxReportLean
         .findOne({ urId, queryId })
         .lean()
@@ -95,6 +103,10 @@ taxReportRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requi
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = verifyObjectId(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const all = await Promise.all([
         taxReportLean
             .find({ companyId: queryId })
@@ -156,6 +168,10 @@ taxReportRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, requ
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = verifyObjectId(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     const all = await Promise.all([
         taxReportLean

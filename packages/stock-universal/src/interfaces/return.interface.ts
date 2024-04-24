@@ -1,4 +1,4 @@
-import { Icompany, IcompanySubscription, Iuser } from './general.interface';
+import { IcompanySubscription, Iuser } from './general.interface';
 
 // This file imports the `Iuser` interface from the `general.interface` file.
 
@@ -44,7 +44,7 @@ export interface Iauthresponse {
    * Contains the user's information, if any.
    * Can be either an `Iuser` or `Icompany` object.
    */
-  user?: Iuser | Icompany;
+  user?: Iuser;
   /**
    * The user's authentication token, if any.
    */

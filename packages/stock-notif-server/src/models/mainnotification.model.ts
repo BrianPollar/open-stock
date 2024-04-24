@@ -50,8 +50,11 @@ const mainnotificationSchema: Schema<IMainnotification> = new Schema({
   viewed: [] // strings of ObjectId
 }, { timestamps: true });
 
+mainnotificationSchema.index({ createdAt: -1 });
+
 /** Index for the expiration time of the notification. */
 mainnotificationSchema.index({ expireAt: 1 }, { expireAfterSeconds: 2628003 });
+
 
 /** Primary selection object for the main notification object. */
 const mainNotifselect = {

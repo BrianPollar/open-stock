@@ -65,7 +65,7 @@ exports.itemOfferRoutes.post('/create/:companyIdParam', stock_universal_server_1
         return res.status(403).send('unknown error');
     }
     return next();
-}, stock_auth_server_1.requireUpdateSubscriptionRecord);
+}, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('offer'));
 /**
  * Route for getting all item offers
  * @name GET /getall/:type/:offset/:limit
@@ -78,17 +78,19 @@ exports.itemOfferRoutes.post('/create/:companyIdParam', stock_universal_server_1
  */
 exports.itemOfferRoutes.get('/getall/:type/:offset/:limit/:companyIdParam', async (req, res) => {
     const { type } = req.params;
-    const { companyId } = req.user;
     const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    let query = {};
+    if (companyIdParam) {
+        const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
+        if (!isValid) {
+            return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+        }
+        query = { companyId: companyIdParam };
     }
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
-    let filter = { companyId };
+    let filter;
     if (type !== 'all') {
-        filter = { type, companyId };
+        filter = { type, ...query };
     }
     const all = await Promise.all([
         itemoffer_model_1.itemOfferLean
@@ -124,16 +126,21 @@ exports.itemOfferRoutes.get('/getall/:type/:offset/:limit/:companyIdParam', asyn
  */
 exports.itemOfferRoutes.get('/getone/:id/:companyIdParam', async (req, res) => {
     const { id } = req.params;
-    const { companyId } = req.user;
     const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)([id, queryId]);
+    let ids;
+    if (companyIdParam) {
+        ids = [id, companyIdParam];
+    }
+    else {
+        ids = [id];
+    }
+    const isValid = (0, stock_universal_server_1.verifyObjectIds)(ids);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const items = await itemoffer_model_1.itemOfferLean
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        .findOne({ _id: id, companyId: queryId })
+        .findOne({ _id: id })
         .populate({
         path: 'items', model: item_model_1.itemLean,
         populate: [{

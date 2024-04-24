@@ -1,4 +1,5 @@
-import { DatabaseAuto, IblockedReasons, Icompany, Ifile, IfileMeta, Isuccess } from '@open-stock/stock-universal';
+import { DatabaseAuto, IblockedReasons, Icompany, Ifile, IfileMeta, Isuccess, Iuser } from '@open-stock/stock-universal';
+import { User } from './user.define';
 /**
  * Represents a company and extends the DatabaseAuto class. It has properties that correspond to the fields in the company object, and methods for updating, deleting, and managing the company's profile, addresses, and permissions.
  */
@@ -13,13 +14,12 @@ export declare class Company extends DatabaseAuto {
     profileCoverPic: IfileMeta;
     photos: IfileMeta[];
     websiteAddress: string;
-    pesapalCallbackUrl: string;
-    pesapalCancellationUrl: string;
     blockedReasons: IblockedReasons;
     left: boolean;
     dateLeft: Date;
     blocked: boolean;
     verified: boolean;
+    owner: User | string;
     /**
      * Creates a new Company instance.
      * @param data The data to initialize the Company instance with.
@@ -51,7 +51,10 @@ export declare class Company extends DatabaseAuto {
      * @param files Optional files to upload with the company.
      * @returns A success object indicating whether the company was added successfully.
      */
-    static addCompany(companyId: string, vals: Icompany, files?: Ifile[]): Promise<Isuccess>;
+    static addCompany(companyId: string, vals: {
+        company: Icompany;
+        user: Partial<Iuser>;
+    }, files?: Ifile[]): Promise<Isuccess>;
     /**
      * Deletes multiple companys based on the provided company IDs and files with directories.
      * @param companyId - The ID of the company
@@ -67,7 +70,10 @@ export declare class Company extends DatabaseAuto {
      * @param files Optional files to upload with the company.
      * @returns A success object indicating whether the company was updated successfully.
      */
-    updateCompanyBulk(companyId: string, vals: Icompany, files?: Ifile[]): Promise<Isuccess>;
+    updateCompanyBulk(companyId: string, vals: {
+        company: Icompany;
+        user: Partial<Iuser>;
+    }, files?: Ifile[]): Promise<Isuccess>;
     /**
      * Updates a company's information.
      * @param companyId - The ID of the company

@@ -24,8 +24,8 @@ const authLogger = getLogger('routes/auth');
  * @returns A Promise that resolves to void.
  */
 export const signupFactorRelgator = async (req, res, next) => {
-    const { emailPhone } = req.body.user;
-    const from = req.body.from;
+    const { emailPhone } = req.body;
+    const userType = req.body.userType;
     const passwd = req.body.passwd;
     let phone;
     let email;
@@ -47,13 +47,12 @@ export const signupFactorRelgator = async (req, res, next) => {
         isPhone = true;
         phone = emailPhone;
     }
-    let foundUser;
-    if (from === 'company') {
-        foundUser = await companyMain.findOne(query);
-    }
-    else {
-        foundUser = await user.findOne(query);
-    }
+    const foundUser = await user.findOne(query);
+    /* if (userType === 'company') {
+      foundUser = await companyMain.findOne(query);
+    } else {
+      foundUser = await user.findOne(query);
+    }*/
     if (foundUser) {
         const phoneOrEmail = isPhone ? 'phone' : 'email';
         const response = {
@@ -63,32 +62,20 @@ export const signupFactorRelgator = async (req, res, next) => {
         };
         return res.status(200).send(response);
     }
-    let count;
     let permissions;
-    if (from === 'company') {
-        count = await companyMain
+    const expireAt = Date.now();
+    let company;
+    if (userType === 'company') {
+        const companyCount = await companyMain
             // eslint-disable-next-line @typescript-eslint/naming-convention
             .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+        const companyUrId = makeUrId(Number(companyCount[0]?.urId || '0'));
+        const { name } = req.body.company;
         permissions = {
             companyAdminAccess: true
         };
-    }
-    else {
-        count = await user
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
-        permissions = {
-            buyer: true,
-            companyAdminAccess: false
-        };
-    }
-    const urId = makeUrId(Number(count[0]?.urId || '0'));
-    let newUser;
-    const expireAt = Date.now();
-    if (from === 'company') {
-        const { name } = req.body.user;
-        newUser = new companyMain({
-            urId,
+        const newCompany = new companyMain({
+            urId: companyUrId,
             name,
             phone,
             email,
@@ -96,21 +83,32 @@ export const signupFactorRelgator = async (req, res, next) => {
             expireAt,
             countryCode: +256
         });
+        company = await newCompany.save();
     }
     else {
-        const { firstName, lastName } = req.body.user;
-        newUser = new user({
-            urId,
-            fname: firstName,
-            lname: lastName,
-            phone,
-            email,
-            password: passwd,
-            permissions,
-            expireAt,
-            countryCode: +256
-        });
+        permissions = {
+            buyer: true,
+            companyAdminAccess: false
+        };
     }
+    const count = await user
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+    const urId = makeUrId(Number(count[0]?.urId || '0'));
+    const { firstName, lastName } = req.body.user;
+    const newUser = new user({
+        companyId: company._id || null,
+        urId,
+        fname: firstName,
+        lname: lastName,
+        phone,
+        email,
+        password: passwd,
+        permissions,
+        expireAt,
+        countryCode: +256,
+        userType
+    });
     let response;
     const saved = await newUser.save().catch(err => {
         authLogger.error(`mongosse registration 
@@ -131,6 +129,11 @@ export const signupFactorRelgator = async (req, res, next) => {
     if (!response.success) {
         return res.status(response.status).send(response);
     }
+    if (company) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        company.owner = saved._id;
+        await company.save();
+    }
     let result;
     const type = 'token'; // note now is only token but build a counter later to make sur that the token and link methods are shared
     if (isPhone) {
@@ -140,11 +143,15 @@ export const signupFactorRelgator = async (req, res, next) => {
         result = await sendTokenEmail(saved, type, stockAuthConfig.localSettings.appOfficialName);
     }
     if (!response.success) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         saved.remove();
+        if (company) {
+            await company.remove();
+        }
         return res.status(200).send(response);
     }
     if (Boolean(result.success)) {
-        return next();
+        return res.status(200).send(response);
     }
     const toSend = {
         success: false,
@@ -180,10 +187,13 @@ superAdminRoutes.post('/login', (req, res) => {
             left: false,
             dateLeft: null
         };
+        const user = {
+            comapany
+        };
         const token = generateToken(userInfo, '1d', stockAuthConfig.authSecrets.jwtSecret);
         const nowResponse = {
             success: true,
-            user: comapany,
+            user,
             token
         };
         return res.status(200).send(nowResponse);

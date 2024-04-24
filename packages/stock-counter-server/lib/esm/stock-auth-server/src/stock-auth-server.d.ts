@@ -1,5 +1,6 @@
 /// <reference types="mongoose/types/connection" />
 import { ConnectOptions } from 'mongoose';
+import { PesaPalController } from 'pesapal3';
 /**
  * Represents the interface for local file paths.
  */
@@ -47,13 +48,21 @@ export interface IStockAuthServerConfig {
     useDummyRoutes?: boolean;
 }
 /**
+ * The PesaPal payment instance for the server.
+ */
+export declare let pesapalPaymentInstance: PesaPalController;
+/**
+ * The URL to redirect to when a notification is received.
+ */
+export declare let notifRedirectUrl: string;
+/**
  * Runs the stock authentication server by setting up the necessary configurations, connecting to the database, initializing passport authentication, and returning the authentication routes.
  * @param {IStockAuthServerConfig} config - The server configuration.
  * @param {EmailHandler} emailHandler - The email handler.
  * @param {*} app - The Express app.
  * @returns {Promise<{authRoutes, userLean}>}
  */
-export declare const runStockAuthServer: (config: IStockAuthServerConfig) => Promise<{
+export declare const runStockAuthServer: (config: IStockAuthServerConfig, paymentInstance: PesaPalController) => Promise<{
     stockAuthRouter: any;
 }>;
 /**

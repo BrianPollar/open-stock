@@ -24,6 +24,7 @@ export declare const expenseSelect: {
     person: number;
     cost: number;
     category: number;
+    note: number;
     items: number;
 };
 /**

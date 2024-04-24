@@ -6,11 +6,12 @@ const database_controller_1 = require("../controllers/database.controller");
 const uniqueValidator = require('mongoose-unique-validator');
 const expenseSchema = new mongoose_1.Schema({
     urId: { type: String, unique: true },
-    companyId: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
+    companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
     name: { type: String, required: [true, 'cannot be empty.'], index: true },
     person: { type: String },
     cost: { type: Number, required: [true, 'cannot be empty.'], index: true },
     category: { type: String },
+    note: { type: String },
     items: []
 }, { timestamps: true });
 // Apply the uniqueValidator plugin to expenseSchema.
@@ -25,6 +26,7 @@ const expenseselect = {
     person: 1,
     cost: 1,
     category: 1,
+    note: 1,
     items: 1
 };
 /**

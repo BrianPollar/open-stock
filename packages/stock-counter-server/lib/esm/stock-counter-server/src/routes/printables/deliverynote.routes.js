@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
 import { requireActiveCompany, requireCanUseFeature, requireUpdateSubscriptionRecord, userLean } from '@open-stock/stock-auth-server';
-import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { getLogger } from 'log4js';
 import { deliveryNoteLean, deliveryNoteMain } from '../../models/printables/deliverynote.model';
@@ -31,6 +31,10 @@ deliveryNoteRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCom
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = verifyObjectId(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     deliveryNote.companyId = queryId;
     invoiceRelated.companyId = queryId;
     const count = await deliveryNoteMain
@@ -45,7 +49,7 @@ deliveryNoteRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCom
     deliveryNote.invoiceRelated = invoiceRelatedRes.id;
     const newDeliveryNote = new deliveryNoteMain(deliveryNote);
     let errResponse;
-    const saved = await newDeliveryNote.save()
+    await newDeliveryNote.save()
         .catch(err => {
         deliveryNoteRoutesLogger.error('create - err: ', err);
         errResponse = {
@@ -66,7 +70,7 @@ deliveryNoteRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCom
     }
     await updateInvoiceRelated(invoiceRelated, companyId);
     return next();
-}, requireUpdateSubscriptionRecord);
+}, requireUpdateSubscriptionRecord('delivery-note'));
 /**
  * Route to get a delivery note by UR ID
  * @name GET /getone/:urId
@@ -83,6 +87,10 @@ deliveryNoteRoutes.get('/getone/:urId/:companyIdParam', requireAuth, requireActi
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = verifyObjectId(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const deliveryNote = await deliveryNoteLean
         .findOne({ urId, queryId })
         .lean()
@@ -123,6 +131,10 @@ deliveryNoteRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, re
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = verifyObjectId(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const all = await Promise.all([
         deliveryNoteLean
             .find({ companyId: queryId })
@@ -204,6 +216,10 @@ deliveryNoteRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, r
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = verifyObjectId(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     const all = await Promise.all([
         deliveryNoteLean
@@ -236,6 +252,10 @@ deliveryNoteRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActive
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = verifyObjectId(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     /** const ids = credentials
       .map(val => val.id);
     await deliveryNoteMain

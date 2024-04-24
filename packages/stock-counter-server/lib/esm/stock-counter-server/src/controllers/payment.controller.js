@@ -4,6 +4,7 @@ import { companyMain } from '@open-stock/stock-auth-server';
 import { makeNotfnBody } from '@open-stock/stock-notif-server';
 import { stringifyMongooseErr, verifyObjectId } from '@open-stock/stock-universal-server';
 import { getLogger } from 'log4js';
+import { Pesapal } from 'pesapal3';
 import { orderMain } from '../models/order.model';
 import { paymentMain } from '../models/payment.model';
 import { paymentRelatedMain } from '../models/printables/paymentrelated/paymentrelated.model';
@@ -285,8 +286,8 @@ export const relegatePesapalPayment = async (paymentRelated, invoiceRelated, typ
         currency: paymentRelated.currency || 'UGA',
         amount: paymentRelated.payments[0].amount,
         description: 'Complet payments for the selected products',
-        callback_url: company.pesapalCallbackUrl,
-        cancellation_url: company.pesapalCancellationUrl || '',
+        callback_url: Pesapal.config.pesapalCallbackUrl,
+        cancellation_url: '',
         notification_id: '',
         billing_address: {
             email_address: paymentRelated.shippingAddress.email,

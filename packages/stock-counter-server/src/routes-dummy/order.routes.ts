@@ -35,7 +35,7 @@ orderRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) => {
   res.status(200).send(response);
 });
 
-orderRoutesDummy.get('/getmyorders/:companyIdParam', (req, res) => {
+orderRoutesDummy.get('/getmyorders/:offset/:limit/:companyIdParam', (req, res) => {
   const response: IdataArrayResponse = {
     count: req.params.limit,
     data: createMockOrders(10)

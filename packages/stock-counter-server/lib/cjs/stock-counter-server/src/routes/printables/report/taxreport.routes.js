@@ -32,6 +32,10 @@ exports.taxReportRoutes.post('/create/:companyIdParam', stock_universal_server_1
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     taxReport.companyId = queryId;
     const count = await taxreport_model_1.taxReportMain
         // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -39,7 +43,7 @@ exports.taxReportRoutes.post('/create/:companyIdParam', stock_universal_server_1
     taxReport.urId = (0, stock_universal_server_1.makeUrId)(Number(count[0]?.urId || '0'));
     const newTaxReport = new taxreport_model_1.taxReportMain(taxReport);
     let errResponse;
-    const saved = await newTaxReport.save()
+    await newTaxReport.save()
         .catch(err => {
         taxReportRoutesLogger.error('create - err: ', err);
         errResponse = {
@@ -59,7 +63,7 @@ exports.taxReportRoutes.post('/create/:companyIdParam', stock_universal_server_1
         return res.status(403).send(errResponse);
     }
     return next();
-}, stock_auth_server_1.requireUpdateSubscriptionRecord);
+}, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('report'));
 /**
  * Get a single tax report by UR ID
  * @name GET /getone/:urId
@@ -76,6 +80,10 @@ exports.taxReportRoutes.get('/getone/:urId/:companyIdParam', stock_universal_ser
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const taxReport = await taxreport_model_1.taxReportLean
         .findOne({ urId, queryId })
         .lean()
@@ -99,6 +107,10 @@ exports.taxReportRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_univ
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const all = await Promise.all([
         taxreport_model_1.taxReportLean
             .find({ companyId: queryId })
@@ -160,6 +172,10 @@ exports.taxReportRoutes.post('/search/:limit/:offset/:companyIdParam', stock_uni
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const all = await Promise.all([
         taxreport_model_1.taxReportLean

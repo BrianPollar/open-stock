@@ -1,6 +1,6 @@
 import { requireActiveCompany, requireCanUseFeature, requireUpdateSubscriptionRecord, userLean } from '@open-stock/stock-auth-server';
 import { Icustomrequest, IdataArrayResponse, IinvoiceRelated, Isuccess, Iuser, TestimateStage } from '@open-stock/stock-universal';
-import { offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { getLogger } from 'log4js';
 import { estimateLean, estimateMain } from '../../models/printables/estimate.model';
@@ -68,6 +68,10 @@ estimateRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectId(queryId);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   estimate.companyId = queryId;
   invoiceRelated.companyId = queryId;
   invoiceRelated.estimateId = await makeEstimateId(companyId);
@@ -84,7 +88,7 @@ estimateRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany
    * @param {Estimate} newEstimate - The new estimate to be saved.
    * @returns {Promise<{success: boolean, status: number, err?: string}>} - A promise that resolves to an object with success, status, and err properties.
    */
-  const saved = await newEstimate.save()
+  await newEstimate.save()
     .catch(err => {
       estimateRoutesogger.error('create - err: ', err);
       errResponse = {
@@ -104,7 +108,7 @@ estimateRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany
     return res.status(403).send(errResponse);
   }
   return next();
-}, requireUpdateSubscriptionRecord);
+}, requireUpdateSubscriptionRecord('estimate'));
 
 /**
  * Gets an estimate and its associated invoice related object by estimate ID.
@@ -117,6 +121,10 @@ estimateRoutes.get('/getone/:estimateId/:companyIdParam', requireAuth, requireAc
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectId(queryId);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   estimateId.companyId = queryId;
   const invoiceRelated = await invoiceRelatedLean
     .findOne({ estimateId, companyId: queryId })
@@ -144,6 +152,10 @@ estimateRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requir
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectId(queryId);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   const all = await Promise.all([
     estimateLean
       .find({ companyId: queryId })
@@ -206,6 +218,10 @@ estimateRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, requi
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectId(queryId);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
   const all = await Promise.all([
     estimateLean
@@ -240,6 +256,10 @@ estimateRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveComp
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectId(queryId);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   if (!credentials || credentials?.length < 1) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }

@@ -127,13 +127,17 @@ export class Item extends DatabaseAuto {
     searchterm: string,
     searchKey: string,
     extraFilters,
-    subCategory?: string
+    subCategory?: string,
+    offset = 0,
+    limit = 20
   ) {
     const observer$ = StockCounterClient.ehttp
-      .makePost(`/item/search/${companyId}`, { searchterm, searchKey, category, extraFilters, subCategory });
-    const items = await lastValueFrom(observer$) as unknown[];
-    return items
-      .map(val => new Item(val));
+      .makePost(`/item/search}/${offset}/${limit}/${companyId}`, { searchterm, searchKey, category, extraFilters, subCategory });
+    const items = await lastValueFrom(observer$) as IdataArrayResponse;
+    return {
+      count: items.count,
+      items: items.data
+        .map(val => new Item(val)) };
   }
 
   /**

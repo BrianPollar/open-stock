@@ -4,11 +4,13 @@ import {
   Ipayment,
   IpaymentRelated,
   Isuccess,
+  Iuser,
   TorderStatus
 } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
 import { StockCounterClient } from '../stock-counter-client';
 import { PaymentRelated } from './payment.define';
+import { User } from '@open-stock/stock-auth-client';
 
 
 /**
@@ -104,6 +106,7 @@ export class Order extends PaymentRelated {
     invoiceRelated: IinvoiceRelated,
     order: Iorder,
     payment: Ipayment,
+    user: Partial<User | Iuser>,
     bagainCred: IbagainCredential | null,
     nonce?
   ) {
@@ -113,6 +116,7 @@ export class Order extends PaymentRelated {
         invoiceRelated,
         order,
         payment,
+        userObj: user,
         bagainCred,
         nonce
       });

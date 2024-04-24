@@ -32,7 +32,7 @@ class NotificationMain {
      * @returns A promise that resolves to the success status of the operation.
      */
     static async creatNotifs(companyId, notif) {
-        const observer$ = stock_notif_client_1.StockNotifClient.ehttp.makePost(`/notification/create/${companyId}`, notif);
+        const observer$ = stock_notif_client_1.StockNotifClient.ehttp.makePost(`/notifn/create/${companyId}`, notif);
         return await (0, rxjs_1.lastValueFrom)(observer$);
     }
     /**
@@ -44,7 +44,7 @@ class NotificationMain {
      * @returns A promise that resolves to an array of NotificationMain instances.
      */
     static async getNotifications(companyId, url = 'getmynotifn', offset = 0, limit = 20) {
-        const observer$ = stock_notif_client_1.StockNotifClient.ehttp.makeGet(`/notification/${url}/${offset}/${limit}/${companyId}`);
+        const observer$ = stock_notif_client_1.StockNotifClient.ehttp.makeGet(`/notifn/${url}/${offset}/${limit}/${companyId}`);
         const notifications = await (0, rxjs_1.lastValueFrom)(observer$);
         return {
             count: notifications.count,
@@ -58,7 +58,7 @@ class NotificationMain {
      * @returns A promise that resolves to the success status of the operation.
      */
     static async appendSubscription(companyId, subscription) {
-        const observer$ = stock_notif_client_1.StockNotifClient.ehttp.makePost(`/notification/subscription/${companyId}`, { subscription });
+        const observer$ = stock_notif_client_1.StockNotifClient.ehttp.makePost(`/notifn/subscription/${companyId}`, { subscription });
         return (0, rxjs_1.lastValueFrom)(observer$);
     }
     /**
@@ -67,7 +67,7 @@ class NotificationMain {
      * @returns A promise that resolves to the number of unviewed notifications.
      */
     static async getUnviewedLength(companyId) {
-        const observer$ = stock_notif_client_1.StockNotifClient.ehttp.makeGet(`/notification/unviewedlength/${companyId}`);
+        const observer$ = stock_notif_client_1.StockNotifClient.ehttp.makeGet(`/notifn/unviewedlength/${companyId}`);
         return await (0, rxjs_1.lastValueFrom)(observer$);
     }
     /**
@@ -76,7 +76,7 @@ class NotificationMain {
      * @returns A promise that resolves to the success status of the operation.
      */
     static async clearAll(companyId) {
-        const observer$ = stock_notif_client_1.StockNotifClient.ehttp.makePost(`/notification/clearall/${companyId}`, {});
+        const observer$ = stock_notif_client_1.StockNotifClient.ehttp.makePost(`/notifn/clearall/${companyId}`, {});
         return (0, rxjs_1.lastValueFrom)(observer$);
     }
     /**
@@ -85,7 +85,7 @@ class NotificationMain {
      * @returns A promise that resolves to the success status of the operation.
      */
     async updateViewed(companyId) {
-        const observer$ = stock_notif_client_1.StockNotifClient.ehttp.makePost(`/notification/updateviewed/${companyId}`, { id: this._id });
+        const observer$ = stock_notif_client_1.StockNotifClient.ehttp.makePost(`/notifn/updateviewed/${companyId}`, { id: this._id });
         const response = await (0, rxjs_1.lastValueFrom)(observer$);
         return response;
     }
@@ -123,7 +123,7 @@ class NotifSetting {
      * @returns A promise that resolves to an array of NotifSetting instances.
      */
     static async getNotificationsSetting(companyId) {
-        const observer$ = stock_notif_client_1.StockNotifClient.ehttp.makeGet(`/notification/getstn/${companyId}`);
+        const observer$ = stock_notif_client_1.StockNotifClient.ehttp.makeGet(`/notifn/getstn/${companyId}`);
         const stn = await (0, rxjs_1.lastValueFrom)(observer$);
         return stn.map(val => new NotifSetting(val));
     }
@@ -134,7 +134,7 @@ class NotifSetting {
      * @returns A promise that resolves to the success status of the operation.
      */
     async update(companyId, vals) {
-        const observer$ = stock_notif_client_1.StockNotifClient.ehttp.makePut(`/notification/updatestn/${companyId}`, vals);
+        const observer$ = stock_notif_client_1.StockNotifClient.ehttp.makePut(`/notifn/updatestn/${companyId}`, vals);
         return await (0, rxjs_1.lastValueFrom)(observer$);
     }
 }

@@ -1,10 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createCompanyModel = exports.companyAboutSelect = exports.companyAuthSelect = exports.companyLean = exports.companyMain = exports.companySchema = void 0;
-const tslib_1 = require("tslib");
-/* eslint-disable @typescript-eslint/no-var-requires */
-const stock_notif_server_1 = require("@open-stock/stock-notif-server");
-const bcrypt_1 = tslib_1.__importDefault(require("bcrypt"));
 const mongoose_1 = require("mongoose");
 const database_controller_1 = require("../controllers/database.controller");
 // Create authenticated Authy and Twilio API clients
@@ -25,87 +21,16 @@ exports.companySchema = new mongoose_1.Schema({
     profileCoverPic: { type: String },
     photos: [],
     websiteAddress: { type: String },
-    pesapalCallbackUrl: { type: String },
-    pesapalCancellationUrl: { type: String },
-    password: { type: String, required: [true, 'cannot be empty.'] },
     blocked: { type: Boolean, default: false },
     verified: { type: Boolean, default: false },
     expireAt: { type: String },
-    blockedReasons: {}
+    blockedReasons: {},
+    owner: { type: String } // user
 }, { timestamps: true });
+exports.companySchema.index({ createdAt: -1 });
 exports.companySchema.index({ expireAt: 1 }, { expireAfterSeconds: 2628003 });
 // Apply the uniqueValidator plugin to companySchema.
 exports.companySchema.plugin(uniqueValidator);
-// dealing with hasing password
-exports.companySchema.pre('save', function (next) {
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const company = this;
-    // only hash the password if it has been modified (or is new)
-    if (!company.isModified('password')) {
-        return next();
-    }
-    // generate a salt
-    bcrypt_1.default.genSalt(10, function (err, salt) {
-        if (err) {
-            return next(err);
-        }
-        // hash the password using our new salt
-        bcrypt_1.default.hash(company.password, salt, function (err, hash) {
-            if (err) {
-                return next(err);
-            }
-            // override the cleartext password with the hashed one
-            company.password = hash;
-            next();
-        });
-    });
-});
-exports.companySchema.methods['comparePassword'] = function (candidatePassword, cb) {
-    bcrypt_1.default.compare(candidatePassword, this.password, function (err, isMatch) {
-        if (err) {
-            return cb(err);
-        }
-        cb(null, isMatch);
-    });
-};
-// Send a verification token to the company (two step auth for login)
-exports.companySchema.methods['sendAuthyToken'] = function (cb) {
-    if (!this.authyId) {
-        (0, stock_notif_server_1.setUpUser)(this.phone, 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        this.countryCode).then((res) => {
-            this.authyId = res.user.id;
-            this.save((err1, doc) => {
-                if (err1 || !doc) {
-                    return cb.call(this, err1);
-                }
-                // this = doc;
-                (0, stock_notif_server_1.sendToken)(this.authyId).then(resp => cb.call(this, null, resp)).catch(err => cb.call(this, err));
-            });
-        }).catch(err => cb.call(this, err));
-    }
-    else {
-        // Otherwise send token to a known company
-        (0, stock_notif_server_1.sendToken)(this.authyId).then((resp) => cb.call(this, null, resp)).catch(err => cb.call(this, err));
-    }
-};
-// Test a 2FA token
-exports.companySchema.methods['verifyAuthyToken'] = function (otp, cb) {
-    (0, stock_notif_server_1.verifyAuthyToken)(this.authyId, otp).then(resp => {
-        cb.call(this, null, resp);
-    }).catch(err => {
-        cb.call(this, err);
-    });
-};
-// Send a text message via twilio to this company
-exports.companySchema.methods['sendMessage'] = function (message, cb) {
-    // const self = this;
-    (0, stock_notif_server_1.sendSms)(this.phone, this.countryCode, message).then(() => {
-        cb.call(this, null);
-    }).catch(err => {
-        cb.call(this, err);
-    });
-};
 exports.companySchema.methods['toAuthJSON'] = function () {
     return {
         urId: this.urId,
@@ -133,8 +58,6 @@ exports.companySchema.methods['toProfileJSONFor'] = function () {
         profileCoverPic: this.profileCoverPic,
         createdAt: this.createdAt,
         websiteAddress: this.websiteAddress,
-        pesapalCallbackUrl: this.pesapalCallbackUrl,
-        pesapalCancellationUrl: this.pesapalCancellationUrl,
         photos: this.photos,
         blockedReasons: this.blockedReasons
     };
@@ -152,8 +75,6 @@ const companyAuthselect = {
     profileCoverPic: 1,
     createdAt: 1,
     websiteAddress: 1,
-    pesapalCallbackUrl: 1,
-    pesapalCancellationUrl: 1,
     photos: 1,
     blocked: 1,
     verified: 1,
@@ -175,8 +96,6 @@ const companyaboutSelect = {
     profileCoverPic: 1,
     createdAt: 1,
     websiteAddress: 1,
-    pesapalCallbackUrl: 1,
-    pesapalCancellationUrl: 1,
     photos: 1,
     blocked: 1,
     verified: 1,

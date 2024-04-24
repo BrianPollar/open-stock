@@ -20,7 +20,7 @@ import {
   updatePaymentRelated
 } from './paymentrelated/paymentrelated';
 // import * as url from 'url';
-import { requireActiveCompany, requireSuperAdmin, userLean } from '@open-stock/stock-auth-server';
+import { companySubscriptionLean, companySubscriptionMain, requireActiveCompany, requireSuperAdmin, userLean } from '@open-stock/stock-auth-server';
 import { Icustomrequest, IdataArrayResponse, IinvoiceRelated, IpaymentRelated, Isuccess, Iuser } from '@open-stock/stock-universal';
 import { fileMetaLean, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import { getLogger } from 'log4js';
@@ -238,14 +238,15 @@ paymentRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, require
   return res.status(200).send(response);
 });
 
-paymentRoutes.get('/getmypayments/:companyIdParam', requireAuth, async(req, res) => {
+paymentRoutes.get('/getmypayments/:offset/:limit/:companyIdParam', requireAuth, async(req, res) => {
   const { userId } = (req as unknown as Icustomrequest).user;
-  const { companyId } = (req as Icustomrequest).user;
-  const { companyIdParam } = req.params;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectId(userId);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   const all = await Promise.all([
     paymentLean
-      .find({ user: userId, companyId: queryId })
+      .find({ user: userId })
       .lean()
       .populate({ path: 'paymentRelated', model: paymentRelatedLean })
       .populate({
@@ -264,7 +265,7 @@ paymentRoutes.get('/getmypayments/:companyIdParam', requireAuth, async(req, res)
           }]
         }]
       }),
-    paymentLean.countDocuments({ user: userId, companyId: queryId })
+    paymentLean.countDocuments({ user: userId })
   ]);
   const returned = all[0]
     .map(val => makePaymentRelatedPdct(
@@ -303,6 +304,10 @@ paymentRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, requir
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectId(queryId);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
   const all = await Promise.all([
     paymentLean
@@ -380,6 +385,16 @@ paymentRoutes.get('/ipn', async(req, res) => {
   paymentRoutesLogger.info('ipn - searchParams, %orderTrackingId:, %orderNotificationType:, %orderMerchantReference:',
     orderTrackingId, orderNotificationType, orderMerchantReference);
 
+  const companySub = await companySubscriptionLean.findOne({ pesaPalorderTrackingId: orderTrackingId }).lean();
+
+  if (companySub) {
+    await updateCompanySubStatus(orderTrackingId);
+    await companySub.save();
+    return res.status(200).send({ success: true });
+  }
+
+  companySub.save();
+
   const related = await paymentRelatedLean.findOne({ pesaPalorderTrackingId: orderTrackingId }).lean();
 
   if (!pesapalPaymentInstance && !related) {
@@ -402,14 +417,59 @@ paymentRoutes.get('/paymentstatus/:orderTrackingId/:paymentRelated', async(req, 
   }
   const response = await pesapalPaymentInstance.getTransactionStatus(orderTrackingId);
   if ((response as {success: boolean}).success) {
-    await updateInvoicerelatedStatus(orderTrackingId);
+    const resp = await updateInvoicerelatedStatus(orderTrackingId);
+    return res.status(200).send({ success: resp.success });
   }
-  return response;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return res.status(403).send({ success: (response as any).success, err: (response as any).err });
 });
 
 
+paymentRoutes.get('/subscriptiopaystatus/:orderTrackingId/:subscriptionId', async(req, res) => {
+  const { orderTrackingId } = req.params;
+  if (!pesapalPaymentInstance) {
+    return res.status(403).send({ success: false, err: 'missing some info' });
+  }
+  const response = await pesapalPaymentInstance.getTransactionStatus(orderTrackingId);
+  if ((response as {success: boolean}).success) {
+    const resp = await updateInvoicerelatedStatus(orderTrackingId);
+    return res.status(200).send({ success: resp.success });
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return res.status(403).send({ success: (response as any).success, err: (response as any).err });
+});
+
 export const updateInvoicerelatedStatus = async(orderTrackingId: string) => {
   const toUpdate = await invoiceRelatedMain
+    .findOneAndUpdate({ pesaPalorderTrackingId: orderTrackingId });
+  if (toUpdate) {
+    toUpdate.status = 'paid';
+    let errResponse: Isuccess;
+
+    await toUpdate.save().catch(err => {
+      errResponse = {
+        success: false,
+        status: 403
+      };
+      if (err && err.errors) {
+        errResponse.err = stringifyMongooseErr(err.errors);
+      } else {
+        errResponse.err = `we are having problems connecting to our databases, 
+        try again in a while`;
+      }
+      return errResponse;
+    });
+
+    if (errResponse) {
+      return errResponse;
+    }
+  }
+  return { success: true };
+};
+
+
+export const updateCompanySubStatus = async(orderTrackingId: string) => {
+  const toUpdate = await companySubscriptionMain
     .findOneAndUpdate({ pesaPalorderTrackingId: orderTrackingId });
   if (toUpdate) {
     toUpdate.status = 'paid';

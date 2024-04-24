@@ -10,7 +10,7 @@ import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectio
 export type Tinvoice = Document & IinvoiceRelatedRef & { dueDate: Date };
 
 const invoiceSchema: Schema<Tinvoice> = new Schema({
-  companyId: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
+  companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
   invoiceRelated: { type: String },
   dueDate: { type: Date }
 }, { timestamps: true });

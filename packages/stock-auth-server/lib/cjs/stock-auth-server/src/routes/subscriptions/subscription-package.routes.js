@@ -14,13 +14,14 @@ const subscriptionPackageRoutesLogger = (0, log4js_1.getLogger)('routes/subscrip
  */
 exports.subscriptionPackageRoutes = express_1.default.Router();
 exports.subscriptionPackageRoutes.post('/create', stock_universal_server_1.requireAuth, superadmin_routes_1.requireSuperAdmin, async (req, res) => {
-    const { subscriptionPackages } = req.body;
+    subscriptionPackageRoutesLogger.info('Create subscription');
+    const subscriptionPackages = req.body;
     const newPkg = new subscription_package_model_1.subscriptionPackageMain(subscriptionPackages);
     await newPkg.save();
     return res.status(200).send({ success: true, status: 200 });
 });
-exports.subscriptionPackageRoutes.post('/uodateone', stock_universal_server_1.requireAuth, superadmin_routes_1.requireSuperAdmin, async (req, res) => {
-    const { subscriptionPackage } = req.body;
+exports.subscriptionPackageRoutes.put('/updateone', stock_universal_server_1.requireAuth, superadmin_routes_1.requireSuperAdmin, async (req, res) => {
+    const subscriptionPackage = req.body;
     const subPackage = await subscription_package_model_1.subscriptionPackageLean
         // eslint-disable-next-line @typescript-eslint/naming-convention
         .findOneAndUpdate({ _id: subscriptionPackage._id });
@@ -33,9 +34,8 @@ exports.subscriptionPackageRoutes.post('/uodateone', stock_universal_server_1.re
     return res.status(200).send({ success: true, status: 200 });
 });
 exports.subscriptionPackageRoutes.get('/getall', async (req, res) => {
-    const { companyId } = req.user;
     const subscriptionPackages = await subscription_package_model_1.subscriptionPackageLean
-        .find({ companyId })
+        .find({})
         .lean();
     return res.status(200).send(subscriptionPackages);
 });

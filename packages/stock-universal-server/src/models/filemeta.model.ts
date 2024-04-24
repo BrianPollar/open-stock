@@ -1,5 +1,5 @@
 import { IfileMeta } from '@open-stock/stock-universal';
-import { Model, Schema } from 'mongoose';
+import { ConnectOptions, Model, Schema } from 'mongoose';
 import { connectUniversalDatabase, isUniversalDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
 
 const uniqueValidator = require('mongoose-unique-validator');
@@ -34,9 +34,9 @@ export let fileMetaLean: Model<IfileMeta>;
  * @param main Whether to create the main email token model.
  * @param lean Whether to create the lean email token model.
  */
-export const createFileMetaModel = async(dbUrl: string, main = true, lean = true) => {
+export const createFileMetaModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
   if (!isUniversalDbConnected) {
-    await connectUniversalDatabase(dbUrl);
+    await connectUniversalDatabase(dbUrl, dbOptions);
   }
 
   if (main) {

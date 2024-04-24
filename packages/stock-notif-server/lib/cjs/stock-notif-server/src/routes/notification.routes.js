@@ -28,7 +28,7 @@ exports.notifnRoutes.get('/getmynotifn/:offset/:limit/:companyIdParam', stock_un
             .skip(offset)
             .limit(limit)
             .lean()
-            .sort({ name: 'asc' }),
+            .sort({ createdAt: -1 }),
         mainnotification_model_1.mainnotificationLean.countDocuments({ userId, active: true, viewed: { $nin: [userId] }, companyId: queryId })
     ]);
     const response = {
@@ -42,6 +42,10 @@ exports.notifnRoutes.get('/getmyavailnotifn/:offset/:limit/:companyIdParam', sto
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const all = await Promise.all([
         mainnotification_model_1.mainnotificationLean
             .find({ active: true, companyId: queryId })
@@ -156,7 +160,12 @@ exports.notifnRoutes.get('/unviewedlength/:companyIdParam', stock_universal_serv
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const { userId, permissions } = req.user;
+    console.log('requested user is 1111111111111    ', req.user);
     let filter;
     if (permissions.users &&
         !permissions.orders &&

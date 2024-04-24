@@ -1,16 +1,19 @@
 import { isNotificationsServerRunning } from '@open-stock/stock-notif-server';
 import { runPassport } from '@open-stock/stock-universal-server';
 import express from 'express';
+import { ConnectOptions } from 'mongoose';
+import { PesaPalController } from 'pesapal3';
 import { companyAuthRoutesDummy } from './routes-dummy/company.routes';
 import { companySubscriptionRoutesDummy } from './routes-dummy/subscriptions/company-subscription.routes';
 import { subscriptionPackageRoutesDummy } from './routes-dummy/subscriptions/subscription-package.routes';
+import { superAdminRoutesDummy } from './routes-dummy/superadmin.routes';
 import { userAuthRoutesDummy } from './routes-dummy/user.routes';
 import { companyAuthRoutes } from './routes/company.routes';
 import { companySubscriptionRoutes } from './routes/subscriptions/company-subscription.routes';
 import { subscriptionPackageRoutes } from './routes/subscriptions/subscription-package.routes';
+import { superAdminRoutes } from './routes/superadmin.routes';
 import { userAuthRoutes } from './routes/user.routes';
 import { connectAuthDatabase, createStockAuthServerLocals, isStockAuthServerRunning, stockAuthConfig } from './stock-auth-local';
-import { ConnectOptions } from 'mongoose';
 
 /**
  * Represents the interface for local file paths.
@@ -63,6 +66,15 @@ export interface IStockAuthServerConfig {
   useDummyRoutes?: boolean;
 }
 
+/**
+ * The PesaPal payment instance for the server.
+ */
+export let pesapalPaymentInstance: PesaPalController;
+/**
+ * The URL to redirect to when a notification is received.
+ */
+export let notifRedirectUrl: string;
+
 
 /**
  * Runs the stock authentication server by setting up the necessary configurations, connecting to the database, initializing passport authentication, and returning the authentication routes.
@@ -71,11 +83,16 @@ export interface IStockAuthServerConfig {
  * @param {*} app - The Express app.
  * @returns {Promise<{authRoutes, userLean}>}
  */
-export const runStockAuthServer = async(config: IStockAuthServerConfig) => {
+export const runStockAuthServer = async(
+  config: IStockAuthServerConfig,
+  paymentInstance: PesaPalController
+) => {
   if (!isNotificationsServerRunning()) {
     const error = new Error('Notifications server is not running, please start by firing up that server');
     throw error;
   }
+
+  pesapalPaymentInstance = paymentInstance;
   createStockAuthServerLocals(config);
   // connect models
   await connectAuthDatabase(config.databaseConfig.url, config.databaseConfig.dbOptions);
@@ -88,12 +105,14 @@ export const runStockAuthServer = async(config: IStockAuthServerConfig) => {
     // subscriptions
     stockAuthRouter.use('/subscriptionpackage', subscriptionPackageRoutes);
     stockAuthRouter.use('/companysubscription', companySubscriptionRoutes);
+    stockAuthRouter.use('/admin', superAdminRoutes);
   } else {
     stockAuthRouter.use('/user', userAuthRoutesDummy);
     stockAuthRouter.use('/company', companyAuthRoutesDummy);
     // subscriptions
     stockAuthRouter.use('/subscriptionpackage', subscriptionPackageRoutesDummy);
     stockAuthRouter.use('/companysubscription', companySubscriptionRoutesDummy);
+    stockAuthRouter.use('/admin', superAdminRoutesDummy);
   }
   return Promise.resolve({ stockAuthRouter });
 };

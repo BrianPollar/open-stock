@@ -1,5 +1,5 @@
 import { requireActiveCompany, requireCanUseFeature, requireUpdateSubscriptionRecord } from '@open-stock/stock-auth-server';
-import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { getLogger } from 'log4js';
 import { estimateLean } from '../../../models/printables/estimate.model';
@@ -26,6 +26,10 @@ salesReportRoutes.post('/create/:companyIdParam', requireAuth, requireActiveComp
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = verifyObjectId(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     salesReport.companyId = queryId;
     const count = await salesReportMain
         // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -33,7 +37,7 @@ salesReportRoutes.post('/create/:companyIdParam', requireAuth, requireActiveComp
     salesReport.urId = makeUrId(Number(count[0]?.urId || '0'));
     const newSalesReport = new salesReportMain(salesReport);
     let errResponse;
-    const saved = await newSalesReport.save()
+    await newSalesReport.save()
         .catch(err => {
         salesReportRoutesLogger.error('create - err: ', err);
         errResponse = {
@@ -53,7 +57,7 @@ salesReportRoutes.post('/create/:companyIdParam', requireAuth, requireActiveComp
         return res.status(403).send(errResponse);
     }
     return next();
-}, requireUpdateSubscriptionRecord);
+}, requireUpdateSubscriptionRecord('report'));
 /**
  * Get a sales report by UR ID
  * @name GET /getone/:urId
@@ -69,6 +73,10 @@ salesReportRoutes.get('/getone/:urId/:companyIdParam', requireAuth, requireActiv
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = verifyObjectId(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const salesReport = await salesReportLean
         .findOne({ urId, queryId })
         .lean()
@@ -91,6 +99,10 @@ salesReportRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, req
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = verifyObjectId(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const all = await Promise.all([
         salesReportLean
             .find({ companyId: queryId })
@@ -150,6 +162,10 @@ salesReportRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, re
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = verifyObjectId(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     const all = await Promise.all([
         salesReportLean

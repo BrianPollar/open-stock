@@ -4,6 +4,9 @@ import { StockAuthClient } from '../../stock-auth-client';
 export class CompanySubscription extends DatabaseAuto {
     constructor(data) {
         super(data);
+        this.name = data.name;
+        this.ammount = data.ammount;
+        this.duration = data.duration;
         this.subscriprionId = data.subscriprionId;
         this.startDate = data.startDate;
         this.endDate = data.endDate;
@@ -19,9 +22,9 @@ export class CompanySubscription extends DatabaseAuto {
                 .map((val) => new CompanySubscription(val))
         };
     }
-    static async subscribe(companyId, companySubscription) {
+    static async subscribe(companyId, subscriptionPackage) {
         const observer$ = StockAuthClient.ehttp
-            .makePost(`/companysubscription/subscribe/${companyId}`, companySubscription);
+            .makePost(`/companysubscription/subscribe/${companyId}`, subscriptionPackage);
         return lastValueFrom(observer$);
     }
     static async deleteCompanySubscription(companyId, id) {

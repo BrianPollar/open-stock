@@ -28,7 +28,7 @@ export type TinvoiceRelated = Document & IinvoiceRelated;
  * @property {Array} payments - The payments made on the invoice.
  */
 const invoiceRelatedSchema: Schema<TinvoiceRelated> = new Schema({
-  companyId: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
+  companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
   creationType: { type: String },
   estimateId: { type: Number },
   invoiceId: { type: Number },

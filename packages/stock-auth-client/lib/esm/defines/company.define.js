@@ -1,6 +1,7 @@
 import { DatabaseAuto } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
 import { StockAuthClient } from '../stock-auth-client';
+import { User } from './user.define';
 /**
  * Represents a company and extends the DatabaseAuto class. It has properties that correspond to the fields in the company object, and methods for updating, deleting, and managing the company's profile, addresses, and permissions.
  */
@@ -48,16 +49,13 @@ export class Company extends DatabaseAuto {
      * @returns A success object indicating whether the company was added successfully.
      */
     static async addCompany(companyId, vals, files) {
-        const details = {
-            company: vals
-        };
         let added;
         if (files && files[0]) {
-            const observer$ = StockAuthClient.ehttp.uploadFiles(files, `/company/addcompanyimg/${companyId}`, details);
+            const observer$ = StockAuthClient.ehttp.uploadFiles(files, `/company/addcompanyimg/${companyId}`, vals);
             added = await lastValueFrom(observer$);
         }
         else {
-            const observer$ = StockAuthClient.ehttp.makePost('/company/addcompany', details);
+            const observer$ = StockAuthClient.ehttp.makePost('/company/addcompany', vals);
             added = await lastValueFrom(observer$);
         }
         return added;
@@ -81,20 +79,14 @@ export class Company extends DatabaseAuto {
      * @returns A success object indicating whether the company was updated successfully.
      */
     async updateCompanyBulk(companyId, vals, files) {
-        const details = {
-            company: {
-                ...vals,
-                // eslint-disable-next-line @typescript-eslint/naming-convention
-                _id: this._id
-            }
-        };
+        vals.company._id = this._id;
         let added;
         if (files && files[0]) {
-            const observer$ = StockAuthClient.ehttp.uploadFiles(files, `/company/updatecompanybulkimg/${companyId}`, details);
+            const observer$ = StockAuthClient.ehttp.uploadFiles(files, `/company/updatecompanybulkimg/${companyId}`, vals);
             added = await lastValueFrom(observer$);
         }
         else {
-            const observer$ = StockAuthClient.ehttp.makePut(`/company/updatecompanybulk/${companyId}`, details);
+            const observer$ = StockAuthClient.ehttp.makePut(`/company/updatecompanybulk/${companyId}`, vals);
             added = await lastValueFrom(observer$);
         }
         return added;
@@ -178,13 +170,12 @@ export class Company extends DatabaseAuto {
             this.profileCoverPic = data.profileCoverPic || this.profileCoverPic;
             this.photos = data.photos || this.photos;
             this.websiteAddress = data.websiteAddress || this.websiteAddress;
-            this.pesapalCallbackUrl = data.pesapalCallbackUrl || this.pesapalCallbackUrl;
-            this.pesapalCancellationUrl = data.pesapalCancellationUrl || this.pesapalCancellationUrl;
             this.blockedReasons = data.blockedReasons || this.blockedReasons;
             this.left = data.left || this.left;
             this.dateLeft = data.dateLeft || this.dateLeft;
             this.blocked = data.blocked || this.blocked;
             this.verified = data.verified || this.verified;
+            this.owner = typeof data.owner === 'object' ? new User(data.owner) : data.owner;
         }
     }
 }

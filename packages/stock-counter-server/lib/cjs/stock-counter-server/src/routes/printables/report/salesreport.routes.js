@@ -30,6 +30,10 @@ exports.salesReportRoutes.post('/create/:companyIdParam', stock_universal_server
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     salesReport.companyId = queryId;
     const count = await salesreport_model_1.salesReportMain
         // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -37,7 +41,7 @@ exports.salesReportRoutes.post('/create/:companyIdParam', stock_universal_server
     salesReport.urId = (0, stock_universal_server_1.makeUrId)(Number(count[0]?.urId || '0'));
     const newSalesReport = new salesreport_model_1.salesReportMain(salesReport);
     let errResponse;
-    const saved = await newSalesReport.save()
+    await newSalesReport.save()
         .catch(err => {
         salesReportRoutesLogger.error('create - err: ', err);
         errResponse = {
@@ -57,7 +61,7 @@ exports.salesReportRoutes.post('/create/:companyIdParam', stock_universal_server
         return res.status(403).send(errResponse);
     }
     return next();
-}, stock_auth_server_1.requireUpdateSubscriptionRecord);
+}, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('report'));
 /**
  * Get a sales report by UR ID
  * @name GET /getone/:urId
@@ -73,6 +77,10 @@ exports.salesReportRoutes.get('/getone/:urId/:companyIdParam', stock_universal_s
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const salesReport = await salesreport_model_1.salesReportLean
         .findOne({ urId, queryId })
         .lean()
@@ -95,6 +103,10 @@ exports.salesReportRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_un
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const all = await Promise.all([
         salesreport_model_1.salesReportLean
             .find({ companyId: queryId })
@@ -154,6 +166,10 @@ exports.salesReportRoutes.post('/search/:limit/:offset/:companyIdParam', stock_u
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const all = await Promise.all([
         salesreport_model_1.salesReportLean

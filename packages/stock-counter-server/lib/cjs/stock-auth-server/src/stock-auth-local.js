@@ -7,6 +7,7 @@ const company_subscription_model_1 = require("./models/subscriptions/company-sub
 const subscription_package_model_1 = require("./models/subscriptions/subscription-package.model");
 const user_model_1 = require("./models/user.model");
 const userip_model_1 = require("./models/userip.model");
+const loginattemps_model_1 = require("./models/loginattemps.model");
 /**
  * Indicates whether the Stock Auth Server is currently running.
  */
@@ -32,6 +33,7 @@ const connectAuthDatabase = async (databaseUrl, dbOptions) => {
     await (0, userip_model_1.createUseripModel)(databaseUrl);
     await (0, subscription_package_model_1.createSubscriptionPackageModel)(databaseUrl, dbOptions);
     await (0, company_subscription_model_1.createCompanySubscription)(databaseUrl, dbOptions);
+    await (0, loginattemps_model_1.createLoginAtemptsModel)(databaseUrl, dbOptions);
 };
 exports.connectAuthDatabase = connectAuthDatabase;
 //# sourceMappingURL=stock-auth-local.js.map

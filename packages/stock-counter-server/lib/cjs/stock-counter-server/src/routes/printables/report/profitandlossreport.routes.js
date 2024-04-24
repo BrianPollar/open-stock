@@ -25,6 +25,10 @@ exports.profitAndLossReportRoutes.post('/create/:companyIdParam', stock_universa
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     profitAndLossReport.companyId = queryId;
     const count = await profitandlossreport_model_1.profitandlossReportMain
         // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -32,7 +36,7 @@ exports.profitAndLossReportRoutes.post('/create/:companyIdParam', stock_universa
     profitAndLossReport.urId = (0, stock_universal_server_1.makeUrId)(Number(count[0]?.urId || '0'));
     const newProfitAndLossReport = new profitandlossreport_model_1.profitandlossReportMain(profitAndLossReport);
     let errResponse;
-    const saved = await newProfitAndLossReport.save()
+    await newProfitAndLossReport.save()
         .catch(err => {
         profitAndLossReportRoutesLogger.error('create - err: ', err);
         errResponse = {
@@ -52,7 +56,7 @@ exports.profitAndLossReportRoutes.post('/create/:companyIdParam', stock_universa
         return res.status(403).send(errResponse);
     }
     return next();
-}, stock_auth_server_1.requireUpdateSubscriptionRecord);
+}, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('report'));
 /**
  * Get a single profit and loss report by URID.
  * @param req - The request object.
@@ -63,6 +67,10 @@ exports.profitAndLossReportRoutes.get('/getone/:urId/:companyIdParam', stock_uni
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const profitAndLossReport = await profitandlossreport_model_1.profitandlossReportLean
         .findOne({ urId, queryId })
         .lean()
@@ -80,6 +88,10 @@ exports.profitAndLossReportRoutes.get('/getall/:offset/:limit/:companyIdParam', 
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const all = await Promise.all([
         profitandlossreport_model_1.profitandlossReportLean
             .find({ companyId: queryId })
@@ -129,6 +141,10 @@ exports.profitAndLossReportRoutes.post('/search/:limit/:offset/:companyIdParam',
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const all = await Promise.all([
         profitandlossreport_model_1.profitandlossReportLean

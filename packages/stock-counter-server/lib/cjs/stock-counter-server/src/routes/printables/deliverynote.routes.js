@@ -35,6 +35,10 @@ exports.deliveryNoteRoutes.post('/create/:companyIdParam', stock_universal_serve
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     deliveryNote.companyId = queryId;
     invoiceRelated.companyId = queryId;
     const count = await deliverynote_model_1.deliveryNoteMain
@@ -49,7 +53,7 @@ exports.deliveryNoteRoutes.post('/create/:companyIdParam', stock_universal_serve
     deliveryNote.invoiceRelated = invoiceRelatedRes.id;
     const newDeliveryNote = new deliverynote_model_1.deliveryNoteMain(deliveryNote);
     let errResponse;
-    const saved = await newDeliveryNote.save()
+    await newDeliveryNote.save()
         .catch(err => {
         deliveryNoteRoutesLogger.error('create - err: ', err);
         errResponse = {
@@ -70,7 +74,7 @@ exports.deliveryNoteRoutes.post('/create/:companyIdParam', stock_universal_serve
     }
     await (0, invoicerelated_1.updateInvoiceRelated)(invoiceRelated, companyId);
     return next();
-}, stock_auth_server_1.requireUpdateSubscriptionRecord);
+}, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('delivery-note'));
 /**
  * Route to get a delivery note by UR ID
  * @name GET /getone/:urId
@@ -87,6 +91,10 @@ exports.deliveryNoteRoutes.get('/getone/:urId/:companyIdParam', stock_universal_
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const deliveryNote = await deliverynote_model_1.deliveryNoteLean
         .findOne({ urId, queryId })
         .lean()
@@ -127,6 +135,10 @@ exports.deliveryNoteRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_u
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const all = await Promise.all([
         deliverynote_model_1.deliveryNoteLean
             .find({ companyId: queryId })
@@ -208,6 +220,10 @@ exports.deliveryNoteRoutes.post('/search/:limit/:offset/:companyIdParam', stock_
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const all = await Promise.all([
         deliverynote_model_1.deliveryNoteLean
@@ -240,6 +256,10 @@ exports.deliveryNoteRoutes.put('/deletemany/:companyIdParam', stock_universal_se
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     /** const ids = credentials
       .map(val => val.id);
     await deliveryNoteMain

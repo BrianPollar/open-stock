@@ -1,3 +1,4 @@
+import { ConnectOptions } from 'mongoose';
 /**
  * Indicates whether the stock universal server is currently running.
  */
@@ -11,4 +12,4 @@ export declare const createStockUniversalServerLocals: () => void;
  * @param {string} databaseUrl - The URL of the authentication database.
  * @returns {Promise<void>}
  */
-export declare const connectUniversalDatabase: (databaseUrl: string) => Promise<void>;
+export declare const connectUniversalDatabase: (databaseUrl: string, dbOptions?: ConnectOptions) => Promise<void>;

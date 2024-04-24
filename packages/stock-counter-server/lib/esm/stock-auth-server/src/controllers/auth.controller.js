@@ -7,6 +7,36 @@ import { userip } from '../models/userip.model';
 import { stockAuthConfig } from '../stock-auth-local';
 import { sendTokenEmail, sendTokenPhone, validateEmail, validatePhone } from './universial.controller';
 const authControllerLogger = getLogger('loginAttemptController');
+const comparePassword = (foundUser, passwd, isPhone) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    return new Promise((resolve, reject) => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        foundUser['comparePassword'](passwd, function (err, isMatch) {
+            let attemptSuccess = false;
+            let nowRes = 'wrong account or password';
+            if (err) {
+                authControllerLogger.error('user has wrong password', err);
+                attemptSuccess = false;
+                if (isPhone) {
+                    nowRes = `phone number and
+            password did not match`;
+                }
+                else {
+                    nowRes = `email and password
+            did not match`;
+                }
+                // throw err;
+                // return;
+            }
+            if (isMatch) {
+                attemptSuccess = true;
+                nowRes = '';
+            }
+            console.log('ATTEMPY ', attemptSuccess);
+            resolve({ attemptSuccess, nowRes });
+        });
+    });
+};
 /**
  * Checks if the IP address is valid and attempts to log in the user.
  * @param req - The request object.
@@ -15,9 +45,13 @@ const authControllerLogger = getLogger('loginAttemptController');
  * @returns The next middleware function or an error response.
  */
 export const checkIpAndAttempt = async (req, res, next) => {
-    let isPhone;
-    const { userOrCompanayId, foundUser, password } = req.body;
+    // let isPhone: boolean;
+    console.log('FROOOOOOOOOM ', req.body.from);
+    const { foundUser, passwd, isPhone } = req.body;
+    console.log('found user ', foundUser);
+    console.log('password is ', passwd);
     const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+    const userOrCompanayId = foundUser._id;
     let foundIpModel = await userip.findOne({ userOrCompanayId }).select({
         greenIps: 1,
         redIps: 1,
@@ -29,11 +63,12 @@ export const checkIpAndAttempt = async (req, res, next) => {
             greenIps: [ip]
         });
         await foundIpModel.save();
-        const response = {
-            success: false,
-            err: 'Account does not exist!'
-        };
-        return res.status(401).send(response);
+        // TODO
+        /* const response: Iauthresponse = {
+          success: false,
+          err: 'Account does not exist!'
+        };*/
+        // return res.status(401).send(response);
     }
     else if (foundIpModel) {
         const containsRedIp = foundIpModel.redIps.includes(ip);
@@ -53,7 +88,7 @@ export const checkIpAndAttempt = async (req, res, next) => {
             return res.status(401).send(response);
         }
     }
-    if (foundIpModel.blocked.status) {
+    if (foundIpModel?.blocked?.status) {
         const response = {
             success: false,
             err: `This Acccount has been blocked
@@ -62,7 +97,7 @@ export const checkIpAndAttempt = async (req, res, next) => {
         };
         return res.status(401).send(response);
     }
-    if (foundIpModel.blocked.timesBlocked > 4) {
+    if (foundIpModel?.blocked?.timesBlocked > 4) {
         const response = {
             success: false,
             err: `This Acccount has been blocked
@@ -71,26 +106,11 @@ export const checkIpAndAttempt = async (req, res, next) => {
         };
         return res.status(401).send(response);
     }
-    let attemptSuccess = true;
-    let nowRes;
+    console.log('before');
     // compare password
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    foundUser['comparePassword'](password, function (err, isMatch) {
-        if (err) {
-            authControllerLogger.error('user has wrong password', err);
-            attemptSuccess = false;
-            if (isPhone) {
-                nowRes = `phone number and
-          password did not match`;
-            }
-            else {
-                nowRes = `email and password
-          did not match`;
-            }
-            // throw err;
-            return;
-        }
-    });
+    const { attemptSuccess, nowRes } = await comparePassword(foundUser, passwd, isPhone);
+    console.log('after');
     /* if (passwd !== foundUser.password) {
       attemptSuccess = false;
       if (isPhone) {

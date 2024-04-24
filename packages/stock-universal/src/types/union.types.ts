@@ -390,6 +390,10 @@ export type TuserDispNameFormat =
   'lastFirst' |
   'companyName';
 
+export type TuserType =
+  'company' |
+  'staff' |
+  'eUser';
 /**
  * Represents the type of payment.
  * - `nonSubscription`: Indicates a non-subscription payment.
@@ -451,3 +455,5 @@ export type TsubscriptionFeature =
   'expense' |
   'report' |
   'companyAdminAccess';
+
+export type TcompanySubPayStatus = 'paid' | 'failed' | 'canceled' | 'pending';

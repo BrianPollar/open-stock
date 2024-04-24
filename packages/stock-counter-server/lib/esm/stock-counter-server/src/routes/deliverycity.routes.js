@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
 import { requireSuperAdmin } from '@open-stock/stock-auth-server';
-import { offsetLimitRelegator, requireAuth, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { offsetLimitRelegator, requireAuth, stringifyMongooseErr, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { getLogger } from 'log4js';
 import { deliverycityLean, deliverycityMain } from '../models/deliverycity.model';
@@ -25,16 +25,7 @@ export const deliverycityRoutes = express.Router();
  */
 deliverycityRoutes.post('/create/:companyIdParam', requireAuth, requireSuperAdmin, async (req, res) => {
     const deliverycity = req.body.deliverycity;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    deliverycity.companyId = queryId;
     const newDeliverycity = new deliverycityMain(deliverycity);
-    newDeliverycity.companyId = queryId;
-    const isValid = verifyObjectId(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
     let errResponse;
     const saved = await newDeliverycity.save()
         .catch(err => {
@@ -97,16 +88,13 @@ deliverycityRoutes.get('/getone/:id/:companyIdParam', async (req, res) => {
  */
 deliverycityRoutes.get('/getall/:offset/:limit/:companyIdParam', async (req, res) => {
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
     const all = await Promise.all([
         deliverycityLean
-            .find({ companyId: queryId })
+            .find({})
             .skip(offset)
             .limit(limit)
             .lean(),
-        deliverycityLean.countDocuments({ companyId: queryId })
+        deliverycityLean.countDocuments({})
     ]);
     const response = {
         count: all[1],
@@ -127,17 +115,13 @@ deliverycityRoutes.get('/getall/:offset/:limit/:companyIdParam', async (req, res
  */
 deliverycityRoutes.put('/update/:companyIdParam', requireAuth, requireSuperAdmin, async (req, res) => {
     const updatedCity = req.body;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    updatedCity.companyId = queryId;
-    const isValid = verifyObjectIds([updatedCity._id, queryId]);
+    const isValid = verifyObjectIds([updatedCity._id]);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const deliverycity = await deliverycityMain
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        .findOneAndUpdate({ _id: updatedCity._id, companyId: queryId });
+        .findOneAndUpdate({ _id: updatedCity._id });
     if (!deliverycity) {
         return res.status(404).send({ success: false });
     }
@@ -180,15 +164,12 @@ deliverycityRoutes.put('/update/:companyIdParam', requireAuth, requireSuperAdmin
  */
 deliverycityRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, requireSuperAdmin, async (req, res) => {
     const { id } = req.params;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = verifyObjectIds([id, queryId]);
+    const isValid = verifyObjectIds([id]);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    const deleted = await deliverycityMain.findOneAndDelete({ _id: id, companyId: queryId });
+    const deleted = await deliverycityMain.findOneAndDelete({ _id: id });
     if (Boolean(deleted)) {
         return res.status(200).send({ success: Boolean(deleted) });
     }
@@ -209,16 +190,13 @@ deliverycityRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, require
  */
 deliverycityRoutes.put('/deletemany/:companyIdParam', requireAuth, requireSuperAdmin, async (req, res) => {
     const { ids } = req.body;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = verifyObjectIds([...ids, ...[queryId]]);
+    const isValid = verifyObjectIds([...ids]);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const deleted = await deliverycityMain
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        .deleteMany({ _id: { $in: ids }, companyId: queryId })
+        .deleteMany({ _id: { $in: ids } })
         .catch(err => {
         deliverycityRoutesLogger.error('deletemany - err: ', err);
         return null;

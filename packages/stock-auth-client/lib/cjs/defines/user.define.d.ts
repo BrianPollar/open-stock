@@ -1,4 +1,4 @@
-import { DatabaseAuto, Iaddress, Ibilling, Ifile, IfileMeta, Isuccess, Iuser, Iuserperm, TuserDispNameFormat } from '@open-stock/stock-universal';
+import { DatabaseAuto, Iaddress, Ibilling, Ifile, IfileMeta, Isuccess, Iuser, Iuserperm, TuserDispNameFormat, TuserType } from '@open-stock/stock-universal';
 import { Company } from './company.define';
 /**
  * Represents a user and extends the DatabaseAuto class. It has properties that correspond to the fields in the user object, and methods for updating, deleting, and managing the user's profile, addresses, and permissions.
@@ -52,6 +52,7 @@ export declare class User extends DatabaseAuto {
     extraCompanyDetails: string;
     /** The format for displaying the user's name. */
     userDispNameFormat: TuserDispNameFormat;
+    userType?: TuserType;
     /**
      * Creates a new User instance.
      * @param data The data to initialize the User instance with.

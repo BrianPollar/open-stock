@@ -98,7 +98,7 @@ itemDecoyRoutes.post('/create/:how/:companyIdParam', requireAuth, requireActiveC
         return res.status(403).send('unknown error');
     }
     return next();
-}, requireUpdateSubscriptionRecord);
+}, requireUpdateSubscriptionRecord('decoy'));
 /**
  * Get a list of all item decoys.
  * @param {string} offset - The offset to start at.
@@ -107,16 +107,18 @@ itemDecoyRoutes.post('/create/:how/:companyIdParam', requireAuth, requireActiveC
  */
 itemDecoyRoutes.get('/getall/:offset/:limit/:companyIdParam', async (req, res) => {
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
-    const { companyId } = req.user;
     const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = verifyObjectId(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    let filter = {};
+    if (companyIdParam) {
+        const isValid = verifyObjectId(companyIdParam);
+        if (!isValid) {
+            return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+        }
+        filter = { companyId: companyIdParam };
     }
     const all = await Promise.all([
         itemDecoyLean
-            .find({ companyId: queryId })
+            .find(filter)
             .skip(offset)
             .limit(limit)
             .populate({
@@ -128,7 +130,7 @@ itemDecoyRoutes.get('/getall/:offset/:limit/:companyIdParam', async (req, res) =
             ]
         })
             .lean(),
-        itemDecoyLean.countDocuments({ companyId: queryId })
+        itemDecoyLean.countDocuments(filter)
     ]);
     const response = {
         count: all[1],
@@ -143,16 +145,21 @@ itemDecoyRoutes.get('/getall/:offset/:limit/:companyIdParam', async (req, res) =
  */
 itemDecoyRoutes.get('/getone/:id/:companyIdParam', async (req, res) => {
     const { id } = req.params;
-    const { companyId } = req.user;
     const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = verifyObjectIds([id, queryId]);
+    let ids;
+    if (companyIdParam) {
+        ids = [id, companyIdParam];
+    }
+    else {
+        ids = [id];
+    }
+    const isValid = verifyObjectIds(ids);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const items = await itemDecoyLean
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        .findOne({ _id: id, companyId: queryId })
+        .findOne({ _id: id })
         .populate({
         path: 'items', model: itemLean,
         populate: [{

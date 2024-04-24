@@ -1,7 +1,8 @@
 
-import { DatabaseAuto, IblockedReasons, Icompany, IdataArrayResponse, Ifile, IfileMeta, Isuccess } from '@open-stock/stock-universal';
+import { DatabaseAuto, IblockedReasons, Icompany, IdataArrayResponse, Ifile, IfileMeta, Isuccess, Iuser } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
 import { StockAuthClient } from '../stock-auth-client';
+import { User } from './user.define';
 
 /**
  * Represents a company and extends the DatabaseAuto class. It has properties that correspond to the fields in the company object, and methods for updating, deleting, and managing the company's profile, addresses, and permissions.
@@ -17,13 +18,12 @@ export class Company extends DatabaseAuto {
   profileCoverPic: IfileMeta;
   photos: IfileMeta[];
   websiteAddress: string;
-  pesapalCallbackUrl: string;
-  pesapalCancellationUrl: string;
   blockedReasons: IblockedReasons;
   left: boolean;
   dateLeft: Date;
   blocked: boolean;
   verified: boolean;
+  owner: User | string;
 
   /**
    * Creates a new Company instance.
@@ -70,16 +70,13 @@ export class Company extends DatabaseAuto {
    * @param files Optional files to upload with the company.
    * @returns A success object indicating whether the company was added successfully.
    */
-  static async addCompany(companyId: string, vals: Icompany, files?: Ifile[]) {
-    const details = {
-      company: vals
-    };
+  static async addCompany(companyId: string, vals: {company: Icompany; user: Partial<Iuser>}, files?: Ifile[]) {
     let added: Isuccess;
     if (files && files[0]) {
-      const observer$ = StockAuthClient.ehttp.uploadFiles(files, `/company/addcompanyimg/${companyId}`, details);
+      const observer$ = StockAuthClient.ehttp.uploadFiles(files, `/company/addcompanyimg/${companyId}`, vals);
       added = await lastValueFrom(observer$) as Isuccess;
     } else {
-      const observer$ = StockAuthClient.ehttp.makePost('/company/addcompany', details);
+      const observer$ = StockAuthClient.ehttp.makePost('/company/addcompany', vals);
       added = await lastValueFrom(observer$) as Isuccess;
     }
     return added;
@@ -104,20 +101,14 @@ export class Company extends DatabaseAuto {
    * @param files Optional files to upload with the company.
    * @returns A success object indicating whether the company was updated successfully.
    */
-  async updateCompanyBulk(companyId: string, vals: Icompany, files?: Ifile[]) {
-    const details = {
-      company: {
-        ...vals,
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        _id: this._id
-      }
-    };
+  async updateCompanyBulk(companyId: string, vals: {company: Icompany; user: Partial<Iuser>}, files?: Ifile[]) {
+    vals.company._id = this._id;
     let added: Isuccess;
     if (files && files[0]) {
-      const observer$ = StockAuthClient.ehttp.uploadFiles(files, `/company/updatecompanybulkimg/${companyId}`, details);
+      const observer$ = StockAuthClient.ehttp.uploadFiles(files, `/company/updatecompanybulkimg/${companyId}`, vals);
       added = await lastValueFrom(observer$) as Isuccess;
     } else {
-      const observer$ = StockAuthClient.ehttp.makePut(`/company/updatecompanybulk/${companyId}`, details);
+      const observer$ = StockAuthClient.ehttp.makePut(`/company/updatecompanybulk/${companyId}`, vals);
       added = await lastValueFrom(observer$) as Isuccess;
     }
     return added;
@@ -211,13 +202,12 @@ export class Company extends DatabaseAuto {
       this.profileCoverPic = data.profileCoverPic as IfileMeta || this.profileCoverPic;
       this.photos = data.photos as IfileMeta[] || this.photos;
       this.websiteAddress = data.websiteAddress || this.websiteAddress;
-      this.pesapalCallbackUrl = data.pesapalCallbackUrl || this.pesapalCallbackUrl;
-      this.pesapalCancellationUrl = data.pesapalCancellationUrl || this.pesapalCancellationUrl;
       this.blockedReasons = data.blockedReasons || this.blockedReasons;
       this.left = data.left || this.left;
       this.dateLeft = data.dateLeft || this.dateLeft;
       this.blocked = data.blocked || this.blocked;
       this.verified = data.verified || this.verified;
+      this.owner = typeof data.owner === 'object' ? new User(data.owner) : data.owner;
     }
   }
 }

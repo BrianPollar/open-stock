@@ -1,5 +1,5 @@
 // import * as CryptoJs from 'crypto-js';
-import { Iauthresponse } from '@open-stock/stock-universal';
+import { Iauthresponse, TuserType } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
 import { StockAuthClient } from '../stock-auth-client';
 
@@ -92,6 +92,7 @@ export class AuthController {
       password: string;
       firstName: string;
       lastName: string;
+      userType: TuserType;
     }): Promise<Iauthresponse> {
     const details = {
       emailPhone:

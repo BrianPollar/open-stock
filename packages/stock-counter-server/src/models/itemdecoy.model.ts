@@ -26,8 +26,8 @@ export interface IitemDecoy extends Document {
 }
 
 const itemDecoySchema: Schema<IitemDecoy> = new Schema({
-  urId: { type: String, unique: true },
-  companyId: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
+  urId: { type: String },
+  companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
   type: { type: String },
   items: []
 }, { timestamps: true });

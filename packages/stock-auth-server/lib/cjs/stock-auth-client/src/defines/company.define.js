@@ -4,6 +4,7 @@ exports.Company = void 0;
 const stock_universal_1 = require("@open-stock/stock-universal");
 const rxjs_1 = require("rxjs");
 const stock_auth_client_1 = require("../stock-auth-client");
+const user_define_1 = require("./user.define");
 /**
  * Represents a company and extends the DatabaseAuto class. It has properties that correspond to the fields in the company object, and methods for updating, deleting, and managing the company's profile, addresses, and permissions.
  */
@@ -51,16 +52,13 @@ class Company extends stock_universal_1.DatabaseAuto {
      * @returns A success object indicating whether the company was added successfully.
      */
     static async addCompany(companyId, vals, files) {
-        const details = {
-            company: vals
-        };
         let added;
         if (files && files[0]) {
-            const observer$ = stock_auth_client_1.StockAuthClient.ehttp.uploadFiles(files, `/company/addcompanyimg/${companyId}`, details);
+            const observer$ = stock_auth_client_1.StockAuthClient.ehttp.uploadFiles(files, `/company/addcompanyimg/${companyId}`, vals);
             added = await (0, rxjs_1.lastValueFrom)(observer$);
         }
         else {
-            const observer$ = stock_auth_client_1.StockAuthClient.ehttp.makePost('/company/addcompany', details);
+            const observer$ = stock_auth_client_1.StockAuthClient.ehttp.makePost('/company/addcompany', vals);
             added = await (0, rxjs_1.lastValueFrom)(observer$);
         }
         return added;
@@ -84,20 +82,14 @@ class Company extends stock_universal_1.DatabaseAuto {
      * @returns A success object indicating whether the company was updated successfully.
      */
     async updateCompanyBulk(companyId, vals, files) {
-        const details = {
-            company: {
-                ...vals,
-                // eslint-disable-next-line @typescript-eslint/naming-convention
-                _id: this._id
-            }
-        };
+        vals.company._id = this._id;
         let added;
         if (files && files[0]) {
-            const observer$ = stock_auth_client_1.StockAuthClient.ehttp.uploadFiles(files, `/company/updatecompanybulkimg/${companyId}`, details);
+            const observer$ = stock_auth_client_1.StockAuthClient.ehttp.uploadFiles(files, `/company/updatecompanybulkimg/${companyId}`, vals);
             added = await (0, rxjs_1.lastValueFrom)(observer$);
         }
         else {
-            const observer$ = stock_auth_client_1.StockAuthClient.ehttp.makePut(`/company/updatecompanybulk/${companyId}`, details);
+            const observer$ = stock_auth_client_1.StockAuthClient.ehttp.makePut(`/company/updatecompanybulk/${companyId}`, vals);
             added = await (0, rxjs_1.lastValueFrom)(observer$);
         }
         return added;
@@ -181,13 +173,12 @@ class Company extends stock_universal_1.DatabaseAuto {
             this.profileCoverPic = data.profileCoverPic || this.profileCoverPic;
             this.photos = data.photos || this.photos;
             this.websiteAddress = data.websiteAddress || this.websiteAddress;
-            this.pesapalCallbackUrl = data.pesapalCallbackUrl || this.pesapalCallbackUrl;
-            this.pesapalCancellationUrl = data.pesapalCancellationUrl || this.pesapalCancellationUrl;
             this.blockedReasons = data.blockedReasons || this.blockedReasons;
             this.left = data.left || this.left;
             this.dateLeft = data.dateLeft || this.dateLeft;
             this.blocked = data.blocked || this.blocked;
             this.verified = data.verified || this.verified;
+            this.owner = typeof data.owner === 'object' ? new user_define_1.User(data.owner) : data.owner;
         }
     }
 }

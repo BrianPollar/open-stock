@@ -16,8 +16,8 @@ extends Document {
 }
 
 const itemLimittedSchema: Schema<IitemLimitted> = new Schema({
-  urId: { type: String, unique: true },
-  companyId: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
+  urId: { type: String },
+  companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
   name: { type: String }
 }, { timestamps: true });
 

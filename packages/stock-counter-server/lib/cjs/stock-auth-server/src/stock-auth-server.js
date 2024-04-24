@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getStockAuthConfig = exports.isAuthServerRunning = exports.runStockAuthServer = void 0;
+exports.getStockAuthConfig = exports.isAuthServerRunning = exports.runStockAuthServer = exports.notifRedirectUrl = exports.pesapalPaymentInstance = void 0;
 const tslib_1 = require("tslib");
 const stock_notif_server_1 = require("@open-stock/stock-notif-server");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
@@ -8,10 +8,12 @@ const express_1 = tslib_1.__importDefault(require("express"));
 const company_routes_1 = require("./routes-dummy/company.routes");
 const company_subscription_routes_1 = require("./routes-dummy/subscriptions/company-subscription.routes");
 const subscription_package_routes_1 = require("./routes-dummy/subscriptions/subscription-package.routes");
+const superadmin_routes_1 = require("./routes-dummy/superadmin.routes");
 const user_routes_1 = require("./routes-dummy/user.routes");
 const company_routes_2 = require("./routes/company.routes");
 const company_subscription_routes_2 = require("./routes/subscriptions/company-subscription.routes");
 const subscription_package_routes_2 = require("./routes/subscriptions/subscription-package.routes");
+const superadmin_routes_2 = require("./routes/superadmin.routes");
 const user_routes_2 = require("./routes/user.routes");
 const stock_auth_local_1 = require("./stock-auth-local");
 /**
@@ -21,11 +23,12 @@ const stock_auth_local_1 = require("./stock-auth-local");
  * @param {*} app - The Express app.
  * @returns {Promise<{authRoutes, userLean}>}
  */
-const runStockAuthServer = async (config) => {
+const runStockAuthServer = async (config, paymentInstance) => {
     if (!(0, stock_notif_server_1.isNotificationsServerRunning)()) {
         const error = new Error('Notifications server is not running, please start by firing up that server');
         throw error;
     }
+    exports.pesapalPaymentInstance = paymentInstance;
     (0, stock_auth_local_1.createStockAuthServerLocals)(config);
     // connect models
     await (0, stock_auth_local_1.connectAuthDatabase)(config.databaseConfig.url, config.databaseConfig.dbOptions);
@@ -37,6 +40,7 @@ const runStockAuthServer = async (config) => {
         // subscriptions
         stockAuthRouter.use('/subscriptionpackage', subscription_package_routes_2.subscriptionPackageRoutes);
         stockAuthRouter.use('/companysubscription', company_subscription_routes_2.companySubscriptionRoutes);
+        stockAuthRouter.use('/admin', superadmin_routes_2.superAdminRoutes);
     }
     else {
         stockAuthRouter.use('/user', user_routes_1.userAuthRoutesDummy);
@@ -44,6 +48,7 @@ const runStockAuthServer = async (config) => {
         // subscriptions
         stockAuthRouter.use('/subscriptionpackage', subscription_package_routes_1.subscriptionPackageRoutesDummy);
         stockAuthRouter.use('/companysubscription', company_subscription_routes_1.companySubscriptionRoutesDummy);
+        stockAuthRouter.use('/admin', superadmin_routes_1.superAdminRoutesDummy);
     }
     return Promise.resolve({ stockAuthRouter });
 };

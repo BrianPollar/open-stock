@@ -61,7 +61,7 @@ itemOfferRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompan
         return res.status(403).send('unknown error');
     }
     return next();
-}, requireUpdateSubscriptionRecord);
+}, requireUpdateSubscriptionRecord('offer'));
 /**
  * Route for getting all item offers
  * @name GET /getall/:type/:offset/:limit
@@ -74,17 +74,19 @@ itemOfferRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompan
  */
 itemOfferRoutes.get('/getall/:type/:offset/:limit/:companyIdParam', async (req, res) => {
     const { type } = req.params;
-    const { companyId } = req.user;
     const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = verifyObjectId(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    let query = {};
+    if (companyIdParam) {
+        const isValid = verifyObjectId(companyIdParam);
+        if (!isValid) {
+            return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+        }
+        query = { companyId: companyIdParam };
     }
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
-    let filter = { companyId };
+    let filter;
     if (type !== 'all') {
-        filter = { type, companyId };
+        filter = { type, ...query };
     }
     const all = await Promise.all([
         itemOfferLean
@@ -120,16 +122,21 @@ itemOfferRoutes.get('/getall/:type/:offset/:limit/:companyIdParam', async (req, 
  */
 itemOfferRoutes.get('/getone/:id/:companyIdParam', async (req, res) => {
     const { id } = req.params;
-    const { companyId } = req.user;
     const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = verifyObjectIds([id, queryId]);
+    let ids;
+    if (companyIdParam) {
+        ids = [id, companyIdParam];
+    }
+    else {
+        ids = [id];
+    }
+    const isValid = verifyObjectIds(ids);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const items = await itemOfferLean
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        .findOne({ _id: id, companyId: queryId })
+        .findOne({ _id: id })
         .populate({
         path: 'items', model: itemLean,
         populate: [{

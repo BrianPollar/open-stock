@@ -1,6 +1,6 @@
 import { requireActiveCompany, user } from '@open-stock/stock-auth-server';
 import { Icustomrequest } from '@open-stock/stock-universal';
-import { deleteFiles, requireAuth, roleAuthorisation, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { deleteFiles, requireAuth, roleAuthorisation, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express, { NextFunction, Request, Response } from 'express';
 import { getLogger } from 'log4js';
 import { invoiceRelatedLean } from '../../models/printables/related/invoicerelated.model';
@@ -24,7 +24,7 @@ export const removeOneUser = async(req: Request, res: Response, next: NextFuncti
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const isValid = verifyObjectId(credential.userId);
+  const isValid = verifyObjectIds([credential.userId, queryId]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -53,7 +53,7 @@ export const removeManyUsers = async(req: Request, res: Response, next: NextFunc
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const isValid = verifyObjectIds(credentials.map(val => val.userId));
+  const isValid = verifyObjectIds([...credentials.map(val => val.userId), ...[queryId]]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }

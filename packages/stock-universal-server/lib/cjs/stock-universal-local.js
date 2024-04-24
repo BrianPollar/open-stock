@@ -18,8 +18,8 @@ exports.createStockUniversalServerLocals = createStockUniversalServerLocals;
  * @param {string} databaseUrl - The URL of the authentication database.
  * @returns {Promise<void>}
  */
-const connectUniversalDatabase = async (databaseUrl) => {
-    await (0, filemeta_model_1.createFileMetaModel)(databaseUrl);
+const connectUniversalDatabase = async (databaseUrl, dbOptions) => {
+    await (0, filemeta_model_1.createFileMetaModel)(databaseUrl, dbOptions);
 };
 exports.connectUniversalDatabase = connectUniversalDatabase;
 //# sourceMappingURL=stock-universal-local.js.map

@@ -21,7 +21,7 @@ const removeOneUser = async (req, res, next) => {
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(credential.userId);
+    const isValid = (0, stock_universal_server_1.verifyObjectIds)([credential.userId, queryId]);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
@@ -50,7 +50,7 @@ const removeManyUsers = async (req, res, next) => {
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)(credentials.map(val => val.userId));
+    const isValid = (0, stock_universal_server_1.verifyObjectIds)([...credentials.map(val => val.userId), ...[queryId]]);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }

@@ -17,30 +17,23 @@ const APP_NAME = 'OPEN-STOCK';
  * The LoggerController class provides logging functionality for the application.
  */
 export class LoggerController {
-  appName: string;
   // The private property `pDebug` is a debug logger.
-  private pDebug;
+  private pDebug = debug(`${APP_NAME}:DEBUG`);
 
   // The private property `pWarn` is a warning logger.
-  private pWarn;
+  private pWarn = debug(`${APP_NAME}:WARN`);
 
   // The private property `pError` is an error logger.
-  private pError;
+  private pError = debug(`${APP_NAME}:ERROR`);
 
   // The private property `pTrace` is a trace logger.
-  private pTrace;
+  private pTrace = debug(`${APP_NAME}:TRACE`);
 
   /**
    * The constructor for the LoggerController class.
    * Sets the logging functions for the private properties and the colors for the logs.
    */
-  constructor(appName = APP_NAME) {
-    localStorage['debug'] = `${appName}:*`;
-    this.pDebug = debug(`${appName}:DEBUG`);
-    this. pWarn = debug(`${appName}:WARN`);
-    this.pError = debug(`${appName}:ERROR`);
-    this.pTrace = debug(`${appName}:TRACE`);
-
+  constructor() {
     // Set the logging functions for the private properties.
     this.pDebug.log = console.info.bind(console);
     this.pWarn.log = console.warn.bind(console);

@@ -86,6 +86,10 @@ exports.invoiceRoutes.post('/create/:companyIdParam', stock_universal_server_1.r
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     invoice.companyId = queryId;
     invoiceRelated.companyId = queryId;
     const response = await (0, exports.saveInvoice)(invoice, invoiceRelated, queryId);
@@ -93,7 +97,7 @@ exports.invoiceRoutes.post('/create/:companyIdParam', stock_universal_server_1.r
         return res.status(response.status).send({ success: response.success });
     }
     return next();
-}, stock_auth_server_1.requireUpdateSubscriptionRecord);
+}, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('invoice'));
 /**
  * Endpoint for updating an existing invoice.
  * @param req - The request object.
@@ -154,6 +158,10 @@ exports.invoiceRoutes.get('/getone/:invoiceId/:companyIdParam', stock_universal_
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const invoiceRelated = await invoicerelated_model_1.invoiceRelatedLean
         .findOne({ invoiceId, companyId: queryId })
         .lean()
@@ -171,6 +179,10 @@ exports.invoiceRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_univer
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const all = await Promise.all([
         invoice_model_1.invoiceLean
             .find({ companyId: queryId })
@@ -219,6 +231,10 @@ exports.invoiceRoutes.post('/search/:limit/:offset/:companyIdParam', stock_unive
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const all = await Promise.all([
         invoice_model_1.invoiceLean
@@ -251,6 +267,10 @@ exports.invoiceRoutes.put('/deletemany/:companyIdParam', stock_universal_server_
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     if (!credentials || credentials?.length < 1) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
@@ -271,6 +291,10 @@ exports.invoiceRoutes.post('/createpayment/:companyIdParam', stock_universal_ser
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     pay.companyId = queryId;
     const count = await receipt_model_1.receiptLean
         // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -304,7 +328,7 @@ exports.invoiceRoutes.put('/updatepayment/:companyIdParam', stock_universal_serv
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
     pay.companyId = queryId;
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(pay._id);
+    const isValid = (0, stock_universal_server_1.verifyObjectIds)([pay._id, queryId]);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
@@ -349,6 +373,10 @@ exports.invoiceRoutes.get('/getallpayments/:companyIdParam', stock_universal_ser
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const all = await Promise.all([
         receipt_model_1.receiptLean
             .find({ companyId: queryId })
