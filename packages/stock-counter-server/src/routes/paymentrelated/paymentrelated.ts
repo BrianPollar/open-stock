@@ -1,3 +1,5 @@
+import { user } from '@open-stock/stock-auth-server';
+import { getCurrentNotificationSettings } from '@open-stock/stock-notif-server';
 import {
   IinvoiceRelated,
   IpaymentRelated,
@@ -7,18 +9,16 @@ import {
   TpaymentRelatedType
 } from '@open-stock/stock-universal';
 import { makeUrId, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { getLogger } from 'log4js';
 import { orderMain } from '../../models/order.model';
 import { paymentMain } from '../../models/payment.model';
 import { paymentRelatedLean, paymentRelatedMain } from '../../models/printables/paymentrelated/paymentrelated.model';
+import { receiptMain } from '../../models/printables/receipt.model';
 import {
   deleteManyInvoiceRelated,
   makeInvoiceRelatedPdct,
   updateInvoiceRelatedPayments
 } from '../printables/related/invoicerelated';
-import { getLogger } from 'log4js';
-import { getCurrentNotificationSettings } from '@open-stock/stock-notif-server';
-import { user } from '@open-stock/stock-auth-server';
-import { receiptMain } from '../../models/printables/receipt.model';
 
 /** Logger for PaymentRelated routes */
 const paymentRelatedLogger = getLogger('routes/PaymentRelated');
@@ -339,9 +339,7 @@ export const makePaymentInstall = async(receipt: Ireceipt, relatedId: string, qu
     if (errResponse) {
       return errResponse;
     }
-
     await updateInvoiceRelatedPayments(savedPinstall as unknown as Ireceipt, queryId);
-
     return { success: true };
   }
   return { success: true };

@@ -147,10 +147,11 @@ const signupFactorRelgator = async (req, res, next) => {
         result = await (0, universial_controller_1.sendTokenEmail)(saved, type, stock_auth_local_1.stockAuthConfig.localSettings.appOfficialName);
     }
     if (!response.success) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        saved.remove();
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        await user_model_1.user.deleteOne({ _id: saved._id });
         if (company) {
-            await company.remove();
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            await company_model_1.companyMain.deleteOne({ _id: company._id });
         }
         return res.status(200).send(response);
     }

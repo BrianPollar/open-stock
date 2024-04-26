@@ -2,12 +2,12 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.rudimentaryStorage = exports.upload = exports.multerFileds = void 0;
 const tslib_1 = require("tslib");
+const stock_universal_1 = require("@open-stock/stock-universal");
 const fs_extra_1 = require("fs-extra");
 const log4js_1 = require("log4js");
 const multer_1 = tslib_1.__importDefault(require("multer"));
 const path = tslib_1.__importStar(require("path"));
-const stock_universal_1 = require("@open-stock/stock-universal");
-const environment_constant_1 = require("../constants/environment.constant");
+const stock_universal_local_1 = require("../stock-universal-local");
 // This function creates a fileStorageLogger named `controllers/FileStorage`.
 const fileStorageLogger = (0, log4js_1.getLogger)('controllers/FileStorage');
 // This array defines the fields that Multer will use to upload files.
@@ -31,8 +31,11 @@ exports.multerFileds = [
 const rudimentaryStorage = multer_1.default.diskStorage({
     // This function gets the directory for the file based on its MIME type.
     destination(req, file, cb) {
-        const videoDirectory = (0, environment_constant_1.getExpressLocals)(req.app, 'videoDirectory');
-        const photoDirectory = (0, environment_constant_1.getExpressLocals)(req.app, 'photoDirectory');
+        const { companyId } = req.user;
+        const { companyIdParam } = req.params;
+        const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+        const videoDirectory = stock_universal_local_1.envConfig.absolutepath + '/' + stock_universal_local_1.envConfig.videoDirectory + '/' + queryId;
+        const photoDirectory = stock_universal_local_1.envConfig.absolutepath + '/' + stock_universal_local_1.envConfig.photoDirectory + '/' + queryId;
         const mimeType = file.mimetype;
         fileStorageLogger.debug('rudimentaryStorage - mimeType: ', mimeType);
         let storageDir;

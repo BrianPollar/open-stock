@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
-import { requireActiveCompany, requireCanUseFeature, requireUpdateSubscriptionRecord, userLean } from '@open-stock/stock-auth-server';
+import { addUser, requireActiveCompany, requireCanUseFeature, requireUpdateSubscriptionRecord, updateUserBulk, userLean } from '@open-stock/stock-auth-server';
 import { Icustomrequest, IdataArrayResponse, Isuccess } from '@open-stock/stock-universal';
-import { deleteFiles, fileMetaLean, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { appendBody, deleteFiles, fileMetaLean, offsetLimitRelegator, requireAuth, roleAuthorisation, saveMetaToDb, stringifyMongooseErr, uploadFiles, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { getLogger } from 'log4js';
 import { staffLean, staffMain } from '../../models/user-related/staff.model';
@@ -9,13 +9,18 @@ import { removeManyUsers, removeOneUser } from './locluser.routes';
 
 const staffRoutesLogger = getLogger('routes/staffRoutes');
 
-/**
- * Router for staff related routes.
- */
-export const staffRoutes = express.Router();
-
-staffRoutes.post('/create/:companyIdParam', requireAuth, requireCanUseFeature('staff'), roleAuthorisation('staffs', 'create'), async(req, res, next) => {
+export const addStaff = async(req, res, next) => {
+  const { companyIdParam } = req.params;
+  const { companyId } = (req as Icustomrequest).user;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectId(queryId);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   const staff = req.body.staff;
+  const savedUser = req.body.savedUser;
+  staff.user = savedUser._id;
+  staff.companyId = queryId;
   const newStaff = new staffMain(staff);
   let errResponse: Isuccess;
   /**
@@ -43,7 +48,59 @@ staffRoutes.post('/create/:companyIdParam', requireAuth, requireCanUseFeature('s
     return res.status(403).send(errResponse);
   }
   return next();
-}, requireUpdateSubscriptionRecord('staff'));
+};
+
+export const updateStaff = async(req, res) => {
+  const updatedStaff = req.body.staff;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  updatedStaff.companyId = queryId;
+  const isValid = verifyObjectIds([updatedStaff._id, queryId]);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
+  const staff = await staffMain
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    .findOneAndUpdate({ _id: updatedStaff._id, companyId: queryId });
+  if (!staff) {
+    return res.status(404).send({ success: false });
+  }
+  staff.startDate = updatedStaff.startDate || staff.startDate;
+  staff.endDate = updatedStaff.endDate || staff.endDate;
+  staff.occupation = updatedStaff.occupation || staff.occupation;
+  staff.employmentType = updatedStaff.employmentType || staff.employmentType;
+  staff.salary = updatedStaff.salary || staff.salary;
+  let errResponse: Isuccess;
+  const updated = await staff.save()
+    .catch(err => {
+      staffRoutesLogger.error('update - err: ', err);
+      errResponse = {
+        success: false,
+        status: 403
+      };
+      if (err && err.errors) {
+        errResponse.err = stringifyMongooseErr(err.errors);
+      } else {
+        errResponse.err = `we are having problems connecting to our databases, 
+        try again in a while`;
+      }
+      return errResponse;
+    });
+
+  if (errResponse) {
+    return res.status(403).send(errResponse);
+  }
+  return res.status(200).send({ success: Boolean(updated) });
+};
+/**
+ * Router for staff related routes.
+ */
+export const staffRoutes = express.Router();
+
+staffRoutes.post('/create/:companyIdParam', requireAuth, requireCanUseFeature('staff'), roleAuthorisation('staffs', 'create'), addUser, addStaff, requireUpdateSubscriptionRecord('staff'));
+
+staffRoutes.post('/createimg/:companyIdParam', requireAuth, requireCanUseFeature('staff'), roleAuthorisation('staffs', 'create'), uploadFiles, appendBody, saveMetaToDb, addUser, addStaff, requireUpdateSubscriptionRecord('staff'));
 
 staffRoutes.get('/getone/:id/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('staffs', 'read'), async(req, res) => {
   const { id } = req.params;
@@ -71,7 +128,6 @@ staffRoutes.get('/getone/:id/:companyIdParam', requireAuth, requireActiveCompany
     .lean();
   return res.status(200).send(staff);
 });
-
 
 staffRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('staffs', 'read'), async(req, res) => {
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
@@ -106,6 +162,7 @@ staffRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requireAc
     count: all[1],
     data: all[0]
   };
+  console.log('sending staffs ', response);
   return res.status(200).send(response);
 });
 
@@ -200,49 +257,9 @@ staffRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, requireA
   return res.status(200).send(response);
 });
 
-staffRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('staffs', 'update'), async(req, res) => {
-  const updatedStaff = req.body;
-  const { companyId } = (req as Icustomrequest).user;
-  const { companyIdParam } = req.params;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  updatedStaff.companyId = queryId;
-  const isValid = verifyObjectIds([updatedStaff._id, queryId]);
-  if (!isValid) {
-    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-  }
-  const staff = await staffMain
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    .findOneAndUpdate({ _id: updatedStaff._id, companyId: queryId });
-  if (!staff) {
-    return res.status(404).send({ success: false });
-  }
-  staff.startDate = updatedStaff.startDate || staff.startDate;
-  staff.endDate = updatedStaff.endDate || staff.endDate;
-  staff.occupation = updatedStaff.occupation || staff.occupation;
-  staff.employmentType = updatedStaff.employmentType || staff.employmentType;
-  staff.salary = updatedStaff.salary || staff.salary;
-  let errResponse: Isuccess;
-  const updated = await staff.save()
-    .catch(err => {
-      staffRoutesLogger.error('update - err: ', err);
-      errResponse = {
-        success: false,
-        status: 403
-      };
-      if (err && err.errors) {
-        errResponse.err = stringifyMongooseErr(err.errors);
-      } else {
-        errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-      }
-      return errResponse;
-    });
+staffRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('staffs', 'update'), updateUserBulk, updateStaff);
 
-  if (errResponse) {
-    return res.status(403).send(errResponse);
-  }
-  return res.status(200).send({ success: Boolean(updated) });
-});
+staffRoutes.put('/updateimg/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('staffs', 'update'), uploadFiles, appendBody, saveMetaToDb, updateUserBulk, updateStaff);
 
 staffRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('staffs', 'delete'), removeOneUser, deleteFiles, async(req, res) => {
   const { id } = req.body;

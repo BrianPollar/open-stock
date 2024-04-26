@@ -3,7 +3,7 @@ import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectio
 const uniqueValidator = require('mongoose-unique-validator');
 const deliverycitySchema = new Schema({
     name: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
-    companyId: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
+    companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
     shippingCost: { type: Number, required: [true, 'cannot be empty.'] },
     currency: { type: String, required: [true, 'cannot be empty.'] },
     deliversInDays: { type: Number, required: [true, 'cannot be empty.'] }

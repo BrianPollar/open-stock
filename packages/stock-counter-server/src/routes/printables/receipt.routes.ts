@@ -40,6 +40,7 @@ receiptRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany,
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
+
   receipt.companyId = queryId;
   invoiceRelated.companyId = queryId;
   const count = await receiptMain
@@ -47,7 +48,7 @@ receiptRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany,
     .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
   receipt.urId = makeUrId(Number(count[0]?.urId || '0'));
   const extraNotifDesc = 'Newly created receipt';
-  const invoiceRelatedRes = await relegateInvRelatedCreation(invoiceRelated, extraNotifDesc, queryId);
+  const invoiceRelatedRes = await relegateInvRelatedCreation(invoiceRelated, queryId, extraNotifDesc);
   if (!invoiceRelatedRes.success) {
     return res.status(invoiceRelatedRes.status).send(invoiceRelatedRes);
   }

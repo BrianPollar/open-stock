@@ -166,10 +166,11 @@ export const signupFactorRelgator = async(req, res, next) => {
   }
 
   if (!response.success) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (saved as any).remove();
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    await user.deleteOne({ _id: (saved as any)._id });
     if (company) {
-      await company.remove();
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      await companyMain.deleteOne({ _id: company._id });
     }
     return res.status(200).send(response);
   }

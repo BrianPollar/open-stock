@@ -59,8 +59,9 @@ export class InvoiceSettings extends DatabaseAuto {
             invoicesettings: vals
         };
         if (files && files[0]) {
+            console.log('CREATING IMAFE');
             const observer$ = StockCounterClient.ehttp
-                .uploadFiles(files, '/invoicesettings/createimg', details);
+                .uploadFiles(files, `/invoicesettings/createimg/${companyId}`, details);
             added = await lastValueFrom(observer$);
         }
         else {
@@ -106,7 +107,7 @@ export class InvoiceSettings extends DatabaseAuto {
         let added;
         if (files && files[0]) {
             const observer$ = StockCounterClient.ehttp
-                .uploadFiles(files, '/invoicesettings/updateimg', details);
+                .uploadFiles(files, `/invoicesettings/updateimg/${companyId}`, details);
             added = await lastValueFrom(observer$);
         }
         else {

@@ -1,10 +1,11 @@
 import { ConnectOptions } from 'mongoose';
+import { IenvironmentConfig } from '@open-stock/stock-universal';
 /**
  * Runs the stock universal server.
  * @param databaseConfigUrl - The URL of the database configuration.
  * @returns A promise that resolves to an object indicating whether the stock universal server is running.
  */
-export declare const runStockUniversalServer: (databaseConfigUrl: string, dbOptions?: ConnectOptions) => Promise<{
+export declare const runStockUniversalServer: (envCfig: IenvironmentConfig, databaseConfigUrl: string, dbOptions?: ConnectOptions) => Promise<{
     isStockUniversalServerRunning: boolean;
 }>;
 /**

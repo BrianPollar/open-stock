@@ -2,7 +2,7 @@ import { appendBody, deleteFiles, fileMetaLean, makeUrId, offsetLimitRelegator, 
 import express from 'express';
 import { getLogger } from 'log4js';
 import { checkIpAndAttempt, confirmAccountFactory, determineIfIsPhoneAndMakeFilterObj, isInAdictionaryOnline, isTooCommonPhrase, recoverAccountFactory, resetAccountFactory } from '../controllers/auth.controller';
-import { generateToken, sendTokenEmail, setUserInfo } from '../controllers/universial.controller';
+import { generateToken, setUserInfo } from '../controllers/universial.controller';
 import { companyLean } from '../models/company.model';
 import { companySubscriptionLean } from '../models/subscriptions/company-subscription.model';
 import { user, userAuthSelect, userLean } from '../models/user.model';
@@ -79,6 +79,122 @@ export const userLoginRelegator = async (req, res) => {
         activeSubscription
     };
     return res.status(200).send(nowResponse);
+};
+export const addUser = async (req, res, next) => {
+    console.log('boody is ', req.body);
+    const userData = req.body.user;
+    const parsed = req.body;
+    const { companyId } = req.user;
+    const { companyIdParam } = req.params;
+    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = verifyObjectId(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
+    userData.companyId = queryId;
+    if (parsed.profilePic) {
+        userData.profilePic = parsed.profilePic || userData.profilePic;
+    }
+    if (parsed.coverPic) {
+        userData.profileCoverPic = parsed.coverPic || userData.profileCoverPic;
+    }
+    if (parsed.newFiles) {
+        userData.photos = parsed.newFiles;
+    }
+    const count = await user
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+    userData.urId = makeUrId(Number(count[0]?.urId || '0'));
+    const newUser = new user(userData);
+    let status = 200;
+    let response = { success: true };
+    const savedUser = await newUser.save().catch((err) => {
+        status = 403;
+        const errResponse = {
+            success: false
+        };
+        if (err && err.errors) {
+            errResponse.err = stringifyMongooseErr(err.errors);
+        }
+        else {
+            errResponse.err = `we are having problems connecting to our databases, 
+      try again in a while`;
+        }
+        response = errResponse;
+    });
+    if (!response.err && savedUser) {
+        response = {
+            success: true,
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            _id: savedUser._id
+        };
+        req.body.savedUser = savedUser;
+        return next();
+    }
+    return res.status(status).send(response);
+};
+export const updateUserBulk = async (req, res, next) => {
+    const updatedUser = req.body.user;
+    const { companyId } = req.user;
+    const { companyIdParam } = req.params;
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    const { _id } = updatedUser;
+    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = verifyObjectIds([_id, queryId]);
+    if (!isValid) {
+        return res.status(401).send({ success: false, err: 'unauthourised' });
+    }
+    const foundUser = await user
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        .findOneAndUpdate({ _id, companyId: queryId });
+    if (!foundUser) {
+        return res.status(404).send({ success: false });
+    }
+    if (!foundUser.urId) {
+        const count = await user
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+        foundUser.urId = makeUrId(Number(count[0]?.urId || '0'));
+    }
+    const parsed = req.body;
+    if (parsed) {
+        if (parsed.profilePic) {
+            foundUser.profilePic = parsed.profilePic || foundUser.profilePic;
+        }
+        if (parsed.coverPic) {
+            foundUser.profileCoverPic = parsed.coverPic || foundUser.profileCoverPic;
+        }
+        if (parsed.newFiles) {
+            const oldPhotos = foundUser.photos || [];
+            foundUser.photos = oldPhotos.concat(parsed.newFiles);
+        }
+    }
+    delete updatedUser._id;
+    const keys = Object.keys(updatedUser);
+    keys.forEach(key => {
+        if (foundUser[key]) {
+            foundUser[key] = updatedUser[key] || foundUser[key];
+        }
+    });
+    const status = 200;
+    let response = { success: true };
+    await foundUser.save().catch((err) => {
+        const errResponse = {
+            success: false
+        };
+        if (err && err.errors) {
+            errResponse.err = stringifyMongooseErr(err.errors);
+        }
+        else {
+            errResponse.err = `we are having problems connecting to our databases, 
+      try again in a while`;
+        }
+        response = errResponse;
+    });
+    if (response.success) {
+        return next();
+    }
+    return res.status(status).send(response);
 };
 userAuthRoutes.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 userAuthRoutes.get('/authexpress/:companyIdParam', requireAuth, async (req, res) => {
@@ -480,7 +596,7 @@ userAuthRoutes.post('/updateprofileimg/:companyIdParam', requireAuth, uploadFile
             foundUser.profileCoverPic = parsed.coverPic || foundUser.profileCoverPic;
         }
         if (parsed.newFiles) {
-            const oldPhotos = foundUser.photos;
+            const oldPhotos = foundUser.photos || [];
             foundUser.photos = oldPhotos.concat(parsed.newFiles);
         }
     }
@@ -670,26 +786,38 @@ userAuthRoutes.get('/getusers/:where/:offset/:limit/:companyIdParam', requireAut
     let filter;
     authLogger.info('where is ', where);
     switch (where) {
-        case 'manual':
+        /* case 'manual':
+          filter = {
+            manuallyAdded: true,
+            companyId: queryId
+          };
+          break;
+        case 'auto':
+          filter = {
+            manuallyAdded: false,
+            companyId: queryId
+          };
+          break;*/
+        case 'customer':
             filter = {
-                manuallyAdded: true,
+                userType: 'customer',
                 companyId: queryId
             };
             break;
-        case 'auto':
+        case 'staff':
             filter = {
-                manuallyAdded: false,
+                userType: 'staff',
                 companyId: queryId
             };
             break;
         default:
-            filter = { companyId: queryId };
+            filter = { companyId: queryId, userType: { $ne: 'company' } };
             break;
     }
     authLogger.info('filter is ', filter);
     const all = await Promise.all([
         userLean
-            .find({ ...filter, ...{ userType: { $ne: 'company' } } })
+            .find({ ...filter })
             .sort({ fname: 1 })
             .limit(Number(currLimit))
             .skip(Number(currOffset))
@@ -709,208 +837,17 @@ userAuthRoutes.get('/getusers/:where/:offset/:limit/:companyIdParam', requireAut
     authLogger.debug('response is   ', response);
     return res.status(200).send(response);
 });
-userAuthRoutes.post('/adduser/:companyIdParam', requireAuth, roleAuthorisation('users', 'create'), async (req, res) => {
-    const userData = req.body.user;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = verifyObjectId(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
-    const count = await user
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
-    userData.urId = makeUrId(Number(count[0]?.urId || '0'));
-    userData.companyId = queryId;
-    const newUser = new user(userData);
-    let status = 200;
-    let response = { success: true };
-    const savedUser = await newUser.save().catch((err) => {
-        status = 403;
-        const errResponse = {
-            success: false
-        };
-        if (err && err.errors) {
-            errResponse.err = stringifyMongooseErr(err.errors);
-        }
-        else {
-            errResponse.err = `we are having problems connecting to our databases, 
-      try again in a while`;
-        }
-        response = errResponse;
-    });
-    if (!response.err && savedUser) {
-        const type = 'link';
-        response = {
-            success: true,
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            _id: savedUser._id
-        };
-        await sendTokenEmail(savedUser, type, stockAuthConfig.localSettings.appOfficialName);
-    }
-    return res.status(status).send(response);
+userAuthRoutes.post('/adduser/:companyIdParam', requireAuth, roleAuthorisation('users', 'create'), addUser, (req, res) => {
+    return res.status(200).send({ success: true });
 });
-userAuthRoutes.post('/adduserimg/:companyIdParam', requireAuth, roleAuthorisation('users', 'create'), uploadFiles, appendBody, saveMetaToDb, async (req, res) => {
-    const userData = req.body.user;
-    const parsed = req.body.parsed;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = verifyObjectId(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
-    userData.companyId = queryId;
-    if (parsed) {
-        if (parsed.profilePic) {
-            userData.profilePic = parsed.profilePic || userData.profilePic;
-        }
-        if (parsed.coverPic) {
-            userData.profileCoverPic = parsed.coverPic || userData.profileCoverPic;
-        }
-        if (parsed.newFiles) {
-            const oldPhotos = userData.photos;
-            userData.photos = oldPhotos.concat(parsed.newFiles);
-        }
-    }
-    const count = await user
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
-    userData.urId = makeUrId(Number(count[0]?.urId || '0'));
-    const newUser = new user(userData);
-    let status = 200;
-    let response = { success: true };
-    const savedUser = await newUser.save().catch((err) => {
-        status = 403;
-        const errResponse = {
-            success: false
-        };
-        if (err && err.errors) {
-            errResponse.err = stringifyMongooseErr(err.errors);
-        }
-        else {
-            errResponse.err = `we are having problems connecting to our databases, 
-      try again in a while`;
-        }
-        response = errResponse;
-    });
-    if (!response.err && savedUser) {
-        response = {
-            success: true,
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            _id: savedUser._id
-        };
-    }
-    return res.status(status).send(response);
+userAuthRoutes.post('/adduserimg/:companyIdParam', requireAuth, roleAuthorisation('users', 'create'), uploadFiles, appendBody, saveMetaToDb, addUser, (req, res) => {
+    return res.status(200).send({ success: true });
 });
-userAuthRoutes.put('/updateuserbulk/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('users', 'update'), async (req, res) => {
-    const updatedUser = req.body.user;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    const { _id } = updatedUser;
-    const isValid = verifyObjectIds([_id, queryId]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, err: 'unauthourised' });
-    }
-    const foundUser = await user
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .findOneAndUpdate({ _id, companyId: queryId });
-    if (!foundUser) {
-        return res.status(404).send({ success: false });
-    }
-    if (!foundUser.urId) {
-        const count = await user
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
-        foundUser.urId = makeUrId(Number(count[0]?.urId || '0'));
-    }
-    delete updatedUser._id;
-    const keys = Object.keys(updatedUser);
-    keys.forEach(key => {
-        if (foundUser[key]) {
-            foundUser[key] = updatedUser[key] || foundUser[key];
-        }
-    });
-    let status = 200;
-    let response = { success: true };
-    await foundUser.save().catch((err) => {
-        status = 403;
-        const errResponse = {
-            success: false
-        };
-        if (err && err.errors) {
-            errResponse.err = stringifyMongooseErr(err.errors);
-        }
-        else {
-            errResponse.err = `we are having problems connecting to our databases, 
-      try again in a while`;
-        }
-        response = errResponse;
-    });
-    return res.status(status).send(response);
+userAuthRoutes.put('/updateuserbulk/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('users', 'update'), updateUserBulk, (req, res) => {
+    return res.status(200).send({ success: true });
 });
-userAuthRoutes.post('/updateuserbulkimg/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('users', 'update'), uploadFiles, appendBody, saveMetaToDb, async (req, res) => {
-    const updatedUser = req.body.user;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    const { _id } = updatedUser;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = verifyObjectIds([_id, queryId]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, err: 'unauthourised' });
-    }
-    const foundUser = await user
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .findOneAndUpdate({ _id, companyId: queryId });
-    if (!foundUser) {
-        return res.status(404).send({ success: false });
-    }
-    if (!foundUser.urId) {
-        const count = await user
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
-        foundUser.urId = makeUrId(Number(count[0]?.urId || '0'));
-    }
-    const parsed = req.body.parsed;
-    if (parsed) {
-        if (parsed.profilePic) {
-            foundUser.profilePic = parsed.profilePic || foundUser.profilePic;
-        }
-        if (parsed.coverPic) {
-            foundUser.profileCoverPic = parsed.coverPic || foundUser.profileCoverPic;
-        }
-        if (parsed.newFiles) {
-            const oldPhotos = foundUser.photos;
-            foundUser.photos = oldPhotos.concat(parsed.newFiles);
-        }
-    }
-    delete updatedUser._id;
-    const keys = Object.keys(updatedUser);
-    keys.forEach(key => {
-        if (foundUser[key]) {
-            foundUser[key] = updatedUser[key] || foundUser[key];
-        }
-    });
-    const status = 200;
-    let response = { success: true };
-    await foundUser.save().catch((err) => {
-        const errResponse = {
-            success: false
-        };
-        if (err && err.errors) {
-            errResponse.err = stringifyMongooseErr(err.errors);
-        }
-        else {
-            errResponse.err = `we are having problems connecting to our databases, 
-      try again in a while`;
-        }
-        response = errResponse;
-    });
-    return res.status(status).send(response);
+userAuthRoutes.post('/updateuserbulkimg/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('users', 'update'), uploadFiles, appendBody, saveMetaToDb, updateUserBulk, (req, res) => {
+    return res.status(200).send({ success: true });
 });
 userAuthRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('users', 'delete'), deleteFiles, async (req, res) => {
     const { ids } = req.body;

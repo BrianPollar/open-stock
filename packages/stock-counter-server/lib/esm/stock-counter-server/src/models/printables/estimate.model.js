@@ -1,7 +1,7 @@
 import { Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../controllers/database.controller';
 const estimateSchema = new Schema({
-    companyId: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
+    companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
     invoiceRelated: { type: String }
 }, { timestamps: true });
 /** primary selection object

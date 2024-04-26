@@ -62,8 +62,9 @@ class InvoiceSettings extends stock_universal_1.DatabaseAuto {
             invoicesettings: vals
         };
         if (files && files[0]) {
+            console.log('CREATING IMAFE');
             const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-                .uploadFiles(files, '/invoicesettings/createimg', details);
+                .uploadFiles(files, `/invoicesettings/createimg/${companyId}`, details);
             added = await (0, rxjs_1.lastValueFrom)(observer$);
         }
         else {
@@ -109,7 +110,7 @@ class InvoiceSettings extends stock_universal_1.DatabaseAuto {
         let added;
         if (files && files[0]) {
             const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-                .uploadFiles(files, '/invoicesettings/updateimg', details);
+                .uploadFiles(files, `/invoicesettings/updateimg/${companyId}`, details);
             added = await (0, rxjs_1.lastValueFrom)(observer$);
         }
         else {

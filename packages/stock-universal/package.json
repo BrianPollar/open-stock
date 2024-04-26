@@ -1,6 +1,6 @@
 {
   "name": "@open-stock/stock-universal",
-  "version": "3.2.3",
+  "version": "3.2.4",
   "description": "> TODO: description",
   "main": "lib/cjs/index.js",
   "module": "lib/esm/index.js",

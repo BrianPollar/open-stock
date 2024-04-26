@@ -30,7 +30,7 @@ exports.receiptRoutes.post('/create/:companyIdParam', stock_universal_server_1.r
         .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     receipt.urId = (0, stock_universal_server_1.makeUrId)(Number(count[0]?.urId || '0'));
     const extraNotifDesc = 'Newly created receipt';
-    const invoiceRelatedRes = await (0, invoicerelated_1.relegateInvRelatedCreation)(invoiceRelated, extraNotifDesc, queryId);
+    const invoiceRelatedRes = await (0, invoicerelated_1.relegateInvRelatedCreation)(invoiceRelated, queryId, extraNotifDesc);
     if (!invoiceRelatedRes.success) {
         return res.status(invoiceRelatedRes.status).send(invoiceRelatedRes);
     }

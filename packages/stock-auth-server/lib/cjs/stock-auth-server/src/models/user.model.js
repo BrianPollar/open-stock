@@ -47,7 +47,7 @@ const uniqueValidator = require('mongoose-unique-validator');
  * @property {Date} updatedAt - User update date.
  */
 const userSchema = new mongoose_1.Schema({
-    urId: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
+    urId: { type: String, required: [true, 'cannot be empty.'], index: true },
     companyId: { type: String, index: true },
     fname: { type: String, index: true },
     lname: { type: String, index: true },
@@ -64,8 +64,8 @@ const userSchema = new mongoose_1.Schema({
     gender: { type: String },
     admin: { type: Boolean, default: false },
     permissions: {},
-    email: { type: String },
-    phone: { type: Number },
+    email: { type: String, unique: true },
+    phone: { type: Number, unique: true },
     expireAt: { type: String },
     verified: { type: Boolean, default: false },
     authyId: { type: String },

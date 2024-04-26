@@ -52,7 +52,7 @@ deliveryNoteRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCom
     .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
   deliveryNote.urId = makeUrId(Number(count[0]?.urId || '0'));
   const extraNotifDesc = 'Newly generated delivery note';
-  const invoiceRelatedRes = await relegateInvRelatedCreation(invoiceRelated, extraNotifDesc, companyId);
+  const invoiceRelatedRes = await relegateInvRelatedCreation(invoiceRelated, queryId, extraNotifDesc);
   if (!invoiceRelatedRes.success) {
     return res.status(invoiceRelatedRes.status).send(invoiceRelatedRes);
   }

@@ -120,7 +120,9 @@ itemDecoyRoutes.get('/getall/:offset/:limit/:companyIdParam', async(req, res) =>
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
   const { companyIdParam } = req.params;
   let filter = {} as object;
+  console.log('GETTING DECOYS ', companyIdParam);
   if (companyIdParam) {
+    console.log('GOT PARA');
     const isValid = verifyObjectId(companyIdParam);
     if (!isValid) {
       return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });

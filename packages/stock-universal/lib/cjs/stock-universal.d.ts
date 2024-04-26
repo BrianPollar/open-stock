@@ -13,11 +13,11 @@ export interface IenvironmentConfig {
      */
     appName: string;
     /**
-     * The directory where photos are stored.
+     * The directory where photos are stored relative to absolutepath.
      */
     photoDirectory: string;
     /**
-     * The directory where videos are stored.
+     * The directory where videos are stored relative absolutepath.
      */
     videoDirectory: string;
     /**

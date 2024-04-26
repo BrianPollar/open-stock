@@ -1,3 +1,4 @@
+import { IenvironmentConfig } from '@open-stock/stock-universal';
 /**
  * Creates directories for an application.
  * @param appName - The name of the application.
@@ -5,7 +6,7 @@
  * @param directories - An array of directory names to be created.
  * @returns A promise that resolves to a boolean indicating whether the directories were successfully created.
  */
-export declare const createDirectories: (appName: string, absolutepath: string, directories: string[]) => Promise<boolean>;
+export declare const createDirectories: (envConfig: IenvironmentConfig) => Promise<boolean>;
 /**
  * Checks if a directory exists at the specified path and creates it if it doesn't exist.
  * @param absolutepath - The absolute path of the directory or the parent directory.

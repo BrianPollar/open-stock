@@ -5,7 +5,7 @@ const mongoose_1 = require("mongoose");
 const database_controller_1 = require("../controllers/database.controller");
 const uniqueValidator = require('mongoose-unique-validator');
 const expenseSchema = new mongoose_1.Schema({
-    urId: { type: String, unique: true },
+    urId: { type: String },
     companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
     name: { type: String, required: [true, 'cannot be empty.'], index: true },
     person: { type: String },

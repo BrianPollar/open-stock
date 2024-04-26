@@ -9,3 +9,5 @@ export declare const userAuthRoutes: any;
  * @returns The response with the user information and token.
  */
 export declare const userLoginRelegator: (req: Request, res: Response) => Promise<any>;
+export declare const addUser: (req: any, res: any, next: any) => Promise<any>;
+export declare const updateUserBulk: (req: any, res: any, next: any) => Promise<any>;

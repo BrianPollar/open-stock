@@ -1,12 +1,10 @@
-/* eslint-disable @typescript-eslint/dot-notation */
-/* eslint-disable @typescript-eslint/prefer-for-of */
 import * as fs from 'fs';
 import { getLogger } from 'log4js';
 import multer from 'multer';
 import * as path from 'path';
-import { multerFileds, upload } from './filestorage';
-import { getExpressLocals } from '../constants/environment.constant';
 import { fileMeta } from '../models/filemeta.model';
+import { envConfig } from '../stock-universal-local';
+import { multerFileds, upload } from './filestorage';
 const fsControllerLogger = getLogger('controllers/FsController');
 /**
  * Uploads files from the request to the server.
@@ -15,6 +13,7 @@ const fsControllerLogger = getLogger('controllers/FsController');
  * @param {Function} next - The next middleware function.
  */
 export const uploadFiles = (req, res, next) => {
+    console.log('uploadFiles');
     const makeupload = upload.fields(multerFileds);
     makeupload(req, res, function (err) {
         if (err instanceof multer.MulterError) {
@@ -39,6 +38,11 @@ export const appendBody = (req, res, next) => {
     if (!req.files) {
         return res.status(404).send({ success: false });
     }
+    const { companyId } = req.user;
+    const { companyIdParam } = req.params;
+    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const videoDirectory = path.join(envConfig.videoDirectory + '/' + queryId + '/');
+    const photoDirectory = path.join(envConfig.photoDirectory + '/' + queryId + '/');
     const { userId } = req.user;
     const parsed = JSON.parse(req.body.data);
     const newFiles = [];
@@ -49,10 +53,10 @@ export const appendBody = (req, res, next) => {
         profilePic = {
             userOrCompanayId: userId,
             name: req.files['profilePic'][0].originalname,
-            url: '/openphotos/' + req.files['profilePic'][0].filename,
+            url: photoDirectory + req.files['profilePic'][0].filename,
             type: req.files['profilePic'][0].mimetype,
             version: '',
-            storageDir: 'openphotos',
+            storageDir: photoDirectory,
             size: req.files['profilePic'][0].size
         };
         parsed.profilePic = profilePic;
@@ -61,10 +65,10 @@ export const appendBody = (req, res, next) => {
         coverPic = {
             userOrCompanayId: userId,
             name: req.files['coverPic'][0].originalname,
-            url: '/openphotos/' + req.files['coverPic'][0].filename,
+            url: photoDirectory + req.files['coverPic'][0].filename,
             type: req.files['coverPic'][0].mimetype,
             version: '',
-            storageDir: 'openphotos',
+            storageDir: photoDirectory,
             size: req.files['coverPic'][0].size
         };
         parsed.coverPic = coverPic;
@@ -75,11 +79,11 @@ export const appendBody = (req, res, next) => {
                 .push({
                 userOrCompanayId: userId,
                 name: req.files['photos'][i].originalname,
-                url: '/openphotos/' + req.files['photos'][i].filename,
+                url: photoDirectory + req.files['photos'][i].filename,
                 type: req.files['photos'][i].mimetype,
                 version: '',
                 size: req.files['photos'][i].size,
-                storageDir: 'openphotos'
+                storageDir: photoDirectory
             });
         }
     }
@@ -89,10 +93,10 @@ export const appendBody = (req, res, next) => {
                 .push({
                 userOrCompanayId: userId,
                 name: req.files['videos'][i].originalname,
-                url: '/openvideos/' + req.files['videos'][i].filename,
+                url: videoDirectory + req.files['videos'][i].filename,
                 type: req.files['videos'][i].mimetype,
                 version: '',
-                storageDir: 'openvideos',
+                storageDir: videoDirectory,
                 size: req.files['videos'][i].size
             });
         }
@@ -101,16 +105,16 @@ export const appendBody = (req, res, next) => {
         thumbnail = {
             userOrCompanayId: userId,
             name: req.files['videothumbnail'][0].originalname,
-            url: '/openphotos/' + req.files['videothumbnail'][0].filename,
+            url: photoDirectory + req.files['videothumbnail'][0].filename,
             type: req.files['videothumbnail'][0].mimetype,
             version: '',
-            storageDir: 'openphotos',
+            storageDir: photoDirectory,
             size: req.files['videothumbnail'][0].size
         };
         parsed.thumbnail = thumbnail;
     }
     parsed.newFiles = newFiles;
-    req.body.parsed = parsed;
+    req.body = parsed;
     return next();
 };
 /**
@@ -120,7 +124,7 @@ export const appendBody = (req, res, next) => {
  * @param next - The next middleware function.
  */
 export const saveMetaToDb = async (req, res, next) => {
-    const parsed = req.body.parsed;
+    const parsed = req.body;
     if (!parsed) {
         return next();
     }
@@ -156,7 +160,8 @@ export const saveMetaToDb = async (req, res, next) => {
         const mappedParsedFiles = parsed.newFiles.map((value) => value._id);
         parsed.newFiles = mappedParsedFiles;
     }
-    req.body.parsed = parsed; // newFiles are strings of ids
+    req.body = parsed; // newFiles are strings of ids
+    return next();
 };
 /**
  * Updates files in the file manager.
@@ -198,7 +203,7 @@ export const deleteFiles = async (req, res, next) => {
         const promises = filesWithDir
             .map((value /** : Ifilewithdir*/) => new Promise(resolve => {
             fsControllerLogger.debug('deleting file', value.filename);
-            const absolutepath = getExpressLocals(req.app, 'absolutepath');
+            const absolutepath = envConfig.absolutepath;
             const nowpath = path
                 .resolve(`${absolutepath}${value.filename}`);
             fs.unlink(nowpath, (err) => {
@@ -224,7 +229,7 @@ export const deleteFiles = async (req, res, next) => {
 export const getOneFile = (req, res) => {
     const { filename } = req.params;
     fsControllerLogger.debug(`download, file: ${filename}`);
-    const absolutepath = getExpressLocals(req.app, 'absolutepath');
+    const absolutepath = envConfig.absolutepath;
     const fileLocation = path.join(`${absolutepath}${filename}`, filename);
     return res.download(fileLocation, filename);
 };

@@ -5,8 +5,8 @@ const mongoose_1 = require("mongoose");
 const database_controller_1 = require("../controllers/database.controller");
 const uniqueValidator = require('mongoose-unique-validator');
 const itemLimittedSchema = new mongoose_1.Schema({
-    urId: { type: String, unique: true },
-    companyId: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
+    urId: { type: String },
+    companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
     name: { type: String }
 }, { timestamps: true });
 // Apply the uniqueValidator plugin to userSchema.

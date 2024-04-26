@@ -37,7 +37,7 @@ const saveInvoice = async (invoice, invoiceRelated, queryId) => {
     invoiceRelated.companyId = queryId;
     invoiceRelated.invoiceId = await makeinvoiceId(queryId);
     const extraNotifDesc = 'Newly created invoice';
-    const relatedId = await (0, invoicerelated_1.relegateInvRelatedCreation)(invoiceRelated, extraNotifDesc, queryId);
+    const relatedId = await (0, invoicerelated_1.relegateInvRelatedCreation)(invoiceRelated, queryId, extraNotifDesc);
     if (!relatedId.success) {
         return relatedId;
     }

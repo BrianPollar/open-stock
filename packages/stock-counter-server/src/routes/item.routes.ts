@@ -301,7 +301,7 @@ itemRoutes.post('/updateimg/:companyIdParam', requireAuth, requireActiveCompany,
 
   const parsed = req.body.parsed;
   if (parsed && parsed.newFiles) {
-    const oldPhotos = item.photos;
+    const oldPhotos = item.photos || [];
     item.photos = oldPhotos.concat(parsed.newFiles) as string[];
   }
 

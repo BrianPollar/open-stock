@@ -43,8 +43,8 @@ class User extends stock_universal_1.DatabaseAuto {
      * @param limit The maximum number of users to retrieve.
      * @returns An array of User instances created from the retrieved user objects.
      */
-    static async getUsers(companyId, url, offset = 0, limit = 20) {
-        const observer$ = stock_auth_client_1.StockAuthClient.ehttp.makeGet(`/user/getusers/${url}/${offset}/${limit}/${companyId}`);
+    static async getUsers(companyId, where, offset = 0, limit = 20) {
+        const observer$ = stock_auth_client_1.StockAuthClient.ehttp.makeGet(`/user/getusers/${where}/${offset}/${limit}/${companyId}`);
         const users = await (0, rxjs_1.lastValueFrom)(observer$);
         return {
             count: users.count,
@@ -110,16 +110,16 @@ class User extends stock_universal_1.DatabaseAuto {
                 _id: this._id
             }
         };
-        let added;
+        let updated;
         if (files && files[0]) {
             const observer$ = stock_auth_client_1.StockAuthClient.ehttp.uploadFiles(files, `/user/updateuserbulkimg/${companyId}`, details);
-            added = await (0, rxjs_1.lastValueFrom)(observer$);
+            updated = await (0, rxjs_1.lastValueFrom)(observer$);
         }
         else {
             const observer$ = stock_auth_client_1.StockAuthClient.ehttp.makePut(`/user/updateuserbulk/${companyId}`, details);
-            added = await (0, rxjs_1.lastValueFrom)(observer$);
+            updated = await (0, rxjs_1.lastValueFrom)(observer$);
         }
-        return added;
+        return updated;
     }
     /**
      * Makes the user an admin based on their permissions.

@@ -46,7 +46,7 @@ exports.deliveryNoteRoutes.post('/create/:companyIdParam', stock_universal_serve
         .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     deliveryNote.urId = (0, stock_universal_server_1.makeUrId)(Number(count[0]?.urId || '0'));
     const extraNotifDesc = 'Newly generated delivery note';
-    const invoiceRelatedRes = await (0, invoicerelated_1.relegateInvRelatedCreation)(invoiceRelated, extraNotifDesc, companyId);
+    const invoiceRelatedRes = await (0, invoicerelated_1.relegateInvRelatedCreation)(invoiceRelated, queryId, extraNotifDesc);
     if (!invoiceRelatedRes.success) {
         return res.status(invoiceRelatedRes.status).send(invoiceRelatedRes);
     }

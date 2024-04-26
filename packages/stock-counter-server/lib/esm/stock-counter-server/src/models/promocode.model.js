@@ -13,8 +13,8 @@ const uniqueValidator = require('mongoose-unique-validator');
  * @param {boolean} timestamps - The timestamps for the promocode.
  */
 const promocodeSchema = new Schema({
-    urId: { type: String, unique: true },
-    companyId: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
+    urId: { type: String },
+    companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
     code: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
     items: [{ type: String, required: [true, 'cannot be empty.'] }],
     amount: { type: Number, required: [true, 'cannot be empty.'] },

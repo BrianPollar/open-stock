@@ -1,5 +1,5 @@
 import { IinvoiceRelated, Iorder, Ipayment, IpaymentRelated, Isuccess, TpayType } from '@open-stock/stock-universal';
-import { IorderResponse } from 'pesapal3';
+import { IsubmitOrderRes } from 'pesapal3';
 /** Interface for the response of the payOnDelivery function */
 export interface IpayResponse extends Isuccess {
     /** The tracking ID for the PesaPal order */
@@ -45,6 +45,6 @@ export declare const relegatePesapalPayment: (paymentRelated: Required<IpaymentR
 } | {
     success: boolean;
     status: number;
-    pesapalOrderRes: IorderResponse;
+    pesapalOrderRes: IsubmitOrderRes;
     paymentRelated: any;
 }>;

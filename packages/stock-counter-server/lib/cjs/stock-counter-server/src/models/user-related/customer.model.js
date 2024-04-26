@@ -7,7 +7,7 @@ const database_controller_1 = require("../../controllers/database.controller");
 const uniqueValidator = require('mongoose-unique-validator');
 /** Defines the schema for the customer model. */
 const customerSchema = new mongoose_1.Schema({
-    companyId: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
+    companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
     user: { type: mongoose_1.default.Types.ObjectId, unique: true, required: [true, 'cannot be empty.'], index: true },
     startDate: { type: Date, required: [true, 'cannot be empty.'] },
     endDate: { type: Date, required: [true, 'cannot be empty.'] },

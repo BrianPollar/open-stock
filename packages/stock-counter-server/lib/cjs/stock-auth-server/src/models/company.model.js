@@ -8,7 +8,7 @@ const database_controller_1 = require("../controllers/database.controller");
 // const twilioClient = require('twilio')(config.accountSid, config.authToken);
 const uniqueValidator = require('mongoose-unique-validator');
 exports.companySchema = new mongoose_1.Schema({
-    urId: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
+    urId: { type: String, required: [true, 'cannot be empty.'], index: true },
     name: { type: String, required: [true, 'cannot be empty.'], index: true },
     displayName: { type: String, required: [true, 'cannot be empty.'], index: true },
     dateOfEst: { type: String, index: true },

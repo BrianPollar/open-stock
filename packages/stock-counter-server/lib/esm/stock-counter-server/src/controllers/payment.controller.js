@@ -4,7 +4,6 @@ import { companyMain } from '@open-stock/stock-auth-server';
 import { makeNotfnBody } from '@open-stock/stock-notif-server';
 import { stringifyMongooseErr, verifyObjectId } from '@open-stock/stock-universal-server';
 import { getLogger } from 'log4js';
-import { Pesapal } from 'pesapal3';
 import { orderMain } from '../models/order.model';
 import { paymentMain } from '../models/payment.model';
 import { paymentRelatedMain } from '../models/printables/paymentrelated/paymentrelated.model';
@@ -286,7 +285,7 @@ export const relegatePesapalPayment = async (paymentRelated, invoiceRelated, typ
         currency: paymentRelated.currency || 'UGA',
         amount: paymentRelated.payments[0].amount,
         description: 'Complet payments for the selected products',
-        callback_url: Pesapal.config.pesapalCallbackUrl,
+        callback_url: pesapalPaymentInstance.config.pesapalCallbackUrl,
         cancellation_url: '',
         notification_id: '',
         billing_address: {
@@ -311,7 +310,7 @@ export const relegatePesapalPayment = async (paymentRelated, invoiceRelated, typ
     }
     const related = await paymentRelatedMain.findById(appended.paymentRelated);
     if (related) {
-        related.pesaPalorderTrackingId = response.order_tracking_id;
+        related.pesaPalorderTrackingId = response.pesaPalOrderRes.order_tracking_id;
         let errResponse;
         await related.save().catch(err => {
             errResponse = {

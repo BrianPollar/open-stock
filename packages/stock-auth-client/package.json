@@ -1,7 +1,7 @@
 {
   "name": "@open-stock/stock-auth-client",
-  "version": "3.2.3",
-  "description": "> TODO: description",
+  "version": "3.2.4",
+  "description": "> TODO: description linking roll all fuck",
   "main": "lib/cjs/index.js",
   "module": "lib/esm/index.js",
   "types": "lib/types/index.d.ts",

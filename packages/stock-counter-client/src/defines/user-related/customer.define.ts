@@ -1,4 +1,4 @@
-import { Iaddress, Icustomer, IdataArrayResponse, IdeleteCredentialsLocalUser, IfileMeta, Isuccess } from '@open-stock/stock-universal';
+import { Iaddress, Icustomer, IdataArrayResponse, IdeleteCredentialsLocalUser, Ifile, IfileMeta, Isuccess, Iuser } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
 import { StockCounterClient } from '../../stock-counter-client';
 import { UserBase } from './userbase.define';
@@ -57,9 +57,17 @@ export class Customer extends UserBase {
    * @param {Icustomer} customer - The customer data to be created.
    * @returns {Promise<Isuccess>} - A success response indicating whether the customer creation was successful.
    */
-  static async createCustomer(companyId: string, customer: Icustomer): Promise<Isuccess> {
-    const observer$ = StockCounterClient.ehttp.makePost(`/customer/create/${companyId}`, { customer });
-    return await lastValueFrom(observer$) as Isuccess;
+  static async createCustomer(companyId: string, vals: {customer: Icustomer; user: Partial<Iuser>}, files?: Ifile[]): Promise<Isuccess> {
+    let added: Isuccess;
+    vals.user.userType = 'customer';
+    if (files && files[0]) {
+      const observer$ = StockCounterClient.ehttp.uploadFiles(files, `/customer/createimg/${companyId}`, vals);
+      added = await lastValueFrom(observer$) as Isuccess;
+    } else {
+      const observer$ = StockCounterClient.ehttp.makePost(`/customer/create/${companyId}`, vals);
+      added = await lastValueFrom(observer$) as Isuccess;
+    }
+    return added;
   }
 
   /**
@@ -81,11 +89,20 @@ export class Customer extends UserBase {
    * @param {Icustomer} vals - The updated customer data.
    * @returns {Promise<Isuccess>} - A success response indicating whether the update was successful.
    */
-  async updateCustomer(companyId: string, vals: Icustomer): Promise<Isuccess> {
-    const observer$ = StockCounterClient.ehttp.makePut(`/customer/update/${companyId}`, vals);
-    const updated = await lastValueFrom(observer$) as Isuccess;
+  async updateCustomer(companyId: string, vals: {customer: Icustomer; user: Partial<Iuser>}, files?: Ifile[]): Promise<Isuccess> {
+    let updated: Isuccess;
+    vals.customer._id = this._id;
+    vals.user._id = typeof this.user === 'string' ? this.user : this.user._id;
+    if (files && files[0]) {
+      const observer$ = StockCounterClient.ehttp.uploadFiles(files, `/customer/updateimg/${companyId}`, vals);
+      updated = await lastValueFrom(observer$) as Isuccess;
+    } else {
+      const observer$ = StockCounterClient.ehttp.makePut(`/customer/update/${companyId}`, vals);
+      updated = await lastValueFrom(observer$) as Isuccess;
+    }
+
     if (updated.success) {
-      this.otherAddresses = vals.otherAddresses || this.otherAddresses;
+      this.otherAddresses = vals.customer.otherAddresses || this.otherAddresses;
     }
     return updated;
   }

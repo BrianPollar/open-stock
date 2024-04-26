@@ -1,15 +1,15 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.makePaymentInstall = exports.deleteAllPayOrderLinked = exports.deleteManyPaymentRelated = exports.makePaymentRelatedPdct = exports.relegatePaymentRelatedCreation = exports.updatePaymentRelated = void 0;
+const stock_auth_server_1 = require("@open-stock/stock-auth-server");
+const stock_notif_server_1 = require("@open-stock/stock-notif-server");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
+const log4js_1 = require("log4js");
 const order_model_1 = require("../../models/order.model");
 const payment_model_1 = require("../../models/payment.model");
 const paymentrelated_model_1 = require("../../models/printables/paymentrelated/paymentrelated.model");
-const invoicerelated_1 = require("../printables/related/invoicerelated");
-const log4js_1 = require("log4js");
-const stock_notif_server_1 = require("@open-stock/stock-notif-server");
-const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const receipt_model_1 = require("../../models/printables/receipt.model");
+const invoicerelated_1 = require("../printables/related/invoicerelated");
 /** Logger for PaymentRelated routes */
 const paymentRelatedLogger = (0, log4js_1.getLogger)('routes/PaymentRelated');
 /**

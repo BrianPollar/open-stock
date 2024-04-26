@@ -1,12 +1,13 @@
 import { DatabaseAuto, IdataArrayResponse, IsubscriptionFeature, IsubscriptionPackage, Isuccess } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
 import { StockAuthClient } from '../../stock-auth-client';
+import { TsubscriptionDurVal } from '@open-stock/stock-universal';
 
 export class CompanySubscription
   extends DatabaseAuto {
   name: string;
   ammount: number;
-  duration: number;
+  duration: TsubscriptionDurVal;
   subscriprionId: string;
   startDate: Date;
   endDate: Date;

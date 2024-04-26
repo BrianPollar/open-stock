@@ -7,7 +7,6 @@ const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const stock_notif_server_1 = require("@open-stock/stock-notif-server");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const log4js_1 = require("log4js");
-const pesapal3_1 = require("pesapal3");
 const order_model_1 = require("../models/order.model");
 const payment_model_1 = require("../models/payment.model");
 const paymentrelated_model_1 = require("../models/printables/paymentrelated/paymentrelated.model");
@@ -291,7 +290,7 @@ const relegatePesapalPayment = async (paymentRelated, invoiceRelated, type, orde
         currency: paymentRelated.currency || 'UGA',
         amount: paymentRelated.payments[0].amount,
         description: 'Complet payments for the selected products',
-        callback_url: pesapal3_1.Pesapal.config.pesapalCallbackUrl,
+        callback_url: stock_counter_server_1.pesapalPaymentInstance.config.pesapalCallbackUrl,
         cancellation_url: '',
         notification_id: '',
         billing_address: {
@@ -316,7 +315,7 @@ const relegatePesapalPayment = async (paymentRelated, invoiceRelated, type, orde
     }
     const related = await paymentrelated_model_1.paymentRelatedMain.findById(appended.paymentRelated);
     if (related) {
-        related.pesaPalorderTrackingId = response.order_tracking_id;
+        related.pesaPalorderTrackingId = response.pesaPalOrderRes.order_tracking_id;
         let errResponse;
         await related.save().catch(err => {
             errResponse = {

@@ -1,4 +1,4 @@
-import { Iaddress, Icustomer, IdeleteCredentialsLocalUser, IfileMeta, Isuccess } from '@open-stock/stock-universal';
+import { Iaddress, Icustomer, IdeleteCredentialsLocalUser, Ifile, IfileMeta, Isuccess, Iuser } from '@open-stock/stock-universal';
 import { UserBase } from './userbase.define';
 /**
  * Represents a customer entity.
@@ -39,7 +39,10 @@ export declare class Customer extends UserBase {
      * @param {Icustomer} customer - The customer data to be created.
      * @returns {Promise<Isuccess>} - A success response indicating whether the customer creation was successful.
      */
-    static createCustomer(companyId: string, customer: Icustomer): Promise<Isuccess>;
+    static createCustomer(companyId: string, vals: {
+        customer: Icustomer;
+        user: Partial<Iuser>;
+    }, files?: Ifile[]): Promise<Isuccess>;
     /**
      * Deletes multiple customers.
      * @static
@@ -55,7 +58,10 @@ export declare class Customer extends UserBase {
      * @param {Icustomer} vals - The updated customer data.
      * @returns {Promise<Isuccess>} - A success response indicating whether the update was successful.
      */
-    updateCustomer(companyId: string, vals: Icustomer): Promise<Isuccess>;
+    updateCustomer(companyId: string, vals: {
+        customer: Icustomer;
+        user: Partial<Iuser>;
+    }, files?: Ifile[]): Promise<Isuccess>;
     /**
      * Deletes the current customer instance.
      * @param companyId - The ID of the company

@@ -1,3 +1,4 @@
+import { IenvironmentConfig } from '@open-stock/stock-universal';
 import { access, mkdir } from 'fs-extra';
 import { getLogger } from 'log4js';
 
@@ -12,17 +13,19 @@ const fileMangerLogger = getLogger('FileManger');
  * @returns A promise that resolves to a boolean indicating whether the directories were successfully created.
  */
 export const createDirectories = async(
-  appName: string,
-  absolutepath: string,
-  directories: string[]): Promise<boolean> => {
+  envConfig: IenvironmentConfig): Promise<boolean> => {
   // Check if the directory for the app name exists.
-  await checkDirectoryExists(appName, 'first');
+  await checkDirectoryExists(envConfig.appName, 'first');
 
   // Create a promise for each directory in the list.
+  const directories = [
+    envConfig.photoDirectory,
+    envConfig.videoDirectory
+  ];
   const promises = directories
     .map(async(value) => {
       // Check if the directory exists.
-      await checkDirectoryExists(absolutepath, value);
+      await checkDirectoryExists(envConfig.absolutepath, value);
       // Return a promise that always resolves to true.
       return new Promise(resolve => resolve(true));
     });

@@ -1,10 +1,10 @@
+import { Icustomrequest, makeRandomString } from '@open-stock/stock-universal';
 import { Request } from 'express';
 import { mkdir } from 'fs-extra';
 import { getLogger } from 'log4js';
 import multer from 'multer';
 import * as path from 'path';
-import { makeRandomString } from '@open-stock/stock-universal';
-import { getExpressLocals } from '../constants/environment.constant';
+import { envConfig } from '../stock-universal-local';
 
 // This function creates a fileStorageLogger named `controllers/FileStorage`.
 const fileStorageLogger = getLogger('controllers/FileStorage');
@@ -41,8 +41,11 @@ const rudimentaryStorage = multer.diskStorage({
 
   // This function gets the directory for the file based on its MIME type.
   destination(req: Request, file, cb) {
-    const videoDirectory = getExpressLocals(req.app, 'videoDirectory');
-    const photoDirectory = getExpressLocals(req.app, 'photoDirectory');
+    const { companyId } = (req as Icustomrequest).user;
+    const { companyIdParam } = req.params;
+    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const videoDirectory = envConfig.absolutepath + '/' + envConfig.videoDirectory + '/' + queryId;
+    const photoDirectory = envConfig.absolutepath + '/' + envConfig.photoDirectory + '/' + queryId;
 
     const mimeType = file.mimetype;
     fileStorageLogger.debug('rudimentaryStorage - mimeType: ', mimeType);

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.customerRoutes = void 0;
+exports.customerRoutes = exports.updateCustomer = exports.addCustomer = void 0;
 const tslib_1 = require("tslib");
 /* eslint-disable @typescript-eslint/no-misused-promises */
 const stock_auth_server_1 = require("@open-stock/stock-auth-server");
@@ -11,23 +11,18 @@ const customer_model_1 = require("../../models/user-related/customer.model");
 const locluser_routes_1 = require("./locluser.routes");
 /** Logger for customer routes */
 const customerRoutesLogger = (0, log4js_1.getLogger)('routes/customerRoutes');
-/**
- * Router for handling customer-related routes.
- */
-exports.customerRoutes = express_1.default.Router();
-/**
- * Route for creating a new customer.
- * @name POST /create
- * @function
- * @memberof module:customerRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- * @param {callback} middleware - Express middleware
- * @returns {Promise} - Promise representing the HTTP response
- */
-exports.customerRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_auth_server_1.requireCanUseFeature)('customer'), (0, stock_universal_server_1.roleAuthorisation)('users', 'create'), async (req, res, next) => {
+const addCustomer = async (req, res, next) => {
+    const { companyIdParam } = req.params;
+    const { companyId } = req.user;
+    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const customer = req.body.customer;
+    const savedUser = req.body.savedUser;
+    customer.user = savedUser._id;
+    customer.companyId = queryId;
     const newCustomer = new customer_model_1.customerMain(customer);
     let errResponse;
     /**
@@ -58,7 +53,79 @@ exports.customerRoutes.post('/create/:companyIdParam', stock_universal_server_1.
         return res.status(403).send(errResponse);
     }
     return next();
-}, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('customer'));
+};
+exports.addCustomer = addCustomer;
+const updateCustomer = async (req, res) => {
+    const updatedCustomer = req.body.customer;
+    const { companyId } = req.user;
+    const { companyIdParam } = req.params;
+    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    updatedCustomer.companyId = queryId;
+    const isValid = (0, stock_universal_server_1.verifyObjectIds)([updatedCustomer._id, queryId]);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
+    const customer = await customer_model_1.customerMain
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        .findOneAndUpdate({ _id: updatedCustomer._id, companyId: queryId });
+    if (!customer) {
+        return res.status(404).send({ success: false });
+    }
+    customer.startDate = updatedCustomer.startDate || customer.startDate;
+    customer.endDate = updatedCustomer.endDate || customer.endDate;
+    customer.occupation = updatedCustomer.occupation || customer.occupation;
+    customer.otherAddresses = updatedCustomer.otherAddresses || customer.otherAddresses;
+    let errResponse;
+    const updated = await customer.save()
+        .catch(err => {
+        customerRoutesLogger.error('update - err: ', err);
+        errResponse = {
+            success: false,
+            status: 403
+        };
+        if (err && err.errors) {
+            errResponse.err = (0, stock_universal_server_1.stringifyMongooseErr)(err.errors);
+        }
+        else {
+            errResponse.err = `we are having problems connecting to our databases, 
+        try again in a while`;
+        }
+        return errResponse;
+    });
+    if (errResponse) {
+        return res.status(403).send(errResponse);
+    }
+    return res.status(200).send({ success: Boolean(updated) });
+};
+exports.updateCustomer = updateCustomer;
+/**
+ * Router for handling customer-related routes.
+ */
+exports.customerRoutes = express_1.default.Router();
+/**
+ * Route for creating a new customer.
+ * @name POST /create
+ * @function
+ * @memberof module:customerRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @param {callback} middleware - Express middleware
+ * @returns {Promise} - Promise representing the HTTP response
+ */
+exports.customerRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_auth_server_1.requireCanUseFeature)('customer'), (0, stock_universal_server_1.roleAuthorisation)('users', 'create'), stock_auth_server_1.addUser, exports.addCustomer, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('customer'));
+/**
+ * Route for creating a new customer.
+ * @name POST /create
+ * @function
+ * @memberof module:customerRoutes
+ * @inner
+ * @param {string} path - Express path
+ * @param {callback} middleware - Express middleware
+ * @param {callback} middleware - Express middleware
+ * @returns {Promise} - Promise representing the HTTP response
+ */
+exports.customerRoutes.post('/createimg/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_auth_server_1.requireCanUseFeature)('customer'), (0, stock_universal_server_1.roleAuthorisation)('users', 'create'), stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.saveMetaToDb, stock_auth_server_1.addUser, exports.addCustomer, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('customer'));
 /**
  * Route for getting a single customer by ID.
  * @name GET /getone/:id
@@ -151,48 +218,8 @@ exports.customerRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_unive
  * @param {callback} middleware - Express middleware
  * @returns {Promise} - Promise representing the HTTP response
  */
-exports.customerRoutes.put('/update/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('customers', 'update'), async (req, res) => {
-    const updatedCustomer = req.body;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    updatedCustomer.companyId = queryId;
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)([updatedCustomer._id, queryId]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
-    const customer = await customer_model_1.customerMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .findOneAndUpdate({ _id: updatedCustomer._id, companyId: queryId });
-    if (!customer) {
-        return res.status(404).send({ success: false });
-    }
-    customer.startDate = updatedCustomer.startDate || customer.startDate;
-    customer.endDate = updatedCustomer.endDate || customer.endDate;
-    customer.occupation = updatedCustomer.occupation || customer.occupation;
-    customer.otherAddresses = updatedCustomer.otherAddresses || customer.otherAddresses;
-    let errResponse;
-    const updated = await customer.save()
-        .catch(err => {
-        customerRoutesLogger.error('update - err: ', err);
-        errResponse = {
-            success: false,
-            status: 403
-        };
-        if (err && err.errors) {
-            errResponse.err = (0, stock_universal_server_1.stringifyMongooseErr)(err.errors);
-        }
-        else {
-            errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-        }
-        return errResponse;
-    });
-    if (errResponse) {
-        return res.status(403).send(errResponse);
-    }
-    return res.status(200).send({ success: Boolean(updated) });
-});
+exports.customerRoutes.put('/update/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('customers', 'update'), stock_auth_server_1.updateUserBulk, exports.updateCustomer);
+exports.customerRoutes.put('/updateimg/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('customers', 'update'), stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.saveMetaToDb, stock_auth_server_1.updateUserBulk, exports.updateCustomer);
 /**
  * Route for deleting a single customer.
  * @name PUT /deleteone

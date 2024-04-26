@@ -52,9 +52,18 @@ class Customer extends userbase_define_1.UserBase {
      * @param {Icustomer} customer - The customer data to be created.
      * @returns {Promise<Isuccess>} - A success response indicating whether the customer creation was successful.
      */
-    static async createCustomer(companyId, customer) {
-        const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makePost(`/customer/create/${companyId}`, { customer });
-        return await (0, rxjs_1.lastValueFrom)(observer$);
+    static async createCustomer(companyId, vals, files) {
+        let added;
+        vals.user.userType = 'customer';
+        if (files && files[0]) {
+            const observer$ = stock_counter_client_1.StockCounterClient.ehttp.uploadFiles(files, `/customer/createimg/${companyId}`, vals);
+            added = await (0, rxjs_1.lastValueFrom)(observer$);
+        }
+        else {
+            const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makePost(`/customer/create/${companyId}`, vals);
+            added = await (0, rxjs_1.lastValueFrom)(observer$);
+        }
+        return added;
     }
     /**
      * Deletes multiple customers.
@@ -74,11 +83,20 @@ class Customer extends userbase_define_1.UserBase {
      * @param {Icustomer} vals - The updated customer data.
      * @returns {Promise<Isuccess>} - A success response indicating whether the update was successful.
      */
-    async updateCustomer(companyId, vals) {
-        const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makePut(`/customer/update/${companyId}`, vals);
-        const updated = await (0, rxjs_1.lastValueFrom)(observer$);
+    async updateCustomer(companyId, vals, files) {
+        let updated;
+        vals.customer._id = this._id;
+        vals.user._id = typeof this.user === 'string' ? this.user : this.user._id;
+        if (files && files[0]) {
+            const observer$ = stock_counter_client_1.StockCounterClient.ehttp.uploadFiles(files, `/customer/updateimg/${companyId}`, vals);
+            updated = await (0, rxjs_1.lastValueFrom)(observer$);
+        }
+        else {
+            const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makePut(`/customer/update/${companyId}`, vals);
+            updated = await (0, rxjs_1.lastValueFrom)(observer$);
+        }
         if (updated.success) {
-            this.otherAddresses = vals.otherAddresses || this.otherAddresses;
+            this.otherAddresses = vals.customer.otherAddresses || this.otherAddresses;
         }
         return updated;
     }

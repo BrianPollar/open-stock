@@ -23,8 +23,8 @@ const uniqueValidator = require('mongoose-unique-validator');
  */
 const paymentRelatedSchema = new mongoose_1.Schema({
     pesaPalorderTrackingId: { type: String, required: [true, 'cannot be empty.'] },
-    urId: { type: String, unique: true, required: [true, 'cannot be empty.'] },
-    companyId: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
+    urId: { type: String, required: [true, 'cannot be empty.'] },
+    companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
     // creationType: { type: String, required: [true, 'cannot be empty.'] },
     // items: [{ type: String }],
     orderDate: { type: Date, index: true },

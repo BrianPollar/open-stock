@@ -76,7 +76,7 @@
     "axios-observable": "^2.0.0",
     "express": "^4.18.2",
     "mongoose": "^7.5.0",
-    "pesapal3": "^1.1.1",
+    "pesapal3": "*",
     "rxjs": "^7.8.0"
   }
 }

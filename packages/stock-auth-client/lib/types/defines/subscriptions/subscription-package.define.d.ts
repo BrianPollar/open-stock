@@ -1,9 +1,8 @@
-import { DatabaseAuto, IsubscriptionPackage, Isuccess } from '@open-stock/stock-universal';
-import { IsubscriptionFeature } from '@open-stock/stock-universal';
+import { DatabaseAuto, IsubscriptionFeature, IsubscriptionPackage, Isuccess, TsubscriptionDurVal } from '@open-stock/stock-universal';
 export declare class SubscriptionPackange extends DatabaseAuto {
     name: string;
     ammount: number;
-    duration: number;
+    duration: TsubscriptionDurVal;
     active: boolean;
     features: IsubscriptionFeature[];
     constructor(data: any);

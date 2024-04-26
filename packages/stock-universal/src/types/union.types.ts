@@ -393,6 +393,7 @@ export type TuserDispNameFormat =
 export type TuserType =
   'company' |
   'staff' |
+  'customer' |
   'eUser';
 /**
  * Represents the type of payment.
@@ -457,3 +458,5 @@ export type TsubscriptionFeature =
   'companyAdminAccess';
 
 export type TcompanySubPayStatus = 'paid' | 'failed' | 'canceled' | 'pending';
+
+export type TsubscriptionDurVal = 1 | 2 | 3 | 6 | 12;

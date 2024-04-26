@@ -27,6 +27,7 @@ import { companyLean, companyMain } from '../models/company.model';
 import { user } from '../models/user.model';
 import { requireActiveCompany } from './company-auth';
 import { requireSuperAdmin } from './superadmin.routes';
+import { addUser, updateUserBulk } from './user.routes';
 // import { notifConfig } from '../../config/notif.config';
 // import { createNotifications, NotificationController } from '../controllers/notifications.controller';
 // const passport = require('passport');
@@ -35,6 +36,119 @@ import { requireSuperAdmin } from './superadmin.routes';
  * Router for company authentication routes.
  */
 export const companyAuthRoutes = express.Router();
+
+export const addCompany = async(req, res) => {
+  const savedUser = req.body.savedUser;
+  const companyData = req.body.company;
+  companyData.owner = savedUser._id;
+  const parsed = req.body;
+  if (parsed) {
+    if (parsed.profilePic) {
+      companyData.profilePic = parsed.profilePic || companyData.profilePic;
+    }
+
+    if (parsed.coverPic) {
+      companyData.profileCoverPic = parsed.coverPic || companyData.profileCoverPic;
+    }
+
+    if (parsed.newFiles) {
+      companyData.photos = parsed.newFiles;
+    }
+  }
+  const count = await companyMain
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    .find({ }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+  companyData.urId = makeUrId(Number(count[0]?.urId || '0'));
+  const newCompany = new companyMain(companyData);
+  let status = 200;
+  let response: Iauthresponse = { success: true };
+  const savedCompany = await newCompany.save().catch((err) => {
+    status = 403;
+    const errResponse: Isuccess = {
+      success: false
+    };
+    if (err && err.errors) {
+      errResponse.err = stringifyMongooseErr(err.errors);
+    } else {
+      errResponse.err = `we are having problems connecting to our databases, 
+      try again in a while`;
+    }
+    response = errResponse;
+  });
+  if (!response.err && savedCompany) {
+    response = {
+      success: true,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      _id: savedCompany._id
+    };
+  } else {
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    await user.deleteOne({ _id: savedUser._id });
+  }
+  return res.status(status).send(response);
+};
+
+export const updateCompany = async(req, res) => {
+  const { companyIdParam } = req.params;
+  const updatedCompany = req.body.company;
+  const isValid = verifyObjectId(companyIdParam);
+  if (!isValid) {
+    return res.status(401).send({ success: false, err: 'unauthourised' });
+  }
+  const foundCompany = await companyMain
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    .findOneAndUpdate({ companyId: companyIdParam });
+  if (!foundCompany) {
+    return res.status(404).send({ success: false });
+  }
+
+  if (!foundCompany.urId) {
+    const count = await companyMain
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      .find({ companyId: companyIdParam }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+    foundCompany.urId = makeUrId(Number(count[0]?.urId || '0'));
+  }
+  const parsed = req.body;
+  if (parsed) {
+    if (parsed.profilePic) {
+      foundCompany.profilePic = parsed.profilePic || foundCompany.profilePic;
+    }
+
+    if (parsed.coverPic) {
+      foundCompany.profileCoverPic = parsed.coverPic || foundCompany.profileCoverPic;
+    }
+
+    if (parsed.newFiles) {
+      const oldPhotos = foundCompany.photos || [];
+      foundCompany.photos = oldPhotos.concat(parsed.newFiles) as string[];
+    }
+  }
+  delete updatedCompany._id;
+
+  const keys = Object.keys(updatedCompany);
+  keys.forEach(key => {
+    if (foundCompany[key] && key !== '_id') {
+      foundCompany[key] = updatedCompany[key] || foundCompany[key];
+    }
+  });
+
+  const status = 200;
+  let response: Iauthresponse = { success: true };
+  await foundCompany.save().catch((err) => {
+    const errResponse: Isuccess = {
+      success: false
+    };
+    if (err && err.errors) {
+      errResponse.err = stringifyMongooseErr(err.errors);
+    } else {
+      errResponse.err = `we are having problems connecting to our databases, 
+      try again in a while`;
+    }
+    response = errResponse;
+  });
+
+  return res.status(status).send(response);
+};
 
 /**
  * Logger for company authentication routes.
@@ -251,7 +365,7 @@ companyAuthRoutes.post('/updateprofileimg/:companyIdParam', requireAuth, require
       err: 'Account does not exist'
     });
   }
-  const parsed = req.body.parsed;
+  const parsed = req.body;
   if (parsed) {
     if (parsed.profilePic) {
       foundCompany.profilePic = parsed.profilePic || foundCompany.profilePic;
@@ -262,7 +376,7 @@ companyAuthRoutes.post('/updateprofileimg/:companyIdParam', requireAuth, require
     }
 
     if (parsed.newFiles) {
-      const oldPhotos = foundCompany.photos;
+      const oldPhotos = foundCompany.photos || [];
       foundCompany.photos = oldPhotos.concat(parsed.newFiles) as string[];
     }
   }
@@ -320,124 +434,9 @@ companyAuthRoutes.put('/blockunblock/:companyIdParam', requireAuth, requireSuper
   return res.status(status).send(response);
 });
 
-companyAuthRoutes.post('/addcompany', requireAuth, requireSuperAdmin, async(req, res) => {
-  const companyData = req.body.company;
-  const userData = req.body.user;
-  const countCompany = await companyMain
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    .find({ }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
-  companyData.urId = makeUrId(Number(countCompany[0]?.urId || '0'));
-  const newCompany = new companyMain(companyData);
+companyAuthRoutes.post('/addcompany', requireAuth, requireSuperAdmin, addUser, addCompany);
 
-  let status = 200;
-  let response: Iauthresponse = { success: true };
-
-  const savedCompany = await newCompany.save().catch((err) => {
-    status = 403;
-    const errResponse: Isuccess = {
-      success: false
-    };
-    if (err && err.errors) {
-      errResponse.err = stringifyMongooseErr(err.errors);
-    } else {
-      errResponse.err = `we are having problems connecting to our databases, 
-      try again in a while`;
-    }
-    response = errResponse;
-  });
-  if (!response.err && savedCompany) {
-    // const type = 'link';
-    response = {
-      success: true,
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      _id: savedCompany._id
-    };
-    /* await sendTokenEmail(
-      savedCompany, type, stockAuthConfig.localSettings.appOfficialName);*/
-  } else {
-    return res.status(status).send(response);
-  }
-
-  const countUser = await user
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    .find({ }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
-  userData.urId = makeUrId(Number(countUser[0]?.urId || '0'));
-  userData.companyId = (savedCompany as any)._id;
-  const newUser = new user(userData);
-
-  const savedUser = await newUser.save().catch((err) => {
-    status = 403;
-    const errResponse: Isuccess = {
-      success: false
-    };
-    if (err && err.errors) {
-      errResponse.err = stringifyMongooseErr(err.errors);
-    } else {
-      errResponse.err = `we are having problems connecting to our databases, 
-      try again in a while`;
-    }
-    response = errResponse;
-  });
-
-  if (!response.err && savedUser) {
-    savedCompany.owner = (savedUser as any)._id;
-    await savedCompany.save();
-    response = {
-      success: true,
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      _id: savedCompany._id
-    };
-  }
-
-  return res.status(status).send(response);
-});
-
-companyAuthRoutes.post('/addcompanyimg/:companyIdParam', requireAuth, requireSuperAdmin, uploadFiles, appendBody, saveMetaToDb, async(req, res) => {
-  const companyData = req.body.company;
-  const parsed = req.body.parsed;
-  if (parsed) {
-    if (parsed.profilePic) {
-      companyData.profilePic = parsed.profilePic || companyData.profilePic;
-    }
-
-    if (parsed.coverPic) {
-      companyData.profileCoverPic = parsed.coverPic || companyData.profileCoverPic;
-    }
-
-    if (parsed.newFiles) {
-      const oldPhotos = companyData.photos;
-      companyData.photos = oldPhotos.concat(parsed.newFiles);
-    }
-  }
-  const count = await companyMain
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    .find({ }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
-  companyData.urId = makeUrId(Number(count[0]?.urId || '0'));
-  const newCompany = new companyMain(companyData);
-  let status = 200;
-  let response: Iauthresponse = { success: true };
-  const savedCompany = await newCompany.save().catch((err) => {
-    status = 403;
-    const errResponse: Isuccess = {
-      success: false
-    };
-    if (err && err.errors) {
-      errResponse.err = stringifyMongooseErr(err.errors);
-    } else {
-      errResponse.err = `we are having problems connecting to our databases, 
-      try again in a while`;
-    }
-    response = errResponse;
-  });
-  if (!response.err && savedCompany) {
-    response = {
-      success: true,
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      _id: savedCompany._id
-    };
-  }
-  return res.status(status).send(response);
-});
+companyAuthRoutes.post('/addcompanyimg/:companyIdParam', requireAuth, requireSuperAdmin, uploadFiles, appendBody, saveMetaToDb, addUser, addCompany);
 
 companyAuthRoutes.get('/getonecompany/:urId/:companyIdParam', requireAuth, requireSuperAdmin, async(req, res) => {
   const { companyIdParam } = req.params;
@@ -483,115 +482,9 @@ companyAuthRoutes.get('/getcompanys/:offset/:limit/:companyIdParam', requireAuth
   return res.status(200).send(response);
 });
 
-companyAuthRoutes.put('/updatecompanybulk/:companyIdParam', requireAuth, requireSuperAdmin, async(req, res) => {
-  const { companyIdParam } = req.params;
-  const updatedCompany = req.body.company;
-  const isValid = verifyObjectId(companyIdParam);
-  if (!isValid) {
-    return res.status(401).send({ success: false, err: 'unauthourised' });
-  }
+companyAuthRoutes.put('/updatecompanybulk/:companyIdParam', requireAuth, requireSuperAdmin, updateUserBulk, updateCompany);
 
-  const foundCompany = await companyMain
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    .findByIdAndUpdate(companyIdParam);
-  if (!foundCompany) {
-    return res.status(404).send({ success: false });
-  }
-
-  if (!foundCompany.urId) {
-    const count = await companyMain
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      .find().sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
-    foundCompany.urId = makeUrId(Number(count[0]?.urId || '0'));
-  }
-
-  delete updatedCompany._id;
-  const keys = Object.keys(updatedCompany);
-  keys.forEach(key => {
-    if (foundCompany[key] && key !== '_id' && key !== 'profilePic' && key !== 'profileCoverPic' && key !== 'photos') {
-      foundCompany[key] = updatedCompany[key] || foundCompany[key];
-    }
-  });
-
-  let status = 200;
-  let response: Iauthresponse = { success: true };
-  await foundCompany.save().catch((err) => {
-    status = 403;
-    const errResponse: Isuccess = {
-      success: false
-    };
-    if (err && err.errors) {
-      errResponse.err = stringifyMongooseErr(err.errors);
-    } else {
-      errResponse.err = `we are having problems connecting to our databases, 
-      try again in a while`;
-    }
-    response = errResponse;
-  });
-  return res.status(status).send(response);
-});
-
-companyAuthRoutes.post('/updatecompanybulkimg/:companyIdParam', requireAuth, requireSuperAdmin, uploadFiles, appendBody, saveMetaToDb, async(req, res) => {
-  const { companyIdParam } = req.params;
-  const updatedCompany = req.body.user;
-  const isValid = verifyObjectId(companyIdParam);
-  if (!isValid) {
-    return res.status(401).send({ success: false, err: 'unauthourised' });
-  }
-  const foundCompany = await companyMain
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    .findOneAndUpdate({ companyId: companyIdParam });
-  if (!foundCompany) {
-    return res.status(404).send({ success: false });
-  }
-
-  if (!foundCompany.urId) {
-    const count = await companyMain
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      .find({ companyId: companyIdParam }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
-    foundCompany.urId = makeUrId(Number(count[0]?.urId || '0'));
-  }
-  const parsed = req.body.parsed;
-  if (parsed) {
-    if (parsed.profilePic) {
-      foundCompany.profilePic = parsed.profilePic || foundCompany.profilePic;
-    }
-
-    if (parsed.coverPic) {
-      foundCompany.profileCoverPic = parsed.coverPic || foundCompany.profileCoverPic;
-    }
-
-    if (parsed.newFiles) {
-      const oldPhotos = foundCompany.photos;
-      foundCompany.photos = oldPhotos.concat(parsed.newFiles) as string[];
-    }
-  }
-  delete updatedCompany._id;
-
-  const keys = Object.keys(updatedCompany);
-  keys.forEach(key => {
-    if (foundCompany[key] && key !== '_id') {
-      foundCompany[key] = updatedCompany[key] || foundCompany[key];
-    }
-  });
-
-  const status = 200;
-  let response: Iauthresponse = { success: true };
-  await foundCompany.save().catch((err) => {
-    const errResponse: Isuccess = {
-      success: false
-    };
-    if (err && err.errors) {
-      errResponse.err = stringifyMongooseErr(err.errors);
-    } else {
-      errResponse.err = `we are having problems connecting to our databases, 
-      try again in a while`;
-    }
-    response = errResponse;
-  });
-
-  return res.status(status).send(response);
-});
+companyAuthRoutes.post('/updatecompanybulkimg/:companyIdParam', requireAuth, requireSuperAdmin, uploadFiles, appendBody, saveMetaToDb, updateUserBulk, updateCompany);
 
 companyAuthRoutes.put('/deletemany/:companyIdParam', requireAuth, requireSuperAdmin, deleteFiles, async(req, res) => {
   const { ids } = req.body;
@@ -631,7 +524,6 @@ companyAuthRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCo
     return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
   }
 });
-
 
 companyAuthRoutes.put('/deleteimages/:companyIdParam', requireAuth, requireActiveCompany, deleteFiles, async(req, res) => {
   const filesWithDir: IfileMeta[] = req.body.filesWithDir;

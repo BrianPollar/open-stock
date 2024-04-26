@@ -2,15 +2,13 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.returnLazyFn = exports.getOneFile = exports.deleteFiles = exports.updateFiles = exports.saveMetaToDb = exports.appendBody = exports.uploadFiles = void 0;
 const tslib_1 = require("tslib");
-/* eslint-disable @typescript-eslint/dot-notation */
-/* eslint-disable @typescript-eslint/prefer-for-of */
 const fs = tslib_1.__importStar(require("fs"));
 const log4js_1 = require("log4js");
 const multer_1 = tslib_1.__importDefault(require("multer"));
 const path = tslib_1.__importStar(require("path"));
-const filestorage_1 = require("./filestorage");
-const environment_constant_1 = require("../constants/environment.constant");
 const filemeta_model_1 = require("../models/filemeta.model");
+const stock_universal_local_1 = require("../stock-universal-local");
+const filestorage_1 = require("./filestorage");
 const fsControllerLogger = (0, log4js_1.getLogger)('controllers/FsController');
 /**
  * Uploads files from the request to the server.
@@ -19,6 +17,7 @@ const fsControllerLogger = (0, log4js_1.getLogger)('controllers/FsController');
  * @param {Function} next - The next middleware function.
  */
 const uploadFiles = (req, res, next) => {
+    console.log('uploadFiles');
     const makeupload = filestorage_1.upload.fields(filestorage_1.multerFileds);
     makeupload(req, res, function (err) {
         if (err instanceof multer_1.default.MulterError) {
@@ -44,6 +43,11 @@ const appendBody = (req, res, next) => {
     if (!req.files) {
         return res.status(404).send({ success: false });
     }
+    const { companyId } = req.user;
+    const { companyIdParam } = req.params;
+    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const videoDirectory = path.join(stock_universal_local_1.envConfig.videoDirectory + '/' + queryId + '/');
+    const photoDirectory = path.join(stock_universal_local_1.envConfig.photoDirectory + '/' + queryId + '/');
     const { userId } = req.user;
     const parsed = JSON.parse(req.body.data);
     const newFiles = [];
@@ -54,10 +58,10 @@ const appendBody = (req, res, next) => {
         profilePic = {
             userOrCompanayId: userId,
             name: req.files['profilePic'][0].originalname,
-            url: '/openphotos/' + req.files['profilePic'][0].filename,
+            url: photoDirectory + req.files['profilePic'][0].filename,
             type: req.files['profilePic'][0].mimetype,
             version: '',
-            storageDir: 'openphotos',
+            storageDir: photoDirectory,
             size: req.files['profilePic'][0].size
         };
         parsed.profilePic = profilePic;
@@ -66,10 +70,10 @@ const appendBody = (req, res, next) => {
         coverPic = {
             userOrCompanayId: userId,
             name: req.files['coverPic'][0].originalname,
-            url: '/openphotos/' + req.files['coverPic'][0].filename,
+            url: photoDirectory + req.files['coverPic'][0].filename,
             type: req.files['coverPic'][0].mimetype,
             version: '',
-            storageDir: 'openphotos',
+            storageDir: photoDirectory,
             size: req.files['coverPic'][0].size
         };
         parsed.coverPic = coverPic;
@@ -80,11 +84,11 @@ const appendBody = (req, res, next) => {
                 .push({
                 userOrCompanayId: userId,
                 name: req.files['photos'][i].originalname,
-                url: '/openphotos/' + req.files['photos'][i].filename,
+                url: photoDirectory + req.files['photos'][i].filename,
                 type: req.files['photos'][i].mimetype,
                 version: '',
                 size: req.files['photos'][i].size,
-                storageDir: 'openphotos'
+                storageDir: photoDirectory
             });
         }
     }
@@ -94,10 +98,10 @@ const appendBody = (req, res, next) => {
                 .push({
                 userOrCompanayId: userId,
                 name: req.files['videos'][i].originalname,
-                url: '/openvideos/' + req.files['videos'][i].filename,
+                url: videoDirectory + req.files['videos'][i].filename,
                 type: req.files['videos'][i].mimetype,
                 version: '',
-                storageDir: 'openvideos',
+                storageDir: videoDirectory,
                 size: req.files['videos'][i].size
             });
         }
@@ -106,16 +110,16 @@ const appendBody = (req, res, next) => {
         thumbnail = {
             userOrCompanayId: userId,
             name: req.files['videothumbnail'][0].originalname,
-            url: '/openphotos/' + req.files['videothumbnail'][0].filename,
+            url: photoDirectory + req.files['videothumbnail'][0].filename,
             type: req.files['videothumbnail'][0].mimetype,
             version: '',
-            storageDir: 'openphotos',
+            storageDir: photoDirectory,
             size: req.files['videothumbnail'][0].size
         };
         parsed.thumbnail = thumbnail;
     }
     parsed.newFiles = newFiles;
-    req.body.parsed = parsed;
+    req.body = parsed;
     return next();
 };
 exports.appendBody = appendBody;
@@ -126,7 +130,7 @@ exports.appendBody = appendBody;
  * @param next - The next middleware function.
  */
 const saveMetaToDb = async (req, res, next) => {
-    const parsed = req.body.parsed;
+    const parsed = req.body;
     if (!parsed) {
         return next();
     }
@@ -162,7 +166,8 @@ const saveMetaToDb = async (req, res, next) => {
         const mappedParsedFiles = parsed.newFiles.map((value) => value._id);
         parsed.newFiles = mappedParsedFiles;
     }
-    req.body.parsed = parsed; // newFiles are strings of ids
+    req.body = parsed; // newFiles are strings of ids
+    return next();
 };
 exports.saveMetaToDb = saveMetaToDb;
 /**
@@ -206,7 +211,7 @@ const deleteFiles = async (req, res, next) => {
         const promises = filesWithDir
             .map((value /** : Ifilewithdir*/) => new Promise(resolve => {
             fsControllerLogger.debug('deleting file', value.filename);
-            const absolutepath = (0, environment_constant_1.getExpressLocals)(req.app, 'absolutepath');
+            const absolutepath = stock_universal_local_1.envConfig.absolutepath;
             const nowpath = path
                 .resolve(`${absolutepath}${value.filename}`);
             fs.unlink(nowpath, (err) => {
@@ -233,7 +238,7 @@ exports.deleteFiles = deleteFiles;
 const getOneFile = (req, res) => {
     const { filename } = req.params;
     fsControllerLogger.debug(`download, file: ${filename}`);
-    const absolutepath = (0, environment_constant_1.getExpressLocals)(req.app, 'absolutepath');
+    const absolutepath = stock_universal_local_1.envConfig.absolutepath;
     const fileLocation = path.join(`${absolutepath}${filename}`, filename);
     return res.download(fileLocation, filename);
 };

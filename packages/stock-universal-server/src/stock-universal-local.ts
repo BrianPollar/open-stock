@@ -1,3 +1,4 @@
+import { IenvironmentConfig } from '@open-stock/stock-universal';
 import { ConnectOptions } from 'mongoose';
 import { createFileMetaModel } from './models/filemeta.model';
 
@@ -6,10 +7,14 @@ import { createFileMetaModel } from './models/filemeta.model';
  */
 export let isStockUniversalServerRunning = false;
 
+export let envConfig: IenvironmentConfig;
+
+
 /**
  * Creates stock universal server locals.
  */
-export const createStockUniversalServerLocals = () => {
+export const createStockUniversalServerLocals = (envCfig: IenvironmentConfig) => {
+  envConfig = envCfig;
   isStockUniversalServerRunning = true;
 };
 

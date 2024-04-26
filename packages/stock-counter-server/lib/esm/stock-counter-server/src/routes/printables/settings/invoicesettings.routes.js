@@ -61,6 +61,7 @@ invoiceSettingRoutes.post('/create/:companyIdParam', requireAuth, requireActiveC
  * @param {callback} middleware - Express middleware
  */
 invoiceSettingRoutes.post('/createimg/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'create'), uploadFiles, appendBody, saveMetaToDb, async (req, res) => {
+    console.log('creating settings');
     const invoiceSetting = req.body.invoicesettings;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;

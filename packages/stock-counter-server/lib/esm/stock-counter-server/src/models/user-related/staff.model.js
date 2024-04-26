@@ -3,7 +3,7 @@ import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectio
 const uniqueValidator = require('mongoose-unique-validator');
 /** Defines the schema for the staff model. */
 const staffSchema = new Schema({
-    companyId: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
+    companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
     user: { type: mongoose.Types.ObjectId, unique: true, required: [true, 'cannot be empty.'], index: true },
     startDate: { type: Date, required: [true, 'cannot be empty.'] },
     endDate: { type: Date, required: [true, 'cannot be empty.'] },

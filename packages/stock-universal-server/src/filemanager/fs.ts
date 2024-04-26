@@ -1,13 +1,13 @@
 /* eslint-disable @typescript-eslint/dot-notation */
 /* eslint-disable @typescript-eslint/prefer-for-of */
+import { Icustomrequest, IfileMeta } from '@open-stock/stock-universal';
 import * as fs from 'fs';
 import { getLogger } from 'log4js';
 import multer from 'multer';
 import * as path from 'path';
-import { IMulterRequest, multerFileds, upload } from './filestorage';
-import { getExpressLocals } from '../constants/environment.constant';
-import { Icustomrequest, IfileMeta } from '@open-stock/stock-universal';
 import { fileMeta } from '../models/filemeta.model';
+import { envConfig } from '../stock-universal-local';
+import { IMulterRequest, multerFileds, upload } from './filestorage';
 const fsControllerLogger = getLogger('controllers/FsController');
 
 /**
@@ -21,6 +21,7 @@ export const uploadFiles = (
   res,
   next
 ) => {
+  console.log('uploadFiles');
   const makeupload = upload.fields(multerFileds);
   makeupload(req, res, function(err) {
     if (err instanceof multer.MulterError) {
@@ -49,6 +50,11 @@ export const appendBody = (
   if (!(req as IMulterRequest).files) {
     return res.status(404).send({ success: false });
   }
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const videoDirectory = path.join(envConfig.videoDirectory + '/' + queryId + '/');
+  const photoDirectory = path.join(envConfig.photoDirectory + '/' + queryId + '/');
   const { userId } = (req as Icustomrequest).user;
   const parsed = JSON.parse(req.body.data);
   const newFiles: IfileMeta[] = [];
@@ -60,10 +66,10 @@ export const appendBody = (
     profilePic = {
       userOrCompanayId: userId,
       name: (req as IMulterRequest).files['profilePic'][0].originalname,
-      url: '/openphotos/' + (req as IMulterRequest).files['profilePic'][0].filename,
+      url: photoDirectory + (req as IMulterRequest).files['profilePic'][0].filename,
       type: (req as IMulterRequest).files['profilePic'][0].mimetype,
       version: '',
-      storageDir: 'openphotos',
+      storageDir: photoDirectory,
       size: (req as IMulterRequest).files['profilePic'][0].size
     };
     parsed.profilePic = profilePic;
@@ -73,10 +79,10 @@ export const appendBody = (
     coverPic = {
       userOrCompanayId: userId,
       name: (req as IMulterRequest).files['coverPic'][0].originalname,
-      url: '/openphotos/' + (req as IMulterRequest).files['coverPic'][0].filename,
+      url: photoDirectory + (req as IMulterRequest).files['coverPic'][0].filename,
       type: (req as IMulterRequest).files['coverPic'][0].mimetype,
       version: '',
-      storageDir: 'openphotos',
+      storageDir: photoDirectory,
       size: (req as IMulterRequest).files['coverPic'][0].size
     };
     parsed.coverPic = coverPic;
@@ -88,11 +94,11 @@ export const appendBody = (
         .push({
           userOrCompanayId: userId,
           name: (req as IMulterRequest).files['photos'][i].originalname,
-          url: '/openphotos/' + (req as IMulterRequest).files['photos'][i].filename,
+          url: photoDirectory + (req as IMulterRequest).files['photos'][i].filename,
           type: (req as IMulterRequest).files['photos'][i].mimetype,
           version: '',
           size: (req as IMulterRequest).files['photos'][i].size,
-          storageDir: 'openphotos'
+          storageDir: photoDirectory
         });
     }
   }
@@ -103,10 +109,10 @@ export const appendBody = (
         .push({
           userOrCompanayId: userId,
           name: (req as IMulterRequest).files['videos'][i].originalname,
-          url: '/openvideos/' + (req as IMulterRequest).files['videos'][i].filename,
+          url: videoDirectory + (req as IMulterRequest).files['videos'][i].filename,
           type: (req as IMulterRequest).files['videos'][i].mimetype,
           version: '',
-          storageDir: 'openvideos',
+          storageDir: videoDirectory,
           size: (req as IMulterRequest).files['videos'][i].size
         });
     }
@@ -116,17 +122,17 @@ export const appendBody = (
     thumbnail = {
       userOrCompanayId: userId,
       name: (req as IMulterRequest).files['videothumbnail'][0].originalname,
-      url: '/openphotos/' + (req as IMulterRequest).files['videothumbnail'][0].filename,
+      url: photoDirectory + (req as IMulterRequest).files['videothumbnail'][0].filename,
       type: (req as IMulterRequest).files['videothumbnail'][0].mimetype,
       version: '',
-      storageDir: 'openphotos',
+      storageDir: photoDirectory,
       size: (req as IMulterRequest).files['videothumbnail'][0].size
     };
     parsed.thumbnail = thumbnail;
   }
 
   parsed.newFiles = newFiles;
-  req.body.parsed = parsed;
+  req.body = parsed;
   return next();
 };
 
@@ -141,7 +147,7 @@ export const saveMetaToDb = async(
   res,
   next
 ) => {
-  const parsed = req.body.parsed;
+  const parsed = req.body;
   if (!parsed) {
     return next();
   }
@@ -181,7 +187,8 @@ export const saveMetaToDb = async(
     const mappedParsedFiles = parsed.newFiles.map((value: IfileMeta) => value._id);
     parsed.newFiles = mappedParsedFiles;
   }
-  req.body.parsed = parsed; // newFiles are strings of ids
+  req.body = parsed; // newFiles are strings of ids
+  return next();
 };
 
 /**
@@ -232,7 +239,7 @@ export const deleteFiles = async(
     const promises = filesWithDir
       .map((value/** : Ifilewithdir*/) => new Promise(resolve => {
         fsControllerLogger.debug('deleting file', value.filename);
-        const absolutepath = getExpressLocals(req.app, 'absolutepath');
+        const absolutepath = envConfig.absolutepath;
         const nowpath = path
           .resolve(`${absolutepath}${value.filename}`);
         fs.unlink(nowpath, (err) => {
@@ -262,7 +269,7 @@ export const getOneFile = (
 ) => {
   const { filename } = req.params;
   fsControllerLogger.debug(`download, file: ${filename}`);
-  const absolutepath = getExpressLocals(req.app, 'absolutepath');
+  const absolutepath = envConfig.absolutepath;
   const fileLocation = path.join(`${absolutepath}${filename}`, filename);
   return res.download(fileLocation, filename);
 };

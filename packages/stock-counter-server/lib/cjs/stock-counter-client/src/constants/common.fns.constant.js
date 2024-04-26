@@ -340,7 +340,7 @@ const transformNoInvId = (val, suffix) => {
         case 2:
             outStr = '00' + stringified;
             break;
-        case 2:
+        case 3:
             outStr = '0' + stringified;
             break;
         default:

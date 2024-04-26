@@ -45,7 +45,7 @@ export const saveInvoice = async(
   invoiceRelated.companyId = queryId;
   invoiceRelated.invoiceId = await makeinvoiceId(queryId);
   const extraNotifDesc = 'Newly created invoice';
-  const relatedId = await relegateInvRelatedCreation(invoiceRelated, extraNotifDesc, queryId);
+  const relatedId = await relegateInvRelatedCreation(invoiceRelated, queryId, extraNotifDesc);
   if (!relatedId.success) {
     return relatedId;
   }

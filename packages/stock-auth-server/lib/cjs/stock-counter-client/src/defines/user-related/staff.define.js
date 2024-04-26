@@ -65,9 +65,18 @@ class Staff extends userbase_define_1.UserBase {
      * @param {Istaff} staff - The data for the new staff member.
      * @returns {Promise<Isuccess>} - A promise that resolves to a success message.
      */
-    static async createStaff(companyId, staff) {
-        const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makePost(`/staff/create/${companyId}`, { staff });
-        return await (0, rxjs_1.lastValueFrom)(observer$);
+    static async createStaff(companyId, vals, files) {
+        let added;
+        vals.user.userType = 'staff';
+        if (files && files[0]) {
+            const observer$ = stock_counter_client_1.StockCounterClient.ehttp.uploadFiles(files, `/staff/createimg/${companyId}`, vals);
+            added = await (0, rxjs_1.lastValueFrom)(observer$);
+        }
+        else {
+            const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makePost(`/staff/create/${companyId}`, vals);
+            added = await (0, rxjs_1.lastValueFrom)(observer$);
+        }
+        return added;
     }
     /**
      * Deletes multiple staff members.
@@ -87,12 +96,21 @@ class Staff extends userbase_define_1.UserBase {
      * @param {Istaff} vals - The new values for the staff member.
      * @returns {Promise<Isuccess>} - A promise that resolves to a success message.
      */
-    async updateStaff(companyId, vals) {
-        const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makePut(`/staff/update/${companyId}`, vals);
-        const updated = await (0, rxjs_1.lastValueFrom)(observer$);
+    async updateStaff(companyId, vals, files) {
+        let updated;
+        vals.staff._id = this._id;
+        vals.user._id = typeof this.user === 'string' ? this.user : this.user._id;
+        if (files && files[0]) {
+            const observer$ = stock_counter_client_1.StockCounterClient.ehttp.uploadFiles(files, `/staff/updateimg/${companyId}`, vals);
+            updated = await (0, rxjs_1.lastValueFrom)(observer$);
+        }
+        else {
+            const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makePut(`/staff/update/${companyId}`, vals);
+            updated = await (0, rxjs_1.lastValueFrom)(observer$);
+        }
         if (updated.success) {
-            this.employmentType = vals.employmentType || this.employmentType;
-            this.salary = vals.salary || this.salary;
+            this.employmentType = vals.staff.employmentType || this.employmentType;
+            this.salary = vals.staff.salary || this.salary;
         }
         return updated;
     }

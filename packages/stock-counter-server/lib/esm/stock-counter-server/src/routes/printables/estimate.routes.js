@@ -66,7 +66,7 @@ estimateRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany
     invoiceRelated.companyId = queryId;
     invoiceRelated.estimateId = await makeEstimateId(companyId);
     const extraNotifDesc = 'Newly created estimate';
-    const invoiceRelatedRes = await relegateInvRelatedCreation(invoiceRelated, extraNotifDesc, companyId);
+    const invoiceRelatedRes = await relegateInvRelatedCreation(invoiceRelated, queryId, extraNotifDesc);
     if (!invoiceRelatedRes.success) {
         return res.status(invoiceRelatedRes.status).send(invoiceRelatedRes);
     }
@@ -159,9 +159,11 @@ estimateRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requir
         }),
         estimateLean.countDocuments({ companyId: queryId })
     ]);
+    console.log('ALLLLLLLL ALLLL', all[0]);
     const returned = all[0]
         .map(val => makeInvoiceRelatedPdct(val.invoiceRelated, val.invoiceRelated
         .billingUserId));
+    console.log('returneddddddddd ', returned);
     const response = {
         count: all[1],
         data: returned

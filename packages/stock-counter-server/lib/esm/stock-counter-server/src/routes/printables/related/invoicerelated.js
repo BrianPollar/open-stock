@@ -26,7 +26,7 @@ export const updateInvoiceRelatedPayments = async (payment, queryId) => {
     }
     const related = await invoiceRelatedMain
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        .findOneAndUpdate({ _id: payment.invoiceRelated, companyId: queryId });
+        .findByIdAndUpdate(payment.invoiceRelated);
     if (!related) {
         return { success: false, err: 'invoice related not found' };
     }
@@ -166,7 +166,7 @@ export const relegateInvRelatedCreation = async (invoiceRelated, queryId, extraN
         let title = '';
         let notifType: TnotifType;*/
         const stn = await getCurrentNotificationSettings();
-        if (!bypassNotif && stn.invoices) {
+        if (!bypassNotif && stn?.invoices) {
             /* switch (invoiceRelated.stage) {
               case 'estimate':
                 route = 'estimates';

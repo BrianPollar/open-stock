@@ -1,4 +1,4 @@
-import { IdataArrayResponse, IdeleteCredentialsLocalUser, IfileMeta, Isalary, Istaff, Isuccess } from '@open-stock/stock-universal';
+import { IdataArrayResponse, IdeleteCredentialsLocalUser, Ifile, IfileMeta, Isalary, Istaff, Isuccess, Iuser } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
 import { StockCounterClient } from '../../stock-counter-client';
 import { UserBase } from './userbase.define';
@@ -71,10 +71,19 @@ export class Staff extends UserBase {
    * @param {Istaff} staff - The data for the new staff member.
    * @returns {Promise<Isuccess>} - A promise that resolves to a success message.
    */
-  static async createStaff(companyId: string, staff: Istaff) {
-    const observer$ = StockCounterClient.ehttp.makePost(`/staff/create/${companyId}`, { staff });
-    return await lastValueFrom(observer$) as Isuccess;
+  static async createStaff(companyId: string, vals: { staff: Istaff; user: Partial<Iuser>}, files?: Ifile[]) {
+    let added: Isuccess;
+    vals.user.userType = 'staff';
+    if (files && files[0]) {
+      const observer$ = StockCounterClient.ehttp.uploadFiles(files, `/staff/createimg/${companyId}`, vals);
+      added = await lastValueFrom(observer$) as Isuccess;
+    } else {
+      const observer$ = StockCounterClient.ehttp.makePost(`/staff/create/${companyId}`, vals);
+      added = await lastValueFrom(observer$) as Isuccess;
+    }
+    return added;
   }
+
 
   /**
    * Deletes multiple staff members.
@@ -95,12 +104,21 @@ export class Staff extends UserBase {
    * @param {Istaff} vals - The new values for the staff member.
    * @returns {Promise<Isuccess>} - A promise that resolves to a success message.
    */
-  async updateStaff(companyId: string, vals: Istaff) {
-    const observer$ = StockCounterClient.ehttp.makePut(`/staff/update/${companyId}`, vals);
-    const updated = await lastValueFrom(observer$) as Isuccess;
+  async updateStaff(companyId: string, vals: { staff: Istaff; user: Partial<Iuser>}, files?: Ifile[]) {
+    let updated: Isuccess;
+    vals.staff._id = this._id;
+    vals.user._id = typeof this.user === 'string' ? this.user : this.user._id;
+    if (files && files[0]) {
+      const observer$ = StockCounterClient.ehttp.uploadFiles(files, `/staff/updateimg/${companyId}`, vals);
+      updated = await lastValueFrom(observer$) as Isuccess;
+    } else {
+      const observer$ = StockCounterClient.ehttp.makePut(`/staff/update/${companyId}`, vals);
+      updated = await lastValueFrom(observer$) as Isuccess;
+    }
+
     if (updated.success) {
-      this.employmentType = vals.employmentType || this.employmentType;
-      this.salary = vals.salary || this.salary;
+      this.employmentType = vals.staff.employmentType || this.employmentType;
+      this.salary = vals.staff.salary || this.salary;
     }
     return updated;
   }

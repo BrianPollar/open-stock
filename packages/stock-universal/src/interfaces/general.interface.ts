@@ -1,4 +1,4 @@
-import { TcompanySubPayStatus, TexpoMode, TpayType, TpaymentMethod, TpriceCurrenncy, TsubscriptionFeature, TuserDispNameFormat, TuserType } from '../types/union.types';
+import { TcompanySubPayStatus, TexpoMode, TpayType, TpaymentMethod, TpriceCurrenncy, TsubscriptionDurVal, TsubscriptionFeature, TuserDispNameFormat, TuserType } from '../types/union.types';
 import {
   IinvoiceRelated,
   // IpaymentInstall,
@@ -587,7 +587,7 @@ export interface IsubscriptionPackage
 extends IdatabaseAuto {
   name: string;
   ammount: number;
-  duration: number; // in months
+  duration: TsubscriptionDurVal; // in months
   active: boolean;
   features: IsubscriptionFeature[];
 }
@@ -597,7 +597,7 @@ extends IdatabaseAuto {
   companyId: string;
   name: string;
   ammount: number;
-  duration: number;
+  duration: TsubscriptionDurVal;
   active: boolean;
   sunscriprionId: string;
   features: IsubscriptionFeature[];
@@ -605,4 +605,9 @@ extends IdatabaseAuto {
   endDate: Date;
   pesaPalorderTrackingId?: string;
   status: TcompanySubPayStatus;
+}
+
+export interface IsubscriptionDuration {
+  name: string;
+  value: TsubscriptionDurVal;
 }

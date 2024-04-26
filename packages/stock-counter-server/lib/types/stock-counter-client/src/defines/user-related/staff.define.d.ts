@@ -1,4 +1,4 @@
-import { IdeleteCredentialsLocalUser, IfileMeta, Isalary, Istaff, Isuccess } from '@open-stock/stock-universal';
+import { IdeleteCredentialsLocalUser, Ifile, IfileMeta, Isalary, Istaff, Isuccess, Iuser } from '@open-stock/stock-universal';
 import { UserBase } from './userbase.define';
 /**
  * The  Staff  class extends a base class called  UserBase  (not provided) and adds additional properties such as employmentType and salary.
@@ -47,7 +47,10 @@ export declare class Staff extends UserBase {
      * @param {Istaff} staff - The data for the new staff member.
      * @returns {Promise<Isuccess>} - A promise that resolves to a success message.
      */
-    static createStaff(companyId: string, staff: Istaff): Promise<Isuccess>;
+    static createStaff(companyId: string, vals: {
+        staff: Istaff;
+        user: Partial<Iuser>;
+    }, files?: Ifile[]): Promise<Isuccess>;
     /**
      * Deletes multiple staff members.
      * @param companyId - The ID of the company
@@ -63,7 +66,10 @@ export declare class Staff extends UserBase {
      * @param {Istaff} vals - The new values for the staff member.
      * @returns {Promise<Isuccess>} - A promise that resolves to a success message.
      */
-    updateStaff(companyId: string, vals: Istaff): Promise<Isuccess>;
+    updateStaff(companyId: string, vals: {
+        staff: Istaff;
+        user: Partial<Iuser>;
+    }, files?: Ifile[]): Promise<Isuccess>;
     /**
      * Deletes the current staff member.
      * @param companyId - The ID of the company

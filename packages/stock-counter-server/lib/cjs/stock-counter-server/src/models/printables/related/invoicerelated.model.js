@@ -24,7 +24,7 @@ const database_controller_1 = require("../../../controllers/database.controller"
  * @property {Array} payments - The payments made on the invoice.
  */
 const invoiceRelatedSchema = new mongoose_1.Schema({
-    companyId: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
+    companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
     creationType: { type: String },
     estimateId: { type: Number },
     invoiceId: { type: Number },

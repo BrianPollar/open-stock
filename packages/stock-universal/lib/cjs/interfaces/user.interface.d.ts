@@ -1,4 +1,4 @@
-import { Iaddress, Iuser } from './general.interface';
+import { Iaddress, IdatabaseAuto, Iuser } from './general.interface';
 /**
  * Represents the salary of a user.
  */
@@ -9,7 +9,7 @@ export interface Isalary {
 /**
  * Represents the base properties of a user.
  */
-export interface IuserBase {
+export interface IuserBase extends IdatabaseAuto {
     companyId?: string;
     user: string | Iuser;
     startDate: Date;

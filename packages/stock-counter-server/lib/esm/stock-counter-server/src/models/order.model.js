@@ -2,7 +2,7 @@ import { Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
 const uniqueValidator = require('mongoose-unique-validator');
 const orderSchema = new Schema({
-    companyId: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
+    companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
     paymentRelated: { type: String, unique: true },
     invoiceRelated: { type: String, unique: true },
     deliveryDate: { type: Date, required: [true, 'cannot be empty.'], index: true }

@@ -18,8 +18,8 @@ const uniqueValidator = require('mongoose-unique-validator');
  * @property {string} itemId - The unique identifier of the item being reviewed.
  */
 const reviewSchema = new mongoose_1.Schema({
-    urId: { type: String, unique: true },
-    companyId: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
+    urId: { type: String },
+    companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
     image: { type: String },
     name: { type: String, required: [true, 'cannot be empty.'], index: true },
     email: { type: String },

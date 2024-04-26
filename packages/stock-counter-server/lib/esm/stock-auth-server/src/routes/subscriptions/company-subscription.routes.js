@@ -1,7 +1,6 @@
 import { offsetLimitRelegator, requireAuth, roleAuthorisation, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { getLogger } from 'log4js';
-import { Pesapal } from 'pesapal3';
 import { companyLean } from '../../models/company.model';
 import { companySubscriptionLean, companySubscriptionMain } from '../../models/subscriptions/company-subscription.model';
 import { userLean } from '../../models/user.model';
@@ -10,12 +9,13 @@ import { requireActiveCompany } from '../company-auth';
 /** Logger for companySubscription routes */
 const companySubscriptionRoutesLogger = getLogger('routes/companySubscriptionRoutes');
 const firePesapalRelegator = async (subctn, savedSub, company, currUser) => {
+    console.log('PESAPAL IS ', pesapalPaymentInstance.config);
     const payDetails = {
         id: savedSub._id,
-        currency: 'UGA',
+        currency: 'UGX',
         amount: subctn.ammount,
         description: 'Complete payments for subscription ,' + subctn.name,
-        callback_url: Pesapal.config.pesapalCallbackUrl,
+        callback_url: pesapalPaymentInstance.config.pesapalCallbackUrl,
         cancellation_url: '',
         notification_id: '',
         billing_address: {
@@ -33,13 +33,19 @@ const firePesapalRelegator = async (subctn, savedSub, company, currUser) => {
             zip_code: ''
         }
     };
+    console.log('PAY Details ', payDetails);
     const response = await pesapalPaymentInstance.submitOrder(payDetails, subctn._id, 'Complete product payment');
-    const companySub = await companySubscriptionMain.findOneAndUpdate({ _id: savedSub._id });
-    companySub.pesaPalorderTrackingId = response.order_tracking_id;
+    console.log('RESPONSE ISSSSS ', response);
+    if (!response.success) {
+        return { success: false, err: response.err };
+    }
+    const companySub = await companySubscriptionMain.findByIdAndUpdate(savedSub._id);
+    companySub.pesaPalorderTrackingId = response.pesaPalOrderRes.order_tracking_id;
     await companySub.save();
     return {
+        success: true,
         pesaPalOrderRes: {
-            redirect_url: response.redirect_url
+            redirect_url: response.pesaPalOrderRes.redirect_url
         }
     };
 };
@@ -99,8 +105,20 @@ companySubscriptionRoutes.post('/subscribe/:companyIdParam', requireAuth, requir
     const savedSub = await newCompSub.save();
     if (companyId !== 'superAdmin') {
         const company = await companyLean.findById(companyId).lean();
-        const currUser = await userLean.findOne({ owner: company._id }).lean();
+        if (!company) {
+            await companySubscriptionMain.deleteOne({ _id: savedSub._id });
+            return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+        }
+        const currUser = await userLean.findOne({ _id: company.owner }).lean();
+        if (!currUser) {
+            await companySubscriptionMain.deleteOne({ _id: savedSub._id });
+            return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+        }
         response = await firePesapalRelegator(subscriptionPackage, savedSub, company, currUser);
+        if (!response.success) {
+            await companySubscriptionMain.deleteOne({ _id: savedSub._id });
+            return res.status(401).send({ success: false, status: 401, err: response.err });
+        }
     }
     return res.status(200).send({ success: true, data: response });
 });

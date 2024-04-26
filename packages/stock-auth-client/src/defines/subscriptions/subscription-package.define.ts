@@ -1,13 +1,12 @@
-import { DatabaseAuto, IsubscriptionPackage, Isuccess } from '@open-stock/stock-universal';
+import { DatabaseAuto, IsubscriptionFeature, IsubscriptionPackage, Isuccess, TsubscriptionDurVal } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
 import { StockAuthClient } from '../../stock-auth-client';
-import { IsubscriptionFeature } from '@open-stock/stock-universal';
 
 export class SubscriptionPackange
   extends DatabaseAuto {
   name: string;
   ammount: number;
-  duration: number;
+  duration: TsubscriptionDurVal;
   active: boolean;
   features: IsubscriptionFeature[];
 

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.connectUniversalDatabase = exports.createStockUniversalServerLocals = exports.isStockUniversalServerRunning = void 0;
+exports.connectUniversalDatabase = exports.createStockUniversalServerLocals = exports.envConfig = exports.isStockUniversalServerRunning = void 0;
 const filemeta_model_1 = require("./models/filemeta.model");
 /**
  * Indicates whether the stock universal server is currently running.
@@ -9,7 +9,8 @@ exports.isStockUniversalServerRunning = false;
 /**
  * Creates stock universal server locals.
  */
-const createStockUniversalServerLocals = () => {
+const createStockUniversalServerLocals = (envCfig) => {
+    exports.envConfig = envCfig;
     exports.isStockUniversalServerRunning = true;
 };
 exports.createStockUniversalServerLocals = createStockUniversalServerLocals;

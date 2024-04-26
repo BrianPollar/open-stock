@@ -5,7 +5,7 @@ import { connectAuthDatabase, isAuthDbConnected, mainConnection, mainConnectionL
 // const twilioClient = require('twilio')(config.accountSid, config.authToken);
 const uniqueValidator = require('mongoose-unique-validator');
 export const companySchema = new Schema({
-    urId: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
+    urId: { type: String, required: [true, 'cannot be empty.'], index: true },
     name: { type: String, required: [true, 'cannot be empty.'], index: true },
     displayName: { type: String, required: [true, 'cannot be empty.'], index: true },
     dateOfEst: { type: String, index: true },

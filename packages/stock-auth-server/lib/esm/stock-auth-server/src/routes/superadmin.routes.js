@@ -143,10 +143,11 @@ export const signupFactorRelgator = async (req, res, next) => {
         result = await sendTokenEmail(saved, type, stockAuthConfig.localSettings.appOfficialName);
     }
     if (!response.success) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        saved.remove();
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        await user.deleteOne({ _id: saved._id });
         if (company) {
-            await company.remove();
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            await companyMain.deleteOne({ _id: company._id });
         }
         return res.status(200).send(response);
     }

@@ -12,14 +12,18 @@ const fileMangerLogger = (0, log4js_1.getLogger)('FileManger');
  * @param directories - An array of directory names to be created.
  * @returns A promise that resolves to a boolean indicating whether the directories were successfully created.
  */
-const createDirectories = async (appName, absolutepath, directories) => {
+const createDirectories = async (envConfig) => {
     // Check if the directory for the app name exists.
-    await (0, exports.checkDirectoryExists)(appName, 'first');
+    await (0, exports.checkDirectoryExists)(envConfig.appName, 'first');
     // Create a promise for each directory in the list.
+    const directories = [
+        envConfig.photoDirectory,
+        envConfig.videoDirectory
+    ];
     const promises = directories
         .map(async (value) => {
         // Check if the directory exists.
-        await (0, exports.checkDirectoryExists)(absolutepath, value);
+        await (0, exports.checkDirectoryExists)(envConfig.absolutepath, value);
         // Return a promise that always resolves to true.
         return new Promise(resolve => resolve(true));
     });

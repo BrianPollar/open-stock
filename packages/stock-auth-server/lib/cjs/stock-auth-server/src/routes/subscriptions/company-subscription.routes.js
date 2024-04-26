@@ -5,7 +5,6 @@ const tslib_1 = require("tslib");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
 const log4js_1 = require("log4js");
-const pesapal3_1 = require("pesapal3");
 const company_model_1 = require("../../models/company.model");
 const company_subscription_model_1 = require("../../models/subscriptions/company-subscription.model");
 const user_model_1 = require("../../models/user.model");
@@ -14,12 +13,13 @@ const company_auth_1 = require("../company-auth");
 /** Logger for companySubscription routes */
 const companySubscriptionRoutesLogger = (0, log4js_1.getLogger)('routes/companySubscriptionRoutes');
 const firePesapalRelegator = async (subctn, savedSub, company, currUser) => {
+    console.log('PESAPAL IS ', stock_auth_server_1.pesapalPaymentInstance.config);
     const payDetails = {
         id: savedSub._id,
-        currency: 'UGA',
+        currency: 'UGX',
         amount: subctn.ammount,
         description: 'Complete payments for subscription ,' + subctn.name,
-        callback_url: pesapal3_1.Pesapal.config.pesapalCallbackUrl,
+        callback_url: stock_auth_server_1.pesapalPaymentInstance.config.pesapalCallbackUrl,
         cancellation_url: '',
         notification_id: '',
         billing_address: {
@@ -37,13 +37,19 @@ const firePesapalRelegator = async (subctn, savedSub, company, currUser) => {
             zip_code: ''
         }
     };
+    console.log('PAY Details ', payDetails);
     const response = await stock_auth_server_1.pesapalPaymentInstance.submitOrder(payDetails, subctn._id, 'Complete product payment');
-    const companySub = await company_subscription_model_1.companySubscriptionMain.findOneAndUpdate({ _id: savedSub._id });
-    companySub.pesaPalorderTrackingId = response.order_tracking_id;
+    console.log('RESPONSE ISSSSS ', response);
+    if (!response.success) {
+        return { success: false, err: response.err };
+    }
+    const companySub = await company_subscription_model_1.companySubscriptionMain.findByIdAndUpdate(savedSub._id);
+    companySub.pesaPalorderTrackingId = response.pesaPalOrderRes.order_tracking_id;
     await companySub.save();
     return {
+        success: true,
         pesaPalOrderRes: {
-            redirect_url: response.redirect_url
+            redirect_url: response.pesaPalOrderRes.redirect_url
         }
     };
 };
@@ -103,8 +109,20 @@ exports.companySubscriptionRoutes.post('/subscribe/:companyIdParam', stock_unive
     const savedSub = await newCompSub.save();
     if (companyId !== 'superAdmin') {
         const company = await company_model_1.companyLean.findById(companyId).lean();
-        const currUser = await user_model_1.userLean.findOne({ owner: company._id }).lean();
+        if (!company) {
+            await company_subscription_model_1.companySubscriptionMain.deleteOne({ _id: savedSub._id });
+            return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+        }
+        const currUser = await user_model_1.userLean.findOne({ _id: company.owner }).lean();
+        if (!currUser) {
+            await company_subscription_model_1.companySubscriptionMain.deleteOne({ _id: savedSub._id });
+            return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+        }
         response = await firePesapalRelegator(subscriptionPackage, savedSub, company, currUser);
+        if (!response.success) {
+            await company_subscription_model_1.companySubscriptionMain.deleteOne({ _id: savedSub._id });
+            return res.status(401).send({ success: false, status: 401, err: response.err });
+        }
     }
     return res.status(200).send({ success: true, data: response });
 });

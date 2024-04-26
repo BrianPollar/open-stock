@@ -5,7 +5,7 @@ const mongoose_1 = require("mongoose");
 const database_controller_1 = require("../controllers/database.controller");
 const uniqueValidator = require('mongoose-unique-validator');
 const paymentSchema = new mongoose_1.Schema({
-    companyId: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
+    companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
     paymentRelated: { type: String, unique: true },
     invoiceRelated: { type: String, unique: true },
     order: { type: String }

@@ -6,8 +6,8 @@ const database_controller_1 = require("../controllers/database.controller");
 const uniqueValidator = require('mongoose-unique-validator');
 /** FAQ schema */
 const faqSchema = new mongoose_1.Schema({
-    urId: { type: String, unique: true },
-    companyId: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
+    urId: { type: String },
+    companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
     posterName: { type: String },
     posterEmail: { type: String, required: [true, 'cannot be empty.'], index: true },
     userId: { type: String },

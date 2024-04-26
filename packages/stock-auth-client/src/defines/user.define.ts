@@ -77,8 +77,8 @@ export class User extends DatabaseAuto {
    * @param limit The maximum number of users to retrieve.
    * @returns An array of User instances created from the retrieved user objects.
    */
-  static async getUsers(companyId: string, url: string, offset = 0, limit = 20) {
-    const observer$ = StockAuthClient.ehttp.makeGet(`/user/getusers/${url}/${offset}/${limit}/${companyId}`);
+  static async getUsers(companyId: string, where: TuserType | 'all', offset = 0, limit = 20) {
+    const observer$ = StockAuthClient.ehttp.makeGet(`/user/getusers/${where}/${offset}/${limit}/${companyId}`);
     const users = await lastValueFrom(observer$) as IdataArrayResponse;
     return {
       count: users.count,
@@ -147,15 +147,15 @@ export class User extends DatabaseAuto {
         _id: this._id
       }
     };
-    let added: Isuccess;
+    let updated: Isuccess;
     if (files && files[0]) {
       const observer$ = StockAuthClient.ehttp.uploadFiles(files, `/user/updateuserbulkimg/${companyId}`, details);
-      added = await lastValueFrom(observer$) as Isuccess;
+      updated = await lastValueFrom(observer$) as Isuccess;
     } else {
       const observer$ = StockAuthClient.ehttp.makePut(`/user/updateuserbulk/${companyId}`, details);
-      added = await lastValueFrom(observer$) as Isuccess;
+      updated = await lastValueFrom(observer$) as Isuccess;
     }
-    return added;
+    return updated;
   }
 
   /**

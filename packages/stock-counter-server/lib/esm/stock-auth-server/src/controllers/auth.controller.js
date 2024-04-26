@@ -291,7 +291,8 @@ export const loginFactorRelgator = async (req, res, next) => {
         result = await sendTokenEmail(saved, type, stockAuthConfig.localSettings.appOfficialName);
     }
     if (!response.success) {
-        saved.remove();
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        await user.deleteOne({ _id: saved._id });
         return res.status(200).send(response);
     }
     if (Boolean(result.success)) {
