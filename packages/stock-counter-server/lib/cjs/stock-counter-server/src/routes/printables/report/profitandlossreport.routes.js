@@ -20,7 +20,7 @@ exports.profitAndLossReportRoutes = express_1.default.Router();
  * @param req - The request object.
  * @param res - The response object.
  */
-exports.profitAndLossReportRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_auth_server_1.requireCanUseFeature)('report'), (0, stock_universal_server_1.roleAuthorisation)('reports', 'create'), async (req, res, next) => {
+exports.profitAndLossReportRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'create'), async (req, res, next) => {
     const profitAndLossReport = req.body.profitAndLossReport;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -55,8 +55,8 @@ exports.profitAndLossReportRoutes.post('/create/:companyIdParam', stock_universa
     if (errResponse) {
         return res.status(403).send(errResponse);
     }
-    return next();
-}, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('report'));
+    return res.status(200).send({ success: true });
+});
 /**
  * Get a single profit and loss report by URID.
  * @param req - The request object.

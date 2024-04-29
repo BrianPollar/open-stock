@@ -24,7 +24,7 @@ exports.invoicesReportRoutes = express_1.default.Router();
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware
  */
-exports.invoicesReportRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_auth_server_1.requireCanUseFeature)('report'), (0, stock_universal_server_1.roleAuthorisation)('reports', 'create'), async (req, res, next) => {
+exports.invoicesReportRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'create'), async (req, res, next) => {
     const invoicesReport = req.body.invoicesReport;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -57,8 +57,8 @@ exports.invoicesReportRoutes.post('/create/:companyIdParam', stock_universal_ser
     if (errResponse) {
         return res.status(403).send(errResponse);
     }
-    return next();
-}, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('report'));
+    return res.status(200).send({ success: true });
+});
 /**
  * Route to get a single invoices report by urId
  * @name GET /getone/:urId

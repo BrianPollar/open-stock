@@ -16,7 +16,7 @@ const firePesapalRelegator = async (subctn, savedSub, company, currUser) => {
     console.log('PESAPAL IS ', stock_auth_server_1.pesapalPaymentInstance.config);
     const payDetails = {
         id: savedSub._id,
-        currency: 'UGX',
+        currency: 'USD',
         amount: subctn.ammount,
         description: 'Complete payments for subscription ,' + subctn.name,
         callback_url: stock_auth_server_1.pesapalPaymentInstance.config.pesapalCallbackUrl,
@@ -134,7 +134,7 @@ exports.companySubscriptionRoutes.get('/getall/:offset/:limit/:companyIdParam', 
         query = { companyId };
     }
     else {
-        query = {};
+        query = { status: 'paid' };
     }
     const all = await Promise.all([
         company_subscription_model_1.companySubscriptionLean

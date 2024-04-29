@@ -22,7 +22,7 @@ exports.invoiceSettingRoutes = express_1.default.Router();
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware
  */
-exports.invoiceSettingRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_auth_server_1.requireCanUseFeature)('report'), (0, stock_universal_server_1.roleAuthorisation)('invoices', 'create'), async (req, res, next) => {
+exports.invoiceSettingRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('invoices', 'create'), async (req, res, next) => {
     const invoiceSetting = req.body.invoicesettings;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -53,8 +53,8 @@ exports.invoiceSettingRoutes.post('/create/:companyIdParam', stock_universal_ser
     if (errResponse) {
         return res.status(403).send(errResponse);
     }
-    return next();
-}, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('report'));
+    return res.status(200).send({ success: true });
+});
 /**
  * Route for creating a new invoice setting with image
  * @name POST /createimg

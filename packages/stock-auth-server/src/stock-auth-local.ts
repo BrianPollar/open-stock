@@ -4,11 +4,11 @@ import { ConnectOptions } from 'mongoose';
 import { createCompanyModel } from './models/company.model';
 import { createEmailtokenModel } from './models/emailtoken.model';
 import { createCompanySubscription } from './models/subscriptions/company-subscription.model';
-import { createSubscriptionPackageModel } from './models/subscriptions/subscription-package.model';
+// import { createSubscriptionPackageModel } from './models/subscriptions/subscription-package.model';
+import { createLoginAtemptsModel } from './models/loginattemps.model';
 import { createUserModel } from './models/user.model';
 import { createUseripModel } from './models/userip.model';
 import { IStockAuthServerConfig } from './stock-auth-server';
-import { createLoginAtemptsModel } from './models/loginattemps.model';
 
 /**
  * Configuration object for the stock-auth-local module.
@@ -39,7 +39,7 @@ export const connectAuthDatabase = async(databaseUrl: string, dbOptions?: Connec
   await createUserModel(databaseUrl, dbOptions);
   await createCompanyModel(databaseUrl, dbOptions);
   await createUseripModel(databaseUrl);
-  await createSubscriptionPackageModel(databaseUrl, dbOptions);
+  // await createSubscriptionPackageModel(databaseUrl, dbOptions);
   await createCompanySubscription(databaseUrl, dbOptions);
   await createLoginAtemptsModel(databaseUrl, dbOptions);
 };

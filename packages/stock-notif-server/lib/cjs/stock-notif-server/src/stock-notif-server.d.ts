@@ -23,7 +23,7 @@
 /// <reference types="mongoose/types/virtuals" />
 /// <reference types="mongoose/types/inferschematype" />
 import { ConnectOptions } from 'mongoose';
-import { ItwilioAuthySecrets } from './stock-notif-local';
+import { InotifSecrets, ItwilioAuthySecrets } from './stock-notif-local';
 export interface IstockNotifServerConfig {
     jwtSecret: string;
     databaseConfig: {
@@ -31,6 +31,7 @@ export interface IstockNotifServerConfig {
         dbOptions?: ConnectOptions;
     };
     twilioAutyConfig: ItwilioAuthySecrets;
+    notifSecrets: InotifSecrets;
     useDummyRoutes?: boolean;
 }
 export declare const runStockNotificationServer: (config: IstockNotifServerConfig) => Promise<{

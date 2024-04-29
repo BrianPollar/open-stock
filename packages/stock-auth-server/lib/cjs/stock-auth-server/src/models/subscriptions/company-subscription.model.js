@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createCompanySubscription = exports.companySubscriptionSelect = exports.companySubscriptionLean = exports.companySubscriptionMain = void 0;
 const mongoose_1 = require("mongoose");
-const database_controller_1 = require("../../../../stock-counter-server/src/controllers/database.controller");
+const database_controller_1 = require("../../controllers/database.controller");
 const uniqueValidator = require('mongoose-unique-validator');
 /** company subscription schema */
 const companySubscriptionSchema = new mongoose_1.Schema({
@@ -47,8 +47,8 @@ exports.companySubscriptionSelect = companySubscriptionselect;
  * @param lean Whether to create a lean connection.
  */
 const createCompanySubscription = async (dbUrl, dbOptions, main = true, lean = true) => {
-    if (!database_controller_1.isStockDbConnected) {
-        await (0, database_controller_1.connectStockDatabase)(dbUrl, dbOptions);
+    if (!database_controller_1.isAuthDbConnected) {
+        await (0, database_controller_1.connectAuthDatabase)(dbUrl, dbOptions);
     }
     if (main) {
         exports.companySubscriptionMain = database_controller_1.mainConnection.model('CompanySubscription', companySubscriptionSchema);

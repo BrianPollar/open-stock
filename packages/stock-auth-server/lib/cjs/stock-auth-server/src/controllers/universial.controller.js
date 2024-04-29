@@ -237,7 +237,7 @@ const validateEmail = async (foundUser, type, nowCase, verifycode, newPassword) 
       try again in a while`;
         }
     });
-    if (status === 200) {
+    if (status === 403) {
         return {
             status,
             response: errResponse
@@ -522,6 +522,7 @@ height: 100%;
             return;
         }).catch(error => {
             universialControllerLogger.error('email verication with token error', JSON.stringify(error));
+            console.log('error 1111111 ', error);
             response = {
                 status: 403,
                 success: false,
@@ -533,6 +534,7 @@ height: 100%;
     }).catch((err) => {
         universialControllerLogger.error(`sendTokenEmail
           token.save error, ${err}`);
+        console.log('error 222222 ', err);
         const errResponse = {
             success: false
         };

@@ -1,4 +1,4 @@
-import { requireActiveCompany, requireCanUseFeature, requireUpdateSubscriptionRecord } from '@open-stock/stock-auth-server';
+import { requireActiveCompany } from '@open-stock/stock-auth-server';
 import { appendBody, deleteFiles, offsetLimitRelegator, requireAuth, roleAuthorisation, saveMetaToDb, stringifyMongooseErr, uploadFiles, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { getLogger } from 'log4js';
@@ -18,7 +18,7 @@ export const invoiceSettingRoutes = express.Router();
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware
  */
-invoiceSettingRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('report'), roleAuthorisation('invoices', 'create'), async (req, res, next) => {
+invoiceSettingRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'create'), async (req, res, next) => {
     const invoiceSetting = req.body.invoicesettings;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -49,8 +49,8 @@ invoiceSettingRoutes.post('/create/:companyIdParam', requireAuth, requireActiveC
     if (errResponse) {
         return res.status(403).send(errResponse);
     }
-    return next();
-}, requireUpdateSubscriptionRecord('report'));
+    return res.status(200).send({ success: true });
+});
 /**
  * Route for creating a new invoice setting with image
  * @name POST /createimg

@@ -4,6 +4,7 @@ exports.isNotificationsServerRunning = exports.getCurrentNotificationSettings = 
 const tslib_1 = require("tslib");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
+const notifications_controller_1 = require("./controllers/notifications.controller");
 const twilio_controller_1 = require("./controllers/twilio.controller");
 const notifsetting_model_1 = require("./models/notifsetting.model");
 const mail_routes_1 = require("./routes-dummy/mail.routes");
@@ -24,6 +25,7 @@ const runStockNotificationServer = async (config) => {
     stock_notif_local_1.notificationSettings.defaultAuthyMail = config.twilioAutyConfig.defaultMail;
     stock_notif_local_1.notificationSettings.twilioNumber = config.twilioAutyConfig.twilioNumber;
     (0, stock_notif_local_1.createStockNotifServerLocals)();
+    (0, notifications_controller_1.constructMailService)(config.twilioAutyConfig.sendGridApiKey, config.notifSecrets.notifPublicKey, config.notifSecrets.notifPrivateKey);
     const stockNotifRouter = express_1.default.Router();
     if (!config.useDummyRoutes) {
         stockNotifRouter.use('/notifn', notification_routes_2.notifnRoutes);

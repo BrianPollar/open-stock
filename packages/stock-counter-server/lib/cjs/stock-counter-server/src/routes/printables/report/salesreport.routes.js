@@ -25,7 +25,7 @@ exports.salesReportRoutes = express_1.default.Router();
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>} - Promise object represents the response
  */
-exports.salesReportRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_auth_server_1.requireCanUseFeature)('report'), (0, stock_universal_server_1.roleAuthorisation)('reports', 'create'), async (req, res, next) => {
+exports.salesReportRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'create'), async (req, res, next) => {
     const salesReport = req.body.salesReport;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -60,8 +60,8 @@ exports.salesReportRoutes.post('/create/:companyIdParam', stock_universal_server
     if (errResponse) {
         return res.status(403).send(errResponse);
     }
-    return next();
-}, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('report'));
+    return res.status(200).send({ success: true });
+});
 /**
  * Get a sales report by UR ID
  * @name GET /getone/:urId

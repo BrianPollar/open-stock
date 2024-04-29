@@ -1,4 +1,4 @@
-import { requireActiveCompany, requireCanUseFeature, requireUpdateSubscriptionRecord } from '@open-stock/stock-auth-server';
+import { requireActiveCompany } from '@open-stock/stock-auth-server';
 import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { getLogger } from 'log4js';
@@ -16,7 +16,7 @@ export const profitAndLossReportRoutes = express.Router();
  * @param req - The request object.
  * @param res - The response object.
  */
-profitAndLossReportRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('report'), roleAuthorisation('reports', 'create'), async (req, res, next) => {
+profitAndLossReportRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'create'), async (req, res, next) => {
     const profitAndLossReport = req.body.profitAndLossReport;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -51,8 +51,8 @@ profitAndLossReportRoutes.post('/create/:companyIdParam', requireAuth, requireAc
     if (errResponse) {
         return res.status(403).send(errResponse);
     }
-    return next();
-}, requireUpdateSubscriptionRecord('report'));
+    return res.status(200).send({ success: true });
+});
 /**
  * Get a single profit and loss report by URID.
  * @param req - The request object.

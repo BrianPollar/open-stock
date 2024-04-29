@@ -27,7 +27,7 @@ exports.taxReportRoutes = express_1.default.Router();
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>} - Promise object representing the response
  */
-exports.taxReportRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_auth_server_1.requireCanUseFeature)('report'), (0, stock_universal_server_1.roleAuthorisation)('reports', 'create'), async (req, res, next) => {
+exports.taxReportRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'create'), async (req, res, next) => {
     const taxReport = req.body.taxReport;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -62,8 +62,8 @@ exports.taxReportRoutes.post('/create/:companyIdParam', stock_universal_server_1
     if (errResponse) {
         return res.status(403).send(errResponse);
     }
-    return next();
-}, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('report'));
+    return res.status(200).send({ success: true });
+});
 /**
  * Get a single tax report by UR ID
  * @name GET /getone/:urId

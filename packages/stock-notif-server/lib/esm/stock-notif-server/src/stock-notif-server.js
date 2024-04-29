@@ -1,5 +1,6 @@
 import { isUniversalServerRunning, runPassport } from '@open-stock/stock-universal-server';
 import express from 'express';
+import { constructMailService } from './controllers/notifications.controller';
 import { makeAuthyTwilio } from './controllers/twilio.controller';
 import { notifSettingMain } from './models/notifsetting.model';
 import { mailSenderRoutesDummy } from './routes-dummy/mail.routes';
@@ -20,6 +21,7 @@ export const runStockNotificationServer = async (config) => {
     notificationSettings.defaultAuthyMail = config.twilioAutyConfig.defaultMail;
     notificationSettings.twilioNumber = config.twilioAutyConfig.twilioNumber;
     createStockNotifServerLocals();
+    constructMailService(config.twilioAutyConfig.sendGridApiKey, config.notifSecrets.notifPublicKey, config.notifSecrets.notifPrivateKey);
     const stockNotifRouter = express.Router();
     if (!config.useDummyRoutes) {
         stockNotifRouter.use('/notifn', notifnRoutes);

@@ -58,7 +58,7 @@ exports.estimateRoutes = express_1.default.Router();
  * @param res The response object.
  * @returns A success object with a boolean indicating whether the operation was successful.
  */
-exports.estimateRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_auth_server_1.requireCanUseFeature)('estimate'), (0, stock_universal_server_1.roleAuthorisation)('estimates', 'create'), async (req, res, next) => {
+exports.estimateRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_auth_server_1.requireCanUseFeature)('quotation'), (0, stock_universal_server_1.roleAuthorisation)('estimates', 'create'), async (req, res, next) => {
     const { estimate, invoiceRelated } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -103,7 +103,7 @@ exports.estimateRoutes.post('/create/:companyIdParam', stock_universal_server_1.
         return res.status(403).send(errResponse);
     }
     return next();
-}, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('estimate'));
+}, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('quotation'));
 /**
  * Gets an estimate and its associated invoice related object by estimate ID.
  * @param req The request object.
@@ -119,7 +119,6 @@ exports.estimateRoutes.get('/getone/:estimateId/:companyIdParam', stock_universa
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
-    estimateId.companyId = queryId;
     const invoiceRelated = await invoicerelated_model_1.invoiceRelatedLean
         .findOne({ estimateId, companyId: queryId })
         .lean()

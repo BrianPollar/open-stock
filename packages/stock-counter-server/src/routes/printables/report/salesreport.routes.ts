@@ -1,4 +1,4 @@
-import { requireActiveCompany, requireCanUseFeature, requireUpdateSubscriptionRecord } from '@open-stock/stock-auth-server';
+import { requireActiveCompany } from '@open-stock/stock-auth-server';
 import { Icustomrequest, IdataArrayResponse, Isuccess } from '@open-stock/stock-universal';
 import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
@@ -25,7 +25,7 @@ export const salesReportRoutes = express.Router();
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>} - Promise object represents the response
  */
-salesReportRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('report'), roleAuthorisation('reports', 'create'), async(req, res, next) => {
+salesReportRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'create'), async(req, res, next) => {
   const salesReport = req.body.salesReport;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -60,8 +60,8 @@ salesReportRoutes.post('/create/:companyIdParam', requireAuth, requireActiveComp
   if (errResponse) {
     return res.status(403).send(errResponse);
   }
-  return next();
-}, requireUpdateSubscriptionRecord('report'));
+  return res.status(200).send({ success: true });
+});
 
 /**
  * Get a sales report by UR ID

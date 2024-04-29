@@ -45,7 +45,7 @@ class Estimate extends invoice_define_1.InvoiceRelatedWithReceipt {
      */
     static async getOneEstimate(companyId, estimateId) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makeGet(`/estimate/getone/${estimateId}`);
+            .makeGet(`/estimate/getone/${estimateId}/${companyId}`);
         const estimate = await (0, rxjs_1.lastValueFrom)(observer$);
         return new Estimate(estimate);
     }

@@ -99,7 +99,8 @@ export class AuthController {
         userInfo.emailPhone,
       passwd: userInfo.password,
       firstName: userInfo.firstName,
-      lastName: userInfo.lastName
+      lastName: userInfo.lastName,
+      userType: userInfo.userType
     };
     StockAuthClient.logger.debug('AuthService:signup:: - signupUrl : %s, email: %email', userInfo.url, userInfo.emailPhone);
     const observer$ = StockAuthClient.ehttp

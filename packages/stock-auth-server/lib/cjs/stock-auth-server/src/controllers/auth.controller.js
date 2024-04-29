@@ -158,13 +158,15 @@ exports.checkIpAndAttempt = checkIpAndAttempt;
  */
 const isTooCommonPhrase = (req, res, next) => {
     const passwd = req.body.passwd;
-    const { commonPhraseData } = req.localEnv;
-    if (commonPhraseData.includes(passwd)) {
-        const toSend = {
-            success: false,
-            msg: 'the password selected is to easy'
-        };
-        return res.status(403).send(toSend);
+    if (req.localEnv) {
+        const { commonPhraseData } = req.localEnv;
+        if (commonPhraseData.includes(passwd)) {
+            const toSend = {
+                success: false,
+                msg: 'the password selected is to easy'
+            };
+            return res.status(403).send(toSend);
+        }
     }
     return next();
 };
@@ -179,13 +181,15 @@ exports.isTooCommonPhrase = isTooCommonPhrase;
  */
 const isInAdictionaryOnline = (req, res, next) => {
     const passwd = req.params.passwd;
-    const { commonDictData } = req.localEnv;
-    if (commonDictData.includes(passwd)) {
-        const toSend = {
-            success: false,
-            msg: 'the password you entered was found somwhere online, please use another one'
-        };
-        return res.status(403).send(toSend);
+    if (req.localEnv) {
+        const { commonDictData } = req.localEnv;
+        if (commonDictData.includes(passwd)) {
+            const toSend = {
+                success: false,
+                msg: 'the password you entered was found somwhere online, please use another one'
+            };
+            return res.status(403).send(toSend);
+        }
     }
     return next();
 };
@@ -382,6 +386,7 @@ exports.recoverAccountFactory = recoverAccountFactory;
  */
 const confirmAccountFactory = async (req, res) => {
     // eslint-disable-next-line @typescript-eslint/naming-convention
+    console.log('000000000');
     const { foundUser, _id, verifycode, how, type } = req.body;
     authControllerLogger.debug(`verify, verifycode: ${verifycode}, how: ${how}`);
     const isValid = (0, stock_universal_server_1.verifyObjectIds)([_id]);
@@ -394,13 +399,16 @@ const confirmAccountFactory = async (req, res) => {
             }
         };
     }
+    console.log(1111111);
     let response;
     if (how === 'phone') {
         response = await (0, universial_controller_1.validatePhone)(foundUser, 'signup', verifycode, null);
     }
     else {
+        console.log(2222);
         response = await (0, universial_controller_1.validateEmail)(foundUser, type, 'signup', verifycode, null);
     }
+    console.log(333333333333, response);
     const now = new Date();
     let filter;
     if (foundUser.companyId) {
@@ -416,6 +424,7 @@ const confirmAccountFactory = async (req, res) => {
     if (subsctn) {
         response.response.activeSubscription = subsctn;
     }
+    console.log(444444444, response);
     return res.status(response.status).send(response.response);
 };
 exports.confirmAccountFactory = confirmAccountFactory;

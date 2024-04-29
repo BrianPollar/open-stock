@@ -53,7 +53,7 @@ export const estimateRoutes = express.Router();
  * @param res The response object.
  * @returns A success object with a boolean indicating whether the operation was successful.
  */
-estimateRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('estimate'), roleAuthorisation('estimates', 'create'), async (req, res, next) => {
+estimateRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('quotation'), roleAuthorisation('estimates', 'create'), async (req, res, next) => {
     const { estimate, invoiceRelated } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -98,7 +98,7 @@ estimateRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany
         return res.status(403).send(errResponse);
     }
     return next();
-}, requireUpdateSubscriptionRecord('estimate'));
+}, requireUpdateSubscriptionRecord('quotation'));
 /**
  * Gets an estimate and its associated invoice related object by estimate ID.
  * @param req The request object.
@@ -114,7 +114,6 @@ estimateRoutes.get('/getone/:estimateId/:companyIdParam', requireAuth, requireAc
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
-    estimateId.companyId = queryId;
     const invoiceRelated = await invoiceRelatedLean
         .findOne({ estimateId, companyId: queryId })
         .lean()

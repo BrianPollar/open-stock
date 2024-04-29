@@ -2,6 +2,15 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.requireSuperAdmin = exports.signupFactorRelgator = exports.superAdminRoutes = void 0;
 const tslib_1 = require("tslib");
+/**
+ * This file contains the authentication routes for the stock-auth-server package.
+ * It exports the superAdminRoutes router and userLoginRelegator function.
+ * It also imports various controllers and models from the same package and other packages.
+ * @packageDocumentation
+ */
+/* eslint-disable @typescript-eslint/no-var-requires */
+/* eslint-disable @typescript-eslint/no-misused-promises */
+const stock_universal_1 = require("@open-stock/stock-universal");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
 const log4js_1 = require("log4js");
@@ -29,7 +38,7 @@ const authLogger = (0, log4js_1.getLogger)('routes/auth');
  */
 const signupFactorRelgator = async (req, res, next) => {
     const { emailPhone } = req.body;
-    const userType = req.body.userType;
+    const userType = req.body.userType || 'eUser';
     const passwd = req.body.passwd;
     let phone;
     let email;
@@ -74,16 +83,14 @@ const signupFactorRelgator = async (req, res, next) => {
             // eslint-disable-next-line @typescript-eslint/naming-convention
             .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
         const companyUrId = (0, stock_universal_server_1.makeUrId)(Number(companyCount[0]?.urId || '0'));
-        const { name } = req.body.company;
+        const name = 'company ' + (0, stock_universal_1.makeRandomString)(11, 'letters');
         permissions = {
             companyAdminAccess: true
         };
         const newCompany = new company_model_1.companyMain({
             urId: companyUrId,
             name,
-            phone,
-            email,
-            password: passwd,
+            displayName: name,
             expireAt,
             countryCode: +256
         });
@@ -99,12 +106,12 @@ const signupFactorRelgator = async (req, res, next) => {
         // eslint-disable-next-line @typescript-eslint/naming-convention
         .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     const urId = (0, stock_universal_server_1.makeUrId)(Number(count[0]?.urId || '0'));
-    const { firstName, lastName } = req.body.user;
+    const name = 'user ' + (0, stock_universal_1.makeRandomString)(11, 'letters');
     const newUser = new user_model_1.user({
         companyId: company._id || null,
         urId,
-        fname: firstName,
-        lname: lastName,
+        fname: name,
+        lname: name,
         phone,
         email,
         password: passwd,
@@ -113,7 +120,9 @@ const signupFactorRelgator = async (req, res, next) => {
         countryCode: +256,
         userType
     });
-    let response;
+    let response = {
+        success: true
+    };
     const saved = await newUser.save().catch(err => {
         authLogger.error(`mongosse registration 
     validation error, ${err}`);
@@ -138,14 +147,15 @@ const signupFactorRelgator = async (req, res, next) => {
         company.owner = saved._id;
         await company.save();
     }
-    let result;
     const type = 'token'; // note now is only token but build a counter later to make sur that the token and link methods are shared
     if (isPhone) {
-        result = await (0, universial_controller_1.sendTokenPhone)(saved);
+        response = await (0, universial_controller_1.sendTokenPhone)(saved);
     }
     else {
-        result = await (0, universial_controller_1.sendTokenEmail)(saved, type, stock_auth_local_1.stockAuthConfig.localSettings.appOfficialName);
+        console.log('sending mail token');
+        response = await (0, universial_controller_1.sendTokenEmail)(saved, type, stock_auth_local_1.stockAuthConfig.localSettings.appOfficialName);
     }
+    console.log('asfter valid result ', response);
     if (!response.success) {
         // eslint-disable-next-line @typescript-eslint/naming-convention
         await user_model_1.user.deleteOne({ _id: saved._id });
@@ -155,8 +165,13 @@ const signupFactorRelgator = async (req, res, next) => {
         }
         return res.status(200).send(response);
     }
-    if (Boolean(result.success)) {
-        return res.status(200).send(response);
+    if (Boolean(response.success)) {
+        const toReturn = {
+            success: true,
+            msg: response.msg,
+            _id: saved._id
+        };
+        return res.status(200).send(toReturn);
     }
     const toSend = {
         success: false,

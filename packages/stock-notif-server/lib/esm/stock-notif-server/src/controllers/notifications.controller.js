@@ -3,9 +3,10 @@ import { getLogger } from 'log4js';
 import * as webPush from 'web-push';
 import { mainnotificationMain } from '../models/mainnotification.model';
 import { notifSettingLean, notifSettingMain } from '../models/notifsetting.model';
-// const sgMail = require('@sendgrid/mail');
-import * as sgMail from '@sendgrid/mail';
 import { notificationSettings } from '../stock-notif-local';
+// const sgMail = require('@sendgrid/mail');
+// import * as sgMail from '@sendgrid/mail';
+const sgMail = require('@sendgrid/mail');
 const notificationsControllerLogger = getLogger('controllers/NotificationsController');
 /**
  * Determines whether a user has an email address.

@@ -1,5 +1,5 @@
 import { Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../../../stock-counter-server/src/controllers/database.controller';
+import { connectAuthDatabase, isAuthDbConnected, mainConnection, mainConnectionLean } from '../../controllers/database.controller';
 const uniqueValidator = require('mongoose-unique-validator');
 /** subscription package schema */
 const subscriptionPackageSchema = new Schema({
@@ -39,8 +39,8 @@ export const subscriptionPackageSelect = subscriptionPackageselect;
  * @param lean Whether to create a lean connection.
  */
 export const createSubscriptionPackageModel = async (dbUrl, dbOptions, main = true, lean = true) => {
-    if (!isStockDbConnected) {
-        await connectStockDatabase(dbUrl, dbOptions);
+    if (!isAuthDbConnected) {
+        await connectAuthDatabase(dbUrl, dbOptions);
     }
     if (main) {
         subscriptionPackageMain = mainConnection.model('SubscriptionPackage', subscriptionPackageSchema);

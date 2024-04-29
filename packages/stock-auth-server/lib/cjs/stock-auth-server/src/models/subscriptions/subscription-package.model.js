@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createSubscriptionPackageModel = exports.subscriptionPackageSelect = exports.subscriptionPackageLean = exports.subscriptionPackageMain = void 0;
 const mongoose_1 = require("mongoose");
-const database_controller_1 = require("../../../../stock-counter-server/src/controllers/database.controller");
+const database_controller_1 = require("../../controllers/database.controller");
 const uniqueValidator = require('mongoose-unique-validator');
 /** subscription package schema */
 const subscriptionPackageSchema = new mongoose_1.Schema({
@@ -34,8 +34,8 @@ exports.subscriptionPackageSelect = subscriptionPackageselect;
  * @param lean Whether to create a lean connection.
  */
 const createSubscriptionPackageModel = async (dbUrl, dbOptions, main = true, lean = true) => {
-    if (!database_controller_1.isStockDbConnected) {
-        await (0, database_controller_1.connectStockDatabase)(dbUrl, dbOptions);
+    if (!database_controller_1.isAuthDbConnected) {
+        await (0, database_controller_1.connectAuthDatabase)(dbUrl, dbOptions);
     }
     if (main) {
         exports.subscriptionPackageMain = database_controller_1.mainConnection.model('SubscriptionPackage', subscriptionPackageSchema);

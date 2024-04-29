@@ -12,7 +12,7 @@ const firePesapalRelegator = async (subctn, savedSub, company, currUser) => {
     console.log('PESAPAL IS ', pesapalPaymentInstance.config);
     const payDetails = {
         id: savedSub._id,
-        currency: 'UGX',
+        currency: 'USD',
         amount: subctn.ammount,
         description: 'Complete payments for subscription ,' + subctn.name,
         callback_url: pesapalPaymentInstance.config.pesapalCallbackUrl,
@@ -130,7 +130,7 @@ companySubscriptionRoutes.get('/getall/:offset/:limit/:companyIdParam', requireA
         query = { companyId };
     }
     else {
-        query = {};
+        query = { status: 'paid' };
     }
     const all = await Promise.all([
         companySubscriptionLean

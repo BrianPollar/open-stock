@@ -30,7 +30,7 @@ exports.deliveryNoteRoutes = express_1.default.Router();
  * @param {Object} res - Express response object
  * @returns {Object} Success status and saved delivery note data
  */
-exports.deliveryNoteRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_auth_server_1.requireCanUseFeature)('delivery-note'), (0, stock_universal_server_1.roleAuthorisation)('deliveryNotes', 'create'), async (req, res, next) => {
+exports.deliveryNoteRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_auth_server_1.requireCanUseFeature)('quotation'), (0, stock_universal_server_1.roleAuthorisation)('deliveryNotes', 'create'), async (req, res, next) => {
     const { deliveryNote, invoiceRelated } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -74,7 +74,7 @@ exports.deliveryNoteRoutes.post('/create/:companyIdParam', stock_universal_serve
     }
     await (0, invoicerelated_1.updateInvoiceRelated)(invoiceRelated, companyId);
     return next();
-}, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('delivery-note'));
+}, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('quotation'));
 /**
  * Route to get a delivery note by UR ID
  * @name GET /getone/:urId

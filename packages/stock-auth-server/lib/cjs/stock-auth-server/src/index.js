@@ -10,7 +10,7 @@ tslib_1.__exportStar(require("./controllers/universial.controller"), exports);
 tslib_1.__exportStar(require("./models/company.model"), exports);
 tslib_1.__exportStar(require("./models/emailtoken.model"), exports);
 tslib_1.__exportStar(require("./models/subscriptions/company-subscription.model"), exports);
-tslib_1.__exportStar(require("./models/subscriptions/subscription-package.model"), exports);
+// export * from './models/subscriptions/subscription-package.model';
 tslib_1.__exportStar(require("./models/user.model"), exports);
 tslib_1.__exportStar(require("./routes/company-auth"), exports);
 tslib_1.__exportStar(require("./routes/company.routes"), exports);

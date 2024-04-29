@@ -1,4 +1,4 @@
-import { DatabaseAuto, IsubscriptionFeature, IsubscriptionPackage, Isuccess, TsubscriptionDurVal } from '@open-stock/stock-universal';
+/* import { DatabaseAuto, IsubscriptionFeature, IsubscriptionPackage, Isuccess, TsubscriptionDurVal } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
 import { StockAuthClient } from '../../stock-auth-client';
 
@@ -49,3 +49,4 @@ export class SubscriptionPackange
     return lastValueFrom(observer$) as Promise<Isuccess>;
   }
 }
+*/

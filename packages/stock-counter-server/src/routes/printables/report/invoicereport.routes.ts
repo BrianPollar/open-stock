@@ -1,4 +1,4 @@
-import { requireActiveCompany, requireCanUseFeature, requireUpdateSubscriptionRecord } from '@open-stock/stock-auth-server';
+import { requireActiveCompany } from '@open-stock/stock-auth-server';
 import { Icustomrequest, IdataArrayResponse, Isuccess } from '@open-stock/stock-universal';
 import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
@@ -24,7 +24,7 @@ export const invoicesReportRoutes = express.Router();
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware
  */
-invoicesReportRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('report'), roleAuthorisation('reports', 'create'), async(req, res, next) => {
+invoicesReportRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'create'), async(req, res, next) => {
   const invoicesReport = req.body.invoicesReport;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -57,8 +57,8 @@ invoicesReportRoutes.post('/create/:companyIdParam', requireAuth, requireActiveC
   if (errResponse) {
     return res.status(403).send(errResponse);
   }
-  return next();
-}, requireUpdateSubscriptionRecord('report'));
+  return res.status(200).send({ success: true });
+});
 
 /**
  * Route to get a single invoices report by urId

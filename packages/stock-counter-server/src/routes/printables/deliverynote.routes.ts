@@ -36,7 +36,7 @@ export const deliveryNoteRoutes = express.Router();
  * @param {Object} res - Express response object
  * @returns {Object} Success status and saved delivery note data
  */
-deliveryNoteRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('delivery-note'), roleAuthorisation('deliveryNotes', 'create'), async(req, res, next) => {
+deliveryNoteRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('quotation'), roleAuthorisation('deliveryNotes', 'create'), async(req, res, next) => {
   const { deliveryNote, invoiceRelated } = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -80,7 +80,7 @@ deliveryNoteRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCom
   }
   await updateInvoiceRelated(invoiceRelated, companyId);
   return next();
-}, requireUpdateSubscriptionRecord('delivery-note'));
+}, requireUpdateSubscriptionRecord('quotation'));
 
 /**
  * Route to get a delivery note by UR ID

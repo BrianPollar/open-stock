@@ -8,6 +8,12 @@ export interface ItwilioAuthySecrets {
     authToken: string;
     defaultMail: string;
     twilioNumber: string;
+    sendGridApiKey: string;
+}
+export interface InotifSecrets {
+    notifPublicKey: string;
+    notifPrivateKey: string;
+    notifCallbacUrl: string;
 }
 /**
  * Represents the configuration for notifications.

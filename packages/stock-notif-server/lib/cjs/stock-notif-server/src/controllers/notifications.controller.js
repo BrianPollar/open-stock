@@ -7,9 +7,10 @@ const log4js_1 = require("log4js");
 const webPush = tslib_1.__importStar(require("web-push"));
 const mainnotification_model_1 = require("../models/mainnotification.model");
 const notifsetting_model_1 = require("../models/notifsetting.model");
-// const sgMail = require('@sendgrid/mail');
-const sgMail = tslib_1.__importStar(require("@sendgrid/mail"));
 const stock_notif_local_1 = require("../stock-notif-local");
+// const sgMail = require('@sendgrid/mail');
+// import * as sgMail from '@sendgrid/mail';
+const sgMail = require('@sendgrid/mail');
 const notificationsControllerLogger = (0, log4js_1.getLogger)('controllers/NotificationsController');
 /**
  * Determines whether a user has an email address.

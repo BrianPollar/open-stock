@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
-import { requireActiveCompany, requireCanUseFeature, requireUpdateSubscriptionRecord } from '@open-stock/stock-auth-server';
+import { requireActiveCompany } from '@open-stock/stock-auth-server';
 import { Icustomrequest, IdataArrayResponse, Isuccess } from '@open-stock/stock-universal';
 import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
@@ -26,7 +26,7 @@ export const expenseReportRoutes = express.Router();
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>} Promise representing the result of the operation
  */
-expenseReportRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('report'), roleAuthorisation('reports', 'create'), async(req, res, next) => {
+expenseReportRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'create'), async(req, res, next) => {
   const expenseReport = req.body.expenseReport;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -59,8 +59,8 @@ expenseReportRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCo
   if (errResponse) {
     return res.status(403).send(errResponse);
   }
-  return next();
-}, requireUpdateSubscriptionRecord('report'));
+  return res.status(200).send({ success: true });
+});
 
 /**
  * Get a single expense report by UR ID

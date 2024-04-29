@@ -26,7 +26,7 @@ exports.expenseReportRoutes = express_1.default.Router();
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>} Promise representing the result of the operation
  */
-exports.expenseReportRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_auth_server_1.requireCanUseFeature)('report'), (0, stock_universal_server_1.roleAuthorisation)('reports', 'create'), async (req, res, next) => {
+exports.expenseReportRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'create'), async (req, res, next) => {
     const expenseReport = req.body.expenseReport;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -59,8 +59,8 @@ exports.expenseReportRoutes.post('/create/:companyIdParam', stock_universal_serv
     if (errResponse) {
         return res.status(403).send(errResponse);
     }
-    return next();
-}, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('report'));
+    return res.status(200).send({ success: true });
+});
 /**
  * Get a single expense report by UR ID
  * @name GET /getone/:urId

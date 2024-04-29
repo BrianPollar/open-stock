@@ -588,7 +588,7 @@ extends IdatabaseAuto {
   name: string;
   ammount: number;
   duration: TsubscriptionDurVal; // in months
-  active: boolean;
+  active?: boolean;
   features: IsubscriptionFeature[];
 }
 

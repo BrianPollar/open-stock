@@ -1,3 +1,4 @@
+import { IsubscriptionFeature, IsubscriptionPackage } from '../interfaces/general.interface';
 /**
  * Array of inventory statuses.
  */
@@ -49,3 +50,5 @@ export declare const productState: ({
     value: string;
     refurbished?: undefined;
 })[];
+export declare const subscriptionPackages: IsubscriptionPackage[];
+export declare const moduleSubVolume: IsubscriptionFeature[];

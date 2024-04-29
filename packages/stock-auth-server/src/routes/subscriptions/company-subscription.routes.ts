@@ -4,7 +4,7 @@ import { Icompany, Icustomrequest, IdataArrayResponse, IsubscriptionPackage, Ius
 import { offsetLimitRelegator, requireAuth, roleAuthorisation, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { getLogger } from 'log4js';
-import { IpayDetails, IsubmitOrderRes } from 'pesapal3';
+import { IpayDetails } from 'pesapal3';
 import { companyLean } from '../../models/company.model';
 import { TcompanySubscription, companySubscriptionLean, companySubscriptionMain } from '../../models/subscriptions/company-subscription.model';
 import { userLean } from '../../models/user.model';
@@ -19,7 +19,7 @@ const firePesapalRelegator = async(subctn: IsubscriptionPackage, savedSub: Tcomp
   console.log('PESAPAL IS ', pesapalPaymentInstance.config);
   const payDetails = {
     id: savedSub._id,
-    currency: 'UGX',
+    currency: 'USD',
     amount: subctn.ammount,
     description: 'Complete payments for subscription ,' + subctn.name,
     callback_url: pesapalPaymentInstance.config.pesapalCallbackUrl,
@@ -41,7 +41,7 @@ const firePesapalRelegator = async(subctn: IsubscriptionPackage, savedSub: Tcomp
     }
   } as unknown as IpayDetails;
   console.log('PAY Details ', payDetails);
-  const response = await pesapalPaymentInstance.submitOrder(payDetails, subctn._id, 'Complete product payment') as IsubmitOrderRes;
+  const response = await pesapalPaymentInstance.submitOrder(payDetails, subctn._id, 'Complete product payment') ;
   console.log('RESPONSE ISSSSS ', response);
   if (!response.success) {
     return { success: false, err: response.err };
@@ -145,7 +145,7 @@ companySubscriptionRoutes.get('/getall/:offset/:limit/:companyIdParam', requireA
   if (companyId !== 'superAdmin') {
     query = { companyId };
   } else {
-    query = {};
+    query = { status: 'paid' };
   }
   const all = await Promise.all([
     companySubscriptionLean

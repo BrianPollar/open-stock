@@ -444,17 +444,19 @@ export type TroleAuthProp =
 export type TsubscriptionFeature =
   'customer' |
   'staff' |
-  'estimate' |
+  'quotation' |
   'invoice' |
   'item' |
   'decoy' |
   'offer' |
   'order' |
   'job-card' |
-  'delivery-note' |
+  // 'delivery-note' |
   'receipt' |
   'expense' |
-  'report' |
+  // 'report' |
+  'web-hosting' |
+  'mail-hosting' |
   'companyAdminAccess';
 
 export type TcompanySubPayStatus = 'paid' | 'failed' | 'canceled' | 'pending';

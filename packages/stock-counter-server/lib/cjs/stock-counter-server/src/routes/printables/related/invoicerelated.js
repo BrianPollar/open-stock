@@ -80,7 +80,7 @@ const updateInvoiceRelated = async (invoiceRelated, queryId) => {
     }
     const related = await invoicerelated_model_1.invoiceRelatedMain
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        .findOneAndUpdate({ _id: invoiceRelated.invoiceRelated, companyId: queryId });
+        .findByIdAndUpdate(invoiceRelated.invoiceRelated);
     if (!related) {
         return { success: false, err: 'invoice related not found' };
     }

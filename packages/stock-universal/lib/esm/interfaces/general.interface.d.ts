@@ -525,7 +525,7 @@ export interface IsubscriptionPackage extends IdatabaseAuto {
     name: string;
     ammount: number;
     duration: TsubscriptionDurVal;
-    active: boolean;
+    active?: boolean;
     features: IsubscriptionFeature[];
 }
 export interface IcompanySubscription extends IdatabaseAuto {

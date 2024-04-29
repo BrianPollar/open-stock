@@ -42,7 +42,7 @@ export class Estimate extends InvoiceRelatedWithReceipt {
      */
     static async getOneEstimate(companyId, estimateId) {
         const observer$ = StockCounterClient.ehttp
-            .makeGet(`/estimate/getone/${estimateId}`);
+            .makeGet(`/estimate/getone/${estimateId}/${companyId}`);
         const estimate = await lastValueFrom(observer$);
         return new Estimate(estimate);
     }

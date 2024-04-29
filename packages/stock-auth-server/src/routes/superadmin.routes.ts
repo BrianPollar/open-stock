@@ -6,7 +6,15 @@
  */
 /* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable @typescript-eslint/no-misused-promises */
-import { Iauthresponse, Iauthtoken, Icustomrequest, Isuccess, Iuser, Iuserperm, TuserType } from '@open-stock/stock-universal';
+import {
+  Iauthresponse,
+  Iauthtoken,
+  Icustomrequest,
+  Iuser,
+  Iuserperm,
+  TuserType,
+  makeRandomString
+} from '@open-stock/stock-universal';
 import { makeUrId, stringifyMongooseErr } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { getLogger } from 'log4js';
@@ -37,7 +45,7 @@ const authLogger = getLogger('routes/auth');
  */
 export const signupFactorRelgator = async(req, res, next) => {
   const { emailPhone } = req.body;
-  const userType: TuserType = req.body.userType;
+  const userType: TuserType = req.body.userType || 'eUser';
   const passwd = req.body.passwd;
   let phone;
   let email;
@@ -88,16 +96,14 @@ export const signupFactorRelgator = async(req, res, next) => {
     // eslint-disable-next-line @typescript-eslint/naming-convention
       .find({ }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     const companyUrId = makeUrId(Number(companyCount[0]?.urId || '0'));
-    const { name } = req.body.company;
+    const name = 'company ' + makeRandomString(11, 'letters');
     permissions = {
       companyAdminAccess: true
     };
     const newCompany = new companyMain({
       urId: companyUrId,
       name,
-      phone,
-      email,
-      password: passwd,
+      displayName: name,
       expireAt,
       countryCode: +256
     });
@@ -113,12 +119,12 @@ export const signupFactorRelgator = async(req, res, next) => {
     // eslint-disable-next-line @typescript-eslint/naming-convention
     .find({ }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
   const urId = makeUrId(Number(count[0]?.urId || '0'));
-  const { firstName, lastName } = req.body.user;
+  const name = 'user ' + makeRandomString(11, 'letters');
   const newUser = new user({
     companyId: company._id || null,
     urId,
-    fname: firstName,
-    lname: lastName,
+    fname: name,
+    lname: name,
     phone,
     email,
     password: passwd,
@@ -128,7 +134,9 @@ export const signupFactorRelgator = async(req, res, next) => {
     userType
   });
 
-  let response: Isuccess;
+  let response: Iauthresponse = {
+    success: true
+  };
 
   const saved = await newUser.save().catch(err => {
     authLogger.error(`mongosse registration 
@@ -156,14 +164,16 @@ export const signupFactorRelgator = async(req, res, next) => {
     await company.save();
   }
 
-  let result: Iauthresponse;
   const type = 'token'; // note now is only token but build a counter later to make sur that the token and link methods are shared
   if (isPhone) {
-    result = await sendTokenPhone(saved);
+    response = await sendTokenPhone(saved);
   } else {
-    result = await sendTokenEmail(
+    console.log('sending mail token');
+    response = await sendTokenEmail(
     saved as unknown as Iuser, type, stockAuthConfig.localSettings.appOfficialName);
   }
+
+  console.log('asfter valid result ', response);
 
   if (!response.success) {
     // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -174,8 +184,13 @@ export const signupFactorRelgator = async(req, res, next) => {
     }
     return res.status(200).send(response);
   }
-  if (Boolean(result.success)) {
-    return res.status(200).send(response);
+  if (Boolean(response.success)) {
+    const toReturn: Iauthresponse = {
+      success: true,
+      msg: response.msg,
+      _id: (saved as any)._id
+    };
+    return res.status(200).send(toReturn);
   }
   const toSend = {
     success: false,

@@ -1,13 +1,14 @@
 import { isUniversalServerRunning, runPassport } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { ConnectOptions } from 'mongoose';
+import { constructMailService } from './controllers/notifications.controller';
 import { makeAuthyTwilio } from './controllers/twilio.controller';
 import { notifSettingMain } from './models/notifsetting.model';
 import { mailSenderRoutesDummy } from './routes-dummy/mail.routes';
 import { notifnRoutesDummy } from './routes-dummy/notification.routes';
 import { mailSenderRoutes } from './routes/mail.routes';
 import { notifnRoutes } from './routes/notification.routes';
-import { ItwilioAuthySecrets, createNotificationsDatabase, createStockNotifServerLocals, isStockNotifServerRunning, notificationSettings } from './stock-notif-local';
+import { InotifSecrets, ItwilioAuthySecrets, createNotificationsDatabase, createStockNotifServerLocals, isStockNotifServerRunning, notificationSettings } from './stock-notif-local';
 
 export interface IstockNotifServerConfig {
   jwtSecret: string;
@@ -16,6 +17,7 @@ export interface IstockNotifServerConfig {
     dbOptions?: ConnectOptions;
   };
   twilioAutyConfig: ItwilioAuthySecrets;
+  notifSecrets: InotifSecrets;
   useDummyRoutes?: boolean;
 }
 export const runStockNotificationServer = async(config: IstockNotifServerConfig) => {
@@ -31,6 +33,7 @@ export const runStockNotificationServer = async(config: IstockNotifServerConfig)
   notificationSettings.defaultAuthyMail = config.twilioAutyConfig.defaultMail;
   notificationSettings.twilioNumber = config.twilioAutyConfig.twilioNumber;
   createStockNotifServerLocals();
+  constructMailService(config.twilioAutyConfig.sendGridApiKey, config.notifSecrets.notifPublicKey, config.notifSecrets.notifPrivateKey);
   const stockNotifRouter = express.Router();
   if (!config.useDummyRoutes) {
     stockNotifRouter.use('/notifn', notifnRoutes);

@@ -44,6 +44,7 @@ export const requireActiveCompany = (req, res, next) => {
 export const requireUpdateSubscriptionRecord = (feature) => {
     return async (req, res) => {
         companyAuthLogger.info('requireUpdateSubscriptionRecord');
+        console.log('requireUpdateSubscriptionRecord');
         const { userId } = req.user;
         if (userId === 'superAdmin') {
             return res.status(200).send({ success: true });
@@ -53,14 +54,17 @@ export const requireUpdateSubscriptionRecord = (feature) => {
         const subsctn = await companySubscriptionMain.findOneAndUpdate({ companyId })
             .gte('endDate', now)
             .sort({ endDate: 1 });
+        console.log('subsctn is ', subsctn);
         if (!subsctn) {
             return res.status(401)
                 .send({ success: false, err: 'unauthorised no subscription found' });
         }
         const features = subsctn.features;
         const foundIndex = features.findIndex(val => val.type === feature);
-        --features[foundIndex].remainingSize;
+        features[foundIndex].remainingSize -= 1;
         const saved = await subsctn.save();
+        subsctn.features = features;
+        console.log('saved isssssss ', saved);
         return res.status(200).send({ success: Boolean(saved) });
     };
 };

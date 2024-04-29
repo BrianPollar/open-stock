@@ -214,6 +214,6 @@ export type TroleAuth = 'orders' | 'payments' | 'users' | 'items' | 'faqs' | 'bu
  * - 'delete': Indicates the permission to delete.
  */
 export type TroleAuthProp = 'create' | 'read' | 'update' | 'delete';
-export type TsubscriptionFeature = 'customer' | 'staff' | 'estimate' | 'invoice' | 'item' | 'decoy' | 'offer' | 'order' | 'job-card' | 'delivery-note' | 'receipt' | 'expense' | 'report' | 'companyAdminAccess';
+export type TsubscriptionFeature = 'customer' | 'staff' | 'quotation' | 'invoice' | 'item' | 'decoy' | 'offer' | 'order' | 'job-card' | 'receipt' | 'expense' | 'web-hosting' | 'mail-hosting' | 'companyAdminAccess';
 export type TcompanySubPayStatus = 'paid' | 'failed' | 'canceled' | 'pending';
 export type TsubscriptionDurVal = 1 | 2 | 3 | 6 | 12;
