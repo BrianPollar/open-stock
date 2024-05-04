@@ -1,13 +1,14 @@
 import { isUniversalServerRunning, runPassport } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { constructMailService } from './controllers/notifications.controller';
-import { makeAuthyTwilio } from './controllers/twilio.controller';
+import { createTwilioService, makeAuthyTwilio } from './controllers/twilio.controller';
 import { notifSettingMain } from './models/notifsetting.model';
 import { mailSenderRoutesDummy } from './routes-dummy/mail.routes';
 import { notifnRoutesDummy } from './routes-dummy/notification.routes';
 import { mailSenderRoutes } from './routes/mail.routes';
 import { notifnRoutes } from './routes/notification.routes';
 import { createNotificationsDatabase, createStockNotifServerLocals, isStockNotifServerRunning, notificationSettings } from './stock-notif-local';
+export const createService = () => createTwilioService();
 export const runStockNotificationServer = async (config) => {
     if (!isUniversalServerRunning()) {
         const error = new Error('File loacations must be handled properly, please start by firing up that server');
@@ -17,9 +18,9 @@ export const runStockNotificationServer = async (config) => {
     runPassport(config.jwtSecret);
     const twilioAuthy = makeAuthyTwilio(config.twilioAutyConfig.authyKey, config.twilioAutyConfig.accountSid, config.twilioAutyConfig.authToken);
     notificationSettings.twilioClient = twilioAuthy.twilioClient;
-    notificationSettings.authy = twilioAuthy.authy;
     notificationSettings.defaultAuthyMail = config.twilioAutyConfig.defaultMail;
     notificationSettings.twilioNumber = config.twilioAutyConfig.twilioNumber;
+    notificationSettings.twilioVerificationSid = config.twilioAutyConfig.twilioVerificationSid;
     createStockNotifServerLocals();
     constructMailService(config.twilioAutyConfig.sendGridApiKey, config.notifSecrets.notifPublicKey, config.notifSecrets.notifPrivateKey);
     const stockNotifRouter = express.Router();

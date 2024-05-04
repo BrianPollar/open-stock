@@ -1,5 +1,5 @@
 import express from 'express';
-import { createMockExpenseReport, createMockExpenseReports } from '../../../../../tests/stock-counter-mocks';
+import { createMockExpenseReport, createMockExpenseReports } from '../../../../../mocks/stock-counter-mocks';
 /**
  * Expense report routes.
  */

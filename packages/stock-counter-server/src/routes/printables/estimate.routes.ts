@@ -2,14 +2,36 @@ import { requireActiveCompany, requireCanUseFeature, requireUpdateSubscriptionRe
 import { Icustomrequest, IdataArrayResponse, IinvoiceRelated, Isuccess, Iuser, TestimateStage } from '@open-stock/stock-universal';
 import { offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
-import { getLogger } from 'log4js';
+import * as fs from 'fs';
+import * as tracer from 'tracer';
 import { estimateLean, estimateMain } from '../../models/printables/estimate.model';
 import { receiptLean } from '../../models/printables/receipt.model';
 import { invoiceRelatedLean, invoiceRelatedMain } from '../../models/printables/related/invoicerelated.model';
 import { deleteAllLinked, makeInvoiceRelatedPdct, relegateInvRelatedCreation } from './related/invoicerelated';
 
 /** Logger for estimate routes */
-const estimateRoutesogger = getLogger('routes/estimateRoutes');
+const estimateRoutesogger = tracer.colorConsole(
+  {
+    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+    dateformat: 'HH:MM:ss.L',
+    transport(data) {
+      // eslint-disable-next-line no-console
+      console.log(data.output);
+      const logDir = './openstockLog/';
+      fs.mkdir(logDir, { recursive: true }, (err) => {
+        if (err) {
+          if (err) {
+            throw err;
+          }
+        }
+      });
+      fs.appendFile('./openStockLog/counter-server.log', data.rawoutput + '\n', err => {
+        if (err) {
+          throw err;
+        }
+      });
+    }
+  });
 
 /**
  * Generates a new estimate ID by finding the highest existing estimate ID and incrementing it by 1.
@@ -50,7 +72,15 @@ export const updateEstimateUniv = async(
     (estimate as IinvoiceRelated).invoiceId = invoiceId;
   }
   (estimate as IinvoiceRelated).stage = stage;
-  await estimate.save();
+  let savedErr: string;
+  await estimate.save().catch(err => {
+    estimateRoutesogger.error('save error', err);
+    savedErr = err;
+    return null;
+  });
+  if (savedErr) {
+    return false;
+  }
   return true;
 };
 
@@ -173,12 +203,10 @@ estimateRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requir
     estimateLean.countDocuments({ companyId: queryId })
   ]);
 
-  console.log('ALLLLLLLL ALLLL', all[0]);
   const returned = all[0]
     .map(val => makeInvoiceRelatedPdct(val.invoiceRelated as Required<IinvoiceRelated>,
       (val.invoiceRelated as IinvoiceRelated)
         .billingUserId as unknown as Iuser));
-  console.log('returneddddddddd ', returned);
   const response: IdataArrayResponse = {
     count: all[1],
     data: returned
@@ -215,7 +243,7 @@ estimateRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompa
  * @param res The response object.
  * @returns An array of invoice related objects associated with the matching estimates.
  */
-estimateRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('estimates', 'read'), async(req, res) => {
+estimateRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('estimates', 'read'), async(req, res) => {
   const { searchterm, searchKey } = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;

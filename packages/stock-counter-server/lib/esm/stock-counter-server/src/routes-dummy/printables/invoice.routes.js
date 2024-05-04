@@ -1,5 +1,5 @@
 import express from 'express';
-import { createMockInvoice, createMockInvoices, createMockReceipt, createMockReceipts } from '../../../../tests/stock-counter-mocks';
+import { createMockInvoice, createMockInvoices, createMockReceipt, createMockReceipts } from '../../../../mocks/stock-counter-mocks';
 /**
  * Router for handling invoice routes.
  */
@@ -23,7 +23,7 @@ invoiceRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) => {
 invoiceRoutesDummy.put('/deleteone/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });
 });
-invoiceRoutesDummy.post('/search/:limit/:offset/:companyIdParam', (req, res) => {
+invoiceRoutesDummy.post('/search/:offset/:limit/:companyIdParam', (req, res) => {
     res.status(200).send(createMockInvoices(Number(req.params.limit)));
 });
 invoiceRoutesDummy.put('/deletemany/:companyIdParam', (req, res) => {

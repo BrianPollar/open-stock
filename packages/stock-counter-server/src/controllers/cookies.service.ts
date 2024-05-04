@@ -1,7 +1,29 @@
-import { getLogger } from 'log4js';
+import * as tracer from 'tracer';
+import * as fs from 'fs';
 
 /** Logger for the cookie service */
-const cookieServiceLogger = getLogger('controllers/CookieService');
+const cookieServiceLogger = tracer.colorConsole(
+  {
+    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+    dateformat: 'HH:MM:ss.L',
+    transport(data) {
+      // eslint-disable-next-line no-console
+      console.log(data.output);
+      const logDir = './openstockLog/';
+      fs.mkdir(logDir, { recursive: true }, (err) => {
+        if (err) {
+          if (err) {
+            throw err;
+          }
+        }
+      });
+      fs.appendFile('./openStockLog/counter-server.log', data.rawoutput + '\n', err => {
+        if (err) {
+          throw err;
+        }
+      });
+    }
+  });
 
 /**
  * Creates a tourer cookie.

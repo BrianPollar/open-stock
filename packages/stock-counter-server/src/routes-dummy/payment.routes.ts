@@ -1,6 +1,6 @@
 import { IdataArrayResponse } from '@open-stock/stock-universal';
 import express from 'express';
-import { createMockPayment, createMockPayments } from '../../../tests/stock-counter-mocks';
+import { createMockPayment, createMockPayments } from '../../../mocks/stock-counter-mocks';
 
 /**
  * Express router for payment routes.
@@ -39,7 +39,7 @@ paymentRoutesDummy.put('/deleteone/:companyIdParam', (req, res) => {
   res.status(200).send({ success: true });
 });
 
-paymentRoutesDummy.post('/search/:limit/:offset/:companyIdParam', (req, res) => {
+paymentRoutesDummy.post('/search/:offset/:limit/:companyIdParam', (req, res) => {
   const response: IdataArrayResponse = {
     count: req.params.limit,
     data: []

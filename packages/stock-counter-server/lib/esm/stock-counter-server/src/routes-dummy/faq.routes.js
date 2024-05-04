@@ -1,5 +1,5 @@
 import express from 'express';
-import { createMockFaq, createMockFaqAnswers, createMockFaqs } from '../../../tests/stock-counter-mocks';
+import { createMockFaq, createMockFaqAnswers, createMockFaqs } from '../../../mocks/stock-counter-mocks';
 /**
  * Router for FAQ routes.
  */

@@ -1,5 +1,5 @@
 import express from 'express';
-import { createMockItem, createMockItemOffers, createMockItems, createMockSponsoreds } from '../../../tests/stock-counter-mocks';
+import { createMockItem, createMockItemOffers, createMockItems, createMockSponsoreds } from '../../../mocks/stock-counter-mocks';
 /**
  * Express router for item routes.
  */
@@ -131,7 +131,7 @@ itemRoutesDummy.put('/deleteone/:id/:companyIdParam', (req, res) => {
 itemRoutesDummy.put('/deleteimages/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });
 });
-itemRoutesDummy.post('/search/:limit/:offset/:companyIdParam', (req, res) => {
+itemRoutesDummy.post('/search/:offset/:limit/:companyIdParam', (req, res) => {
     const response = {
         count: req.params.limit,
         data: createMockItems(Number(req.params.limit))

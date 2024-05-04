@@ -1,15 +1,37 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.confirmAccountFactory = exports.recoverAccountFactory = exports.resetAccountFactory = exports.loginFactorRelgator = exports.determineIfIsPhoneAndMakeFilterObj = exports.isInAdictionaryOnline = exports.isTooCommonPhrase = exports.checkIpAndAttempt = void 0;
+const tslib_1 = require("tslib");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
-const log4js_1 = require("log4js");
+const fs = tslib_1.__importStar(require("fs"));
+const tracer = tslib_1.__importStar(require("tracer"));
 const loginattemps_model_1 = require("../models/loginattemps.model");
 const company_subscription_model_1 = require("../models/subscriptions/company-subscription.model");
 const user_model_1 = require("../models/user.model");
 const userip_model_1 = require("../models/userip.model");
 const stock_auth_local_1 = require("../stock-auth-local");
 const universial_controller_1 = require("./universial.controller");
-const authControllerLogger = (0, log4js_1.getLogger)('loginAttemptController');
+const authControllerLogger = tracer.colorConsole({
+    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+    dateformat: 'HH:MM:ss.L',
+    transport(data) {
+        // eslint-disable-next-line no-console
+        console.log(data.output);
+        const logDir = './openstockLog/';
+        fs.mkdir(logDir, { recursive: true }, (err) => {
+            if (err) {
+                if (err) {
+                    throw err;
+                }
+            }
+        });
+        fs.appendFile('./openStockLog/auth-server.log', data.rawoutput + '\n', err => {
+            if (err) {
+                throw err;
+            }
+        });
+    }
+});
 const comparePassword = (foundUser, passwd, isPhone) => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     return new Promise((resolve, reject) => {
@@ -35,7 +57,6 @@ const comparePassword = (foundUser, passwd, isPhone) => {
                 attemptSuccess = true;
                 nowRes = '';
             }
-            console.log('ATTEMPY ', attemptSuccess);
             resolve({ attemptSuccess, nowRes });
         });
     });
@@ -49,10 +70,7 @@ const comparePassword = (foundUser, passwd, isPhone) => {
  */
 const checkIpAndAttempt = async (req, res, next) => {
     // let isPhone: boolean;
-    console.log('FROOOOOOOOOM ', req.body.from);
     const { foundUser, passwd, isPhone } = req.body;
-    console.log('found user ', foundUser);
-    console.log('password is ', passwd);
     const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
     const userOrCompanayId = foundUser._id;
     let foundIpModel = await userip_model_1.userip.findOne({ userOrCompanayId }).select({
@@ -65,7 +83,15 @@ const checkIpAndAttempt = async (req, res, next) => {
             userOrCompanayId,
             greenIps: [ip]
         });
-        await foundIpModel.save();
+        let savedErr;
+        await foundIpModel.save().catch(err => {
+            authControllerLogger.error('save error', err);
+            savedErr = err;
+            return null;
+        });
+        if (savedErr) {
+            return res.status(500).send({ success: false });
+        }
         // TODO
         /* const response: Iauthresponse = {
           success: false,
@@ -109,11 +135,9 @@ const checkIpAndAttempt = async (req, res, next) => {
         };
         return res.status(401).send(response);
     }
-    console.log('before');
     // compare password
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { attemptSuccess, nowRes } = await comparePassword(foundUser, passwd, isPhone);
-    console.log('after');
     /* if (passwd !== foundUser.password) {
       attemptSuccess = false;
       if (isPhone) {
@@ -130,7 +154,15 @@ const checkIpAndAttempt = async (req, res, next) => {
         successful: attemptSuccess
     };
     const newAttemp = new loginattemps_model_1.loginAtempts(attempt);
-    const lastAttempt = await newAttemp.save();
+    let savedErr;
+    const lastAttempt = await newAttemp.save().catch(err => {
+        authControllerLogger.error('save error', err);
+        savedErr = err;
+        return null;
+    });
+    if (savedErr) {
+        return res.status(500).send({ success: false });
+    }
     // const attempts = loginAtempts.find({ userId: foundUser._id });
     if (!attemptSuccess) {
         const response = {
@@ -144,7 +176,10 @@ const checkIpAndAttempt = async (req, res, next) => {
         loginAttemptRef: lastAttempt._id,
         timesBlocked: 0
     };
-    await foundIpModel.save();
+    await foundIpModel.save().catch(err => {
+        authControllerLogger.error('save err', err);
+        return;
+    });
     return next();
 };
 exports.checkIpAndAttempt = checkIpAndAttempt;
@@ -375,7 +410,14 @@ const recoverAccountFactory = async (req, res) => {
         const type = '_link';
         response = await (0, universial_controller_1.sendTokenEmail)(foundUser, type, appOfficialName);
     }
-    return res.status(200).send(response);
+    if (!foundUser.password) {
+        // send to reset password
+        response.navRoute = 'reset';
+    }
+    if (!foundUser.verified) {
+        response.navRoute = 'verify';
+    }
+    return res.status(response.status).send(response);
 };
 exports.recoverAccountFactory = recoverAccountFactory;
 /**
@@ -386,9 +428,8 @@ exports.recoverAccountFactory = recoverAccountFactory;
  */
 const confirmAccountFactory = async (req, res) => {
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    console.log('000000000');
-    const { foundUser, _id, verifycode, how, type } = req.body;
-    authControllerLogger.debug(`verify, verifycode: ${verifycode}, how: ${how}`);
+    const { foundUser, _id, verifycode, nowHow, type } = req.body;
+    authControllerLogger.debug(`verify, verifycode: ${verifycode}, how: ${nowHow}`);
     const isValid = (0, stock_universal_server_1.verifyObjectIds)([_id]);
     if (!isValid) {
         return {
@@ -399,16 +440,13 @@ const confirmAccountFactory = async (req, res) => {
             }
         };
     }
-    console.log(1111111);
     let response;
-    if (how === 'phone') {
+    if (nowHow === 'phone') {
         response = await (0, universial_controller_1.validatePhone)(foundUser, 'signup', verifycode, null);
     }
     else {
-        console.log(2222);
         response = await (0, universial_controller_1.validateEmail)(foundUser, type, 'signup', verifycode, null);
     }
-    console.log(333333333333, response);
     const now = new Date();
     let filter;
     if (foundUser.companyId) {
@@ -424,7 +462,6 @@ const confirmAccountFactory = async (req, res) => {
     if (subsctn) {
         response.response.activeSubscription = subsctn;
     }
-    console.log(444444444, response);
     return res.status(response.status).send(response.response);
 };
 exports.confirmAccountFactory = confirmAccountFactory;

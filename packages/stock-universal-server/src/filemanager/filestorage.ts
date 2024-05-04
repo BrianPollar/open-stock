@@ -1,13 +1,35 @@
 import { Icustomrequest, makeRandomString } from '@open-stock/stock-universal';
 import { Request } from 'express';
 import { mkdir } from 'fs-extra';
-import { getLogger } from 'log4js';
 import multer from 'multer';
 import * as path from 'path';
+import * as tracer from 'tracer';
 import { envConfig } from '../stock-universal-local';
+import * as fs from 'fs';
 
 // This function creates a fileStorageLogger named `controllers/FileStorage`.
-const fileStorageLogger = getLogger('controllers/FileStorage');
+const fileStorageLogger = tracer.colorConsole(
+  {
+    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+    dateformat: 'HH:MM:ss.L',
+    transport(data) {
+      // eslint-disable-next-line no-console
+      console.log(data.output);
+      const logDir = './openstockLog/';
+      fs.mkdir(logDir, { recursive: true }, (err) => {
+        if (err) {
+          if (err) {
+            throw err;
+          }
+        }
+      });
+      fs.appendFile('./openStockLog/universal-server.log', data.rawoutput + '\n', err => {
+        if (err) {
+          throw err;
+        }
+      });
+    }
+  });
 
 /**
  * Represents an extended interface for handling Multer requests.

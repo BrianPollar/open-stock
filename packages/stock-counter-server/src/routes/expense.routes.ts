@@ -4,11 +4,33 @@ import { requireActiveCompany, requireCanUseFeature, requireUpdateSubscriptionRe
 import { Icustomrequest, IdataArrayResponse, Isuccess } from '@open-stock/stock-universal';
 import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
-import { getLogger } from 'log4js';
+import * as fs from 'fs';
+import * as tracer from 'tracer';
 import { expenseLean, expenseMain } from '../models/expense.model';
 
 /** Logger for expense routes */
-const expenseRoutesLogger = getLogger('routes/expenseRoutes');
+const expenseRoutesLogger = tracer.colorConsole(
+  {
+    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+    dateformat: 'HH:MM:ss.L',
+    transport(data) {
+      // eslint-disable-next-line no-console
+      console.log(data.output);
+      const logDir = './openstockLog/';
+      fs.mkdir(logDir, { recursive: true }, (err) => {
+        if (err) {
+          if (err) {
+            throw err;
+          }
+        }
+      });
+      fs.appendFile('./openStockLog/counter-server.log', data.rawoutput + '\n', err => {
+        if (err) {
+          throw err;
+        }
+      });
+    }
+  });
 
 /**
  * Router for handling expense routes.
@@ -197,14 +219,14 @@ expenseRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, requireActiv
 
 /**
  * Search expenses by a search term and key
- * @name POST /search/:limit/:offset
+ * @name POST /search/:offset/:limit
  * @function
  * @memberof module:expenseRoutes
  * @inner
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware
  */
-expenseRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('expenses', 'read'), async(req, res) => {
+expenseRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('expenses', 'read'), async(req, res) => {
   const { searchterm, searchKey } = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);

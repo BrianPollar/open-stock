@@ -6,7 +6,7 @@
  * - GET /getone/:urId - retrieves a single receipt by its unique identifier (urId)
  * - GET /getall/:offset/:limit - retrieves all receipts with pagination
  * - PUT /deleteone - deletes a single receipt and its related documents
- * - POST /search/:limit/:offset - searches for receipts based on a search term and key
+ * - POST /search/:offset/:limit - searches for receipts based on a search term and key
  */
 /* eslint-disable @typescript-eslint/no-misused-promises */
 import { Icustomrequest, IdataArrayResponse, IinvoiceRelated, Iuser } from '@open-stock/stock-universal';
@@ -170,7 +170,7 @@ receiptRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompan
   }
 });
 
-receiptRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('receipts', 'read'), async(req, res) => {
+receiptRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('receipts', 'read'), async(req, res) => {
   const { searchterm, searchKey } = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -225,7 +225,15 @@ receiptRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCompany, 
     return res.status(404).send({ success: false, status: 404, err: 'not found' });
   }
   found.paymentMode = updatedReceipt.paymentMode || found.paymentMode;
-  await found.save();
+  let savedErr: string;
+  await found.save().catch(err => {
+    receiptRoutes.error('save error', err);
+    savedErr = err;
+    return null;
+  });
+  if (savedErr) {
+    return res.status(500).send({ success: false });
+  }
   await updateInvoiceRelated(invoiceRelated, queryId);
   return res.status(200).send({ success: true });
 });

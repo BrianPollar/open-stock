@@ -1,5 +1,5 @@
 import express from 'express';
-import { createMockCompany, createMockCompanys, createMockUser } from '../../../tests/stock-auth-mocks';
+import { createMockCompany, createMockCompanys, createMockUser } from '../../../mocks/stock-auth-mocks';
 export const companyAuthRoutesDummy = express.Router();
 companyAuthRoutesDummy.get('/authexpress/:companyIdParam', (req, res) => {
     const nowResponse = {

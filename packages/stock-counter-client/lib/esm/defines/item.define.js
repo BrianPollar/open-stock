@@ -28,9 +28,9 @@ export class Item extends DatabaseAuto {
      * @param extraFilters Additional filters.
      * @returns An array of items that match the search criteria.
      */
-    static async searchItems(companyId, category, searchterm, searchKey, extraFilters, subCategory, offset = 0, limit = 20) {
+    static async searchItems(companyId, searchterm, searchKey, extraFilters, category = 'all', subCategory, offset = 0, limit = 20) {
         const observer$ = StockCounterClient.ehttp
-            .makePost(`/item/search}/${offset}/${limit}/${companyId}`, { searchterm, searchKey, category, extraFilters, subCategory });
+            .makePost(`/item/search/${offset}/${limit}/${companyId}`, { searchterm, searchKey, category, extraFilters, subCategory });
         const items = await lastValueFrom(observer$);
         return {
             count: items.count,

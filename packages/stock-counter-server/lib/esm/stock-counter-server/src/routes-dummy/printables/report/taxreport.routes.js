@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
 import express from 'express';
-import { createMockTaxReport, createMockTaxReports } from '../../../../../tests/stock-counter-mocks';
+import { createMockTaxReport, createMockTaxReports } from '../../../../../mocks/stock-counter-mocks';
 /**
  * Router for tax report routes.
  */
@@ -21,7 +21,7 @@ taxReportRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) =>
 taxReportRoutesDummy.delete('/deleteone/:id/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });
 });
-taxReportRoutesDummy.post('/search/:limit/:offset/:companyIdParam', (req, res) => {
+taxReportRoutesDummy.post('/search/:offset/:limit/:companyIdParam', (req, res) => {
     const response = {
         count: req.params.limit,
         data: createMockTaxReports(Number(req.params.limit))

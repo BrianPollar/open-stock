@@ -5,12 +5,33 @@ const tslib_1 = require("tslib");
 const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
-const log4js_1 = require("log4js");
+const fs = tslib_1.__importStar(require("fs"));
+const tracer = tslib_1.__importStar(require("tracer"));
 const pickuplocation_model_1 = require("../../models/printables/pickuplocation.model");
 /**
  * Logger for pickup location routes
  */
-const pickupLocationRoutesLogger = (0, log4js_1.getLogger)('routes/pickupLocationRoutes');
+const pickupLocationRoutesLogger = tracer.colorConsole({
+    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+    dateformat: 'HH:MM:ss.L',
+    transport(data) {
+        // eslint-disable-next-line no-console
+        console.log(data.output);
+        const logDir = './openstockLog/';
+        fs.mkdir(logDir, { recursive: true }, (err) => {
+            if (err) {
+                if (err) {
+                    throw err;
+                }
+            }
+        });
+        fs.appendFile('./openStockLog/counter-server.log', data.rawoutput + '\n', err => {
+            if (err) {
+                throw err;
+            }
+        });
+    }
+});
 /**
  * Express router for pickup location routes
  */
@@ -196,7 +217,7 @@ exports.pickupLocationRoutes.delete('/deleteone/:id/:companyIdParam', stock_univ
 });
 /**
  * Route to search for pickup locations by a search term and key
- * @name POST /search/:limit/:offset
+ * @name POST /search/:offset/:limit
  * @function
  * @memberof module:pickupLocationRoutes
  * @inner
@@ -204,7 +225,7 @@ exports.pickupLocationRoutes.delete('/deleteone/:id/:companyIdParam', stock_univ
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>}
  */
-exports.pickupLocationRoutes.post('/search/:limit/:offset/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, async (req, res) => {
+exports.pickupLocationRoutes.post('/search/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, async (req, res) => {
     const { searchterm, searchKey } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;

@@ -8,7 +8,7 @@ const companySubscriptionSchema = new Schema({
     ammount: { type: Number },
     duration: { type: Number },
     active: { type: Boolean, default: false },
-    subscriprionId: { type: String, required: [true, 'cannot be empty.'], index: true },
+    subscriprionId: { type: String },
     startDate: { type: Date, required: [true, 'cannot be empty.'], index: true },
     endDate: { type: Date, required: [true, 'cannot be empty.'], index: true },
     pesaPalorderTrackingId: { type: String, inddex: true },

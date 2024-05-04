@@ -6,11 +6,32 @@ const tslib_1 = require("tslib");
 const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
-const log4js_1 = require("log4js");
+const fs = tslib_1.__importStar(require("fs"));
+const tracer = tslib_1.__importStar(require("tracer"));
 const item_model_1 = require("../models/item.model");
 const itemoffer_model_1 = require("../models/itemoffer.model");
 /** Logger for item offer routes */
-const itemOfferRoutesLogger = (0, log4js_1.getLogger)('routes/itemOfferRoutes');
+const itemOfferRoutesLogger = tracer.colorConsole({
+    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+    dateformat: 'HH:MM:ss.L',
+    transport(data) {
+        // eslint-disable-next-line no-console
+        console.log(data.output);
+        const logDir = './openstockLog/';
+        fs.mkdir(logDir, { recursive: true }, (err) => {
+            if (err) {
+                if (err) {
+                    throw err;
+                }
+            }
+        });
+        fs.appendFile('./openStockLog/counter-server.log', data.rawoutput + '\n', err => {
+            if (err) {
+                throw err;
+            }
+        });
+    }
+});
 /**
  * Router for item offers.
  */
@@ -80,7 +101,7 @@ exports.itemOfferRoutes.get('/getall/:type/:offset/:limit/:companyIdParam', asyn
     const { type } = req.params;
     const { companyIdParam } = req.params;
     let query = {};
-    if (companyIdParam) {
+    if (companyIdParam !== 'undefined') {
         const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
         if (!isValid) {
             return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
@@ -128,7 +149,7 @@ exports.itemOfferRoutes.get('/getone/:id/:companyIdParam', async (req, res) => {
     const { id } = req.params;
     const { companyIdParam } = req.params;
     let ids;
-    if (companyIdParam) {
+    if (companyIdParam !== 'undefined') {
         ids = [id, companyIdParam];
     }
     else {

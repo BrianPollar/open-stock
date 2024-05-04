@@ -1,10 +1,32 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.requireUpdateSubscriptionRecord = exports.requireActiveCompany = exports.requireCanUseFeature = void 0;
-const log4js_1 = require("log4js");
+const tslib_1 = require("tslib");
+const fs = tslib_1.__importStar(require("fs"));
+const tracer = tslib_1.__importStar(require("tracer"));
 const company_subscription_model_1 = require("../models/subscriptions/company-subscription.model");
 /** Logger for company auth */
-const companyAuthLogger = (0, log4js_1.getLogger)('company-auth');
+const companyAuthLogger = tracer.colorConsole({
+    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+    dateformat: 'HH:MM:ss.L',
+    transport(data) {
+        // eslint-disable-next-line no-console
+        console.log(data.output);
+        const logDir = './openstockLog/';
+        fs.mkdir(logDir, { recursive: true }, (err) => {
+            if (err) {
+                if (err) {
+                    throw err;
+                }
+            }
+        });
+        fs.appendFile('./openStockLog/auth-server.log', data.rawoutput + '\n', err => {
+            if (err) {
+                throw err;
+            }
+        });
+    }
+});
 const requireCanUseFeature = (feature) => {
     return async (req, res, next) => {
         companyAuthLogger.info('requireCanUseFeature');
@@ -49,7 +71,6 @@ exports.requireActiveCompany = requireActiveCompany;
 const requireUpdateSubscriptionRecord = (feature) => {
     return async (req, res) => {
         companyAuthLogger.info('requireUpdateSubscriptionRecord');
-        console.log('requireUpdateSubscriptionRecord');
         const { userId } = req.user;
         if (userId === 'superAdmin') {
             return res.status(200).send({ success: true });
@@ -59,17 +80,23 @@ const requireUpdateSubscriptionRecord = (feature) => {
         const subsctn = await company_subscription_model_1.companySubscriptionMain.findOneAndUpdate({ companyId })
             .gte('endDate', now)
             .sort({ endDate: 1 });
-        console.log('subsctn is ', subsctn);
         if (!subsctn) {
             return res.status(401)
                 .send({ success: false, err: 'unauthorised no subscription found' });
         }
-        const features = subsctn.features;
+        const features = subsctn.features.slice();
         const foundIndex = features.findIndex(val => val.type === feature);
         features[foundIndex].remainingSize -= 1;
-        const saved = await subsctn.save();
         subsctn.features = features;
-        console.log('saved isssssss ', saved);
+        let savedErr;
+        const saved = await subsctn.save().catch(err => {
+            companyAuthLogger.error('save error', err);
+            savedErr = err;
+            return null;
+        });
+        if (savedErr) {
+            return res.status(500).send({ success: false });
+        }
         return res.status(200).send({ success: Boolean(saved) });
     };
 };

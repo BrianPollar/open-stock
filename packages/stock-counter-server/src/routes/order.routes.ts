@@ -11,7 +11,8 @@ import {
 } from '@open-stock/stock-universal';
 import { fileMetaLean, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
-import { getLogger } from 'log4js';
+import * as fs from 'fs';
+import * as tracer from 'tracer';
 import { paymentMethodDelegator } from '../controllers/payment.controller';
 import { itemLean } from '../models/item.model';
 import { orderLean, orderMain } from '../models/order.model';
@@ -27,7 +28,28 @@ import {
 import { relegateInvRelatedCreation } from './printables/related/invoicerelated';
 
 /** Logger for order routes */
-const orderRoutesLogger = getLogger('routes/orderRoutes');
+const orderRoutesLogger = tracer.colorConsole(
+  {
+    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+    dateformat: 'HH:MM:ss.L',
+    transport(data) {
+      // eslint-disable-next-line no-console
+      console.log(data.output);
+      const logDir = './openstockLog/';
+      fs.mkdir(logDir, { recursive: true }, (err) => {
+        if (err) {
+          if (err) {
+            throw err;
+          }
+        }
+      });
+      fs.appendFile('./openStockLog/counter-server.log', data.rawoutput + '\n', err => {
+        if (err) {
+          throw err;
+        }
+      });
+    }
+  });
 
 /**
  * Express router for handling order routes.
@@ -67,7 +89,15 @@ orderRoutes.post('/makeorder/:companyIdParam', async(req, res) => {
       userDoc = found;
     } else {
       const newUser = new user(userObj);
-      userDoc = await newUser.save();
+      let savedErr: string;
+      userDoc = await newUser.save().catch(err => {
+        orderRoutesLogger.error('save error', err);
+        savedErr = err;
+        return null;
+      });
+      if (savedErr) {
+        return res.status(500).send({ success: false });
+      }
     }
   } else {
     const isValid = verifyObjectId(userObj._id);
@@ -432,7 +462,7 @@ orderRoutes.put('/appendDelivery/:orderId/:status/:companyIdParam', requireAuth,
   return res.status(200).send({ success: true });
 });
 
-orderRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('orders', 'read'), async(req, res) => {
+orderRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('orders', 'read'), async(req, res) => {
   const { searchterm, searchKey } = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;

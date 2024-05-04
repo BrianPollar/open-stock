@@ -1,10 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateUserBulk = exports.addUser = exports.userLoginRelegator = exports.userAuthRoutes = void 0;
+exports.updateUserBulk = exports.addUser = exports.userLoginRelegator = exports.signupFactorRelgator = exports.userAuthRoutes = void 0;
 const tslib_1 = require("tslib");
+const stock_universal_1 = require("@open-stock/stock-universal");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
-const log4js_1 = require("log4js");
+const fs = tslib_1.__importStar(require("fs"));
+const tracer = tslib_1.__importStar(require("tracer"));
 const auth_controller_1 = require("../controllers/auth.controller");
 const universial_controller_1 = require("../controllers/universial.controller");
 const company_model_1 = require("../models/company.model");
@@ -12,6 +14,7 @@ const company_subscription_model_1 = require("../models/subscriptions/company-su
 const user_model_1 = require("../models/user.model");
 const stock_auth_local_1 = require("../stock-auth-local");
 const company_auth_1 = require("./company-auth");
+const company_subscription_routes_1 = require("./subscriptions/company-subscription.routes");
 const superadmin_routes_1 = require("./superadmin.routes");
 // import { notifConfig } from '../../config/notif.config';
 // import { createNotifications, NotificationController } from '../controllers/notifications.controller';
@@ -23,18 +26,242 @@ exports.userAuthRoutes = express_1.default.Router();
 /**
  * Logger for authentication routes.
  */
-const authLogger = (0, log4js_1.getLogger)('routes/user');
+const authLogger = tracer.colorConsole({
+    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+    dateformat: 'HH:MM:ss.L',
+    transport(data) {
+        // eslint-disable-next-line no-console
+        console.log(data.output);
+        const logDir = './openstockLog/';
+        fs.mkdir(logDir, { recursive: true }, (err) => {
+            if (err) {
+                if (err) {
+                    throw err;
+                }
+            }
+        });
+        fs.appendFile('./openStockLog/auth-server.log', data.rawoutput + '\n', err => {
+            if (err) {
+                throw err;
+            }
+        });
+    }
+});
+/**
+ * Handles the login and registration process for superadmin users.
+ * @param req - The request object.
+ * @param res - The response object.
+ * @param next - The next function.
+ * @returns A Promise that resolves to void.
+ */
+const signupFactorRelgator = async (req, res, next) => {
+    let foundUser = req.body.foundUser;
+    if (!foundUser) {
+        if (!foundUser.password || !foundUser.verified) {
+            req.body.foundUser = foundUser;
+            return next();
+        }
+        else {
+            return res.status(402).send({ success: false, msg: 'unauthorised' });
+        }
+    }
+    const { emailPhone } = req.body;
+    const userType = req.body.userType || 'eUser';
+    const passwd = req.body.passwd;
+    let phone;
+    let email;
+    let query;
+    let isPhone;
+    authLogger.debug(`signup, 
+    emailPhone: ${emailPhone}`);
+    if (isNaN(emailPhone)) {
+        query = {
+            email: emailPhone
+        };
+        isPhone = false;
+        email = emailPhone;
+    }
+    else {
+        query = {
+            phone: emailPhone
+        };
+        isPhone = true;
+        phone = emailPhone;
+    }
+    foundUser = await user_model_1.user.findOne(query);
+    /* if (userType === 'company') {
+      foundUser = await companyMain.findOne(query);
+    } else {
+      foundUser = await user.findOne(query);
+    }*/
+    if (foundUser) {
+        const phoneOrEmail = isPhone ? 'phone' : 'email';
+        const response = {
+            success: false,
+            err: phoneOrEmail +
+                ', already exists, try using another'
+        };
+        return res.status(200).send(response);
+    }
+    let permissions;
+    const expireAt = Date.now();
+    let company;
+    let savedSub;
+    if (userType === 'company') {
+        const companyCount = await company_model_1.companyMain
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+        const companyUrId = (0, stock_universal_server_1.makeUrId)(Number(companyCount[0]?.urId || '0'));
+        const name = 'company ' + (0, stock_universal_1.makeRandomString)(11, 'letters');
+        permissions = {
+            companyAdminAccess: true
+        };
+        const newCompany = new company_model_1.companyMain({
+            urId: companyUrId,
+            name,
+            displayName: name,
+            expireAt,
+            countryCode: '+256'
+        });
+        let savedErr;
+        company = await newCompany.save().catch(err => {
+            authLogger.error('save error', err);
+            savedErr = err;
+            return null;
+        });
+        if (savedErr) {
+            return res.status(500).send({ success: false });
+        }
+        const freePkg = stock_universal_1.subscriptionPackages[3];
+        const startDate = new Date();
+        const now = new Date();
+        const endDate = now.setDate(now.getDate() + (0, company_subscription_routes_1.getDays)(freePkg.duration));
+        const newSub = new company_subscription_model_1.companySubscriptionMain({
+            companyId: company._id,
+            name: freePkg.name,
+            ammount: freePkg.ammount,
+            duration: freePkg.duration,
+            active: freePkg.active,
+            startDate,
+            endDate,
+            status: 'paid',
+            features: freePkg.features
+        });
+        savedSub = await newSub.save().catch(err => {
+            authLogger.error('save error', err);
+            savedErr = err;
+            return null;
+        });
+        if (savedErr) {
+            return res.status(500).send({ success: false });
+        }
+    }
+    else {
+        permissions = {
+            buyer: true,
+            companyAdminAccess: false
+        };
+    }
+    const count = await user_model_1.user
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+    const urId = (0, stock_universal_server_1.makeUrId)(Number(count[0]?.urId || '0'));
+    const name = 'user ' + (0, stock_universal_1.makeRandomString)(11, 'letters');
+    const newUser = new user_model_1.user({
+        companyId: company._id || null,
+        urId,
+        fname: name,
+        lname: name,
+        phone,
+        email,
+        password: passwd,
+        permissions,
+        expireAt,
+        countryCode: '+256',
+        userType
+    });
+    let response = {
+        success: true
+    };
+    const saved = await newUser.save().catch(err => {
+        authLogger.error(`mongosse registration 
+    validation error, ${err}`);
+        response = {
+            status: 403,
+            success: false
+        };
+        if (err && err.errors) {
+            response.err = (0, stock_universal_server_1.stringifyMongooseErr)(err.errors);
+        }
+        else {
+            response.err = `we are having problems connecting to our databases, 
+      try again in a while`;
+        }
+        return response;
+    });
+    if (!response.success) {
+        return res.status(response.status).send(response);
+    }
+    if (company) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        company.owner = saved._id;
+        let savedErr;
+        await company.save().catch(err => {
+            authLogger.error('save error', err);
+            savedErr = err;
+            return null;
+        });
+        if (savedErr) {
+            return res.status(500).send({ success: false });
+        }
+    }
+    const type = 'token'; // note now is only token but build a counter later to make sur that the token and link methods are shared
+    if (isPhone) {
+        response = await (0, universial_controller_1.sendTokenPhone)(saved);
+    }
+    else {
+        response = await (0, universial_controller_1.sendTokenEmail)(saved, type, stock_auth_local_1.stockAuthConfig.localSettings.appOfficialName);
+    }
+    if (!response.success) {
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        await user_model_1.user.deleteOne({ _id: saved._id });
+        if (company) {
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            await company_model_1.companyMain.deleteOne({ _id: company._id });
+        }
+        if (savedSub) {
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            await company_subscription_model_1.companySubscriptionMain.deleteOne({ _id: savedSub._id });
+        }
+        return res.status(200).send(response);
+    }
+    if (Boolean(response.success)) {
+        const toReturn = {
+            success: true,
+            msg: response.msg,
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            _id: saved._id
+        };
+        return res.status(200).send(toReturn);
+    }
+    const toSend = {
+        success: false,
+        err: 'we could not process your request, something went wrong, but we are working on it'
+    };
+    return res.status(500).send(toSend);
+};
+exports.signupFactorRelgator = signupFactorRelgator;
 /**
  * Handles the user login request.
  * @param req - The request object.
  * @param res - The response object.
  * @returns The response with the user information and token.
  */
-const userLoginRelegator = async (req, res) => {
+const userLoginRelegator = async (req, res, next) => {
     const { emailPhone } = req.body;
     const { query } = (0, auth_controller_1.determineIfIsPhoneAndMakeFilterObj)(emailPhone);
     const foundUser = await user_model_1.userLean
-        .findOne({ ...query, ...{ verified: true } })
+        .findOne({ ...query, ...{ userType: { $ne: 'customer' } } })
         .populate({ path: 'profilePic', model: stock_universal_server_1.fileMetaLean })
         .populate({ path: 'profileCoverPic', model: stock_universal_server_1.fileMetaLean })
         .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean })
@@ -46,6 +273,10 @@ const userLoginRelegator = async (req, res) => {
     });
     if (!foundUser) {
         return res.status(404).send({ msg: 'Account does not exist!' });
+    }
+    if (!foundUser.password || !foundUser.verified) {
+        req.body.foundUser = foundUser;
+        return next();
     }
     // eslint-disable-next-line @typescript-eslint/naming-convention
     const company = await company_model_1.companyLean.findById(foundUser?.companyId)
@@ -86,7 +317,6 @@ const userLoginRelegator = async (req, res) => {
 };
 exports.userLoginRelegator = userLoginRelegator;
 const addUser = async (req, res, next) => {
-    console.log('boody is ', req.body);
     const userData = req.body.user;
     const parsed = req.body;
     const { companyId } = req.user;
@@ -105,6 +335,9 @@ const addUser = async (req, res, next) => {
     }
     if (parsed.newFiles) {
         userData.photos = parsed.newFiles;
+        if (!parsed.profilePic) {
+            userData.profilePic = parsed.newFiles[0];
+        }
     }
     const count = await user_model_1.user
         // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -172,7 +405,7 @@ const updateUserBulk = async (req, res, next) => {
         }
         if (parsed.newFiles) {
             const oldPhotos = foundUser.photos || [];
-            foundUser.photos = oldPhotos.concat(parsed.newFiles);
+            foundUser.photos = [...oldPhotos, ...parsed.newFiles];
         }
     }
     delete updatedUser._id;
@@ -270,19 +503,20 @@ exports.userAuthRoutes.post('/login', async (req, res, next) => {
     authLogger.debug(`login attempt,
     emailPhone: ${emailPhone}`);
     const { query, isPhone } = (0, auth_controller_1.determineIfIsPhoneAndMakeFilterObj)(emailPhone);
-    const foundUser = await user_model_1.user.findOne({ ...query, ...{ verified: true } });
+    const foundUser = await user_model_1.user.findOne({ ...query, ...{ verified: true, userType: { $ne: 'customer' } } });
     if (!foundUser) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     req.body.isPhone = isPhone;
     req.body.foundUser = foundUser;
     return next();
-}, auth_controller_1.checkIpAndAttempt, exports.userLoginRelegator);
+}, auth_controller_1.checkIpAndAttempt, exports.userLoginRelegator, auth_controller_1.recoverAccountFactory);
+// okay
 exports.userAuthRoutes.post('/signup', (req, res, next) => {
     const user = req.body;
     req.body = user;
     return next();
-}, auth_controller_1.isTooCommonPhrase, auth_controller_1.isInAdictionaryOnline, superadmin_routes_1.signupFactorRelgator, (req, res) => {
+}, auth_controller_1.isTooCommonPhrase, auth_controller_1.isInAdictionaryOnline, exports.signupFactorRelgator, auth_controller_1.recoverAccountFactory, (req, res) => {
     return res.status(401).send({ success: false, msg: 'unauthourised' });
 });
 exports.userAuthRoutes.post('recover', async (req, res, next) => {
@@ -297,14 +531,14 @@ exports.userAuthRoutes.post('recover', async (req, res, next) => {
     else {
         query = { email: emailPhone };
     }
-    const foundUser = await user_model_1.user.findOne(query);
+    const foundUser = await user_model_1.user.findOne({ ...query, ...{ userType: { $ne: 'customer' } } });
     req.body.foundUser = foundUser;
     return next();
 }, auth_controller_1.recoverAccountFactory);
 exports.userAuthRoutes.post('/confirm', async (req, res, next) => {
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    const { _id, verifycode, how } = req.body;
-    authLogger.debug(`verify, verifycode: ${verifycode}, how: ${how}`);
+    const { _id, verifycode, nowHow } = req.body;
+    authLogger.debug(`verify, verifycode: ${verifycode}, how: ${nowHow}`);
     const isValid = (0, stock_universal_server_1.verifyObjectIds)([_id]);
     if (!isValid) {
         return {
@@ -604,7 +838,7 @@ exports.userAuthRoutes.post('/updateprofileimg/:companyIdParam', stock_universal
         }
         if (parsed.newFiles) {
             const oldPhotos = foundUser.photos || [];
-            foundUser.photos = oldPhotos.concat(parsed.newFiles);
+            foundUser.photos = [...oldPhotos, ...parsed.newFiles];
         }
     }
     let status = 200;

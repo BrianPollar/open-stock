@@ -4,11 +4,32 @@ exports.subscriptionPackageRoutes = void 0;
 const tslib_1 = require("tslib");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
-const log4js_1 = require("log4js");
+const fs = tslib_1.__importStar(require("fs"));
+const tracer = tslib_1.__importStar(require("tracer"));
 const subscription_package_model_1 = require("../../models/subscriptions/subscription-package.model");
 const superadmin_routes_1 = require("../superadmin.routes");
 /** Logger for subscriptionPackage routes */
-const subscriptionPackageRoutesLogger = (0, log4js_1.getLogger)('routes/subscriptionPackageRoutes');
+const subscriptionPackageRoutesLogger = tracer.colorConsole({
+    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+    dateformat: 'HH:MM:ss.L',
+    transport(data) {
+        // eslint-disable-next-line no-console
+        console.log(data.output);
+        const logDir = './openstockLog/';
+        fs.mkdir(logDir, { recursive: true }, (err) => {
+            if (err) {
+                if (err) {
+                    throw err;
+                }
+            }
+        });
+        fs.appendFile('./openStockLog/auth-server.log', data.rawoutput + '\n', err => {
+            if (err) {
+                throw err;
+            }
+        });
+    }
+});
 /**
  * Router for handling subscriptionPackage-related routes.
  */
@@ -17,7 +38,15 @@ exports.subscriptionPackageRoutes.post('/create', stock_universal_server_1.requi
     subscriptionPackageRoutesLogger.info('Create subscription');
     const subscriptionPackages = req.body;
     const newPkg = new subscription_package_model_1.subscriptionPackageMain(subscriptionPackages);
-    await newPkg.save();
+    let savedErr;
+    await newPkg.save().catch(err => {
+        subscriptionPackageRoutesLogger.error('save error', err);
+        savedErr = err;
+        return null;
+    });
+    if (savedErr) {
+        return res.status(500).send({ success: false });
+    }
     return res.status(200).send({ success: true, status: 200 });
 });
 exports.subscriptionPackageRoutes.put('/updateone', stock_universal_server_1.requireAuth, superadmin_routes_1.requireSuperAdmin, async (req, res) => {
@@ -30,7 +59,15 @@ exports.subscriptionPackageRoutes.put('/updateone', stock_universal_server_1.req
     subPackage.duration = subscriptionPackage.duration || subPackage.duration;
     subPackage.active = subscriptionPackage.active || subPackage.active;
     subPackage.features = subscriptionPackage.features || subPackage.features;
-    await subPackage.save();
+    let savedErr;
+    await subPackage.save().catch(err => {
+        subscriptionPackageRoutesLogger.error('save error', err);
+        savedErr = err;
+        return null;
+    });
+    if (savedErr) {
+        return res.status(500).send({ success: false });
+    }
     return res.status(200).send({ success: true, status: 200 });
 });
 exports.subscriptionPackageRoutes.get('/getall', async (req, res) => {

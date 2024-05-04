@@ -1,11 +1,32 @@
 import { requireActiveCompany, requireCanUseFeature, requireUpdateSubscriptionRecord } from '@open-stock/stock-auth-server';
 import { fileMetaLean, makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
-import { getLogger } from 'log4js';
+import * as fs from 'fs';
+import * as tracer from 'tracer';
 import { itemLean } from '../models/item.model';
 import { itemDecoyLean, itemDecoyMain } from '../models/itemdecoy.model';
 /** Logger for item decoy routes */
-const itemDecoyRoutesLogger = getLogger('routes/itemDecoyRoutes');
+const itemDecoyRoutesLogger = tracer.colorConsole({
+    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+    dateformat: 'HH:MM:ss.L',
+    transport(data) {
+        // eslint-disable-next-line no-console
+        console.log(data.output);
+        const logDir = './openstockLog/';
+        fs.mkdir(logDir, { recursive: true }, (err) => {
+            if (err) {
+                if (err) {
+                    throw err;
+                }
+            }
+        });
+        fs.appendFile('./openStockLog/counter-server.log', data.rawoutput + '\n', err => {
+            if (err) {
+                throw err;
+            }
+        });
+    }
+});
 /**
  * Router for item decoy routes.
  */
@@ -109,9 +130,8 @@ itemDecoyRoutes.get('/getall/:offset/:limit/:companyIdParam', async (req, res) =
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     const { companyIdParam } = req.params;
     let filter = {};
-    console.log('GETTING DECOYS ', companyIdParam);
-    if (companyIdParam) {
-        console.log('GOT PARA');
+    // eslint-disable-next-line no-undefined
+    if (companyIdParam !== undefined) {
         const isValid = verifyObjectId(companyIdParam);
         if (!isValid) {
             return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
@@ -149,7 +169,7 @@ itemDecoyRoutes.get('/getone/:id/:companyIdParam', async (req, res) => {
     const { id } = req.params;
     const { companyIdParam } = req.params;
     let ids;
-    if (companyIdParam) {
+    if (companyIdParam !== 'undefined') {
         ids = [id, companyIdParam];
     }
     else {

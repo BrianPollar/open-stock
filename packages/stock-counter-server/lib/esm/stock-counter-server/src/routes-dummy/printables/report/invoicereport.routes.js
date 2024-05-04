@@ -1,5 +1,5 @@
 import express from 'express';
-import { createMockInvoiceReport, createMockInvoiceReports } from '../../../../../tests/stock-counter-mocks';
+import { createMockInvoiceReport, createMockInvoiceReports } from '../../../../../mocks/stock-counter-mocks';
 /**
  * Express router for invoices report routes.
  */

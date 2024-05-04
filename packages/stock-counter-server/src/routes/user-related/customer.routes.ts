@@ -15,12 +15,34 @@ import {
   verifyObjectIds
 } from '@open-stock/stock-universal-server';
 import express from 'express';
-import { getLogger } from 'log4js';
+import * as fs from 'fs';
+import * as tracer from 'tracer';
 import { customerLean, customerMain } from '../../models/user-related/customer.model';
 import { removeManyUsers, removeOneUser } from './locluser.routes';
 
 /** Logger for customer routes */
-const customerRoutesLogger = getLogger('routes/customerRoutes');
+const customerRoutesLogger = tracer.colorConsole(
+  {
+    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+    dateformat: 'HH:MM:ss.L',
+    transport(data) {
+      // eslint-disable-next-line no-console
+      console.log(data.output);
+      const logDir = './openstockLog/';
+      fs.mkdir(logDir, { recursive: true }, (err) => {
+        if (err) {
+          if (err) {
+            throw err;
+          }
+        }
+      });
+      fs.appendFile('./openStockLog/counter-server.log', data.rawoutput + '\n', err => {
+        if (err) {
+          throw err;
+        }
+      });
+    }
+  });
 
 export const addCustomer = async(req, res, next) => {
   const { companyIdParam } = req.params;

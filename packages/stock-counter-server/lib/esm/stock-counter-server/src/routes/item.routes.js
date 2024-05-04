@@ -29,13 +29,34 @@ import { companyLean, requireActiveCompany, requireCanUseFeature, requireUpdateS
 import { makeRandomString } from '@open-stock/stock-universal';
 import { appendBody, deleteFiles, fileMetaLean, makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, saveMetaToDb, stringifyMongooseErr, uploadFiles, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
-import { getLogger } from 'log4js';
+import * as fs from 'fs';
+import * as tracer from 'tracer';
 import { itemLean, itemMain } from '../models/item.model';
 import { itemDecoyMain } from '../models/itemdecoy.model';
 import { itemOfferMain } from '../models/itemoffer.model';
 import { reviewLean } from '../models/review.model';
 /** The logger for the item routes */
-const itemRoutesLogger = getLogger('routes/itemRoutes');
+const itemRoutesLogger = tracer.colorConsole({
+    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+    dateformat: 'HH:MM:ss.L',
+    transport(data) {
+        // eslint-disable-next-line no-console
+        console.log(data.output);
+        const logDir = './openstockLog/';
+        fs.mkdir(logDir, { recursive: true }, (err) => {
+            if (err) {
+                if (err) {
+                    throw err;
+                }
+            }
+        });
+        fs.appendFile('./openStockLog/counter-server.log', data.rawoutput + '\n', err => {
+            if (err) {
+                throw err;
+            }
+        });
+    }
+});
 /**
  * Express router for item routes.
  */
@@ -172,10 +193,9 @@ itemRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, re
         // eslint-disable-next-line @typescript-eslint/naming-convention
         .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     item.urId = makeUrId(Number(count[0]?.urId || '0'));
-    const parsed = req.body.parsed;
+    const parsed = req.body;
     if (parsed && parsed.newFiles) {
-        const oldPhotos = item.photos || [];
-        item.photos = oldPhotos.concat(parsed.newFiles);
+        item.photos = parsed.newFiles;
     }
     const newProd = new itemMain(item);
     let errResponse;
@@ -285,10 +305,10 @@ itemRoutes.post('/updateimg/:companyIdParam', requireAuth, requireActiveCompany,
         const count = makeRandomString(3, 'numbers');
         item.urId = makeUrId(Number(count));
     }
-    const parsed = req.body.parsed;
+    const parsed = req.body;
     if (parsed && parsed.newFiles) {
         const oldPhotos = item.photos || [];
-        item.photos = oldPhotos.concat(parsed.newFiles);
+        item.photos = [...oldPhotos, ...parsed.newFiles];
     }
     delete updatedProduct._id;
     const keys = Object.keys(updatedProduct);
@@ -996,16 +1016,18 @@ itemRoutes.put('/deleteimages/:companyIdParam', requireAuth, requireActiveCompan
     }
     return res.status(200).send({ success: true });
 });
-itemRoutes.post('/search/:limit/:offset/:companyIdParam', async (req, res) => {
+itemRoutes.post('/search/:offset/:limit/:companyIdParam', async (req, res) => {
     const { searchterm, searchKey, category, extraFilers, subCategory } = req.body;
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
-    const { companyId } = req.user;
     const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = verifyObjectId(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    if (companyIdParam !== 'undefined') {
+        itemRoutesLogger.info('filter item with 999999 def');
+        const isValid = verifyObjectId(companyIdParam);
+        if (!isValid) {
+            return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+        }
     }
+    itemRoutesLogger.info('filter item with 11111');
     let filter;
     if (!category || category === 'all') {
         if (subCategory) {
@@ -1021,6 +1043,10 @@ itemRoutes.post('/search/:limit/:offset/:companyIdParam', async (req, res) => {
     else {
         filter = { category };
     }
+    if (companyIdParam !== 'undefined') {
+        filter = { ...filter, companyId: companyIdParam };
+    }
+    itemRoutesLogger.info('filter item with 22222');
     if (extraFilers) {
         switch (extraFilers.filter) {
             case 'price':
@@ -1066,20 +1092,20 @@ itemRoutes.post('/search/:limit/:offset/:companyIdParam', async (req, res) => {
                     ...{ brand: extraFilers.val.val }
                 };
                 break;
-            default:
-                return res.status(401).send({ success: false, err: 'unauthorised' });
+            /* default:
+              return res.status(401).send({ success: false, err: 'unauthorised' });*/
         }
     }
     const all = await Promise.all([
         itemLean
-            .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' }, ...filter })
+            .find({ [searchKey]: { $regex: searchterm, $options: 'i' }, ...filter })
             .skip(offset)
             .limit(limit)
             // eslint-disable-next-line @typescript-eslint/naming-convention
             .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
             .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
             .lean(),
-        itemLean.countDocuments({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' }, ...filter })
+        itemLean.countDocuments({ [searchKey]: { $regex: searchterm, $options: 'i' }, ...filter })
     ]);
     const newItems = all[0].filter(item => item.companyId);
     const response = {

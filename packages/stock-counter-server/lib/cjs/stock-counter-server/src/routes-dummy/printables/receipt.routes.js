@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.receiptRoutesDummy = void 0;
 const tslib_1 = require("tslib");
 const express_1 = tslib_1.__importDefault(require("express"));
-const stock_counter_mocks_1 = require("../../../../tests/stock-counter-mocks");
+const stock_counter_mocks_1 = require("../../../../mocks/stock-counter-mocks");
 /**
  * Router for handling receipt routes.
  */
@@ -24,7 +24,7 @@ exports.receiptRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, r
 exports.receiptRoutesDummy.put('/deleteone/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });
 });
-exports.receiptRoutesDummy.post('/search/:limit/:offset/:companyIdParam', (req, res) => {
+exports.receiptRoutesDummy.post('/search/:offset/:limit/:companyIdParam', (req, res) => {
     const response = {
         count: req.params.limit,
         data: (0, stock_counter_mocks_1.createMockReceipts)(Number(req.params.limit))

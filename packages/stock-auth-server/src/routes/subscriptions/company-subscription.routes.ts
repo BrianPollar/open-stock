@@ -3,8 +3,9 @@
 import { Icompany, Icustomrequest, IdataArrayResponse, IsubscriptionPackage, Iuser } from '@open-stock/stock-universal';
 import { offsetLimitRelegator, requireAuth, roleAuthorisation, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
-import { getLogger } from 'log4js';
+import * as fs from 'fs';
 import { IpayDetails } from 'pesapal3';
+import * as tracer from 'tracer';
 import { companyLean } from '../../models/company.model';
 import { TcompanySubscription, companySubscriptionLean, companySubscriptionMain } from '../../models/subscriptions/company-subscription.model';
 import { userLean } from '../../models/user.model';
@@ -12,11 +13,31 @@ import { pesapalPaymentInstance } from '../../stock-auth-server';
 import { requireActiveCompany } from '../company-auth';
 
 /** Logger for companySubscription routes */
-const companySubscriptionRoutesLogger = getLogger('routes/companySubscriptionRoutes');
+const companySubscriptionRoutesLogger = tracer.colorConsole(
+  {
+    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+    dateformat: 'HH:MM:ss.L',
+    transport(data) {
+      // eslint-disable-next-line no-console
+      console.log(data.output);
+      const logDir = './openstockLog/';
+      fs.mkdir(logDir, { recursive: true }, (err) => {
+        if (err) {
+          if (err) {
+            throw err;
+          }
+        }
+      });
+      fs.appendFile('./openStockLog/auth-server.log', data.rawoutput + '\n', err => {
+        if (err) {
+          throw err;
+        }
+      });
+    }
+  });
 
 
 const firePesapalRelegator = async(subctn: IsubscriptionPackage, savedSub: TcompanySubscription, company: Icompany, currUser: Iuser) => {
-  console.log('PESAPAL IS ', pesapalPaymentInstance.config);
   const payDetails = {
     id: savedSub._id,
     currency: 'USD',
@@ -40,15 +61,21 @@ const firePesapalRelegator = async(subctn: IsubscriptionPackage, savedSub: Tcomp
       zip_code: ''
     }
   } as unknown as IpayDetails;
-  console.log('PAY Details ', payDetails);
   const response = await pesapalPaymentInstance.submitOrder(payDetails, subctn._id, 'Complete product payment') ;
-  console.log('RESPONSE ISSSSS ', response);
   if (!response.success) {
     return { success: false, err: response.err };
   }
   const companySub = await companySubscriptionMain.findByIdAndUpdate(savedSub._id);
   companySub.pesaPalorderTrackingId = response.pesaPalOrderRes.order_tracking_id;
-  await companySub.save();
+  let savedErr: string;
+  await companySub.save().catch(err => {
+    companySubscriptionRoutesLogger.error('save error', err);
+    savedErr = err;
+    return null;
+  });
+  if (savedErr) {
+    return { success: false };
+  }
   return {
     success: true,
     pesaPalOrderRes: {
@@ -58,7 +85,7 @@ const firePesapalRelegator = async(subctn: IsubscriptionPackage, savedSub: Tcomp
 };
 
 
-const getDays = (duration: number) => {
+export const getDays = (duration: number) => {
   let response: number;
   switch (duration) {
     case 1:
@@ -115,7 +142,15 @@ companySubscriptionRoutes.post('/subscribe/:companyIdParam', requireAuth, requir
   };
 
   const newCompSub = new companySubscriptionMain(companySubObj);
-  const savedSub = await newCompSub.save();
+  let savedErr: string;
+  const savedSub = await newCompSub.save().catch(err => {
+    companySubscriptionRoutesLogger.error('save error', err);
+    savedErr = err;
+    return null;
+  });
+  if (savedErr) {
+    return res.status(500).send({ success: false });
+  }
 
   if (companyId !== 'superAdmin') {
     const company = await companyLean.findById(companyId).lean();

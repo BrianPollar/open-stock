@@ -1,5 +1,5 @@
 import express from 'express';
-import { createMockCustomer, createMockCustomers } from '../../../../tests/stock-counter-mocks';
+import { createMockCustomer, createMockCustomers } from '../../../../mocks/stock-counter-mocks';
 /**
  * Router for handling customer-related routes.
  */

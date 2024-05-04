@@ -8,13 +8,35 @@ import {
   verifyObjectIds
 } from '@open-stock/stock-universal-server';
 import express from 'express';
-import { getLogger } from 'log4js';
+import * as fs from 'fs';
+import * as tracer from 'tracer';
 import { pickupLocationLean, pickupLocationMain } from '../../models/printables/pickuplocation.model';
 
 /**
  * Logger for pickup location routes
  */
-const pickupLocationRoutesLogger = getLogger('routes/pickupLocationRoutes');
+const pickupLocationRoutesLogger = tracer.colorConsole(
+  {
+    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+    dateformat: 'HH:MM:ss.L',
+    transport(data) {
+      // eslint-disable-next-line no-console
+      console.log(data.output);
+      const logDir = './openstockLog/';
+      fs.mkdir(logDir, { recursive: true }, (err) => {
+        if (err) {
+          if (err) {
+            throw err;
+          }
+        }
+      });
+      fs.appendFile('./openStockLog/counter-server.log', data.rawoutput + '\n', err => {
+        if (err) {
+          throw err;
+        }
+      });
+    }
+  });
 
 /**
  * Express router for pickup location routes
@@ -207,7 +229,7 @@ pickupLocationRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, requi
 
 /**
  * Route to search for pickup locations by a search term and key
- * @name POST /search/:limit/:offset
+ * @name POST /search/:offset/:limit
  * @function
  * @memberof module:pickupLocationRoutes
  * @inner
@@ -215,7 +237,7 @@ pickupLocationRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, requi
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>}
  */
-pickupLocationRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, requireActiveCompany, async(req, res) => {
+pickupLocationRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, async(req, res) => {
   const { searchterm, searchKey } = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;

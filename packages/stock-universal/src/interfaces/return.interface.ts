@@ -76,6 +76,8 @@ export interface Iauthresponse {
   status?: number;
   /** */
   activeSubscription?: IcompanySubscription;
+   /** */
+  navRoute?: string;
 }
 
 // This interface defines the properties of an authentication response.

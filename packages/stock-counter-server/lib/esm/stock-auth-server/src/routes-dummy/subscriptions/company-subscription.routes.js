@@ -1,7 +1,6 @@
-/* eslint-disable @typescript-eslint/no-misused-promises */
 import { offsetLimitRelegator } from '@open-stock/stock-universal-server';
 import express from 'express';
-import { createMockCompanySubscriptions } from '../../../../tests/stock-counter-mocks';
+import { createMockCompanySubscriptions } from '../../../../mocks/stock-counter-mocks';
 export const companySubscriptionRoutesDummy = express.Router();
 companySubscriptionRoutesDummy.post('/subscribe/:companyIdParam', (req, res) => {
     return res.status(200).send({ success: true, status: 200 });

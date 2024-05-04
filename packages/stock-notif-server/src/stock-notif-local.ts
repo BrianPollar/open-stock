@@ -13,6 +13,7 @@ export interface ItwilioAuthySecrets {
   defaultMail: string;
   twilioNumber: string;
   sendGridApiKey: string;
+  twilioVerificationSid: string;
 }
 
 export interface InotifSecrets {
@@ -28,9 +29,9 @@ export interface InotificationConfig {
   smsDispatches: number;
   emailDispatches: number;
   twilioClient;
-  authy;
   defaultAuthyMail;
   twilioNumber;
+  twilioVerificationSid: string;
 }
 
 /**
@@ -40,9 +41,9 @@ export const notificationSettings: InotificationConfig = {
   smsDispatches: 0,
   emailDispatches: 0,
   twilioClient: null,
-  authy: null,
   defaultAuthyMail: null,
-  twilioNumber: null
+  twilioNumber: null,
+  twilioVerificationSid: ''
 };
 
 /**

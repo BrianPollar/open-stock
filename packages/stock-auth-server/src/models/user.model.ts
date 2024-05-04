@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
-import { sendSms, sendToken, setUpUser, verifyAuthyToken } from '@open-stock/stock-notif-server';
+import { sendSms, sendToken, verifyAuthyToken } from '@open-stock/stock-notif-server';
 import { Iuser } from '@open-stock/stock-universal';
 import bcrypt from 'bcrypt';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
@@ -46,7 +46,7 @@ export type Tuser = Document & Iuser & IschemaMethods;
  * @property {number} [phone] - User phone number.
  * @property {string} [expireAt] - User expiration date.
  * @property {boolean} [verified=false] - User verification status.
- * @property {string} [authyId] - Authy ID.
+ * // @property {string} [authyId] - Authy ID.
  * @property {string} [password] - User password.
  * @property {boolean} [fromsocial] - User social media status.
  * @property {string} [socialframework] - User social media framework.
@@ -79,12 +79,12 @@ const userSchema: Schema<Tuser> = new Schema({
   phone: { type: Number },
   expireAt: { type: String },
   verified: { type: Boolean, default: false },
-  authyId: { type: String },
+  // authyId: { type: String },
   password: { type: String },
   fromsocial: { type: Boolean },
   socialframework: { type: String },
   socialId: { type: String },
-  countryCode: { type: Number, default: +256 },
+  countryCode: { type: String, default: '+256' },
   amountDue: { type: Number, default: 0 },
   manuallyAdded: { type: Boolean, default: false },
   userType: { type: String, default: 'eUser' }
@@ -137,7 +137,7 @@ userSchema.methods['comparePassword'] = function(candidatePassword, cb) {
 
 // Send a verification token to the user (two step auth for login)
 userSchema.methods['sendAuthyToken'] = function(cb) {
-  if (!this.authyId) {
+  /* if (!this.authyId) {
     setUpUser(
       this.phone,
       this.countryCode
@@ -152,15 +152,19 @@ userSchema.methods['sendAuthyToken'] = function(cb) {
         sendToken(this.authyId).then((resp) => cb.call(this, null, resp)).catch(err => cb.call(this, err));
       });
     }).catch(err => cb.call(this, err));
-  } else {
-    // Otherwise send token to a known user
-    sendToken(this.authyId).then((resp) => cb.call(this, null, resp)).catch(err => cb.call(this, err));
-  }
+  } else {*/
+  // Otherwise send token to a known user
+  sendToken(
+    this.phone,
+    this.countryCode,
+    'Your Verification Token Is'
+  ).then((resp) => cb.call(this, null, resp)).catch(err => cb.call(this, err));
+  // }
 };
 
 // Test a 2FA token
 userSchema.methods['verifyAuthyToken'] = function(otp, cb) {
-  verifyAuthyToken(this.authyId, otp).then((resp) => {
+  verifyAuthyToken(this.phone, this.countryCode, otp).then((resp) => {
     cb.call(this, null, resp);
   }).catch(err => {
     cb.call(this, err);

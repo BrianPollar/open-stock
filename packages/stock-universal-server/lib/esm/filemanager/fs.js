@@ -1,11 +1,31 @@
 import * as fs from 'fs';
-import { getLogger } from 'log4js';
 import multer from 'multer';
 import * as path from 'path';
+import * as tracer from 'tracer';
 import { fileMeta } from '../models/filemeta.model';
 import { envConfig } from '../stock-universal-local';
 import { multerFileds, upload } from './filestorage';
-const fsControllerLogger = getLogger('controllers/FsController');
+const fsControllerLogger = tracer.colorConsole({
+    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+    dateformat: 'HH:MM:ss.L',
+    transport(data) {
+        // eslint-disable-next-line no-console
+        console.log(data.output);
+        const logDir = './openstockLog/';
+        fs.mkdir(logDir, { recursive: true }, (err) => {
+            if (err) {
+                if (err) {
+                    throw err;
+                }
+            }
+        });
+        fs.appendFile('./openStockLog/universal-server.log', data.rawoutput + '\n', err => {
+            if (err) {
+                throw err;
+            }
+        });
+    }
+});
 /**
  * Uploads files from the request to the server.
  * @param {Object} req - The request object.
@@ -13,7 +33,6 @@ const fsControllerLogger = getLogger('controllers/FsController');
  * @param {Function} next - The next middleware function.
  */
 export const uploadFiles = (req, res, next) => {
-    console.log('uploadFiles');
     const makeupload = upload.fields(multerFileds);
     makeupload(req, res, function (err) {
         if (err instanceof multer.MulterError) {
@@ -133,26 +152,58 @@ export const saveMetaToDb = async (req, res, next) => {
             // eslint-disable-next-line @typescript-eslint/no-misused-promises
             .map((value) => new Promise(async (resolve) => {
             const newFileMeta = new fileMeta(value);
-            const newSaved = await newFileMeta.save();
+            let savedErr;
+            const newSaved = await newFileMeta.save().catch(err => {
+                fsControllerLogger.error('save error', err);
+                savedErr = err;
+                return null;
+            });
+            if (savedErr) {
+                return res.status(500).send({ success: false });
+            }
             resolve(newSaved);
         }));
         parsed.newFiles = await Promise.all(promises);
     }
     if (parsed.profilePic) {
         const newFileMeta = new fileMeta(parsed.profilePic);
-        const newSaved = await newFileMeta.save();
+        let savedErr;
+        const newSaved = await newFileMeta.save().catch(err => {
+            fsControllerLogger.error('save error', err);
+            savedErr = err;
+            return null;
+        });
+        if (savedErr) {
+            return res.status(500).send({ success: false });
+        }
         parsed.profilePic = newSaved._id;
         parsed.newFiles.push(newSaved);
     }
     if (parsed.coverPic) {
         const newFileMeta = new fileMeta(parsed.profilePic);
-        const newSaved = await newFileMeta.save();
+        let savedErr;
+        const newSaved = await newFileMeta.save().catch(err => {
+            fsControllerLogger.error('save error', err);
+            savedErr = err;
+            return null;
+        });
+        if (savedErr) {
+            return res.status(500).send({ success: false });
+        }
         parsed.coverPic = newSaved._id;
         parsed.newFiles.push(newSaved);
     }
     if (parsed.thumbnail) {
         const newFileMeta = new fileMeta(parsed.thumbnail);
-        const newSaved = await newFileMeta.save();
+        let savedErr;
+        const newSaved = await newFileMeta.save().catch(err => {
+            fsControllerLogger.error('save error', err);
+            savedErr = err;
+            return null;
+        });
+        if (savedErr) {
+            return res.status(500).send({ success: false });
+        }
         parsed.thumbnail = newSaved._id;
         parsed.newFiles.push(newSaved);
     }

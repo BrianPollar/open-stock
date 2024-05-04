@@ -1,5 +1,5 @@
 import express from 'express';
-import { createMockReview, createMockReviews } from '../../../tests/stock-counter-mocks';
+import { createMockReview, createMockReviews } from '../../../mocks/stock-counter-mocks';
 /**
  * Express router for review routes
  */

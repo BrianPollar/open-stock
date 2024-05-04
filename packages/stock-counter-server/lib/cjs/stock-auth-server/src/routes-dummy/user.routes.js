@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.userAuthRoutesDummy = void 0;
 const tslib_1 = require("tslib");
 const express_1 = tslib_1.__importDefault(require("express"));
-const stock_auth_mocks_1 = require("../../../tests/stock-auth-mocks");
+const stock_auth_mocks_1 = require("../../../mocks/stock-auth-mocks");
 /**
  * Router for authentication routes.
  */

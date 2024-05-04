@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
-import { sendSms, sendToken, setUpUser, verifyAuthyToken } from '@open-stock/stock-notif-server';
+import { sendSms, sendToken, verifyAuthyToken } from '@open-stock/stock-notif-server';
 import bcrypt from 'bcrypt';
 import { Schema } from 'mongoose';
 import { connectAuthDatabase, isAuthDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
@@ -31,7 +31,7 @@ const uniqueValidator = require('mongoose-unique-validator');
  * @property {number} [phone] - User phone number.
  * @property {string} [expireAt] - User expiration date.
  * @property {boolean} [verified=false] - User verification status.
- * @property {string} [authyId] - Authy ID.
+ * // @property {string} [authyId] - Authy ID.
  * @property {string} [password] - User password.
  * @property {boolean} [fromsocial] - User social media status.
  * @property {string} [socialframework] - User social media framework.
@@ -64,12 +64,12 @@ const userSchema = new Schema({
     phone: { type: Number },
     expireAt: { type: String },
     verified: { type: Boolean, default: false },
-    authyId: { type: String },
+    // authyId: { type: String },
     password: { type: String },
     fromsocial: { type: Boolean },
     socialframework: { type: String },
     socialId: { type: String },
-    countryCode: { type: Number, default: +256 },
+    countryCode: { type: String, default: '+256' },
     amountDue: { type: Number, default: 0 },
     manuallyAdded: { type: Boolean, default: false },
     userType: { type: String, default: 'eUser' }
@@ -111,28 +111,29 @@ userSchema.methods['comparePassword'] = function (candidatePassword, cb) {
 };
 // Send a verification token to the user (two step auth for login)
 userSchema.methods['sendAuthyToken'] = function (cb) {
-    if (!this.authyId) {
-        setUpUser(this.phone, this.countryCode
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ).then((res) => {
-            this.authyId = res.user.id;
-            this.save((err1, doc) => {
-                if (err1 || !doc) {
-                    return cb.call(this, err1);
-                }
-                // this = doc;
-                sendToken(this.authyId).then((resp) => cb.call(this, null, resp)).catch(err => cb.call(this, err));
-            });
-        }).catch(err => cb.call(this, err));
-    }
-    else {
-        // Otherwise send token to a known user
-        sendToken(this.authyId).then((resp) => cb.call(this, null, resp)).catch(err => cb.call(this, err));
-    }
+    /* if (!this.authyId) {
+      setUpUser(
+        this.phone,
+        this.countryCode
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ).then((res: any) => {
+        this.authyId = res.user.id;
+        this.save((err1, doc) => {
+          if (err1 || !doc) {
+            return cb.call(this, err1);
+          }
+          // this = doc;
+          sendToken(this.authyId).then((resp) => cb.call(this, null, resp)).catch(err => cb.call(this, err));
+        });
+      }).catch(err => cb.call(this, err));
+    } else {*/
+    // Otherwise send token to a known user
+    sendToken(this.phone, this.countryCode, 'Your Verification Token Is').then((resp) => cb.call(this, null, resp)).catch(err => cb.call(this, err));
+    // }
 };
 // Test a 2FA token
 userSchema.methods['verifyAuthyToken'] = function (otp, cb) {
-    verifyAuthyToken(this.authyId, otp).then((resp) => {
+    verifyAuthyToken(this.phone, this.countryCode, otp).then((resp) => {
         cb.call(this, null, resp);
     }).catch(err => {
         cb.call(this, err);

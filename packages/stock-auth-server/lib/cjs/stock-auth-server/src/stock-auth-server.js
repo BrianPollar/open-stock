@@ -7,12 +7,10 @@ const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
 const company_routes_1 = require("./routes-dummy/company.routes");
 const company_subscription_routes_1 = require("./routes-dummy/subscriptions/company-subscription.routes");
-const subscription_package_routes_1 = require("./routes-dummy/subscriptions/subscription-package.routes");
 const superadmin_routes_1 = require("./routes-dummy/superadmin.routes");
 const user_routes_1 = require("./routes-dummy/user.routes");
 const company_routes_2 = require("./routes/company.routes");
 const company_subscription_routes_2 = require("./routes/subscriptions/company-subscription.routes");
-const subscription_package_routes_2 = require("./routes/subscriptions/subscription-package.routes");
 const superadmin_routes_2 = require("./routes/superadmin.routes");
 const user_routes_2 = require("./routes/user.routes");
 const stock_auth_local_1 = require("./stock-auth-local");
@@ -38,7 +36,7 @@ const runStockAuthServer = async (config, paymentInstance) => {
         stockAuthRouter.use('/user', user_routes_2.userAuthRoutes);
         stockAuthRouter.use('/company', company_routes_2.companyAuthRoutes);
         // subscriptions
-        stockAuthRouter.use('/subscriptionpackage', subscription_package_routes_2.subscriptionPackageRoutes);
+        // stockAuthRouter.use('/subscriptionpackage', subscriptionPackageRoutes);
         stockAuthRouter.use('/companysubscription', company_subscription_routes_2.companySubscriptionRoutes);
         stockAuthRouter.use('/admin', superadmin_routes_2.superAdminRoutes);
     }
@@ -46,7 +44,7 @@ const runStockAuthServer = async (config, paymentInstance) => {
         stockAuthRouter.use('/user', user_routes_1.userAuthRoutesDummy);
         stockAuthRouter.use('/company', company_routes_1.companyAuthRoutesDummy);
         // subscriptions
-        stockAuthRouter.use('/subscriptionpackage', subscription_package_routes_1.subscriptionPackageRoutesDummy);
+        // stockAuthRouter.use('/subscriptionpackage', subscriptionPackageRoutesDummy);
         stockAuthRouter.use('/companysubscription', company_subscription_routes_1.companySubscriptionRoutesDummy);
         stockAuthRouter.use('/admin', superadmin_routes_1.superAdminRoutesDummy);
     }

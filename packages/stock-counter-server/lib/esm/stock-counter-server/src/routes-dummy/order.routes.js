@@ -1,5 +1,5 @@
 import express from 'express';
-import { createMockOrder, createMockOrders } from '../../../tests/stock-counter-mocks';
+import { createMockOrder, createMockOrders } from '../../../mocks/stock-counter-mocks';
 /**
  * Express router for handling order routes.
  */
@@ -39,7 +39,7 @@ orderRoutesDummy.put('/deleteone/:companyIdParam', (req, res) => {
 orderRoutesDummy.put('/appendDelivery/:orderId/:status/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });
 });
-orderRoutesDummy.post('/search/:limit/:offset/:companyIdParam', (req, res) => {
+orderRoutesDummy.post('/search/:offset/:limit/:companyIdParam', (req, res) => {
     const response = {
         count: req.params.limit,
         data: createMockOrders(Number(req.params.limit))

@@ -1,12 +1,32 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.verifyObjectIds = exports.verifyObjectId = void 0;
-// This function imports the `Types` module from `mongoose`.
+const tslib_1 = require("tslib");
 const mongoose_1 = require("mongoose");
-// This function imports the `getLogger()` function from `log4js`.
-const log4js_1 = require("log4js");
+const tracer = tslib_1.__importStar(require("tracer"));
+const fs = tslib_1.__importStar(require("fs"));
 // This function creates a verifyLogger named `constants/verify`.
-const verifyLogger = (0, log4js_1.getLogger)('constants/verify');
+const verifyLogger = tracer.colorConsole({
+    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+    dateformat: 'HH:MM:ss.L',
+    transport(data) {
+        // eslint-disable-next-line no-console
+        console.log(data.output);
+        const logDir = './openstockLog/';
+        fs.mkdir(logDir, { recursive: true }, (err) => {
+            if (err) {
+                if (err) {
+                    throw err;
+                }
+            }
+        });
+        fs.appendFile('./openStockLog/universal-server.log', data.rawoutput + '\n', err => {
+            if (err) {
+                throw err;
+            }
+        });
+    }
+});
 // This function exports a function that verifies an ObjectID.
 //
 // **Parameters:**

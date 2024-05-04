@@ -23,12 +23,34 @@ import {
 import { companySubscriptionLean, companySubscriptionMain, requireActiveCompany, requireSuperAdmin, userLean } from '@open-stock/stock-auth-server';
 import { Icustomrequest, IdataArrayResponse, IinvoiceRelated, IpaymentRelated, Isuccess, Iuser } from '@open-stock/stock-universal';
 import { fileMetaLean, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
-import { getLogger } from 'log4js';
+import * as fs from 'fs';
+import * as tracer from 'tracer';
 import { receiptLean } from '../models/printables/receipt.model';
 import { pesapalPaymentInstance } from '../stock-counter-server';
 import { relegateInvRelatedCreation } from './printables/related/invoicerelated';
 
-const paymentRoutesLogger = getLogger('routes/paymentRoutes');
+const paymentRoutesLogger = tracer.colorConsole(
+  {
+    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+    dateformat: 'HH:MM:ss.L',
+    transport(data) {
+      // eslint-disable-next-line no-console
+      console.log(data.output);
+      const logDir = './openstockLog/';
+      fs.mkdir(logDir, { recursive: true }, (err) => {
+        if (err) {
+          if (err) {
+            throw err;
+          }
+        }
+      });
+      fs.appendFile('./openStockLog/counter-server.log', data.rawoutput + '\n', err => {
+        if (err) {
+          throw err;
+        }
+      });
+    }
+  });
 
 /**
  * Express router for payment routes.
@@ -299,7 +321,7 @@ paymentRoutes.put('/deleteone/:companyIdParam', requireAuth, requireSuperAdmin, 
   }
 });
 
-paymentRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('payments', 'read'), async(req, res) => {
+paymentRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('payments', 'read'), async(req, res) => {
   const { searchterm, searchKey } = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -393,7 +415,15 @@ paymentRoutes.get('/ipn', async(req, res) => {
     return res.status(200).send({ success: true });
   }
 
-  companySub.save();
+  let savedErr: string;
+  companySub.save().catch(err => {
+    paymentRoutesLogger.error('save error', err);
+    savedErr = err;
+    return null;
+  });
+  if (savedErr) {
+    return res.status(500).send({ success: false });
+  }
 
   const related = await paymentRelatedLean.findOne({ pesaPalorderTrackingId: orderTrackingId }).lean();
 

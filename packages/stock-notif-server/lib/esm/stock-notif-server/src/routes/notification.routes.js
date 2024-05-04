@@ -161,7 +161,6 @@ notifnRoutes.get('/unviewedlength/:companyIdParam', requireAuth, async (req, res
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const { userId, permissions } = req.user;
-    console.log('requested user is 1111111111111    ', req.user);
     let filter;
     if (permissions.users &&
         !permissions.orders &&

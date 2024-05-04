@@ -3,7 +3,7 @@
 import { companyMain } from '@open-stock/stock-auth-server';
 import { makeNotfnBody } from '@open-stock/stock-notif-server';
 import { stringifyMongooseErr, verifyObjectId } from '@open-stock/stock-universal-server';
-import { getLogger } from 'log4js';
+import * as tracer from 'tracer';
 import { orderMain } from '../models/order.model';
 import { paymentMain } from '../models/payment.model';
 import { paymentRelatedMain } from '../models/printables/paymentrelated/paymentrelated.model';
@@ -11,8 +11,29 @@ import { promocodeLean } from '../models/promocode.model';
 import { makePaymentInstall, relegatePaymentRelatedCreation } from '../routes/paymentrelated/paymentrelated';
 import { saveInvoice } from '../routes/printables/invoice.routes';
 import { pesapalPaymentInstance } from '../stock-counter-server';
+import * as fs from 'fs';
 /** Logger for the payment controller */
-const paymentControllerLogger = getLogger('paymentController');
+const paymentControllerLogger = tracer.colorConsole({
+    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+    dateformat: 'HH:MM:ss.L',
+    transport(data) {
+        // eslint-disable-next-line no-console
+        console.log(data.output);
+        const logDir = './openstockLog/';
+        fs.mkdir(logDir, { recursive: true }, (err) => {
+            if (err) {
+                if (err) {
+                    throw err;
+                }
+            }
+        });
+        fs.appendFile('./openStockLog/counter-server.log', data.rawoutput + '\n', err => {
+            if (err) {
+                throw err;
+            }
+        });
+    }
+});
 /**
  * Allows payment on delivery
  * @param paymentRelated - The payment related information

@@ -26,7 +26,7 @@ exports.pickupLocationRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', 
 exports.pickupLocationRoutesDummy.delete('/deleteone/:id/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });
 });
-exports.pickupLocationRoutesDummy.post('/search/:limit/:offset/:companyIdParam', (req, res) => {
+exports.pickupLocationRoutesDummy.post('/search/:offset/:limit/:companyIdParam', (req, res) => {
     const response = {
         count: 0,
         data: []

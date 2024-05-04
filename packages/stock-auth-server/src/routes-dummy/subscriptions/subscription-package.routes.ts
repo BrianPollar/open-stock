@@ -1,5 +1,5 @@
 import express from 'express';
-import { createMockSubscriptionPackages } from '../../../../tests/stock-counter-mocks';
+import { createMockSubscriptionPackages } from '../../../../mocks/stock-counter-mocks';
 
 export const subscriptionPackageRoutesDummy = express.Router();
 

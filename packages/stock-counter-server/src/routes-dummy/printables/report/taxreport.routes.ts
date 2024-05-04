@@ -2,7 +2,7 @@
 
 import { IdataArrayResponse } from '@open-stock/stock-universal';
 import express from 'express';
-import { createMockTaxReport, createMockTaxReports } from '../../../../../tests/stock-counter-mocks';
+import { createMockTaxReport, createMockTaxReports } from '../../../../../mocks/stock-counter-mocks';
 
 /**
  * Router for tax report routes.
@@ -34,7 +34,7 @@ taxReportRoutesDummy.delete('/deleteone/:id/:companyIdParam', (req, res) => {
 });
 
 
-taxReportRoutesDummy.post('/search/:limit/:offset/:companyIdParam', (req, res) => {
+taxReportRoutesDummy.post('/search/:offset/:limit/:companyIdParam', (req, res) => {
   const response: IdataArrayResponse = {
     count: req.params.limit,
     data: createMockTaxReports(Number(req.params.limit))

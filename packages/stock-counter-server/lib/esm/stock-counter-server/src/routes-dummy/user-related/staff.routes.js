@@ -1,5 +1,5 @@
 import express from 'express';
-import { createMockStaff, createMockStaffs } from '../../../../tests/stock-counter-mocks';
+import { createMockStaff, createMockStaffs } from '../../../../mocks/stock-counter-mocks';
 /**
  * Router for staff related routes.
  */
@@ -24,7 +24,7 @@ staffRoutesDummy.get('/getbyrole/:offset/:limit/:role/:companyIdParam', (req, re
     };
     res.status(200).send(response);
 });
-staffRoutesDummy.post('/search/:limit/:offset/:companyIdParam', (req, res) => {
+staffRoutesDummy.post('/search/:offset/:limit/:companyIdParam', (req, res) => {
     const response = {
         count: req.params.limit,
         data: createMockStaffs(Number(req.params.limit))

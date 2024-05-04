@@ -1,6 +1,6 @@
 {
   "name": "@open-stock/stock-universal-server",
-  "version": "3.3.2",
+  "version": "3.6.0",
   "description": "> TODO: description",
   "main": "lib/cjs/index.js",
   "module": "lib/esm/index.js",
@@ -22,7 +22,10 @@
     "multer": "^1.4.5-lts.1",
     "passport": "^0.6.0",
     "passport-google-oauth": "^2.0.0",
-    "passport-jwt": "^4.0.1"
+    "passport-jwt": "^4.0.1",
+    "pino": "^9.0.0",
+    "pino-pretty": "^11.0.0",
+    "tracer": "^1.3.0"
   },
   "homepage": "",
   "peerDependencies": {

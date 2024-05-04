@@ -5,7 +5,7 @@ import {
   createMockItemOffers,
   createMockItems,
   createMockSponsoreds
-} from '../../../tests/stock-counter-mocks';
+} from '../../../mocks/stock-counter-mocks';
 
 /**
  * Express router for item routes.
@@ -165,7 +165,7 @@ itemRoutesDummy.put('/deleteimages/:companyIdParam', (req, res) => {
   res.status(200).send({ success: true });
 });
 
-itemRoutesDummy.post('/search/:limit/:offset/:companyIdParam', (req, res) => {
+itemRoutesDummy.post('/search/:offset/:limit/:companyIdParam', (req, res) => {
   const response: IdataArrayResponse = {
     count: req.params.limit,
     data: createMockItems(Number(req.params.limit))

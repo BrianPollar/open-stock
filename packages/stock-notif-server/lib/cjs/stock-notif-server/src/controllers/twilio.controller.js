@@ -1,19 +1,19 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.makeAuthyTwilio = exports.runTwilio = exports.runAuthy = void 0;
 /**
  * This module exports functions to create an Authy client, a Twilio client, and an object containing both clients.
  * @module twilioController
  */
-const authy = require('authy');
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.createTwilioService = exports.makeAuthyTwilio = exports.runTwilio = void 0;
+const stock_notif_local_1 = require("../stock-notif-local");
+// const authy = require('authy');
 const twilioClient = require('twilio');
 /**
  * Creates an Authy client
  * @param {string} authyKey - The Authy API key
  * @returns {Object} - The Authy client object
  */
-const runAuthy = (authyKey) => authy(authyKey);
-exports.runAuthy = runAuthy;
+// export const runAuthy = (authyKey: string) => authy(authyKey);
 /**
  * Creates a Twilio client
  * @param {string} accountSid - The Twilio account SID
@@ -30,8 +30,13 @@ exports.runTwilio = runTwilio;
  * @returns {Object} - An object containing the Authy client and Twilio client
  */
 const makeAuthyTwilio = (authyKey, accountSid, authToken) => ({
-    authy: (0, exports.runAuthy)(authyKey),
+    // authy: runAuthy(authyKey),
     twilioClient: (0, exports.runTwilio)(accountSid, authToken)
 });
 exports.makeAuthyTwilio = makeAuthyTwilio;
+const createTwilioService = () => {
+    stock_notif_local_1.notificationSettings.twilioClient.verify.v2.services.create({ friendlyName: 'VerificationCode' })
+        .then(service => service.sid);
+};
+exports.createTwilioService = createTwilioService;
 //# sourceMappingURL=twilio.controller.js.map

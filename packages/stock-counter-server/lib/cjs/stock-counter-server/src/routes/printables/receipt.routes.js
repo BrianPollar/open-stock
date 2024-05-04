@@ -145,7 +145,7 @@ exports.receiptRoutes.put('/deleteone/:companyIdParam', stock_universal_server_1
         return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
-exports.receiptRoutes.post('/search/:limit/:offset/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('receipts', 'read'), async (req, res) => {
+exports.receiptRoutes.post('/search/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('receipts', 'read'), async (req, res) => {
     const { searchterm, searchKey } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -198,7 +198,15 @@ exports.receiptRoutes.put('/update/:companyIdParam', stock_universal_server_1.re
         return res.status(404).send({ success: false, status: 404, err: 'not found' });
     }
     found.paymentMode = updatedReceipt.paymentMode || found.paymentMode;
-    await found.save();
+    let savedErr;
+    await found.save().catch(err => {
+        exports.receiptRoutes.error('save error', err);
+        savedErr = err;
+        return null;
+    });
+    if (savedErr) {
+        return res.status(500).send({ success: false });
+    }
     await (0, invoicerelated_1.updateInvoiceRelated)(invoiceRelated, queryId);
     return res.status(200).send({ success: true });
 });

@@ -1,6 +1,6 @@
 
 import express from 'express';
-import { createMockCompany } from '../../../tests/stock-auth-mocks';
+import { createMockCompany } from '../../../mocks/stock-auth-mocks';
 
 /**
  * Router for super admin routes.

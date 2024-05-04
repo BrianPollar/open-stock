@@ -211,7 +211,7 @@ export interface Iuser extends IdatabaseAuto {
     /**
      * The country code of the user's phone number.
      */
-    countryCode?: number;
+    countryCode?: string;
     /**
      * The amount due for the user.
      */
@@ -544,4 +544,8 @@ export interface IcompanySubscription extends IdatabaseAuto {
 export interface IsubscriptionDuration {
     name: string;
     value: TsubscriptionDurVal;
+}
+export interface ImodelLimit {
+    val: number;
+    cost: number;
 }

@@ -2,13 +2,35 @@ import { requireActiveCompany } from '@open-stock/stock-auth-server';
 import { Icustomrequest, IdataArrayResponse, Isuccess } from '@open-stock/stock-universal';
 import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
-import { getLogger } from 'log4js';
+import * as fs from 'fs';
+import * as tracer from 'tracer';
 import { estimateLean } from '../../../models/printables/estimate.model';
 import { invoiceRelatedLean } from '../../../models/printables/related/invoicerelated.model';
 import { salesReportLean, salesReportMain } from '../../../models/printables/report/salesreport.model';
 
 /** Logger for sales report routes */
-const salesReportRoutesLogger = getLogger('routes/salesReportRoutes');
+const salesReportRoutesLogger = tracer.colorConsole(
+  {
+    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+    dateformat: 'HH:MM:ss.L',
+    transport(data) {
+      // eslint-disable-next-line no-console
+      console.log(data.output);
+      const logDir = './openstockLog/';
+      fs.mkdir(logDir, { recursive: true }, (err) => {
+        if (err) {
+          if (err) {
+            throw err;
+          }
+        }
+      });
+      fs.appendFile('./openStockLog/counter-server.log', data.rawoutput + '\n', err => {
+        if (err) {
+          throw err;
+        }
+      });
+    }
+  });
 
 /**
  * Express router for sales report routes.
@@ -156,7 +178,7 @@ salesReportRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, requireA
 
 /**
  * Search for sales reports by search term and search key with pagination
- * @name POST /search/:limit/:offset
+ * @name POST /search/:offset/:limit
  * @function
  * @memberof module:routers/salesReportRoutes
  * @inner
@@ -164,7 +186,7 @@ salesReportRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, requireA
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>} - Promise object represents the response
  */
-salesReportRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'read'), async(req, res) => {
+salesReportRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'read'), async(req, res) => {
   const { searchterm, searchKey } = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;

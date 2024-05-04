@@ -141,7 +141,7 @@ receiptRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompan
         return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
-receiptRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('receipts', 'read'), async (req, res) => {
+receiptRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('receipts', 'read'), async (req, res) => {
     const { searchterm, searchKey } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -194,7 +194,15 @@ receiptRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCompany, 
         return res.status(404).send({ success: false, status: 404, err: 'not found' });
     }
     found.paymentMode = updatedReceipt.paymentMode || found.paymentMode;
-    await found.save();
+    let savedErr;
+    await found.save().catch(err => {
+        receiptRoutes.error('save error', err);
+        savedErr = err;
+        return null;
+    });
+    if (savedErr) {
+        return res.status(500).send({ success: false });
+    }
     await updateInvoiceRelated(invoiceRelated, queryId);
     return res.status(200).send({ success: true });
 });

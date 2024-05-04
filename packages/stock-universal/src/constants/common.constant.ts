@@ -1,4 +1,4 @@
-import { IsubscriptionFeature, IsubscriptionPackage } from '../interfaces/general.interface';
+import { ImodelLimit, IsubscriptionFeature, IsubscriptionPackage } from '../interfaces/general.interface';
 
 /**
  * Array of inventory statuses.
@@ -390,53 +390,146 @@ export const subscriptionPackages: IsubscriptionPackage[] = [
         remainingSize: 50
       }
     ]
+  },
+  {
+    name: 'Free Plan',
+    ammount: 10,
+    duration: 1,
+    features: [
+      {
+        type: 'item',
+        name: 'Items',
+        limitSize: 10,
+        remainingSize: 10
+      },
+      {
+        type: 'invoice',
+        name: 'Invoices',
+        limitSize: 10,
+        remainingSize: 10
+      },
+      {
+        type: 'quotation',
+        name: 'Quotations',
+        limitSize: 10,
+        remainingSize: 10
+      },
+      {
+        type: 'receipt',
+        name: 'Receipts',
+        limitSize: 10,
+        remainingSize: 10
+      },
+      {
+        type: 'customer',
+        name: 'Customers',
+        limitSize: 10,
+        remainingSize: 10
+      },
+      {
+        type: 'staff',
+        name: 'Staffs',
+        limitSize: 10,
+        remainingSize: 10
+      },
+      {
+        type: 'decoy',
+        name: 'Item Decoys',
+        limitSize: 10,
+        remainingSize: 10
+      },
+      {
+        type: 'offer',
+        name: 'Item Offers',
+        limitSize: 10,
+        remainingSize: 10
+      },
+      {
+        type: 'expense',
+        name: 'Expenses',
+        limitSize: 10,
+        remainingSize: 10
+      }
+    ]
   }
 ];
 
 export const moduleSubVolume: IsubscriptionFeature[] = [
   {
     type: 'item',
-    name: 'Items',
-    limitSize: 0
+    name: 'Add Items',
+    limitSize: 50
   },
   {
     type: 'invoice',
-    name: 'Invoices',
-    limitSize: 0
+    name: 'Add Invoices',
+    limitSize: 50
   },
   {
     type: 'quotation',
-    name: 'Quotations',
-    limitSize: 0
+    name: 'Add Quotations',
+    limitSize: 50
   },
   {
     type: 'receipt',
-    name: 'Receipts',
-    limitSize: 0
+    name: 'Add Receipts',
+    limitSize: 50
   },
   {
     type: 'customer',
-    name: 'Customers',
-    limitSize: 0
+    name: 'Add Customers',
+    limitSize: 50
   },
   {
     type: 'staff',
-    name: 'Staffs',
-    limitSize: 0
+    name: 'Add Staffs',
+    limitSize: 50
   },
   {
     type: 'decoy',
-    name: 'Item Decoys',
-    limitSize: 0
+    name: 'Add Item Decoys',
+    limitSize: 50
   },
   {
     type: 'offer',
-    name: 'Item Offers',
-    limitSize: 0
+    name: 'Add Item Offers',
+    limitSize: 50
   },
   {
     type: 'expense',
-    name: 'Expenses',
-    limitSize: 0
+    name: 'Add Expenses',
+    limitSize: 50
+  }
+];
+
+
+export const modelLimitSelect: ImodelLimit[] = [
+  {
+    val: 100,
+    cost: 1
+  },
+  {
+    val: 200,
+    cost: 1.2
+  },
+  {
+    val: 300,
+    cost: 2
+  },
+  {
+    val: 500,
+    cost: 3
+  },
+  {
+    val: 1000,
+    cost: 5
+  },
+  {
+    val: 5000,
+    cost: 7
+  },
+  {
+    val: 10000,
+    cost: 10
   }
 ];

@@ -1,6 +1,6 @@
 import { appendBody, deleteFiles, saveMetaToDb, uploadFiles } from '@open-stock/stock-universal-server';
 import express from 'express';
-import { createMockInvoiceSettings } from '../../../../../tests/stock-counter-mocks';
+import { createMockInvoiceSettings } from '../../../../../mocks/stock-counter-mocks';
 /**
  * Router for invoice settings.
  */
@@ -30,7 +30,7 @@ invoiceSettingRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, re
 invoiceSettingRoutesDummy.delete('/deleteone/:id/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });
 });
-invoiceSettingRoutesDummy.post('/search/:limit/:offset/:companyIdParam', (req, res) => {
+invoiceSettingRoutesDummy.post('/search/:offset/:limit/:companyIdParam', (req, res) => {
     const response = {
         count: req.params.limit,
         data: [createMockInvoiceSettings()]

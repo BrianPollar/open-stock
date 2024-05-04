@@ -4,13 +4,35 @@ import { requireActiveCompany, userLean } from '@open-stock/stock-auth-server';
 import { Icustomrequest, IdataArrayResponse, IinvoiceRelated, Iuser } from '@open-stock/stock-universal';
 import { offsetLimitRelegator, requireAuth, roleAuthorisation, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
-import { getLogger } from 'log4js';
+import * as tracer from 'tracer';
 import { receiptLean } from '../../../models/printables/receipt.model';
 import { invoiceRelatedLean } from '../../../models/printables/related/invoicerelated.model';
 import { makeInvoiceRelatedPdct, updateInvoiceRelated } from './invoicerelated';
+import * as fs from 'fs';
 
 /** Logger for file storage */
-const fileStorageLogger = getLogger('routes/FileStorage');
+const fileStorageLogger = tracer.colorConsole(
+  {
+    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+    dateformat: 'HH:MM:ss.L',
+    transport(data) {
+      // eslint-disable-next-line no-console
+      console.log(data.output);
+      const logDir = './openstockLog/';
+      fs.mkdir(logDir, { recursive: true }, (err) => {
+        if (err) {
+          if (err) {
+            throw err;
+          }
+        }
+      });
+      fs.appendFile('./openStockLog/counter-server.log', data.rawoutput + '\n', err => {
+        if (err) {
+          throw err;
+        }
+      });
+    }
+  });
 
 /**
  * Router for handling invoice related routes.

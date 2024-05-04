@@ -123,16 +123,16 @@ export class Item extends DatabaseAuto {
    */
   static async searchItems(
     companyId: string,
-    category: string,
     searchterm: string,
     searchKey: string,
     extraFilters,
+    category = 'all',
     subCategory?: string,
     offset = 0,
     limit = 20
   ) {
     const observer$ = StockCounterClient.ehttp
-      .makePost(`/item/search}/${offset}/${limit}/${companyId}`, { searchterm, searchKey, category, extraFilters, subCategory });
+      .makePost(`/item/search/${offset}/${limit}/${companyId}`, { searchterm, searchKey, category, extraFilters, subCategory });
     const items = await lastValueFrom(observer$) as IdataArrayResponse;
     return {
       count: items.count,

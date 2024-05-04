@@ -1,8 +1,30 @@
 import { makeNewConnection } from '@open-stock/stock-universal-server';
-import { getLogger } from 'log4js';
 import { ConnectOptions, Connection } from 'mongoose';
+import * as tracer from 'tracer';
+import * as fs from 'fs';
 
-const dbConnectionsLogger = getLogger('DbConnections');
+const dbConnectionsLogger = tracer.colorConsole(
+  {
+    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+    dateformat: 'HH:MM:ss.L',
+    transport(data) {
+      // eslint-disable-next-line no-console
+      console.log(data.output);
+      const logDir = './openstockLog/';
+      fs.mkdir(logDir, { recursive: true }, (err) => {
+        if (err) {
+          if (err) {
+            throw err;
+          }
+        }
+      });
+      fs.appendFile('./openStockLog/notif-server.log', data.rawoutput + '\n', err => {
+        if (err) {
+          throw err;
+        }
+      });
+    }
+  });
 
 export let mainConnection: Connection;
 export let mainConnectionLean: Connection;

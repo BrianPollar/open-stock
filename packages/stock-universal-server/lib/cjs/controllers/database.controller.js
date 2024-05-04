@@ -1,10 +1,32 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.connectUniversalDatabase = exports.isUniversalDbConnected = exports.mainConnectionLean = exports.mainConnection = void 0;
-const log4js_1 = require("log4js");
+const tslib_1 = require("tslib");
+const tracer = tslib_1.__importStar(require("tracer"));
 const connections_1 = require("../dbconnections/connections");
+const fs = tslib_1.__importStar(require("fs"));
 /** The  dbConnectionsLogger  is a logger instance used for logging database connection-related messages. */
-const dbConnectionsLogger = (0, log4js_1.getLogger)('DbConnections');
+const dbConnectionsLogger = tracer.colorConsole({
+    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+    dateformat: 'HH:MM:ss.L',
+    transport(data) {
+        // eslint-disable-next-line no-console
+        console.log(data.output);
+        const logDir = './openstockLog/';
+        fs.mkdir(logDir, { recursive: true }, (err) => {
+            if (err) {
+                if (err) {
+                    throw err;
+                }
+            }
+        });
+        fs.appendFile('./openStockLog/universal-server.log', data.rawoutput + '\n', err => {
+            if (err) {
+                throw err;
+            }
+        });
+    }
+});
 /**  The  isUniversalDbConnected  variable is a flag to indicate whether the authentication database is connected. */
 exports.isUniversalDbConnected = false;
 /**

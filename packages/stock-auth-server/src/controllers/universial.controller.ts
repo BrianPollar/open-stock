@@ -2,7 +2,8 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 // ID// 659298550876-3b56rhd1tusthh4a92v7ehteo0phiic0.apps.googleusercontent.com
 // SECRET // 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
-import { getLogger } from 'log4js';
+import * as fs from 'fs';
+import * as tracer from 'tracer';
 // import { nodemailer } from 'nodemailer';
 // const nodemailer = require('nodemailer');
 import { sendMail } from '@open-stock/stock-notif-server';
@@ -21,8 +22,28 @@ import * as jwt from 'jsonwebtoken';
 import { Document } from 'mongoose';
 import { emailtoken } from '../models/emailtoken.model';
 
-
-const universialControllerLogger = getLogger('controllers/UniversialController');
+const universialControllerLogger = tracer.colorConsole(
+  {
+    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+    dateformat: 'HH:MM:ss.L',
+    transport(data) {
+      // eslint-disable-next-line no-console
+      console.log(data.output);
+      const logDir = './openstockLog/';
+      fs.mkdir(logDir, { recursive: true }, (err) => {
+        if (err) {
+          if (err) {
+            throw err;
+          }
+        }
+      });
+      fs.appendFile('./openStockLog/auth-server.log', data.rawoutput + '\n', err => {
+        if (err) {
+          throw err;
+        }
+      });
+    }
+  });
 
 /**
  * Generates a JWT token with the provided authentication configuration, expiry date, and JWT secret.
@@ -98,24 +119,56 @@ export const validatePhone = async(
           msg = `The token you entered was
 					invalid - please retry.`;
         } else {
-          msg = `You are signed up,
-					but we could not send you a
-					text message. Our bad - try to login.`;
+          msg = `he token you entered was
+					invalid - please retry.`;
         }
         resolve({
-          status: 200,
+          status: 401,
           response: {
-            success: true,
-            msg,
-            user: foundUser
+            success: false,
+            msg
           }
         });
         return;
       }
-      return foundUser.save(postSave as object);
+      foundUser.verified = true;
+      foundUser.expireAt = '';
+      let message;
+      if (nowCase === 'password') {
+        foundUser.password = newPassword;
+        message = `You did it! Your
+				password has been reset :`;
+      } else {
+        message = `You did it! Your
+				are all setup and
+				you can now you can customise your profile`;
+      }
+      foundUser.save().then(() => {
+        foundUser.save();
+        resolve({
+          status: 200,
+          response: {
+            success: true,
+            msg: message,
+            user: foundUser
+          }
+        });
+      }).catch(err => {
+        universialControllerLogger.error('save error', err);
+        resolve({
+          status: 500,
+          response: {
+            success: false
+          }
+        });
+        return;
+      });
     };
 
-    const postSave = function(err) {
+    return foundUser['verifyAuthyToken'](verifycode,
+      postVerify);
+
+    /* const postSave = function(err) {
       if (err) {
         const response: Isuccess = {
           success: false
@@ -123,7 +176,7 @@ export const validatePhone = async(
         if (err && err.errors) {
           response.err = stringifyMongooseErr(err.errors);
         } else {
-          response.err = `we are having problems connecting to our databases, 
+          response.err = `we are having problems connecting to our databases,
           try again in a while`;
         }
         universialControllerLogger.error('postSave err: ', err);
@@ -133,8 +186,7 @@ export const validatePhone = async(
         });
         return;
       }
-      foundUser.verified = true;
-      foundUser.expireAt = '';
+
       let message;
       if (nowCase === 'password') {
         foundUser.password = newPassword;
@@ -179,9 +231,7 @@ export const validatePhone = async(
           }
         });
       });
-    };
-    return foundUser['verifyAuthyToken'](verifycode,
-      postVerify);
+    };*/
   });
 };
 
@@ -554,7 +604,6 @@ height: 100%;
     }).catch(error => {
       universialControllerLogger.error('email verication with token error',
         JSON.stringify(error));
-      console.log('error 1111111 ', error);
       response = {
         status: 403,
         success: false,
@@ -566,7 +615,6 @@ height: 100%;
   }).catch((err) => {
     universialControllerLogger.error(`sendTokenEmail
           token.save error, ${err}`);
-    console.log('error 222222 ', err);
     const errResponse: Isuccess = {
       success: false
     };

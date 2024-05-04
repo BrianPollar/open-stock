@@ -1,5 +1,5 @@
 import express from 'express';
-import { createMockPayment, createMockPayments } from '../../../tests/stock-counter-mocks';
+import { createMockPayment, createMockPayments } from '../../../mocks/stock-counter-mocks';
 /**
  * Express router for payment routes.
  */
@@ -30,7 +30,7 @@ paymentRoutesDummy.get('/getmypayments/:offset/:limit/:companyIdParam', (req, re
 paymentRoutesDummy.put('/deleteone/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });
 });
-paymentRoutesDummy.post('/search/:limit/:offset/:companyIdParam', (req, res) => {
+paymentRoutesDummy.post('/search/:offset/:limit/:companyIdParam', (req, res) => {
     const response = {
         count: req.params.limit,
         data: []

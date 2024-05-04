@@ -1,9 +1,31 @@
 import { IenvironmentConfig } from '@open-stock/stock-universal';
 import { access, mkdir } from 'fs-extra';
-import { getLogger } from 'log4js';
+import * as tracer from 'tracer';
+import * as fs from 'fs';
 
 // This function creates a fileMangerLogger named `FileManger`.
-const fileMangerLogger = getLogger('FileManger');
+const fileMangerLogger = tracer.colorConsole(
+  {
+    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+    dateformat: 'HH:MM:ss.L',
+    transport(data) {
+      // eslint-disable-next-line no-console
+      console.log(data.output);
+      const logDir = './openstockLog/';
+      fs.mkdir(logDir, { recursive: true }, (err) => {
+        if (err) {
+          if (err) {
+            throw err;
+          }
+        }
+      });
+      fs.appendFile('./openStockLog/universal-server.log', data.rawoutput + '\n', err => {
+        if (err) {
+          throw err;
+        }
+      });
+    }
+  });
 
 /**
  * Creates directories for an application.
@@ -15,7 +37,7 @@ const fileMangerLogger = getLogger('FileManger');
 export const createDirectories = async(
   envConfig: IenvironmentConfig): Promise<boolean> => {
   // Check if the directory for the app name exists.
-  await checkDirectoryExists(envConfig.appName, 'first');
+  await checkDirectoryExists(envConfig.absolutepath, '', 'first');
 
   // Create a promise for each directory in the list.
   const directories = [

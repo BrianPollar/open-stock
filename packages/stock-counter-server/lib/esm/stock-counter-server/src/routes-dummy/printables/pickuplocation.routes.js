@@ -22,7 +22,7 @@ pickupLocationRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, re
 pickupLocationRoutesDummy.delete('/deleteone/:id/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });
 });
-pickupLocationRoutesDummy.post('/search/:limit/:offset/:companyIdParam', (req, res) => {
+pickupLocationRoutesDummy.post('/search/:offset/:limit/:companyIdParam', (req, res) => {
     const response = {
         count: 0,
         data: []

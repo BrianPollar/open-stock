@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
 import { IdataArrayResponse } from '@open-stock/stock-universal';
 import express from 'express';
-import { createMockExpenseReport, createMockExpenseReports } from '../../../../../tests/stock-counter-mocks';
+import { createMockExpenseReport, createMockExpenseReports } from '../../../../../mocks/stock-counter-mocks';
 
 /**
  * Expense report routes.

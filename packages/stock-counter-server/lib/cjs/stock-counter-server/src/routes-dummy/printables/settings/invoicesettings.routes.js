@@ -4,7 +4,7 @@ exports.invoiceSettingRoutesDummy = void 0;
 const tslib_1 = require("tslib");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
-const stock_counter_mocks_1 = require("../../../../../tests/stock-counter-mocks");
+const stock_counter_mocks_1 = require("../../../../../mocks/stock-counter-mocks");
 /**
  * Router for invoice settings.
  */
@@ -34,7 +34,7 @@ exports.invoiceSettingRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', 
 exports.invoiceSettingRoutesDummy.delete('/deleteone/:id/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });
 });
-exports.invoiceSettingRoutesDummy.post('/search/:limit/:offset/:companyIdParam', (req, res) => {
+exports.invoiceSettingRoutesDummy.post('/search/:offset/:limit/:companyIdParam', (req, res) => {
     const response = {
         count: req.params.limit,
         data: [(0, stock_counter_mocks_1.createMockInvoiceSettings)()]

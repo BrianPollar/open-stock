@@ -1,5 +1,5 @@
 import express from 'express';
-import { createMockItemDecoy, createMockItemDecoys } from '../../../tests/stock-counter-mocks';
+import { createMockItemDecoy, createMockItemDecoys } from '../../../mocks/stock-counter-mocks';
 /**
  * Router for item decoy routes.
  */

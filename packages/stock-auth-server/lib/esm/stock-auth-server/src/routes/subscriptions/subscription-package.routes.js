@@ -1,10 +1,31 @@
 import { requireAuth } from '@open-stock/stock-universal-server';
 import express from 'express';
-import { getLogger } from 'log4js';
+import * as fs from 'fs';
+import * as tracer from 'tracer';
 import { subscriptionPackageLean, subscriptionPackageMain } from '../../models/subscriptions/subscription-package.model';
 import { requireSuperAdmin } from '../superadmin.routes';
 /** Logger for subscriptionPackage routes */
-const subscriptionPackageRoutesLogger = getLogger('routes/subscriptionPackageRoutes');
+const subscriptionPackageRoutesLogger = tracer.colorConsole({
+    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+    dateformat: 'HH:MM:ss.L',
+    transport(data) {
+        // eslint-disable-next-line no-console
+        console.log(data.output);
+        const logDir = './openstockLog/';
+        fs.mkdir(logDir, { recursive: true }, (err) => {
+            if (err) {
+                if (err) {
+                    throw err;
+                }
+            }
+        });
+        fs.appendFile('./openStockLog/auth-server.log', data.rawoutput + '\n', err => {
+            if (err) {
+                throw err;
+            }
+        });
+    }
+});
 /**
  * Router for handling subscriptionPackage-related routes.
  */
@@ -13,7 +34,15 @@ subscriptionPackageRoutes.post('/create', requireAuth, requireSuperAdmin, async 
     subscriptionPackageRoutesLogger.info('Create subscription');
     const subscriptionPackages = req.body;
     const newPkg = new subscriptionPackageMain(subscriptionPackages);
-    await newPkg.save();
+    let savedErr;
+    await newPkg.save().catch(err => {
+        subscriptionPackageRoutesLogger.error('save error', err);
+        savedErr = err;
+        return null;
+    });
+    if (savedErr) {
+        return res.status(500).send({ success: false });
+    }
     return res.status(200).send({ success: true, status: 200 });
 });
 subscriptionPackageRoutes.put('/updateone', requireAuth, requireSuperAdmin, async (req, res) => {
@@ -26,7 +55,15 @@ subscriptionPackageRoutes.put('/updateone', requireAuth, requireSuperAdmin, asyn
     subPackage.duration = subscriptionPackage.duration || subPackage.duration;
     subPackage.active = subscriptionPackage.active || subPackage.active;
     subPackage.features = subscriptionPackage.features || subPackage.features;
-    await subPackage.save();
+    let savedErr;
+    await subPackage.save().catch(err => {
+        subscriptionPackageRoutesLogger.error('save error', err);
+        savedErr = err;
+        return null;
+    });
+    if (savedErr) {
+        return res.status(500).send({ success: false });
+    }
     return res.status(200).send({ success: true, status: 200 });
 });
 subscriptionPackageRoutes.get('/getall', async (req, res) => {

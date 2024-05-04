@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.notifnRoutesDummy = void 0;
 const tslib_1 = require("tslib");
 const express_1 = tslib_1.__importDefault(require("express"));
-const stock_notif_mocks_1 = require("../../../tests/stock-notif-mocks");
+const stock_notif_mocks_1 = require("../../../mocks/stock-notif-mocks");
 /**
  * Router for handling notification routes.
  */

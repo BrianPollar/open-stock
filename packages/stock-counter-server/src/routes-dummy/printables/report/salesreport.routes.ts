@@ -1,6 +1,6 @@
 import { IdataArrayResponse } from '@open-stock/stock-universal';
 import express from 'express';
-import { createMockSalesReport, createMockSalesReports } from '../../../../../tests/stock-counter-mocks';
+import { createMockSalesReport, createMockSalesReports } from '../../../../../mocks/stock-counter-mocks';
 
 /**
  * Express router for sales report routes.
@@ -31,7 +31,7 @@ salesReportRoutesDummy.delete('/deleteone/:id/:companyIdParam', (req, res) => {
 });
 
 
-salesReportRoutesDummy.post('/search/:limit/:offset/:companyIdParam', (req, res) => {
+salesReportRoutesDummy.post('/search/:offset/:limit/:companyIdParam', (req, res) => {
   const response: IdataArrayResponse = {
     count: req.params.limit,
     data: createMockSalesReports(Number(req.params.limit))

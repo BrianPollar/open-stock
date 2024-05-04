@@ -1,7 +1,28 @@
-import { getLogger } from 'log4js';
+import * as tracer from 'tracer';
 import { makeNewConnection } from '../dbconnections/connections';
+import * as fs from 'fs';
 /** The  dbConnectionsLogger  is a logger instance used for logging database connection-related messages. */
-const dbConnectionsLogger = getLogger('DbConnections');
+const dbConnectionsLogger = tracer.colorConsole({
+    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+    dateformat: 'HH:MM:ss.L',
+    transport(data) {
+        // eslint-disable-next-line no-console
+        console.log(data.output);
+        const logDir = './openstockLog/';
+        fs.mkdir(logDir, { recursive: true }, (err) => {
+            if (err) {
+                if (err) {
+                    throw err;
+                }
+            }
+        });
+        fs.appendFile('./openStockLog/universal-server.log', data.rawoutput + '\n', err => {
+            if (err) {
+                throw err;
+            }
+        });
+    }
+});
 /** The  mainConnection  and  mainConnectionLean  variables are used to store the main connections to the database*/
 export let mainConnection;
 export let mainConnectionLean;

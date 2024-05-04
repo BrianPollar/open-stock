@@ -1,17 +1,39 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.makePaymentInstall = exports.deleteAllPayOrderLinked = exports.deleteManyPaymentRelated = exports.makePaymentRelatedPdct = exports.relegatePaymentRelatedCreation = exports.updatePaymentRelated = void 0;
+const tslib_1 = require("tslib");
 const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const stock_notif_server_1 = require("@open-stock/stock-notif-server");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
-const log4js_1 = require("log4js");
+const tracer = tslib_1.__importStar(require("tracer"));
 const order_model_1 = require("../../models/order.model");
 const payment_model_1 = require("../../models/payment.model");
 const paymentrelated_model_1 = require("../../models/printables/paymentrelated/paymentrelated.model");
 const receipt_model_1 = require("../../models/printables/receipt.model");
 const invoicerelated_1 = require("../printables/related/invoicerelated");
+const fs = tslib_1.__importStar(require("fs"));
 /** Logger for PaymentRelated routes */
-const paymentRelatedLogger = (0, log4js_1.getLogger)('routes/PaymentRelated');
+const paymentRelatedLogger = tracer.colorConsole({
+    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+    dateformat: 'HH:MM:ss.L',
+    transport(data) {
+        // eslint-disable-next-line no-console
+        console.log(data.output);
+        const logDir = './openstockLog/';
+        fs.mkdir(logDir, { recursive: true }, (err) => {
+            if (err) {
+                if (err) {
+                    throw err;
+                }
+            }
+        });
+        fs.appendFile('./openStockLog/counter-server.log', data.rawoutput + '\n', err => {
+            if (err) {
+                throw err;
+            }
+        });
+    }
+});
 /**
  * Updates the payment related information.
  * @param paymentRelated - The payment related object to update.

@@ -1,5 +1,5 @@
 import express from 'express';
-import { createMockUser, createMockUsers } from '../../../tests/stock-auth-mocks';
+import { createMockUser, createMockUsers } from '../../../mocks/stock-auth-mocks';
 /**
  * Router for authentication routes.
  */

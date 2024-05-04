@@ -1,6 +1,6 @@
 import { IdataArrayResponse } from '@open-stock/stock-universal';
 import express from 'express';
-import { createMockItemOffer, createMockItemOffers } from '../../../tests/stock-counter-mocks';
+import { createMockItemOffer, createMockItemOffers } from '../../../mocks/stock-counter-mocks';
 
 /**
  * Router for item offers.

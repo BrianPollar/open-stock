@@ -8,17 +8,39 @@
 // } from 'web-push';
 import { Iaction, Iactionwithall, Iauthtoken, InotifSetting, Isuccess, Iuser, TnotifType } from '@open-stock/stock-universal';
 import { stringifyMongooseErr } from '@open-stock/stock-universal-server';
-import { getLogger } from 'log4js';
+import * as tracer from 'tracer';
 import * as webPush from 'web-push';
 import { mainnotificationMain } from '../models/mainnotification.model';
 import { notifSettingLean, notifSettingMain } from '../models/notifsetting.model';
 import { notificationSettings } from '../stock-notif-local';
+import * as fs from 'fs';
 // const sgMail = require('@sendgrid/mail');
 // import * as sgMail from '@sendgrid/mail';
 const sgMail = require('@sendgrid/mail');
 
 
-const notificationsControllerLogger = getLogger('controllers/NotificationsController');
+const notificationsControllerLogger = tracer.colorConsole(
+  {
+    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+    dateformat: 'HH:MM:ss.L',
+    transport(data) {
+      // eslint-disable-next-line no-console
+      console.log(data.output);
+      const logDir = './openstockLog/';
+      fs.mkdir(logDir, { recursive: true }, (err) => {
+        if (err) {
+          if (err) {
+            throw err;
+          }
+        }
+      });
+      fs.appendFile('./openStockLog/notif-server.log', data.rawoutput + '\n', err => {
+        if (err) {
+          throw err;
+        }
+      });
+    }
+  });
 
 /**
  * Determines whether a user has an email address.
@@ -57,7 +79,7 @@ export const createSettings = async() => {
    * @param countryCode - The user's country code.
    * @returns A promise that resolves with the Authy registration response.
    */
-export const setUpUser = (
+/* export const setUpUser = (
   phone: string | number,
   countryCode: string | number
 ) => {
@@ -80,16 +102,14 @@ export const setUpUser = (
       }
     );
   });
-};
+};*/
 
 /**
    * Requests an SMS token from Authy for the given user.
    * @param authyId - The user's Authy ID.
    * @returns A promise that resolves with the Authy token request response.
    */
-export const sendToken = (
-  authyId: string
-) => {
+/* export const sendToken = () => {
   return new Promise((resolve, reject) => {
     notificationSettings.authy.request_sms(
       authyId,
@@ -101,6 +121,39 @@ export const sendToken = (
           reject(err);
         }
       });
+  });
+};*/
+export const sendToken = (
+  phone: string,
+  countryCode: string,
+  message: string
+) => {
+  return new Promise((resolve, reject) => {
+    notificationSettings.twilioClient.verify.v2.services(notificationSettings.twilioVerificationSid)
+      .verifications
+      .create({ to: `${countryCode + phone.toString()}`, channel: 'sms' })
+      .then(verification =>{
+        notificationSettings.smsDispatches++;
+        resolve(verification);
+      }).catch(err => {
+        if (err) {
+          reject(err);
+          return;
+        }
+      });
+    /* notificationSettings.twilioClient.messages.create({
+      to: countryCode + phone.toString(),
+      from: notificationSettings.twilioNumber,
+      body: message
+    }).then((response) => {
+      notificationSettings.smsDispatches++;
+      resolve({ response });
+    }).catch(err => {
+      if (err) {
+        reject(err);
+        return;
+      }
+    });*/
   });
 };
 
@@ -139,15 +192,29 @@ export const sendSms = (
  * @param otp - The one-time password to be verified.
  * @returns A promise that resolves with the verification response or rejects with an error.
  */
-export const verifyAuthyToken = (authyId: string, otp) => {
+export const verifyAuthyToken = (phone: string, countryCode: string, code: string) => {
   return new Promise((resolve, reject) => {
-    notificationSettings.authy.verify(authyId, otp, (err, response) => {
+    notificationSettings.twilioClient.verify.v2.services(notificationSettings.twilioVerificationSid)
+      .verificationChecks
+      .create({ to: `${countryCode + phone.toString()}`, code: `${code}` })
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      .then(verification_check => {
+        notificationsControllerLogger.debug('verification_check', verification_check);
+        if (verification_check.status === 'approved') {
+          resolve(verification_check.status);
+        } else {
+          reject(verification_check.status);
+        }
+      }).catch(err => {
+        reject(err);
+      });
+    /* notificationSettings.authy.verify(authyId, otp, (err, response) => {
       if (err) {
         reject(err);
       } else {
         resolve(response);
       }
-    });
+    });*/
   });
 };
 

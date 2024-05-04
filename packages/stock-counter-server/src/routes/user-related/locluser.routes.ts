@@ -2,7 +2,8 @@ import { requireActiveCompany, user } from '@open-stock/stock-auth-server';
 import { Icustomrequest } from '@open-stock/stock-universal';
 import { deleteFiles, requireAuth, roleAuthorisation, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express, { NextFunction, Request, Response } from 'express';
-import { getLogger } from 'log4js';
+import * as fs from 'fs';
+import * as tracer from 'tracer';
 import { invoiceRelatedLean } from '../../models/printables/related/invoicerelated.model';
 import { customerLean } from '../../models/user-related/customer.model';
 import { staffLean } from '../../models/user-related/staff.model';
@@ -120,7 +121,28 @@ export const canRemoveOneUser = async(id: string): Promise<IuserLinkedInMoreMode
 };
 
 /** Logger for local user routes. */
-const localUserRoutesLogger = getLogger('routes/customerRoutes');
+const localUserRoutesLogger = tracer.colorConsole(
+  {
+    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+    dateformat: 'HH:MM:ss.L',
+    transport(data) {
+      // eslint-disable-next-line no-console
+      console.log(data.output);
+      const logDir = './openstockLog/';
+      fs.mkdir(logDir, { recursive: true }, (err) => {
+        if (err) {
+          if (err) {
+            throw err;
+          }
+        }
+      });
+      fs.appendFile('./openStockLog/counter-server.log', data.rawoutput + '\n', err => {
+        if (err) {
+          throw err;
+        }
+      });
+    }
+  });
 
 /** Express Router for local user routes. */
 export const localUserRoutes = express.Router();

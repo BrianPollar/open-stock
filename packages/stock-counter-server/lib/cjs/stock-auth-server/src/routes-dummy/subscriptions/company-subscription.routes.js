@@ -2,10 +2,9 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.companySubscriptionRoutesDummy = void 0;
 const tslib_1 = require("tslib");
-/* eslint-disable @typescript-eslint/no-misused-promises */
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
-const stock_counter_mocks_1 = require("../../../../tests/stock-counter-mocks");
+const stock_counter_mocks_1 = require("../../../../mocks/stock-counter-mocks");
 exports.companySubscriptionRoutesDummy = express_1.default.Router();
 exports.companySubscriptionRoutesDummy.post('/subscribe/:companyIdParam', (req, res) => {
     return res.status(200).send({ success: true, status: 200 });

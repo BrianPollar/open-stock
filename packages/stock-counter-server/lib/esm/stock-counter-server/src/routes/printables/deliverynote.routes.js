@@ -2,13 +2,34 @@
 import { requireActiveCompany, requireCanUseFeature, requireUpdateSubscriptionRecord, userLean } from '@open-stock/stock-auth-server';
 import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
-import { getLogger } from 'log4js';
+import * as fs from 'fs';
+import * as tracer from 'tracer';
 import { deliveryNoteLean, deliveryNoteMain } from '../../models/printables/deliverynote.model';
 import { receiptLean } from '../../models/printables/receipt.model';
 import { invoiceRelatedLean } from '../../models/printables/related/invoicerelated.model';
 import { deleteAllLinked, makeInvoiceRelatedPdct, relegateInvRelatedCreation, updateInvoiceRelated } from './related/invoicerelated';
 /** Logger for delivery note routes */
-const deliveryNoteRoutesLogger = getLogger('routes/deliveryNoteRoutes');
+const deliveryNoteRoutesLogger = tracer.colorConsole({
+    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+    dateformat: 'HH:MM:ss.L',
+    transport(data) {
+        // eslint-disable-next-line no-console
+        console.log(data.output);
+        const logDir = './openstockLog/';
+        fs.mkdir(logDir, { recursive: true }, (err) => {
+            if (err) {
+                if (err) {
+                    throw err;
+                }
+            }
+        });
+        fs.appendFile('./openStockLog/counter-server.log', data.rawoutput + '\n', err => {
+            if (err) {
+                throw err;
+            }
+        });
+    }
+});
 /**
  * Express router for delivery note routes.
  */
@@ -198,7 +219,7 @@ deliveryNoteRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveC
 });
 /**
  * Route to search for delivery notes by search term and key
- * @name POST /search/:limit/:offset
+ * @name POST /search/:offset/:limit
  * @function
  * @memberof module:deliveryNoteRoutes
  * @inner
@@ -211,7 +232,7 @@ deliveryNoteRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveC
  * @param {Object} res - Express response object
  * @returns {Array} Array of delivery note data with related invoice data
  */
-deliveryNoteRoutes.post('/search/:limit/:offset/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('deliveryNotes', 'read'), async (req, res) => {
+deliveryNoteRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('deliveryNotes', 'read'), async (req, res) => {
     const { searchterm, searchKey } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;

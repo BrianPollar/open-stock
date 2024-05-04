@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
+import { IdataArrayResponse } from '@open-stock/stock-universal';
 import { offsetLimitRelegator } from '@open-stock/stock-universal-server';
 import express from 'express';
-import { createMockCompanySubscriptions } from '../../../../tests/stock-counter-mocks';
-import { IdataArrayResponse } from '@open-stock/stock-universal';
+import { createMockCompanySubscriptions } from '../../../../mocks/stock-counter-mocks';
 
 export const companySubscriptionRoutesDummy = express.Router();
 

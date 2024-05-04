@@ -22,7 +22,8 @@ import {
   verifyObjectIds
 } from '@open-stock/stock-universal-server';
 import express from 'express';
-import { getLogger } from 'log4js';
+import * as fs from 'fs';
+import * as tracer from 'tracer';
 import { companyLean, companyMain } from '../models/company.model';
 import { user } from '../models/user.model';
 import { requireActiveCompany } from './company-auth';
@@ -120,7 +121,7 @@ export const updateCompany = async(req, res) => {
 
     if (parsed.newFiles) {
       const oldPhotos = foundCompany.photos || [];
-      foundCompany.photos = oldPhotos.concat(parsed.newFiles) as string[];
+      foundCompany.photos = [...oldPhotos, ...parsed.newFiles] as string[];
     }
   }
   delete updatedCompany._id;
@@ -153,8 +154,28 @@ export const updateCompany = async(req, res) => {
 /**
  * Logger for company authentication routes.
  */
-const companyAuthLogger = getLogger('routes/company');
-
+const companyAuthLogger = tracer.colorConsole(
+  {
+    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+    dateformat: 'HH:MM:ss.L',
+    transport(data) {
+      // eslint-disable-next-line no-console
+      console.log(data.output);
+      const logDir = './openstockLog/';
+      fs.mkdir(logDir, { recursive: true }, (err) => {
+        if (err) {
+          if (err) {
+            throw err;
+          }
+        }
+      });
+      fs.appendFile('./openStockLog/auth-server.log', data.rawoutput + '\n', err => {
+        if (err) {
+          throw err;
+        }
+      });
+    }
+  });
 
 /**
  * Handles the company login request.
@@ -377,7 +398,7 @@ companyAuthRoutes.post('/updateprofileimg/:companyIdParam', requireAuth, require
 
     if (parsed.newFiles) {
       const oldPhotos = foundCompany.photos || [];
-      foundCompany.photos = oldPhotos.concat(parsed.newFiles) as string[];
+      foundCompany.photos = [...oldPhotos, ...parsed.newFiles] as string[];
     }
   }
 
@@ -478,7 +499,6 @@ companyAuthRoutes.get('/getcompanys/:offset/:limit/:companyIdParam', requireAuth
     count: all[1],
     data: filteredFaqs
   };
-  console.log('response ISSSSSSS', response);
   return res.status(200).send(response);
 });
 

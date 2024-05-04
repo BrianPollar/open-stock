@@ -3,13 +3,33 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.returnLazyFn = exports.getOneFile = exports.deleteFiles = exports.updateFiles = exports.saveMetaToDb = exports.appendBody = exports.uploadFiles = void 0;
 const tslib_1 = require("tslib");
 const fs = tslib_1.__importStar(require("fs"));
-const log4js_1 = require("log4js");
 const multer_1 = tslib_1.__importDefault(require("multer"));
 const path = tslib_1.__importStar(require("path"));
+const tracer = tslib_1.__importStar(require("tracer"));
 const filemeta_model_1 = require("../models/filemeta.model");
 const stock_universal_local_1 = require("../stock-universal-local");
 const filestorage_1 = require("./filestorage");
-const fsControllerLogger = (0, log4js_1.getLogger)('controllers/FsController');
+const fsControllerLogger = tracer.colorConsole({
+    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+    dateformat: 'HH:MM:ss.L',
+    transport(data) {
+        // eslint-disable-next-line no-console
+        console.log(data.output);
+        const logDir = './openstockLog/';
+        fs.mkdir(logDir, { recursive: true }, (err) => {
+            if (err) {
+                if (err) {
+                    throw err;
+                }
+            }
+        });
+        fs.appendFile('./openStockLog/universal-server.log', data.rawoutput + '\n', err => {
+            if (err) {
+                throw err;
+            }
+        });
+    }
+});
 /**
  * Uploads files from the request to the server.
  * @param {Object} req - The request object.
@@ -17,7 +37,6 @@ const fsControllerLogger = (0, log4js_1.getLogger)('controllers/FsController');
  * @param {Function} next - The next middleware function.
  */
 const uploadFiles = (req, res, next) => {
-    console.log('uploadFiles');
     const makeupload = filestorage_1.upload.fields(filestorage_1.multerFileds);
     makeupload(req, res, function (err) {
         if (err instanceof multer_1.default.MulterError) {
@@ -139,26 +158,58 @@ const saveMetaToDb = async (req, res, next) => {
             // eslint-disable-next-line @typescript-eslint/no-misused-promises
             .map((value) => new Promise(async (resolve) => {
             const newFileMeta = new filemeta_model_1.fileMeta(value);
-            const newSaved = await newFileMeta.save();
+            let savedErr;
+            const newSaved = await newFileMeta.save().catch(err => {
+                fsControllerLogger.error('save error', err);
+                savedErr = err;
+                return null;
+            });
+            if (savedErr) {
+                return res.status(500).send({ success: false });
+            }
             resolve(newSaved);
         }));
         parsed.newFiles = await Promise.all(promises);
     }
     if (parsed.profilePic) {
         const newFileMeta = new filemeta_model_1.fileMeta(parsed.profilePic);
-        const newSaved = await newFileMeta.save();
+        let savedErr;
+        const newSaved = await newFileMeta.save().catch(err => {
+            fsControllerLogger.error('save error', err);
+            savedErr = err;
+            return null;
+        });
+        if (savedErr) {
+            return res.status(500).send({ success: false });
+        }
         parsed.profilePic = newSaved._id;
         parsed.newFiles.push(newSaved);
     }
     if (parsed.coverPic) {
         const newFileMeta = new filemeta_model_1.fileMeta(parsed.profilePic);
-        const newSaved = await newFileMeta.save();
+        let savedErr;
+        const newSaved = await newFileMeta.save().catch(err => {
+            fsControllerLogger.error('save error', err);
+            savedErr = err;
+            return null;
+        });
+        if (savedErr) {
+            return res.status(500).send({ success: false });
+        }
         parsed.coverPic = newSaved._id;
         parsed.newFiles.push(newSaved);
     }
     if (parsed.thumbnail) {
         const newFileMeta = new filemeta_model_1.fileMeta(parsed.thumbnail);
-        const newSaved = await newFileMeta.save();
+        let savedErr;
+        const newSaved = await newFileMeta.save().catch(err => {
+            fsControllerLogger.error('save error', err);
+            savedErr = err;
+            return null;
+        });
+        if (savedErr) {
+            return res.status(500).send({ success: false });
+        }
         parsed.thumbnail = newSaved._id;
         parsed.newFiles.push(newSaved);
     }

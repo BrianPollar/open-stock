@@ -6,7 +6,8 @@ const tslib_1 = require("tslib");
 /* eslint-disable @typescript-eslint/no-var-requires */
 // ID// 659298550876-3b56rhd1tusthh4a92v7ehteo0phiic0.apps.googleusercontent.com
 // SECRET // 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
-const log4js_1 = require("log4js");
+const fs = tslib_1.__importStar(require("fs"));
+const tracer = tslib_1.__importStar(require("tracer"));
 // import { nodemailer } from 'nodemailer';
 // const nodemailer = require('nodemailer');
 const stock_notif_server_1 = require("@open-stock/stock-notif-server");
@@ -14,7 +15,27 @@ const stock_universal_1 = require("@open-stock/stock-universal");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const jwt = tslib_1.__importStar(require("jsonwebtoken"));
 const emailtoken_model_1 = require("../models/emailtoken.model");
-const universialControllerLogger = (0, log4js_1.getLogger)('controllers/UniversialController');
+const universialControllerLogger = tracer.colorConsole({
+    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+    dateformat: 'HH:MM:ss.L',
+    transport(data) {
+        // eslint-disable-next-line no-console
+        console.log(data.output);
+        const logDir = './openstockLog/';
+        fs.mkdir(logDir, { recursive: true }, (err) => {
+            if (err) {
+                if (err) {
+                    throw err;
+                }
+            }
+        });
+        fs.appendFile('./openStockLog/auth-server.log', data.rawoutput + '\n', err => {
+            if (err) {
+                throw err;
+            }
+        });
+    }
+});
 /**
  * Generates a JWT token with the provided authentication configuration, expiry date, and JWT secret.
  * @param authConfig - The authentication configuration.
@@ -76,38 +97,15 @@ const validatePhone = async (foundUser, nowCase, verifycode, newPassword) => {
 					invalid - please retry.`;
                 }
                 else {
-                    msg = `You are signed up,
-					but we could not send you a
-					text message. Our bad - try to login.`;
+                    msg = `he token you entered was
+					invalid - please retry.`;
                 }
                 resolve({
-                    status: 200,
+                    status: 401,
                     response: {
-                        success: true,
-                        msg,
-                        user: foundUser
+                        success: false,
+                        msg
                     }
-                });
-                return;
-            }
-            return foundUser.save(postSave);
-        };
-        const postSave = function (err) {
-            if (err) {
-                const response = {
-                    success: false
-                };
-                if (err && err.errors) {
-                    response.err = (0, stock_universal_server_1.stringifyMongooseErr)(err.errors);
-                }
-                else {
-                    response.err = `we are having problems connecting to our databases, 
-          try again in a while`;
-                }
-                universialControllerLogger.error('postSave err: ', err);
-                resolve({
-                    status: 403,
-                    response
                 });
                 return;
             }
@@ -124,32 +122,8 @@ const validatePhone = async (foundUser, nowCase, verifycode, newPassword) => {
 				are all setup and
 				you can now you can customise your profile`;
             }
-            foundUser.save();
-            return foundUser['sendMessage'](message, function (err1) {
-                let msg;
-                if (nowCase === 'password') {
-                    msg = `You are reset up,
-					but we could not send you a
-					text message. Our bad - try to login.`;
-                }
-                else {
-                    msg = `You are signed up,
-					but we could not send you a text
-					message. Our bad - try to login.`;
-                }
-                if (err1) {
-                    universialControllerLogger.debug('sendMessage - err1: ', err1);
-                    resolve({
-                        status: 200,
-                        response: {
-                            success: true,
-                            msg,
-                            user: foundUser
-                        }
-                    });
-                    return;
-                }
-                // show success page
+            foundUser.save().then(() => {
+                foundUser.save();
                 resolve({
                     status: 200,
                     response: {
@@ -158,9 +132,82 @@ const validatePhone = async (foundUser, nowCase, verifycode, newPassword) => {
                         user: foundUser
                     }
                 });
+            }).catch(err => {
+                universialControllerLogger.error('save error', err);
+                resolve({
+                    status: 500,
+                    response: {
+                        success: false
+                    }
+                });
+                return;
             });
         };
         return foundUser['verifyAuthyToken'](verifycode, postVerify);
+        /* const postSave = function(err) {
+          if (err) {
+            const response: Isuccess = {
+              success: false
+            };
+            if (err && err.errors) {
+              response.err = stringifyMongooseErr(err.errors);
+            } else {
+              response.err = `we are having problems connecting to our databases,
+              try again in a while`;
+            }
+            universialControllerLogger.error('postSave err: ', err);
+            resolve({
+              status: 403,
+              response
+            });
+            return;
+          }
+    
+          let message;
+          if (nowCase === 'password') {
+            foundUser.password = newPassword;
+            message = `You did it! Your
+                    password has been reset :`;
+          } else {
+            message = `You did it! Your
+                    are all setup and
+                    you can now you can customise your profile`;
+          }
+          foundUser.save();
+          return foundUser['sendMessage'](message, function(err1) {
+            let msg;
+            if (nowCase === 'password') {
+              msg = `You are reset up,
+                        but we could not send you a
+                        text message. Our bad - try to login.`;
+            } else {
+              msg = `You are signed up,
+                        but we could not send you a text
+                        message. Our bad - try to login.`;
+            }
+            if (err1) {
+              universialControllerLogger.debug('sendMessage - err1: ', err1);
+              resolve({
+                status: 200,
+                response: {
+                  success: true,
+                  msg,
+                  user: foundUser
+                }
+              });
+              return;
+            }
+            // show success page
+            resolve({
+              status: 200,
+              response: {
+                success: true,
+                msg: message,
+                user: foundUser
+              }
+            });
+          });
+        };*/
     });
 };
 exports.validatePhone = validatePhone;
@@ -522,7 +569,6 @@ height: 100%;
             return;
         }).catch(error => {
             universialControllerLogger.error('email verication with token error', JSON.stringify(error));
-            console.log('error 1111111 ', error);
             response = {
                 status: 403,
                 success: false,
@@ -534,7 +580,6 @@ height: 100%;
     }).catch((err) => {
         universialControllerLogger.error(`sendTokenEmail
           token.save error, ${err}`);
-        console.log('error 222222 ', err);
         const errResponse = {
             success: false
         };

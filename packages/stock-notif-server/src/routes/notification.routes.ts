@@ -194,7 +194,6 @@ notifnRoutes.get('/unviewedlength/:companyIdParam', requireAuth, async(req, res)
   }
   const { userId, permissions } = (req as Icustomrequest).user;
 
-  console.log('requested user is 1111111111111    ', (req as Icustomrequest).user);
   let filter;
   if (permissions.users &&
     !permissions.orders &&

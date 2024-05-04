@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.salesReportRoutesDummy = void 0;
 const tslib_1 = require("tslib");
 const express_1 = tslib_1.__importDefault(require("express"));
-const stock_counter_mocks_1 = require("../../../../../tests/stock-counter-mocks");
+const stock_counter_mocks_1 = require("../../../../../mocks/stock-counter-mocks");
 /**
  * Express router for sales report routes.
  */
@@ -24,7 +24,7 @@ exports.salesReportRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (re
 exports.salesReportRoutesDummy.delete('/deleteone/:id/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });
 });
-exports.salesReportRoutesDummy.post('/search/:limit/:offset/:companyIdParam', (req, res) => {
+exports.salesReportRoutesDummy.post('/search/:offset/:limit/:companyIdParam', (req, res) => {
     const response = {
         count: req.params.limit,
         data: (0, stock_counter_mocks_1.createMockSalesReports)(Number(req.params.limit))

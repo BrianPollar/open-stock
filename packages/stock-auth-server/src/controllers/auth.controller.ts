@@ -1,6 +1,7 @@
 import { Iauthresponse, IauthresponseObj, Isuccess, Iuser, Iuserperm } from '@open-stock/stock-universal';
 import { makeUrId, stringifyMongooseErr, verifyObjectIds } from '@open-stock/stock-universal-server';
-import { getLogger } from 'log4js';
+import * as fs from 'fs';
+import * as tracer from 'tracer';
 import { loginAtempts } from '../models/loginattemps.model';
 import { companySubscriptionLean } from '../models/subscriptions/company-subscription.model';
 import { user } from '../models/user.model';
@@ -8,8 +9,28 @@ import { userip } from '../models/userip.model';
 import { stockAuthConfig } from '../stock-auth-local';
 import { sendTokenEmail, sendTokenPhone, validateEmail, validatePhone } from './universial.controller';
 
-
-const authControllerLogger = getLogger('loginAttemptController');
+const authControllerLogger = tracer.colorConsole(
+  {
+    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+    dateformat: 'HH:MM:ss.L',
+    transport(data) {
+      // eslint-disable-next-line no-console
+      console.log(data.output);
+      const logDir = './openstockLog/';
+      fs.mkdir(logDir, { recursive: true }, (err) => {
+        if (err) {
+          if (err) {
+            throw err;
+          }
+        }
+      });
+      fs.appendFile('./openStockLog/auth-server.log', data.rawoutput + '\n', err => {
+        if (err) {
+          throw err;
+        }
+      });
+    }
+  });
 
 const comparePassword = (foundUser, passwd: string, isPhone: boolean): Promise<{ attemptSuccess: boolean; nowRes}> => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -36,7 +57,6 @@ const comparePassword = (foundUser, passwd: string, isPhone: boolean): Promise<{
         nowRes = '';
       }
 
-      console.log('ATTEMPY ', attemptSuccess);
       resolve({ attemptSuccess, nowRes });
     });
   });
@@ -50,15 +70,8 @@ const comparePassword = (foundUser, passwd: string, isPhone: boolean): Promise<{
  */
 export const checkIpAndAttempt = async(req, res, next) => {
   // let isPhone: boolean;
-  console.log('FROOOOOOOOOM ', req.body.from);
   const { foundUser, passwd, isPhone } = req.body;
-
-  console.log('found user ', foundUser);
-  console.log('password is ', passwd);
-
-
   const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
-
   const userOrCompanayId = foundUser._id;
 
   let foundIpModel = await userip.findOne({ userOrCompanayId }).select({
@@ -72,7 +85,16 @@ export const checkIpAndAttempt = async(req, res, next) => {
       userOrCompanayId,
       greenIps: [ip]
     });
-    await foundIpModel.save();
+    let savedErr: string;
+    await foundIpModel.save().catch(err => {
+      authControllerLogger.error('save error', err);
+      savedErr = err;
+      return null;
+    });
+
+    if (savedErr) {
+      return res.status(500).send({ success: false });
+    }
     // TODO
     /* const response: Iauthresponse = {
       success: false,
@@ -120,13 +142,9 @@ export const checkIpAndAttempt = async(req, res, next) => {
     return res.status(401).send(response);
   }
 
-  console.log('before');
-
   // compare password
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { attemptSuccess, nowRes } = await comparePassword(foundUser, passwd, isPhone);
-
-  console.log('after');
 
   /* if (passwd !== foundUser.password) {
     attemptSuccess = false;
@@ -147,7 +165,16 @@ export const checkIpAndAttempt = async(req, res, next) => {
   };
 
   const newAttemp = new loginAtempts(attempt);
-  const lastAttempt = await newAttemp.save();
+  let savedErr: string;
+  const lastAttempt = await newAttemp.save().catch(err => {
+    authControllerLogger.error('save error', err);
+    savedErr = err;
+    return null;
+  });
+
+  if (savedErr) {
+    return res.status(500).send({ success: false });
+  }
 
   // const attempts = loginAtempts.find({ userId: foundUser._id });
 
@@ -164,7 +191,10 @@ export const checkIpAndAttempt = async(req, res, next) => {
     loginAttemptRef: lastAttempt._id,
     timesBlocked: 0
   };
-  await foundIpModel.save();
+  await foundIpModel.save().catch(err => {
+    authControllerLogger.error('save err', err);
+    return;
+  });
 
   return next();
 };
@@ -406,7 +436,14 @@ export const recoverAccountFactory = async(req, res) => {
     const type = '_link';
     response = await sendTokenEmail(foundUser, type, appOfficialName);
   }
-  return res.status(200).send(response);
+  if (!foundUser.password) {
+    // send to reset password
+    response.navRoute = 'reset';
+  }
+  if (!foundUser.verified) {
+    response.navRoute = 'verify';
+  }
+  return res.status(response.status).send(response);
 };
 
 /**
@@ -417,9 +454,8 @@ export const recoverAccountFactory = async(req, res) => {
  */
 export const confirmAccountFactory = async(req, res) => {
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  console.log('000000000');
-  const { foundUser, _id, verifycode, how, type } = req.body;
-  authControllerLogger.debug(`verify, verifycode: ${verifycode}, how: ${how}`);
+  const { foundUser, _id, verifycode, nowHow, type } = req.body;
+  authControllerLogger.debug(`verify, verifycode: ${verifycode}, how: ${nowHow}`);
   const isValid = verifyObjectIds([_id]);
   if (!isValid) {
     return {
@@ -430,19 +466,16 @@ export const confirmAccountFactory = async(req, res) => {
       }
     };
   }
-  console.log(1111111);
   let response: IauthresponseObj;
-  if (how === 'phone') {
+  if (nowHow === 'phone') {
     response = await validatePhone(foundUser, 'signup', verifycode, null);
   } else {
-    console.log(2222);
     response = await validateEmail(foundUser,
       type,
       'signup',
       verifycode, null);
   }
 
-  console.log(333333333333, response);
   const now = new Date();
   let filter;
   if (foundUser.companyId) {
@@ -457,9 +490,6 @@ export const confirmAccountFactory = async(req, res) => {
   if (subsctn) {
     response.response.activeSubscription = subsctn;
   }
-
-  console.log(444444444, response);
-
 
   return res.status(response.status).send(response.response);
 };

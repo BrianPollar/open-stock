@@ -5,12 +5,10 @@ import { ConnectOptions } from 'mongoose';
 import { PesaPalController } from 'pesapal3';
 import { companyAuthRoutesDummy } from './routes-dummy/company.routes';
 import { companySubscriptionRoutesDummy } from './routes-dummy/subscriptions/company-subscription.routes';
-import { subscriptionPackageRoutesDummy } from './routes-dummy/subscriptions/subscription-package.routes';
 import { superAdminRoutesDummy } from './routes-dummy/superadmin.routes';
 import { userAuthRoutesDummy } from './routes-dummy/user.routes';
 import { companyAuthRoutes } from './routes/company.routes';
 import { companySubscriptionRoutes } from './routes/subscriptions/company-subscription.routes';
-import { subscriptionPackageRoutes } from './routes/subscriptions/subscription-package.routes';
 import { superAdminRoutes } from './routes/superadmin.routes';
 import { userAuthRoutes } from './routes/user.routes';
 import { connectAuthDatabase, createStockAuthServerLocals, isStockAuthServerRunning, stockAuthConfig } from './stock-auth-local';
@@ -103,14 +101,14 @@ export const runStockAuthServer = async(
     stockAuthRouter.use('/user', userAuthRoutes);
     stockAuthRouter.use('/company', companyAuthRoutes);
     // subscriptions
-    stockAuthRouter.use('/subscriptionpackage', subscriptionPackageRoutes);
+    // stockAuthRouter.use('/subscriptionpackage', subscriptionPackageRoutes);
     stockAuthRouter.use('/companysubscription', companySubscriptionRoutes);
     stockAuthRouter.use('/admin', superAdminRoutes);
   } else {
     stockAuthRouter.use('/user', userAuthRoutesDummy);
     stockAuthRouter.use('/company', companyAuthRoutesDummy);
     // subscriptions
-    stockAuthRouter.use('/subscriptionpackage', subscriptionPackageRoutesDummy);
+    // stockAuthRouter.use('/subscriptionpackage', subscriptionPackageRoutesDummy);
     stockAuthRouter.use('/companysubscription', companySubscriptionRoutesDummy);
     stockAuthRouter.use('/admin', superAdminRoutesDummy);
   }

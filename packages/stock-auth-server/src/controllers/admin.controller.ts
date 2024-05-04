@@ -1,6 +1,28 @@
 import { Iadminloginres } from '@open-stock/stock-universal';
-import { getLogger } from 'log4js';
-const adminLogger = getLogger('controllers/AdminauthController');
+import * as fs from 'fs';
+import * as tracer from 'tracer';
+const adminLogger = tracer.colorConsole(
+  {
+    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+    dateformat: 'HH:MM:ss.L',
+    transport(data) {
+      // eslint-disable-next-line no-console
+      console.log(data.output);
+      const logDir = './openstockLog/';
+      fs.mkdir(logDir, { recursive: true }, (err) => {
+        if (err) {
+          if (err) {
+            throw err;
+          }
+        }
+      });
+      fs.appendFile('./openStockLog/auth-server.log', data.rawoutput + '\n', err => {
+        if (err) {
+          throw err;
+        }
+      });
+    }
+  });
 
 /**
  * Defines an admin object with the name "admin" and sets its admin permissions for various actions.

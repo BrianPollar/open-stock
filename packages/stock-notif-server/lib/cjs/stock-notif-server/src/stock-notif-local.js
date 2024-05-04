@@ -11,9 +11,9 @@ exports.notificationSettings = {
     smsDispatches: 0,
     emailDispatches: 0,
     twilioClient: null,
-    authy: null,
     defaultAuthyMail: null,
-    twilioNumber: null
+    twilioNumber: null,
+    twilioVerificationSid: ''
 };
 /**
  * Indicates whether the stock notification server is currently running.

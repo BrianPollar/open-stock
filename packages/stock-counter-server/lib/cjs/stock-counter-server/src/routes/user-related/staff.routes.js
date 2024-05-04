@@ -6,10 +6,31 @@ const tslib_1 = require("tslib");
 const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
-const log4js_1 = require("log4js");
+const fs = tslib_1.__importStar(require("fs"));
+const tracer = tslib_1.__importStar(require("tracer"));
 const staff_model_1 = require("../../models/user-related/staff.model");
 const locluser_routes_1 = require("./locluser.routes");
-const staffRoutesLogger = (0, log4js_1.getLogger)('routes/staffRoutes');
+const staffRoutesLogger = tracer.colorConsole({
+    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+    dateformat: 'HH:MM:ss.L',
+    transport(data) {
+        // eslint-disable-next-line no-console
+        console.log(data.output);
+        const logDir = './openstockLog/';
+        fs.mkdir(logDir, { recursive: true }, (err) => {
+            if (err) {
+                if (err) {
+                    throw err;
+                }
+            }
+        });
+        fs.appendFile('./openStockLog/counter-server.log', data.rawoutput + '\n', err => {
+            if (err) {
+                throw err;
+            }
+        });
+    }
+});
 const addStaff = async (req, res, next) => {
     const { companyIdParam } = req.params;
     const { companyId } = req.user;
@@ -99,8 +120,31 @@ exports.updateStaff = updateStaff;
  * Router for staff related routes.
  */
 exports.staffRoutes = express_1.default.Router();
-exports.staffRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_auth_server_1.requireCanUseFeature)('staff'), (0, stock_universal_server_1.roleAuthorisation)('staffs', 'create'), stock_auth_server_1.addUser, exports.addStaff, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('staff'));
-exports.staffRoutes.post('/createimg/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_auth_server_1.requireCanUseFeature)('staff'), (0, stock_universal_server_1.roleAuthorisation)('staffs', 'create'), stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.saveMetaToDb, stock_auth_server_1.addUser, exports.addStaff, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('staff'));
+exports.staffRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_auth_server_1.requireCanUseFeature)('staff'), (0, stock_universal_server_1.roleAuthorisation)('staffs', 'create'), async (req, res, next) => {
+    const userData = req.body.user;
+    const foundEmail = await stock_auth_server_1.userLean.findOne({ email: userData.email }).select({ email: 1 }).lean();
+    if (foundEmail) {
+        return res.status(401).send({ success: false, err: 'Email already exist found' });
+    }
+    const foundPhone = await stock_auth_server_1.userLean.findOne({ phone: userData.phone }).select({ phone: 1 }).lean();
+    if (foundPhone) {
+        return res.status(401).send({ success: false, err: 'Phone Number already exist found' });
+    }
+    return next;
+}, stock_auth_server_1.addUser, exports.addStaff, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('staff'));
+exports.staffRoutes.post('/createimg/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_auth_server_1.requireCanUseFeature)('staff'), (0, stock_universal_server_1.roleAuthorisation)('staffs', 'create'), async (req, res, next) => {
+    const parsed = JSON.parse(req.body.data);
+    const userData = parsed.user;
+    const foundEmail = await stock_auth_server_1.userLean.findOne({ email: userData.email }).select({ email: 1 }).lean();
+    if (foundEmail) {
+        return res.status(401).send({ success: false, err: 'Email already exist found' });
+    }
+    const foundPhone = await stock_auth_server_1.userLean.findOne({ phone: userData.phone }).select({ phone: 1 }).lean();
+    if (foundPhone) {
+        return res.status(401).send({ success: false, err: 'Phone Number already exist found' });
+    }
+    return next;
+}, stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.saveMetaToDb, stock_auth_server_1.addUser, exports.addStaff, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('staff'));
 exports.staffRoutes.get('/getone/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('staffs', 'read'), async (req, res) => {
     const { id } = req.params;
     const { companyId } = req.user;
@@ -160,7 +204,6 @@ exports.staffRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universa
         count: all[1],
         data: all[0]
     };
-    console.log('sending staffs ', response);
     return res.status(200).send(response);
 });
 exports.staffRoutes.get('/getbyrole/:offset/:limit/:role/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('staffs', 'read'), async (req, res) => {
@@ -198,7 +241,7 @@ exports.staffRoutes.get('/getbyrole/:offset/:limit/:role/:companyIdParam', stock
     };
     return res.status(200).send(response);
 });
-exports.staffRoutes.post('/search/:limit/:offset/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('staffs', 'read'), async (req, res) => {
+exports.staffRoutes.post('/search/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('staffs', 'read'), async (req, res) => {
     const { searchterm, searchKey, extraDetails } = req.body;
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const { companyId } = req.user;

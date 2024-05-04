@@ -9,6 +9,7 @@ export interface ItwilioAuthySecrets {
     defaultMail: string;
     twilioNumber: string;
     sendGridApiKey: string;
+    twilioVerificationSid: string;
 }
 export interface InotifSecrets {
     notifPublicKey: string;
@@ -22,9 +23,9 @@ export interface InotificationConfig {
     smsDispatches: number;
     emailDispatches: number;
     twilioClient: any;
-    authy: any;
     defaultAuthyMail: any;
     twilioNumber: any;
+    twilioVerificationSid: string;
 }
 /**
  * Represents the notification settings for the stock notification local module.

@@ -1,5 +1,5 @@
-import { ConnectOptions } from 'mongoose';
 import { IenvironmentConfig } from '@open-stock/stock-universal';
+import { ConnectOptions } from 'mongoose';
 /**
  * Runs the stock universal server.
  * @param databaseConfigUrl - The URL of the database configuration.

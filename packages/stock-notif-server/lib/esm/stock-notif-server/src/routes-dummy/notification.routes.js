@@ -1,5 +1,5 @@
 import express from 'express';
-import { createMockNotif, createMockNotifs } from '../../../tests/stock-notif-mocks';
+import { createMockNotif, createMockNotifs } from '../../../mocks/stock-notif-mocks';
 /**
  * Router for handling notification routes.
  */

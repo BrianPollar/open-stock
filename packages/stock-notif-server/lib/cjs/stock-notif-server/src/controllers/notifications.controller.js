@@ -1,17 +1,38 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.makeNotfnBody = exports.updateNotifnViewed = exports.createPayload = exports.createNotifSetting = exports.constructMailService = exports.sendMail = exports.constructMail = exports.verifyAuthyToken = exports.sendSms = exports.sendToken = exports.setUpUser = exports.createSettings = exports.determineUserHasMail = void 0;
+exports.makeNotfnBody = exports.updateNotifnViewed = exports.createPayload = exports.createNotifSetting = exports.constructMailService = exports.sendMail = exports.constructMail = exports.verifyAuthyToken = exports.sendSms = exports.sendToken = exports.createSettings = exports.determineUserHasMail = void 0;
 const tslib_1 = require("tslib");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
-const log4js_1 = require("log4js");
+const tracer = tslib_1.__importStar(require("tracer"));
 const webPush = tslib_1.__importStar(require("web-push"));
 const mainnotification_model_1 = require("../models/mainnotification.model");
 const notifsetting_model_1 = require("../models/notifsetting.model");
 const stock_notif_local_1 = require("../stock-notif-local");
+const fs = tslib_1.__importStar(require("fs"));
 // const sgMail = require('@sendgrid/mail');
 // import * as sgMail from '@sendgrid/mail';
 const sgMail = require('@sendgrid/mail');
-const notificationsControllerLogger = (0, log4js_1.getLogger)('controllers/NotificationsController');
+const notificationsControllerLogger = tracer.colorConsole({
+    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+    dateformat: 'HH:MM:ss.L',
+    transport(data) {
+        // eslint-disable-next-line no-console
+        console.log(data.output);
+        const logDir = './openstockLog/';
+        fs.mkdir(logDir, { recursive: true }, (err) => {
+            if (err) {
+                if (err) {
+                    throw err;
+                }
+            }
+        });
+        fs.appendFile('./openStockLog/notif-server.log', data.rawoutput + '\n', err => {
+            if (err) {
+                throw err;
+            }
+        });
+    }
+});
 /**
  * Determines whether a user has an email address.
  * @param user - The user object.
@@ -49,37 +70,76 @@ exports.createSettings = createSettings;
    * @param countryCode - The user's country code.
    * @returns A promise that resolves with the Authy registration response.
    */
-const setUpUser = (phone, countryCode) => {
-    return new Promise((resolve, reject) => {
-        stock_notif_local_1.notificationSettings.authy.register_user(stock_notif_local_1.notificationSettings.defaultAuthyMail, phone, countryCode, (err, response) => {
-            if (err) {
-                reject(err);
-                return;
-            }
-            if (err || !response.user) {
-                reject(err);
-                return;
-            }
-            resolve(response);
-        });
-    });
-};
-exports.setUpUser = setUpUser;
+/* export const setUpUser = (
+  phone: string | number,
+  countryCode: string | number
+) => {
+  return new Promise((resolve, reject) => {
+    notificationSettings.authy.register_user(
+      notificationSettings.defaultAuthyMail,
+      phone,
+      countryCode,
+      (err, response) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+
+        if (err || !response.user) {
+          reject(err);
+          return;
+        }
+        resolve(response);
+      }
+    );
+  });
+};*/
 /**
    * Requests an SMS token from Authy for the given user.
    * @param authyId - The user's Authy ID.
    * @returns A promise that resolves with the Authy token request response.
    */
-const sendToken = (authyId) => {
+/* export const sendToken = () => {
+  return new Promise((resolve, reject) => {
+    notificationSettings.authy.request_sms(
+      authyId,
+      true,
+      (err, response) => {
+        if (response) {
+          resolve(response);
+        } else {
+          reject(err);
+        }
+      });
+  });
+};*/
+const sendToken = (phone, countryCode, message) => {
     return new Promise((resolve, reject) => {
-        stock_notif_local_1.notificationSettings.authy.request_sms(authyId, true, (err, response) => {
-            if (response) {
-                resolve(response);
-            }
-            else {
+        stock_notif_local_1.notificationSettings.twilioClient.verify.v2.services(stock_notif_local_1.notificationSettings.twilioVerificationSid)
+            .verifications
+            .create({ to: `${countryCode + phone.toString()}`, channel: 'sms' })
+            .then(verification => {
+            stock_notif_local_1.notificationSettings.smsDispatches++;
+            resolve(verification);
+        }).catch(err => {
+            if (err) {
                 reject(err);
+                return;
             }
         });
+        /* notificationSettings.twilioClient.messages.create({
+          to: countryCode + phone.toString(),
+          from: notificationSettings.twilioNumber,
+          body: message
+        }).then((response) => {
+          notificationSettings.smsDispatches++;
+          resolve({ response });
+        }).catch(err => {
+          if (err) {
+            reject(err);
+            return;
+          }
+        });*/
     });
 };
 exports.sendToken = sendToken;
@@ -114,16 +174,30 @@ exports.sendSms = sendSms;
  * @param otp - The one-time password to be verified.
  * @returns A promise that resolves with the verification response or rejects with an error.
  */
-const verifyAuthyToken = (authyId, otp) => {
+const verifyAuthyToken = (phone, countryCode, code) => {
     return new Promise((resolve, reject) => {
-        stock_notif_local_1.notificationSettings.authy.verify(authyId, otp, (err, response) => {
-            if (err) {
-                reject(err);
+        stock_notif_local_1.notificationSettings.twilioClient.verify.v2.services(stock_notif_local_1.notificationSettings.twilioVerificationSid)
+            .verificationChecks
+            .create({ to: `${countryCode + phone.toString()}`, code: `${code}` })
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            .then(verification_check => {
+            notificationsControllerLogger.debug('verification_check', verification_check);
+            if (verification_check.status === 'approved') {
+                resolve(verification_check.status);
             }
             else {
-                resolve(response);
+                reject(verification_check.status);
             }
+        }).catch(err => {
+            reject(err);
         });
+        /* notificationSettings.authy.verify(authyId, otp, (err, response) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(response);
+          }
+        });*/
     });
 };
 exports.verifyAuthyToken = verifyAuthyToken;

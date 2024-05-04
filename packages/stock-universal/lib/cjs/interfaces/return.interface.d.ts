@@ -66,6 +66,8 @@ export interface Iauthresponse {
     status?: number;
     /** */
     activeSubscription?: IcompanySubscription;
+    /** */
+    navRoute?: string;
 }
 export interface IdataArrayResponse {
     count: number;

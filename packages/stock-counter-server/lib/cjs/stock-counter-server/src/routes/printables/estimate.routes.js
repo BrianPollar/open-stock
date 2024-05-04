@@ -5,13 +5,34 @@ const tslib_1 = require("tslib");
 const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
-const log4js_1 = require("log4js");
+const fs = tslib_1.__importStar(require("fs"));
+const tracer = tslib_1.__importStar(require("tracer"));
 const estimate_model_1 = require("../../models/printables/estimate.model");
 const receipt_model_1 = require("../../models/printables/receipt.model");
 const invoicerelated_model_1 = require("../../models/printables/related/invoicerelated.model");
 const invoicerelated_1 = require("./related/invoicerelated");
 /** Logger for estimate routes */
-const estimateRoutesogger = (0, log4js_1.getLogger)('routes/estimateRoutes');
+const estimateRoutesogger = tracer.colorConsole({
+    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+    dateformat: 'HH:MM:ss.L',
+    transport(data) {
+        // eslint-disable-next-line no-console
+        console.log(data.output);
+        const logDir = './openstockLog/';
+        fs.mkdir(logDir, { recursive: true }, (err) => {
+            if (err) {
+                if (err) {
+                    throw err;
+                }
+            }
+        });
+        fs.appendFile('./openStockLog/counter-server.log', data.rawoutput + '\n', err => {
+            if (err) {
+                throw err;
+            }
+        });
+    }
+});
 /**
  * Generates a new estimate ID by finding the highest existing estimate ID and incrementing it by 1.
  * @returns The new estimate ID.
@@ -46,7 +67,15 @@ const updateEstimateUniv = async (estimateId, stage, queryId, invoiceId) => {
         estimate.invoiceId = invoiceId;
     }
     estimate.stage = stage;
-    await estimate.save();
+    let savedErr;
+    await estimate.save().catch(err => {
+        estimateRoutesogger.error('save error', err);
+        savedErr = err;
+        return null;
+    });
+    if (savedErr) {
+        return false;
+    }
     return true;
 };
 exports.updateEstimateUniv = updateEstimateUniv;
@@ -163,11 +192,9 @@ exports.estimateRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_unive
         }),
         estimate_model_1.estimateLean.countDocuments({ companyId: queryId })
     ]);
-    console.log('ALLLLLLLL ALLLL', all[0]);
     const returned = all[0]
         .map(val => (0, invoicerelated_1.makeInvoiceRelatedPdct)(val.invoiceRelated, val.invoiceRelated
         .billingUserId));
-    console.log('returneddddddddd ', returned);
     const response = {
         count: all[1],
         data: returned
@@ -203,7 +230,7 @@ exports.estimateRoutes.put('/deleteone/:companyIdParam', stock_universal_server_
  * @param res The response object.
  * @returns An array of invoice related objects associated with the matching estimates.
  */
-exports.estimateRoutes.post('/search/:limit/:offset/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('estimates', 'read'), async (req, res) => {
+exports.estimateRoutes.post('/search/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('estimates', 'read'), async (req, res) => {
     const { searchterm, searchKey } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;

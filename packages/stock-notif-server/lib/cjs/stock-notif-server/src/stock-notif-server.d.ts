@@ -34,6 +34,7 @@ export interface IstockNotifServerConfig {
     notifSecrets: InotifSecrets;
     useDummyRoutes?: boolean;
 }
+export declare const createService: () => void;
 export declare const runStockNotificationServer: (config: IstockNotifServerConfig) => Promise<{
     stockNotifRouter: any;
     notificationSettings: import("./stock-notif-local").InotificationConfig;

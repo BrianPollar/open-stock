@@ -1,5 +1,5 @@
 import express from 'express';
-import { createMockSalesReport, createMockSalesReports } from '../../../../../tests/stock-counter-mocks';
+import { createMockSalesReport, createMockSalesReports } from '../../../../../mocks/stock-counter-mocks';
 /**
  * Express router for sales report routes.
  */
@@ -20,7 +20,7 @@ salesReportRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) 
 salesReportRoutesDummy.delete('/deleteone/:id/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });
 });
-salesReportRoutesDummy.post('/search/:limit/:offset/:companyIdParam', (req, res) => {
+salesReportRoutesDummy.post('/search/:offset/:limit/:companyIdParam', (req, res) => {
     const response = {
         count: req.params.limit,
         data: createMockSalesReports(Number(req.params.limit))

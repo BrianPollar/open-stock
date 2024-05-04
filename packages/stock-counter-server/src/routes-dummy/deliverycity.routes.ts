@@ -1,6 +1,6 @@
-import express from 'express';
-import { createMockDeliveryCity, createMockDeliveryCitys } from '../../../tests/stock-counter-mocks';
 import { IdataArrayResponse } from '@open-stock/stock-universal';
+import express from 'express';
+import { createMockDeliveryCity, createMockDeliveryCitys } from '../../../mocks/stock-counter-mocks';
 
 /**
  * Express router for deliverycity routes

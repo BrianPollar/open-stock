@@ -1,6 +1,6 @@
 import { IdataArrayResponse } from '@open-stock/stock-universal';
 import express from 'express';
-import { createMockExpense, createMockExpenses } from '../../../tests/stock-counter-mocks';
+import { createMockExpense, createMockExpenses } from '../../../mocks/stock-counter-mocks';
 
 /**
  * Router for handling expense routes.
@@ -31,7 +31,7 @@ expenseRoutesDummy.delete('/deleteone/:id/:companyIdParam', (req, res) => {
   res.status(200).send({ success: true });
 });
 
-expenseRoutesDummy.post('/search/:limit/:offset/:companyIdParam', (req, res) => {
+expenseRoutesDummy.post('/search/:offset/:limit/:companyIdParam', (req, res) => {
   const response: IdataArrayResponse = {
     count: req.params.limit,
     data: createMockExpenses(Number(req.params.limit))

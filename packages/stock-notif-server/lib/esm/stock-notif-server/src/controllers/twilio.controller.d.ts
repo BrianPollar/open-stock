@@ -1,9 +1,12 @@
 /**
+ * This module exports functions to create an Authy client, a Twilio client, and an object containing both clients.
+ * @module twilioController
+ */
+/**
  * Creates an Authy client
  * @param {string} authyKey - The Authy API key
  * @returns {Object} - The Authy client object
  */
-export declare const runAuthy: (authyKey: string) => any;
 /**
  * Creates a Twilio client
  * @param {string} accountSid - The Twilio account SID
@@ -19,6 +22,6 @@ export declare const runTwilio: (accountSid: string, authToken: string) => any;
  * @returns {Object} - An object containing the Authy client and Twilio client
  */
 export declare const makeAuthyTwilio: (authyKey: string, accountSid: string, authToken: string) => {
-    authy: any;
     twilioClient: any;
 };
+export declare const createTwilioService: () => void;

@@ -6,11 +6,32 @@ const tslib_1 = require("tslib");
 const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
-const log4js_1 = require("log4js");
+const fs = tslib_1.__importStar(require("fs"));
+const tracer = tslib_1.__importStar(require("tracer"));
 const faq_model_1 = require("../models/faq.model");
 const faqanswer_model_1 = require("../models/faqanswer.model");
 /** Logger for faqRoutes */
-const faqRoutesLogger = (0, log4js_1.getLogger)('routes/faqRoutes');
+const faqRoutesLogger = tracer.colorConsole({
+    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+    dateformat: 'HH:MM:ss.L',
+    transport(data) {
+        // eslint-disable-next-line no-console
+        console.log(data.output);
+        const logDir = './openstockLog/';
+        fs.mkdir(logDir, { recursive: true }, (err) => {
+            if (err) {
+                if (err) {
+                    throw err;
+                }
+            }
+        });
+        fs.appendFile('./openStockLog/counter-server.log', data.rawoutput + '\n', err => {
+            if (err) {
+                throw err;
+            }
+        });
+    }
+});
 /**
  * Router for FAQ routes.
  */
@@ -72,7 +93,7 @@ exports.faqRoutes.get('/getone/:id/:companyIdParam', async (req, res) => {
     // const { companyId } = (req as Icustomrequest).user;
     let ids;
     let filter;
-    if (companyIdParam) {
+    if (companyIdParam !== 'undefined') {
         ids = [id, companyIdParam];
         // eslint-disable-next-line @typescript-eslint/naming-convention
         filter = { _id: id, companyId: companyIdParam };
@@ -137,7 +158,7 @@ exports.faqRoutes.delete('/deleteone/:id/:companyIdParam', stock_universal_serve
     const { companyIdParam } = req.params;
     let filter;
     let ids;
-    if (companyIdParam) {
+    if (companyIdParam !== 'undefined') {
         ids = [id, companyIdParam];
         // eslint-disable-next-line @typescript-eslint/naming-convention
         filter = { _id: id, companyId: companyIdParam };
@@ -176,7 +197,7 @@ exports.faqRoutes.post('/createans/:companyIdParam', stock_universal_server_1.re
     const faq = req.body.faq;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
-    if (companyIdParam) {
+    if (companyIdParam !== 'undefined') {
         const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
         if (!isValid) {
             return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });

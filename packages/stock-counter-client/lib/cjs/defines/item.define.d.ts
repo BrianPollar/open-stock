@@ -77,7 +77,7 @@ export declare class Item extends DatabaseAuto {
      * @param extraFilters Additional filters.
      * @returns An array of items that match the search criteria.
      */
-    static searchItems(companyId: string, category: string, searchterm: string, searchKey: string, extraFilters: any, subCategory?: string, offset?: number, limit?: number): Promise<{
+    static searchItems(companyId: string, searchterm: string, searchKey: string, extraFilters: any, category?: string, subCategory?: string, offset?: number, limit?: number): Promise<{
         count: number;
         items: Item[];
     }>;

@@ -33,13 +33,34 @@ const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const stock_universal_1 = require("@open-stock/stock-universal");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
-const log4js_1 = require("log4js");
+const fs = tslib_1.__importStar(require("fs"));
+const tracer = tslib_1.__importStar(require("tracer"));
 const item_model_1 = require("../models/item.model");
 const itemdecoy_model_1 = require("../models/itemdecoy.model");
 const itemoffer_model_1 = require("../models/itemoffer.model");
 const review_model_1 = require("../models/review.model");
 /** The logger for the item routes */
-const itemRoutesLogger = (0, log4js_1.getLogger)('routes/itemRoutes');
+const itemRoutesLogger = tracer.colorConsole({
+    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+    dateformat: 'HH:MM:ss.L',
+    transport(data) {
+        // eslint-disable-next-line no-console
+        console.log(data.output);
+        const logDir = './openstockLog/';
+        fs.mkdir(logDir, { recursive: true }, (err) => {
+            if (err) {
+                if (err) {
+                    throw err;
+                }
+            }
+        });
+        fs.appendFile('./openStockLog/counter-server.log', data.rawoutput + '\n', err => {
+            if (err) {
+                throw err;
+            }
+        });
+    }
+});
 /**
  * Express router for item routes.
  */
@@ -178,10 +199,9 @@ exports.itemRoutes.post('/create/:companyIdParam', stock_universal_server_1.requ
         // eslint-disable-next-line @typescript-eslint/naming-convention
         .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     item.urId = (0, stock_universal_server_1.makeUrId)(Number(count[0]?.urId || '0'));
-    const parsed = req.body.parsed;
+    const parsed = req.body;
     if (parsed && parsed.newFiles) {
-        const oldPhotos = item.photos || [];
-        item.photos = oldPhotos.concat(parsed.newFiles);
+        item.photos = parsed.newFiles;
     }
     const newProd = new item_model_1.itemMain(item);
     let errResponse;
@@ -291,10 +311,10 @@ exports.itemRoutes.post('/updateimg/:companyIdParam', stock_universal_server_1.r
         const count = (0, stock_universal_1.makeRandomString)(3, 'numbers');
         item.urId = (0, stock_universal_server_1.makeUrId)(Number(count));
     }
-    const parsed = req.body.parsed;
+    const parsed = req.body;
     if (parsed && parsed.newFiles) {
         const oldPhotos = item.photos || [];
-        item.photos = oldPhotos.concat(parsed.newFiles);
+        item.photos = [...oldPhotos, ...parsed.newFiles];
     }
     delete updatedProduct._id;
     const keys = Object.keys(updatedProduct);
@@ -1002,16 +1022,18 @@ exports.itemRoutes.put('/deleteimages/:companyIdParam', stock_universal_server_1
     }
     return res.status(200).send({ success: true });
 });
-exports.itemRoutes.post('/search/:limit/:offset/:companyIdParam', async (req, res) => {
+exports.itemRoutes.post('/search/:offset/:limit/:companyIdParam', async (req, res) => {
     const { searchterm, searchKey, category, extraFilers, subCategory } = req.body;
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
-    const { companyId } = req.user;
     const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    if (companyIdParam !== 'undefined') {
+        itemRoutesLogger.info('filter item with 999999 def');
+        const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
+        if (!isValid) {
+            return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+        }
     }
+    itemRoutesLogger.info('filter item with 11111');
     let filter;
     if (!category || category === 'all') {
         if (subCategory) {
@@ -1027,6 +1049,10 @@ exports.itemRoutes.post('/search/:limit/:offset/:companyIdParam', async (req, re
     else {
         filter = { category };
     }
+    if (companyIdParam !== 'undefined') {
+        filter = { ...filter, companyId: companyIdParam };
+    }
+    itemRoutesLogger.info('filter item with 22222');
     if (extraFilers) {
         switch (extraFilers.filter) {
             case 'price':
@@ -1072,20 +1098,20 @@ exports.itemRoutes.post('/search/:limit/:offset/:companyIdParam', async (req, re
                     ...{ brand: extraFilers.val.val }
                 };
                 break;
-            default:
-                return res.status(401).send({ success: false, err: 'unauthorised' });
+            /* default:
+              return res.status(401).send({ success: false, err: 'unauthorised' });*/
         }
     }
     const all = await Promise.all([
         item_model_1.itemLean
-            .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' }, ...filter })
+            .find({ [searchKey]: { $regex: searchterm, $options: 'i' }, ...filter })
             .skip(offset)
             .limit(limit)
             // eslint-disable-next-line @typescript-eslint/naming-convention
             .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
             .populate({ path: 'companyId', model: stock_auth_server_1.companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
             .lean(),
-        item_model_1.itemLean.countDocuments({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' }, ...filter })
+        item_model_1.itemLean.countDocuments({ [searchKey]: { $regex: searchterm, $options: 'i' }, ...filter })
     ]);
     const newItems = all[0].filter(item => item.companyId);
     const response = {
