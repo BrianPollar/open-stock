@@ -1,4 +1,3 @@
-/// <reference types="mongoose/types/connection" />
 import { ConnectOptions } from 'mongoose';
 import { PesaPalController } from 'pesapal3';
 /**

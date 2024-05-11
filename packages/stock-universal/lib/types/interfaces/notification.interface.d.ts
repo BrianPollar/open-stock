@@ -20,6 +20,7 @@ export interface Imainnotification {
     createdAt?: string;
 }
 export interface InotifSetting {
+    companyId: string;
     invoices: boolean;
     payments: boolean;
     orders: boolean;

@@ -4,6 +4,7 @@ exports.confirmAccountFactory = exports.recoverAccountFactory = exports.resetAcc
 const tslib_1 = require("tslib");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const fs = tslib_1.__importStar(require("fs"));
+const path_1 = tslib_1.__importDefault(require("path"));
 const tracer = tslib_1.__importStar(require("tracer"));
 const loginattemps_model_1 = require("../models/loginattemps.model");
 const company_subscription_model_1 = require("../models/subscriptions/company-subscription.model");
@@ -17,17 +18,19 @@ const authControllerLogger = tracer.colorConsole({
     transport(data) {
         // eslint-disable-next-line no-console
         console.log(data.output);
-        const logDir = './openstockLog/';
+        const logDir = path_1.default.join(process.cwd() + '/openstockLog/');
         fs.mkdir(logDir, { recursive: true }, (err) => {
             if (err) {
                 if (err) {
-                    throw err;
+                    // eslint-disable-next-line no-console
+                    console.log('data.output err ', err);
                 }
             }
         });
-        fs.appendFile('./openStockLog/auth-server.log', data.rawoutput + '\n', err => {
+        fs.appendFile(logDir + '/auth-server.log', data.rawoutput + '\n', err => {
             if (err) {
-                throw err;
+                // eslint-disable-next-line no-console
+                console.log('raw.output err ', err);
             }
         });
     }
@@ -71,6 +74,9 @@ const comparePassword = (foundUser, passwd, isPhone) => {
 const checkIpAndAttempt = async (req, res, next) => {
     // let isPhone: boolean;
     const { foundUser, passwd, isPhone } = req.body;
+    if (!foundUser?.password || !foundUser?.verified) {
+        return next();
+    }
     const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
     const userOrCompanayId = foundUser._id;
     let foundIpModel = await userip_model_1.userip.findOne({ userOrCompanayId }).select({
@@ -110,11 +116,11 @@ const checkIpAndAttempt = async (req, res, next) => {
             return res.status(401).send(response);
         }
         if (!containsGreenIp) {
-            const response = {
-                success: false,
-                err: 'Account does not exist!'
+            /* const response: Iauthresponse = {
+              success: false,
+              err: 'Account does not exist!'
             };
-            return res.status(401).send(response);
+            return res.status(401).send(response);*/
         }
     }
     if (foundIpModel?.blocked?.status) {
@@ -391,10 +397,9 @@ exports.resetAccountFactory = resetAccountFactory;
  */
 const recoverAccountFactory = async (req, res) => {
     const { appOfficialName } = stock_auth_local_1.stockAuthConfig.localSettings;
-    const { foundUser, emailPhone } = req.body;
-    const emailOrPhone = emailPhone === 'phone' ? 'phone' : 'email';
+    const { foundUser, emailPhone, navRoute } = req.body;
     authControllerLogger.debug(`recover, 
-    emailphone: ${emailPhone}, emailOrPhone: ${emailOrPhone}`);
+    emailphone: ${emailPhone}`);
     let response = { success: false };
     if (!foundUser) {
         response = {
@@ -403,19 +408,25 @@ const recoverAccountFactory = async (req, res) => {
         };
         return res.status(401).send(response);
     }
-    if (emailOrPhone === 'phone') {
+    const { isPhone } = (0, exports.determineIfIsPhoneAndMakeFilterObj)(emailPhone);
+    if (isPhone) {
         response = await (0, universial_controller_1.sendTokenPhone)(foundUser);
     }
     else {
-        const type = '_link';
+        const type = 'token';
         response = await (0, universial_controller_1.sendTokenEmail)(foundUser, type, appOfficialName);
     }
-    if (!foundUser.password) {
-        // send to reset password
-        response.navRoute = 'reset';
+    if (navRoute) {
+        response.navRoute = navRoute;
     }
-    if (!foundUser.verified) {
-        response.navRoute = 'verify';
+    else {
+        if (!foundUser?.verified) {
+            response.navRoute = 'verify';
+        }
+        if (!foundUser?.password) {
+            // send to reset password
+            response.navRoute = 'reset';
+        }
     }
     return res.status(response.status).send(response);
 };

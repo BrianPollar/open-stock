@@ -21,6 +21,7 @@ export declare let notifSettingLean: Model<TnotifSetting>;
  * Selects the notifSettingselect constant from the notifSetting model.
  */
 export declare const notifSettingSelect: {
+    companyId: number;
     invoices: number;
     payments: number;
     orders: number;

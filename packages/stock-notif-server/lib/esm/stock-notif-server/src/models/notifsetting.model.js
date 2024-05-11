@@ -6,6 +6,7 @@ import { Schema } from 'mongoose';
 import { connectNotifDatabase, isNotifDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
 /** Schema definition for notification settings */
 const notifSettingSchema = new Schema({
+    companyId: { type: String },
     invoices: { type: Boolean, default: true },
     payments: { type: Boolean, default: true },
     orders: { type: Boolean, default: true },
@@ -14,6 +15,7 @@ const notifSettingSchema = new Schema({
 }, { timestamps: true });
 /** Primary selection object for notification settings */
 const notifSettingselect = {
+    companyId: 1,
     invoices: 1,
     payments: 1,
     orders: 1,

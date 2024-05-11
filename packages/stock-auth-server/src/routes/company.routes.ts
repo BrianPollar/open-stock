@@ -6,6 +6,7 @@
  */
 /* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable @typescript-eslint/no-misused-promises */
+import { createNotifStn } from '@open-stock/stock-notif-server';
 import { Iauthresponse, Icustomrequest, IdataArrayResponse, IfileMeta, Isuccess } from '@open-stock/stock-universal';
 import {
   appendBody,
@@ -23,6 +24,7 @@ import {
 } from '@open-stock/stock-universal-server';
 import express from 'express';
 import * as fs from 'fs';
+import path from 'path';
 import * as tracer from 'tracer';
 import { companyLean, companyMain } from '../models/company.model';
 import { user } from '../models/user.model';
@@ -52,8 +54,8 @@ export const addCompany = async(req, res) => {
       companyData.profileCoverPic = parsed.coverPic || companyData.profileCoverPic;
     }
 
-    if (parsed.newFiles) {
-      companyData.photos = parsed.newFiles;
+    if (parsed.newPhotos) {
+      companyData.photos = parsed.newPhotos;
     }
   }
   const count = await companyMain
@@ -77,6 +79,15 @@ export const addCompany = async(req, res) => {
     response = errResponse;
   });
   if (!response.err && savedCompany) {
+    const stn = {
+      companyId: savedCompany._id,
+      invoices: true,
+      payments: true,
+      orders: true,
+      jobCards: true,
+      users: true
+    };
+    await createNotifStn(stn);
     response = {
       success: true,
       // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -119,9 +130,9 @@ export const updateCompany = async(req, res) => {
       foundCompany.profileCoverPic = parsed.coverPic || foundCompany.profileCoverPic;
     }
 
-    if (parsed.newFiles) {
+    if (parsed.newPhotos) {
       const oldPhotos = foundCompany.photos || [];
-      foundCompany.photos = [...oldPhotos, ...parsed.newFiles] as string[];
+      foundCompany.photos = [...oldPhotos, ...parsed.newPhotos] as string[];
     }
   }
   delete updatedCompany._id;
@@ -161,17 +172,19 @@ const companyAuthLogger = tracer.colorConsole(
     transport(data) {
       // eslint-disable-next-line no-console
       console.log(data.output);
-      const logDir = './openstockLog/';
+      const logDir = path.join(process.cwd() + '/openstockLog/');
       fs.mkdir(logDir, { recursive: true }, (err) => {
         if (err) {
           if (err) {
-            throw err;
+            // eslint-disable-next-line no-console
+            console.log('data.output err ', err);
           }
         }
       });
-      fs.appendFile('./openStockLog/auth-server.log', data.rawoutput + '\n', err => {
+      fs.appendFile(logDir + '/auth-server.log', data.rawoutput + '\n', err => {
         if (err) {
-          throw err;
+          // eslint-disable-next-line no-console
+          console.log('raw.output err ', err);
         }
       });
     }
@@ -396,9 +409,9 @@ companyAuthRoutes.post('/updateprofileimg/:companyIdParam', requireAuth, require
       foundCompany.profileCoverPic = parsed.coverPic || foundCompany.profileCoverPic;
     }
 
-    if (parsed.newFiles) {
+    if (parsed.newPhotos) {
       const oldPhotos = foundCompany.photos || [];
-      foundCompany.photos = [...oldPhotos, ...parsed.newFiles] as string[];
+      foundCompany.photos = [...oldPhotos, ...parsed.newPhotos] as string[];
     }
   }
 
@@ -502,9 +515,9 @@ companyAuthRoutes.get('/getcompanys/:offset/:limit/:companyIdParam', requireAuth
   return res.status(200).send(response);
 });
 
-companyAuthRoutes.put('/updatecompanybulk/:companyIdParam', requireAuth, requireSuperAdmin, updateUserBulk, updateCompany);
+companyAuthRoutes.put('/updatecompanybulk/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('users', 'update'), updateUserBulk, updateCompany);
 
-companyAuthRoutes.post('/updatecompanybulkimg/:companyIdParam', requireAuth, requireSuperAdmin, uploadFiles, appendBody, saveMetaToDb, updateUserBulk, updateCompany);
+companyAuthRoutes.post('/updatecompanybulkimg/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('users', 'update'), uploadFiles, appendBody, saveMetaToDb, updateUserBulk, updateCompany);
 
 companyAuthRoutes.put('/deletemany/:companyIdParam', requireAuth, requireSuperAdmin, deleteFiles, async(req, res) => {
   const { ids } = req.body;

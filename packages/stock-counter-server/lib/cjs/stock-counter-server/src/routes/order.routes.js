@@ -7,6 +7,7 @@ const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
 const fs = tslib_1.__importStar(require("fs"));
+const path_1 = tslib_1.__importDefault(require("path"));
 const tracer = tslib_1.__importStar(require("tracer"));
 const payment_controller_1 = require("../controllers/payment.controller");
 const item_model_1 = require("../models/item.model");
@@ -23,17 +24,19 @@ const orderRoutesLogger = tracer.colorConsole({
     transport(data) {
         // eslint-disable-next-line no-console
         console.log(data.output);
-        const logDir = './openstockLog/';
+        const logDir = path_1.default.join(process.cwd() + '/openstockLog/');
         fs.mkdir(logDir, { recursive: true }, (err) => {
             if (err) {
                 if (err) {
-                    throw err;
+                    // eslint-disable-next-line no-console
+                    console.log('data.output err ', err);
                 }
             }
         });
-        fs.appendFile('./openStockLog/counter-server.log', data.rawoutput + '\n', err => {
+        fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
             if (err) {
-                throw err;
+                // eslint-disable-next-line no-console
+                console.log('raw.output err ', err);
             }
         });
     }

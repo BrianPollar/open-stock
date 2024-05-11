@@ -7,6 +7,7 @@ const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
 const fs = tslib_1.__importStar(require("fs"));
+const path_1 = tslib_1.__importDefault(require("path"));
 const tracer = tslib_1.__importStar(require("tracer"));
 const staff_model_1 = require("../../models/user-related/staff.model");
 const locluser_routes_1 = require("./locluser.routes");
@@ -16,17 +17,19 @@ const staffRoutesLogger = tracer.colorConsole({
     transport(data) {
         // eslint-disable-next-line no-console
         console.log(data.output);
-        const logDir = './openstockLog/';
+        const logDir = path_1.default.join(process.cwd() + '/openstockLog/');
         fs.mkdir(logDir, { recursive: true }, (err) => {
             if (err) {
                 if (err) {
-                    throw err;
+                    // eslint-disable-next-line no-console
+                    console.log('data.output err ', err);
                 }
             }
         });
-        fs.appendFile('./openStockLog/counter-server.log', data.rawoutput + '\n', err => {
+        fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
             if (err) {
-                throw err;
+                // eslint-disable-next-line no-console
+                console.log('raw.output err ', err);
             }
         });
     }
@@ -120,43 +123,39 @@ exports.updateStaff = updateStaff;
  * Router for staff related routes.
  */
 exports.staffRoutes = express_1.default.Router();
-exports.staffRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_auth_server_1.requireCanUseFeature)('staff'), (0, stock_universal_server_1.roleAuthorisation)('staffs', 'create'), async (req, res, next) => {
-    const userData = req.body.user;
-    const foundEmail = await stock_auth_server_1.userLean.findOne({ email: userData.email }).select({ email: 1 }).lean();
-    if (foundEmail) {
-        return res.status(401).send({ success: false, err: 'Email already exist found' });
-    }
-    const foundPhone = await stock_auth_server_1.userLean.findOne({ phone: userData.phone }).select({ phone: 1 }).lean();
-    if (foundPhone) {
-        return res.status(401).send({ success: false, err: 'Phone Number already exist found' });
-    }
-    return next;
-}, stock_auth_server_1.addUser, exports.addStaff, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('staff'));
-exports.staffRoutes.post('/createimg/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_auth_server_1.requireCanUseFeature)('staff'), (0, stock_universal_server_1.roleAuthorisation)('staffs', 'create'), async (req, res, next) => {
-    const parsed = JSON.parse(req.body.data);
-    const userData = parsed.user;
-    const foundEmail = await stock_auth_server_1.userLean.findOne({ email: userData.email }).select({ email: 1 }).lean();
-    if (foundEmail) {
-        return res.status(401).send({ success: false, err: 'Email already exist found' });
-    }
-    const foundPhone = await stock_auth_server_1.userLean.findOne({ phone: userData.phone }).select({ phone: 1 }).lean();
-    if (foundPhone) {
-        return res.status(401).send({ success: false, err: 'Phone Number already exist found' });
-    }
-    return next;
-}, stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.saveMetaToDb, stock_auth_server_1.addUser, exports.addStaff, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('staff'));
-exports.staffRoutes.get('/getone/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('staffs', 'read'), async (req, res) => {
-    const { id } = req.params;
+exports.staffRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_auth_server_1.requireCanUseFeature)('staff'), (0, stock_universal_server_1.roleAuthorisation)('staffs', 'create'), stock_auth_server_1.addUser, exports.addStaff, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('staff'));
+exports.staffRoutes.post('/createimg/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_auth_server_1.requireCanUseFeature)('staff'), (0, stock_universal_server_1.roleAuthorisation)('staffs', 'create'), stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.saveMetaToDb, stock_auth_server_1.addUser, exports.addStaff, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('staff'));
+exports.staffRoutes.post('/getone', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('staffs', 'read'), async (req, res) => {
+    const { id, userId } = req.body;
+    const companyIdParam = req.body.companyId;
     const { companyId } = req.user;
-    const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
     const isValid = (0, stock_universal_server_1.verifyObjectIds)([id, queryId]);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
+    let filter = {};
+    if (id) {
+        const isValid = (0, stock_universal_server_1.verifyObjectIds)([id]);
+        if (!isValid) {
+            return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+        }
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        filter = { ...filter, _id: id };
+    }
+    if (queryId) {
+        filter = { ...filter, companyId: queryId };
+    }
+    if (userId) {
+        const isValid = (0, stock_universal_server_1.verifyObjectIds)([userId]);
+        if (!isValid) {
+            return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+        }
+        filter = { ...filter, user: userId };
+    }
     const staff = await staff_model_1.staffLean
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        .findOne({ _id: id, companyId: queryId })
+        .findOne(filter)
         .populate({ path: 'user', model: stock_auth_server_1.userLean,
         populate: [{
                 // eslint-disable-next-line @typescript-eslint/naming-convention

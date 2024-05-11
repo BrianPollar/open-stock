@@ -3,6 +3,7 @@ import { addUser, requireActiveCompany, requireCanUseFeature, requireUpdateSubsc
 import { appendBody, deleteFiles, fileMetaLean, offsetLimitRelegator, requireAuth, roleAuthorisation, saveMetaToDb, stringifyMongooseErr, uploadFiles, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import * as fs from 'fs';
+import path from 'path';
 import * as tracer from 'tracer';
 import { customerLean, customerMain } from '../../models/user-related/customer.model';
 import { removeManyUsers, removeOneUser } from './locluser.routes';
@@ -13,17 +14,19 @@ const customerRoutesLogger = tracer.colorConsole({
     transport(data) {
         // eslint-disable-next-line no-console
         console.log(data.output);
-        const logDir = './openstockLog/';
+        const logDir = path.join(process.cwd() + '/openstockLog/');
         fs.mkdir(logDir, { recursive: true }, (err) => {
             if (err) {
                 if (err) {
-                    throw err;
+                    // eslint-disable-next-line no-console
+                    console.log('data.output err ', err);
                 }
             }
         });
-        fs.appendFile('./openStockLog/counter-server.log', data.rawoutput + '\n', err => {
+        fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
             if (err) {
-                throw err;
+                // eslint-disable-next-line no-console
+                console.log('raw.output err ', err);
             }
         });
     }
@@ -151,18 +154,37 @@ customerRoutes.post('/createimg/:companyIdParam', requireAuth, requireActiveComp
  * @param {callback} middleware - Express middleware
  * @returns {Promise} - Promise representing the HTTP response
  */
-customerRoutes.get('/getone/:id/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('customers', 'read'), async (req, res) => {
-    const { id } = req.params;
+customerRoutes.post('/getone', requireAuth, requireActiveCompany, roleAuthorisation('customers', 'read'), async (req, res) => {
+    const { id, userId } = req.body;
+    const companyIdParam = req.body.companyId;
     const { companyId } = req.user;
-    const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = verifyObjectIds([id, queryId]);
+    const isValid = verifyObjectIds([queryId]);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
+    let filter = {};
+    if (id) {
+        const isValid = verifyObjectIds([id]);
+        if (!isValid) {
+            return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+        }
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        filter = { ...filter, _id: id };
+    }
+    if (queryId) {
+        filter = { ...filter, companyId: queryId };
+    }
+    if (userId) {
+        const isValid = verifyObjectIds([userId]);
+        if (!isValid) {
+            return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+        }
+        filter = { ...filter, user: userId };
+    }
     const customer = await customerLean
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        .findOne({ _id: id, companyId: queryId })
+        .findOne(filter)
         .populate({ path: 'user', model: userLean,
         populate: [{
                 // eslint-disable-next-line @typescript-eslint/naming-convention

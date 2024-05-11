@@ -4,6 +4,7 @@ import { Icompany, Icustomrequest, IdataArrayResponse, IsubscriptionPackage, Ius
 import { offsetLimitRelegator, requireAuth, roleAuthorisation, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import * as fs from 'fs';
+import path from 'path';
 import { IpayDetails } from 'pesapal3';
 import * as tracer from 'tracer';
 import { companyLean } from '../../models/company.model';
@@ -20,17 +21,19 @@ const companySubscriptionRoutesLogger = tracer.colorConsole(
     transport(data) {
       // eslint-disable-next-line no-console
       console.log(data.output);
-      const logDir = './openstockLog/';
+      const logDir = path.join(process.cwd() + '/openstockLog/');
       fs.mkdir(logDir, { recursive: true }, (err) => {
         if (err) {
           if (err) {
-            throw err;
+            // eslint-disable-next-line no-console
+            console.log('data.output err ', err);
           }
         }
       });
-      fs.appendFile('./openStockLog/auth-server.log', data.rawoutput + '\n', err => {
+      fs.appendFile(logDir + '/auth-server.log', data.rawoutput + '\n', err => {
         if (err) {
-          throw err;
+          // eslint-disable-next-line no-console
+          console.log('raw.output err ', err);
         }
       });
     }

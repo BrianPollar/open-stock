@@ -40,8 +40,8 @@ class Customer extends userbase_define_1.UserBase {
      * @param {string} id - The customer ID.
      * @returns {Promise<Customer>} - A single Customer instance created from the retrieved customer data.
      */
-    static async getOneCustomer(companyId, id) {
-        const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makeGet(`/customer/getone/${id}`);
+    static async getOneCustomer(filter) {
+        const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makePost('/customer/getone', filter);
         const customer = await (0, rxjs_1.lastValueFrom)(observer$);
         return new Customer(customer);
     }

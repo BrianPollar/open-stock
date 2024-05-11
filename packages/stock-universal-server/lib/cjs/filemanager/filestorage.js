@@ -3,12 +3,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.rudimentaryStorage = exports.upload = exports.multerFileds = void 0;
 const tslib_1 = require("tslib");
 const stock_universal_1 = require("@open-stock/stock-universal");
+const fs = tslib_1.__importStar(require("fs"));
 const fs_extra_1 = require("fs-extra");
 const multer_1 = tslib_1.__importDefault(require("multer"));
 const path = tslib_1.__importStar(require("path"));
 const tracer = tslib_1.__importStar(require("tracer"));
 const stock_universal_local_1 = require("../stock-universal-local");
-const fs = tslib_1.__importStar(require("fs"));
 // This function creates a fileStorageLogger named `controllers/FileStorage`.
 const fileStorageLogger = tracer.colorConsole({
     format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
@@ -16,17 +16,19 @@ const fileStorageLogger = tracer.colorConsole({
     transport(data) {
         // eslint-disable-next-line no-console
         console.log(data.output);
-        const logDir = './openstockLog/';
+        const logDir = path.join(process.cwd() + '/openstockLog/');
         fs.mkdir(logDir, { recursive: true }, (err) => {
             if (err) {
                 if (err) {
-                    throw err;
+                    // eslint-disable-next-line no-console
+                    console.log('data.output err ', err);
                 }
             }
         });
-        fs.appendFile('./openStockLog/universal-server.log', data.rawoutput + '\n', err => {
+        fs.appendFile(logDir + '/universal-server.log', data.rawoutput + '\n', err => {
             if (err) {
-                throw err;
+                // eslint-disable-next-line no-console
+                console.log('raw.output err ', err);
             }
         });
     }

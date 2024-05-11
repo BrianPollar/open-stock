@@ -1,14 +1,15 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.makeNotfnBody = exports.updateNotifnViewed = exports.createPayload = exports.createNotifSetting = exports.constructMailService = exports.sendMail = exports.constructMail = exports.verifyAuthyToken = exports.sendSms = exports.sendToken = exports.createSettings = exports.determineUserHasMail = void 0;
+exports.createNotifStn = exports.createNotifications = exports.makeNotfnBody = exports.updateNotifnViewed = exports.createPayload = exports.createNotifSetting = exports.constructMailService = exports.sendMail = exports.constructMail = exports.verifyAuthyToken = exports.sendSms = exports.sendToken = exports.determineUserHasMail = void 0;
 const tslib_1 = require("tslib");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
+const fs = tslib_1.__importStar(require("fs"));
+const path_1 = tslib_1.__importDefault(require("path"));
 const tracer = tslib_1.__importStar(require("tracer"));
 const webPush = tslib_1.__importStar(require("web-push"));
 const mainnotification_model_1 = require("../models/mainnotification.model");
 const notifsetting_model_1 = require("../models/notifsetting.model");
 const stock_notif_local_1 = require("../stock-notif-local");
-const fs = tslib_1.__importStar(require("fs"));
 // const sgMail = require('@sendgrid/mail');
 // import * as sgMail from '@sendgrid/mail';
 const sgMail = require('@sendgrid/mail');
@@ -18,17 +19,19 @@ const notificationsControllerLogger = tracer.colorConsole({
     transport(data) {
         // eslint-disable-next-line no-console
         console.log(data.output);
-        const logDir = './openstockLog/';
+        const logDir = path_1.default.join(process.cwd() + '/openstockLog/');
         fs.mkdir(logDir, { recursive: true }, (err) => {
             if (err) {
                 if (err) {
-                    throw err;
+                    // eslint-disable-next-line no-console
+                    console.log('data.output err ', err);
                 }
             }
         });
-        fs.appendFile('./openStockLog/notif-server.log', data.rawoutput + '\n', err => {
+        fs.appendFile(logDir + '/notif-server.log', data.rawoutput + '\n', err => {
             if (err) {
-                throw err;
+                // eslint-disable-next-line no-console
+                console.log('raw.output err ', err);
             }
         });
     }
@@ -46,24 +49,23 @@ exports.determineUserHasMail = determineUserHasMail;
  * Creates notification settings.
  * @returns {Promise<InotifSetting>} The created notification settings.
  */
-const createSettings = async () => {
-    let stn;
-    const found = await notifsetting_model_1.notifSettingLean.find({}).lean();
-    if (found.length > 0) {
-        stn = found[0];
-        return;
-    }
-    await (0, exports.createNotifSetting)({});
-    stn = {
-        invoices: true,
-        payments: true,
-        orders: true,
-        jobCards: true,
-        users: true
-    };
-    return stn;
-};
-exports.createSettings = createSettings;
+/* export const createSettings = async() => {
+  let stn: InotifSetting;
+  const found = await notifSettingLean.find({}).lean();
+  if (found.length > 0) {
+    stn = found[0] as unknown as InotifSetting;
+    return;
+  }
+  await createNotifSetting({});
+  stn = {
+    invoices: true,
+    payments: true,
+    orders: true,
+    jobCards: true,
+    users: true
+  };
+  return stn;
+};*/
 /**
    * Registers a new user with Authy.
    * @param phone - The user's phone number.
@@ -375,7 +377,7 @@ const makeNotfnBody = (userId, title, body, notifType, actions, notifInvokerId) 
         notifInvokerId,
         body,
         icon: '',
-        expireAt: Date.parse(new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString()),
+        expireAt: Date.parse(new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString()).toString(),
         orders: false,
         payments: false,
         users: false,
@@ -388,4 +390,40 @@ const makeNotfnBody = (userId, title, body, notifType, actions, notifInvokerId) 
     return notification;
 };
 exports.makeNotfnBody = makeNotfnBody;
+const createNotifications = async (data) => {
+    const newNotifn = new mainnotification_model_1.mainnotificationMain(data.notification);
+    const saved = await newNotifn.save().catch(err => {
+        if (err) {
+            notificationsControllerLogger.error('save Error', err);
+        }
+    });
+    return true;
+};
+exports.createNotifications = createNotifications;
+const createNotifStn = async (stn) => {
+    const notifMain = new notifsetting_model_1.notifSettingMain(stn);
+    let errResponse;
+    await notifMain.save().catch(err => {
+        errResponse = {
+            success: false,
+            status: 403
+        };
+        if (err && err.errors) {
+            errResponse.err = (0, stock_universal_server_1.stringifyMongooseErr)(err.errors);
+        }
+        else {
+            errResponse.err = `we are having problems connecting to our databases, 
+      try again in a while`;
+        }
+        return errResponse;
+    });
+    if (errResponse) {
+        return errResponse;
+    }
+    return {
+        success: true,
+        status: 200
+    };
+};
+exports.createNotifStn = createNotifStn;
 //# sourceMappingURL=notifications.controller.js.map

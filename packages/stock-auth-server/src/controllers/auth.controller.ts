@@ -1,6 +1,7 @@
 import { Iauthresponse, IauthresponseObj, Isuccess, Iuser, Iuserperm } from '@open-stock/stock-universal';
 import { makeUrId, stringifyMongooseErr, verifyObjectIds } from '@open-stock/stock-universal-server';
 import * as fs from 'fs';
+import path from 'path';
 import * as tracer from 'tracer';
 import { loginAtempts } from '../models/loginattemps.model';
 import { companySubscriptionLean } from '../models/subscriptions/company-subscription.model';
@@ -16,17 +17,19 @@ const authControllerLogger = tracer.colorConsole(
     transport(data) {
       // eslint-disable-next-line no-console
       console.log(data.output);
-      const logDir = './openstockLog/';
+      const logDir = path.join(process.cwd() + '/openstockLog/');
       fs.mkdir(logDir, { recursive: true }, (err) => {
         if (err) {
           if (err) {
-            throw err;
+            // eslint-disable-next-line no-console
+            console.log('data.output err ', err);
           }
         }
       });
-      fs.appendFile('./openStockLog/auth-server.log', data.rawoutput + '\n', err => {
+      fs.appendFile(logDir + '/auth-server.log', data.rawoutput + '\n', err => {
         if (err) {
-          throw err;
+          // eslint-disable-next-line no-console
+          console.log('raw.output err ', err);
         }
       });
     }
@@ -71,6 +74,9 @@ const comparePassword = (foundUser, passwd: string, isPhone: boolean): Promise<{
 export const checkIpAndAttempt = async(req, res, next) => {
   // let isPhone: boolean;
   const { foundUser, passwd, isPhone } = req.body;
+  if (!foundUser?.password || !foundUser?.verified) {
+    return next();
+  }
   const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
   const userOrCompanayId = foundUser._id;
 
@@ -114,11 +120,11 @@ export const checkIpAndAttempt = async(req, res, next) => {
     }
 
     if (!containsGreenIp) {
-      const response: Iauthresponse = {
+      /* const response: Iauthresponse = {
         success: false,
         err: 'Account does not exist!'
       };
-      return res.status(401).send(response);
+      return res.status(401).send(response);*/
     }
   }
 
@@ -417,10 +423,9 @@ export const resetAccountFactory = async(req, res) => {
  */
 export const recoverAccountFactory = async(req, res) => {
   const { appOfficialName } = stockAuthConfig.localSettings;
-  const { foundUser, emailPhone } = req.body;
-  const emailOrPhone = emailPhone === 'phone' ? 'phone' : 'email';
+  const { foundUser, emailPhone, navRoute } = req.body;
   authControllerLogger.debug(`recover, 
-    emailphone: ${emailPhone}, emailOrPhone: ${emailOrPhone}`);
+    emailphone: ${emailPhone}`);
 
   let response: Iauthresponse = { success: false };
   if (!foundUser) {
@@ -430,18 +435,25 @@ export const recoverAccountFactory = async(req, res) => {
     };
     return res.status(401).send(response);
   }
-  if (emailOrPhone === 'phone') {
+
+  const { isPhone } = determineIfIsPhoneAndMakeFilterObj(emailPhone);
+
+  if (isPhone) {
     response = await sendTokenPhone(foundUser);
   } else {
-    const type = '_link';
+    const type = 'token';
     response = await sendTokenEmail(foundUser, type, appOfficialName);
   }
-  if (!foundUser.password) {
-    // send to reset password
-    response.navRoute = 'reset';
-  }
-  if (!foundUser.verified) {
-    response.navRoute = 'verify';
+  if (navRoute) {
+    response.navRoute = navRoute;
+  } else {
+    if (!foundUser?.verified) {
+      response.navRoute = 'verify';
+    }
+    if (!foundUser?.password) {
+      // send to reset password
+      response.navRoute = 'reset';
+    }
   }
   return res.status(response.status).send(response);
 };

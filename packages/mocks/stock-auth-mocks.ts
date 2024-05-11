@@ -113,6 +113,7 @@ export const createMockCompany = (incrementor = 0) => {
     companyId: faker.string.uuid(),
     name: faker.string.alphanumeric(10),
     displayName: faker.string.alphanumeric(10),
+    address: faker.string.alphanumeric(10),
     dateOfEst: faker.date.past().toString(),
     details: faker.string.alpha(),
     companyDispNameFormat: '',

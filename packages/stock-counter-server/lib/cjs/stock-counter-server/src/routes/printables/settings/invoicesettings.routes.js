@@ -6,6 +6,7 @@ const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
 const fs = tslib_1.__importStar(require("fs"));
+const path_1 = tslib_1.__importDefault(require("path"));
 const tracer = tslib_1.__importStar(require("tracer"));
 const invoicesettings_model_1 = require("../../../models/printables/settings/invoicesettings.model");
 /** Logger for invoice setting routes */
@@ -15,17 +16,19 @@ const invoiceSettingRoutesLogger = tracer.colorConsole({
     transport(data) {
         // eslint-disable-next-line no-console
         console.log(data.output);
-        const logDir = './openstockLog/';
+        const logDir = path_1.default.join(process.cwd() + '/openstockLog/');
         fs.mkdir(logDir, { recursive: true }, (err) => {
             if (err) {
                 if (err) {
-                    throw err;
+                    // eslint-disable-next-line no-console
+                    console.log('data.output err ', err);
                 }
             }
         });
-        fs.appendFile('./openStockLog/counter-server.log', data.rawoutput + '\n', err => {
+        fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
             if (err) {
-                throw err;
+                // eslint-disable-next-line no-console
+                console.log('raw.output err ', err);
             }
         });
     }
@@ -95,19 +98,19 @@ exports.invoiceSettingRoutes.post('/createimg/:companyIdParam', stock_universal_
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     invoiceSetting.companyId = queryId;
-    if (req.body.newFiles) {
+    if (req.body.newPhotos) {
         if (invoiceSetting.generalSettings.defaultDigitalSignature === 'true' &&
             invoiceSetting.generalSettings.defaultDigitalStamp) {
-            invoiceSetting.generalSettings.defaultDigitalSignature = req.body.newFiles[0];
-            invoiceSetting.generalSettings.defaultDigitalStamp = req.body.newFiles[1];
+            invoiceSetting.generalSettings.defaultDigitalSignature = req.body.newPhotos[0];
+            invoiceSetting.generalSettings.defaultDigitalStamp = req.body.newPhotos[1];
         }
         if (invoiceSetting.generalSettings.defaultDigitalSignature === 'true' &&
             invoiceSetting.generalSettings.defaultDigitalSignature === 'false') {
-            invoiceSetting.generalSettings.defaultDigitalSignature = req.body.newFiles[0];
+            invoiceSetting.generalSettings.defaultDigitalSignature = req.body.newPhotos[0];
         }
         if (invoiceSetting.generalSettings.defaultDigitalSignature === 'false' &&
             invoiceSetting.generalSettings.defaultDigitalSignature === 'true') {
-            invoiceSetting.generalSettings.defaultDigitalStamp = req.body.newFiles[0];
+            invoiceSetting.generalSettings.defaultDigitalStamp = req.body.newPhotos[0];
         }
     }
     const newStn = new invoicesettings_model_1.invoiceSettingMain(invoiceSetting);
@@ -212,19 +215,19 @@ exports.invoiceSettingRoutes.put('/updateimg/:companyIdParam', stock_universal_s
     if (!invoiceSetting) {
         return res.status(404).send({ success: false });
     }
-    if (req.body.newFiles) {
+    if (req.body.newPhotos) {
         if (invoiceSetting['generalSettings'].defaultDigitalSignature === 'true' &&
             invoiceSetting['generalSettings'].defaultDigitalStamp) {
-            invoiceSetting['generalSettings'].defaultDigitalSignature = req.body.newFiles[0];
-            invoiceSetting['generalSettings'].defaultDigitalStamp = req.body.newFiles[1];
+            invoiceSetting['generalSettings'].defaultDigitalSignature = req.body.newPhotos[0];
+            invoiceSetting['generalSettings'].defaultDigitalStamp = req.body.newPhotos[1];
         }
         if (invoiceSetting['generalSettings'].defaultDigitalSignature === 'true' &&
             invoiceSetting['generalSettings'].defaultDigitalStamp === 'false') {
-            invoiceSetting['generalSettings'].defaultDigitalSignature = req.body.newFiles[0];
+            invoiceSetting['generalSettings'].defaultDigitalSignature = req.body.newPhotos[0];
         }
         if (invoiceSetting['generalSettings'].defaultDigitalSignature === 'false' &&
             invoiceSetting['generalSettings'].defaultDigitalStamp === 'true') {
-            invoiceSetting['generalSettings'].defaultDigitalStamp = req.body.newFiles[0];
+            invoiceSetting['generalSettings'].defaultDigitalStamp = req.body.newPhotos[0];
         }
     }
     invoiceSetting['generalSettings'] = updatedInvoiceSetting.generalSettings || invoiceSetting['generalSettings'];
@@ -264,6 +267,10 @@ exports.invoiceSettingRoutes.get('/getone/:id/:companyIdParam', stock_universal_
     const invoiceSetting = await invoicesettings_model_1.invoiceSettingLean
         // eslint-disable-next-line @typescript-eslint/naming-convention
         .findOne({ _id: id, companyId: queryId })
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        .populate({ path: 'generalSettings.defaultDigitalSignature', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        .populate({ path: 'generalSettings.defaultDigitalStamp', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
         .lean();
     return res.status(200).send(invoiceSetting);
 });
@@ -279,6 +286,10 @@ exports.invoiceSettingRoutes.get('/getall/:offset/:limit/:companyIdParam', stock
     const all = await Promise.all([
         invoicesettings_model_1.invoiceSettingLean
             .find({ companyId: queryId })
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            .populate({ path: 'generalSettings.defaultDigitalSignature', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            .populate({ path: 'generalSettings.defaultDigitalStamp', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
             .skip(offset)
             .limit(limit)
             .lean(),
@@ -354,5 +365,53 @@ exports.invoiceSettingRoutes.put('/deletemany/:companyIdParam', stock_universal_
     else {
         return res.status(404).send({ success: Boolean(deleted), err: 'could not delete selected items, try again in a while' });
     }
+});
+exports.invoiceSettingRoutes.put('/deleteimages/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('invoices', 'delete'), stock_universal_server_1.deleteFiles, async (req, res) => {
+    const filesWithDir = req.body.filesWithDir;
+    const { companyId } = req.user;
+    const { companyIdParam } = req.params;
+    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    if (filesWithDir && !filesWithDir.length) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
+    const updatedProduct = req.body.item;
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    const { _id } = updatedProduct;
+    const isValid = (0, stock_universal_server_1.verifyObjectIds)([_id, queryId]);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
+    const invoiceSetting = await invoicesettings_model_1.invoiceSettingMain
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        .findOneAndUpdate({ _id, companyId: queryId });
+    if (!invoiceSetting) {
+        return res.status(404).send({ success: false, err: 'item not found' });
+    }
+    const filesWithDirIds = filesWithDir.map(val => val._id);
+    if (filesWithDirIds.includes(invoiceSetting.generalSettings.defaultDigitalSignature)) {
+        invoiceSetting.generalSettings.defaultDigitalSignature = '';
+    }
+    if (filesWithDirIds.includes(invoiceSetting.generalSettings.defaultDigitalStamp)) {
+        invoiceSetting.generalSettings.defaultDigitalStamp = '';
+    }
+    let errResponse;
+    await invoiceSetting.save().catch(err => {
+        errResponse = {
+            success: false,
+            status: 403
+        };
+        if (err && err.errors) {
+            errResponse.err = (0, stock_universal_server_1.stringifyMongooseErr)(err.errors);
+        }
+        else {
+            errResponse.err = `we are having problems connecting to our databases, 
+      try again in a while`;
+        }
+        return errResponse;
+    });
+    if (errResponse) {
+        return res.status(403).send(errResponse);
+    }
+    return res.status(200).send({ success: true });
 });
 //# sourceMappingURL=invoicesettings.routes.js.map

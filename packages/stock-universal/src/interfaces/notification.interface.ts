@@ -48,6 +48,7 @@ export interface Imainnotification {
 
 
 export interface InotifSetting {
+  companyId: string;
   // The `invoices` property indicates whether the user wants to receive notifications about invoices.
   invoices: boolean;
   // The `payments` property indicates whether the user wants to receive notifications about payments.

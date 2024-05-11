@@ -1,4 +1,4 @@
-import { Iaction, Iactionwithall, Iauthtoken, InotifSetting, Isuccess, Iuser, TnotifType } from '@open-stock/stock-universal';
+import { Iaction, Iactionwithall, Iauthtoken, Imainnotification, InotifSetting, Isuccess, Iuser, TnotifType } from '@open-stock/stock-universal';
 /**
  * Determines whether a user has an email address.
  * @param user - The user object.
@@ -9,7 +9,6 @@ export declare const determineUserHasMail: (user: Iuser) => boolean;
  * Creates notification settings.
  * @returns {Promise<InotifSetting>} The created notification settings.
  */
-export declare const createSettings: () => Promise<InotifSetting>;
 /**
    * Registers a new user with Authy.
    * @param phone - The user's phone number.
@@ -112,20 +111,9 @@ export declare const updateNotifnViewed: (user: Iauthtoken, id: string) => Promi
  * @param notifInvokerId - The ID of the entity that triggered the notification.
  * @returns The created notification body object.
  */
-export declare const makeNotfnBody: (userId: string, title: string, body: string, notifType: TnotifType, actions: Iactionwithall[], notifInvokerId: string) => {
-    actions: Iactionwithall[];
-    userId: string;
-    title: string;
-    notifType: TnotifType;
-    notifInvokerId: string;
-    body: string;
-    icon: string;
-    expireAt: number;
-    orders: boolean;
-    payments: boolean;
-    users: boolean;
-    items: boolean;
-    faqs: boolean;
-    buyer: boolean;
-    viewed: any[];
-};
+export declare const makeNotfnBody: (userId: string, title: string, body: string, notifType: TnotifType, actions: Iactionwithall[], notifInvokerId: string) => Imainnotification;
+export declare const createNotifications: (data: {
+    notification: Imainnotification;
+    filters;
+}) => Promise<boolean>;
+export declare const createNotifStn: (stn: InotifSetting) => Promise<Isuccess>;

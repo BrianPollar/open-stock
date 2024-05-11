@@ -14,7 +14,8 @@ import { connectNotifDatabase, isNotifDbConnected, mainConnection, mainConnectio
 export type TnotifSetting = Document & InotifSetting;
 
 /** Schema definition for notification settings */
-const notifSettingSchema: Schema = new Schema({
+const notifSettingSchema: Schema<TnotifSetting> = new Schema({
+  companyId: { type: String },
   invoices: { type: Boolean, default: true },
   payments: { type: Boolean, default: true },
   orders: { type: Boolean, default: true },
@@ -24,6 +25,7 @@ const notifSettingSchema: Schema = new Schema({
 
 /** Primary selection object for notification settings */
 const notifSettingselect = {
+  companyId: 1,
   invoices: 1,
   payments: 1,
   orders: 1,

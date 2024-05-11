@@ -1,8 +1,9 @@
 import { requireActiveCompany } from '@open-stock/stock-auth-server';
-import { Icustomrequest, IdataArrayResponse, Isuccess } from '@open-stock/stock-universal';
-import { appendBody, deleteFiles, offsetLimitRelegator, requireAuth, roleAuthorisation, saveMetaToDb, stringifyMongooseErr, uploadFiles, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { Icustomrequest, IdataArrayResponse, IfileMeta, Isuccess } from '@open-stock/stock-universal';
+import { appendBody, deleteFiles, fileMetaLean, offsetLimitRelegator, requireAuth, roleAuthorisation, saveMetaToDb, stringifyMongooseErr, uploadFiles, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import * as fs from 'fs';
+import path from 'path';
 import * as tracer from 'tracer';
 import { invoiceSettingLean, invoiceSettingMain } from '../../../models/printables/settings/invoicesettings.model';
 
@@ -14,17 +15,19 @@ const invoiceSettingRoutesLogger = tracer.colorConsole(
     transport(data) {
       // eslint-disable-next-line no-console
       console.log(data.output);
-      const logDir = './openstockLog/';
+      const logDir = path.join(process.cwd() + '/openstockLog/');
       fs.mkdir(logDir, { recursive: true }, (err) => {
         if (err) {
           if (err) {
-            throw err;
+            // eslint-disable-next-line no-console
+            console.log('data.output err ', err);
           }
         }
       });
-      fs.appendFile('./openStockLog/counter-server.log', data.rawoutput + '\n', err => {
+      fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
         if (err) {
-          throw err;
+          // eslint-disable-next-line no-console
+          console.log('raw.output err ', err);
         }
       });
     }
@@ -97,21 +100,21 @@ invoiceSettingRoutes.post('/createimg/:companyIdParam', requireAuth, requireActi
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   invoiceSetting.companyId = queryId;
-  if (req.body.newFiles) {
+  if (req.body.newPhotos) {
     if (invoiceSetting.generalSettings.defaultDigitalSignature === 'true' &&
     invoiceSetting.generalSettings.defaultDigitalStamp) {
-      invoiceSetting.generalSettings.defaultDigitalSignature = req.body.newFiles[0];
-      invoiceSetting.generalSettings.defaultDigitalStamp = req.body.newFiles[1];
+      invoiceSetting.generalSettings.defaultDigitalSignature = req.body.newPhotos[0];
+      invoiceSetting.generalSettings.defaultDigitalStamp = req.body.newPhotos[1];
     }
 
     if (invoiceSetting.generalSettings.defaultDigitalSignature === 'true' &&
     invoiceSetting.generalSettings.defaultDigitalSignature === 'false') {
-      invoiceSetting.generalSettings.defaultDigitalSignature = req.body.newFiles[0];
+      invoiceSetting.generalSettings.defaultDigitalSignature = req.body.newPhotos[0];
     }
 
     if (invoiceSetting.generalSettings.defaultDigitalSignature === 'false' &&
     invoiceSetting.generalSettings.defaultDigitalSignature === 'true') {
-      invoiceSetting.generalSettings.defaultDigitalStamp = req.body.newFiles[0];
+      invoiceSetting.generalSettings.defaultDigitalStamp = req.body.newPhotos[0];
     }
   }
 
@@ -220,21 +223,21 @@ invoiceSettingRoutes.put('/updateimg/:companyIdParam', requireAuth, requireActiv
   if (!invoiceSetting) {
     return res.status(404).send({ success: false });
   }
-  if (req.body.newFiles) {
+  if (req.body.newPhotos) {
     if (invoiceSetting['generalSettings'].defaultDigitalSignature === 'true' &&
     invoiceSetting['generalSettings'].defaultDigitalStamp) {
-      invoiceSetting['generalSettings'].defaultDigitalSignature = req.body.newFiles[0];
-      invoiceSetting['generalSettings'].defaultDigitalStamp = req.body.newFiles[1];
+      invoiceSetting['generalSettings'].defaultDigitalSignature = req.body.newPhotos[0];
+      invoiceSetting['generalSettings'].defaultDigitalStamp = req.body.newPhotos[1];
     }
 
     if (invoiceSetting['generalSettings'].defaultDigitalSignature === 'true' &&
     invoiceSetting['generalSettings'].defaultDigitalStamp === 'false') {
-      invoiceSetting['generalSettings'].defaultDigitalSignature = req.body.newFiles[0];
+      invoiceSetting['generalSettings'].defaultDigitalSignature = req.body.newPhotos[0];
     }
 
     if (invoiceSetting['generalSettings'].defaultDigitalSignature === 'false' &&
     invoiceSetting['generalSettings'].defaultDigitalStamp === 'true') {
-      invoiceSetting['generalSettings'].defaultDigitalStamp = req.body.newFiles[0];
+      invoiceSetting['generalSettings'].defaultDigitalStamp = req.body.newPhotos[0];
     }
   }
   invoiceSetting['generalSettings'] = updatedInvoiceSetting.generalSettings || invoiceSetting['generalSettings'];
@@ -275,6 +278,10 @@ invoiceSettingRoutes.get('/getone/:id/:companyIdParam', requireAuth, requireActi
   const invoiceSetting = await invoiceSettingLean
     // eslint-disable-next-line @typescript-eslint/naming-convention
     .findOne({ _id: id, companyId: queryId })
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    .populate({ path: 'generalSettings.defaultDigitalSignature', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    .populate({ path: 'generalSettings.defaultDigitalStamp', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
     .lean();
   return res.status(200).send(invoiceSetting);
 });
@@ -291,6 +298,10 @@ invoiceSettingRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, 
   const all = await Promise.all([
     invoiceSettingLean
       .find({ companyId: queryId })
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      .populate({ path: 'generalSettings.defaultDigitalSignature', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      .populate({ path: 'generalSettings.defaultDigitalStamp', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
       .skip(offset)
       .limit(limit)
       .lean(),
@@ -369,4 +380,57 @@ invoiceSettingRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActi
   } else {
     return res.status(404).send({ success: Boolean(deleted), err: 'could not delete selected items, try again in a while' });
   }
+});
+
+
+invoiceSettingRoutes.put('/deleteimages/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'delete'), deleteFiles, async(req, res) => {
+  const filesWithDir: IfileMeta[] = req.body.filesWithDir;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  if (filesWithDir && !filesWithDir.length) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
+  const updatedProduct = req.body.item;
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  const { _id } = updatedProduct;
+  const isValid = verifyObjectIds([_id, queryId]);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
+  const invoiceSetting = await invoiceSettingMain
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    .findOneAndUpdate({ _id, companyId: queryId });
+  if (!invoiceSetting) {
+    return res.status(404).send({ success: false, err: 'item not found' });
+  }
+  const filesWithDirIds = filesWithDir.map(val => val._id);
+  if (filesWithDirIds.includes(invoiceSetting.generalSettings.defaultDigitalSignature as unknown as string)) {
+    invoiceSetting.generalSettings.defaultDigitalSignature = '';
+  }
+
+  if (filesWithDirIds.includes(invoiceSetting.generalSettings.defaultDigitalStamp as unknown as string)) {
+    invoiceSetting.generalSettings.defaultDigitalStamp = '';
+  }
+
+  let errResponse: Isuccess;
+  await invoiceSetting.save().catch(err => {
+    errResponse = {
+      success: false,
+      status: 403
+    };
+    if (err && err.errors) {
+      errResponse.err = stringifyMongooseErr(err.errors);
+    } else {
+      errResponse.err = `we are having problems connecting to our databases, 
+      try again in a while`;
+    }
+    return errResponse;
+  });
+
+  if (errResponse) {
+    return res.status(403).send(errResponse);
+  }
+
+  return res.status(200).send({ success: true });
 });

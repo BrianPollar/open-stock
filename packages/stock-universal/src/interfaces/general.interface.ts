@@ -65,6 +65,7 @@ extends IurId {
   displayName: string;
   /** The date of establishment of the company. */
   dateOfEst: string;
+  address: string;
   /** Additional details about the company. */
   details: string;
   /** The format of the company's display name. */

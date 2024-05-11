@@ -1,5 +1,6 @@
-import * as tracer from 'tracer';
 import * as fs from 'fs';
+import path from 'path';
+import * as tracer from 'tracer';
 
 /** Logger for the cookie service */
 const cookieServiceLogger = tracer.colorConsole(
@@ -9,17 +10,19 @@ const cookieServiceLogger = tracer.colorConsole(
     transport(data) {
       // eslint-disable-next-line no-console
       console.log(data.output);
-      const logDir = './openstockLog/';
+      const logDir = path.join(process.cwd() + '/openstockLog/');
       fs.mkdir(logDir, { recursive: true }, (err) => {
         if (err) {
           if (err) {
-            throw err;
+            // eslint-disable-next-line no-console
+            console.log('data.output err ', err);
           }
         }
       });
-      fs.appendFile('./openStockLog/counter-server.log', data.rawoutput + '\n', err => {
+      fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
         if (err) {
-          throw err;
+          // eslint-disable-next-line no-console
+          console.log('raw.output err ', err);
         }
       });
     }

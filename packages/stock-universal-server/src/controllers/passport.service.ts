@@ -1,6 +1,7 @@
 import { Icustomrequest, TroleAuth, TroleAuthProp } from '@open-stock/stock-universal';
-import * as tracer from 'tracer';
 import * as fs from 'fs';
+import path from 'path';
+import * as tracer from 'tracer';
 
 // This vat creates a passportLogger named `controllers/passport`.
 const passportLogger = tracer.colorConsole(
@@ -10,17 +11,19 @@ const passportLogger = tracer.colorConsole(
     transport(data) {
       // eslint-disable-next-line no-console
       console.log(data.output);
-      const logDir = './openstockLog/';
+      const logDir = path.join(process.cwd() + '/openstockLog/');
       fs.mkdir(logDir, { recursive: true }, (err) => {
         if (err) {
           if (err) {
-            throw err;
+            // eslint-disable-next-line no-console
+            console.log('data.output err ', err);
           }
         }
       });
-      fs.appendFile('./openStockLog/universal-server.log', data.rawoutput + '\n', err => {
+      fs.appendFile(logDir + '/universal-server.log', data.rawoutput + '\n', err => {
         if (err) {
-          throw err;
+          // eslint-disable-next-line no-console
+          console.log('raw.output err ', err);
         }
       });
     }

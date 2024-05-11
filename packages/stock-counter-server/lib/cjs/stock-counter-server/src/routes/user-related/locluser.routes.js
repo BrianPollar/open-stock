@@ -6,6 +6,7 @@ const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
 const fs = tslib_1.__importStar(require("fs"));
+const path_1 = tslib_1.__importDefault(require("path"));
 const tracer = tslib_1.__importStar(require("tracer"));
 const invoicerelated_model_1 = require("../../models/printables/related/invoicerelated.model");
 const customer_model_1 = require("../../models/user-related/customer.model");
@@ -65,9 +66,9 @@ const removeManyUsers = async (req, res, next) => {
     if (newIds.length <= 0) {
         return res.status(401).send({ success: false, status: 401, err: 'sorry all users selected are linked' });
     }
-    const newFilesWithDir = req.body.filesWithDir.filter(val => newUserIds.includes(val.id));
+    const newPhotosWithDir = req.body.filesWithDir.filter(val => newUserIds.includes(val.id));
     req.body.ids = newIds;
-    req.body.newFilesWithDir = newFilesWithDir;
+    req.body.newPhotosWithDir = newPhotosWithDir;
     const deleted = await stock_auth_server_1.user
         // eslint-disable-next-line @typescript-eslint/naming-convention
         .deleteMany({ companyId: queryId, _id: { $in: newUserIds } })
@@ -121,17 +122,19 @@ const localUserRoutesLogger = tracer.colorConsole({
     transport(data) {
         // eslint-disable-next-line no-console
         console.log(data.output);
-        const logDir = './openstockLog/';
+        const logDir = path_1.default.join(process.cwd() + '/openstockLog/');
         fs.mkdir(logDir, { recursive: true }, (err) => {
             if (err) {
                 if (err) {
-                    throw err;
+                    // eslint-disable-next-line no-console
+                    console.log('data.output err ', err);
                 }
             }
         });
-        fs.appendFile('./openStockLog/counter-server.log', data.rawoutput + '\n', err => {
+        fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
             if (err) {
-                throw err;
+                // eslint-disable-next-line no-console
+                console.log('raw.output err ', err);
             }
         });
     }

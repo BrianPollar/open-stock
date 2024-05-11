@@ -12,6 +12,7 @@ export class Company extends DatabaseAuto {
   name: string;
   displayName: string;
   dateOfEst: string;
+  address: string;
   details: string;
   businessType: string;
   profilePic: IfileMeta;
@@ -101,7 +102,7 @@ export class Company extends DatabaseAuto {
    * @param files Optional files to upload with the company.
    * @returns A success object indicating whether the company was updated successfully.
    */
-  async updateCompanyBulk(companyId: string, vals: {company: Icompany; user: Partial<Iuser>}, files?: Ifile[]) {
+  async updateCompanyBulk(companyId: string, vals: {company: Partial<Icompany>; user: Partial<Iuser>}, files?: Ifile[]) {
     vals.company._id = this._id;
     let added: Isuccess;
     if (files && files[0]) {

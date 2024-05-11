@@ -1,4 +1,4 @@
-import { TpriceCurrenncy, TitemColor, TitemState } from '../types/union.types';
+import { TitemColor, TitemState, TpriceCurrenncy } from '../types/union.types';
 import { IfileMeta } from './general.interface';
 import { IurId } from './inventory.interface';
 export interface Iitem extends IurId {
@@ -9,6 +9,7 @@ export interface Iitem extends IurId {
     subCategory?: string;
     state?: TitemState;
     photos?: IfileMeta[] | string[];
+    video?: IfileMeta | string;
     colors?: TitemColor[];
     model?: string;
     origin?: string;

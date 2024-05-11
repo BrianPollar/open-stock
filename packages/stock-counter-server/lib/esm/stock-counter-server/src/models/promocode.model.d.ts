@@ -1,5 +1,3 @@
-/// <reference types="mongoose/types/document" />
-/// <reference types="mongoose/types/models" />
 import { ConnectOptions, Document, Model } from 'mongoose';
 /**
  * Represents a promotional code.

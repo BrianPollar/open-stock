@@ -392,7 +392,7 @@ export const subscriptionPackages: IsubscriptionPackage[] = [
     ]
   },
   {
-    name: 'Free Plan',
+    name: 'Trial',
     ammount: 10,
     duration: 1,
     features: [

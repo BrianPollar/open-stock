@@ -3,6 +3,12 @@ import { lastValueFrom } from 'rxjs';
 import { StockCounterClient } from '../../stock-counter-client';
 import { UserBase } from './userbase.define';
 
+interface IgetOneFilter {
+  id?: string;
+  userId?: string;
+  companyId?: string;
+}
+
 /**
  * The  Staff  class extends a base class called  UserBase  (not provided) and adds additional properties such as employmentType and salary.
  * It also provides several static methods for interacting with the server API, including retrieving all staff members, retrieving a single staff member by ID, creating a new staff member, deleting multiple staff members, updating a staff member's information, and deleting a single staff member.
@@ -59,8 +65,8 @@ export class Staff extends UserBase {
    * @param {string} id - The ID of the staff member to retrieve.
    * @returns {Promise<Staff>} - A promise that resolves to a Staff instance.
    */
-  static async getOneStaff(companyId: string, id: string) {
-    const observer$ = StockCounterClient.ehttp.makeGet(`/staff/getone/${id}/${companyId}`);
+  static async getOneStaff(filter: IgetOneFilter) {
+    const observer$ = StockCounterClient.ehttp.makePost('/staff/getone', filter);
     const staff = await lastValueFrom(observer$) as Istaff;
     return new Staff(staff);
   }

@@ -11,6 +11,7 @@ const itemSchema = new Schema({
     subCategory: { type: String },
     state: { type: String },
     photos: [],
+    video: { type: String },
     colors: [],
     model: { type: String },
     origin: { type: String },

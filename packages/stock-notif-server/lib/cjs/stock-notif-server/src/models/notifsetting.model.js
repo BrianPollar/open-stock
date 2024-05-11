@@ -9,6 +9,7 @@ const mongoose_1 = require("mongoose");
 const database_controller_1 = require("../controllers/database.controller");
 /** Schema definition for notification settings */
 const notifSettingSchema = new mongoose_1.Schema({
+    companyId: { type: String },
     invoices: { type: Boolean, default: true },
     payments: { type: Boolean, default: true },
     orders: { type: Boolean, default: true },
@@ -17,6 +18,7 @@ const notifSettingSchema = new mongoose_1.Schema({
 }, { timestamps: true });
 /** Primary selection object for notification settings */
 const notifSettingselect = {
+    companyId: 1,
     invoices: 1,
     payments: 1,
     orders: 1,

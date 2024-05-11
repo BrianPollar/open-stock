@@ -1,4 +1,4 @@
-import { isUniversalServerRunning, runPassport } from '@open-stock/stock-universal-server';
+import { isUniversalServerRunning, runPassport, verifyObjectId } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { constructMailService } from './controllers/notifications.controller';
 import { createTwilioService, makeAuthyTwilio } from './controllers/twilio.controller';
@@ -38,8 +38,12 @@ export const runStockNotificationServer = async (config) => {
  * Retrieves the current notification settings.
  * @returns {Promise<TnotifSetting>} A promise that resolves to the current notification settings.
  */
-export const getCurrentNotificationSettings = async () => {
-    const stn = await notifSettingMain.findOne({}).lean();
+export const getCurrentNotificationSettings = async (companyId) => {
+    const isValid = verifyObjectId(companyId);
+    if (!isValid) {
+        return {};
+    }
+    const stn = await notifSettingMain.findOne({ companyId }).lean();
     return stn;
 };
 /**

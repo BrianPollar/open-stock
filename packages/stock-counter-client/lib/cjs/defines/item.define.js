@@ -31,9 +31,9 @@ class Item extends stock_universal_1.DatabaseAuto {
      * @param extraFilters Additional filters.
      * @returns An array of items that match the search criteria.
      */
-    static async searchItems(companyId, searchterm, searchKey, extraFilters, category = 'all', subCategory, offset = 0, limit = 20) {
+    static async searchItems(companyId, searchterm, searchKey, extraFilters, category = 'all', subCategory, offset = 0, limit = 20, ecomerceCompat = 'false') {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makePost(`/item/search/${offset}/${limit}/${companyId}`, { searchterm, searchKey, category, extraFilters, subCategory });
+            .makePost(`/item/search/${offset}/${limit}/${companyId}`, { searchterm, searchKey, category, extraFilters, subCategory, ecomerceCompat });
         const items = await (0, rxjs_1.lastValueFrom)(observer$);
         return {
             count: items.count,
@@ -49,9 +49,9 @@ class Item extends stock_universal_1.DatabaseAuto {
      * @param limit The maximum number of items to get.
      * @returns An array of items.
      */
-    static async getItems(companyId, url, offset = 0, limit = 20) {
+    static async getItems(companyId, url, offset = 0, limit = 20, ecomerceCompat = 'false') {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makeGet(`${url}/${offset}/${limit}/${companyId}`);
+            .makeGet(`${url}/${offset}/${limit}/${companyId}/${ecomerceCompat}`);
         const items = await (0, rxjs_1.lastValueFrom)(observer$);
         return {
             count: items.count,
@@ -79,19 +79,19 @@ class Item extends stock_universal_1.DatabaseAuto {
      * @param inventoryStock Whether the item is in inventory stock.
      * @returns The success status of adding the item.
      */
-    static async addItem(companyId, vals, files, inventoryStock = false) {
+    static async addItem(companyId, vals, files, ecomerceCompat = false) {
         let added;
         const details = {
             item: vals
         };
-        if (!inventoryStock) {
+        if (ecomerceCompat) {
             const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-                .uploadFiles(files, `/item/create/${companyId}`, details);
+                .uploadFiles(files, `/item/createimg/${companyId}`, details);
             added = await (0, rxjs_1.lastValueFrom)(observer$);
         }
         else {
             const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-                .makePost(`/invitem/create/${companyId}`, details);
+                .makePost(`/item/create/${companyId}`, details);
             added = await (0, rxjs_1.lastValueFrom)(observer$);
         }
         return added;
@@ -256,14 +256,17 @@ class Item extends stock_universal_1.DatabaseAuto {
      * @param filesWithDir - An array of file metadata objects.
      * @returns A promise that resolves to the success status of the deletion.
      */
-    async deleteImages(companyId, filesWithDir) {
+    async deleteFiles(companyId, filesWithDir) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
             // eslint-disable-next-line @typescript-eslint/naming-convention
-            .makePut(`/item/deleteimages/${companyId}`, { filesWithDir, item: { _id: this._id } });
+            .makePut(`/item/deletefiles/${companyId}`, { filesWithDir, item: { _id: this._id } });
         const deleted = await (0, rxjs_1.lastValueFrom)(observer$);
         // eslint-disable-next-line @typescript-eslint/no-unsafe-return
         const toStrings = filesWithDir.map(val => val._id);
         this.photos = this.photos.filter(val => !toStrings.includes(val._id));
+        if (this.video && toStrings.includes(this.video._id)) {
+            this.video = null;
+        }
         return deleted;
     }
     /**
@@ -296,6 +299,7 @@ class Item extends stock_universal_1.DatabaseAuto {
         this.category = data.category || this.category;
         this.state = data.state || this.state;
         this.photos = data.photos || this.photos;
+        this.video = data.video || this.video;
         this.colors = data.colors || this.colors;
         this.model = data.model || this.model;
         this.origin = data.origin || this.origin;

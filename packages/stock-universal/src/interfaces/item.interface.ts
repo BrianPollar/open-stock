@@ -1,5 +1,6 @@
 import {
-  TpriceCurrenncy, TitemColor, TitemState
+  TitemColor, TitemState,
+  TpriceCurrenncy
 } from '../types/union.types';
 import { IfileMeta } from './general.interface';
 import { IurId } from './inventory.interface';
@@ -23,6 +24,7 @@ export interface Iitem
   state?: TitemState; // new or refurbished
   // The `photos` property is an array of photos of the item.
   photos?: IfileMeta[] | string[];
+  video?: IfileMeta | string;
   // The `colors` property is an array of colors that the item is available in.
   colors?: TitemColor[];
   // The `model` property is the model number of the item.

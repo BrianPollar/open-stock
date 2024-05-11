@@ -15,6 +15,7 @@ exports.companySchema = new mongoose_1.Schema({
     left: { type: Boolean, default: false },
     dateLeft: { type: Date },
     details: { type: String },
+    address: { type: String },
     companyDispNameFormat: { type: String },
     businessType: { type: String },
     profilePic: { type: String },

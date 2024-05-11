@@ -12,6 +12,7 @@ export const companySchema = new Schema({
     left: { type: Boolean, default: false },
     dateLeft: { type: Date },
     details: { type: String },
+    address: { type: String },
     companyDispNameFormat: { type: String },
     businessType: { type: String },
     profilePic: { type: String },

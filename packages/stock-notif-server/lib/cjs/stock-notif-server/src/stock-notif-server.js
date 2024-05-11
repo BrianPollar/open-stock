@@ -44,8 +44,12 @@ exports.runStockNotificationServer = runStockNotificationServer;
  * Retrieves the current notification settings.
  * @returns {Promise<TnotifSetting>} A promise that resolves to the current notification settings.
  */
-const getCurrentNotificationSettings = async () => {
-    const stn = await notifsetting_model_1.notifSettingMain.findOne({}).lean();
+const getCurrentNotificationSettings = async (companyId) => {
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(companyId);
+    if (!isValid) {
+        return {};
+    }
+    const stn = await notifsetting_model_1.notifSettingMain.findOne({ companyId }).lean();
     return stn;
 };
 exports.getCurrentNotificationSettings = getCurrentNotificationSettings;

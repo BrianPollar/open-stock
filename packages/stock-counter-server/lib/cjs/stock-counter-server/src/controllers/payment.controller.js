@@ -7,6 +7,8 @@ const tslib_1 = require("tslib");
 const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const stock_notif_server_1 = require("@open-stock/stock-notif-server");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
+const fs = tslib_1.__importStar(require("fs"));
+const path_1 = tslib_1.__importDefault(require("path"));
 const tracer = tslib_1.__importStar(require("tracer"));
 const order_model_1 = require("../models/order.model");
 const payment_model_1 = require("../models/payment.model");
@@ -15,7 +17,6 @@ const promocode_model_1 = require("../models/promocode.model");
 const paymentrelated_1 = require("../routes/paymentrelated/paymentrelated");
 const invoice_routes_1 = require("../routes/printables/invoice.routes");
 const stock_counter_server_1 = require("../stock-counter-server");
-const fs = tslib_1.__importStar(require("fs"));
 /** Logger for the payment controller */
 const paymentControllerLogger = tracer.colorConsole({
     format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
@@ -23,17 +24,19 @@ const paymentControllerLogger = tracer.colorConsole({
     transport(data) {
         // eslint-disable-next-line no-console
         console.log(data.output);
-        const logDir = './openstockLog/';
+        const logDir = path_1.default.join(process.cwd() + '/openstockLog/');
         fs.mkdir(logDir, { recursive: true }, (err) => {
             if (err) {
                 if (err) {
-                    throw err;
+                    // eslint-disable-next-line no-console
+                    console.log('data.output err ', err);
                 }
             }
         });
-        fs.appendFile('./openStockLog/counter-server.log', data.rawoutput + '\n', err => {
+        fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
             if (err) {
-                throw err;
+                // eslint-disable-next-line no-console
+                console.log('raw.output err ', err);
             }
         });
     }
@@ -144,13 +147,13 @@ const addOrder = async (paymentRelated, invoiceRelated, order, userId, companyId
         }
     ];
     const body = {
-        options: (0, stock_notif_server_1.makeNotfnBody)(userId, title, notifnBody, 'orders', actions, withId._id),
+        notification: (0, stock_notif_server_1.makeNotfnBody)(userId, title, notifnBody, 'orders', actions, withId._id),
         filters: {
             orders: true
         }
     };
-    body.options.orders = true;
-    // await createNotifications(body);
+    // body.options.orders = true; // TODO
+    await (0, stock_notif_server_1.createNotifications)(body);
     // eslint-disable-next-line @typescript-eslint/naming-convention
     return { success: true, status: 200, _id: withId._id, paymentRelated: (order).paymentRelated, invoiceRelated: invoiceRelatedId };
 };
@@ -196,13 +199,13 @@ const addPayment = async (payment, userId, paid = false) => {
             }
         ];
         const body = {
-            options: (0, stock_notif_server_1.makeNotfnBody)(userId, title, notifnBody, 'payments', actions, withId._id),
+            notification: (0, stock_notif_server_1.makeNotfnBody)(userId, title, notifnBody, 'payments', actions, withId._id),
             filters: {
                 orders: true
             }
         };
-        body.options.payments = true;
-        // await createNotifications(body);
+        // body.notification.payments = true; // TODO
+        await (0, stock_notif_server_1.createNotifications)(body);
     }
     return true;
 };

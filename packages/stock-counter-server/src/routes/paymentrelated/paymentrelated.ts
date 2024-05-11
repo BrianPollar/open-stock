@@ -1,25 +1,29 @@
 import { user } from '@open-stock/stock-auth-server';
-import { getCurrentNotificationSettings } from '@open-stock/stock-notif-server';
+import { createNotifications, getCurrentNotificationSettings } from '@open-stock/stock-notif-server';
 import {
-    IinvoiceRelated,
-    IpaymentRelated,
-    Ireceipt,
-    Isuccess,
-    Iuser,
-    TpaymentRelatedType
+  Iactionwithall,
+  IinvoiceRelated,
+  Imainnotification,
+  IpaymentRelated,
+  Ireceipt,
+  Isuccess,
+  Iuser,
+  TnotifType,
+  TpaymentRelatedType
 } from '@open-stock/stock-universal';
 import { makeUrId, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import * as fs from 'fs';
+import path from 'path';
 import * as tracer from 'tracer';
 import { orderMain } from '../../models/order.model';
 import { paymentMain } from '../../models/payment.model';
 import { paymentRelatedLean, paymentRelatedMain } from '../../models/printables/paymentrelated/paymentrelated.model';
 import { receiptMain } from '../../models/printables/receipt.model';
 import {
-    deleteManyInvoiceRelated,
-    makeInvoiceRelatedPdct,
-    updateInvoiceRelatedPayments
+  deleteManyInvoiceRelated,
+  makeInvoiceRelatedPdct,
+  updateInvoiceRelatedPayments
 } from '../printables/related/invoicerelated';
-import * as fs from 'fs';
 
 /** Logger for PaymentRelated routes */
 const paymentRelatedLogger = tracer.colorConsole(
@@ -29,17 +33,19 @@ const paymentRelatedLogger = tracer.colorConsole(
     transport(data) {
       // eslint-disable-next-line no-console
       console.log(data.output);
-      const logDir = './openstockLog/';
+      const logDir = path.join(process.cwd() + '/openstockLog/');
       fs.mkdir(logDir, { recursive: true }, (err) => {
         if (err) {
           if (err) {
-            throw err;
+            // eslint-disable-next-line no-console
+            console.log('data.output err ', err);
           }
         }
       });
-      fs.appendFile('./openStockLog/counter-server.log', data.rawoutput + '\n', err => {
+      fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
         if (err) {
-          throw err;
+          // eslint-disable-next-line no-console
+          console.log('raw.output err ', err);
         }
       });
     }
@@ -159,34 +165,35 @@ export const relegatePaymentRelatedCreation = async(
 
     // const relatedId = await relegateInvRelatedCreation(invoiceRelated, extraNotifDesc, true);
 
-    // let route: string;
-    // let title = '';
+    let route: string;
+    let title = '';
     let accessor: string;
-    // let notifType: TnotifType;
+    let notifType: TnotifType;
 
     if (type === 'order') {
-      // route = 'orders';
-      // title = 'Order Made';
+      route = 'orders';
+      title = 'Order Made';
       accessor = 'orders';
-      // notifType = 'orders';
+      notifType = 'orders';
     } else {
-      // route = 'payments';
-      // title = 'Payment Made';
+      route = 'payments';
+      title = 'Payment Made';
       accessor = 'payments';
-      // notifType = 'payments';
+      notifType = 'payments';
     }
 
-    const stn = await getCurrentNotificationSettings();
+    const stn = await getCurrentNotificationSettings(queryId);
 
     if (stn && stn[accessor]) {
-      /* const actions: Iactionwithall[] = [{
+      const actions: Iactionwithall[] = [{
         operation: 'view',
-        url: pesapalNotifRedirectUrl + route,
+        // url: pesapalNotifRedirectUrl + route,
+        url: route,
         action: '',
         title
-      }];*/
+      }];
 
-      /* const notification: Imainnotification = {
+      const notification: Imainnotification = {
         actions,
         userId: invoiceRelated.billingUserId,
         title,
@@ -195,7 +202,7 @@ export const relegatePaymentRelatedCreation = async(
         notifType,
         // photo: string;
         expireAt: '200000'
-      };*/
+      };
 
       const capableUsers = await user.find({})
         .lean().select({ permissions: 1 });
@@ -215,11 +222,11 @@ export const relegatePaymentRelatedCreation = async(
         }
       }
 
-      // const notifFilters = { id: { $in: ids } };
-      /* await createNotifications({
-        options: notification,
+      const notifFilters = { id: { $in: ids } };
+      await createNotifications({
+        notification,
         filters: notifFilters
-      });*/
+      });
     }
     // eslint-disable-next-line @typescript-eslint/naming-convention
     return { success: true, status: 200, id: (saved as {_id: string})._id };

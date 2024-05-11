@@ -2,10 +2,11 @@
 import { requireActiveCompany } from '@open-stock/stock-auth-server';
 import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
+import * as fs from 'fs';
+import path from 'path';
 import * as tracer from 'tracer';
 import { expenseLean } from '../../../models/expense.model';
 import { expenseReportLean, expenseReportMain } from '../../../models/printables/report/expenesreport.model';
-import * as fs from 'fs';
 /** Logger for expense report routes */
 const expenseReportRoutesLogger = tracer.colorConsole({
     format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
@@ -13,17 +14,19 @@ const expenseReportRoutesLogger = tracer.colorConsole({
     transport(data) {
         // eslint-disable-next-line no-console
         console.log(data.output);
-        const logDir = './openstockLog/';
+        const logDir = path.join(process.cwd() + '/openstockLog/');
         fs.mkdir(logDir, { recursive: true }, (err) => {
             if (err) {
                 if (err) {
-                    throw err;
+                    // eslint-disable-next-line no-console
+                    console.log('data.output err ', err);
                 }
             }
         });
-        fs.appendFile('./openStockLog/counter-server.log', data.rawoutput + '\n', err => {
+        fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
             if (err) {
-                throw err;
+                // eslint-disable-next-line no-console
+                console.log('raw.output err ', err);
             }
         });
     }

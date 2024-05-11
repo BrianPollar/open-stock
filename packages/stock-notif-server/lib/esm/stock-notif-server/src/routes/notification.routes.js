@@ -1,6 +1,6 @@
 import { offsetLimitRelegator, requireAuth, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
-import { updateNotifnViewed } from '../controllers/notifications.controller';
+import { createNotifStn, updateNotifnViewed } from '../controllers/notifications.controller';
 import { mainnotificationLean, mainnotificationMain } from '../models/mainnotification.model';
 import { notifSettingLean, notifSettingMain } from '../models/notifsetting.model';
 import { subscriptionLean, subscriptionMain } from '../models/subscriptions.model';
@@ -221,26 +221,8 @@ notifnRoutes.post('/createstn/:companyIdParam', async (req, res) => {
     const { stn } = req.body;
     const { companyIdParam } = req.params;
     stn.companyId = companyIdParam;
-    const notifMain = new notifSettingMain(stn);
-    let errResponse;
-    await notifMain.save().catch(err => {
-        errResponse = {
-            success: false,
-            status: 403
-        };
-        if (err && err.errors) {
-            errResponse.err = stringifyMongooseErr(err.errors);
-        }
-        else {
-            errResponse.err = `we are having problems connecting to our databases, 
-      try again in a while`;
-        }
-        return errResponse;
-    });
-    if (errResponse) {
-        return res.status(403).send(errResponse);
-    }
-    return res.status(200).send({ success: true });
+    const response = await createNotifStn(stn);
+    return res.status(response.status).send({ success: response.success });
 });
 notifnRoutes.put('/updatestn', async (req, res) => {
     const { stn } = req.body;

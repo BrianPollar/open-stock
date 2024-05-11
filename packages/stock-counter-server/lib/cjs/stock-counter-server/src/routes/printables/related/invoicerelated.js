@@ -5,13 +5,14 @@ const tslib_1 = require("tslib");
 const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const stock_notif_server_1 = require("@open-stock/stock-notif-server");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
+const fs = tslib_1.__importStar(require("fs"));
+const path_1 = tslib_1.__importDefault(require("path"));
 const tracer = tslib_1.__importStar(require("tracer"));
 const deliverynote_model_1 = require("../../../models/printables/deliverynote.model");
 const estimate_model_1 = require("../../../models/printables/estimate.model");
 const invoice_model_1 = require("../../../models/printables/invoice.model");
 const receipt_model_1 = require("../../../models/printables/receipt.model");
 const invoicerelated_model_1 = require("../../../models/printables/related/invoicerelated.model");
-const fs = tslib_1.__importStar(require("fs"));
 // import { pesapalNotifRedirectUrl } from '../../../stock-counter-local';
 /**
  * Logger for the 'InvoiceRelated' routes.
@@ -22,17 +23,19 @@ const invoiceRelatedLogger = tracer.colorConsole({
     transport(data) {
         // eslint-disable-next-line no-console
         console.log(data.output);
-        const logDir = './openstockLog/';
+        const logDir = path_1.default.join(process.cwd() + '/openstockLog/');
         fs.mkdir(logDir, { recursive: true }, (err) => {
             if (err) {
                 if (err) {
-                    throw err;
+                    // eslint-disable-next-line no-console
+                    console.log('data.output err ', err);
                 }
             }
         });
-        fs.appendFile('./openStockLog/counter-server.log', data.rawoutput + '\n', err => {
+        fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
             if (err) {
-                throw err;
+                // eslint-disable-next-line no-console
+                console.log('raw.output err ', err);
             }
         });
     }
@@ -189,50 +192,50 @@ const relegateInvRelatedCreation = async (invoiceRelated, queryId, extraNotifDes
             return errResponse;
         }
         invoiceRelatedLogger.error('AFTER SAVE');
-        /* let route: string;
+        let route;
         let title = '';
-        let notifType: TnotifType;*/
-        const stn = await (0, stock_notif_server_1.getCurrentNotificationSettings)();
+        let notifType;
+        const stn = await (0, stock_notif_server_1.getCurrentNotificationSettings)(queryId);
         if (!bypassNotif && stn?.invoices) {
-            /* switch (invoiceRelated.stage) {
-              case 'estimate':
-                route = 'estimates';
-                title = 'New Estimate';
-                notifType = 'invoices';
-                break;
-              case 'invoice':
-                route = 'invoices';
-                title = 'New Invoice';
-                notifType = 'invoices';
-                break;
-              case 'deliverynote':
-                route = 'deliverynotes';
-                title = 'New Delivery Note';
-                notifType = 'invoices';
-                break;
-              case 'receipt':
-                route = 'receipt';
-                title = 'New Reciept';
-                notifType = 'invoices';
-                break;
-            }*/
-            /* const actions: Iactionwithall[] = [{
-              operation: 'view',
-              url: pesapalNotifRedirectUrl + route,
-              action: '',
-              title
-            }];*
-      
-            /* const notification: Imainnotification = {
-              actions,
-              userId: invoiceRelated.billingUserId,
-              title,
-              body: extraNotifDesc,
-              icon: '',
-              notifType,
-              // photo: string;
-              expireAt: '200000'
-            };*/
+            switch (invoiceRelated.stage) {
+                case 'estimate':
+                    route = 'estimates';
+                    title = 'New Estimate';
+                    notifType = 'invoices';
+                    break;
+                case 'invoice':
+                    route = 'invoices';
+                    title = 'New Invoice';
+                    notifType = 'invoices';
+                    break;
+                case 'deliverynote':
+                    route = 'deliverynotes';
+                    title = 'New Delivery Note';
+                    notifType = 'invoices';
+                    break;
+                case 'receipt':
+                    route = 'receipt';
+                    title = 'New Reciept';
+                    notifType = 'invoices';
+                    break;
+            }
+            const actions = [{
+                    operation: 'view',
+                    // url: pesapalNotifRedirectUrl + route,
+                    url: route,
+                    action: '',
+                    title
+                }];
+            const notification = {
+                actions,
+                userId: invoiceRelated.billingUserId,
+                title,
+                body: extraNotifDesc,
+                icon: '',
+                notifType,
+                // photo: string;
+                expireAt: '200000'
+            };
             const capableUsers = await stock_auth_server_1.user.find({})
                 .lean().select({ permissions: 1 });
             const ids = [];
@@ -241,11 +244,11 @@ const relegateInvRelatedCreation = async (invoiceRelated, queryId, extraNotifDes
                     ids.push(cuser._id);
                 }
             }
-            // const notifFilters = { id: { $in: ids } };
-            /* await createNotifications({
-              options: notification,
-              filters: notifFilters
-            });*/
+            const notifFilters = { id: { $in: ids } };
+            await (0, stock_notif_server_1.createNotifications)({
+                notification,
+                filters: notifFilters
+            });
         }
         // eslint-disable-next-line @typescript-eslint/naming-convention
         return { success: true, id: saved._id };
@@ -266,14 +269,14 @@ exports.relegateInvRelatedCreation = relegateInvRelatedCreation;
  * @returns The created invoice related product.
  */
 const makeInvoiceRelatedPdct = (invoiceRelated, user, createdAt, extras = {}) => {
-    let names = user.salutation + ' ' + user.fname + ' ' + user.lname;
+    let names = user.salutation ? user.salutation + ' ' + user.fname + ' ' + user.lname : user.fname + ' ' + user.lname;
     if (user.userDispNameFormat) {
         switch (user.userDispNameFormat) {
             case 'firstLast':
-                names = user.salutation + ' ' + user.fname + ' ' + user.lname;
+                names = user.salutation ? user.salutation + ' ' + user.fname + ' ' + user.lname : user.fname + ' ' + user.lname;
                 break;
             case 'lastFirst':
-                names = user.salutation + ' ' + user.lname + ' ' + user.fname;
+                names = user.salutation ? user.salutation + ' ' + user.lname + ' ' + user.fname : user.lname + ' ' + user.fname;
                 break;
             case 'companyName':
                 names = user.companyName;

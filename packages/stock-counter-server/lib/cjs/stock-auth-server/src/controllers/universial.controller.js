@@ -14,6 +14,7 @@ const stock_notif_server_1 = require("@open-stock/stock-notif-server");
 const stock_universal_1 = require("@open-stock/stock-universal");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const jwt = tslib_1.__importStar(require("jsonwebtoken"));
+const path_1 = tslib_1.__importDefault(require("path"));
 const emailtoken_model_1 = require("../models/emailtoken.model");
 const universialControllerLogger = tracer.colorConsole({
     format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
@@ -21,17 +22,19 @@ const universialControllerLogger = tracer.colorConsole({
     transport(data) {
         // eslint-disable-next-line no-console
         console.log(data.output);
-        const logDir = './openstockLog/';
+        const logDir = path_1.default.join(process.cwd() + '/openstockLog/');
         fs.mkdir(logDir, { recursive: true }, (err) => {
             if (err) {
                 if (err) {
-                    throw err;
+                    // eslint-disable-next-line no-console
+                    console.log('data.output err ', err);
                 }
             }
         });
-        fs.appendFile('./openStockLog/auth-server.log', data.rawoutput + '\n', err => {
+        fs.appendFile(logDir + '/auth-server.log', data.rawoutput + '\n', err => {
             if (err) {
-                throw err;
+                // eslint-disable-next-line no-console
+                console.log('raw.output err ', err);
             }
         });
     }
@@ -342,6 +345,8 @@ enableValidationSMS = '1' // twilio enable sms validation
         response = {
             status: 200,
             success: true,
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            _id: foundUser._id,
             msg: 'Account created (SMS validation disabled)'
         };
         resolve(response);
@@ -561,6 +566,8 @@ height: 100%;
             universialControllerLogger.info('message sent', res);
             response = {
                 status: 200,
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                _id: foundUser._id,
                 success: true,
                 msg: `Check ${foundUser.email} for verication code`,
                 type

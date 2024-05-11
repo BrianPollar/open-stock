@@ -1,4 +1,4 @@
-import { isUniversalServerRunning, runPassport } from '@open-stock/stock-universal-server';
+import { isUniversalServerRunning, runPassport, verifyObjectId } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { ConnectOptions } from 'mongoose';
 import { constructMailService } from './controllers/notifications.controller';
@@ -52,8 +52,12 @@ export const runStockNotificationServer = async(config: IstockNotifServerConfig)
  * Retrieves the current notification settings.
  * @returns {Promise<TnotifSetting>} A promise that resolves to the current notification settings.
  */
-export const getCurrentNotificationSettings = async() => {
-  const stn = await notifSettingMain.findOne({}).lean();
+export const getCurrentNotificationSettings = async(companyId: string) => {
+  const isValid = verifyObjectId(companyId);
+  if (!isValid) {
+    return { };
+  }
+  const stn = await notifSettingMain.findOne({ companyId }).lean();
   return stn;
 };
 

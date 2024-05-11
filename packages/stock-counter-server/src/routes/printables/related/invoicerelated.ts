@@ -1,24 +1,28 @@
 import { user } from '@open-stock/stock-auth-server';
-import { getCurrentNotificationSettings } from '@open-stock/stock-notif-server';
+import { createNotifications, getCurrentNotificationSettings } from '@open-stock/stock-notif-server';
 import {
-    // Iactionwithall,
-    IinvoiceRelated,
-    Iitem,
-    Ireceipt,
-    Isuccess,
-    Iuser,
-    TestimateStage,
-    TinvoiceType
-    // TnotifType
+  Iactionwithall,
+  // Iactionwithall,
+  IinvoiceRelated,
+  Iitem,
+  Imainnotification,
+  Ireceipt,
+  Isuccess,
+  Iuser,
+  TestimateStage,
+  TinvoiceType,
+  // TnotifType
+  TnotifType
 } from '@open-stock/stock-universal';
 import { stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import * as fs from 'fs';
+import path from 'path';
 import * as tracer from 'tracer';
 import { deliveryNoteLean, deliveryNoteMain } from '../../../models/printables/deliverynote.model';
 import { estimateLean, estimateMain } from '../../../models/printables/estimate.model';
 import { invoiceLean, invoiceMain } from '../../../models/printables/invoice.model';
 import { receiptMain } from '../../../models/printables/receipt.model';
 import { invoiceRelatedLean, invoiceRelatedMain } from '../../../models/printables/related/invoicerelated.model';
-import * as fs from 'fs';
 // import { pesapalNotifRedirectUrl } from '../../../stock-counter-local';
 
 /**
@@ -31,17 +35,19 @@ const invoiceRelatedLogger = tracer.colorConsole(
     transport(data) {
       // eslint-disable-next-line no-console
       console.log(data.output);
-      const logDir = './openstockLog/';
+      const logDir = path.join(process.cwd() + '/openstockLog/');
       fs.mkdir(logDir, { recursive: true }, (err) => {
         if (err) {
           if (err) {
-            throw err;
+            // eslint-disable-next-line no-console
+            console.log('data.output err ', err);
           }
         }
       });
-      fs.appendFile('./openStockLog/counter-server.log', data.rawoutput + '\n', err => {
+      fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
         if (err) {
-          throw err;
+          // eslint-disable-next-line no-console
+          console.log('raw.output err ', err);
         }
       });
     }
@@ -210,13 +216,13 @@ export const relegateInvRelatedCreation = async(
 
     invoiceRelatedLogger.error('AFTER SAVE');
 
-    /* let route: string;
+    let route: string;
     let title = '';
-    let notifType: TnotifType;*/
-    const stn = await getCurrentNotificationSettings();
+    let notifType: TnotifType;
+    const stn = await getCurrentNotificationSettings(queryId) as any;
 
     if (!bypassNotif && stn?.invoices) {
-      /* switch (invoiceRelated.stage) {
+      switch (invoiceRelated.stage) {
         case 'estimate':
           route = 'estimates';
           title = 'New Estimate';
@@ -237,15 +243,16 @@ export const relegateInvRelatedCreation = async(
           title = 'New Reciept';
           notifType = 'invoices';
           break;
-      }*/
-      /* const actions: Iactionwithall[] = [{
+      }
+      const actions: Iactionwithall[] = [{
         operation: 'view',
-        url: pesapalNotifRedirectUrl + route,
+        // url: pesapalNotifRedirectUrl + route,
+        url: route,
         action: '',
         title
-      }];*
+      }];
 
-      /* const notification: Imainnotification = {
+      const notification: Imainnotification = {
         actions,
         userId: invoiceRelated.billingUserId,
         title,
@@ -254,7 +261,7 @@ export const relegateInvRelatedCreation = async(
         notifType,
         // photo: string;
         expireAt: '200000'
-      };*/
+      };
 
       const capableUsers = await user.find({})
         .lean().select({ permissions: 1 });
@@ -266,11 +273,11 @@ export const relegateInvRelatedCreation = async(
         }
       }
 
-      // const notifFilters = { id: { $in: ids } };
-      /* await createNotifications({
-        options: notification,
+      const notifFilters = { id: { $in: ids } };
+      await createNotifications({
+        notification,
         filters: notifFilters
-      });*/
+      });
     }
 
     // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -292,14 +299,14 @@ export const relegateInvRelatedCreation = async(
  * @returns The created invoice related product.
  */
 export const makeInvoiceRelatedPdct = (invoiceRelated: Required<IinvoiceRelated>, user: Iuser, createdAt?: Date, extras = {}) => {
-  let names = user.salutation + ' ' + user.fname + ' ' + user.lname;
+  let names = user.salutation ? user.salutation + ' ' + user.fname + ' ' + user.lname : user.fname + ' ' + user.lname;
   if (user.userDispNameFormat) {
     switch (user.userDispNameFormat) {
       case 'firstLast':
-        names = user.salutation + ' ' + user.fname + ' ' + user.lname;
+        names = user.salutation ? user.salutation + ' ' + user.fname + ' ' + user.lname : user.fname + ' ' + user.lname;
         break;
       case 'lastFirst':
-        names = user.salutation + ' ' + user.lname + ' ' + user.fname;
+        names = user.salutation ? user.salutation + ' ' + user.lname + ' ' + user.fname : user.lname + ' ' + user.fname;
         break;
       case 'companyName':
         names = user.companyName;

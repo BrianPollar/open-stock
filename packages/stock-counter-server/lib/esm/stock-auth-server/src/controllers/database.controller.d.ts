@@ -1,4 +1,3 @@
-/// <reference types="mongoose/types/connection" />
 import { ConnectOptions, Connection } from 'mongoose';
 /** The  mainConnection  and  mainConnectionLean  variables are used to store the main connections to the database*/
 export declare let mainConnection: Connection;

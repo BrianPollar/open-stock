@@ -1,4 +1,3 @@
-/// <reference types="mongoose/types/connection" />
 import { ConnectOptions, Connection } from 'mongoose';
 export declare let mainConnection: Connection;
 export declare let mainConnectionLean: Connection;

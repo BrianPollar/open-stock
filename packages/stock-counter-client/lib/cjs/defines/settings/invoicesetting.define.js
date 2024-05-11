@@ -120,6 +120,28 @@ class InvoiceSettings extends stock_universal_1.DatabaseAuto {
         }
         return added;
     }
+    /**
+     * Deletes images associated with an item.
+     * @param companyId - The ID of the company.
+     * @param filesWithDir - An array of file metadata objects.
+     * @returns A promise that resolves to the success status of the deletion.
+     */
+    async deleteImages(companyId, where, filesWithDir) {
+        const observer$ = stock_counter_client_1.StockCounterClient.ehttp
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            .makePut(`/invoicesettings/deleteimages/${companyId}`, { filesWithDir, item: { _id: this._id } });
+        const deleted = await (0, rxjs_1.lastValueFrom)(observer$);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+        if (deleted.success) {
+            if (where === 'signature') {
+                this.generalSettings.defaultDigitalSignature = null;
+            }
+            else {
+                this.generalSettings.defaultDigitalStamp = null;
+            }
+        }
+        return deleted;
+    }
 }
 exports.InvoiceSettings = InvoiceSettings;
 //# sourceMappingURL=invoicesetting.define.js.map

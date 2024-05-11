@@ -1,3 +1,4 @@
+import { IfileMeta } from '@open-stock/stock-universal';
 /**
  * Uploads files from the request to the server.
  * @param {Object} req - The request object.
@@ -26,6 +27,7 @@ export declare const saveMetaToDb: (req: any, res: any, next: any) => Promise<an
  * @param next - The next middleware function.
  */
 export declare const updateFiles: (req: any, res: any, next: any) => void;
+export declare const deleteAllFiles: (filesWithDir: IfileMeta[]) => Promise<boolean>;
 /**
  * Deletes files from the server.
  * @param req - The request object.

@@ -225,26 +225,8 @@ exports.notifnRoutes.post('/createstn/:companyIdParam', async (req, res) => {
     const { stn } = req.body;
     const { companyIdParam } = req.params;
     stn.companyId = companyIdParam;
-    const notifMain = new notifsetting_model_1.notifSettingMain(stn);
-    let errResponse;
-    await notifMain.save().catch(err => {
-        errResponse = {
-            success: false,
-            status: 403
-        };
-        if (err && err.errors) {
-            errResponse.err = (0, stock_universal_server_1.stringifyMongooseErr)(err.errors);
-        }
-        else {
-            errResponse.err = `we are having problems connecting to our databases, 
-      try again in a while`;
-        }
-        return errResponse;
-    });
-    if (errResponse) {
-        return res.status(403).send(errResponse);
-    }
-    return res.status(200).send({ success: true });
+    const response = await (0, notifications_controller_1.createNotifStn)(stn);
+    return res.status(response.status).send({ success: response.success });
 });
 exports.notifnRoutes.put('/updatestn', async (req, res) => {
     const { stn } = req.body;

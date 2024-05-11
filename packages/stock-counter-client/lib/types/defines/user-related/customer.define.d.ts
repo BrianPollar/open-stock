@@ -1,5 +1,10 @@
 import { Iaddress, Icustomer, IdeleteCredentialsLocalUser, Ifile, IfileMeta, Isuccess, Iuser } from '@open-stock/stock-universal';
 import { UserBase } from './userbase.define';
+interface IgetOneFilter {
+    id?: string;
+    userId?: string;
+    companyId?: string;
+}
 /**
  * Represents a customer entity.
  * @extends UserBase
@@ -31,7 +36,7 @@ export declare class Customer extends UserBase {
      * @param {string} id - The customer ID.
      * @returns {Promise<Customer>} - A single Customer instance created from the retrieved customer data.
      */
-    static getOneCustomer(companyId: string, id: string): Promise<Customer>;
+    static getOneCustomer(filter: IgetOneFilter): Promise<Customer>;
     /**
      * Creates a new customer.
      * @static
@@ -71,3 +76,4 @@ export declare class Customer extends UserBase {
      */
     deleteCustomer(companyId: string, credential: IdeleteCredentialsLocalUser, filesWithDir: IfileMeta[]): Promise<Isuccess>;
 }
+export {};

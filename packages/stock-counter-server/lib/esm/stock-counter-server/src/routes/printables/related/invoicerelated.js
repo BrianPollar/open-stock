@@ -1,13 +1,14 @@
 import { user } from '@open-stock/stock-auth-server';
-import { getCurrentNotificationSettings } from '@open-stock/stock-notif-server';
+import { createNotifications, getCurrentNotificationSettings } from '@open-stock/stock-notif-server';
 import { stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import * as fs from 'fs';
+import path from 'path';
 import * as tracer from 'tracer';
 import { deliveryNoteLean, deliveryNoteMain } from '../../../models/printables/deliverynote.model';
 import { estimateLean, estimateMain } from '../../../models/printables/estimate.model';
 import { invoiceLean, invoiceMain } from '../../../models/printables/invoice.model';
 import { receiptMain } from '../../../models/printables/receipt.model';
 import { invoiceRelatedLean, invoiceRelatedMain } from '../../../models/printables/related/invoicerelated.model';
-import * as fs from 'fs';
 // import { pesapalNotifRedirectUrl } from '../../../stock-counter-local';
 /**
  * Logger for the 'InvoiceRelated' routes.
@@ -18,17 +19,19 @@ const invoiceRelatedLogger = tracer.colorConsole({
     transport(data) {
         // eslint-disable-next-line no-console
         console.log(data.output);
-        const logDir = './openstockLog/';
+        const logDir = path.join(process.cwd() + '/openstockLog/');
         fs.mkdir(logDir, { recursive: true }, (err) => {
             if (err) {
                 if (err) {
-                    throw err;
+                    // eslint-disable-next-line no-console
+                    console.log('data.output err ', err);
                 }
             }
         });
-        fs.appendFile('./openStockLog/counter-server.log', data.rawoutput + '\n', err => {
+        fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
             if (err) {
-                throw err;
+                // eslint-disable-next-line no-console
+                console.log('raw.output err ', err);
             }
         });
     }
@@ -183,50 +186,50 @@ export const relegateInvRelatedCreation = async (invoiceRelated, queryId, extraN
             return errResponse;
         }
         invoiceRelatedLogger.error('AFTER SAVE');
-        /* let route: string;
+        let route;
         let title = '';
-        let notifType: TnotifType;*/
-        const stn = await getCurrentNotificationSettings();
+        let notifType;
+        const stn = await getCurrentNotificationSettings(queryId);
         if (!bypassNotif && stn?.invoices) {
-            /* switch (invoiceRelated.stage) {
-              case 'estimate':
-                route = 'estimates';
-                title = 'New Estimate';
-                notifType = 'invoices';
-                break;
-              case 'invoice':
-                route = 'invoices';
-                title = 'New Invoice';
-                notifType = 'invoices';
-                break;
-              case 'deliverynote':
-                route = 'deliverynotes';
-                title = 'New Delivery Note';
-                notifType = 'invoices';
-                break;
-              case 'receipt':
-                route = 'receipt';
-                title = 'New Reciept';
-                notifType = 'invoices';
-                break;
-            }*/
-            /* const actions: Iactionwithall[] = [{
-              operation: 'view',
-              url: pesapalNotifRedirectUrl + route,
-              action: '',
-              title
-            }];*
-      
-            /* const notification: Imainnotification = {
-              actions,
-              userId: invoiceRelated.billingUserId,
-              title,
-              body: extraNotifDesc,
-              icon: '',
-              notifType,
-              // photo: string;
-              expireAt: '200000'
-            };*/
+            switch (invoiceRelated.stage) {
+                case 'estimate':
+                    route = 'estimates';
+                    title = 'New Estimate';
+                    notifType = 'invoices';
+                    break;
+                case 'invoice':
+                    route = 'invoices';
+                    title = 'New Invoice';
+                    notifType = 'invoices';
+                    break;
+                case 'deliverynote':
+                    route = 'deliverynotes';
+                    title = 'New Delivery Note';
+                    notifType = 'invoices';
+                    break;
+                case 'receipt':
+                    route = 'receipt';
+                    title = 'New Reciept';
+                    notifType = 'invoices';
+                    break;
+            }
+            const actions = [{
+                    operation: 'view',
+                    // url: pesapalNotifRedirectUrl + route,
+                    url: route,
+                    action: '',
+                    title
+                }];
+            const notification = {
+                actions,
+                userId: invoiceRelated.billingUserId,
+                title,
+                body: extraNotifDesc,
+                icon: '',
+                notifType,
+                // photo: string;
+                expireAt: '200000'
+            };
             const capableUsers = await user.find({})
                 .lean().select({ permissions: 1 });
             const ids = [];
@@ -235,11 +238,11 @@ export const relegateInvRelatedCreation = async (invoiceRelated, queryId, extraN
                     ids.push(cuser._id);
                 }
             }
-            // const notifFilters = { id: { $in: ids } };
-            /* await createNotifications({
-              options: notification,
-              filters: notifFilters
-            });*/
+            const notifFilters = { id: { $in: ids } };
+            await createNotifications({
+                notification,
+                filters: notifFilters
+            });
         }
         // eslint-disable-next-line @typescript-eslint/naming-convention
         return { success: true, id: saved._id };
@@ -259,14 +262,14 @@ export const relegateInvRelatedCreation = async (invoiceRelated, queryId, extraN
  * @returns The created invoice related product.
  */
 export const makeInvoiceRelatedPdct = (invoiceRelated, user, createdAt, extras = {}) => {
-    let names = user.salutation + ' ' + user.fname + ' ' + user.lname;
+    let names = user.salutation ? user.salutation + ' ' + user.fname + ' ' + user.lname : user.fname + ' ' + user.lname;
     if (user.userDispNameFormat) {
         switch (user.userDispNameFormat) {
             case 'firstLast':
-                names = user.salutation + ' ' + user.fname + ' ' + user.lname;
+                names = user.salutation ? user.salutation + ' ' + user.fname + ' ' + user.lname : user.fname + ' ' + user.lname;
                 break;
             case 'lastFirst':
-                names = user.salutation + ' ' + user.lname + ' ' + user.fname;
+                names = user.salutation ? user.salutation + ' ' + user.lname + ' ' + user.fname : user.lname + ' ' + user.fname;
                 break;
             case 'companyName':
                 names = user.companyName;

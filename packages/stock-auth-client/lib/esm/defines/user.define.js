@@ -17,9 +17,9 @@ export class User extends DatabaseAuto {
         /** The user's billing information. */
         this.billing = [];
         /** Whether the user is an admin. */
-        this.admin = false;
+        // admin = false;
         /** Whether the user is a sub-admin. */
-        this.subAdmin = false;
+        // subAdmin = false;
         /** The user's permissions. */
         this.permissions = {
             companyAdminAccess: false
@@ -125,30 +125,29 @@ export class User extends DatabaseAuto {
      * Updates the user's admin and subAdmin properties accordingly.
      * If the user becomes an admin, their urId, _id, fname, lname, and email properties are updated.
      */
-    makeAdmin() {
-        const keys = Object.keys(this.permissions);
-        let admin = true;
-        let subAdmin = false;
-        keys.forEach(key => {
-            if (key !== 'buyer') {
-                if (this.permissions[key]) {
-                    subAdmin = true;
-                }
-                else {
-                    admin = false;
-                }
-            }
-        });
-        this.admin = admin;
-        this.subAdmin = subAdmin;
-        if (this.admin) {
-            this.urId = 'admin';
-            this._id = 'admin';
-            this.fname = this.fname || 'admin';
-            this.lname = this.lname || 'admin';
-            this.email = this.email || 'admin';
+    /* makeAdmin() {
+      const keys = Object.keys(this.permissions);
+      let admin = true;
+      let subAdmin = false;
+      keys.forEach(key => {
+        if (key !== 'buyer') {
+          if (this.permissions[key]) {
+            subAdmin = true;
+          } else {
+            admin = false;
+          }
         }
-    }
+      });
+      this.admin = admin;
+      this.subAdmin = subAdmin;
+      if (this.admin) {
+        this.urId = 'admin';
+        // this._id = 'admin';
+        // this.fname = this.fname || 'admin';
+        // this.lname = this.lname || 'admin';
+        // this.email = this.email || 'admin';
+      }
+    }*/
     /**
      * Updates a user's profile information.
      * @param companyId - The ID of the company.
@@ -297,7 +296,7 @@ export class User extends DatabaseAuto {
             this.userDispNameFormat = data.userDispNameFormat || this.userDispNameFormat;
             this.userType = data.userType || this.userType;
         }
-        this.makeAdmin();
+        // this.makeAdmin();
     }
 }
 //# sourceMappingURL=user.define.js.map

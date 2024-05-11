@@ -33,9 +33,7 @@ export declare class User extends DatabaseAuto {
     profilePic: IfileMeta;
     profileCoverPic: IfileMeta;
     /** Whether the user is an admin. */
-    admin: boolean;
     /** Whether the user is a sub-admin. */
-    subAdmin: boolean;
     /** The user's permissions. */
     permissions: Iuserperm;
     /** The user's phone number. */
@@ -66,7 +64,7 @@ export declare class User extends DatabaseAuto {
      * @param limit The maximum number of users to retrieve.
      * @returns An array of User instances created from the retrieved user objects.
      */
-    static getUsers(companyId: string, where: TuserType | 'all', offset?: number, limit?: number): Promise<{
+    static getUsers(companyId: string, where: TuserType | 'all' | 'registered', offset?: number, limit?: number): Promise<{
         count: number;
         users: User[];
     }>;
@@ -108,7 +106,6 @@ export declare class User extends DatabaseAuto {
      * Updates the user's admin and subAdmin properties accordingly.
      * If the user becomes an admin, their urId, _id, fname, lname, and email properties are updated.
      */
-    makeAdmin(): void;
     /**
      * Updates a user's profile information.
      * @param companyId - The ID of the company.

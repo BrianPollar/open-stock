@@ -1,5 +1,3 @@
-/// <reference types="mongoose/types/document" />
-/// <reference types="mongoose/types/models" />
 import { Iuser } from '@open-stock/stock-universal';
 import { ConnectOptions, Document, Model } from 'mongoose';
 interface IschemaMethods {

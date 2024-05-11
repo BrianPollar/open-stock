@@ -16,17 +16,19 @@ const fsControllerLogger = tracer.colorConsole(
     transport(data) {
       // eslint-disable-next-line no-console
       console.log(data.output);
-      const logDir = './openstockLog/';
+      const logDir = path.join(process.cwd() + '/openstockLog/');
       fs.mkdir(logDir, { recursive: true }, (err) => {
         if (err) {
           if (err) {
-            throw err;
+            // eslint-disable-next-line no-console
+            console.log('data.output err ', err);
           }
         }
       });
-      fs.appendFile('./openStockLog/universal-server.log', data.rawoutput + '\n', err => {
+      fs.appendFile(logDir + '/universal-server.log', data.rawoutput + '\n', err => {
         if (err) {
-          throw err;
+          // eslint-disable-next-line no-console
+          console.log('raw.output err ', err);
         }
       });
     }
@@ -78,7 +80,8 @@ export const appendBody = (
   const photoDirectory = path.join(envConfig.photoDirectory + '/' + queryId + '/');
   const { userId } = (req as Icustomrequest).user;
   const parsed = JSON.parse(req.body.data);
-  const newFiles: IfileMeta[] = [];
+  const newPhotos: IfileMeta[] = [];
+  const newVideos: IfileMeta[] = [];
   let thumbnail: IfileMeta;
   let profilePic: IfileMeta;
   let coverPic: IfileMeta;
@@ -94,6 +97,7 @@ export const appendBody = (
       size: (req as IMulterRequest).files['profilePic'][0].size
     };
     parsed.profilePic = profilePic;
+    newPhotos.push(profilePic);
   }
 
   if ((req as IMulterRequest).files['coverPic']?.length) {
@@ -107,11 +111,12 @@ export const appendBody = (
       size: (req as IMulterRequest).files['coverPic'][0].size
     };
     parsed.coverPic = coverPic;
+    newPhotos.push(coverPic);
   }
 
   if ((req as IMulterRequest).files['photos']?.length) {
     for (let i = 0; i < (req as IMulterRequest).files['photos'].length; i++) {
-      newFiles
+      newPhotos
         .push({
           userOrCompanayId: userId,
           name: (req as IMulterRequest).files['photos'][i].originalname,
@@ -126,7 +131,7 @@ export const appendBody = (
 
   if ((req as IMulterRequest).files['videos']?.length) {
     for (let i = 0; i < (req as IMulterRequest).files['videos'].length; i++) {
-      newFiles
+      newVideos
         .push({
           userOrCompanayId: userId,
           name: (req as IMulterRequest).files['videos'][i].originalname,
@@ -152,7 +157,8 @@ export const appendBody = (
     parsed.thumbnail = thumbnail;
   }
 
-  parsed.newFiles = newFiles;
+  parsed.newPhotos = newPhotos;
+  parsed.newVideos = newVideos;
   req.body = parsed;
   return next();
 };
@@ -172,8 +178,8 @@ export const saveMetaToDb = async(
   if (!parsed) {
     return next();
   }
-  if (parsed.newFiles) {
-    const promises = parsed.newFiles
+  if (parsed.newPhotos) {
+    const promises = parsed.newPhotos
       // eslint-disable-next-line @typescript-eslint/no-misused-promises
       .map((value: IfileMeta) => new Promise(async(resolve) => {
         const newFileMeta = new fileMeta(value);
@@ -188,7 +194,7 @@ export const saveMetaToDb = async(
         }
         resolve(newSaved);
       }));
-    parsed.newFiles = await Promise.all(promises);
+    parsed.newPhotos = await Promise.all(promises);
   }
 
   if (parsed.profilePic) {
@@ -203,7 +209,7 @@ export const saveMetaToDb = async(
       return res.status(500).send({ success: false });
     }
     parsed.profilePic = newSaved._id;
-    parsed.newFiles.push(newSaved);
+    parsed.newPhotos.push(newSaved);
   }
 
   if (parsed.coverPic) {
@@ -218,7 +224,7 @@ export const saveMetaToDb = async(
       return res.status(500).send({ success: false });
     }
     parsed.coverPic = newSaved._id;
-    parsed.newFiles.push(newSaved);
+    parsed.newPhotos.push(newSaved);
   }
 
   if (parsed.thumbnail) {
@@ -233,14 +239,14 @@ export const saveMetaToDb = async(
       return res.status(500).send({ success: false });
     }
     parsed.thumbnail = newSaved._id;
-    parsed.newFiles.push(newSaved);
+    parsed.newPhotos.push(newSaved);
   }
 
-  if (parsed.newFiles) {
-    const mappedParsedFiles = parsed.newFiles.map((value: IfileMeta) => value._id);
-    parsed.newFiles = mappedParsedFiles;
+  if (parsed.newPhotos) {
+    const mappedParsedFiles = parsed.newPhotos.map((value: IfileMeta) => value._id);
+    parsed.newPhotos = mappedParsedFiles;
   }
-  req.body = parsed; // newFiles are strings of ids
+  req.body = parsed; // newPhotos are strings of ids
   return next();
 };
 
@@ -269,18 +275,7 @@ export const updateFiles = (
   });
 };
 
-/**
- * Deletes files from the server.
- * @param req - The request object.
- * @param res - The response object.
- * @param next - The next middleware function.
- * @returns A Promise that resolves when the files are deleted.
- */
-export const deleteFiles = async(
-  req,
-  res,
-  next) => {
-  const { filesWithDir } = req.body;
+export const deleteAllFiles = async(filesWithDir: IfileMeta[]) => {
   if (filesWithDir && !filesWithDir.length) {
     // return res.status(401).send({ error: 'unauthorised' }); // TODO better catch
   }
@@ -291,10 +286,10 @@ export const deleteFiles = async(
   if (filesWithDir && filesWithDir.length) {
     const promises = filesWithDir
       .map((value/** : Ifilewithdir*/) => new Promise(resolve => {
-        fsControllerLogger.debug('deleting file', value.filename);
+        fsControllerLogger.debug('deleting file', value.url);
         const absolutepath = envConfig.absolutepath;
         const nowpath = path
-          .resolve(`${absolutepath}${value.filename}`);
+          .join(`${absolutepath}${value.url}`);
         fs.unlink(nowpath, (err) => {
           if (err) {
             fsControllerLogger.error('error while deleting file',
@@ -307,6 +302,22 @@ export const deleteFiles = async(
       }));
     await Promise.all(promises);
   }
+  return true;
+};
+
+/**
+ * Deletes files from the server.
+ * @param req - The request object.
+ * @param res - The response object.
+ * @param next - The next middleware function.
+ * @returns A Promise that resolves when the files are deleted.
+ */
+export const deleteFiles = async(
+  req,
+  res,
+  next) => {
+  const { filesWithDir } = req.body;
+  await deleteAllFiles(filesWithDir);
   return next();
 };
 

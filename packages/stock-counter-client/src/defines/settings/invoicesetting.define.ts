@@ -3,6 +3,7 @@ import {
   DatabaseAuto,
   IdataArrayResponse,
   Ifile,
+  IfileMeta,
   IinvoiceSetting,
   IinvoiceSettingsBank,
   IinvoiceSettingsGeneral,
@@ -11,6 +12,7 @@ import {
 } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
 import { StockCounterClient } from '../../stock-counter-client';
+
 
 /** The  InvoiceSettings  class extends the  DatabaseAuto  class and represents a set of invoice settings. It has properties for general settings, tax settings, and bank settings, and a constructor that initializes these properties. */
 /**
@@ -157,6 +159,29 @@ export class InvoiceSettings extends DatabaseAuto {
       added = await lastValueFrom(observer$) as Isuccess;
     }
     return added;
+  }
+
+
+  /**
+   * Deletes images associated with an item.
+   * @param companyId - The ID of the company.
+   * @param filesWithDir - An array of file metadata objects.
+   * @returns A promise that resolves to the success status of the deletion.
+   */
+  async deleteImages(companyId: string, where: 'signature' | 'stamp', filesWithDir: IfileMeta[]) {
+    const observer$ = StockCounterClient.ehttp
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+      .makePut(`/invoicesettings/deleteimages/${companyId}`, { filesWithDir, item: { _id: this._id } });
+    const deleted = await lastValueFrom(observer$) as Isuccess;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    if (deleted.success) {
+      if (where === 'signature') {
+        this.generalSettings.defaultDigitalSignature = null;
+      } else {
+        this.generalSettings.defaultDigitalStamp = null;
+      }
+    }
+    return deleted;
   }
 }
 

@@ -8,6 +8,7 @@ export declare class Company extends DatabaseAuto {
     name: string;
     displayName: string;
     dateOfEst: string;
+    address: string;
     details: string;
     businessType: string;
     profilePic: IfileMeta;
@@ -71,7 +72,7 @@ export declare class Company extends DatabaseAuto {
      * @returns A success object indicating whether the company was updated successfully.
      */
     updateCompanyBulk(companyId: string, vals: {
-        company: Icompany;
+        company: Partial<Icompany>;
         user: Partial<Iuser>;
     }, files?: Ifile[]): Promise<Isuccess>;
     /**

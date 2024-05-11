@@ -14,9 +14,10 @@ import {
   makeRandomString,
   subscriptionPackages
 } from '@open-stock/stock-universal';
-import { appendBody, deleteFiles, fileMetaLean, makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, saveMetaToDb, stringifyMongooseErr, uploadFiles, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { appendBody, deleteAllFiles, deleteFiles, fileMetaLean, makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, saveMetaToDb, stringifyMongooseErr, uploadFiles, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express, { Request, Response } from 'express';
 import * as fs from 'fs';
+import path from 'path';
 import * as tracer from 'tracer';
 import { checkIpAndAttempt, confirmAccountFactory, determineIfIsPhoneAndMakeFilterObj, isInAdictionaryOnline, isTooCommonPhrase, recoverAccountFactory, resetAccountFactory } from '../controllers/auth.controller';
 import { generateToken, sendTokenEmail, sendTokenPhone, setUserInfo } from '../controllers/universial.controller';
@@ -46,17 +47,19 @@ const authLogger = tracer.colorConsole(
     transport(data) {
       // eslint-disable-next-line no-console
       console.log(data.output);
-      const logDir = './openstockLog/';
+      const logDir = path.join(process.cwd() + '/openstockLog/');
       fs.mkdir(logDir, { recursive: true }, (err) => {
         if (err) {
           if (err) {
-            throw err;
+            // eslint-disable-next-line no-console
+            console.log('data.output err ', err);
           }
         }
       });
-      fs.appendFile('./openStockLog/auth-server.log', data.rawoutput + '\n', err => {
+      fs.appendFile(logDir + '/auth-server.log', data.rawoutput + '\n', err => {
         if (err) {
-          throw err;
+          // eslint-disable-next-line no-console
+          console.log('raw.output err ', err);
         }
       });
     }
@@ -70,16 +73,6 @@ const authLogger = tracer.colorConsole(
  * @returns A Promise that resolves to void.
  */
 export const signupFactorRelgator = async(req, res, next) => {
-  let foundUser = req.body.foundUser;
-  if (!foundUser) {
-    if (!foundUser.password || !foundUser.verified) {
-      req.body.foundUser = foundUser;
-      return next();
-    } else {
-      return res.status(402).send({ success: false, msg: 'unauthorised' });
-    }
-  }
-
   const { emailPhone } = req.body;
   const userType: TuserType = req.body.userType || 'eUser';
   const passwd = req.body.passwd;
@@ -104,7 +97,7 @@ export const signupFactorRelgator = async(req, res, next) => {
     phone = emailPhone;
   }
 
-  foundUser = await user.findOne(query);
+  const foundUser = await user.findOne(query);
 
   /* if (userType === 'company') {
     foundUser = await companyMain.findOne(query);
@@ -113,6 +106,11 @@ export const signupFactorRelgator = async(req, res, next) => {
   }*/
 
   if (foundUser) {
+    if (!foundUser?.password || !foundUser?.verified) {
+      req.body.foundUser = foundUser;
+      return next();
+    }
+
     const phoneOrEmail = isPhone ? 'phone' : 'email';
     const response: Iauthresponse = {
       success: false,
@@ -288,34 +286,33 @@ export const signupFactorRelgator = async(req, res, next) => {
 export const userLoginRelegator = async(req: Request, res: Response, next) => {
   const { emailPhone } = req.body;
   const { query } = determineIfIsPhoneAndMakeFilterObj(emailPhone);
+  let { foundUser } = req.body;
 
-  const foundUser = await userLean
-    .findOne({ ...query, ...{ userType: { $ne: 'customer' } } })
-    .populate({ path: 'profilePic', model: fileMetaLean })
-    .populate({ path: 'profileCoverPic', model: fileMetaLean })
-    .populate({ path: 'photos', model: fileMetaLean })
-    .lean()
+  if (!foundUser) {
+    foundUser = await userLean
+      .findOne({ ...query, ...{ userType: { $ne: 'customer' } } })
+      .populate({ path: 'profilePic', model: fileMetaLean })
+      .populate({ path: 'profileCoverPic', model: fileMetaLean })
+      .populate({ path: 'photos', model: fileMetaLean })
+      .lean()
     // .select(userAuthSelect)
-    .catch(err => {
-      authLogger.error('Find user projection err',
-        err);
-      return null;
-    });
+      .catch(err => {
+        authLogger.error('Find user projection err',
+          err);
+        return null;
+      });
+  }
 
   if (!foundUser) {
     return res.status(404).send({ msg: 'Account does not exist!' });
   }
 
-  if (!foundUser.password || !foundUser.verified) {
-    req.body.foundUser = foundUser;
+  if (!foundUser?.password || !foundUser?.verified) {
     return next();
   }
 
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const company = await companyLean.findById(foundUser?.companyId)
-    .populate({ path: 'profilePic', model: fileMetaLean })
-    .populate({ path: 'profileCoverPic', model: fileMetaLean })
-    .populate({ path: 'photos', model: fileMetaLean })
     .lean();
   let permissions: Iuserperm;
 
@@ -358,6 +355,31 @@ export const userLoginRelegator = async(req: Request, res: Response, next) => {
   return res.status(200).send(nowResponse);
 };
 
+
+const reoveUploadedFiles = async(parsed) => {
+  let ids = [];
+  if (parsed.profilePic) {
+    ids.push(parsed.profilePic);
+  }
+
+  if (parsed.coverPic) {
+    ids.push(parsed.coverPic);
+  }
+
+  if (parsed.newPhotos) {
+    ids = [...ids, ...parsed.newPhotos];
+  }
+  if (ids.length === 0) {
+    return true;
+  }
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  const filesWithDir = await fileMetaLean.find({ _id: { $in: ids } }).lean().select({ _id: 1, url: 1 });
+  if (filesWithDir && filesWithDir.length > 0) {
+    await deleteAllFiles(filesWithDir);
+  }
+  return true;
+};
+
 export const addUser = async(req, res, next) => {
   const userData = req.body.user;
   const parsed = req.body;
@@ -367,6 +389,17 @@ export const addUser = async(req, res, next) => {
   const isValid = verifyObjectId(queryId);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
+
+  const foundEmail = await userLean.findOne({ email: userData.email }).select({ email: 1 }).lean();
+  if (foundEmail) {
+    await reoveUploadedFiles(parsed);
+    return res.status(401).send({ success: false, err: 'Email already exist found' });
+  }
+  const foundPhone = await userLean.findOne({ phone: userData.phone }).select({ phone: 1 }).lean();
+  if (foundPhone) {
+    await reoveUploadedFiles(parsed);
+    return res.status(401).send({ success: false, err: 'Phone Number already exist found' });
   }
   userData.companyId = queryId;
 
@@ -378,10 +411,10 @@ export const addUser = async(req, res, next) => {
     userData.profileCoverPic = parsed.coverPic || userData.profileCoverPic;
   }
 
-  if (parsed.newFiles) {
-    userData.photos = parsed.newFiles;
+  if (parsed.newPhotos) {
+    userData.photos = parsed.newPhotos;
     if (!parsed.profilePic) {
-      userData.profilePic = parsed.newFiles[0];
+      userData.profilePic = parsed.newPhotos[0];
     }
   }
 
@@ -452,9 +485,9 @@ export const updateUserBulk = async(req, res, next) => {
       foundUser.profileCoverPic = parsed.coverPic || foundUser.profileCoverPic;
     }
 
-    if (parsed.newFiles) {
+    if (parsed.newPhotos) {
       const oldPhotos = foundUser.photos || [];
-      foundUser.photos = [...oldPhotos, ...parsed.newFiles] as string[];
+      foundUser.photos = [...oldPhotos, ...parsed.newPhotos] as string[];
     }
   }
   delete updatedUser._id;
@@ -492,7 +525,7 @@ userAuthRoutes.get('/google',
   passport.authenticate('google', { scope: ['profile', 'email'] }));
 
 
-userAuthRoutes.get('/authexpress/:companyIdParam', requireAuth, async(req, res) => {
+userAuthRoutes.get('/authexpress2', requireAuth, async(req, res) => {
   const { userId } = (req as Icustomrequest).user;
   const isValid = verifyObjectId(userId);
   if (!isValid) {
@@ -573,7 +606,7 @@ userAuthRoutes.post('/login', async(req, res, next) => {
   authLogger.debug(`login attempt,
     emailPhone: ${emailPhone}`);
   const { query, isPhone } = determineIfIsPhoneAndMakeFilterObj(emailPhone);
-  const foundUser = await user.findOne({ ...query, ... { verified: true, userType: { $ne: 'customer' } } });
+  const foundUser = await user.findOne({ ...query, ... { userType: { $ne: 'customer' } } });
   if (!foundUser) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -583,25 +616,32 @@ userAuthRoutes.post('/login', async(req, res, next) => {
 }, checkIpAndAttempt, userLoginRelegator, recoverAccountFactory);
 
 
+userAuthRoutes.get('/authexpress', requireAuth, async(req, res, next) => {
+  req.body.from = 'user';
+  authLogger.debug('authexpress');
+  const { userId } = (req as Icustomrequest).user;
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  const foundUser = await user.findOne({ _id: userId, ... { userType: { $ne: 'customer' }, verified: true } });
+  if (!foundUser) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
+  return next();
+}, checkIpAndAttempt, userLoginRelegator, recoverAccountFactory);
+
+
 // okay
 userAuthRoutes.post('/signup', (req, res, next) => {
-  const user = req.body;
-  req.body = user;
   return next();
 }, isTooCommonPhrase, isInAdictionaryOnline, signupFactorRelgator, recoverAccountFactory, (req, res) => {
   return res.status(401).send({ success: false, msg: 'unauthourised' });
 });
 
-userAuthRoutes.post('recover', async(req, res, next) => {
+userAuthRoutes.post('/recover', async(req, res, next) => {
   const emailPhone = req.body.emailPhone;
-  const emailOrPhone = emailPhone === 'phone' ? 'phone' : 'email';
-  let query;
   authLogger.debug(`recover, 
-    emailphone: ${emailPhone}, emailOrPhone: ${emailOrPhone}`);
+    emailphone: ${emailPhone}`);
+  const { query } = determineIfIsPhoneAndMakeFilterObj(emailPhone);
 
-  if (emailOrPhone === 'phone') {
-    query = { phone: emailPhone };
-  } else { query = { email: emailPhone }; }
   const foundUser = await user.findOne({ ...query, ...{ userType: { $ne: 'customer' } } });
   req.body.foundUser = foundUser;
   return next();
@@ -920,9 +960,9 @@ userAuthRoutes.post('/updateprofileimg/:companyIdParam', requireAuth, uploadFile
       foundUser.profileCoverPic = parsed.coverPic || foundUser.profileCoverPic;
     }
 
-    if (parsed.newFiles) {
+    if (parsed.newPhotos) {
       const oldPhotos = foundUser.photos || [];
-      foundUser.photos = [...oldPhotos, ...parsed.newFiles] as string[];
+      foundUser.photos = [...oldPhotos, ...parsed.newPhotos] as string[];
     }
   }
 
@@ -1140,6 +1180,9 @@ userAuthRoutes.get('/getusers/:where/:offset/:limit/:companyIdParam', requireAut
         companyId: queryId
       };
       break;
+    case 'registered':
+      filter = { companyId: queryId, userType: { $ne: 'company' }, verified: true };
+      break;
     default:
       filter = { companyId: queryId, userType: { $ne: 'company' } };
       break;
@@ -1160,13 +1203,11 @@ userAuthRoutes.get('/getusers/:where/:offset/:limit/:companyIdParam', requireAut
     userLean.countDocuments(filter)
 
   ]);
-  authLogger.debug('aall[0] ', all[0]);
   const filteredFaqs = all[0].filter(data => !(data.companyId as Icompany).blocked);
   const response: IdataArrayResponse = {
     count: all[1],
     data: filteredFaqs
   };
-  authLogger.debug('response is   ', response);
   return res.status(200).send(response);
 });
 

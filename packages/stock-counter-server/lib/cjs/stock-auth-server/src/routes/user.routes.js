@@ -6,6 +6,7 @@ const stock_universal_1 = require("@open-stock/stock-universal");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
 const fs = tslib_1.__importStar(require("fs"));
+const path_1 = tslib_1.__importDefault(require("path"));
 const tracer = tslib_1.__importStar(require("tracer"));
 const auth_controller_1 = require("../controllers/auth.controller");
 const universial_controller_1 = require("../controllers/universial.controller");
@@ -32,17 +33,19 @@ const authLogger = tracer.colorConsole({
     transport(data) {
         // eslint-disable-next-line no-console
         console.log(data.output);
-        const logDir = './openstockLog/';
+        const logDir = path_1.default.join(process.cwd() + '/openstockLog/');
         fs.mkdir(logDir, { recursive: true }, (err) => {
             if (err) {
                 if (err) {
-                    throw err;
+                    // eslint-disable-next-line no-console
+                    console.log('data.output err ', err);
                 }
             }
         });
-        fs.appendFile('./openStockLog/auth-server.log', data.rawoutput + '\n', err => {
+        fs.appendFile(logDir + '/auth-server.log', data.rawoutput + '\n', err => {
             if (err) {
-                throw err;
+                // eslint-disable-next-line no-console
+                console.log('raw.output err ', err);
             }
         });
     }
@@ -55,16 +58,6 @@ const authLogger = tracer.colorConsole({
  * @returns A Promise that resolves to void.
  */
 const signupFactorRelgator = async (req, res, next) => {
-    let foundUser = req.body.foundUser;
-    if (!foundUser) {
-        if (!foundUser.password || !foundUser.verified) {
-            req.body.foundUser = foundUser;
-            return next();
-        }
-        else {
-            return res.status(402).send({ success: false, msg: 'unauthorised' });
-        }
-    }
     const { emailPhone } = req.body;
     const userType = req.body.userType || 'eUser';
     const passwd = req.body.passwd;
@@ -88,13 +81,17 @@ const signupFactorRelgator = async (req, res, next) => {
         isPhone = true;
         phone = emailPhone;
     }
-    foundUser = await user_model_1.user.findOne(query);
+    const foundUser = await user_model_1.user.findOne(query);
     /* if (userType === 'company') {
       foundUser = await companyMain.findOne(query);
     } else {
       foundUser = await user.findOne(query);
     }*/
     if (foundUser) {
+        if (!foundUser?.password || !foundUser?.verified) {
+            req.body.foundUser = foundUser;
+            return next();
+        }
         const phoneOrEmail = isPhone ? 'phone' : 'email';
         const response = {
             success: false,
@@ -260,29 +257,28 @@ exports.signupFactorRelgator = signupFactorRelgator;
 const userLoginRelegator = async (req, res, next) => {
     const { emailPhone } = req.body;
     const { query } = (0, auth_controller_1.determineIfIsPhoneAndMakeFilterObj)(emailPhone);
-    const foundUser = await user_model_1.userLean
-        .findOne({ ...query, ...{ userType: { $ne: 'customer' } } })
-        .populate({ path: 'profilePic', model: stock_universal_server_1.fileMetaLean })
-        .populate({ path: 'profileCoverPic', model: stock_universal_server_1.fileMetaLean })
-        .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean })
-        .lean()
-        // .select(userAuthSelect)
-        .catch(err => {
-        authLogger.error('Find user projection err', err);
-        return null;
-    });
+    let { foundUser } = req.body;
+    if (!foundUser) {
+        foundUser = await user_model_1.userLean
+            .findOne({ ...query, ...{ userType: { $ne: 'customer' } } })
+            .populate({ path: 'profilePic', model: stock_universal_server_1.fileMetaLean })
+            .populate({ path: 'profileCoverPic', model: stock_universal_server_1.fileMetaLean })
+            .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean })
+            .lean()
+            // .select(userAuthSelect)
+            .catch(err => {
+            authLogger.error('Find user projection err', err);
+            return null;
+        });
+    }
     if (!foundUser) {
         return res.status(404).send({ msg: 'Account does not exist!' });
     }
-    if (!foundUser.password || !foundUser.verified) {
-        req.body.foundUser = foundUser;
+    if (!foundUser?.password || !foundUser?.verified) {
         return next();
     }
     // eslint-disable-next-line @typescript-eslint/naming-convention
     const company = await company_model_1.companyLean.findById(foundUser?.companyId)
-        .populate({ path: 'profilePic', model: stock_universal_server_1.fileMetaLean })
-        .populate({ path: 'profileCoverPic', model: stock_universal_server_1.fileMetaLean })
-        .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean })
         .lean();
     let permissions;
     // TODO scan for all object id comparisons// ALSO does it affete find, I think not likely but test out
@@ -316,6 +312,27 @@ const userLoginRelegator = async (req, res, next) => {
     return res.status(200).send(nowResponse);
 };
 exports.userLoginRelegator = userLoginRelegator;
+const reoveUploadedFiles = async (parsed) => {
+    let ids = [];
+    if (parsed.profilePic) {
+        ids.push(parsed.profilePic);
+    }
+    if (parsed.coverPic) {
+        ids.push(parsed.coverPic);
+    }
+    if (parsed.newPhotos) {
+        ids = [...ids, ...parsed.newPhotos];
+    }
+    if (ids.length === 0) {
+        return true;
+    }
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    const filesWithDir = await stock_universal_server_1.fileMetaLean.find({ _id: { $in: ids } }).lean().select({ _id: 1, url: 1 });
+    if (filesWithDir && filesWithDir.length > 0) {
+        await (0, stock_universal_server_1.deleteAllFiles)(filesWithDir);
+    }
+    return true;
+};
 const addUser = async (req, res, next) => {
     const userData = req.body.user;
     const parsed = req.body;
@@ -326,6 +343,16 @@ const addUser = async (req, res, next) => {
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
+    const foundEmail = await user_model_1.userLean.findOne({ email: userData.email }).select({ email: 1 }).lean();
+    if (foundEmail) {
+        await reoveUploadedFiles(parsed);
+        return res.status(401).send({ success: false, err: 'Email already exist found' });
+    }
+    const foundPhone = await user_model_1.userLean.findOne({ phone: userData.phone }).select({ phone: 1 }).lean();
+    if (foundPhone) {
+        await reoveUploadedFiles(parsed);
+        return res.status(401).send({ success: false, err: 'Phone Number already exist found' });
+    }
     userData.companyId = queryId;
     if (parsed.profilePic) {
         userData.profilePic = parsed.profilePic || userData.profilePic;
@@ -333,10 +360,10 @@ const addUser = async (req, res, next) => {
     if (parsed.coverPic) {
         userData.profileCoverPic = parsed.coverPic || userData.profileCoverPic;
     }
-    if (parsed.newFiles) {
-        userData.photos = parsed.newFiles;
+    if (parsed.newPhotos) {
+        userData.photos = parsed.newPhotos;
         if (!parsed.profilePic) {
-            userData.profilePic = parsed.newFiles[0];
+            userData.profilePic = parsed.newPhotos[0];
         }
     }
     const count = await user_model_1.user
@@ -403,9 +430,9 @@ const updateUserBulk = async (req, res, next) => {
         if (parsed.coverPic) {
             foundUser.profileCoverPic = parsed.coverPic || foundUser.profileCoverPic;
         }
-        if (parsed.newFiles) {
+        if (parsed.newPhotos) {
             const oldPhotos = foundUser.photos || [];
-            foundUser.photos = [...oldPhotos, ...parsed.newFiles];
+            foundUser.photos = [...oldPhotos, ...parsed.newPhotos];
         }
     }
     delete updatedUser._id;
@@ -437,7 +464,7 @@ const updateUserBulk = async (req, res, next) => {
 };
 exports.updateUserBulk = updateUserBulk;
 exports.userAuthRoutes.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
-exports.userAuthRoutes.get('/authexpress/:companyIdParam', stock_universal_server_1.requireAuth, async (req, res) => {
+exports.userAuthRoutes.get('/authexpress2', stock_universal_server_1.requireAuth, async (req, res) => {
     const { userId } = req.user;
     const isValid = (0, stock_universal_server_1.verifyObjectId)(userId);
     if (!isValid) {
@@ -503,7 +530,7 @@ exports.userAuthRoutes.post('/login', async (req, res, next) => {
     authLogger.debug(`login attempt,
     emailPhone: ${emailPhone}`);
     const { query, isPhone } = (0, auth_controller_1.determineIfIsPhoneAndMakeFilterObj)(emailPhone);
-    const foundUser = await user_model_1.user.findOne({ ...query, ...{ verified: true, userType: { $ne: 'customer' } } });
+    const foundUser = await user_model_1.user.findOne({ ...query, ...{ userType: { $ne: 'customer' } } });
     if (!foundUser) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
@@ -511,26 +538,28 @@ exports.userAuthRoutes.post('/login', async (req, res, next) => {
     req.body.foundUser = foundUser;
     return next();
 }, auth_controller_1.checkIpAndAttempt, exports.userLoginRelegator, auth_controller_1.recoverAccountFactory);
+exports.userAuthRoutes.get('/authexpress', stock_universal_server_1.requireAuth, async (req, res, next) => {
+    req.body.from = 'user';
+    authLogger.debug('authexpress');
+    const { userId } = req.user;
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    const foundUser = await user_model_1.user.findOne({ _id: userId, ...{ userType: { $ne: 'customer' }, verified: true } });
+    if (!foundUser) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
+    return next();
+}, auth_controller_1.checkIpAndAttempt, exports.userLoginRelegator, auth_controller_1.recoverAccountFactory);
 // okay
 exports.userAuthRoutes.post('/signup', (req, res, next) => {
-    const user = req.body;
-    req.body = user;
     return next();
 }, auth_controller_1.isTooCommonPhrase, auth_controller_1.isInAdictionaryOnline, exports.signupFactorRelgator, auth_controller_1.recoverAccountFactory, (req, res) => {
     return res.status(401).send({ success: false, msg: 'unauthourised' });
 });
-exports.userAuthRoutes.post('recover', async (req, res, next) => {
+exports.userAuthRoutes.post('/recover', async (req, res, next) => {
     const emailPhone = req.body.emailPhone;
-    const emailOrPhone = emailPhone === 'phone' ? 'phone' : 'email';
-    let query;
     authLogger.debug(`recover, 
-    emailphone: ${emailPhone}, emailOrPhone: ${emailOrPhone}`);
-    if (emailOrPhone === 'phone') {
-        query = { phone: emailPhone };
-    }
-    else {
-        query = { email: emailPhone };
-    }
+    emailphone: ${emailPhone}`);
+    const { query } = (0, auth_controller_1.determineIfIsPhoneAndMakeFilterObj)(emailPhone);
     const foundUser = await user_model_1.user.findOne({ ...query, ...{ userType: { $ne: 'customer' } } });
     req.body.foundUser = foundUser;
     return next();
@@ -836,9 +865,9 @@ exports.userAuthRoutes.post('/updateprofileimg/:companyIdParam', stock_universal
         if (parsed.coverPic) {
             foundUser.profileCoverPic = parsed.coverPic || foundUser.profileCoverPic;
         }
-        if (parsed.newFiles) {
+        if (parsed.newPhotos) {
             const oldPhotos = foundUser.photos || [];
-            foundUser.photos = [...oldPhotos, ...parsed.newFiles];
+            foundUser.photos = [...oldPhotos, ...parsed.newPhotos];
         }
     }
     let status = 200;
@@ -1051,6 +1080,9 @@ exports.userAuthRoutes.get('/getusers/:where/:offset/:limit/:companyIdParam', st
                 companyId: queryId
             };
             break;
+        case 'registered':
+            filter = { companyId: queryId, userType: { $ne: 'company' }, verified: true };
+            break;
         default:
             filter = { companyId: queryId, userType: { $ne: 'company' } };
             break;
@@ -1069,13 +1101,11 @@ exports.userAuthRoutes.get('/getusers/:where/:offset/:limit/:companyIdParam', st
             .lean(),
         user_model_1.userLean.countDocuments(filter)
     ]);
-    authLogger.debug('aall[0] ', all[0]);
     const filteredFaqs = all[0].filter(data => !data.companyId.blocked);
     const response = {
         count: all[1],
         data: filteredFaqs
     };
-    authLogger.debug('response is   ', response);
     return res.status(200).send(response);
 });
 exports.userAuthRoutes.post('/adduser/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_universal_server_1.roleAuthorisation)('users', 'create'), exports.addUser, (req, res) => {

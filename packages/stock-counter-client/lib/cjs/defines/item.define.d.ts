@@ -34,6 +34,7 @@ export declare class Item extends DatabaseAuto {
     inventoryMeta: IinventoryMeta[];
     /** The photos of the item. */
     photos?: IfileMeta[];
+    video?: IfileMeta;
     /** Any known problems with the item. */
     anyKnownProblems?: string;
     /** The number of items bought. */
@@ -77,7 +78,7 @@ export declare class Item extends DatabaseAuto {
      * @param extraFilters Additional filters.
      * @returns An array of items that match the search criteria.
      */
-    static searchItems(companyId: string, searchterm: string, searchKey: string, extraFilters: any, category?: string, subCategory?: string, offset?: number, limit?: number): Promise<{
+    static searchItems(companyId: string, searchterm: string, searchKey: string, extraFilters: any, category?: string, subCategory?: string, offset?: number, limit?: number, ecomerceCompat?: 'false' | 'true'): Promise<{
         count: number;
         items: Item[];
     }>;
@@ -89,7 +90,7 @@ export declare class Item extends DatabaseAuto {
      * @param limit The maximum number of items to get.
      * @returns An array of items.
      */
-    static getItems(companyId: string, url: string, offset?: number, limit?: number): Promise<{
+    static getItems(companyId: string, url: string, offset?: number, limit?: number, ecomerceCompat?: 'false' | 'true'): Promise<{
         count: number;
         items: Item[];
     }>;
@@ -108,7 +109,7 @@ export declare class Item extends DatabaseAuto {
      * @param inventoryStock Whether the item is in inventory stock.
      * @returns The success status of adding the item.
      */
-    static addItem(companyId: string, vals: object, files: Ifile[], inventoryStock?: boolean): Promise<Isuccess>;
+    static addItem(companyId: string, vals: object, files: Ifile[], ecomerceCompat?: boolean): Promise<Isuccess>;
     /**
      * Deletes items.
      * @param companyId - The ID of the company
@@ -181,7 +182,7 @@ export declare class Item extends DatabaseAuto {
      * @param filesWithDir - An array of file metadata objects.
      * @returns A promise that resolves to the success status of the deletion.
      */
-    deleteImages(companyId: string, filesWithDir: IfileMeta[]): Promise<Isuccess>;
+    deleteFiles(companyId: string, filesWithDir: IfileMeta[]): Promise<Isuccess>;
     /**
      * Updates the properties of the item based on the provided data.
      * @param {object} data - The data containing the properties to update.

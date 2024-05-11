@@ -3,7 +3,7 @@
  * @packageDocumentation
  */
 import { TestimateStage, TexpenseCategory, TinvoiceStatus, TinvoiceType, TpayType, TreceiptType } from '../types/union.types';
-import { IdatabaseAuto } from './general.interface';
+import { IdatabaseAuto, IfileMeta } from './general.interface';
 import { Iitem } from './item.interface';
 /**
  * Represents an invoice.
@@ -185,8 +185,8 @@ export interface IinvoiceSettingsGeneral {
     status: TinvoiceStatus;
     amount: string;
     defaultDueTime: string;
-    defaultDigitalSignature: string;
-    defaultDigitalStamp: string;
+    defaultDigitalSignature: IfileMeta | string;
+    defaultDigitalStamp: IfileMeta | string;
     defaultDigitalName: string;
 }
 /** Represents tax settings in invoice settings. */

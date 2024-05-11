@@ -1,4 +1,3 @@
-/// <reference types="mongoose/types/connection" />
 import { IlAuth } from '@open-stock/stock-auth-server';
 import { ConnectOptions } from 'mongoose';
 import { PesaPalController } from 'pesapal3';

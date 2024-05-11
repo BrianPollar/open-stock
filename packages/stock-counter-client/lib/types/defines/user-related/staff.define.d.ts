@@ -1,5 +1,10 @@
 import { IdeleteCredentialsLocalUser, Ifile, IfileMeta, Isalary, Istaff, Isuccess, Iuser } from '@open-stock/stock-universal';
 import { UserBase } from './userbase.define';
+interface IgetOneFilter {
+    id?: string;
+    userId?: string;
+    companyId?: string;
+}
 /**
  * The  Staff  class extends a base class called  UserBase  (not provided) and adds additional properties such as employmentType and salary.
  * It also provides several static methods for interacting with the server API, including retrieving all staff members, retrieving a single staff member by ID, creating a new staff member, deleting multiple staff members, updating a staff member's information, and deleting a single staff member.
@@ -40,7 +45,7 @@ export declare class Staff extends UserBase {
      * @param {string} id - The ID of the staff member to retrieve.
      * @returns {Promise<Staff>} - A promise that resolves to a Staff instance.
      */
-    static getOneStaff(companyId: string, id: string): Promise<Staff>;
+    static getOneStaff(filter: IgetOneFilter): Promise<Staff>;
     /**
      * Creates a new staff member.
      * @param companyId - The ID of the company
@@ -79,3 +84,4 @@ export declare class Staff extends UserBase {
      */
     deleteStaff(companyId: string, credential: IdeleteCredentialsLocalUser, filesWithDir: IfileMeta[]): Promise<Isuccess>;
 }
+export {};

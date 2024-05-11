@@ -37,9 +37,9 @@ export class User extends DatabaseAuto {
   profilePic: IfileMeta;
   profileCoverPic: IfileMeta;
   /** Whether the user is an admin. */
-  admin = false;
+  // admin = false;
   /** Whether the user is a sub-admin. */
-  subAdmin = false;
+  // subAdmin = false;
   /** The user's permissions. */
   permissions: Iuserperm = {
     companyAdminAccess: false
@@ -77,7 +77,7 @@ export class User extends DatabaseAuto {
    * @param limit The maximum number of users to retrieve.
    * @returns An array of User instances created from the retrieved user objects.
    */
-  static async getUsers(companyId: string, where: TuserType | 'all', offset = 0, limit = 20) {
+  static async getUsers(companyId: string, where: TuserType | 'all' | 'registered', offset = 0, limit = 20) {
     const observer$ = StockAuthClient.ehttp.makeGet(`/user/getusers/${where}/${offset}/${limit}/${companyId}`);
     const users = await lastValueFrom(observer$) as IdataArrayResponse;
     return {
@@ -165,7 +165,7 @@ export class User extends DatabaseAuto {
    * Updates the user's admin and subAdmin properties accordingly.
    * If the user becomes an admin, their urId, _id, fname, lname, and email properties are updated.
    */
-  makeAdmin() {
+  /* makeAdmin() {
     const keys = Object.keys(this.permissions);
     let admin = true;
     let subAdmin = false;
@@ -182,12 +182,12 @@ export class User extends DatabaseAuto {
     this.subAdmin = subAdmin;
     if (this.admin) {
       this.urId = 'admin';
-      this._id = 'admin';
-      this.fname = this.fname || 'admin';
-      this.lname = this.lname || 'admin';
-      this.email = this.email || 'admin';
+      // this._id = 'admin';
+      // this.fname = this.fname || 'admin';
+      // this.lname = this.lname || 'admin';
+      // this.email = this.email || 'admin';
     }
-  }
+  }*/
 
   /**
    * Updates a user's profile information.
@@ -344,6 +344,6 @@ export class User extends DatabaseAuto {
       this.userType = data.userType || this.userType;
     }
 
-    this.makeAdmin();
+    // this.makeAdmin();
   }
 }

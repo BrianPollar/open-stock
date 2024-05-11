@@ -1,4 +1,4 @@
-import { DatabaseAuto, Ifile, IinvoiceSetting, IinvoiceSettingsBank, IinvoiceSettingsGeneral, IinvoiceSettingsTax, Isuccess } from '@open-stock/stock-universal';
+import { DatabaseAuto, Ifile, IfileMeta, IinvoiceSetting, IinvoiceSettingsBank, IinvoiceSettingsGeneral, IinvoiceSettingsTax, Isuccess } from '@open-stock/stock-universal';
 /** The  InvoiceSettings  class extends the  DatabaseAuto  class and represents a set of invoice settings. It has properties for general settings, tax settings, and bank settings, and a constructor that initializes these properties. */
 /**
  * Represents the settings for an invoice.
@@ -54,4 +54,11 @@ export declare class InvoiceSettings extends DatabaseAuto {
      * @returns {Promise<Isuccess>} A success message.
      */
     updateInvoiceSettings(companyId: string, vals: IinvoiceSetting, files?: Ifile[]): Promise<Isuccess>;
+    /**
+     * Deletes images associated with an item.
+     * @param companyId - The ID of the company.
+     * @param filesWithDir - An array of file metadata objects.
+     * @returns A promise that resolves to the success status of the deletion.
+     */
+    deleteImages(companyId: string, where: 'signature' | 'stamp', filesWithDir: IfileMeta[]): Promise<Isuccess>;
 }

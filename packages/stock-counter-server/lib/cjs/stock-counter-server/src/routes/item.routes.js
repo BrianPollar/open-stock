@@ -34,6 +34,7 @@ const stock_universal_1 = require("@open-stock/stock-universal");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
 const fs = tslib_1.__importStar(require("fs"));
+const path_1 = tslib_1.__importDefault(require("path"));
 const tracer = tslib_1.__importStar(require("tracer"));
 const item_model_1 = require("../models/item.model");
 const itemdecoy_model_1 = require("../models/itemdecoy.model");
@@ -46,17 +47,19 @@ const itemRoutesLogger = tracer.colorConsole({
     transport(data) {
         // eslint-disable-next-line no-console
         console.log(data.output);
-        const logDir = './openstockLog/';
+        const logDir = path_1.default.join(process.cwd() + '/openstockLog/');
         fs.mkdir(logDir, { recursive: true }, (err) => {
             if (err) {
                 if (err) {
-                    throw err;
+                    // eslint-disable-next-line no-console
+                    console.log('data.output err ', err);
                 }
             }
         });
-        fs.appendFile('./openStockLog/counter-server.log', data.rawoutput + '\n', err => {
+        fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
             if (err) {
-                throw err;
+                // eslint-disable-next-line no-console
+                console.log('raw.output err ', err);
             }
         });
     }
@@ -185,12 +188,64 @@ exports.removeReview = removeReview;
  * @param {Response} res - The express response object
  * @returns {Promise<Response>} - The express response object with a success status and saved item data
  */
-exports.itemRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_auth_server_1.requireCanUseFeature)('item'), (0, stock_universal_server_1.roleAuthorisation)('items', 'create'), stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.saveMetaToDb, async (req, res, next) => {
+exports.itemRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_auth_server_1.requireCanUseFeature)('item'), (0, stock_universal_server_1.roleAuthorisation)('items', 'create'), async (req, res, next) => {
     const item = req.body.item;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
     item.companyId = queryId;
+    item.ecomerceCompat = false;
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
+    const count = await item_model_1.itemMain
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+    item.urId = (0, stock_universal_server_1.makeUrId)(Number(count[0]?.urId || '0'));
+    const newProd = new item_model_1.itemMain(item);
+    let errResponse;
+    const saved = await newProd.save()
+        .catch(err => {
+        itemRoutesLogger.error('create - err: ', err);
+        errResponse = {
+            success: false,
+            status: 403
+        };
+        if (err && err.errors) {
+            errResponse.err = (0, stock_universal_server_1.stringifyMongooseErr)(err.errors);
+        }
+        else {
+            errResponse.err = `we are having problems connecting to our databases, 
+        try again in a while`;
+        }
+        return errResponse;
+    });
+    if (errResponse) {
+        return res.status(403).send(errResponse);
+    }
+    if (!Boolean(saved)) {
+        return res.status(403).send('unknown error');
+    }
+    return next();
+}, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('item'));
+/**
+ * Creates a new item
+ * @function
+ * @async
+ * @param {Request} req - The express request object
+ * @param {Icustomrequest} req.user - The custom request object with user data
+ * @param {Object} req.body.item - The item data to create
+ * @param {Response} res - The express response object
+ * @returns {Promise<Response>} - The express response object with a success status and saved item data
+ */
+exports.itemRoutes.post('/createimg/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_auth_server_1.requireCanUseFeature)('item'), (0, stock_universal_server_1.roleAuthorisation)('items', 'create'), stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.saveMetaToDb, async (req, res, next) => {
+    const item = req.body.item;
+    const { companyId } = req.user;
+    const { companyIdParam } = req.params;
+    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    item.companyId = queryId;
+    item.ecomerceCompat = true;
     const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
@@ -200,8 +255,11 @@ exports.itemRoutes.post('/create/:companyIdParam', stock_universal_server_1.requ
         .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     item.urId = (0, stock_universal_server_1.makeUrId)(Number(count[0]?.urId || '0'));
     const parsed = req.body;
-    if (parsed && parsed.newFiles) {
-        item.photos = parsed.newFiles;
+    if (parsed && parsed.newPhotos) {
+        item.photos = parsed.newPhotos;
+    }
+    if (parsed && parsed.newVideos) {
+        item.video = parsed.newVideos[0];
     }
     const newProd = new item_model_1.itemMain(item);
     let errResponse;
@@ -312,9 +370,16 @@ exports.itemRoutes.post('/updateimg/:companyIdParam', stock_universal_server_1.r
         item.urId = (0, stock_universal_server_1.makeUrId)(Number(count));
     }
     const parsed = req.body;
-    if (parsed && parsed.newFiles) {
+    if (parsed && parsed.newPhotos) {
         const oldPhotos = item.photos || [];
-        item.photos = [...oldPhotos, ...parsed.newFiles];
+        item.photos = [...oldPhotos, ...parsed.newPhotos];
+    }
+    if (parsed && parsed.newVideos) {
+        const meta = await stock_universal_server_1.fileMetaLean.findById(item.video);
+        if (meta) {
+            await (0, stock_universal_server_1.deleteAllFiles)([meta]);
+        }
+        item.video = parsed.newVideos[0];
     }
     delete updatedProduct._id;
     const keys = Object.keys(updatedProduct);
@@ -439,8 +504,8 @@ exports.itemRoutes.get('/getone/:urId/:companyIdParam', async (req, res) => {
     }
     return res.status(200).send(item);
 });
-exports.itemRoutes.get('/filtergeneral/:prop/:val/:offset/:limit/:companyIdParam', async (req, res) => {
-    const { companyIdParam, prop, val } = req.params;
+exports.itemRoutes.get('/filtergeneral/:prop/:val/:offset/:limit/:companyIdParam/:ecomerceCompat', async (req, res) => {
+    const { companyIdParam, prop, val, ecomerceCompat } = req.params;
     let filter = { [prop]: { $regex: val, $options: 'i' } };
     const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
     if (isValid) {
@@ -448,6 +513,9 @@ exports.itemRoutes.get('/filtergeneral/:prop/:val/:offset/:limit/:companyIdParam
     }
     if (prop === 'time') {
         filter = { companyId: companyIdParam, createdAt: { $gte: new Date(val) } };
+    }
+    if (ecomerceCompat === 'true') {
+        filter = { ...filter, ecomerceCompat: true };
     }
     const all = await Promise.all([
         item_model_1.itemLean
@@ -465,12 +533,15 @@ exports.itemRoutes.get('/filtergeneral/:prop/:val/:offset/:limit/:companyIdParam
     };
     return res.status(200).send(response);
 });
-exports.itemRoutes.get('/filterrandom/:prop/:val/:offset/:limit/:companyIdParam', async (req, res) => {
-    const { companyIdParam, prop, val } = req.params;
+exports.itemRoutes.get('/filterrandom/:prop/:val/:offset/:limit/:companyIdParam/:ecomerceCompat', async (req, res) => {
+    const { companyIdParam, prop, val, ecomerceCompat } = req.params;
     let filter = { [prop]: { $regex: val, $options: 'i' } };
     const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
     if (isValid) {
         filter = { companyId: companyIdParam, [prop]: { $regex: val, $options: 'i' } };
+    }
+    if (ecomerceCompat === 'true') {
+        filter = { ...filter, ecomerceCompat: true };
     }
     const all = await Promise.all([
         item_model_1.itemLean
@@ -489,12 +560,15 @@ exports.itemRoutes.get('/filterrandom/:prop/:val/:offset/:limit/:companyIdParam'
     };
     return res.status(200).send(response);
 });
-exports.itemRoutes.get('/getall/:offset/:limit/:companyIdParam', async (req, res) => {
-    const { companyIdParam } = req.params;
+exports.itemRoutes.get('/getall/:offset/:limit/:companyIdParam/:ecomerceCompat', async (req, res) => {
+    const { companyIdParam, ecomerceCompat } = req.params;
     let filter = {};
     const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
     if (isValid) {
         filter = { companyId: companyIdParam };
+    }
+    if (ecomerceCompat === 'true') {
+        filter = { ...filter, ecomerceCompat: true };
     }
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const all = await Promise.all([
@@ -515,12 +589,15 @@ exports.itemRoutes.get('/getall/:offset/:limit/:companyIdParam', async (req, res
     };
     return res.status(200).send(response);
 });
-exports.itemRoutes.get('/gettrending/:offset/:limit/:companyIdParam', async (req, res) => {
-    const { companyIdParam } = req.params;
+exports.itemRoutes.get('/gettrending/:offset/:limit/:companyIdParam/:ecomerceCompat', async (req, res) => {
+    const { companyIdParam, ecomerceCompat } = req.params;
     let filter = {};
     const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
     if (isValid) {
         filter = { companyId: companyIdParam };
+    }
+    if (ecomerceCompat === 'true') {
+        filter = { ...filter, ecomerceCompat: true };
     }
     const all = await Promise.all([
         item_model_1.itemLean
@@ -539,12 +616,15 @@ exports.itemRoutes.get('/gettrending/:offset/:limit/:companyIdParam', async (req
     };
     return res.status(200).send(response);
 });
-exports.itemRoutes.get('/getfeatured/:offset/:limit/:companyIdParam', async (req, res) => {
-    const { companyIdParam } = req.params;
+exports.itemRoutes.get('/getfeatured/:offset/:limit/:companyIdParam/:ecomerceCompat', async (req, res) => {
+    const { companyIdParam, ecomerceCompat } = req.params;
     let filter = {};
     const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
     if (isValid) {
         filter = { companyId: companyIdParam };
+    }
+    if (ecomerceCompat === 'true') {
+        filter = { ...filter, ecomerceCompat: true };
     }
     const all = await Promise.all([
         item_model_1.itemLean
@@ -564,37 +644,15 @@ exports.itemRoutes.get('/getfeatured/:offset/:limit/:companyIdParam', async (req
     return res.status(200).send(response);
 });
 // newly posted
-exports.itemRoutes.get('/getnew/:offset/:limit/:companyIdParam', async (req, res) => {
-    const { companyIdParam } = req.params;
+exports.itemRoutes.get('/getnew/:offset/:limit/:companyIdParam/:ecomerceCompat', async (req, res) => {
+    const { companyIdParam, ecomerceCompat } = req.params;
     let filter = {};
     const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
     if (isValid) {
         filter = { companyId: companyIdParam };
     }
-    const all = await Promise.all([
-        item_model_1.itemLean
-            .find(filter)
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-            .sort({ createdAt: -1 })
-            .populate({ path: 'companyId', model: stock_auth_server_1.companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
-            .lean(),
-        item_model_1.itemLean.countDocuments(filter)
-    ]);
-    const newItems = all[0].filter(item => item.companyId);
-    const response = {
-        count: all[1],
-        data: newItems
-    };
-    return res.status(200).send(response);
-});
-// new not used
-exports.itemRoutes.get('/getbrandnew/:offset/:limit/:companyIdParam', async (req, res) => {
-    const { companyIdParam } = req.params;
-    let filter = { state: 'new' };
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
-    if (isValid) {
-        filter = { companyId: companyIdParam, state: 'new' };
+    if (ecomerceCompat === 'true') {
+        filter = { ...filter, ecomerceCompat: true };
     }
     const all = await Promise.all([
         item_model_1.itemLean
@@ -614,12 +672,43 @@ exports.itemRoutes.get('/getbrandnew/:offset/:limit/:companyIdParam', async (req
     return res.status(200).send(response);
 });
 // new not used
-exports.itemRoutes.get('/getused/:offset/:limit/:companyIdParam', async (req, res) => {
-    const { companyIdParam } = req.params;
+exports.itemRoutes.get('/getbrandnew/:offset/:limit/:companyIdParam/:ecomerceCompat', async (req, res) => {
+    const { companyIdParam, ecomerceCompat } = req.params;
+    let filter = { state: 'new' };
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
+    if (isValid) {
+        filter = { companyId: companyIdParam, state: 'new' };
+    }
+    if (ecomerceCompat === 'true') {
+        filter = { ...filter, ecomerceCompat: true };
+    }
+    const all = await Promise.all([
+        item_model_1.itemLean
+            .find(filter)
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+            .sort({ createdAt: -1 })
+            .populate({ path: 'companyId', model: stock_auth_server_1.companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
+            .lean(),
+        item_model_1.itemLean.countDocuments(filter)
+    ]);
+    const newItems = all[0].filter(item => item.companyId);
+    const response = {
+        count: all[1],
+        data: newItems
+    };
+    return res.status(200).send(response);
+});
+// new not used
+exports.itemRoutes.get('/getused/:offset/:limit/:companyIdParam/:ecomerceCompat', async (req, res) => {
+    const { companyIdParam, ecomerceCompat } = req.params;
     let filter = { state: 'refurbished' };
     const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
     if (isValid) {
         filter = { companyId: companyIdParam, state: 'refurbished' };
+    }
+    if (ecomerceCompat === 'true') {
+        filter = { ...filter, ecomerceCompat: true };
     }
     const all = await Promise.all([
         item_model_1.itemLean
@@ -639,12 +728,15 @@ exports.itemRoutes.get('/getused/:offset/:limit/:companyIdParam', async (req, re
     return res.status(200).send(response);
 });
 // filterprice
-exports.itemRoutes.get('/filterprice/max/:priceFilterValue/:offset/:limit/:companyIdParam', async (req, res) => {
-    const { companyIdParam } = req.params;
+exports.itemRoutes.get('/filterprice/max/:priceFilterValue/:offset/:limit/:companyIdParam/:ecomerceCompat', async (req, res) => {
+    const { companyIdParam, ecomerceCompat } = req.params;
     let filter = {};
     const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
     if (isValid) {
         filter = { companyId: companyIdParam };
+    }
+    if (ecomerceCompat === 'true') {
+        filter = { ...filter, ecomerceCompat: true };
     }
     const { priceFilterValue } = req.params;
     const all = await Promise.all([
@@ -665,12 +757,15 @@ exports.itemRoutes.get('/filterprice/max/:priceFilterValue/:offset/:limit/:compa
     };
     return res.status(200).send(response);
 });
-exports.itemRoutes.get('/filterprice/min/:priceFilterValue/:offset/:limit/:companyIdParam', async (req, res) => {
-    const { companyIdParam } = req.params;
+exports.itemRoutes.get('/filterprice/min/:priceFilterValue/:offset/:limit/:companyIdParam/:ecomerceCompat', async (req, res) => {
+    const { companyIdParam, ecomerceCompat } = req.params;
     let filter = {};
     const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
     if (isValid) {
         filter = { companyId: companyIdParam };
+    }
+    if (ecomerceCompat === 'true') {
+        filter = { ...filter, ecomerceCompat: true };
     }
     const { priceFilterValue } = req.params;
     const all = await Promise.all([
@@ -691,12 +786,15 @@ exports.itemRoutes.get('/filterprice/min/:priceFilterValue/:offset/:limit/:compa
     };
     return res.status(200).send(response);
 });
-exports.itemRoutes.get('/filterprice/eq/:priceFilterMinValue/:priceFilterMaxValue/:offset/:limit/:companyIdParam', async (req, res) => {
-    const { companyIdParam } = req.params;
+exports.itemRoutes.get('/filterprice/eq/:priceFilterMinValue/:priceFilterMaxValue/:offset/:limit/:companyIdParam/:ecomerceCompat', async (req, res) => {
+    const { companyIdParam, ecomerceCompat } = req.params;
     let filter = {};
     const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
     if (isValid) {
         filter = { companyId: companyIdParam };
+    }
+    if (ecomerceCompat === 'true') {
+        filter = { ...filter, ecomerceCompat: true };
     }
     const { priceFilterMinValue, priceFilterMaxValue } = req.params;
     const all = await Promise.all([
@@ -718,12 +816,15 @@ exports.itemRoutes.get('/filterprice/eq/:priceFilterMinValue/:priceFilterMaxValu
     };
     return res.status(200).send(response);
 });
-exports.itemRoutes.get('/filterstars/:starVal/:offset/:limit/:companyIdParam', async (req, res) => {
-    const { companyIdParam } = req.params;
+exports.itemRoutes.get('/filterstars/:starVal/:offset/:limit/:companyIdParam/:ecomerceCompat', async (req, res) => {
+    const { companyIdParam, ecomerceCompat } = req.params;
     let filter = {};
     const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
     if (isValid) {
         filter = { companyId: companyIdParam };
+    }
+    if (ecomerceCompat === 'true') {
+        filter = { ...filter, ecomerceCompat: true };
     }
     const starVal = Number(req.params.starVal);
     const all = await Promise.all([
@@ -747,12 +848,15 @@ exports.itemRoutes.get('/filterstars/:starVal/:offset/:limit/:companyIdParam', a
     };
     return res.status(200).send(response);
 });
-exports.itemRoutes.get('/discount/:discountValue/:offset/:limit/:companyIdParam', async (req, res) => {
-    const { companyIdParam } = req.params;
+exports.itemRoutes.get('/discount/:discountValue/:offset/:limit/:companyIdParam/:ecomerceCompat', async (req, res) => {
+    const { companyIdParam, ecomerceCompat } = req.params;
     let filter = {};
     const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
     if (isValid) {
         filter = { companyId: companyIdParam };
+    }
+    if (ecomerceCompat === 'true') {
+        filter = { ...filter, ecomerceCompat: true };
     }
     const { discountValue } = req.params;
     const all = await Promise.all([
@@ -977,7 +1081,7 @@ exports.itemRoutes.put('/deleteone/:id/:companyIdParam', stock_universal_server_
         return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
-exports.itemRoutes.put('/deleteimages/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'delete'), stock_universal_server_1.deleteFiles, async (req, res) => {
+exports.itemRoutes.put('/deletefiles/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'delete'), stock_universal_server_1.deleteFiles, async (req, res) => {
     const filesWithDir = req.body.filesWithDir;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -1002,6 +1106,9 @@ exports.itemRoutes.put('/deleteimages/:companyIdParam', stock_universal_server_1
     const photos = item.photos;
     item.photos = photos
         .filter((p) => !filesWithDirIds.includes(p));
+    if (item.video && filesWithDirIds.includes(item.video)) {
+        item.video = null;
+    }
     let errResponse;
     await item.save().catch(err => {
         errResponse = {
@@ -1023,7 +1130,7 @@ exports.itemRoutes.put('/deleteimages/:companyIdParam', stock_universal_server_1
     return res.status(200).send({ success: true });
 });
 exports.itemRoutes.post('/search/:offset/:limit/:companyIdParam', async (req, res) => {
-    const { searchterm, searchKey, category, extraFilers, subCategory } = req.body;
+    const { searchterm, searchKey, category, extraFilers, subCategory, ecomerceCompat } = req.body;
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const { companyIdParam } = req.params;
     if (companyIdParam !== 'undefined') {
@@ -1048,6 +1155,9 @@ exports.itemRoutes.post('/search/:offset/:limit/:companyIdParam', async (req, re
     }
     else {
         filter = { category };
+    }
+    if (ecomerceCompat === 'true') {
+        filter = { ...filter, ecomerceCompat: true };
     }
     if (companyIdParam !== 'undefined') {
         filter = { ...filter, companyId: companyIdParam };

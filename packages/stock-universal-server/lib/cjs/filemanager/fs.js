@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.returnLazyFn = exports.getOneFile = exports.deleteFiles = exports.updateFiles = exports.saveMetaToDb = exports.appendBody = exports.uploadFiles = void 0;
+exports.returnLazyFn = exports.getOneFile = exports.deleteFiles = exports.deleteAllFiles = exports.updateFiles = exports.saveMetaToDb = exports.appendBody = exports.uploadFiles = void 0;
 const tslib_1 = require("tslib");
 const fs = tslib_1.__importStar(require("fs"));
 const multer_1 = tslib_1.__importDefault(require("multer"));
@@ -15,17 +15,19 @@ const fsControllerLogger = tracer.colorConsole({
     transport(data) {
         // eslint-disable-next-line no-console
         console.log(data.output);
-        const logDir = './openstockLog/';
+        const logDir = path.join(process.cwd() + '/openstockLog/');
         fs.mkdir(logDir, { recursive: true }, (err) => {
             if (err) {
                 if (err) {
-                    throw err;
+                    // eslint-disable-next-line no-console
+                    console.log('data.output err ', err);
                 }
             }
         });
-        fs.appendFile('./openStockLog/universal-server.log', data.rawoutput + '\n', err => {
+        fs.appendFile(logDir + '/universal-server.log', data.rawoutput + '\n', err => {
             if (err) {
-                throw err;
+                // eslint-disable-next-line no-console
+                console.log('raw.output err ', err);
             }
         });
     }
@@ -69,7 +71,8 @@ const appendBody = (req, res, next) => {
     const photoDirectory = path.join(stock_universal_local_1.envConfig.photoDirectory + '/' + queryId + '/');
     const { userId } = req.user;
     const parsed = JSON.parse(req.body.data);
-    const newFiles = [];
+    const newPhotos = [];
+    const newVideos = [];
     let thumbnail;
     let profilePic;
     let coverPic;
@@ -84,6 +87,7 @@ const appendBody = (req, res, next) => {
             size: req.files['profilePic'][0].size
         };
         parsed.profilePic = profilePic;
+        newPhotos.push(profilePic);
     }
     if (req.files['coverPic']?.length) {
         coverPic = {
@@ -96,10 +100,11 @@ const appendBody = (req, res, next) => {
             size: req.files['coverPic'][0].size
         };
         parsed.coverPic = coverPic;
+        newPhotos.push(coverPic);
     }
     if (req.files['photos']?.length) {
         for (let i = 0; i < req.files['photos'].length; i++) {
-            newFiles
+            newPhotos
                 .push({
                 userOrCompanayId: userId,
                 name: req.files['photos'][i].originalname,
@@ -113,7 +118,7 @@ const appendBody = (req, res, next) => {
     }
     if (req.files['videos']?.length) {
         for (let i = 0; i < req.files['videos'].length; i++) {
-            newFiles
+            newVideos
                 .push({
                 userOrCompanayId: userId,
                 name: req.files['videos'][i].originalname,
@@ -137,7 +142,8 @@ const appendBody = (req, res, next) => {
         };
         parsed.thumbnail = thumbnail;
     }
-    parsed.newFiles = newFiles;
+    parsed.newPhotos = newPhotos;
+    parsed.newVideos = newVideos;
     req.body = parsed;
     return next();
 };
@@ -153,8 +159,8 @@ const saveMetaToDb = async (req, res, next) => {
     if (!parsed) {
         return next();
     }
-    if (parsed.newFiles) {
-        const promises = parsed.newFiles
+    if (parsed.newPhotos) {
+        const promises = parsed.newPhotos
             // eslint-disable-next-line @typescript-eslint/no-misused-promises
             .map((value) => new Promise(async (resolve) => {
             const newFileMeta = new filemeta_model_1.fileMeta(value);
@@ -169,7 +175,7 @@ const saveMetaToDb = async (req, res, next) => {
             }
             resolve(newSaved);
         }));
-        parsed.newFiles = await Promise.all(promises);
+        parsed.newPhotos = await Promise.all(promises);
     }
     if (parsed.profilePic) {
         const newFileMeta = new filemeta_model_1.fileMeta(parsed.profilePic);
@@ -183,7 +189,7 @@ const saveMetaToDb = async (req, res, next) => {
             return res.status(500).send({ success: false });
         }
         parsed.profilePic = newSaved._id;
-        parsed.newFiles.push(newSaved);
+        parsed.newPhotos.push(newSaved);
     }
     if (parsed.coverPic) {
         const newFileMeta = new filemeta_model_1.fileMeta(parsed.profilePic);
@@ -197,7 +203,7 @@ const saveMetaToDb = async (req, res, next) => {
             return res.status(500).send({ success: false });
         }
         parsed.coverPic = newSaved._id;
-        parsed.newFiles.push(newSaved);
+        parsed.newPhotos.push(newSaved);
     }
     if (parsed.thumbnail) {
         const newFileMeta = new filemeta_model_1.fileMeta(parsed.thumbnail);
@@ -211,13 +217,13 @@ const saveMetaToDb = async (req, res, next) => {
             return res.status(500).send({ success: false });
         }
         parsed.thumbnail = newSaved._id;
-        parsed.newFiles.push(newSaved);
+        parsed.newPhotos.push(newSaved);
     }
-    if (parsed.newFiles) {
-        const mappedParsedFiles = parsed.newFiles.map((value) => value._id);
-        parsed.newFiles = mappedParsedFiles;
+    if (parsed.newPhotos) {
+        const mappedParsedFiles = parsed.newPhotos.map((value) => value._id);
+        parsed.newPhotos = mappedParsedFiles;
     }
-    req.body = parsed; // newFiles are strings of ids
+    req.body = parsed; // newPhotos are strings of ids
     return next();
 };
 exports.saveMetaToDb = saveMetaToDb;
@@ -243,15 +249,7 @@ const updateFiles = (req, res, next) => {
     });
 };
 exports.updateFiles = updateFiles;
-/**
- * Deletes files from the server.
- * @param req - The request object.
- * @param res - The response object.
- * @param next - The next middleware function.
- * @returns A Promise that resolves when the files are deleted.
- */
-const deleteFiles = async (req, res, next) => {
-    const { filesWithDir } = req.body;
+const deleteAllFiles = async (filesWithDir) => {
     if (filesWithDir && !filesWithDir.length) {
         // return res.status(401).send({ error: 'unauthorised' }); // TODO better catch
     }
@@ -261,10 +259,10 @@ const deleteFiles = async (req, res, next) => {
     if (filesWithDir && filesWithDir.length) {
         const promises = filesWithDir
             .map((value /** : Ifilewithdir*/) => new Promise(resolve => {
-            fsControllerLogger.debug('deleting file', value.filename);
+            fsControllerLogger.debug('deleting file', value.url);
             const absolutepath = stock_universal_local_1.envConfig.absolutepath;
             const nowpath = path
-                .resolve(`${absolutepath}${value.filename}`);
+                .join(`${absolutepath}${value.url}`);
             fs.unlink(nowpath, (err) => {
                 if (err) {
                     fsControllerLogger.error('error while deleting file', err);
@@ -277,6 +275,19 @@ const deleteFiles = async (req, res, next) => {
         }));
         await Promise.all(promises);
     }
+    return true;
+};
+exports.deleteAllFiles = deleteAllFiles;
+/**
+ * Deletes files from the server.
+ * @param req - The request object.
+ * @param res - The response object.
+ * @param next - The next middleware function.
+ * @returns A Promise that resolves when the files are deleted.
+ */
+const deleteFiles = async (req, res, next) => {
+    const { filesWithDir } = req.body;
+    await (0, exports.deleteAllFiles)(filesWithDir);
     return next();
 };
 exports.deleteFiles = deleteFiles;

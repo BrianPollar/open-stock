@@ -1,5 +1,6 @@
 import { Iadminloginres } from '@open-stock/stock-universal';
 import * as fs from 'fs';
+import * as path from 'path';
 import * as tracer from 'tracer';
 const adminLogger = tracer.colorConsole(
   {
@@ -8,17 +9,19 @@ const adminLogger = tracer.colorConsole(
     transport(data) {
       // eslint-disable-next-line no-console
       console.log(data.output);
-      const logDir = './openstockLog/';
+      const logDir = path.join(process.cwd() + '/openstockLog/');
       fs.mkdir(logDir, { recursive: true }, (err) => {
         if (err) {
           if (err) {
-            throw err;
+            // eslint-disable-next-line no-console
+            console.log('data.output err ', err);
           }
         }
       });
-      fs.appendFile('./openStockLog/auth-server.log', data.rawoutput + '\n', err => {
+      fs.appendFile(logDir + '/auth-server.log', data.rawoutput + '\n', err => {
         if (err) {
-          throw err;
+          // eslint-disable-next-line no-console
+          console.log('raw.output err ', err);
         }
       });
     }

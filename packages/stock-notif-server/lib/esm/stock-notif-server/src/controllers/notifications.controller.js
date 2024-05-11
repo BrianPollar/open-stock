@@ -1,10 +1,11 @@
 import { stringifyMongooseErr } from '@open-stock/stock-universal-server';
+import * as fs from 'fs';
+import path from 'path';
 import * as tracer from 'tracer';
 import * as webPush from 'web-push';
 import { mainnotificationMain } from '../models/mainnotification.model';
-import { notifSettingLean, notifSettingMain } from '../models/notifsetting.model';
+import { notifSettingMain } from '../models/notifsetting.model';
 import { notificationSettings } from '../stock-notif-local';
-import * as fs from 'fs';
 // const sgMail = require('@sendgrid/mail');
 // import * as sgMail from '@sendgrid/mail';
 const sgMail = require('@sendgrid/mail');
@@ -14,17 +15,19 @@ const notificationsControllerLogger = tracer.colorConsole({
     transport(data) {
         // eslint-disable-next-line no-console
         console.log(data.output);
-        const logDir = './openstockLog/';
+        const logDir = path.join(process.cwd() + '/openstockLog/');
         fs.mkdir(logDir, { recursive: true }, (err) => {
             if (err) {
                 if (err) {
-                    throw err;
+                    // eslint-disable-next-line no-console
+                    console.log('data.output err ', err);
                 }
             }
         });
-        fs.appendFile('./openStockLog/notif-server.log', data.rawoutput + '\n', err => {
+        fs.appendFile(logDir + '/notif-server.log', data.rawoutput + '\n', err => {
             if (err) {
-                throw err;
+                // eslint-disable-next-line no-console
+                console.log('raw.output err ', err);
             }
         });
     }
@@ -41,23 +44,23 @@ export const determineUserHasMail = (user) => {
  * Creates notification settings.
  * @returns {Promise<InotifSetting>} The created notification settings.
  */
-export const createSettings = async () => {
-    let stn;
-    const found = await notifSettingLean.find({}).lean();
-    if (found.length > 0) {
-        stn = found[0];
-        return;
-    }
-    await createNotifSetting({});
-    stn = {
-        invoices: true,
-        payments: true,
-        orders: true,
-        jobCards: true,
-        users: true
-    };
-    return stn;
-};
+/* export const createSettings = async() => {
+  let stn: InotifSetting;
+  const found = await notifSettingLean.find({}).lean();
+  if (found.length > 0) {
+    stn = found[0] as unknown as InotifSetting;
+    return;
+  }
+  await createNotifSetting({});
+  stn = {
+    invoices: true,
+    payments: true,
+    orders: true,
+    jobCards: true,
+    users: true
+  };
+  return stn;
+};*/
 /**
    * Registers a new user with Authy.
    * @param phone - The user's phone number.
@@ -360,7 +363,7 @@ export const makeNotfnBody = (userId, title, body, notifType, actions, notifInvo
         notifInvokerId,
         body,
         icon: '',
-        expireAt: Date.parse(new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString()),
+        expireAt: Date.parse(new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString()).toString(),
         orders: false,
         payments: false,
         users: false,
@@ -371,5 +374,39 @@ export const makeNotfnBody = (userId, title, body, notifType, actions, notifInvo
     };
     notificationsControllerLogger.debug('makeNotfnBody - notification', notification);
     return notification;
+};
+export const createNotifications = async (data) => {
+    const newNotifn = new mainnotificationMain(data.notification);
+    const saved = await newNotifn.save().catch(err => {
+        if (err) {
+            notificationsControllerLogger.error('save Error', err);
+        }
+    });
+    return true;
+};
+export const createNotifStn = async (stn) => {
+    const notifMain = new notifSettingMain(stn);
+    let errResponse;
+    await notifMain.save().catch(err => {
+        errResponse = {
+            success: false,
+            status: 403
+        };
+        if (err && err.errors) {
+            errResponse.err = stringifyMongooseErr(err.errors);
+        }
+        else {
+            errResponse.err = `we are having problems connecting to our databases, 
+      try again in a while`;
+        }
+        return errResponse;
+    });
+    if (errResponse) {
+        return errResponse;
+    }
+    return {
+        success: true,
+        status: 200
+    };
 };
 //# sourceMappingURL=notifications.controller.js.map

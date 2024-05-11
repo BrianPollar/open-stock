@@ -27,9 +27,10 @@
  */
 import { companyLean, requireActiveCompany, requireCanUseFeature, requireUpdateSubscriptionRecord } from '@open-stock/stock-auth-server';
 import { Icustomrequest, IdataArrayResponse, IfileMeta, Isuccess, makeRandomString } from '@open-stock/stock-universal';
-import { appendBody, deleteFiles, fileMetaLean, makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, saveMetaToDb, stringifyMongooseErr, uploadFiles, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { appendBody, deleteAllFiles, deleteFiles, fileMetaLean, makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, saveMetaToDb, stringifyMongooseErr, uploadFiles, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express, { Request, Response } from 'express';
 import * as fs from 'fs';
+import path from 'path';
 import * as tracer from 'tracer';
 import { itemLean, itemMain } from '../models/item.model';
 import { itemDecoyMain } from '../models/itemdecoy.model';
@@ -44,17 +45,19 @@ const itemRoutesLogger = tracer.colorConsole(
     transport(data) {
       // eslint-disable-next-line no-console
       console.log(data.output);
-      const logDir = './openstockLog/';
+      const logDir = path.join(process.cwd() + '/openstockLog/');
       fs.mkdir(logDir, { recursive: true }, (err) => {
         if (err) {
           if (err) {
-            throw err;
+            // eslint-disable-next-line no-console
+            console.log('data.output err ', err);
           }
         }
       });
-      fs.appendFile('./openStockLog/counter-server.log', data.rawoutput + '\n', err => {
+      fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
         if (err) {
-          throw err;
+          // eslint-disable-next-line no-console
+          console.log('raw.output err ', err);
         }
       });
     }
@@ -187,12 +190,65 @@ export const removeReview = async(req: Request, res: Response): Promise<Response
  * @param {Response} res - The express response object
  * @returns {Promise<Response>} - The express response object with a success status and saved item data
  */
-itemRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('item'), roleAuthorisation('items', 'create'), uploadFiles, appendBody, saveMetaToDb, async(req, res, next): Promise<Response> => {
+itemRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('item'), roleAuthorisation('items', 'create'), async(req, res, next): Promise<Response> => {
   const item = req.body.item;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   item.companyId = queryId;
+  item.ecomerceCompat = false;
+  const isValid = verifyObjectId(queryId);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
+  const count = await itemMain
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+    .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+  item.urId = makeUrId(Number(count[0]?.urId || '0'));
+  const newProd = new itemMain(item);
+  let errResponse: Isuccess;
+  const saved = await newProd.save()
+    .catch(err => {
+      itemRoutesLogger.error('create - err: ', err);
+      errResponse = {
+        success: false,
+        status: 403
+      };
+      if (err && err.errors) {
+        errResponse.err = stringifyMongooseErr(err.errors);
+      } else {
+        errResponse.err = `we are having problems connecting to our databases, 
+        try again in a while`;
+      }
+      return errResponse;
+    });
+
+  if (errResponse) {
+    return res.status(403).send(errResponse);
+  }
+  if (!Boolean(saved)) {
+    return res.status(403).send('unknown error');
+  }
+  return next();
+}, requireUpdateSubscriptionRecord('item'));
+
+/**
+ * Creates a new item
+ * @function
+ * @async
+ * @param {Request} req - The express request object
+ * @param {Icustomrequest} req.user - The custom request object with user data
+ * @param {Object} req.body.item - The item data to create
+ * @param {Response} res - The express response object
+ * @returns {Promise<Response>} - The express response object with a success status and saved item data
+ */
+itemRoutes.post('/createimg/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('item'), roleAuthorisation('items', 'create'), uploadFiles, appendBody, saveMetaToDb, async(req, res, next): Promise<Response> => {
+  const item = req.body.item;
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  item.companyId = queryId;
+  item.ecomerceCompat = true;
   const isValid = verifyObjectId(queryId);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
@@ -202,8 +258,11 @@ itemRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, re
     .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
   item.urId = makeUrId(Number(count[0]?.urId || '0'));
   const parsed = req.body;
-  if (parsed && parsed.newFiles) {
-    item.photos = parsed.newFiles;
+  if (parsed && parsed.newPhotos) {
+    item.photos = parsed.newPhotos;
+  }
+  if (parsed && parsed.newVideos) {
+    item.video = parsed.newVideos[0];
   }
   const newProd = new itemMain(item);
   let errResponse: Isuccess;
@@ -321,9 +380,17 @@ itemRoutes.post('/updateimg/:companyIdParam', requireAuth, requireActiveCompany,
   }
 
   const parsed = req.body;
-  if (parsed && parsed.newFiles) {
+  if (parsed && parsed.newPhotos) {
     const oldPhotos = item.photos || [];
-    item.photos = [...oldPhotos, ...parsed.newFiles] as string[];
+    item.photos = [...oldPhotos, ...parsed.newPhotos] as string[];
+  }
+
+  if (parsed && parsed.newVideos) {
+    const meta = await fileMetaLean.findById(item.video);
+    if (meta) {
+      await deleteAllFiles([meta]);
+    }
+    item.video = parsed.newVideos[0];
   }
 
   delete updatedProduct._id;
@@ -459,8 +526,8 @@ itemRoutes.get('/getone/:urId/:companyIdParam', async(req, res) => {
   return res.status(200).send(item);
 });
 
-itemRoutes.get('/filtergeneral/:prop/:val/:offset/:limit/:companyIdParam', async(req, res) => {
-  const { companyIdParam, prop, val } = req.params;
+itemRoutes.get('/filtergeneral/:prop/:val/:offset/:limit/:companyIdParam/:ecomerceCompat', async(req, res) => {
+  const { companyIdParam, prop, val, ecomerceCompat } = req.params;
   let filter = { [prop]: { $regex: val, $options: 'i' } } as object;
   const isValid = verifyObjectId(companyIdParam);
   if (isValid) {
@@ -468,6 +535,9 @@ itemRoutes.get('/filtergeneral/:prop/:val/:offset/:limit/:companyIdParam', async
   }
   if (prop === 'time') {
     filter = { companyId: companyIdParam, createdAt: { $gte: new Date(val) } } ;
+  }
+  if (ecomerceCompat === 'true') {
+    filter = { ...filter, ecomerceCompat: true };
   }
   const all = await Promise.all([
     itemLean
@@ -486,12 +556,15 @@ itemRoutes.get('/filtergeneral/:prop/:val/:offset/:limit/:companyIdParam', async
   return res.status(200).send(response);
 });
 
-itemRoutes.get('/filterrandom/:prop/:val/:offset/:limit/:companyIdParam', async(req, res) => {
-  const { companyIdParam, prop, val } = req.params;
+itemRoutes.get('/filterrandom/:prop/:val/:offset/:limit/:companyIdParam/:ecomerceCompat', async(req, res) => {
+  const { companyIdParam, prop, val, ecomerceCompat } = req.params;
   let filter = { [prop]: { $regex: val, $options: 'i' } } as object;
   const isValid = verifyObjectId(companyIdParam);
   if (isValid) {
     filter = { companyId: companyIdParam, [prop]: { $regex: val, $options: 'i' } } ;
+  }
+  if (ecomerceCompat === 'true') {
+    filter = { ...filter, ecomerceCompat: true };
   }
   const all = await Promise.all([
     itemLean
@@ -511,12 +584,15 @@ itemRoutes.get('/filterrandom/:prop/:val/:offset/:limit/:companyIdParam', async(
   return res.status(200).send(response);
 });
 
-itemRoutes.get('/getall/:offset/:limit/:companyIdParam', async(req, res) => {
-  const { companyIdParam } = req.params;
+itemRoutes.get('/getall/:offset/:limit/:companyIdParam/:ecomerceCompat', async(req, res) => {
+  const { companyIdParam, ecomerceCompat } = req.params;
   let filter = {} as object;
   const isValid = verifyObjectId(companyIdParam);
   if (isValid) {
     filter = { companyId: companyIdParam };
+  }
+  if (ecomerceCompat === 'true') {
+    filter = { ...filter, ecomerceCompat: true };
   }
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
   const all = await Promise.all([
@@ -538,12 +614,15 @@ itemRoutes.get('/getall/:offset/:limit/:companyIdParam', async(req, res) => {
   return res.status(200).send(response);
 });
 
-itemRoutes.get('/gettrending/:offset/:limit/:companyIdParam', async(req, res) => {
-  const { companyIdParam } = req.params;
+itemRoutes.get('/gettrending/:offset/:limit/:companyIdParam/:ecomerceCompat', async(req, res) => {
+  const { companyIdParam, ecomerceCompat } = req.params;
   let filter = {} as object;
   const isValid = verifyObjectId(companyIdParam);
   if (isValid) {
     filter = { companyId: companyIdParam };
+  }
+  if (ecomerceCompat === 'true') {
+    filter = { ...filter, ecomerceCompat: true };
   }
   const all = await Promise.all([
     itemLean
@@ -563,12 +642,15 @@ itemRoutes.get('/gettrending/:offset/:limit/:companyIdParam', async(req, res) =>
   return res.status(200).send(response);
 });
 
-itemRoutes.get('/getfeatured/:offset/:limit/:companyIdParam', async(req, res) => {
-  const { companyIdParam } = req.params;
+itemRoutes.get('/getfeatured/:offset/:limit/:companyIdParam/:ecomerceCompat', async(req, res) => {
+  const { companyIdParam, ecomerceCompat } = req.params;
   let filter = {} as object;
   const isValid = verifyObjectId(companyIdParam);
   if (isValid) {
     filter = { companyId: companyIdParam };
+  }
+  if (ecomerceCompat === 'true') {
+    filter = { ...filter, ecomerceCompat: true };
   }
   const all = await Promise.all([
     itemLean
@@ -590,38 +672,15 @@ itemRoutes.get('/getfeatured/:offset/:limit/:companyIdParam', async(req, res) =>
 
 
 // newly posted
-itemRoutes.get('/getnew/:offset/:limit/:companyIdParam', async(req, res) => {
-  const { companyIdParam } = req.params;
+itemRoutes.get('/getnew/:offset/:limit/:companyIdParam/:ecomerceCompat', async(req, res) => {
+  const { companyIdParam, ecomerceCompat } = req.params;
   let filter = {} as object;
   const isValid = verifyObjectId(companyIdParam);
   if (isValid) {
     filter = { companyId: companyIdParam };
   }
-  const all = await Promise.all([
-    itemLean
-      .find(filter)
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-      .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-      .sort({ createdAt: -1 })
-      .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
-      .lean(),
-    itemLean.countDocuments(filter)
-  ]);
-  const newItems = all[0].filter(item => item.companyId);
-  const response: IdataArrayResponse = {
-    count: all[1],
-    data: newItems
-  };
-  return res.status(200).send(response);
-});
-
-// new not used
-itemRoutes.get('/getbrandnew/:offset/:limit/:companyIdParam', async(req, res) => {
-  const { companyIdParam } = req.params;
-  let filter = { state: 'new' } as object;
-  const isValid = verifyObjectId(companyIdParam);
-  if (isValid) {
-    filter = { companyId: companyIdParam, state: 'new' };
+  if (ecomerceCompat === 'true') {
+    filter = { ...filter, ecomerceCompat: true };
   }
   const all = await Promise.all([
     itemLean
@@ -642,12 +701,44 @@ itemRoutes.get('/getbrandnew/:offset/:limit/:companyIdParam', async(req, res) =>
 });
 
 // new not used
-itemRoutes.get('/getused/:offset/:limit/:companyIdParam', async(req, res) => {
-  const { companyIdParam } = req.params;
+itemRoutes.get('/getbrandnew/:offset/:limit/:companyIdParam/:ecomerceCompat', async(req, res) => {
+  const { companyIdParam, ecomerceCompat } = req.params;
+  let filter = { state: 'new' } as object;
+  const isValid = verifyObjectId(companyIdParam);
+  if (isValid) {
+    filter = { companyId: companyIdParam, state: 'new' };
+  }
+  if (ecomerceCompat === 'true') {
+    filter = { ...filter, ecomerceCompat: true };
+  }
+  const all = await Promise.all([
+    itemLean
+      .find(filter)
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+      .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+      .sort({ createdAt: -1 })
+      .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
+      .lean(),
+    itemLean.countDocuments(filter)
+  ]);
+  const newItems = all[0].filter(item => item.companyId);
+  const response: IdataArrayResponse = {
+    count: all[1],
+    data: newItems
+  };
+  return res.status(200).send(response);
+});
+
+// new not used
+itemRoutes.get('/getused/:offset/:limit/:companyIdParam/:ecomerceCompat', async(req, res) => {
+  const { companyIdParam, ecomerceCompat } = req.params;
   let filter = { state: 'refurbished' } as object;
   const isValid = verifyObjectId(companyIdParam);
   if (isValid) {
     filter = { companyId: companyIdParam, state: 'refurbished' };
+  }
+  if (ecomerceCompat === 'true') {
+    filter = { ...filter, ecomerceCompat: true };
   }
   const all = await Promise.all([
     itemLean
@@ -668,12 +759,15 @@ itemRoutes.get('/getused/:offset/:limit/:companyIdParam', async(req, res) => {
 });
 
 // filterprice
-itemRoutes.get('/filterprice/max/:priceFilterValue/:offset/:limit/:companyIdParam', async(req, res) => {
-  const { companyIdParam } = req.params;
+itemRoutes.get('/filterprice/max/:priceFilterValue/:offset/:limit/:companyIdParam/:ecomerceCompat', async(req, res) => {
+  const { companyIdParam, ecomerceCompat } = req.params;
   let filter = {} as object;
   const isValid = verifyObjectId(companyIdParam);
   if (isValid) {
     filter = { companyId: companyIdParam };
+  }
+  if (ecomerceCompat === 'true') {
+    filter = { ...filter, ecomerceCompat: true };
   }
   const { priceFilterValue } = req.params;
   const all = await Promise.all([
@@ -695,12 +789,15 @@ itemRoutes.get('/filterprice/max/:priceFilterValue/:offset/:limit/:companyIdPara
   return res.status(200).send(response);
 });
 
-itemRoutes.get('/filterprice/min/:priceFilterValue/:offset/:limit/:companyIdParam', async(req, res) => {
-  const { companyIdParam } = req.params;
+itemRoutes.get('/filterprice/min/:priceFilterValue/:offset/:limit/:companyIdParam/:ecomerceCompat', async(req, res) => {
+  const { companyIdParam, ecomerceCompat } = req.params;
   let filter = {} as object;
   const isValid = verifyObjectId(companyIdParam);
   if (isValid) {
     filter = { companyId: companyIdParam };
+  }
+  if (ecomerceCompat === 'true') {
+    filter = { ...filter, ecomerceCompat: true };
   }
   const { priceFilterValue } = req.params;
   const all = await Promise.all([
@@ -723,12 +820,15 @@ itemRoutes.get('/filterprice/min/:priceFilterValue/:offset/:limit/:companyIdPara
 });
 
 
-itemRoutes.get('/filterprice/eq/:priceFilterMinValue/:priceFilterMaxValue/:offset/:limit/:companyIdParam', async(req, res) => {
-  const { companyIdParam } = req.params;
+itemRoutes.get('/filterprice/eq/:priceFilterMinValue/:priceFilterMaxValue/:offset/:limit/:companyIdParam/:ecomerceCompat', async(req, res) => {
+  const { companyIdParam, ecomerceCompat } = req.params;
   let filter = {} as object;
   const isValid = verifyObjectId(companyIdParam);
   if (isValid) {
     filter = { companyId: companyIdParam };
+  }
+  if (ecomerceCompat === 'true') {
+    filter = { ...filter, ecomerceCompat: true };
   }
   const { priceFilterMinValue, priceFilterMaxValue } = req.params;
   const all = await Promise.all([
@@ -751,12 +851,15 @@ itemRoutes.get('/filterprice/eq/:priceFilterMinValue/:priceFilterMaxValue/:offse
   return res.status(200).send(response);
 });
 
-itemRoutes.get('/filterstars/:starVal/:offset/:limit/:companyIdParam', async(req, res) => {
-  const { companyIdParam } = req.params;
+itemRoutes.get('/filterstars/:starVal/:offset/:limit/:companyIdParam/:ecomerceCompat', async(req, res) => {
+  const { companyIdParam, ecomerceCompat } = req.params;
   let filter = {} as object;
   const isValid = verifyObjectId(companyIdParam);
   if (isValid) {
     filter = { companyId: companyIdParam };
+  }
+  if (ecomerceCompat === 'true') {
+    filter = { ...filter, ecomerceCompat: true };
   }
   const starVal = Number(req.params.starVal);
   const all = await Promise.all([
@@ -781,12 +884,15 @@ itemRoutes.get('/filterstars/:starVal/:offset/:limit/:companyIdParam', async(req
   return res.status(200).send(response);
 });
 
-itemRoutes.get('/discount/:discountValue/:offset/:limit/:companyIdParam', async(req, res) => {
-  const { companyIdParam } = req.params;
+itemRoutes.get('/discount/:discountValue/:offset/:limit/:companyIdParam/:ecomerceCompat', async(req, res) => {
+  const { companyIdParam, ecomerceCompat } = req.params;
   let filter = {} as object;
   const isValid = verifyObjectId(companyIdParam);
   if (isValid) {
     filter = { companyId: companyIdParam };
+  }
+  if (ecomerceCompat === 'true') {
+    filter = { ...filter, ecomerceCompat: true };
   }
   const { discountValue } = req.params;
   const all = await Promise.all([
@@ -1020,7 +1126,7 @@ itemRoutes.put('/deleteone/:id/:companyIdParam', requireAuth, requireActiveCompa
   }
 });
 
-itemRoutes.put('/deleteimages/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('items', 'delete'), deleteFiles, async(req, res) => {
+itemRoutes.put('/deletefiles/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('items', 'delete'), deleteFiles, async(req, res) => {
   const filesWithDir: IfileMeta[] = req.body.filesWithDir;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -1045,6 +1151,9 @@ itemRoutes.put('/deleteimages/:companyIdParam', requireAuth, requireActiveCompan
   const photos = item.photos;
   item.photos = photos
     .filter((p: string) => !filesWithDirIds.includes(p)) as string[];
+  if (item.video && filesWithDirIds.includes(item.video as string)) {
+    item.video = null;
+  }
   let errResponse: Isuccess;
   await item.save().catch(err => {
     errResponse = {
@@ -1068,7 +1177,7 @@ itemRoutes.put('/deleteimages/:companyIdParam', requireAuth, requireActiveCompan
 });
 
 itemRoutes.post('/search/:offset/:limit/:companyIdParam', async(req, res) => {
-  const { searchterm, searchKey, category, extraFilers, subCategory } = req.body;
+  const { searchterm, searchKey, category, extraFilers, subCategory, ecomerceCompat } = req.body;
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
   const { companyIdParam } = req.params;
   if (companyIdParam !== 'undefined') {
@@ -1090,6 +1199,10 @@ itemRoutes.post('/search/:offset/:limit/:companyIdParam', async(req, res) => {
     filter = { category, subCategory };
   } else {
     filter = { category };
+  }
+
+  if (ecomerceCompat === 'true') {
+    filter = { ...filter, ecomerceCompat: true };
   }
 
   if (companyIdParam !== 'undefined') {

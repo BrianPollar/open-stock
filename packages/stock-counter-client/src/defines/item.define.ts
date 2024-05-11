@@ -60,6 +60,7 @@ export class Item extends DatabaseAuto {
 
   /** The photos of the item. */
   photos?: IfileMeta[] = [];
+  video?: IfileMeta;
 
   /** Any known problems with the item. */
   anyKnownProblems?: string;
@@ -129,10 +130,11 @@ export class Item extends DatabaseAuto {
     category = 'all',
     subCategory?: string,
     offset = 0,
-    limit = 20
+    limit = 20,
+    ecomerceCompat: 'false' | 'true' = 'false'
   ) {
     const observer$ = StockCounterClient.ehttp
-      .makePost(`/item/search/${offset}/${limit}/${companyId}`, { searchterm, searchKey, category, extraFilters, subCategory });
+      .makePost(`/item/search/${offset}/${limit}/${companyId}`, { searchterm, searchKey, category, extraFilters, subCategory, ecomerceCompat });
     const items = await lastValueFrom(observer$) as IdataArrayResponse;
     return {
       count: items.count,
@@ -152,10 +154,11 @@ export class Item extends DatabaseAuto {
     companyId: string,
     url: string,
     offset = 0,
-    limit = 20
+    limit = 20,
+    ecomerceCompat: 'false' | 'true' = 'false'
   ) {
     const observer$ = StockCounterClient.ehttp
-      .makeGet(`${url}/${offset}/${limit}/${companyId}`);
+      .makeGet(`${url}/${offset}/${limit}/${companyId}/${ecomerceCompat}`);
     const items = await lastValueFrom(observer$) as IdataArrayResponse;
     return {
       count: items.count,
@@ -191,21 +194,21 @@ export class Item extends DatabaseAuto {
     companyId: string,
     vals: object,
     files: Ifile[],
-    inventoryStock = false
+    ecomerceCompat = false
   ) {
     let added: Isuccess;
     const details = {
       item: vals
     };
-    if (!inventoryStock) {
+    if (ecomerceCompat) {
       const observer$ = StockCounterClient.ehttp
         .uploadFiles(files,
-          `/item/create/${companyId}`,
+          `/item/createimg/${companyId}`,
           details);
       added = await lastValueFrom(observer$) as Isuccess;
     } else {
       const observer$ = StockCounterClient.ehttp
-        .makePost(`/invitem/create/${companyId}`, details);
+        .makePost(`/item/create/${companyId}`, details);
       added = await lastValueFrom(observer$) as Isuccess;
     }
     return added;
@@ -400,14 +403,17 @@ export class Item extends DatabaseAuto {
    * @param filesWithDir - An array of file metadata objects.
    * @returns A promise that resolves to the success status of the deletion.
    */
-  async deleteImages(companyId: string, filesWithDir: IfileMeta[]) {
+  async deleteFiles(companyId: string, filesWithDir: IfileMeta[]) {
     const observer$ = StockCounterClient.ehttp
     // eslint-disable-next-line @typescript-eslint/naming-convention
-      .makePut(`/item/deleteimages/${companyId}`, { filesWithDir, item: { _id: this._id } });
+      .makePut(`/item/deletefiles/${companyId}`, { filesWithDir, item: { _id: this._id } });
     const deleted = await lastValueFrom(observer$) as Isuccess;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     const toStrings = filesWithDir.map(val => val._id);
     this.photos = this.photos.filter(val => !toStrings.includes(val._id));
+    if (this.video && toStrings.includes(this.video._id)) {
+      this.video = null;
+    }
     return deleted;
   }
 
@@ -442,6 +448,7 @@ export class Item extends DatabaseAuto {
     this.category = data.category || this.category;
     this.state = data.state || this.state;
     this.photos = data.photos || this.photos;
+    this.video = data.video || this.video;
     this.colors = data.colors || this.colors;
     this.model = data.model || this.model;
     this.origin = data.origin || this.origin;

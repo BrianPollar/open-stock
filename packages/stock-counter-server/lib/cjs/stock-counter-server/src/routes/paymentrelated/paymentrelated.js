@@ -5,13 +5,14 @@ const tslib_1 = require("tslib");
 const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const stock_notif_server_1 = require("@open-stock/stock-notif-server");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
+const fs = tslib_1.__importStar(require("fs"));
+const path_1 = tslib_1.__importDefault(require("path"));
 const tracer = tslib_1.__importStar(require("tracer"));
 const order_model_1 = require("../../models/order.model");
 const payment_model_1 = require("../../models/payment.model");
 const paymentrelated_model_1 = require("../../models/printables/paymentrelated/paymentrelated.model");
 const receipt_model_1 = require("../../models/printables/receipt.model");
 const invoicerelated_1 = require("../printables/related/invoicerelated");
-const fs = tslib_1.__importStar(require("fs"));
 /** Logger for PaymentRelated routes */
 const paymentRelatedLogger = tracer.colorConsole({
     format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
@@ -19,17 +20,19 @@ const paymentRelatedLogger = tracer.colorConsole({
     transport(data) {
         // eslint-disable-next-line no-console
         console.log(data.output);
-        const logDir = './openstockLog/';
+        const logDir = path_1.default.join(process.cwd() + '/openstockLog/');
         fs.mkdir(logDir, { recursive: true }, (err) => {
             if (err) {
                 if (err) {
-                    throw err;
+                    // eslint-disable-next-line no-console
+                    console.log('data.output err ', err);
                 }
             }
         });
-        fs.appendFile('./openStockLog/counter-server.log', data.rawoutput + '\n', err => {
+        fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
             if (err) {
-                throw err;
+                // eslint-disable-next-line no-console
+                console.log('raw.output err ', err);
             }
         });
     }
@@ -136,40 +139,41 @@ extraNotifDesc, queryId) => {
             return errResponse;
         }
         // const relatedId = await relegateInvRelatedCreation(invoiceRelated, extraNotifDesc, true);
-        // let route: string;
-        // let title = '';
+        let route;
+        let title = '';
         let accessor;
-        // let notifType: TnotifType;
+        let notifType;
         if (type === 'order') {
-            // route = 'orders';
-            // title = 'Order Made';
+            route = 'orders';
+            title = 'Order Made';
             accessor = 'orders';
-            // notifType = 'orders';
+            notifType = 'orders';
         }
         else {
-            // route = 'payments';
-            // title = 'Payment Made';
+            route = 'payments';
+            title = 'Payment Made';
             accessor = 'payments';
-            // notifType = 'payments';
+            notifType = 'payments';
         }
-        const stn = await (0, stock_notif_server_1.getCurrentNotificationSettings)();
+        const stn = await (0, stock_notif_server_1.getCurrentNotificationSettings)(queryId);
         if (stn && stn[accessor]) {
-            /* const actions: Iactionwithall[] = [{
-              operation: 'view',
-              url: pesapalNotifRedirectUrl + route,
-              action: '',
-              title
-            }];*/
-            /* const notification: Imainnotification = {
-              actions,
-              userId: invoiceRelated.billingUserId,
-              title,
-              body: extraNotifDesc,
-              icon: '',
-              notifType,
-              // photo: string;
-              expireAt: '200000'
-            };*/
+            const actions = [{
+                    operation: 'view',
+                    // url: pesapalNotifRedirectUrl + route,
+                    url: route,
+                    action: '',
+                    title
+                }];
+            const notification = {
+                actions,
+                userId: invoiceRelated.billingUserId,
+                title,
+                body: extraNotifDesc,
+                icon: '',
+                notifType,
+                // photo: string;
+                expireAt: '200000'
+            };
             const capableUsers = await stock_auth_server_1.user.find({})
                 .lean().select({ permissions: 1 });
             const ids = [];
@@ -187,11 +191,11 @@ extraNotifDesc, queryId) => {
                     }
                 }
             }
-            // const notifFilters = { id: { $in: ids } };
-            /* await createNotifications({
-              options: notification,
-              filters: notifFilters
-            });*/
+            const notifFilters = { id: { $in: ids } };
+            await (0, stock_notif_server_1.createNotifications)({
+                notification,
+                filters: notifFilters
+            });
         }
         // eslint-disable-next-line @typescript-eslint/naming-convention
         return { success: true, status: 200, id: saved._id };
