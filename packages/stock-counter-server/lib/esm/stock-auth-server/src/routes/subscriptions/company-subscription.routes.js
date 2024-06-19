@@ -34,7 +34,7 @@ const companySubscriptionRoutesLogger = tracer.colorConsole({
 });
 const firePesapalRelegator = async (subctn, savedSub, company, currUser) => {
     const payDetails = {
-        id: savedSub._id,
+        id: savedSub._id.toString(),
         currency: 'USD',
         amount: subctn.ammount,
         description: 'Complete payments for subscription ,' + subctn.name,

@@ -1,8 +1,6 @@
 import {
   Iaddress,
-  Iauthresponse,
-  Iauthtoken,
-  Ibilling,
+  Iauthresponse, Ibilling,
   Icompany,
   Icustomrequest,
   IdataArrayResponse,
@@ -20,9 +18,9 @@ import * as fs from 'fs';
 import path from 'path';
 import * as tracer from 'tracer';
 import { checkIpAndAttempt, confirmAccountFactory, determineIfIsPhoneAndMakeFilterObj, isInAdictionaryOnline, isTooCommonPhrase, recoverAccountFactory, resetAccountFactory } from '../controllers/auth.controller';
-import { generateToken, sendTokenEmail, sendTokenPhone, setUserInfo } from '../controllers/universial.controller';
+import { makeUserReturnObject, sendTokenEmail, sendTokenPhone } from '../controllers/universial.controller';
 import { companyLean, companyMain } from '../models/company.model';
-import { companySubscriptionLean, companySubscriptionMain } from '../models/subscriptions/company-subscription.model';
+import { companySubscriptionMain } from '../models/subscriptions/company-subscription.model';
 import { user, userAuthSelect, userLean } from '../models/user.model';
 import { stockAuthConfig } from '../stock-auth-local';
 import { requireActiveCompany } from './company-auth';
@@ -311,46 +309,11 @@ export const userLoginRelegator = async(req: Request, res: Response, next) => {
     return next();
   }
 
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  const company = await companyLean.findById(foundUser?.companyId)
-    .lean();
-  let permissions: Iuserperm;
-
-  // TODO scan for all object id comparisons// ALSO does it affete find, I think not likely but test out
-  if (company && company.owner === foundUser._id.toString()) {
-    permissions = {
-      companyAdminAccess: true
-    };
-  } else {
-    permissions = foundUser.permissions || {};
-  }
-
-  // delete user.password; //we do not want to send back password
-  const userInfo: Iauthtoken = setUserInfo(
-    foundUser._id.toString(),
-    permissions,
-    foundUser.companyId,
-    { active: !company.blocked }
-  );
-  const token = generateToken(
-    userInfo, '1d', stockAuthConfig.authSecrets.jwtSecret);
-  let activeSubscription;
-  const now = new Date();
-  if (company) {
-    const subsctn = await companySubscriptionLean.findOne({ companyId: company._id, status: 'paid' })
-      .lean()
-      .gte('endDate', now)
-      .sort({ endDate: 1 });
-    activeSubscription = subsctn;
-  }
-
-  foundUser.companyId = company;
+  const responseObj = await makeUserReturnObject(foundUser);
 
   const nowResponse: Iauthresponse = {
     success: true,
-    user: foundUser,
-    token,
-    activeSubscription
+    ...responseObj
   };
   return res.status(200).send(nowResponse);
 };
@@ -461,21 +424,35 @@ export const updateUserBulk = async(req, res, next) => {
   if (!isValid) {
     return res.status(401).send({ success: false, err: 'unauthourised' });
   }
+
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  let filter = { _id, companyId: queryId } as any;
+
+  if (req.body.profileOnly === 'true') {
+    const { userId } = (req as Icustomrequest).user;
+    filter = { user: userId };
+  }
+
+  const parsed = req.body;
+
   const foundUser = await user
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    .findOneAndUpdate({ _id, companyId: queryId });
+    .findOneAndUpdate(filter);
   if (!foundUser) {
+    if (parsed.newPhotos) {
+      await deleteAllFiles(parsed.newPhotos);
+    }
+
     return res.status(404).send({ success: false });
   }
 
   if (!foundUser.urId) {
     const count = await user
       // eslint-disable-next-line @typescript-eslint/naming-convention
-      .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+      .find({ }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     foundUser.urId = makeUrId(Number(count[0]?.urId || '0'));
   }
 
-  const parsed = req.body;
+
   if (parsed) {
     if (parsed.profilePic) {
       foundUser.profilePic = parsed.profilePic || foundUser.profilePic;
@@ -494,7 +471,9 @@ export const updateUserBulk = async(req, res, next) => {
 
   const keys = Object.keys(updatedUser);
   keys.forEach(key => {
-    if (foundUser[key]) {
+    if (companyId === 'superAdmin') {
+      foundUser[key] = updatedUser[key] || foundUser[key];
+    } else if (foundUser[key] && key !== 'password' && key !== 'email' && key !== 'phone') {
       foundUser[key] = updatedUser[key] || foundUser[key];
     }
   });
@@ -567,35 +546,11 @@ userAuthRoutes.get('/authexpress2', requireAuth, async(req, res) => {
     return res.status(401).send(response);
   }
 
-  const company = await companyLean
-    .findById(foundUser.companyId)
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    .lean().select({ blocked: 1, _id: 1 });
+  const responseObj = await makeUserReturnObject(foundUser);
 
-  let permissions: Iuserperm;
-  if (company && company.owner === foundUser._id.toString()) {
-    permissions = {
-      companyAdminAccess: true
-    };
-  } else {
-    permissions = foundUser.permissions;
-  }
-
-  const userInfo: Iauthtoken = setUserInfo(
-    foundUser._id.toString(),
-    permissions,
-    foundUser.companyId as string,
-    { active: !company.blocked }
-  );
-
-  foundUser.companyId = company;
-
-  const token = generateToken(
-    userInfo, '1d', stockAuthConfig.authSecrets.jwtSecret);
   const nowResponse: Iauthresponse = {
     success: true,
-    user: foundUser as Iuser,
-    token
+    ...responseObj
   };
   return res.status(200).send(nowResponse);
 });
@@ -1121,13 +1076,20 @@ userAuthRoutes.get('/getoneuser/:urId/:companyIdParam', requireAuth, roleAuthori
   const { urId } = req.params;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const isValid = verifyObjectId(queryId);
-  if (!isValid) {
-    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  let queryId: string;
+  if (companyId === 'superAdmin' && companyIdParam !== 'undefined') {
+    queryId = companyIdParam;
+  } else {
+    queryId = companyId;
+  }
+  if (queryId || companyId !== 'superAdmin') {
+    const isValid = verifyObjectId(queryId);
+    if (!isValid) {
+      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
   }
   const oneUser = await userLean
-    .findOne({ urId, queryId })
+    .findOne({ urId, companyId: queryId })
     .populate({ path: 'profilePic', model: fileMetaLean })
     .populate({ path: 'profileCoverPic', model: fileMetaLean })
     .populate({ path: 'photos', model: fileMetaLean })
@@ -1142,10 +1104,17 @@ userAuthRoutes.get('/getoneuser/:urId/:companyIdParam', requireAuth, roleAuthori
 userAuthRoutes.get('/getusers/:where/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('users', 'read'), async(req, res) => {
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const isValid = verifyObjectId(queryId);
-  if (!isValid) {
-    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  let queryId: string;
+  if (companyId === 'superAdmin' && companyIdParam !== 'undefined') {
+    queryId = companyIdParam;
+  } else {
+    queryId = companyId;
+  }
+  if (queryId || companyId !== 'superAdmin') {
+    const isValid = verifyObjectId(queryId);
+    if (!isValid) {
+      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
   }
   const { where } = req.params;
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
@@ -1227,7 +1196,7 @@ userAuthRoutes.post('/updateuserbulkimg/:companyIdParam', requireAuth, requireAc
   return res.status(200).send({ success: true });
 });
 
-userAuthRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('users', 'delete'), deleteFiles, async(req, res) => {
+userAuthRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('users', 'delete'), async(req, res) => {
   const { ids } = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -1237,9 +1206,31 @@ userAuthRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveComp
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
 
+  let filesWithDir: IfileMeta[];
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  const alltoDelete = await user.find({ _id: { $in: ids }, companyId: queryId })
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+    .populate({ path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+    .populate({ path: 'profileCoverPic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+    .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+    .lean();
+  let toDelIds = [];
+  for (const user of alltoDelete) {
+    if (user.userType === 'eUser') {
+      toDelIds = [...toDelIds, user._id];
+      if (user.photos?.length > 0) {
+        filesWithDir = [...filesWithDir, ...user.photos as IfileMeta[]];
+      }
+    }
+  }
+
+  await deleteAllFiles(filesWithDir);
+
   const deleted = await user
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    .deleteMany({ _id: { $in: ids }, companyId: queryId }).catch(err => {
+    .deleteMany({ _id: { $in: toDelIds }, companyId: queryId }).catch(err => {
       authLogger.error('deletemany users failed with error: ' + err.message);
       return null;
     });
@@ -1251,7 +1242,7 @@ userAuthRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveComp
   }
 });
 
-userAuthRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('users', 'delete'), deleteFiles, async(req, res) => {
+userAuthRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('users', 'delete'), async(req, res) => {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const { _id } = req.body;
   const { companyId } = (req as Icustomrequest).user;
@@ -1260,6 +1251,26 @@ userAuthRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompa
   const isValid = verifyObjectIds([_id, queryId]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
+
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  const found = await user.findOne({ _id, companyId: queryId })
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+    .lean();
+
+  if (found) {
+    if (found.userType === 'eUser') {
+      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
+    const filesWithDir = found.photos.map(photo => (
+      {
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        _id: photo._id,
+        url: photo.url
+      }
+    ));
+    await deleteAllFiles(filesWithDir);
   }
 
   const deleted = await user

@@ -10,7 +10,7 @@ export declare const runPassport: (jwtSecret: any) => void;
  * @param permProp - The permission property to check within the role.
  * @returns A middleware function that checks the user's permissions and authorizes access based on the role and permission property.
  */
-export declare const roleAuthorisation: (nowRole: TroleAuth, permProp: TroleAuthProp) => (req: any, res: any, next: any) => any;
+export declare const roleAuthorisation: (nowRole: TroleAuth, permProp: TroleAuthProp, mayBeProfile?: boolean) => (req: any, res: any, next: any) => any;
 /**
  * Retrieves the token from the request.
  * @param {Request} req - The request object.

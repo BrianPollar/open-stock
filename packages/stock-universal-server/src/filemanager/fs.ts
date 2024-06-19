@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/dot-notation */
 /* eslint-disable @typescript-eslint/prefer-for-of */
+import { Config, removeBackground } from '@imgly/background-removal-node';
 import { Icustomrequest, IfileMeta } from '@open-stock/stock-universal';
 import * as fs from 'fs';
 import multer from 'multer';
@@ -156,7 +157,6 @@ export const appendBody = (
     };
     parsed.thumbnail = thumbnail;
   }
-
   parsed.newPhotos = newPhotos;
   parsed.newVideos = newVideos;
   req.body = parsed;
@@ -184,6 +184,7 @@ export const saveMetaToDb = async(
       .map((value: IfileMeta) => new Promise(async(resolve) => {
         const newFileMeta = new fileMeta(value);
         let savedErr: string;
+        // await removeBg(value.url);
         const newSaved = await newFileMeta.save().catch(err => {
           fsControllerLogger.error('save error', err);
           savedErr = err;
@@ -197,7 +198,7 @@ export const saveMetaToDb = async(
     parsed.newPhotos = await Promise.all(promises);
   }
 
-  if (parsed.profilePic) {
+  /* if (parsed.profilePic) {
     const newFileMeta = new fileMeta(parsed.profilePic);
     let savedErr: string;
     const newSaved = await newFileMeta.save().catch(err => {
@@ -210,9 +211,9 @@ export const saveMetaToDb = async(
     }
     parsed.profilePic = newSaved._id;
     parsed.newPhotos.push(newSaved);
-  }
+  }*/
 
-  if (parsed.coverPic) {
+  /* if (parsed.coverPic) {
     const newFileMeta = new fileMeta(parsed.profilePic);
     let savedErr: string;
     const newSaved = await newFileMeta.save().catch(err => {
@@ -225,7 +226,7 @@ export const saveMetaToDb = async(
     }
     parsed.coverPic = newSaved._id;
     parsed.newPhotos.push(newSaved);
-  }
+  }*/
 
   if (parsed.thumbnail) {
     const newFileMeta = new fileMeta(parsed.thumbnail);
@@ -344,3 +345,29 @@ export const getOneFile = (
  * @param res - The response object.
  */
 export const returnLazyFn = (req, res) => res.status(200).send({ success: true });
+
+
+export const removeBg = (imageSrc: string) => {
+  return new Promise((resolve, reject) => {
+    const absolutepath = envConfig.absolutepath;
+    const fileLocation = path.join(`${absolutepath}${imageSrc}`);
+    const config: Config = {
+      output: {
+        type: 'mask'
+      } as any
+    };
+    removeBackground(fileLocation, config).then(async(blob: Blob) => {
+      const arrayBuffer = await blob.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      fs.writeFile(fileLocation, buffer, {}, (err) => {
+        if (err) {
+          console.error(err);
+          reject(err);
+          return;
+        }
+        console.log('files saved');
+        resolve(imageSrc);
+      });
+    });
+  });
+};

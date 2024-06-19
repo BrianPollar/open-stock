@@ -7,7 +7,6 @@ const fs = tslib_1.__importStar(require("fs"));
 const path_1 = tslib_1.__importDefault(require("path"));
 const tracer = tslib_1.__importStar(require("tracer"));
 const loginattemps_model_1 = require("../models/loginattemps.model");
-const company_subscription_model_1 = require("../models/subscriptions/company-subscription.model");
 const user_model_1 = require("../models/user.model");
 const userip_model_1 = require("../models/userip.model");
 const stock_auth_local_1 = require("../stock-auth-local");
@@ -380,11 +379,11 @@ const resetAccountFactory = async (req, res) => {
     }
     let response;
     if (how === 'phone') {
-        response = await (0, universial_controller_1.validatePhone)(foundUser, 'password', verifycode, password);
+        response = await (0, universial_controller_1.validatePhone)(foundUser, verifycode, password);
     }
     else {
         const type = '_code';
-        response = await (0, universial_controller_1.validateEmail)(foundUser, type, 'password', verifycode, password);
+        response = await (0, universial_controller_1.validateEmail)(foundUser, type, verifycode, password);
     }
     return res.status(response.status).send(response.response);
 };
@@ -439,7 +438,7 @@ exports.recoverAccountFactory = recoverAccountFactory;
  */
 const confirmAccountFactory = async (req, res) => {
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    const { foundUser, _id, verifycode, nowHow, type } = req.body;
+    const { foundUser, _id, verifycode, nowHow, type, password } = req.body;
     authControllerLogger.debug(`verify, verifycode: ${verifycode}, how: ${nowHow}`);
     const isValid = (0, stock_universal_server_1.verifyObjectIds)([_id]);
     if (!isValid) {
@@ -453,26 +452,25 @@ const confirmAccountFactory = async (req, res) => {
     }
     let response;
     if (nowHow === 'phone') {
-        response = await (0, universial_controller_1.validatePhone)(foundUser, 'signup', verifycode, null);
+        response = await (0, universial_controller_1.validatePhone)(foundUser, verifycode, password);
     }
     else {
-        response = await (0, universial_controller_1.validateEmail)(foundUser, type, 'signup', verifycode, null);
+        response = await (0, universial_controller_1.validateEmail)(foundUser, type, verifycode, password);
     }
-    const now = new Date();
+    /* const now = new Date();
     let filter;
     if (foundUser.companyId) {
-        filter = { companyId: foundUser.companyId };
+      filter = { companyId: foundUser.companyId };
+    } else {
+      filter = { companyId: foundUser._id };
     }
-    else {
-        filter = { companyId: foundUser._id };
-    }
-    const subsctn = await company_subscription_model_1.companySubscriptionLean.findOne(filter)
-        .lean()
-        .gte('endDate', now)
-        .sort({ endDate: 1 });
+    const subsctn = await companySubscriptionLean.findOne(filter)
+      .lean()
+      .gte('endDate', now)
+      .sort({ endDate: 1 });
     if (subsctn) {
-        response.response.activeSubscription = subsctn;
-    }
+      response.response.activeSubscription = subsctn;
+    }*/
     return res.status(response.status).send(response.response);
 };
 exports.confirmAccountFactory = confirmAccountFactory;

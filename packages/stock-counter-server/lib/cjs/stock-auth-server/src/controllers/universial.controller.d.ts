@@ -1,3 +1,27 @@
+/// <reference types="mongoose/types/aggregate" />
+/// <reference types="mongoose/types/callback" />
+/// <reference types="mongoose/types/collection" />
+/// <reference types="mongoose/types/connection" />
+/// <reference types="mongoose/types/cursor" />
+/// <reference types="mongoose/types/document" />
+/// <reference types="mongoose/types/error" />
+/// <reference types="mongoose/types/expressions" />
+/// <reference types="mongoose/types/helpers" />
+/// <reference types="mongoose/types/middlewares" />
+/// <reference types="mongoose/types/indexes" />
+/// <reference types="mongoose/types/models" />
+/// <reference types="mongoose/types/mongooseoptions" />
+/// <reference types="mongoose/types/pipelinestage" />
+/// <reference types="mongoose/types/populate" />
+/// <reference types="mongoose/types/query" />
+/// <reference types="mongoose/types/schemaoptions" />
+/// <reference types="mongoose/types/schematypes" />
+/// <reference types="mongoose/types/session" />
+/// <reference types="mongoose/types/types" />
+/// <reference types="mongoose/types/utility" />
+/// <reference types="mongoose/types/validation" />
+/// <reference types="mongoose/types/virtuals" />
+/// <reference types="mongoose/types/inferschematype" />
 import { Iauthresponse, IauthresponseObj, Iauthtoken, IcompanyPerm, Iuser, Iuserperm } from '@open-stock/stock-universal';
 import { Document } from 'mongoose';
 /**
@@ -17,6 +41,7 @@ export declare const generateToken: (authConfig: Iauthtoken, expiryDate: string 
  * @returns The user information.
  */
 export declare const setUserInfo: (userId: string, permissions: Iuserperm, companyId: string, companyPermissions: IcompanyPerm) => Iauthtoken;
+export declare const makeUserReturnObject: (foundUser: any) => Promise<Iauthresponse>;
 /**
  * Validates the phone number of a user and performs necessary actions based on the case.
  * @param foundUser - The user object to validate.
@@ -25,7 +50,7 @@ export declare const setUserInfo: (userId: string, permissions: Iuserperm, compa
  * @param newPassword - The new password to set (only applicable for 'password' case).
  * @returns A promise that resolves to an authentication response object.
  */
-export declare const validatePhone: (foundUser: Iuser & Document, nowCase: string, verifycode: string, newPassword: string) => Promise<IauthresponseObj>;
+export declare const validatePhone: (foundUser: Iuser & Document, verifycode: string, newPassword: string) => Promise<IauthresponseObj>;
 /**
  * Validates the email for a user.
  * @param foundUser - The user object.
@@ -35,7 +60,7 @@ export declare const validatePhone: (foundUser: Iuser & Document, nowCase: strin
  * @param newPassword - The new password (only applicable for 'password' case).
  * @returns A promise that resolves to an authentication response object.
  */
-export declare const validateEmail: (foundUser: Iuser & Document, type: string, nowCase: string, verifycode: string, newPassword: string) => Promise<IauthresponseObj>;
+export declare const validateEmail: (foundUser: Iuser & Document, type: string, verifycode: string, newPassword: string) => Promise<IauthresponseObj>;
 /**
  * Sends a token to the user's phone for authentication.
  * @param foundUser - The user object.

@@ -298,6 +298,7 @@ class User extends stock_universal_1.DatabaseAuto {
             this.extraCompanyDetails = data.extraCompanyDetails || this.extraCompanyDetails;
             this.userDispNameFormat = data.userDispNameFormat || this.userDispNameFormat;
             this.userType = data.userType || this.userType;
+            this.verified = data.verified || this.verified;
         }
         // this.makeAdmin();
     }

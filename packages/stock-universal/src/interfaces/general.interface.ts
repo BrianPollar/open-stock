@@ -425,6 +425,8 @@ export interface Iuserperm {
   receipts?: IpermProp | boolean;
   expenses?: IpermProp | boolean;
   reports?: IpermProp | boolean;
+  mails?: IpermProp | boolean;
+  subscriptions?: IpermProp | boolean;
   companyProfile?: boolean; // TODO same as prop below, remove this
   companyAdminAccess: boolean;
 }

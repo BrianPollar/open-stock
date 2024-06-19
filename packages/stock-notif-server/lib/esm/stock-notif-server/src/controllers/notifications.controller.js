@@ -247,7 +247,7 @@ export const constructMailService = (sendGridApiKey, publicKey, privateKey) => {
         privateKey
     };
     const vapidDetails = {
-        subject: 'mailto:info@eagleinfosolutions.com',
+        subject: 'mailto:info@eagleinfosolutions.com', // my mail
         publicKey: vapidKeys.publicKey,
         privateKey: vapidKeys.privateKey
     };

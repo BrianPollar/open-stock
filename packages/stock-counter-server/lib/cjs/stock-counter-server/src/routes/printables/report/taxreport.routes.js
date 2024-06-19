@@ -109,7 +109,7 @@ exports.taxReportRoutes.get('/getone/:urId/:companyIdParam', stock_universal_ser
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const taxReport = await taxreport_model_1.taxReportLean
-        .findOne({ urId, queryId })
+        .findOne({ urId, companyId: queryId })
         .lean()
         .populate({ path: 'estimates', model: estimate_model_1.estimateLean })
         .populate({ path: 'payments', model: payment_model_1.paymentLean });

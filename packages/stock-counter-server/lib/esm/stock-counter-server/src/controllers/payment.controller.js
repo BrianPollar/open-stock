@@ -299,14 +299,18 @@ export const paymentMethodDelegator = async (paymentRelated, invoiceRelated, typ
  * @returns A promise that resolves to an object containing the success status, status code, and the Pesapal order response.
  */
 export const relegatePesapalPayment = async (paymentRelated, invoiceRelated, type, order, payment, userId, companyId) => {
-    const company = await companyMain.findById(paymentRelated.companyId);
-    if (!company) {
-        return { success: false, status: 401, err: 'user must be of a company' };
+    paymentControllerLogger.debug('relegatePesapalPayment', paymentRelated);
+    const isValidCompanyId = verifyObjectId(paymentRelated.companyId);
+    if (isValidCompanyId) {
+        const company = await companyMain.findById(paymentRelated.companyId);
+        if (!company) {
+            // return { success: false, status: 401, err: 'user must be of a company' };
+        }
     }
     const appended = await appendAll(paymentRelated, invoiceRelated, order, payment, userId, companyId);
     const payDetails = {
-        id: appended.paymentRelated,
-        currency: paymentRelated.currency || 'UGA',
+        id: appended.paymentRelated.toString(),
+        currency: paymentRelated.currency || 'UGX',
         amount: paymentRelated.payments[0].amount,
         description: 'Complet payments for the selected products',
         callback_url: pesapalPaymentInstance.config.pesapalCallbackUrl,
@@ -314,7 +318,7 @@ export const relegatePesapalPayment = async (paymentRelated, invoiceRelated, typ
         notification_id: '',
         billing_address: {
             email_address: paymentRelated.shippingAddress.email,
-            phone_number: paymentRelated.shippingAddress.phoneNumber.toString(),
+            phone_number: paymentRelated.shippingAddress.phoneNumber,
             country_code: 'UG',
             first_name: paymentRelated.shippingAddress.firstName,
             middle_name: '',
@@ -327,12 +331,18 @@ export const relegatePesapalPayment = async (paymentRelated, invoiceRelated, typ
             zip_code: paymentRelated.shippingAddress.zipcode.toString()
         }
     };
-    const response = await pesapalPaymentInstance.submitOrder(payDetails, invoiceRelated._id, 'Complete product payment');
-    const isValid = verifyObjectId(appended.paymentRelated);
+    paymentControllerLogger.debug('b4 pesapalPaymentInstance.submitOrder', appended.paymentRelated.toString());
+    const response = await pesapalPaymentInstance.submitOrder(payDetails, appended.paymentRelated.toString(), 'Complete product payment');
+    if (!response.success) {
+        return response;
+    }
+    paymentControllerLogger.debug('pesapalPaymentInstance.submitOrder', response);
+    const isValid = verifyObjectId(appended.paymentRelated.toString());
     if (!isValid) {
         return { success: false, status: 401, pesapalOrderRes: null, paymentRelated: null };
     }
-    const related = await paymentRelatedMain.findById(appended.paymentRelated);
+    const related = await paymentRelatedMain.findById(appended.paymentRelated.toString());
+    paymentControllerLogger.info('after paymentRelatedMain.findById');
     if (related) {
         related.pesaPalorderTrackingId = response.pesaPalOrderRes.order_tracking_id;
         let errResponse;
@@ -357,6 +367,6 @@ export const relegatePesapalPayment = async (paymentRelated, invoiceRelated, typ
             };
         }
     }
-    return { success: true, status: 200, pesapalOrderRes: response, paymentRelated: appended.paymentRelated };
+    return { success: true, status: 200, pesapalOrderRes: response.pesaPalOrderRes, paymentRelated: appended.paymentRelated.toString() };
 };
 //# sourceMappingURL=payment.controller.js.map

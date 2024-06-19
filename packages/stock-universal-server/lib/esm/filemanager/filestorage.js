@@ -62,6 +62,7 @@ const rudimentaryStorage = multer.diskStorage({
             case 'image/png':
             case 'image/jpg':
             case 'image/jpeg':
+            case 'image/webp':
                 storageDir = path.join(`${photoDirectory}`);
                 break;
             case 'video/mp4':
@@ -95,6 +96,9 @@ const rudimentaryStorage = multer.diskStorage({
                 break;
             case 'image/jpeg':
                 extName = '.jpg';
+                break;
+            case 'image/webp':
+                extName = '.webp';
                 break;
             case 'video/mp4':
                 extName = '.mp4';

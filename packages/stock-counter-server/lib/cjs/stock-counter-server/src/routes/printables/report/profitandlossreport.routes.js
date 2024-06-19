@@ -96,7 +96,7 @@ exports.profitAndLossReportRoutes.get('/getone/:urId/:companyIdParam', stock_uni
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const profitAndLossReport = await profitandlossreport_model_1.profitandlossReportLean
-        .findOne({ urId, queryId })
+        .findOne({ urId, companyId: queryId })
         .lean()
         .populate({ path: 'expenses', model: expense_model_1.expenseLean })
         .populate({ path: 'payments', model: payment_model_1.paymentLean });

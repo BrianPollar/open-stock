@@ -2,7 +2,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.invoiceSettingRoutesDummy = void 0;
 const tslib_1 = require("tslib");
-const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
 const stock_counter_mocks_1 = require("../../../../../mocks/stock-counter-mocks");
 /**
@@ -18,7 +17,7 @@ exports.invoiceSettingRoutesDummy.post('/createimg/:companyIdParam', (req, res) 
 exports.invoiceSettingRoutesDummy.put('/update/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });
 });
-exports.invoiceSettingRoutesDummy.put('/updateimg/:companyIdParam', stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.saveMetaToDb, stock_universal_server_1.deleteFiles, (req, res) => {
+exports.invoiceSettingRoutesDummy.put('/updateimg/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });
 });
 exports.invoiceSettingRoutesDummy.get('/getone/:id/:companyIdParam', (req, res) => {

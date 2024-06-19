@@ -85,9 +85,14 @@ const updateStaff = async (req, res) => {
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    let filter = { _id: updatedStaff._id, companyId: queryId };
+    if (req.body.profileOnly === 'true') {
+        const { userId } = req.user;
+        filter = { user: userId };
+    }
     const staff = await staff_model_1.staffMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .findOneAndUpdate({ _id: updatedStaff._id, companyId: queryId });
+        .findOneAndUpdate(filter);
     if (!staff) {
         return res.status(404).send({ success: false });
     }
@@ -125,12 +130,12 @@ exports.updateStaff = updateStaff;
 exports.staffRoutes = express_1.default.Router();
 exports.staffRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_auth_server_1.requireCanUseFeature)('staff'), (0, stock_universal_server_1.roleAuthorisation)('staffs', 'create'), stock_auth_server_1.addUser, exports.addStaff, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('staff'));
 exports.staffRoutes.post('/createimg/:companyIdParam', stock_universal_server_1.requireAuth, (0, stock_auth_server_1.requireCanUseFeature)('staff'), (0, stock_universal_server_1.roleAuthorisation)('staffs', 'create'), stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.saveMetaToDb, stock_auth_server_1.addUser, exports.addStaff, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('staff'));
-exports.staffRoutes.post('/getone', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('staffs', 'read'), async (req, res) => {
+exports.staffRoutes.post('/getone', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('staffs', 'read', true), async (req, res) => {
     const { id, userId } = req.body;
     const companyIdParam = req.body.companyId;
     const { companyId } = req.user;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)([id, queryId]);
+    const isValid = (0, stock_universal_server_1.verifyObjectIds)([queryId]);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
@@ -152,6 +157,10 @@ exports.staffRoutes.post('/getone', stock_universal_server_1.requireAuth, stock_
             return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
         }
         filter = { ...filter, user: userId };
+    }
+    if (req.body.profileOnly === 'true') {
+        const { userId } = req.user;
+        filter = { user: userId };
     }
     const staff = await staff_model_1.staffLean
         // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -293,9 +302,9 @@ exports.staffRoutes.post('/search/:offset/:limit/:companyIdParam', stock_univers
     };
     return res.status(200).send(response);
 });
-exports.staffRoutes.put('/update/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('staffs', 'update'), stock_auth_server_1.updateUserBulk, exports.updateStaff);
-exports.staffRoutes.put('/updateimg/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('staffs', 'update'), stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.saveMetaToDb, stock_auth_server_1.updateUserBulk, exports.updateStaff);
-exports.staffRoutes.put('/deleteone/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('staffs', 'delete'), locluser_routes_1.removeOneUser, stock_universal_server_1.deleteFiles, async (req, res) => {
+exports.staffRoutes.put('/update/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('staffs', 'update', true), stock_auth_server_1.updateUserBulk, exports.updateStaff);
+exports.staffRoutes.put('/updateimg/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('staffs', 'update', true), stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.saveMetaToDb, stock_auth_server_1.updateUserBulk, exports.updateStaff);
+exports.staffRoutes.put('/deleteone/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('staffs', 'delete'), (0, locluser_routes_1.removeOneUser)('staff'), async (req, res) => {
     const { id } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -313,7 +322,7 @@ exports.staffRoutes.put('/deleteone/:companyIdParam', stock_universal_server_1.r
         return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
-exports.staffRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('staffs', 'delete'), locluser_routes_1.removeManyUsers, stock_universal_server_1.deleteFiles, async (req, res) => {
+exports.staffRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('staffs', 'delete'), (0, locluser_routes_1.removeManyUsers)('staff'), async (req, res) => {
     const { ids } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;

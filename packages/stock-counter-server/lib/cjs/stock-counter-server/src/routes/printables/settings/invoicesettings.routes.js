@@ -100,7 +100,7 @@ exports.invoiceSettingRoutes.post('/createimg/:companyIdParam', stock_universal_
     invoiceSetting.companyId = queryId;
     if (req.body.newPhotos) {
         if (invoiceSetting.generalSettings.defaultDigitalSignature === 'true' &&
-            invoiceSetting.generalSettings.defaultDigitalStamp) {
+            invoiceSetting.generalSettings.defaultDigitalStamp === 'true') {
             invoiceSetting.generalSettings.defaultDigitalSignature = req.body.newPhotos[0];
             invoiceSetting.generalSettings.defaultDigitalStamp = req.body.newPhotos[1];
         }
@@ -163,9 +163,9 @@ exports.invoiceSettingRoutes.put('/update/:companyIdParam', stock_universal_serv
     if (!invoiceSetting) {
         return res.status(404).send({ success: false });
     }
-    invoiceSetting['generalSettings'] = updatedInvoiceSetting.generalSettings || invoiceSetting['generalSettings'];
-    invoiceSetting['taxSettings'] = updatedInvoiceSetting.taxSettings || invoiceSetting['taxSettings'];
-    invoiceSetting['bankSettings'] = updatedInvoiceSetting.bankSettings || invoiceSetting['bankSettings'];
+    invoiceSetting.generalSettings = updatedInvoiceSetting.generalSettings || invoiceSetting.generalSettings;
+    invoiceSetting.taxSettings = updatedInvoiceSetting.taxSettings || invoiceSetting.taxSettings;
+    invoiceSetting.bankSettings = updatedInvoiceSetting.bankSettings || invoiceSetting.bankSettings;
     let errResponse;
     const updated = await invoiceSetting.save()
         .catch(err => {
@@ -197,7 +197,7 @@ exports.invoiceSettingRoutes.put('/update/:companyIdParam', stock_universal_serv
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware
  */
-exports.invoiceSettingRoutes.put('/updateimg/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.saveMetaToDb, stock_universal_server_1.deleteFiles, async (req, res) => {
+exports.invoiceSettingRoutes.put('/updateimg/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.saveMetaToDb, async (req, res) => {
     const updatedInvoiceSetting = req.body.invoicesettings;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -209,30 +209,51 @@ exports.invoiceSettingRoutes.put('/updateimg/:companyIdParam', stock_universal_s
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    const found = await invoicesettings_model_1.invoiceSettingMain.findOne({ _id, companyId: queryId })
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        .populate({ path: 'generalSettings.defaultDigitalSignature', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        .populate({ path: 'generalSettings.defaultDigitalStamp', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+        .lean();
     const invoiceSetting = await invoicesettings_model_1.invoiceSettingMain
         // eslint-disable-next-line @typescript-eslint/naming-convention
         .findOneAndUpdate({ _id, companyId: queryId });
     if (!invoiceSetting) {
         return res.status(404).send({ success: false });
     }
+    let filesWithDir;
     if (req.body.newPhotos) {
-        if (invoiceSetting['generalSettings'].defaultDigitalSignature === 'true' &&
-            invoiceSetting['generalSettings'].defaultDigitalStamp) {
-            invoiceSetting['generalSettings'].defaultDigitalSignature = req.body.newPhotos[0];
-            invoiceSetting['generalSettings'].defaultDigitalStamp = req.body.newPhotos[1];
+        if (updatedInvoiceSetting.generalSettings.defaultDigitalSignature === 'true' &&
+            updatedInvoiceSetting.generalSettings.defaultDigitalStamp === 'true') {
+            if (invoiceSetting.generalSettings.defaultDigitalSignature) {
+                filesWithDir.push(found.generalSettings.defaultDigitalSignature);
+            }
+            if (invoiceSetting.generalSettings.defaultDigitalStamp) {
+                filesWithDir.push(found.generalSettings.defaultDigitalStamp);
+            }
+            invoiceSetting.generalSettings.defaultDigitalSignature = req.body.newPhotos[0];
+            invoiceSetting.generalSettings.defaultDigitalStamp = req.body.newPhotos[1];
         }
-        if (invoiceSetting['generalSettings'].defaultDigitalSignature === 'true' &&
-            invoiceSetting['generalSettings'].defaultDigitalStamp === 'false') {
-            invoiceSetting['generalSettings'].defaultDigitalSignature = req.body.newPhotos[0];
+        if (updatedInvoiceSetting.generalSettings.defaultDigitalSignature === 'true' &&
+            updatedInvoiceSetting.generalSettings.defaultDigitalStamp === 'false') {
+            if (invoiceSetting.generalSettings.defaultDigitalSignature) {
+                filesWithDir.push(found.generalSettings.defaultDigitalSignature);
+            }
+            invoiceSetting.generalSettings.defaultDigitalSignature = req.body.newPhotos[0];
         }
-        if (invoiceSetting['generalSettings'].defaultDigitalSignature === 'false' &&
-            invoiceSetting['generalSettings'].defaultDigitalStamp === 'true') {
-            invoiceSetting['generalSettings'].defaultDigitalStamp = req.body.newPhotos[0];
+        if (updatedInvoiceSetting.generalSettings.defaultDigitalSignature === 'false' &&
+            updatedInvoiceSetting.generalSettings.defaultDigitalStamp === 'true') {
+            if (invoiceSetting.generalSettings.defaultDigitalStamp) {
+                filesWithDir.push(found.generalSettings.defaultDigitalStamp);
+            }
+            invoiceSetting.generalSettings.defaultDigitalStamp = req.body.newPhotos[0];
         }
     }
-    invoiceSetting['generalSettings'] = updatedInvoiceSetting.generalSettings || invoiceSetting['generalSettings'];
-    invoiceSetting['taxSettings'] = updatedInvoiceSetting.taxSettings || invoiceSetting['taxSettings'];
-    invoiceSetting['bankSettings'] = updatedInvoiceSetting.bankSettings || invoiceSetting['bankSettings'];
+    await (0, stock_universal_server_1.deleteAllFiles)(filesWithDir);
+    invoiceSetting.generalSettings = updatedInvoiceSetting.generalSettings || invoiceSetting.generalSettings;
+    invoiceSetting.taxSettings = updatedInvoiceSetting.taxSettings || invoiceSetting.taxSettings;
+    invoiceSetting.bankSettings = updatedInvoiceSetting.bankSettings || invoiceSetting.bankSettings;
     let errResponse;
     const updated = await invoiceSetting.save()
         .catch(err => {

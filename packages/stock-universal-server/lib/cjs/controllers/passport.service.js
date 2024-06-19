@@ -61,7 +61,7 @@ exports.runPassport = runPassport;
  * @param permProp - The permission property to check within the role.
  * @returns A middleware function that checks the user's permissions and authorizes access based on the role and permission property.
  */
-const roleAuthorisation = (nowRole, permProp) => {
+const roleAuthorisation = (nowRole, permProp, mayBeProfile) => {
     // Log the role name.
     passportLogger.info(`roleAuthorisation - role: ${nowRole}`);
     // Create a middleware function that checks the user's permissions.
@@ -76,6 +76,10 @@ const roleAuthorisation = (nowRole, permProp) => {
             permissions[nowRole][permProp] &&
             permissions[nowRole][permProp] === true) {
             passportLogger.debug('roleAuthorisation - permissions', permissions);
+            return next();
+        }
+        else if (mayBeProfile) {
+            req.body.profileOnly = 'true';
             return next();
         }
         else {

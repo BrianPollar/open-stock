@@ -389,7 +389,7 @@ exports.invoiceRoutes.get('/getonepayment/:urId/:companyIdParam', stock_universa
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
     const invoicePay = await receipt_model_1.receiptLean
-        .findOne({ urId, queryId })
+        .findOne({ urId, companyId: queryId })
         .lean();
     return res.status(200).send(invoicePay);
 });

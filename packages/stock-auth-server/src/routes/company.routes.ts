@@ -19,8 +19,7 @@ import {
   saveMetaToDb,
   stringifyMongooseErr,
   uploadFiles,
-  verifyObjectId,
-  verifyObjectIds
+  verifyObjectId
 } from '@open-stock/stock-universal-server';
 import express from 'express';
 import * as fs from 'fs';
@@ -139,7 +138,7 @@ export const updateCompany = async(req, res) => {
 
   const keys = Object.keys(updatedCompany);
   keys.forEach(key => {
-    if (foundCompany[key] && key !== '_id') {
+    if (foundCompany[key] && key !== '_id' && key !== 'phone' && key !== 'email') {
       foundCompany[key] = updatedCompany[key] || foundCompany[key];
     }
   });
@@ -515,11 +514,17 @@ companyAuthRoutes.get('/getcompanys/:offset/:limit/:companyIdParam', requireAuth
   return res.status(200).send(response);
 });
 
+// db.users.updateOne({ _id: ObjectId('6641c3d122dfefc4809ebe66') }, { $set: { email: "pollarbrian@gmail.com" } })
+
+// db.users.updateOne({ _id: ObjectId('6641c3d122dfefc4809ebe66') }, { $set: { companyId: "6641c3d122dfefc4809ebe5f" } })
+
+// db.companysubscriptions.updateOne({ _id: ObjectId('6641c3d122dfefc4809ebe62') }, { $set: { companyId: "6641c3d122dfefc4809ebe5f" } })
+
 companyAuthRoutes.put('/updatecompanybulk/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('users', 'update'), updateUserBulk, updateCompany);
 
 companyAuthRoutes.post('/updatecompanybulkimg/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('users', 'update'), uploadFiles, appendBody, saveMetaToDb, updateUserBulk, updateCompany);
 
-companyAuthRoutes.put('/deletemany/:companyIdParam', requireAuth, requireSuperAdmin, deleteFiles, async(req, res) => {
+/* companyAuthRoutes.put('/deletemany/:companyIdParam', requireAuth, requireSuperAdmin, async(req, res) => {
   const { ids } = req.body;
   const isValid = verifyObjectIds([...ids]);
   if (!isValid) {
@@ -538,9 +543,10 @@ companyAuthRoutes.put('/deletemany/:companyIdParam', requireAuth, requireSuperAd
   } else {
     return res.status(404).send({ success: Boolean(deleted), err: 'could not delete selected items, try again in a while' });
   }
-});
+});*/
 
-companyAuthRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('users', 'delete'), deleteFiles, async(req, res) => {
+
+/* companyAuthRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('users', 'delete'), deleteFiles, async(req, res) => {
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
@@ -556,7 +562,7 @@ companyAuthRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCo
   } else {
     return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
   }
-});
+});*/
 
 companyAuthRoutes.put('/deleteimages/:companyIdParam', requireAuth, requireActiveCompany, deleteFiles, async(req, res) => {
   const filesWithDir: IfileMeta[] = req.body.filesWithDir;

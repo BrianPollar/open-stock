@@ -4,7 +4,6 @@ import * as fs from 'fs';
 import path from 'path';
 import * as tracer from 'tracer';
 import { loginAtempts } from '../models/loginattemps.model';
-import { companySubscriptionLean } from '../models/subscriptions/company-subscription.model';
 import { user } from '../models/user.model';
 import { userip } from '../models/userip.model';
 import { stockAuthConfig } from '../stock-auth-local';
@@ -403,12 +402,11 @@ export const resetAccountFactory = async(req, res) => {
   }
   let response: IauthresponseObj;
   if (how === 'phone') {
-    response = await validatePhone(foundUser, 'password', verifycode, password);
+    response = await validatePhone(foundUser, verifycode, password);
   } else {
     const type = '_code';
     response = await validateEmail(foundUser,
       type,
-      'password',
       verifycode,
       password);
   }
@@ -466,7 +464,7 @@ export const recoverAccountFactory = async(req, res) => {
  */
 export const confirmAccountFactory = async(req, res) => {
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  const { foundUser, _id, verifycode, nowHow, type } = req.body;
+  const { foundUser, _id, verifycode, nowHow, type, password } = req.body;
   authControllerLogger.debug(`verify, verifycode: ${verifycode}, how: ${nowHow}`);
   const isValid = verifyObjectIds([_id]);
   if (!isValid) {
@@ -480,15 +478,15 @@ export const confirmAccountFactory = async(req, res) => {
   }
   let response: IauthresponseObj;
   if (nowHow === 'phone') {
-    response = await validatePhone(foundUser, 'signup', verifycode, null);
+    response = await validatePhone(foundUser, verifycode, password);
   } else {
     response = await validateEmail(foundUser,
       type,
-      'signup',
-      verifycode, null);
+      verifycode,
+      password);
   }
 
-  const now = new Date();
+  /* const now = new Date();
   let filter;
   if (foundUser.companyId) {
     filter = { companyId: foundUser.companyId };
@@ -501,7 +499,7 @@ export const confirmAccountFactory = async(req, res) => {
     .sort({ endDate: 1 });
   if (subsctn) {
     response.response.activeSubscription = subsctn;
-  }
+  }*/
 
   return res.status(response.status).send(response.response);
 };

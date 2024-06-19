@@ -1,7 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.returnLazyFn = exports.getOneFile = exports.deleteFiles = exports.deleteAllFiles = exports.updateFiles = exports.saveMetaToDb = exports.appendBody = exports.uploadFiles = void 0;
+exports.removeBg = exports.returnLazyFn = exports.getOneFile = exports.deleteFiles = exports.deleteAllFiles = exports.updateFiles = exports.saveMetaToDb = exports.appendBody = exports.uploadFiles = void 0;
 const tslib_1 = require("tslib");
+/* eslint-disable @typescript-eslint/dot-notation */
+/* eslint-disable @typescript-eslint/prefer-for-of */
+const background_removal_node_1 = require("@imgly/background-removal-node");
 const fs = tslib_1.__importStar(require("fs"));
 const multer_1 = tslib_1.__importDefault(require("multer"));
 const path = tslib_1.__importStar(require("path"));
@@ -165,6 +168,7 @@ const saveMetaToDb = async (req, res, next) => {
             .map((value) => new Promise(async (resolve) => {
             const newFileMeta = new filemeta_model_1.fileMeta(value);
             let savedErr;
+            // await removeBg(value.url);
             const newSaved = await newFileMeta.save().catch(err => {
                 fsControllerLogger.error('save error', err);
                 savedErr = err;
@@ -177,34 +181,34 @@ const saveMetaToDb = async (req, res, next) => {
         }));
         parsed.newPhotos = await Promise.all(promises);
     }
-    if (parsed.profilePic) {
-        const newFileMeta = new filemeta_model_1.fileMeta(parsed.profilePic);
-        let savedErr;
-        const newSaved = await newFileMeta.save().catch(err => {
-            fsControllerLogger.error('save error', err);
-            savedErr = err;
-            return null;
-        });
-        if (savedErr) {
-            return res.status(500).send({ success: false });
-        }
-        parsed.profilePic = newSaved._id;
-        parsed.newPhotos.push(newSaved);
-    }
-    if (parsed.coverPic) {
-        const newFileMeta = new filemeta_model_1.fileMeta(parsed.profilePic);
-        let savedErr;
-        const newSaved = await newFileMeta.save().catch(err => {
-            fsControllerLogger.error('save error', err);
-            savedErr = err;
-            return null;
-        });
-        if (savedErr) {
-            return res.status(500).send({ success: false });
-        }
-        parsed.coverPic = newSaved._id;
-        parsed.newPhotos.push(newSaved);
-    }
+    /* if (parsed.profilePic) {
+      const newFileMeta = new fileMeta(parsed.profilePic);
+      let savedErr: string;
+      const newSaved = await newFileMeta.save().catch(err => {
+        fsControllerLogger.error('save error', err);
+        savedErr = err;
+        return null;
+      });
+      if (savedErr) {
+        return res.status(500).send({ success: false });
+      }
+      parsed.profilePic = newSaved._id;
+      parsed.newPhotos.push(newSaved);
+    }*/
+    /* if (parsed.coverPic) {
+      const newFileMeta = new fileMeta(parsed.profilePic);
+      let savedErr: string;
+      const newSaved = await newFileMeta.save().catch(err => {
+        fsControllerLogger.error('save error', err);
+        savedErr = err;
+        return null;
+      });
+      if (savedErr) {
+        return res.status(500).send({ success: false });
+      }
+      parsed.coverPic = newSaved._id;
+      parsed.newPhotos.push(newSaved);
+    }*/
     if (parsed.thumbnail) {
         const newFileMeta = new filemeta_model_1.fileMeta(parsed.thumbnail);
         let savedErr;
@@ -312,4 +316,29 @@ exports.getOneFile = getOneFile;
  */
 const returnLazyFn = (req, res) => res.status(200).send({ success: true });
 exports.returnLazyFn = returnLazyFn;
+const removeBg = (imageSrc) => {
+    return new Promise((resolve, reject) => {
+        const absolutepath = stock_universal_local_1.envConfig.absolutepath;
+        const fileLocation = path.join(`${absolutepath}${imageSrc}`);
+        const config = {
+            output: {
+                type: 'mask'
+            }
+        };
+        (0, background_removal_node_1.removeBackground)(fileLocation, config).then(async (blob) => {
+            const arrayBuffer = await blob.arrayBuffer();
+            const buffer = Buffer.from(arrayBuffer);
+            fs.writeFile(fileLocation, buffer, {}, (err) => {
+                if (err) {
+                    console.error(err);
+                    reject(err);
+                    return;
+                }
+                console.log('files saved');
+                resolve(imageSrc);
+            });
+        });
+    });
+};
+exports.removeBg = removeBg;
 //# sourceMappingURL=fs.js.map

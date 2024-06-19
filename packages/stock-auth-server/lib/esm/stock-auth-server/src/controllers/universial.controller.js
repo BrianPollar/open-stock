@@ -11,7 +11,10 @@ import { makeRandomString } from '@open-stock/stock-universal';
 import { stringifyMongooseErr, verifyObjectId } from '@open-stock/stock-universal-server';
 import * as jwt from 'jsonwebtoken';
 import path from 'path';
+import { companyLean } from '../models/company.model';
 import { emailtoken } from '../models/emailtoken.model';
+import { companySubscriptionLean } from '../models/subscriptions/company-subscription.model';
+import { stockAuthConfig } from '../stock-auth-local';
 const universialControllerLogger = tracer.colorConsole({
     format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
     dateformat: 'HH:MM:ss.L',
@@ -66,6 +69,39 @@ export const setUserInfo = (userId, permissions, companyId, companyPermissions) 
     universialControllerLogger.info('setUserInfo - details: ', details);
     return details;
 };
+export const makeUserReturnObject = async (foundUser) => {
+    const company = await companyLean.findById(foundUser?.companyId)
+        .lean();
+    universialControllerLogger.debug('found company: ', company);
+    let permissions;
+    if (company && company.owner === foundUser._id.toString()) {
+        permissions = {
+            companyAdminAccess: true
+        };
+    }
+    else {
+        permissions = foundUser.permissions || {};
+    }
+    const userInfo = setUserInfo(foundUser._id.toString(), permissions, foundUser.companyId, { active: !company.blocked });
+    const token = generateToken(userInfo, '1d', stockAuthConfig.authSecrets.jwtSecret);
+    let activeSubscription;
+    const now = new Date();
+    if (company) {
+        const subsctn = await companySubscriptionLean.findOne({ companyId: company._id, status: 'paid' })
+            .lean()
+            .gte('endDate', now)
+            .sort({ endDate: 1 });
+        activeSubscription = subsctn;
+    }
+    universialControllerLogger.debug('found foundUser: ', foundUser);
+    return {
+        success: true,
+        user: foundUser,
+        company,
+        token,
+        activeSubscription
+    };
+};
 /**
  * Validates the phone number of a user and performs necessary actions based on the case.
  * @param foundUser - The user object to validate.
@@ -74,7 +110,7 @@ export const setUserInfo = (userId, permissions, companyId, companyPermissions) 
  * @param newPassword - The new password to set (only applicable for 'password' case).
  * @returns A promise that resolves to an authentication response object.
  */
-export const validatePhone = async (foundUser, nowCase, verifycode, newPassword) => {
+export const validatePhone = async (foundUser, verifycode, newPassword) => {
     if (!foundUser) {
         return {
             status: 404,
@@ -85,23 +121,14 @@ export const validatePhone = async (foundUser, nowCase, verifycode, newPassword)
         };
     }
     return new Promise(resolve => {
-        const postVerify = function (err) {
+        const postVerify = async function (err) {
             if (err) {
                 universialControllerLogger.error('postVerify - err: ', err);
-                let msg;
-                if (nowCase === 'password') {
-                    msg = `The token you entered was
-					invalid - please retry.`;
-                }
-                else {
-                    msg = `he token you entered was
-					invalid - please retry.`;
-                }
                 resolve({
                     status: 401,
                     response: {
                         success: false,
-                        msg
+                        msg: 'The token you entered was invalid - please retry.'
                     }
                 });
                 return;
@@ -109,7 +136,7 @@ export const validatePhone = async (foundUser, nowCase, verifycode, newPassword)
             foundUser.verified = true;
             foundUser.expireAt = '';
             let message;
-            if (nowCase === 'password') {
+            if (newPassword) {
                 foundUser.password = newPassword;
                 message = `You did it! Your
 				password has been reset :`;
@@ -119,15 +146,13 @@ export const validatePhone = async (foundUser, nowCase, verifycode, newPassword)
 				are all setup and
 				you can now you can customise your profile`;
             }
+            const responseObj = await makeUserReturnObject(foundUser);
+            responseObj.msg = message;
             foundUser.save().then(() => {
                 foundUser.save();
                 resolve({
                     status: 200,
-                    response: {
-                        success: true,
-                        msg: message,
-                        user: foundUser
-                    }
+                    response: responseObj
                 });
             }).catch(err => {
                 universialControllerLogger.error('save error', err);
@@ -216,8 +241,8 @@ export const validatePhone = async (foundUser, nowCase, verifycode, newPassword)
  * @param newPassword - The new password (only applicable for 'password' case).
  * @returns A promise that resolves to an authentication response object.
  */
-export const validateEmail = async (foundUser, type, nowCase, verifycode, newPassword) => {
-    universialControllerLogger.info('validateEmail - %type: , %nowCase: ', type, nowCase);
+export const validateEmail = async (foundUser, type, verifycode, newPassword) => {
+    universialControllerLogger.info('validateEmail - %type: ', type);
     let msg;
     if (!foundUser) {
         msg = 'try signup again, account not found';
@@ -259,13 +284,10 @@ export const validateEmail = async (foundUser, type, nowCase, verifycode, newPas
     }
     foundUser.expireAt = '';
     foundUser.verified = true;
-    if (nowCase === 'password') {
+    if (newPassword) {
         foundUser.password = newPassword;
-        msg = 'You are reset up successfully';
     }
-    else {
-        msg = 'You are signed up successfully';
-    }
+    msg = 'You are signed up successfully';
     let status = 200;
     const errResponse = {
         success: false
@@ -287,13 +309,11 @@ export const validateEmail = async (foundUser, type, nowCase, verifycode, newPas
         };
     }
     else {
+        const responseObj = await makeUserReturnObject(foundUser);
+        responseObj.msg = msg;
         return {
             status,
-            response: {
-                success: true,
-                msg,
-                user: foundUser
-            }
+            response: responseObj
         };
     }
 };

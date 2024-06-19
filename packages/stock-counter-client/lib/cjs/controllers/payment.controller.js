@@ -33,14 +33,14 @@ class PaymentController {
                 const cartWithoutPromo = data
                     .filter(val => !promoCode.items.includes(val.item._id || val.item));
                 alteredData = cartWithoutPromo;
-                res += promoCode.amount;
+                res += promoCode.amount; // ????
             }
             else {
                 alteredData = data;
             }
             for (const j of alteredData) {
                 if (j.item.costMeta.offer) {
-                    j.totalCostwithNoShipping = stock_counter_client_1.StockCounterClient.calcCtrl.calculateFromDiscount(parseInt(j.rate.toString(), 10), j.item.costMeta.discount) * j.quantity;
+                    j.totalCostwithNoShipping = stock_counter_client_1.StockCounterClient.calcCtrl.calculateFromDiscount(j.item.costMeta.sellingPrice, j.item.costMeta.discount) * j.quantity;
                     res += j.totalCostwithNoShipping;
                 }
                 else {

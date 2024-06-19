@@ -102,7 +102,7 @@ exports.invoicesReportRoutes.get('/getone/:urId/:companyIdParam', stock_universa
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const invoicesReport = await invoicereport_model_1.invoicesReportLean
-        .findOne({ urId, queryId })
+        .findOne({ urId, companyId: queryId })
         .lean()
         .populate({ path: 'estimates', model: estimate_model_1.estimateLean })
         .populate({ path: 'payments', model: payment_model_1.paymentLean });

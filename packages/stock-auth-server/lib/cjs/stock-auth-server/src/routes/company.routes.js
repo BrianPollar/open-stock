@@ -123,7 +123,7 @@ const updateCompany = async (req, res) => {
     delete updatedCompany._id;
     const keys = Object.keys(updatedCompany);
     keys.forEach(key => {
-        if (foundCompany[key] && key !== '_id') {
+        if (foundCompany[key] && key !== '_id' && key !== 'phone' && key !== 'email') {
             foundCompany[key] = updatedCompany[key] || foundCompany[key];
         }
     });
@@ -478,44 +478,48 @@ exports.companyAuthRoutes.get('/getcompanys/:offset/:limit/:companyIdParam', sto
     };
     return res.status(200).send(response);
 });
+// db.users.updateOne({ _id: ObjectId('6641c3d122dfefc4809ebe66') }, { $set: { email: "pollarbrian@gmail.com" } })
+// db.users.updateOne({ _id: ObjectId('6641c3d122dfefc4809ebe66') }, { $set: { companyId: "6641c3d122dfefc4809ebe5f" } })
+// db.companysubscriptions.updateOne({ _id: ObjectId('6641c3d122dfefc4809ebe62') }, { $set: { companyId: "6641c3d122dfefc4809ebe5f" } })
 exports.companyAuthRoutes.put('/updatecompanybulk/:companyIdParam', stock_universal_server_1.requireAuth, company_auth_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('users', 'update'), user_routes_1.updateUserBulk, exports.updateCompany);
 exports.companyAuthRoutes.post('/updatecompanybulkimg/:companyIdParam', stock_universal_server_1.requireAuth, company_auth_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('users', 'update'), stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.saveMetaToDb, user_routes_1.updateUserBulk, exports.updateCompany);
-exports.companyAuthRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, superadmin_routes_1.requireSuperAdmin, stock_universal_server_1.deleteFiles, async (req, res) => {
-    const { ids } = req.body;
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)([...ids]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
-    const deleted = await company_model_1.companyMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .deleteMany({ _id: { $in: ids } }).catch(err => {
-        companyAuthLogger.error('deletemany users failed with error: ' + err.message);
-        return null;
+/* companyAuthRoutes.put('/deletemany/:companyIdParam', requireAuth, requireSuperAdmin, async(req, res) => {
+  const { ids } = req.body;
+  const isValid = verifyObjectIds([...ids]);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
+
+  const deleted = await companyMain
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    .deleteMany({ _id: { $in: ids } }).catch(err => {
+      companyAuthLogger.error('deletemany users failed with error: ' + err.message);
+      return null;
     });
-    if (Boolean(deleted)) {
-        return res.status(200).send({ success: Boolean(deleted) });
-    }
-    else {
-        return res.status(404).send({ success: Boolean(deleted), err: 'could not delete selected items, try again in a while' });
-    }
-});
-exports.companyAuthRoutes.put('/deleteone/:companyIdParam', stock_universal_server_1.requireAuth, company_auth_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('users', 'delete'), stock_universal_server_1.deleteFiles, async (req, res) => {
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
-    const deleted = await company_model_1.companyMain
-        .findByIdAndDelete(queryId);
-    if (Boolean(deleted)) {
-        return res.status(200).send({ success: Boolean(deleted) });
-    }
-    else {
-        return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
-    }
-});
+
+  if (Boolean(deleted)) {
+    return res.status(200).send({ success: Boolean(deleted) });
+  } else {
+    return res.status(404).send({ success: Boolean(deleted), err: 'could not delete selected items, try again in a while' });
+  }
+});*/
+/* companyAuthRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('users', 'delete'), deleteFiles, async(req, res) => {
+  const { companyId } = (req as Icustomrequest).user;
+  const { companyIdParam } = req.params;
+  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const isValid = verifyObjectId(queryId);
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
+
+  const deleted = await companyMain
+    .findByIdAndDelete(queryId);
+  if (Boolean(deleted)) {
+    return res.status(200).send({ success: Boolean(deleted) });
+  } else {
+    return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
+  }
+});*/
 exports.companyAuthRoutes.put('/deleteimages/:companyIdParam', stock_universal_server_1.requireAuth, company_auth_1.requireActiveCompany, stock_universal_server_1.deleteFiles, async (req, res) => {
     const filesWithDir = req.body.filesWithDir;
     const { companyId } = req.user;

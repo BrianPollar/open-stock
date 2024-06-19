@@ -43,7 +43,7 @@ export declare class EhttpController {
      * @param route - The route to make the GET request to.
      * @returns An Observable that emits the response data.
      */
-    makeGet(route: string): Observable<unknown>;
+    makeGet(route: string, retryTimes?: number): Observable<unknown>;
     /**
      * A method that makes a PUT request to the specified route.
      * @param route - The route to make the PUT request to.

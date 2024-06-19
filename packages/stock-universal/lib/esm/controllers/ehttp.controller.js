@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 // This file imports the `Observable` type from the `rxjs` module.
-import { map } from 'rxjs';
+import { map, retry } from 'rxjs';
 // This file imports the `Axios` module.
 import Axios from 'axios-observable';
 // This file imports the `LoggerController` class from the `logger.controller` file.
@@ -40,9 +40,9 @@ export class EhttpController {
      * @param route - The route to make the GET request to.
      * @returns An Observable that emits the response data.
      */
-    makeGet(route) {
+    makeGet(route, retryTimes = 5) {
         // Return a GET request from the Axios instance.
-        return this.axiosInstance.get(route).pipe(map(res => res.data));
+        return this.axiosInstance.get(route).pipe(retry(retryTimes), map(res => res.data));
     }
     /**
      * A method that makes a PUT request to the specified route.

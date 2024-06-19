@@ -1,4 +1,4 @@
-import { IcompanySubscription, Iuser } from './general.interface';
+import { Icompany, IcompanySubscription, Iuser } from './general.interface';
 /**
  * Represents the response object for a successful operation.
  */
@@ -36,6 +36,7 @@ export interface Iauthresponse {
      * Can be either an `Iuser` or `Icompany` object.
      */
     user?: Iuser;
+    company?: Icompany;
     /**
      * The user's authentication token, if any.
      */

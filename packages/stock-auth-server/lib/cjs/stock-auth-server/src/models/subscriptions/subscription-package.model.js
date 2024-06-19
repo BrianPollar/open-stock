@@ -8,7 +8,7 @@ const uniqueValidator = require('mongoose-unique-validator');
 const subscriptionPackageSchema = new mongoose_1.Schema({
     name: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
     ammount: { type: Number, unique: true, required: [true, 'cannot be empty.'], index: true },
-    duration: { type: Number, required: [true, 'cannot be empty.'], index: true },
+    duration: { type: Number, required: [true, 'cannot be empty.'], index: true }, // in days
     active: { type: Boolean, required: [true, 'cannot be empty.'], index: true },
     features: []
 }, { timestamps: true });

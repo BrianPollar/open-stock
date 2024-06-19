@@ -99,7 +99,7 @@ profitAndLossReportRoutes.get('/getone/:urId/:companyIdParam', requireAuth, requ
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const profitAndLossReport = await profitandlossReportLean
-    .findOne({ urId, queryId })
+    .findOne({ urId, companyId: queryId })
     .lean()
     .populate({ path: 'expenses', model: expenseLean })
     .populate({ path: 'payments', model: paymentLean });

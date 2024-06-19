@@ -90,7 +90,7 @@ receiptRoutes.get('/getone/:urId/:companyIdParam', requireAuth, requireActiveCom
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const receipt = await receiptLean
-    .findOne({ urId, queryId })
+    .findOne({ urId, companyId: queryId })
     .lean()
     .populate({
       path: 'invoiceRelated', model: invoiceRelatedLean,

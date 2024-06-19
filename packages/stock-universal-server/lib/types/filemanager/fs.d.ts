@@ -49,3 +49,4 @@ export declare const getOneFile: (req: any, res: any) => any;
  * @param res - The response object.
  */
 export declare const returnLazyFn: (req: any, res: any) => any;
+export declare const removeBg: (imageSrc: string) => Promise<unknown>;

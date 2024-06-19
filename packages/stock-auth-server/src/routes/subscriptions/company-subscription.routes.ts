@@ -42,7 +42,7 @@ const companySubscriptionRoutesLogger = tracer.colorConsole(
 
 const firePesapalRelegator = async(subctn: IsubscriptionPackage, savedSub: TcompanySubscription, company: Icompany, currUser: Iuser) => {
   const payDetails = {
-    id: savedSub._id,
+    id: savedSub._id.toString(),
     currency: 'USD',
     amount: subctn.ammount,
     description: 'Complete payments for subscription ,' + subctn.name,
@@ -114,7 +114,7 @@ export const getDays = (duration: number) => {
  */
 export const companySubscriptionRoutes = express.Router();
 
-companySubscriptionRoutes.post('/subscribe/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('payments', 'create'), async(req, res) => {
+companySubscriptionRoutes.post('/subscribe/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('subscriptions', 'create'), async(req, res) => {
   companySubscriptionRoutesLogger.info('making companySubscriptionRoutes');
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -200,7 +200,7 @@ companySubscriptionRoutes.get('/getall/:offset/:limit/:companyIdParam', requireA
   return res.status(200).send(response);
 });
 
-companySubscriptionRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('payments', 'delete'), async(req, res) => {
+companySubscriptionRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('subscriptions', 'delete'), async(req, res) => {
   const { id } = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;

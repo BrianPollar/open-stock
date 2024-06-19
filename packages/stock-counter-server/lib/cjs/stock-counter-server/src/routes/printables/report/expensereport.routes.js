@@ -106,7 +106,7 @@ exports.expenseReportRoutes.get('/getone/:urId/:companyIdParam', stock_universal
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const expenseReport = await expenesreport_model_1.expenseReportLean
-        .findOne({ urId, queryId })
+        .findOne({ urId, companyId: queryId })
         .lean()
         .populate({ path: 'expenses', model: expense_model_1.expenseLean });
     return res.status(200).send(expenseReport);

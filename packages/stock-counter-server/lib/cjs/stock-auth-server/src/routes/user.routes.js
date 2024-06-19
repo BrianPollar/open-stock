@@ -277,37 +277,10 @@ const userLoginRelegator = async (req, res, next) => {
     if (!foundUser?.password || !foundUser?.verified) {
         return next();
     }
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    const company = await company_model_1.companyLean.findById(foundUser?.companyId)
-        .lean();
-    let permissions;
-    // TODO scan for all object id comparisons// ALSO does it affete find, I think not likely but test out
-    if (company && company.owner === foundUser._id.toString()) {
-        permissions = {
-            companyAdminAccess: true
-        };
-    }
-    else {
-        permissions = foundUser.permissions || {};
-    }
-    // delete user.password; //we do not want to send back password
-    const userInfo = (0, universial_controller_1.setUserInfo)(foundUser._id.toString(), permissions, foundUser.companyId, { active: !company.blocked });
-    const token = (0, universial_controller_1.generateToken)(userInfo, '1d', stock_auth_local_1.stockAuthConfig.authSecrets.jwtSecret);
-    let activeSubscription;
-    const now = new Date();
-    if (company) {
-        const subsctn = await company_subscription_model_1.companySubscriptionLean.findOne({ companyId: company._id, status: 'paid' })
-            .lean()
-            .gte('endDate', now)
-            .sort({ endDate: 1 });
-        activeSubscription = subsctn;
-    }
-    foundUser.companyId = company;
+    const responseObj = await (0, universial_controller_1.makeUserReturnObject)(foundUser);
     const nowResponse = {
         success: true,
-        user: foundUser,
-        token,
-        activeSubscription
+        ...responseObj
     };
     return res.status(200).send(nowResponse);
 };
@@ -410,19 +383,27 @@ const updateUserBulk = async (req, res, next) => {
     if (!isValid) {
         return res.status(401).send({ success: false, err: 'unauthourised' });
     }
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    let filter = { _id, companyId: queryId };
+    if (req.body.profileOnly === 'true') {
+        const { userId } = req.user;
+        filter = { user: userId };
+    }
+    const parsed = req.body;
     const foundUser = await user_model_1.user
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .findOneAndUpdate({ _id, companyId: queryId });
+        .findOneAndUpdate(filter);
     if (!foundUser) {
+        if (parsed.newPhotos) {
+            await (0, stock_universal_server_1.deleteAllFiles)(parsed.newPhotos);
+        }
         return res.status(404).send({ success: false });
     }
     if (!foundUser.urId) {
         const count = await user_model_1.user
             // eslint-disable-next-line @typescript-eslint/naming-convention
-            .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+            .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
         foundUser.urId = (0, stock_universal_server_1.makeUrId)(Number(count[0]?.urId || '0'));
     }
-    const parsed = req.body;
     if (parsed) {
         if (parsed.profilePic) {
             foundUser.profilePic = parsed.profilePic || foundUser.profilePic;
@@ -438,7 +419,10 @@ const updateUserBulk = async (req, res, next) => {
     delete updatedUser._id;
     const keys = Object.keys(updatedUser);
     keys.forEach(key => {
-        if (foundUser[key]) {
+        if (companyId === 'superAdmin') {
+            foundUser[key] = updatedUser[key] || foundUser[key];
+        }
+        else if (foundUser[key] && key !== 'password' && key !== 'email' && key !== 'phone') {
             foundUser[key] = updatedUser[key] || foundUser[key];
         }
     });
@@ -501,26 +485,10 @@ exports.userAuthRoutes.get('/authexpress2', stock_universal_server_1.requireAuth
         };
         return res.status(401).send(response);
     }
-    const company = await company_model_1.companyLean
-        .findById(foundUser.companyId)
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .lean().select({ blocked: 1, _id: 1 });
-    let permissions;
-    if (company && company.owner === foundUser._id.toString()) {
-        permissions = {
-            companyAdminAccess: true
-        };
-    }
-    else {
-        permissions = foundUser.permissions;
-    }
-    const userInfo = (0, universial_controller_1.setUserInfo)(foundUser._id.toString(), permissions, foundUser.companyId, { active: !company.blocked });
-    foundUser.companyId = company;
-    const token = (0, universial_controller_1.generateToken)(userInfo, '1d', stock_auth_local_1.stockAuthConfig.authSecrets.jwtSecret);
+    const responseObj = await (0, universial_controller_1.makeUserReturnObject)(foundUser);
     const nowResponse = {
         success: true,
-        user: foundUser,
-        token
+        ...responseObj
     };
     return res.status(200).send(nowResponse);
 });
@@ -1024,13 +992,21 @@ exports.userAuthRoutes.get('/getoneuser/:urId/:companyIdParam', stock_universal_
     const { urId } = req.params;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    let queryId;
+    if (companyId === 'superAdmin' && companyIdParam !== 'undefined') {
+        queryId = companyIdParam;
+    }
+    else {
+        queryId = companyId;
+    }
+    if (queryId || companyId !== 'superAdmin') {
+        const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+        if (!isValid) {
+            return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+        }
     }
     const oneUser = await user_model_1.userLean
-        .findOne({ urId, queryId })
+        .findOne({ urId, companyId: queryId })
         .populate({ path: 'profilePic', model: stock_universal_server_1.fileMetaLean })
         .populate({ path: 'profileCoverPic', model: stock_universal_server_1.fileMetaLean })
         .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean })
@@ -1044,10 +1020,18 @@ exports.userAuthRoutes.get('/getoneuser/:urId/:companyIdParam', stock_universal_
 exports.userAuthRoutes.get('/getusers/:where/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, company_auth_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('users', 'read'), async (req, res) => {
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    let queryId;
+    if (companyId === 'superAdmin' && companyIdParam !== 'undefined') {
+        queryId = companyIdParam;
+    }
+    else {
+        queryId = companyId;
+    }
+    if (queryId || companyId !== 'superAdmin') {
+        const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+        if (!isValid) {
+            return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+        }
     }
     const { where } = req.params;
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
@@ -1120,7 +1104,7 @@ exports.userAuthRoutes.put('/updateuserbulk/:companyIdParam', stock_universal_se
 exports.userAuthRoutes.post('/updateuserbulkimg/:companyIdParam', stock_universal_server_1.requireAuth, company_auth_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('users', 'update'), stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.saveMetaToDb, exports.updateUserBulk, (req, res) => {
     return res.status(200).send({ success: true });
 });
-exports.userAuthRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, company_auth_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('users', 'delete'), stock_universal_server_1.deleteFiles, async (req, res) => {
+exports.userAuthRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, company_auth_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('users', 'delete'), async (req, res) => {
     const { ids } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -1129,9 +1113,29 @@ exports.userAuthRoutes.put('/deletemany/:companyIdParam', stock_universal_server
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
+    let filesWithDir;
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    const alltoDelete = await user_model_1.user.find({ _id: { $in: ids }, companyId: queryId })
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        .populate({ path: 'profilePic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        .populate({ path: 'profileCoverPic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+        .lean();
+    let toDelIds = [];
+    for (const user of alltoDelete) {
+        if (user.userType === 'eUser') {
+            toDelIds = [...toDelIds, user._id];
+            if (user.photos?.length > 0) {
+                filesWithDir = [...filesWithDir, ...user.photos];
+            }
+        }
+    }
+    await (0, stock_universal_server_1.deleteAllFiles)(filesWithDir);
     const deleted = await user_model_1.user
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        .deleteMany({ _id: { $in: ids }, companyId: queryId }).catch(err => {
+        .deleteMany({ _id: { $in: toDelIds }, companyId: queryId }).catch(err => {
         authLogger.error('deletemany users failed with error: ' + err.message);
         return null;
     });
@@ -1142,7 +1146,7 @@ exports.userAuthRoutes.put('/deletemany/:companyIdParam', stock_universal_server
         return res.status(404).send({ success: Boolean(deleted), err: 'could not delete selected items, try again in a while' });
     }
 });
-exports.userAuthRoutes.put('/deleteone/:companyIdParam', stock_universal_server_1.requireAuth, company_auth_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('users', 'delete'), stock_universal_server_1.deleteFiles, async (req, res) => {
+exports.userAuthRoutes.put('/deleteone/:companyIdParam', stock_universal_server_1.requireAuth, company_auth_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('users', 'delete'), async (req, res) => {
     // eslint-disable-next-line @typescript-eslint/naming-convention
     const { _id } = req.body;
     const { companyId } = req.user;
@@ -1151,6 +1155,22 @@ exports.userAuthRoutes.put('/deleteone/:companyIdParam', stock_universal_server_
     const isValid = (0, stock_universal_server_1.verifyObjectIds)([_id, queryId]);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    const found = await user_model_1.user.findOne({ _id, companyId: queryId })
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+        .lean();
+    if (found) {
+        if (found.userType === 'eUser') {
+            return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+        }
+        const filesWithDir = found.photos.map(photo => ({
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            _id: photo._id,
+            url: photo.url
+        }));
+        await (0, stock_universal_server_1.deleteAllFiles)(filesWithDir);
     }
     const deleted = await user_model_1.user
         // eslint-disable-next-line @typescript-eslint/naming-convention

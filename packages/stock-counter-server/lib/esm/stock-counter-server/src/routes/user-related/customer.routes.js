@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
 import { addUser, requireActiveCompany, requireCanUseFeature, requireUpdateSubscriptionRecord, updateUserBulk, userLean } from '@open-stock/stock-auth-server';
-import { appendBody, deleteFiles, fileMetaLean, offsetLimitRelegator, requireAuth, roleAuthorisation, saveMetaToDb, stringifyMongooseErr, uploadFiles, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { appendBody, fileMetaLean, offsetLimitRelegator, requireAuth, roleAuthorisation, saveMetaToDb, stringifyMongooseErr, uploadFiles, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import * as fs from 'fs';
 import path from 'path';
@@ -269,7 +269,7 @@ customerRoutes.put('/updateimg/:companyIdParam', requireAuth, requireActiveCompa
  * @param {callback} middleware - Express middleware
  * @returns {Promise} - Promise representing the HTTP response
  */
-customerRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('customers', 'delete'), removeOneUser, deleteFiles, async (req, res) => {
+customerRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('customers', 'delete'), removeOneUser('customer'), async (req, res) => {
     const { id } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -299,7 +299,7 @@ customerRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompa
  * @param {callback} middleware - Express middleware
  * @returns {Promise} - Promise representing the HTTP response
  */
-customerRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('customers', 'delete'), removeManyUsers, deleteFiles, async (req, res) => {
+customerRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('customers', 'delete'), removeManyUsers('staff'), async (req, res) => {
     const { ids } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;

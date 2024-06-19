@@ -11,110 +11,6 @@ const tracer = tslib_1.__importStar(require("tracer"));
 const invoicerelated_model_1 = require("../../models/printables/related/invoicerelated.model");
 const customer_model_1 = require("../../models/user-related/customer.model");
 const staff_model_1 = require("../../models/user-related/staff.model");
-/**
- * Removes one user from the database.
- * @param req - Express Request object.
- * @param res - Express Response object.
- * @param next - Express NextFunction object.
- * @returns Promise<void>
- */
-const removeOneUser = async (req, res, next) => {
-    const { credential } = req.body;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)([credential.userId, queryId]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
-    const canRemove = await (0, exports.canRemoveOneUser)(credential.userId);
-    if (!canRemove.success) {
-        return res.status(401).send({ ...canRemove, status: 401 });
-    }
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    const deleted = await stock_auth_server_1.user.findOneAndDelete({ _id: credential.userId, companyId: queryId });
-    req.body.id = credential.id;
-    if (!Boolean(deleted)) {
-        return res.status(404).send({ success: Boolean(deleted), err: 'could not delete selected items, try again in a while' });
-    }
-    next();
-};
-exports.removeOneUser = removeOneUser;
-/**
- * Removes multiple users from the database.
- * @param req - Express Request object.
- * @param res - Express Response object.
- * @param next - Express NextFunction object.
- * @returns Promise<void>
- */
-const removeManyUsers = async (req, res, next) => {
-    const { credentials } = req.body;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)([...credentials.map(val => val.userId), ...[queryId]]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
-    const promises = req.body.credentials.map(async (val) => {
-        const canRemove = await (0, exports.canRemoveOneUser)(val.userId);
-        return Promise.resolve({ ...canRemove, ...val });
-    });
-    const all = await Promise.all(promises);
-    const newIds = all.filter(val => val.success).map(val => val.id);
-    const newUserIds = all.filter(val => val.success).map(val => val.userId);
-    if (newIds.length <= 0) {
-        return res.status(401).send({ success: false, status: 401, err: 'sorry all users selected are linked' });
-    }
-    const newPhotosWithDir = req.body.filesWithDir.filter(val => newUserIds.includes(val.id));
-    req.body.ids = newIds;
-    req.body.newPhotosWithDir = newPhotosWithDir;
-    const deleted = await stock_auth_server_1.user
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .deleteMany({ companyId: queryId, _id: { $in: newUserIds } })
-        .catch(err => {
-        localUserRoutesLogger.error('deletemany - err: ', err);
-        return null;
-    });
-    if (!Boolean(deleted)) {
-        return res.status(404).send({ success: Boolean(deleted), err: 'could not delete selected items, try again in a while' });
-    }
-    next();
-};
-exports.removeManyUsers = removeManyUsers;
-/**
- * Checks if a user can be removed from the database.
- * @param id - The ID of the user to check.
- * @returns Promise<IuserLinkedInMoreModels>
- */
-const canRemoveOneUser = async (id) => {
-    const hasInvRelated = await invoicerelated_model_1.invoiceRelatedLean.findOne({ billingUserId: id });
-    if (hasInvRelated) {
-        return {
-            success: false,
-            msg: 'user is linked to invoice, or estimate or delivery note or receipt'
-        };
-    }
-    const hasCustomer = await customer_model_1.customerLean.findOne({ user: id });
-    if (hasCustomer) {
-        return {
-            success: false,
-            msg: 'user is linked to customer'
-        };
-    }
-    const hasStaff = await staff_model_1.staffLean.findOne({ user: id });
-    if (hasStaff) {
-        return {
-            success: false,
-            msg: 'user is linked to customer'
-        };
-    }
-    return {
-        success: true,
-        msg: 'user is not linked to anything'
-    };
-};
-exports.canRemoveOneUser = canRemoveOneUser;
 /** Logger for local user routes. */
 const localUserRoutesLogger = tracer.colorConsole({
     format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
@@ -139,12 +35,157 @@ const localUserRoutesLogger = tracer.colorConsole({
         });
     }
 });
+/**
+   * Removes one user from the database.
+   * @param req - Express Request object.
+   * @param res - Express Response object.
+   * @param next - Express NextFunction object.
+   * @returns Promise<void>
+   */
+const removeOneUser = (canByPass) => {
+    return async (req, res, next) => {
+        const { credential } = req.body;
+        const { companyId } = req.user;
+        const { companyIdParam } = req.params;
+        const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+        const isValid = (0, stock_universal_server_1.verifyObjectIds)([credential.userId, queryId]);
+        if (!isValid) {
+            return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+        }
+        const canRemove = await (0, exports.canRemoveOneUser)(credential.userId, canByPass);
+        if (!canRemove.success) {
+            return res.status(401).send({ ...canRemove, status: 401 });
+        }
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        const found = await stock_auth_server_1.user.findOne({ _id: credential.userId })
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            .populate({ path: 'profilePic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            .populate({ path: 'profileCoverPic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+            .lean();
+        if (found) {
+            const filesWithDir = found.photos.map(photo => ({
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                _id: photo._id,
+                url: photo.url
+            }));
+            await (0, stock_universal_server_1.deleteAllFiles)(filesWithDir);
+        }
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        const deleted = await stock_auth_server_1.user.findOneAndDelete({ _id: credential.userId, companyId: queryId });
+        req.body.id = credential.id;
+        if (!Boolean(deleted)) {
+            return res.status(404).send({ success: Boolean(deleted), err: 'could not delete selected items, try again in a while' });
+        }
+        next();
+    };
+};
+exports.removeOneUser = removeOneUser;
+/**
+   * Removes multiple users from the database.
+   * @param req - Express Request object.
+   * @param res - Express Response object.
+   * @param next - Express NextFunction object.
+   * @returns Promise<void>
+   */
+const removeManyUsers = (canByPass) => {
+    return async (req, res, next) => {
+        const { credentials } = req.body;
+        const { companyId } = req.user;
+        const { companyIdParam } = req.params;
+        const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+        const isValid = (0, stock_universal_server_1.verifyObjectIds)([...credentials.map(val => val.userId), ...[queryId]]);
+        if (!isValid) {
+            return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+        }
+        const promises = req.body.credentials.map(async (val) => {
+            const canRemove = await (0, exports.canRemoveOneUser)(val.userId, canByPass);
+            return Promise.resolve({ ...canRemove, ...val });
+        });
+        const all = await Promise.all(promises);
+        const newIds = all.filter(val => val.success).map(val => val.id);
+        const newUserIds = all.filter(val => val.success).map(val => val.userId);
+        if (newIds.length <= 0) {
+            return res.status(401).send({ success: false, status: 401, err: 'sorry all users selected are linked' });
+        }
+        const newPhotosWithDir = req.body.filesWithDir.filter(val => newUserIds.includes(val.id));
+        req.body.ids = newIds;
+        req.body.newPhotosWithDir = newPhotosWithDir;
+        let filesWithDir;
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        const alltoDelete = await stock_auth_server_1.user.find({ companyId: queryId, _id: { $in: newUserIds } })
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            .populate({ path: 'profilePic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            .populate({ path: 'profileCoverPic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+            .lean();
+        for (const user of alltoDelete) {
+            if (user.photos?.length > 0) {
+                filesWithDir = [...filesWithDir, ...user.photos];
+            }
+        }
+        await (0, stock_universal_server_1.deleteAllFiles)(filesWithDir);
+        const deleted = await stock_auth_server_1.user
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            .deleteMany({ companyId: queryId, _id: { $in: newUserIds } })
+            .catch(err => {
+            localUserRoutesLogger.error('deletemany - err: ', err);
+            return null;
+        });
+        if (!Boolean(deleted)) {
+            return res.status(404).send({ success: Boolean(deleted), err: 'could not delete selected items, try again in a while' });
+        }
+        next();
+    };
+};
+exports.removeManyUsers = removeManyUsers;
+/**
+   * Checks if a user can be removed from the database.
+   * @param id - The ID of the user to check.
+   * @returns Promise<IuserLinkedInMoreModels>
+   */
+const canRemoveOneUser = async (id, byPass) => {
+    const hasInvRelated = await invoicerelated_model_1.invoiceRelatedLean.findOne({ billingUserId: id });
+    if (hasInvRelated) {
+        return {
+            success: false,
+            msg: 'user is linked to invoice, or estimate or delivery note or receipt'
+        };
+    }
+    if (byPass !== 'customer') {
+        const hasCustomer = await customer_model_1.customerLean.findOne({ user: id });
+        if (hasCustomer) {
+            return {
+                success: false,
+                msg: 'user is linked to customer'
+            };
+        }
+    }
+    if (byPass !== 'customer' && byPass !== 'staff') {
+        const hasStaff = await staff_model_1.staffLean.findOne({ user: id });
+        if (hasStaff) {
+            return {
+                success: false,
+                msg: 'user is linked to customer'
+            };
+        }
+    }
+    return {
+        success: true,
+        msg: 'user is not linked to anything'
+    };
+};
+exports.canRemoveOneUser = canRemoveOneUser;
 /** Express Router for local user routes. */
 exports.localUserRoutes = express_1.default.Router();
-exports.localUserRoutes.put('/deleteone/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('users', 'delete'), exports.removeOneUser, stock_universal_server_1.deleteFiles, (req, res) => {
+exports.localUserRoutes.put('/deleteone/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('users', 'delete'), (0, exports.removeOneUser)('none'), (req, res) => {
     return res.status(200).send({ success: true });
 });
-exports.localUserRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('users', 'delete'), exports.removeManyUsers, stock_universal_server_1.deleteFiles, (req, res) => {
+exports.localUserRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('users', 'delete'), (0, exports.removeManyUsers)('none'), (req, res) => {
     return res.status(200).send({ success: true });
 });
 //# sourceMappingURL=locluser.routes.js.map

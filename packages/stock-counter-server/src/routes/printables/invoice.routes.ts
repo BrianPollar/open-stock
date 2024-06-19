@@ -420,7 +420,7 @@ invoiceRoutes.get('/getonepayment/:urId/:companyIdParam', requireAuth, requireAc
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const invoicePay = await receiptLean
-    .findOne({ urId, queryId })
+    .findOne({ urId, companyId: queryId })
     .lean();
   return res.status(200).send(invoicePay);
 });

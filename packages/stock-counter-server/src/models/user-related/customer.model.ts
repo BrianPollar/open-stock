@@ -12,8 +12,8 @@ export type Tcustomer = Document & Icustomer;
 const customerSchema: Schema<Tcustomer> = new Schema({
   companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
   user: { type: mongoose.Types.ObjectId, unique: true, required: [true, 'cannot be empty.'], index: true },
-  startDate: { type: Date, required: [true, 'cannot be empty.'] },
-  endDate: { type: Date, required: [true, 'cannot be empty.'] },
+  startDate: { type: Date },
+  endDate: { type: Date },
   occupation: { type: String },
   otherAddresses: []
 }, { timestamps: true });

@@ -9,7 +9,7 @@ import {
   Isuccess,
   Iuser
 } from '@open-stock/stock-universal';
-import { fileMetaLean, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { fileMetaLean, makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import * as fs from 'fs';
 import path from 'path';
@@ -91,6 +91,10 @@ orderRoutes.post('/makeorder/:companyIdParam', async(req, res) => {
     if (found) {
       userDoc = found;
     } else {
+      const count = await user
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+        .find({ }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+      userObj.urId = makeUrId(Number(count[0]?.urId || '0'));
       const newUser = new user(userObj);
       let savedErr: string;
       userDoc = await newUser.save().catch(err => {

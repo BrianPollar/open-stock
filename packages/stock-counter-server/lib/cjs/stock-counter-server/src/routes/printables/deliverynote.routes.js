@@ -120,7 +120,7 @@ exports.deliveryNoteRoutes.get('/getone/:urId/:companyIdParam', stock_universal_
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const deliveryNote = await deliverynote_model_1.deliveryNoteLean
-        .findOne({ urId, queryId })
+        .findOne({ urId, companyId: queryId })
         .lean()
         .populate({
         path: 'invoiceRelated', model: invoicerelated_model_1.invoiceRelatedLean,

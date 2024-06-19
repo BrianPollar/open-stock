@@ -43,7 +43,7 @@ export const sendRandomEmail = (
     from: emailFrom,
     to: emailTo,
     subject,
-    text: 'Please confirm your email address',
+    text: '',
     // html: 'Hello, <br> Please click on the link to veify you email.<br><a href=`${nowLink}`></a>'
     html: `<!DOCTYPE html>
     <html lang="en">

@@ -1,6 +1,6 @@
 import { EhttpController, LoggerController } from '@open-stock/stock-universal';
-import { CalculationsController } from './controllers/calculations.controller';
 import Axios from 'axios-observable';
+import { CalculationsController } from './controllers/calculations.controller';
 export declare let stockCounterClient: StockCounterClient;
 export declare class StockCounterClient {
     static calcCtrl: CalculationsController;

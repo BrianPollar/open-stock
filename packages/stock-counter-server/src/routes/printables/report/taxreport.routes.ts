@@ -112,7 +112,7 @@ taxReportRoutes.get('/getone/:urId/:companyIdParam', requireAuth, requireActiveC
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const taxReport = await taxReportLean
-    .findOne({ urId, queryId })
+    .findOne({ urId, companyId: queryId })
     .lean()
     .populate({ path: 'estimates', model: estimateLean })
     .populate({ path: 'payments', model: paymentLean });

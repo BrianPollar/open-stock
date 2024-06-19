@@ -77,6 +77,10 @@ exports.orderRoutes.post('/makeorder/:companyIdParam', async (req, res) => {
             userDoc = found;
         }
         else {
+            const count = await stock_auth_server_1.user
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+            userObj.urId = (0, stock_universal_server_1.makeUrId)(Number(count[0]?.urId || '0'));
             const newUser = new stock_auth_server_1.user(userObj);
             let savedErr;
             userDoc = await newUser.save().catch(err => {

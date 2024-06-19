@@ -19,9 +19,9 @@ const uniqueValidator = require('mongoose-unique-validator');
  * @property {Date} updatedAt - Timestamp of last update
  */
 const paymentRelatedSchema = new Schema({
-    pesaPalorderTrackingId: { type: String, required: [true, 'cannot be empty.'] },
+    pesaPalorderTrackingId: { type: String },
     urId: { type: String, required: [true, 'cannot be empty.'] },
-    companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
+    companyId: { type: String },
     // creationType: { type: String, required: [true, 'cannot be empty.'] },
     // items: [{ type: String }],
     orderDate: { type: Date, index: true },
@@ -30,7 +30,7 @@ const paymentRelatedSchema = new Schema({
     billingAddress: {},
     shippingAddress: {},
     // tax: { type: Number },
-    currency: { type: String, required: [true, 'cannot be empty.'] },
+    currency: { type: String },
     // user: { type: String },
     isBurgain: { type: Boolean, default: false },
     shipping: { type: Number },

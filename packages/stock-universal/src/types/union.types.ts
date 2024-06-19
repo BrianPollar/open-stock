@@ -426,7 +426,9 @@ export type TroleAuth =
   'receipts' |
   'expenses' |
   'reports' |
-  'companyProfile';
+  'companyProfile' |
+  'mails' |
+  'subscriptions';
 
 /**
  * Represents the possible values for the TroleAuthProp type.

@@ -44,9 +44,9 @@ class EhttpController {
      * @param route - The route to make the GET request to.
      * @returns An Observable that emits the response data.
      */
-    makeGet(route) {
+    makeGet(route, retryTimes = 5) {
         // Return a GET request from the Axios instance.
-        return this.axiosInstance.get(route).pipe((0, rxjs_1.map)(res => res.data));
+        return this.axiosInstance.get(route).pipe((0, rxjs_1.retry)(retryTimes), (0, rxjs_1.map)(res => res.data));
     }
     /**
      * A method that makes a PUT request to the specified route.

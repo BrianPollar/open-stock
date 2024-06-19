@@ -128,7 +128,7 @@ deliveryNoteRoutes.get('/getone/:urId/:companyIdParam', requireAuth, requireActi
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const deliveryNote = await deliveryNoteLean
-    .findOne({ urId, queryId })
+    .findOne({ urId, companyId: queryId })
     .lean()
     .populate({
       path: 'invoiceRelated', model: invoiceRelatedLean,

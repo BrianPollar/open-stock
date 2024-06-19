@@ -83,7 +83,7 @@ subscriptionPackageRoutes.get('/getall', async(req, res) => {
   return res.status(200).send(subscriptionPackages);
 });
 
-subscriptionPackageRoutes.put('/deleteone/:id', requireAuth, requireSuperAdmin, async(req, res) => {
+subscriptionPackageRoutes.put('/deleteone/:id', requireAuth, async(req, res) => {
   const { id } = req.params;
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const deleted = await subscriptionPackageMain.findOneAndDelete({ _id: id });

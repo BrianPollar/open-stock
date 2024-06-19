@@ -70,7 +70,7 @@ exports.receiptRoutes.get('/getone/:urId/:companyIdParam', stock_universal_serve
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const receipt = await receipt_model_1.receiptLean
-        .findOne({ urId, queryId })
+        .findOne({ urId, companyId: queryId })
         .lean()
         .populate({
         path: 'invoiceRelated', model: invoicerelated_model_1.invoiceRelatedLean,

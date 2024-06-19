@@ -1,7 +1,18 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
 import { addUser, requireActiveCompany, requireCanUseFeature, requireUpdateSubscriptionRecord, updateUserBulk, userLean } from '@open-stock/stock-auth-server';
 import { Icustomrequest, IdataArrayResponse, Isuccess } from '@open-stock/stock-universal';
-import { appendBody, deleteFiles, fileMetaLean, offsetLimitRelegator, requireAuth, roleAuthorisation, saveMetaToDb, stringifyMongooseErr, uploadFiles, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import {
+  appendBody,
+  fileMetaLean,
+  offsetLimitRelegator,
+  requireAuth,
+  roleAuthorisation,
+  saveMetaToDb,
+  stringifyMongooseErr,
+  uploadFiles,
+  verifyObjectId,
+  verifyObjectIds
+} from '@open-stock/stock-universal-server';
 import express from 'express';
 import * as fs from 'fs';
 import path from 'path';
@@ -85,9 +96,15 @@ export const updateStaff = async(req, res) => {
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  let filter = { _id: updatedStaff._id, companyId: queryId } as any;
+
+  if (req.body.profileOnly === 'true') {
+    const { userId } = (req as Icustomrequest).user;
+    filter = { user: userId };
+  }
   const staff = await staffMain
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    .findOneAndUpdate({ _id: updatedStaff._id, companyId: queryId });
+    .findOneAndUpdate(filter);
   if (!staff) {
     return res.status(404).send({ success: false });
   }
@@ -127,12 +144,12 @@ staffRoutes.post('/create/:companyIdParam', requireAuth, requireCanUseFeature('s
 
 staffRoutes.post('/createimg/:companyIdParam', requireAuth, requireCanUseFeature('staff'), roleAuthorisation('staffs', 'create'), uploadFiles, appendBody, saveMetaToDb, addUser, addStaff, requireUpdateSubscriptionRecord('staff'));
 
-staffRoutes.post('/getone', requireAuth, requireActiveCompany, roleAuthorisation('staffs', 'read'), async(req, res) => {
+staffRoutes.post('/getone', requireAuth, requireActiveCompany, roleAuthorisation('staffs', 'read', true), async(req, res) => {
   const { id, userId } = req.body;
   const companyIdParam = req.body.companyId;
   const { companyId } = (req as Icustomrequest).user;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const isValid = verifyObjectIds([id, queryId]);
+  const isValid = verifyObjectIds([queryId]);
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -154,6 +171,11 @@ staffRoutes.post('/getone', requireAuth, requireActiveCompany, roleAuthorisation
       return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     filter = { ...filter, user: userId };
+  }
+
+  if (req.body.profileOnly === 'true') {
+    const { userId } = (req as Icustomrequest).user;
+    filter = { user: userId };
   }
   const staff = await staffLean
     // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -300,11 +322,11 @@ staffRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, requireA
   return res.status(200).send(response);
 });
 
-staffRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('staffs', 'update'), updateUserBulk, updateStaff);
+staffRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('staffs', 'update', true), updateUserBulk, updateStaff);
 
-staffRoutes.put('/updateimg/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('staffs', 'update'), uploadFiles, appendBody, saveMetaToDb, updateUserBulk, updateStaff);
+staffRoutes.put('/updateimg/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('staffs', 'update', true), uploadFiles, appendBody, saveMetaToDb, updateUserBulk, updateStaff);
 
-staffRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('staffs', 'delete'), removeOneUser, deleteFiles, async(req, res) => {
+staffRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('staffs', 'delete'), removeOneUser('staff'), async(req, res) => {
   const { id } = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -322,7 +344,7 @@ staffRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompany,
   }
 });
 
-staffRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('staffs', 'delete'), removeManyUsers, deleteFiles, async(req, res) => {
+staffRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('staffs', 'delete'), removeManyUsers('staff'), async(req, res) => {
   const { ids } = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;

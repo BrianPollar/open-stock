@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/dot-notation */
+/* eslint-disable @typescript-eslint/prefer-for-of */
+import { removeBackground } from '@imgly/background-removal-node';
 import * as fs from 'fs';
 import multer from 'multer';
 import * as path from 'path';
@@ -159,6 +162,7 @@ export const saveMetaToDb = async (req, res, next) => {
             .map((value) => new Promise(async (resolve) => {
             const newFileMeta = new fileMeta(value);
             let savedErr;
+            // await removeBg(value.url);
             const newSaved = await newFileMeta.save().catch(err => {
                 fsControllerLogger.error('save error', err);
                 savedErr = err;
@@ -171,34 +175,34 @@ export const saveMetaToDb = async (req, res, next) => {
         }));
         parsed.newPhotos = await Promise.all(promises);
     }
-    if (parsed.profilePic) {
-        const newFileMeta = new fileMeta(parsed.profilePic);
-        let savedErr;
-        const newSaved = await newFileMeta.save().catch(err => {
-            fsControllerLogger.error('save error', err);
-            savedErr = err;
-            return null;
-        });
-        if (savedErr) {
-            return res.status(500).send({ success: false });
-        }
-        parsed.profilePic = newSaved._id;
-        parsed.newPhotos.push(newSaved);
-    }
-    if (parsed.coverPic) {
-        const newFileMeta = new fileMeta(parsed.profilePic);
-        let savedErr;
-        const newSaved = await newFileMeta.save().catch(err => {
-            fsControllerLogger.error('save error', err);
-            savedErr = err;
-            return null;
-        });
-        if (savedErr) {
-            return res.status(500).send({ success: false });
-        }
-        parsed.coverPic = newSaved._id;
-        parsed.newPhotos.push(newSaved);
-    }
+    /* if (parsed.profilePic) {
+      const newFileMeta = new fileMeta(parsed.profilePic);
+      let savedErr: string;
+      const newSaved = await newFileMeta.save().catch(err => {
+        fsControllerLogger.error('save error', err);
+        savedErr = err;
+        return null;
+      });
+      if (savedErr) {
+        return res.status(500).send({ success: false });
+      }
+      parsed.profilePic = newSaved._id;
+      parsed.newPhotos.push(newSaved);
+    }*/
+    /* if (parsed.coverPic) {
+      const newFileMeta = new fileMeta(parsed.profilePic);
+      let savedErr: string;
+      const newSaved = await newFileMeta.save().catch(err => {
+        fsControllerLogger.error('save error', err);
+        savedErr = err;
+        return null;
+      });
+      if (savedErr) {
+        return res.status(500).send({ success: false });
+      }
+      parsed.coverPic = newSaved._id;
+      parsed.newPhotos.push(newSaved);
+    }*/
     if (parsed.thumbnail) {
         const newFileMeta = new fileMeta(parsed.thumbnail);
         let savedErr;
@@ -300,4 +304,28 @@ export const getOneFile = (req, res) => {
  * @param res - The response object.
  */
 export const returnLazyFn = (req, res) => res.status(200).send({ success: true });
+export const removeBg = (imageSrc) => {
+    return new Promise((resolve, reject) => {
+        const absolutepath = envConfig.absolutepath;
+        const fileLocation = path.join(`${absolutepath}${imageSrc}`);
+        const config = {
+            output: {
+                type: 'mask'
+            }
+        };
+        removeBackground(fileLocation, config).then(async (blob) => {
+            const arrayBuffer = await blob.arrayBuffer();
+            const buffer = Buffer.from(arrayBuffer);
+            fs.writeFile(fileLocation, buffer, {}, (err) => {
+                if (err) {
+                    console.error(err);
+                    reject(err);
+                    return;
+                }
+                console.log('files saved');
+                resolve(imageSrc);
+            });
+        });
+    });
+};
 //# sourceMappingURL=fs.js.map

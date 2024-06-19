@@ -275,7 +275,7 @@ exports.customerRoutes.put('/updateimg/:companyIdParam', stock_universal_server_
  * @param {callback} middleware - Express middleware
  * @returns {Promise} - Promise representing the HTTP response
  */
-exports.customerRoutes.put('/deleteone/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('customers', 'delete'), locluser_routes_1.removeOneUser, stock_universal_server_1.deleteFiles, async (req, res) => {
+exports.customerRoutes.put('/deleteone/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('customers', 'delete'), (0, locluser_routes_1.removeOneUser)('customer'), async (req, res) => {
     const { id } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -305,7 +305,7 @@ exports.customerRoutes.put('/deleteone/:companyIdParam', stock_universal_server_
  * @param {callback} middleware - Express middleware
  * @returns {Promise} - Promise representing the HTTP response
  */
-exports.customerRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('customers', 'delete'), locluser_routes_1.removeManyUsers, stock_universal_server_1.deleteFiles, async (req, res) => {
+exports.customerRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('customers', 'delete'), (0, locluser_routes_1.removeManyUsers)('staff'), async (req, res) => {
     const { ids } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;

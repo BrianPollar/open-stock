@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.sendTokenEmail = exports.sendTokenPhone = exports.validateEmail = exports.validatePhone = exports.setUserInfo = exports.generateToken = void 0;
+exports.sendTokenEmail = exports.sendTokenPhone = exports.validateEmail = exports.validatePhone = exports.makeUserReturnObject = exports.setUserInfo = exports.generateToken = void 0;
 const tslib_1 = require("tslib");
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-var-requires */
@@ -15,7 +15,10 @@ const stock_universal_1 = require("@open-stock/stock-universal");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const jwt = tslib_1.__importStar(require("jsonwebtoken"));
 const path_1 = tslib_1.__importDefault(require("path"));
+const company_model_1 = require("../models/company.model");
 const emailtoken_model_1 = require("../models/emailtoken.model");
+const company_subscription_model_1 = require("../models/subscriptions/company-subscription.model");
+const stock_auth_local_1 = require("../stock-auth-local");
 const universialControllerLogger = tracer.colorConsole({
     format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
     dateformat: 'HH:MM:ss.L',
@@ -72,6 +75,40 @@ const setUserInfo = (userId, permissions, companyId, companyPermissions) => {
     return details;
 };
 exports.setUserInfo = setUserInfo;
+const makeUserReturnObject = async (foundUser) => {
+    const company = await company_model_1.companyLean.findById(foundUser?.companyId)
+        .lean();
+    universialControllerLogger.debug('found company: ', company);
+    let permissions;
+    if (company && company.owner === foundUser._id.toString()) {
+        permissions = {
+            companyAdminAccess: true
+        };
+    }
+    else {
+        permissions = foundUser.permissions || {};
+    }
+    const userInfo = (0, exports.setUserInfo)(foundUser._id.toString(), permissions, foundUser.companyId, { active: !company.blocked });
+    const token = (0, exports.generateToken)(userInfo, '1d', stock_auth_local_1.stockAuthConfig.authSecrets.jwtSecret);
+    let activeSubscription;
+    const now = new Date();
+    if (company) {
+        const subsctn = await company_subscription_model_1.companySubscriptionLean.findOne({ companyId: company._id, status: 'paid' })
+            .lean()
+            .gte('endDate', now)
+            .sort({ endDate: 1 });
+        activeSubscription = subsctn;
+    }
+    universialControllerLogger.debug('found foundUser: ', foundUser);
+    return {
+        success: true,
+        user: foundUser,
+        company,
+        token,
+        activeSubscription
+    };
+};
+exports.makeUserReturnObject = makeUserReturnObject;
 /**
  * Validates the phone number of a user and performs necessary actions based on the case.
  * @param foundUser - The user object to validate.
@@ -80,7 +117,7 @@ exports.setUserInfo = setUserInfo;
  * @param newPassword - The new password to set (only applicable for 'password' case).
  * @returns A promise that resolves to an authentication response object.
  */
-const validatePhone = async (foundUser, nowCase, verifycode, newPassword) => {
+const validatePhone = async (foundUser, verifycode, newPassword) => {
     if (!foundUser) {
         return {
             status: 404,
@@ -91,23 +128,14 @@ const validatePhone = async (foundUser, nowCase, verifycode, newPassword) => {
         };
     }
     return new Promise(resolve => {
-        const postVerify = function (err) {
+        const postVerify = async function (err) {
             if (err) {
                 universialControllerLogger.error('postVerify - err: ', err);
-                let msg;
-                if (nowCase === 'password') {
-                    msg = `The token you entered was
-					invalid - please retry.`;
-                }
-                else {
-                    msg = `he token you entered was
-					invalid - please retry.`;
-                }
                 resolve({
                     status: 401,
                     response: {
                         success: false,
-                        msg
+                        msg: 'The token you entered was invalid - please retry.'
                     }
                 });
                 return;
@@ -115,7 +143,7 @@ const validatePhone = async (foundUser, nowCase, verifycode, newPassword) => {
             foundUser.verified = true;
             foundUser.expireAt = '';
             let message;
-            if (nowCase === 'password') {
+            if (newPassword) {
                 foundUser.password = newPassword;
                 message = `You did it! Your
 				password has been reset :`;
@@ -125,15 +153,13 @@ const validatePhone = async (foundUser, nowCase, verifycode, newPassword) => {
 				are all setup and
 				you can now you can customise your profile`;
             }
+            const responseObj = await (0, exports.makeUserReturnObject)(foundUser);
+            responseObj.msg = message;
             foundUser.save().then(() => {
                 foundUser.save();
                 resolve({
                     status: 200,
-                    response: {
-                        success: true,
-                        msg: message,
-                        user: foundUser
-                    }
+                    response: responseObj
                 });
             }).catch(err => {
                 universialControllerLogger.error('save error', err);
@@ -223,8 +249,8 @@ exports.validatePhone = validatePhone;
  * @param newPassword - The new password (only applicable for 'password' case).
  * @returns A promise that resolves to an authentication response object.
  */
-const validateEmail = async (foundUser, type, nowCase, verifycode, newPassword) => {
-    universialControllerLogger.info('validateEmail - %type: , %nowCase: ', type, nowCase);
+const validateEmail = async (foundUser, type, verifycode, newPassword) => {
+    universialControllerLogger.info('validateEmail - %type: ', type);
     let msg;
     if (!foundUser) {
         msg = 'try signup again, account not found';
@@ -266,13 +292,10 @@ const validateEmail = async (foundUser, type, nowCase, verifycode, newPassword) 
     }
     foundUser.expireAt = '';
     foundUser.verified = true;
-    if (nowCase === 'password') {
+    if (newPassword) {
         foundUser.password = newPassword;
-        msg = 'You are reset up successfully';
     }
-    else {
-        msg = 'You are signed up successfully';
-    }
+    msg = 'You are signed up successfully';
     let status = 200;
     const errResponse = {
         success: false
@@ -294,13 +317,11 @@ const validateEmail = async (foundUser, type, nowCase, verifycode, newPassword) 
         };
     }
     else {
+        const responseObj = await (0, exports.makeUserReturnObject)(foundUser);
+        responseObj.msg = msg;
         return {
             status,
-            response: {
-                success: true,
-                msg,
-                user: foundUser
-            }
+            response: responseObj
         };
     }
 };

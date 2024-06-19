@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 // This file imports the `Observable` type from the `rxjs` module.
-import { Observable, map } from 'rxjs';
+import { Observable, map, retry } from 'rxjs';
 // This file imports the `Axios` module.
 import Axios from 'axios-observable';
 // This file imports the `LoggerController` class from the `logger.controller` file.
@@ -80,9 +80,11 @@ export class EhttpController {
    * @param route - The route to make the GET request to.
    * @returns An Observable that emits the response data.
    */
-  makeGet(route: string): Observable<unknown> {
+  makeGet(route: string, retryTimes = 5): Observable<unknown> {
     // Return a GET request from the Axios instance.
-    return this.axiosInstance.get(route).pipe(map(res => res.data));
+    return this.axiosInstance.get(route).pipe(
+      retry(retryTimes),
+      map(res => res.data));
   }
 
   /**
@@ -93,7 +95,8 @@ export class EhttpController {
    */
   makePut(route: string, extras): Observable<unknown> {
     // Return a PUT request from the Axios instance.
-    return this.axiosInstance.put(route, extras).pipe(map(res => res.data));
+    return this.axiosInstance.put(route, extras).pipe(
+      map(res => res.data));
   }
 
   /**
@@ -104,7 +107,8 @@ export class EhttpController {
    */
   makePost(route: string, extras): Observable<unknown> {
     // Return a POST request from the Axios instance.
-    return this.axiosInstance.post(route, extras).pipe(map(res => res.data));
+    return this.axiosInstance.post(route, extras).pipe(
+      map(res => res.data));
   }
 
   /**
@@ -114,7 +118,8 @@ export class EhttpController {
    */
   makeDelete(route: string): Observable<unknown> {
     // Return a DELETE request from the Axios instance.
-    return this.axiosInstance.delete(route).pipe(map(res => res.data));
+    return this.axiosInstance.delete(route).pipe(
+      map(res => res.data));
   }
 
   /**
@@ -145,6 +150,7 @@ export class EhttpController {
     this.logger.debug('uploadFiles:: - url: url , formData: %formData ', url, formData);
 
     // Return a POST request from the Axios instance.
-    return this.axiosInstance.post(url, formData).pipe(map(res => res.data));
+    return this.axiosInstance.post(url, formData).pipe(
+      map(res => res.data));
   }
 }

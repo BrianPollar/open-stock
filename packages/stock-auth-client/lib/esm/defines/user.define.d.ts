@@ -51,6 +51,7 @@ export declare class User extends DatabaseAuto {
     /** The format for displaying the user's name. */
     userDispNameFormat: TuserDispNameFormat;
     userType?: TuserType;
+    verified: boolean;
     /**
      * Creates a new User instance.
      * @param data The data to initialize the User instance with.

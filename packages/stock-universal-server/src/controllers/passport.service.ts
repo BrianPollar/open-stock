@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import path from 'path';
 import * as tracer from 'tracer';
 
+
 // This vat creates a passportLogger named `controllers/passport`.
 const passportLogger = tracer.colorConsole(
   {
@@ -67,7 +68,7 @@ export const runPassport = (jwtSecret) => {
  * @param permProp - The permission property to check within the role.
  * @returns A middleware function that checks the user's permissions and authorizes access based on the role and permission property.
  */
-export const roleAuthorisation = (nowRole: TroleAuth, permProp: TroleAuthProp) => {
+export const roleAuthorisation = (nowRole: TroleAuth, permProp: TroleAuthProp, mayBeProfile?: boolean) => {
   // Log the role name.
   passportLogger.info(`roleAuthorisation - role: ${nowRole}`);
 
@@ -87,6 +88,9 @@ export const roleAuthorisation = (nowRole: TroleAuth, permProp: TroleAuthProp) =
         permissions[nowRole][permProp] &&
         permissions[nowRole][permProp] === true) {
       passportLogger.debug('roleAuthorisation - permissions', permissions);
+      return next();
+    } else if (mayBeProfile) {
+      req.body.profileOnly = 'true';
       return next();
     } else {
       // Otherwise, return a 401 Unauthorized error.

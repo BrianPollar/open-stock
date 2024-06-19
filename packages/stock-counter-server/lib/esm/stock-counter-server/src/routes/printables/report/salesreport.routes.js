@@ -102,7 +102,7 @@ salesReportRoutes.get('/getone/:urId/:companyIdParam', requireAuth, requireActiv
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const salesReport = await salesReportLean
-        .findOne({ urId, queryId })
+        .findOne({ urId, companyId: queryId })
         .lean()
         .populate({ path: 'estimates', model: estimateLean })
         .populate({ path: 'invoiceRelateds', model: invoiceRelatedLean });
