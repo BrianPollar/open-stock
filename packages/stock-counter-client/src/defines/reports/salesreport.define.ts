@@ -11,6 +11,7 @@ import { InvoiceRelatedWithReceipt } from '../invoice.define';
  */
 export class SalesReport extends DatabaseAuto {
   urId: string;
+
   /** The user's company ID. */
   companyId: string;
   totalAmount: number;
@@ -43,6 +44,7 @@ export class SalesReport extends DatabaseAuto {
   static async getSalesReports(companyId: string, url = 'getall', offset = 0, limit = 20) {
     const observer$ = StockCounterClient.ehttp.makeGet(`/salesreport/${url}/${offset}/${limit}/${companyId}`);
     const salesreports = await lastValueFrom(observer$) as IdataArrayResponse;
+
     return {
       count: salesreports.count,
       salesreports: salesreports.data.map((val) => new SalesReport(val as IsalesReport))
@@ -58,6 +60,7 @@ export class SalesReport extends DatabaseAuto {
   static async getOneSalesReport(companyId: string, urId: string) {
     const observer$ = StockCounterClient.ehttp.makeGet(`/salesreport/getone/${urId}/${companyId}`);
     const salesreport = await lastValueFrom(observer$) as IsalesReport;
+
     return new SalesReport(salesreport);
   }
 
@@ -69,6 +72,7 @@ export class SalesReport extends DatabaseAuto {
    */
   static async addSalesReport(companyId: string, vals: IsalesReport) {
     const observer$ = StockCounterClient.ehttp.makePost(`/salesreport/create/${companyId}`, vals);
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 
@@ -80,6 +84,7 @@ export class SalesReport extends DatabaseAuto {
    */
   static async deleteSalesReports(companyId: string, ids: string[]) {
     const observer$ = StockCounterClient.ehttp.makePut(`/salesreport/deletemany/${companyId}`, { ids });
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 }

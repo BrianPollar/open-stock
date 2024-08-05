@@ -96,7 +96,6 @@ tslib_1.__exportStar(require("./models/faq.model"), exports);
 tslib_1.__exportStar(require("./models/faqanswer.model"), exports);
 tslib_1.__exportStar(require("./models/item.model"), exports);
 tslib_1.__exportStar(require("./models/itemdecoy.model"), exports);
-tslib_1.__exportStar(require("./models/itemlimitted.model"), exports);
 tslib_1.__exportStar(require("./models/itemoffer.model"), exports);
 tslib_1.__exportStar(require("./models/order.model"), exports);
 tslib_1.__exportStar(require("./models/payment.model"), exports);
@@ -120,6 +119,7 @@ tslib_1.__exportStar(require("./routes/printables/report/taxreport.routes"), exp
 tslib_1.__exportStar(require("./routes/printables/settings/invoicesettings.routes"), exports);
 tslib_1.__exportStar(require("./routes/user-related/customer.routes"), exports);
 tslib_1.__exportStar(require("./routes/user-related/staff.routes"), exports);
+tslib_1.__exportStar(require("./routes/user-related/wallet.routes"), exports);
 tslib_1.__exportStar(require("./routes/cookies.routes"), exports);
 tslib_1.__exportStar(require("./routes/deliverycity.routes"), exports);
 tslib_1.__exportStar(require("./routes/expense.routes"), exports);

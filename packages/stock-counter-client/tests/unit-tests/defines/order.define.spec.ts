@@ -1,9 +1,9 @@
-import { vi, expect, describe, beforeEach, it, expectTypeOf } from 'vitest';
-import { Order } from '../../../../stock-counter-client/src/defines/order.define';
 import Axios from 'axios-observable';
-import { StockCounterClient } from '../../../../stock-counter-client/src/stock-counter-client';
 import { of } from 'rxjs';
-import { createMockOrder, createMockOrders, createMockInvoiceRelated, createMockPayment, createMockPaymentRelated } from '../../../../tests/stock-counter-mocks';
+import { beforeEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
+import { Order } from '../../../../stock-counter-client/src/defines/order.define';
+import { StockCounterClient } from '../../../../stock-counter-client/src/stock-counter-client';
+import { createMockInvoiceRelated, createMockOrder, createMockOrders, createMockPayment, createMockPaymentRelated } from '../../../../tests/stock-counter-mocks';
 
 describe('Order', () => {
   let instance: Order;
@@ -32,6 +32,7 @@ describe('Order', () => {
   it('#getOrders static should get Orders array', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makeGet').mockImplementationOnce(() => of(createMockOrders(10)));
     const list = await Order.getOrders(companyId, '/', 0, 0);
+
     expect(typeof list).toEqual('object');
     expectTypeOf(list).toEqualTypeOf<Order[]>([]);
     expect(lSpy).toHaveBeenCalled();
@@ -40,6 +41,7 @@ describe('Order', () => {
   it('#searchOrders static should search Orders and return array of matching items', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makePost').mockImplementationOnce(() => of(createMockOrders(10)));
     const list = await Order.searchOrders(companyId, '/', '/');
+
     expect(typeof list).toEqual('object');
     expectTypeOf(list).toEqualTypeOf<Order[]>([]);
     expect(lSpy).toHaveBeenCalled();
@@ -48,6 +50,7 @@ describe('Order', () => {
   it('#getOneOrder static should get one Order', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makeGet').mockImplementationOnce(() => of(createMockOrder()));
     const one = await Order.getOneOrder(companyId, 'urId');
+
     expect(typeof one).toEqual('object');
     expect(one).toBeInstanceOf(Order);
     expect(lSpy).toHaveBeenCalled();
@@ -60,7 +63,10 @@ describe('Order', () => {
       createMockPaymentRelated(),
       createMockInvoiceRelated(),
       createMockOrder(),
-      createMockPayment(), null);
+      createMockPayment(),
+      null
+    );
+
     expect(typeof added).toEqual('object');
     expect(added).toHaveProperty('success');
     expect(added.success).toEqual(true);
@@ -76,7 +82,10 @@ describe('Order', () => {
       createMockPaymentRelated(),
       createMockInvoiceRelated(),
       createMockOrder(),
-      createMockPayment(), null);
+      createMockPayment(),
+      null
+    );
+
     expect(typeof added).toEqual('object');
     expect(added).toHaveProperty('success');
     expect(added.success).toEqual(true);
@@ -88,6 +97,7 @@ describe('Order', () => {
   it('#deleteOrders static should delete many Orders', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makePut').mockImplementationOnce(() => of({ success: true }));
     const deleted = await Order.deleteOrders(companyId, []);
+
     expect(typeof deleted).toEqual('object');
     expect(deleted).toHaveProperty('success');
     expect(deleted.success).toEqual(true);
@@ -102,7 +112,9 @@ describe('Order', () => {
       companyId,
       createMockOrder(),
       createMockPaymentRelated(),
-      createMockInvoiceRelated());
+      createMockInvoiceRelated()
+    );
+
     expect(typeof updated).toEqual('object');
     expect(updated).toHaveProperty('success');
     expect(typeof updated.success).toBe('boolean');
@@ -114,6 +126,7 @@ describe('Order', () => {
   it('#appendDelivery should change status of order and payment', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makePut').mockImplementationOnce(() => of({ success: true }));
     const updated = await instance.appendDelivery(companyId, 'pending');
+
     expect(typeof updated).toEqual('object');
     expect(updated).toHaveProperty('success');
     expect(typeof updated.success).toBe('boolean');

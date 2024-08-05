@@ -47,6 +47,8 @@ const uniqueValidator = require('mongoose-unique-validator');
  * @property {Date} updatedAt - User update date.
  */
 const userSchema = new mongoose_1.Schema({
+    trackEdit: { type: mongoose_1.Schema.ObjectId },
+    trackView: { type: mongoose_1.Schema.ObjectId },
     urId: { type: String, required: [true, 'cannot be empty.'], index: true },
     companyId: { type: String, index: true },
     fname: { type: String, index: true },
@@ -130,7 +132,7 @@ userSchema.methods['sendAuthyToken'] = function (cb) {
           sendToken(this.authyId).then((resp) => cb.call(this, null, resp)).catch(err => cb.call(this, err));
         });
       }).catch(err => cb.call(this, err));
-    } else {*/
+    } else { */
     // Otherwise send token to a known user
     (0, stock_notif_server_1.sendToken)(this.phone, this.countryCode, 'Your Verification Token Is').then((resp) => cb.call(this, null, resp)).catch(err => cb.call(this, err));
     // }

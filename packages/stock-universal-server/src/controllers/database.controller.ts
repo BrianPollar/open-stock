@@ -5,32 +5,32 @@ import * as tracer from 'tracer';
 import { makeNewConnection } from '../dbconnections/connections';
 
 /** The  dbConnectionsLogger  is a logger instance used for logging database connection-related messages. */
-const dbConnectionsLogger = tracer.colorConsole(
-  {
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-      // eslint-disable-next-line no-console
-      console.log(data.output);
-      const logDir = path.join(process.cwd() + '/openstockLog/');
-      fs.mkdir(logDir, { recursive: true }, (err) => {
-        if (err) {
-          if (err) {
-            // eslint-disable-next-line no-console
-            console.log('data.output err ', err);
-          }
-        }
-      });
-      fs.appendFile(logDir + '/universal-server.log', data.rawoutput + '\n', err => {
+const dbConnectionsLogger = tracer.colorConsole({
+  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+  dateformat: 'HH:MM:ss.L',
+  transport(data) {
+    // eslint-disable-next-line no-console
+    console.log(data.output);
+    const logDir = path.join(process.cwd() + '/openstockLog/');
+
+    fs.mkdir(logDir, { recursive: true }, (err) => {
+      if (err) {
         if (err) {
           // eslint-disable-next-line no-console
-          console.log('raw.output err ', err);
+          console.log('data.output err ', err);
         }
-      });
-    }
-  });
+      }
+    });
+    fs.appendFile(logDir + '/universal-server.log', data.rawoutput + '\n', err => {
+      if (err) {
+        // eslint-disable-next-line no-console
+        console.log('raw.output err ', err);
+      }
+    });
+  }
+});
 
-/** The  mainConnection  and  mainConnectionLean  variables are used to store the main connections to the database*/
+/** The  mainConnection  and  mainConnectionLean  variables are used to store the main connections to the database */
 export let mainConnection: Connection;
 export let mainConnectionLean: Connection;
 

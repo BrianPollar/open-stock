@@ -8,30 +8,30 @@ import * as tracer from 'tracer';
 import { invoiceSettingLean, invoiceSettingMain } from '../../../models/printables/settings/invoicesettings.model';
 
 /** Logger for invoice setting routes */
-const invoiceSettingRoutesLogger = tracer.colorConsole(
-  {
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-      // eslint-disable-next-line no-console
-      console.log(data.output);
-      const logDir = path.join(process.cwd() + '/openstockLog/');
-      fs.mkdir(logDir, { recursive: true }, (err) => {
-        if (err) {
-          if (err) {
-            // eslint-disable-next-line no-console
-            console.log('data.output err ', err);
-          }
-        }
-      });
-      fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
+const invoiceSettingRoutesLogger = tracer.colorConsole({
+  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+  dateformat: 'HH:MM:ss.L',
+  transport(data) {
+    // eslint-disable-next-line no-console
+    console.log(data.output);
+    const logDir = path.join(process.cwd() + '/openstockLog/');
+
+    fs.mkdir(logDir, { recursive: true }, (err) => {
+      if (err) {
         if (err) {
           // eslint-disable-next-line no-console
-          console.log('raw.output err ', err);
+          console.log('data.output err ', err);
         }
-      });
-    }
-  });
+      }
+    });
+    fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
+      if (err) {
+        // eslint-disable-next-line no-console
+        console.log('raw.output err ', err);
+      }
+    });
+  }
+});
 
 /**
  * Router for invoice settings.
@@ -47,18 +47,29 @@ export const invoiceSettingRoutes = express.Router();
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware
  */
-invoiceSettingRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'create'), async(req, res, next) => {
+invoiceSettingRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'create'), async(req, res) => {
   const invoiceSetting = req.body.invoicesettings;
+
+  // remove signature and stamp if there
+  if (invoiceSetting.generalSettings.defaultDigitalSignature) {
+    delete invoiceSetting.generalSettings.defaultDigitalSignature;
+  }
+  if (invoiceSetting.generalSettings.defaultDigitalStamp) {
+    delete invoiceSetting.generalSettings.defaultDigitalStamp;
+  }
+
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   invoiceSetting.companyId = queryId;
   const newJobCard = new invoiceSettingMain(invoiceSetting);
   let errResponse: Isuccess;
+
   await newJobCard.save()
     .catch(err => {
       invoiceSettingRoutesLogger.error('create - err: ', err);
@@ -72,12 +83,14 @@ invoiceSettingRoutes.post('/create/:companyIdParam', requireAuth, requireActiveC
         errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
       }
+
       return errResponse;
     });
 
   if (errResponse) {
     return res.status(403).send(errResponse);
   }
+
   return res.status(200).send({ success: true });
 });
 
@@ -96,6 +109,7 @@ invoiceSettingRoutes.post('/createimg/:companyIdParam', requireAuth, requireActi
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -118,6 +132,14 @@ invoiceSettingRoutes.post('/createimg/:companyIdParam', requireAuth, requireActi
     }
   }
 
+  // remove signature and stamp are not valid object ids
+  if (!verifyObjectId(invoiceSetting.generalSettings.defaultDigitalSignature)) {
+    delete invoiceSetting.generalSettings.defaultDigitalSignature;
+  }
+  if (!verifyObjectId(invoiceSetting.generalSettings.defaultDigitalStamp)) {
+    delete invoiceSetting.generalSettings.defaultDigitalStamp;
+  }
+
   const newStn = new invoiceSettingMain(invoiceSetting);
   let errResponse: Isuccess;
   const saved = await newStn.save()
@@ -133,12 +155,14 @@ invoiceSettingRoutes.post('/createimg/:companyIdParam', requireAuth, requireActi
         errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
       }
+
       return errResponse;
     });
 
   if (errResponse) {
     return res.status(403).send(errResponse);
   }
+
   return res.status(200).send({ success: Boolean(saved) });
 });
 
@@ -156,25 +180,52 @@ invoiceSettingRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCo
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+
+  console.log('updatedInvoiceSetting ', updatedInvoiceSetting);
+
   updatedInvoiceSetting.companyId = queryId;
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const { _id } = updatedInvoiceSetting;
   const isValid = verifyObjectIds([_id, queryId]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
 
   const invoiceSetting = await invoiceSettingMain
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    .findOneAndUpdate({ _id, companyId: queryId });
+    .findOne({ _id, companyId: queryId }).lean();
+
   if (!invoiceSetting) {
     return res.status(404).send({ success: false });
   }
-  invoiceSetting.generalSettings = updatedInvoiceSetting.generalSettings || invoiceSetting.generalSettings;
+
+  if (!invoiceSetting.generalSettings) {
+    invoiceSetting.generalSettings = {} as any;
+  }
+
+  const generalSettings = Object.assign({}, invoiceSetting.generalSettings);
+
+  if (updatedInvoiceSetting?.generalSettings?.currency) {
+    generalSettings.currency = updatedInvoiceSetting.generalSettings.currency;
+  }
+
+  if (updatedInvoiceSetting?.generalSettings?.defaultDueTime) {
+    generalSettings.defaultDueTime = updatedInvoiceSetting.generalSettings.defaultDueTime;
+  }
+
+  invoiceSetting.generalSettings = generalSettings;
   invoiceSetting.taxSettings = updatedInvoiceSetting.taxSettings || invoiceSetting.taxSettings;
   invoiceSetting.bankSettings = updatedInvoiceSetting.bankSettings || invoiceSetting.bankSettings;
+  invoiceSetting.printDetails = updatedInvoiceSetting.printDetails || invoiceSetting.printDetails;
+
+  console.log('generalSettings', generalSettings);
   let errResponse: Isuccess;
-  const updated = await invoiceSetting.save()
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  const updated = await invoiceSettingMain.updateOne({ _id }, { $set: {
+    generalSettings, taxSettings: invoiceSetting.taxSettings,
+    bankSettings: invoiceSetting.bankSettings,
+    printDetails: invoiceSetting.printDetails
+  } })
     .catch(err => {
       invoiceSettingRoutesLogger.error('update - err: ', err);
       errResponse = {
@@ -187,12 +238,16 @@ invoiceSettingRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCo
         errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
       }
+
       return errResponse;
     });
+
+  console.log('updated ', updated);
 
   if (errResponse) {
     return res.status(403).send(errResponse);
   }
+
   return res.status(200).send({ success: Boolean(updated) });
 });
 
@@ -205,32 +260,43 @@ invoiceSettingRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCo
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware
  */
-invoiceSettingRoutes.put('/updateimg/:companyIdParam', requireAuth, requireActiveCompany, uploadFiles, appendBody, saveMetaToDb, async(req, res) => {
+invoiceSettingRoutes.post('/updateimg/:companyIdParam', requireAuth, requireActiveCompany, uploadFiles, appendBody, saveMetaToDb, async(req, res) => {
   const updatedInvoiceSetting = req.body.invoicesettings;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+
   updatedInvoiceSetting.companyId = queryId;
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const { _id } = updatedInvoiceSetting;
   const isValid = verifyObjectIds([_id, queryId]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const found: any = await invoiceSettingMain.findOne({ _id, companyId: queryId })
   // eslint-disable-next-line @typescript-eslint/naming-convention
-    .populate({ path: 'generalSettings.defaultDigitalSignature', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+  //  .populate({ path: 'generalSettings.defaultDigitalSignature', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
   // eslint-disable-next-line @typescript-eslint/naming-convention
-    .populate({ path: 'generalSettings.defaultDigitalStamp', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+  //  .populate({ path: 'generalSettings.defaultDigitalStamp', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
     .lean();
   const invoiceSetting = await invoiceSettingMain
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-    .findOneAndUpdate({ _id, companyId: queryId });
+    .findOneAndUpdate({ _id, companyId: queryId }).lean();
+
+  console.log('all new Files', req.body.newPhotos);
+
+  console.log('found ', found);
+
   if (!invoiceSetting) {
     return res.status(404).send({ success: false });
   }
-  let filesWithDir: IfileMeta[];
+  const filesWithDir: IfileMeta[] = [];
+
+  if (!invoiceSetting.generalSettings) {
+    invoiceSetting.generalSettings = {} as any;
+  }
+
   if (req.body.newPhotos) {
     if (updatedInvoiceSetting.generalSettings.defaultDigitalSignature === 'true' &&
     updatedInvoiceSetting.generalSettings.defaultDigitalStamp === 'true') {
@@ -240,8 +306,8 @@ invoiceSettingRoutes.put('/updateimg/:companyIdParam', requireAuth, requireActiv
       if (invoiceSetting.generalSettings.defaultDigitalStamp) {
         filesWithDir.push(found.generalSettings.defaultDigitalStamp);
       }
-      invoiceSetting.generalSettings.defaultDigitalSignature = req.body.newPhotos[0];
-      invoiceSetting.generalSettings.defaultDigitalStamp = req.body.newPhotos[1];
+      updatedInvoiceSetting.generalSettings.defaultDigitalSignature = req.body.newPhotos[0];
+      updatedInvoiceSetting.generalSettings.defaultDigitalStamp = req.body.newPhotos[1];
     }
 
     if (updatedInvoiceSetting.generalSettings.defaultDigitalSignature === 'true' &&
@@ -249,7 +315,7 @@ invoiceSettingRoutes.put('/updateimg/:companyIdParam', requireAuth, requireActiv
       if (invoiceSetting.generalSettings.defaultDigitalSignature) {
         filesWithDir.push(found.generalSettings.defaultDigitalSignature);
       }
-      invoiceSetting.generalSettings.defaultDigitalSignature = req.body.newPhotos[0];
+      updatedInvoiceSetting.generalSettings.defaultDigitalSignature = req.body.newPhotos[0];
     }
 
     if (updatedInvoiceSetting.generalSettings.defaultDigitalSignature === 'false' &&
@@ -257,15 +323,39 @@ invoiceSettingRoutes.put('/updateimg/:companyIdParam', requireAuth, requireActiv
       if (invoiceSetting.generalSettings.defaultDigitalStamp) {
         filesWithDir.push(found.generalSettings.defaultDigitalStamp);
       }
-      invoiceSetting.generalSettings.defaultDigitalStamp = req.body.newPhotos[0];
+      updatedInvoiceSetting.generalSettings.defaultDigitalStamp = req.body.newPhotos[0];
     }
   }
   await deleteAllFiles(filesWithDir);
-  invoiceSetting.generalSettings = updatedInvoiceSetting.generalSettings || invoiceSetting.generalSettings;
+
+  const generalSettings = Object.assign({}, invoiceSetting.generalSettings);
+
+  if (updatedInvoiceSetting?.generalSettings?.currency) {
+    generalSettings.currency = updatedInvoiceSetting.generalSettings.currency;
+  }
+  if (updatedInvoiceSetting?.generalSettings?.defaultDueTime) {
+    generalSettings.defaultDueTime = updatedInvoiceSetting.generalSettings.defaultDueTime;
+  }
+
+  // add signature and stamp if are valid object ids
+  if (verifyObjectId(updatedInvoiceSetting.generalSettings.defaultDigitalSignature)) {
+    generalSettings.defaultDigitalSignature = updatedInvoiceSetting.generalSettings.defaultDigitalSignature;
+  }
+  if (verifyObjectId(updatedInvoiceSetting.generalSettings.defaultDigitalStamp)) {
+    generalSettings.defaultDigitalStamp = updatedInvoiceSetting.generalSettings.defaultDigitalStamp;
+  }
+
+  invoiceSetting.generalSettings = generalSettings;
   invoiceSetting.taxSettings = updatedInvoiceSetting.taxSettings || invoiceSetting.taxSettings;
   invoiceSetting.bankSettings = updatedInvoiceSetting.bankSettings || invoiceSetting.bankSettings;
+  invoiceSetting.printDetails = updatedInvoiceSetting.printDetails || invoiceSetting.printDetails;
   let errResponse: Isuccess;
-  const updated = await invoiceSetting.save()
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  const updated = await invoiceSettingMain.updateOne({ _id }, { $set: {
+    generalSettings, taxSettings: invoiceSetting.taxSettings,
+    bankSettings: invoiceSetting.bankSettings,
+    printDetails: invoiceSetting.printDetails
+  } })
     .catch(err => {
       invoiceSettingRoutesLogger.error('updateimg - err: ', err);
       errResponse = {
@@ -278,12 +368,16 @@ invoiceSettingRoutes.put('/updateimg/:companyIdParam', requireAuth, requireActiv
         errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
       }
+
       return errResponse;
     });
 
   if (errResponse) {
     return res.status(403).send(errResponse);
   }
+
+  console.log('updated', updated);
+
   return res.status(200).send({ success: Boolean(updated) });
 });
 
@@ -293,17 +387,16 @@ invoiceSettingRoutes.get('/getone/:id/:companyIdParam', requireAuth, requireActi
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectIds([id, queryId]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const invoiceSetting = await invoiceSettingLean
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .findOne({ _id: id, companyId: queryId })
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .populate({ path: 'generalSettings.defaultDigitalSignature', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .populate({ path: 'generalSettings.defaultDigitalStamp', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
     .lean();
+
   return res.status(200).send(invoiceSetting);
 });
 
@@ -313,15 +406,14 @@ invoiceSettingRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, 
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const all = await Promise.all([
     invoiceSettingLean
       .find({ companyId: queryId })
-      // eslint-disable-next-line @typescript-eslint/naming-convention
       .populate({ path: 'generalSettings.defaultDigitalSignature', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-      // eslint-disable-next-line @typescript-eslint/naming-convention
       .populate({ path: 'generalSettings.defaultDigitalStamp', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
       .skip(offset)
       .limit(limit)
@@ -333,6 +425,7 @@ invoiceSettingRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, 
     count: all[1],
     data: all[0]
   };
+
   return res.status(200).send(response);
 });
 
@@ -342,11 +435,13 @@ invoiceSettingRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, async
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectIds([id, queryId]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const deleted = await invoiceSettingMain.findOneAndDelete({ _id: id, companyId: queryId });
+
   if (Boolean(deleted)) {
     return res.status(200).send({ success: Boolean(deleted) });
   } else {
@@ -360,6 +455,7 @@ invoiceSettingRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth,
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -376,6 +472,7 @@ invoiceSettingRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth,
     count: all[1],
     data: all[0]
   };
+
   return res.status(200).send(response);
 });
 
@@ -385,17 +482,19 @@ invoiceSettingRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActi
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectIds([...ids, ...[queryId]]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
 
   const deleted = await invoiceSettingMain
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .deleteMany({ companyId: queryId, _id: { $in: ids } })
     .catch(err => {
       invoiceSettingRoutesLogger.error('deletemany - err: ', err);
+
       return null;
     });
+
   if (Boolean(deleted)) {
     return res.status(200).send({ success: Boolean(deleted) });
   } else {
@@ -409,6 +508,7 @@ invoiceSettingRoutes.put('/deleteimages/:companyIdParam', requireAuth, requireAc
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+
   if (filesWithDir && !filesWithDir.length) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -416,16 +516,18 @@ invoiceSettingRoutes.put('/deleteimages/:companyIdParam', requireAuth, requireAc
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const { _id } = updatedProduct;
   const isValid = verifyObjectIds([_id, queryId]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const invoiceSetting = await invoiceSettingMain
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .findOneAndUpdate({ _id, companyId: queryId });
+
   if (!invoiceSetting) {
     return res.status(404).send({ success: false, err: 'item not found' });
   }
   const filesWithDirIds = filesWithDir.map(val => val._id);
+
   if (filesWithDirIds.includes(invoiceSetting.generalSettings.defaultDigitalSignature as unknown as string)) {
     invoiceSetting.generalSettings.defaultDigitalSignature = '';
   }
@@ -435,6 +537,7 @@ invoiceSettingRoutes.put('/deleteimages/:companyIdParam', requireAuth, requireAc
   }
 
   let errResponse: Isuccess;
+
   await invoiceSetting.save().catch(err => {
     errResponse = {
       success: false,
@@ -446,6 +549,7 @@ invoiceSettingRoutes.put('/deleteimages/:companyIdParam', requireAuth, requireAc
       errResponse.err = `we are having problems connecting to our databases, 
       try again in a while`;
     }
+
     return errResponse;
   });
 

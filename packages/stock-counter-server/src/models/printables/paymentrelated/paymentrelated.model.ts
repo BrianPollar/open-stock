@@ -24,6 +24,8 @@ export type TpaymentRelated = Document & IpaymentRelated & { pesaPalorderTrackin
  * @property {Date} updatedAt - Timestamp of last update
  */
 const paymentRelatedSchema: Schema = new Schema({
+  trackEdit: { type: Schema.ObjectId },
+  trackView: { type: Schema.ObjectId },
   pesaPalorderTrackingId: { type: String },
   urId: { type: String, required: [true, 'cannot be empty.'] },
   companyId: { type: String },
@@ -42,7 +44,8 @@ const paymentRelatedSchema: Schema = new Schema({
   manuallyAdded: { type: Boolean, default: false },
   // status: { type: String, default: 'pending' },
   paymentMethod: { type: String },
-  payType: { type: String, index: true }
+  payType: { type: String, index: true },
+  orderStatus: { type: String, index: true, default: 'pending' }
 }, { timestamps: true });
 
 // Apply the uniqueValidator plugin to paymentRelatedSchema.
@@ -52,6 +55,8 @@ paymentRelatedSchema.plugin(uniqueValidator);
  * for paymentRelated
  */
 const paymentRelatedselect = {
+  trackEdit: 1,
+  trackView: 1,
   pesaPalorderTrackingId: 1,
   urId: 1,
   companyId: 1,
@@ -69,7 +74,8 @@ const paymentRelatedselect = {
   manuallyAdded: 1,
   // status: 1,
   paymentMethod: 1,
-  payType: 1
+  payType: 1,
+  orderStatus: 1
 };
 
 /**

@@ -11,30 +11,30 @@ import { deliverycityLean, deliverycityMain } from '../models/deliverycity.model
 /**
  * Logger for deliverycity routes
  */
-const deliverycityRoutesLogger = tracer.colorConsole(
-  {
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-      // eslint-disable-next-line no-console
-      console.log(data.output);
-      const logDir = path.join(process.cwd() + '/openstockLog/');
-      fs.mkdir(logDir, { recursive: true }, (err) => {
-        if (err) {
-          if (err) {
-            // eslint-disable-next-line no-console
-            console.log('data.output err ', err);
-          }
-        }
-      });
-      fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
+const deliverycityRoutesLogger = tracer.colorConsole({
+  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+  dateformat: 'HH:MM:ss.L',
+  transport(data) {
+    // eslint-disable-next-line no-console
+    console.log(data.output);
+    const logDir = path.join(process.cwd() + '/openstockLog/');
+
+    fs.mkdir(logDir, { recursive: true }, (err) => {
+      if (err) {
         if (err) {
           // eslint-disable-next-line no-console
-          console.log('raw.output err ', err);
+          console.log('data.output err ', err);
         }
-      });
-    }
-  });
+      }
+    });
+    fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
+      if (err) {
+        // eslint-disable-next-line no-console
+        console.log('raw.output err ', err);
+      }
+    });
+  }
+});
 
 /**
  * Express router for deliverycity routes
@@ -69,12 +69,14 @@ deliverycityRoutes.post('/create/:companyIdParam', requireAuth, requireSuperAdmi
         errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
       }
+
       return errResponse;
     });
 
   if (errResponse) {
     return res.status(403).send(errResponse);
   }
+
   return res.status(200).send({ success: Boolean(saved) });
 });
 
@@ -95,13 +97,14 @@ deliverycityRoutes.get('/getone/:id/:companyIdParam', async(req, res) => {
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectIds([id, queryId]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const deliverycity = await deliverycityLean
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .findOne({ _id: id, companyId: queryId })
     .lean();
+
   return res.status(200).send(deliverycity);
 });
 
@@ -131,6 +134,7 @@ deliverycityRoutes.get('/getall/:offset/:limit/:companyIdParam', async(req, res)
     count: all[1],
     data: all[0]
   };
+
   return res.status(200).send(response);
 });
 
@@ -148,12 +152,13 @@ deliverycityRoutes.get('/getall/:offset/:limit/:companyIdParam', async(req, res)
 deliverycityRoutes.put('/update/:companyIdParam', requireAuth, requireSuperAdmin, async(req, res) => {
   const updatedCity = req.body;
   const isValid = verifyObjectIds([updatedCity._id]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const deliverycity = await deliverycityMain
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .findOneAndUpdate({ _id: updatedCity._id });
+
   if (!deliverycity) {
     return res.status(404).send({ success: false });
   }
@@ -175,12 +180,14 @@ deliverycityRoutes.put('/update/:companyIdParam', requireAuth, requireSuperAdmin
         errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
       }
+
       return errResponse;
     });
 
   if (errResponse) {
     return res.status(403).send(errResponse);
   }
+
   return res.status(200).send({ success: Boolean(updated) });
 });
 
@@ -198,11 +205,13 @@ deliverycityRoutes.put('/update/:companyIdParam', requireAuth, requireSuperAdmin
 deliverycityRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, requireSuperAdmin, async(req, res) => {
   const { id } = req.params;
   const isValid = verifyObjectIds([id]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const deleted = await deliverycityMain.findOneAndDelete({ _id: id });
+
   if (Boolean(deleted)) {
     return res.status(200).send({ success: Boolean(deleted) });
   } else {
@@ -224,17 +233,19 @@ deliverycityRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, require
 deliverycityRoutes.put('/deletemany/:companyIdParam', requireAuth, requireSuperAdmin, async(req, res) => {
   const { ids } = req.body;
   const isValid = verifyObjectIds([...ids]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
 
   const deleted = await deliverycityMain
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .deleteMany({ _id: { $in: ids } })
     .catch(err => {
       deliverycityRoutesLogger.error('deletemany - err: ', err);
+
       return null;
     });
+
   if (Boolean(deleted)) {
     return res.status(200).send({ success: Boolean(deleted) });
   } else {

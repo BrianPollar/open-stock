@@ -8,6 +8,8 @@ const database_controller_1 = require("../controllers/database.controller");
 // const twilioClient = require('twilio')(config.accountSid, config.authToken);
 const uniqueValidator = require('mongoose-unique-validator');
 exports.companySchema = new mongoose_1.Schema({
+    trackEdit: { type: mongoose_1.Schema.ObjectId },
+    trackView: { type: mongoose_1.Schema.ObjectId },
     urId: { type: String, required: [true, 'cannot be empty.'], index: true },
     name: { type: String, required: [true, 'cannot be empty.'], index: true },
     displayName: { type: String, required: [true, 'cannot be empty.'], index: true },
@@ -64,6 +66,8 @@ exports.companySchema.methods['toProfileJSONFor'] = function () {
     };
 };
 const companyAuthselect = {
+    trackEdit: 1,
+    trackView: 1,
     urId: 1,
     name: 1,
     displayName: 1,
@@ -85,6 +89,8 @@ const companyAuthselect = {
     dateLeft: 1
 };
 const companyaboutSelect = {
+    trackEdit: 1,
+    trackView: 1,
     urId: 1,
     name: 1,
     displayName: 1,

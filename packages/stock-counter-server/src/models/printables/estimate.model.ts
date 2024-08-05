@@ -9,6 +9,8 @@ import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectio
 export type Testimate = Document & IinvoiceRelatedRef;
 
 const estimateSchema: Schema<Testimate> = new Schema({
+  trackEdit: { type: Schema.ObjectId },
+  trackView: { type: Schema.ObjectId },
   companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
   invoiceRelated: { type: String }
 }, { timestamps: true });
@@ -17,6 +19,8 @@ const estimateSchema: Schema<Testimate> = new Schema({
  * for estimate
  */
 const estimateselect = {
+  trackEdit: 1,
+  trackView: 1,
   companyId: 1,
   invoiceRelated: 1
 };

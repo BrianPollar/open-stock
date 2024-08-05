@@ -16,30 +16,30 @@ import { pickupLocationLean, pickupLocationMain } from '../../models/printables/
 /**
  * Logger for pickup location routes
  */
-const pickupLocationRoutesLogger = tracer.colorConsole(
-  {
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-      // eslint-disable-next-line no-console
-      console.log(data.output);
-      const logDir = path.join(process.cwd() + '/openstockLog/');
-      fs.mkdir(logDir, { recursive: true }, (err) => {
-        if (err) {
-          if (err) {
-            // eslint-disable-next-line no-console
-            console.log('data.output err ', err);
-          }
-        }
-      });
-      fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
+const pickupLocationRoutesLogger = tracer.colorConsole({
+  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+  dateformat: 'HH:MM:ss.L',
+  transport(data) {
+    // eslint-disable-next-line no-console
+    console.log(data.output);
+    const logDir = path.join(process.cwd() + '/openstockLog/');
+
+    fs.mkdir(logDir, { recursive: true }, (err) => {
+      if (err) {
         if (err) {
           // eslint-disable-next-line no-console
-          console.log('raw.output err ', err);
+          console.log('data.output err ', err);
         }
-      });
-    }
-  });
+      }
+    });
+    fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
+      if (err) {
+        // eslint-disable-next-line no-console
+        console.log('raw.output err ', err);
+      }
+    });
+  }
+});
 
 /**
  * Express router for pickup location routes
@@ -62,6 +62,7 @@ pickupLocationRoutes.post('/create/:companyIdParam', requireAuth, requireActiveC
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -81,12 +82,14 @@ pickupLocationRoutes.post('/create/:companyIdParam', requireAuth, requireActiveC
         errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
       }
+
       return errResponse;
     });
 
   if (errResponse) {
     return res.status(403).send(errResponse);
   }
+
   return res.status(200).send({ success: Boolean(saved) });
 });
 
@@ -105,15 +108,17 @@ pickupLocationRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCo
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+
   updatedPickupLocation.companyId = queryId;
   const isValid = verifyObjectIds([updatedPickupLocation._id, queryId]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
 
   const pickupLocation = await pickupLocationMain
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .findOneAndUpdate({ _id: updatedPickupLocation._id, companyId: queryId });
+
   if (!pickupLocation) {
     return res.status(404).send({ success: false });
   }
@@ -133,12 +138,14 @@ pickupLocationRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCo
         errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
       }
+
       return errResponse;
     });
 
   if (errResponse) {
     return res.status(403).send(errResponse);
   }
+
   return res.status(200).send({ success: Boolean(updated) });
 });
 
@@ -158,13 +165,14 @@ pickupLocationRoutes.get('/getone/:id/:companyIdParam', requireAuth, requireActi
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectIds([id, queryId]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const pickupLocation = await pickupLocationLean
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .findOne({ _id: id, companyId: queryId })
     .lean();
+
   return res.status(200).send(pickupLocation);
 });
 
@@ -184,6 +192,7 @@ pickupLocationRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, 
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -199,6 +208,7 @@ pickupLocationRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, 
     count: all[1],
     data: all[0]
   };
+
   return res.status(200).send(response);
 });
 
@@ -218,11 +228,13 @@ pickupLocationRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, requi
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectIds([id, queryId]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const deleted = await pickupLocationMain.findOneAndDelete({ _id: id, companyId: queryId });
+
   if (Boolean(deleted)) {
     return res.status(200).send({ success: Boolean(deleted) });
   } else {
@@ -246,6 +258,7 @@ pickupLocationRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth,
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -262,6 +275,7 @@ pickupLocationRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth,
     count: all[1],
     data: all[0]
   };
+
   return res.status(200).send(response);
 });
 
@@ -281,17 +295,19 @@ pickupLocationRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActi
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectIds([...ids, ...[queryId]]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
 
   const deleted = await pickupLocationMain
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .deleteMany({ _id: { $in: ids }, companyId: queryId })
     .catch(err => {
       pickupLocationRoutesLogger.error('deletemany - err: ', err);
+
       return null;
     });
+
   if (Boolean(deleted)) {
     return res.status(200).send({ success: Boolean(deleted) });
   } else {

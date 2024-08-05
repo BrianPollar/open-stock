@@ -30,7 +30,7 @@ const reviewSchema: Schema<Treview> = new Schema({
   name: { type: String, required: [true, 'cannot be empty.'], index: true },
   email: { type: String },
   comment: { type: String, required: [true, 'cannot be empty.'], index: true },
-  rating: { type: Number },
+  rating: { type: Number }, // upto 10
   images: [],
   userId: { type: String },
   itemId: { type: String }
@@ -60,7 +60,7 @@ const reviewselect = {
  */
 export let reviewMain: Model<Treview>;
 
-/** lean connection for reviews Operations*/
+/** lean connection for reviews Operations */
 /**
  * Represents a lean review model.
  */

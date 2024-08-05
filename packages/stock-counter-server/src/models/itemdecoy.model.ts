@@ -1,24 +1,29 @@
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
+import { ItrackStamp } from '@open-stock/stock-universal';
 const uniqueValidator = require('mongoose-unique-validator');
 
 /** model type for itemDecoy by */
 /**
  * Represents an item decoy in the system.
  */
-export interface IitemDecoy extends Document {
+export interface IitemDecoy extends Document, ItrackStamp {
+
   /**
    * The unique identifier of the user.
    */
   urId: string;
+
   /**
    * The user's company ID.
    */
   companyId: string;
+
   /**
    * The type of the item decoy.
    */
   type: string;
+
   /**
    * The list of items associated with the decoy.
    */
@@ -26,6 +31,8 @@ export interface IitemDecoy extends Document {
 }
 
 const itemDecoySchema: Schema<IitemDecoy> = new Schema({
+  trackEdit: { type: Schema.ObjectId },
+  trackView: { type: Schema.ObjectId },
   urId: { type: String },
   companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
   type: { type: String },
@@ -39,6 +46,8 @@ itemDecoySchema.plugin(uniqueValidator);
  * for itemDecoy
  */
 const itemDecoyselect = {
+  trackEdit: 1,
+  trackView: 1,
   urId: 1,
   companyId: 1,
   type: 1,

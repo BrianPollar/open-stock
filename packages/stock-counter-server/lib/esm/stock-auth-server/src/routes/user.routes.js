@@ -82,7 +82,7 @@ export const signupFactorRelgator = async (req, res, next) => {
       foundUser = await companyMain.findOne(query);
     } else {
       foundUser = await user.findOne(query);
-    }*/
+    } */
     if (foundUser) {
         if (!foundUser?.password || !foundUser?.verified) {
             req.body.foundUser = foundUser;
@@ -102,7 +102,6 @@ export const signupFactorRelgator = async (req, res, next) => {
     let savedSub;
     if (userType === 'company') {
         const companyCount = await companyMain
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
         const companyUrId = makeUrId(Number(companyCount[0]?.urId || '0'));
         const name = 'company ' + makeRandomString(11, 'letters');
@@ -156,7 +155,6 @@ export const signupFactorRelgator = async (req, res, next) => {
         };
     }
     const count = await user
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     const urId = makeUrId(Number(count[0]?.urId || '0'));
     const name = 'user ' + makeRandomString(11, 'letters');
@@ -216,14 +214,12 @@ export const signupFactorRelgator = async (req, res, next) => {
         response = await sendTokenEmail(saved, type, stockAuthConfig.localSettings.appOfficialName);
     }
     if (!response.success) {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
+        // eslint-disable-next-line @typescript-eslint/naming-convention, @typescript-eslint/no-explicit-any
         await user.deleteOne({ _id: saved._id });
         if (company) {
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             await companyMain.deleteOne({ _id: company._id });
         }
         if (savedSub) {
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             await companySubscriptionMain.deleteOne({ _id: savedSub._id });
         }
         return res.status(200).send(response);
@@ -232,7 +228,7 @@ export const signupFactorRelgator = async (req, res, next) => {
         const toReturn = {
             success: true,
             msg: response.msg,
-            // eslint-disable-next-line @typescript-eslint/naming-convention
+            // eslint-disable-next-line @typescript-eslint/naming-convention, @typescript-eslint/no-explicit-any
             _id: saved._id
         };
         return res.status(200).send(toReturn);
@@ -334,7 +330,6 @@ export const addUser = async (req, res, next) => {
         }
     }
     const count = await user
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     userData.urId = makeUrId(Number(count[0]?.urId || '0'));
     const newUser = new user(userData);
@@ -357,7 +352,6 @@ export const addUser = async (req, res, next) => {
     if (!response.err && savedUser) {
         response = {
             success: true,
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             _id: savedUser._id
         };
         req.body.savedUser = savedUser;
@@ -371,7 +365,13 @@ export const updateUserBulk = async (req, res, next) => {
     const { companyIdParam } = req.params;
     // eslint-disable-next-line @typescript-eslint/naming-convention
     const { _id } = updatedUser;
+    if (!_id) {
+        return res.status(401).send({ success: false, err: 'unauthourised' });
+    }
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    if (!queryId) {
+        return res.status(401).send({ success: false, err: 'unauthourised' });
+    }
     const isValid = verifyObjectIds([_id, queryId]);
     if (!isValid) {
         return res.status(401).send({ success: false, err: 'unauthourised' });
@@ -384,7 +384,7 @@ export const updateUserBulk = async (req, res, next) => {
     }
     const parsed = req.body;
     const foundUser = await user
-        .findOneAndUpdate(filter);
+        .findOne(filter);
     if (!foundUser) {
         if (parsed.newPhotos) {
             await deleteAllFiles(parsed.newPhotos);
@@ -393,7 +393,6 @@ export const updateUserBulk = async (req, res, next) => {
     }
     if (!foundUser.urId) {
         const count = await user
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
         foundUser.urId = makeUrId(Number(count[0]?.urId || '0'));
     }
@@ -412,10 +411,10 @@ export const updateUserBulk = async (req, res, next) => {
     delete updatedUser._id;
     const keys = Object.keys(updatedUser);
     keys.forEach(key => {
-        if (companyId === 'superAdmin') {
+        if (companyId === 'superAdmin' && key !== 'companyId' && key !== 'userType') {
             foundUser[key] = updatedUser[key] || foundUser[key];
         }
-        else if (foundUser[key] && key !== 'password' && key !== 'email' && key !== 'phone') {
+        else if (foundUser[key] && key !== 'password' && key !== 'email' && key !== 'phone' && key !== 'companyId' && key !== 'userType') {
             foundUser[key] = updatedUser[key] || foundUser[key];
         }
     });
@@ -448,11 +447,8 @@ userAuthRoutes.get('/authexpress2', requireAuth, async (req, res) => {
     }
     const foundUser = await userLean
         .findById(userId)
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .populate({ path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .populate({ path: 'profileCoverPic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
         // .populate({ path: 'companyId', model: companyLean })
         .lean()
@@ -490,7 +486,10 @@ userAuthRoutes.post('/login', async (req, res, next) => {
     authLogger.debug(`login attempt,
     emailPhone: ${emailPhone}`);
     const { query, isPhone } = determineIfIsPhoneAndMakeFilterObj(emailPhone);
-    const foundUser = await user.findOne({ ...query, ...{ userType: { $ne: 'customer' } } });
+    const foundUser = await user.findOne({ ...query, ...{ userType: { $ne: 'customer' } } })
+        .populate({ path: 'profilePic', model: fileMetaLean })
+        .populate({ path: 'profileCoverPic', model: fileMetaLean })
+        .populate({ path: 'photos', model: fileMetaLean });
     if (!foundUser) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
@@ -503,7 +502,10 @@ userAuthRoutes.get('/authexpress', requireAuth, async (req, res, next) => {
     authLogger.debug('authexpress');
     const { userId } = req.user;
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    const foundUser = await user.findOne({ _id: userId, ...{ userType: { $ne: 'customer' }, verified: true } });
+    const foundUser = await user.findOne({ _id: userId, ...{ userType: { $ne: 'customer' }, verified: true } })
+        .populate({ path: 'profilePic', model: fileMetaLean })
+        .populate({ path: 'profileCoverPic', model: fileMetaLean })
+        .populate({ path: 'photos', model: fileMetaLean });
     if (!foundUser) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
@@ -520,7 +522,10 @@ userAuthRoutes.post('/recover', async (req, res, next) => {
     authLogger.debug(`recover, 
     emailphone: ${emailPhone}`);
     const { query } = determineIfIsPhoneAndMakeFilterObj(emailPhone);
-    const foundUser = await user.findOne({ ...query, ...{ userType: { $ne: 'customer' } } });
+    const foundUser = await user.findOne({ ...query, ...{ userType: { $ne: 'customer' } } })
+        .populate({ path: 'profilePic', model: fileMetaLean })
+        .populate({ path: 'profileCoverPic', model: fileMetaLean })
+        .populate({ path: 'photos', model: fileMetaLean });
     req.body.foundUser = foundUser;
     return next();
 }, recoverAccountFactory);
@@ -538,7 +543,10 @@ userAuthRoutes.post('/confirm', async (req, res, next) => {
             }
         };
     }
-    const foundUser = await user.findById(_id);
+    const foundUser = await user.findById(_id)
+        .populate({ path: 'profilePic', model: fileMetaLean })
+        .populate({ path: 'profileCoverPic', model: fileMetaLean })
+        .populate({ path: 'photos', model: fileMetaLean });
     req.body.foundUser = foundUser;
     return next();
 }, confirmAccountFactory);
@@ -557,7 +565,10 @@ userAuthRoutes.put('/resetpaswd', async (req, res, next) => {
             }
         };
     }
-    const foundUser = await user.findById(_id);
+    const foundUser = await user.findById(_id)
+        .populate({ path: 'profilePic', model: fileMetaLean })
+        .populate({ path: 'profileCoverPic', model: fileMetaLean })
+        .populate({ path: 'photos', model: fileMetaLean });
     req.body.foundUser = foundUser;
     return next();
 }, resetAccountFactory);
@@ -573,7 +584,6 @@ userAuthRoutes.post('/manuallyverify/:userId/:companyIdParam', requireAuth, role
         return res.status(401).send({ success: false, er: 'unauthourized' });
     }
     const foundUser = await user
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .findOneAndUpdate({ _id: userId, companyId: queryId });
     if (!foundUser) {
         return res.status(401).send({
@@ -595,7 +605,6 @@ userAuthRoutes.post('/sociallogin', async (req, res) => {
     });
     if (!foundUser) {
         const count = await user
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
         const urId = makeUrId(Number(count[0]?.urId || '0'));
         const newUser = new user({
@@ -721,7 +730,7 @@ userAuthRoutes.put('/updateprofile/:formtype/:companyIdParam', requireAuth, asyn
               status = 401;
               success = false;
               error = 'invalid password';
-            }*/
+            } */
             users = await user
                 .find({ phone: foundUser.phone });
             if (users) {
@@ -748,7 +757,7 @@ userAuthRoutes.put('/updateprofile/:formtype/:companyIdParam', requireAuth, asyn
               status = 200;
               success = false;
               error = 'invalid password';
-            }*/
+            } */
             users = await user
                 .find({ email: foundUser.email });
             if (users) {
@@ -777,7 +786,7 @@ userAuthRoutes.put('/updateprofile/:formtype/:companyIdParam', requireAuth, asyn
               status = 200;
               success = false;
               error = 'invalid password';
-            }*/
+            } */
             break;
     }
     let response = { success: true, err: error };
@@ -927,7 +936,6 @@ userAuthRoutes.put('/addupdateaddr/:userId/:companyIdParam', requireAuth, async 
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const foundUser = await user
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .findOneAndUpdate({ _id: userId, companyId: queryId });
     if (!foundUser) {
         return res.status(401).send({
@@ -1043,7 +1051,7 @@ userAuthRoutes.get('/getusers/:where/:offset/:limit/:companyIdParam', requireAut
             manuallyAdded: false,
             companyId: queryId
           };
-          break;*/
+          break; */
         case 'customer':
             filter = {
                 userType: 'customer',
@@ -1108,11 +1116,8 @@ userAuthRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveComp
     let filesWithDir;
     // eslint-disable-next-line @typescript-eslint/naming-convention
     const alltoDelete = await user.find({ _id: { $in: ids }, companyId: queryId })
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .populate({ path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .populate({ path: 'profileCoverPic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
         .lean();
     let toDelIds = [];
@@ -1126,7 +1131,6 @@ userAuthRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveComp
     }
     await deleteAllFiles(filesWithDir);
     const deleted = await user
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .deleteMany({ _id: { $in: toDelIds }, companyId: queryId }).catch(err => {
         authLogger.error('deletemany users failed with error: ' + err.message);
         return null;
@@ -1150,7 +1154,6 @@ userAuthRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompa
     }
     // eslint-disable-next-line @typescript-eslint/naming-convention
     const found = await user.findOne({ _id, companyId: queryId })
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
         .lean();
     if (found) {
@@ -1158,14 +1161,12 @@ userAuthRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompa
             return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
         }
         const filesWithDir = found.photos.map(photo => ({
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             _id: photo._id,
             url: photo.url
         }));
         await deleteAllFiles(filesWithDir);
     }
     const deleted = await user
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .findOneAndDelete({ _id, companyId: queryId });
     if (Boolean(deleted)) {
         return res.status(200).send({ success: Boolean(deleted) });
@@ -1182,7 +1183,7 @@ userAuthRoutes.put('/deleteimages/:companyIdParam', requireAuth, requireActiveCo
     if (filesWithDir && !filesWithDir.length) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
-    const updatedUser = req.body.item;
+    const updatedUser = req.body.user;
     // eslint-disable-next-line @typescript-eslint/naming-convention
     const { _id } = updatedUser;
     const isValid = verifyObjectIds([_id, queryId]);
@@ -1190,7 +1191,6 @@ userAuthRoutes.put('/deleteimages/:companyIdParam', requireAuth, requireActiveCo
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const foundUser = await user
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .findOneAndUpdate({ _id, companyId: queryId });
     if (!foundUser) {
         return res.status(404).send({ success: false, err: 'item not found' });

@@ -12,34 +12,39 @@ const uniqueValidator = require('mongoose-unique-validator');
  */
 export type Tcompany = Document & Icompany;
 
-export const companySchema: Schema<Tcompany> = new Schema({
-  urId: { type: String, required: [true, 'cannot be empty.'], index: true },
-  name: { type: String, required: [true, 'cannot be empty.'], index: true },
-  displayName: { type: String, required: [true, 'cannot be empty.'], index: true },
-  dateOfEst: { type: String, index: true },
-  left: { type: Boolean, default: false },
-  dateLeft: { type: Date },
-  details: { type: String },
-  address: { type: String },
-  companyDispNameFormat: { type: String },
-  businessType: { type: String },
-  profilePic: { type: String },
-  profileCoverPic: { type: String },
-  photos: [],
-  websiteAddress: { type: String },
-  blocked: { type: Boolean, default: false },
-  verified: { type: Boolean, default: false },
-  expireAt: { type: String },
-  blockedReasons: {},
-  owner: { type: String } // user
-},
-{ timestamps: true }
+export const companySchema: Schema<Tcompany> = new Schema(
+  {
+    trackEdit: { type: Schema.ObjectId },
+    trackView: { type: Schema.ObjectId },
+    urId: { type: String, required: [true, 'cannot be empty.'], index: true },
+    name: { type: String, required: [true, 'cannot be empty.'], index: true },
+    displayName: { type: String, required: [true, 'cannot be empty.'], index: true },
+    dateOfEst: { type: String, index: true },
+    left: { type: Boolean, default: false },
+    dateLeft: { type: Date },
+    details: { type: String },
+    address: { type: String },
+    companyDispNameFormat: { type: String },
+    businessType: { type: String },
+    profilePic: { type: String },
+    profileCoverPic: { type: String },
+    photos: [],
+    websiteAddress: { type: String },
+    blocked: { type: Boolean, default: false },
+    verified: { type: Boolean, default: false },
+    expireAt: { type: String },
+    blockedReasons: {},
+    owner: { type: String } // user
+  },
+  { timestamps: true }
 );
 
 companySchema.index({ createdAt: -1 });
 
-companySchema.index({ expireAt: 1 },
-  { expireAfterSeconds: 2628003 });
+companySchema.index(
+  { expireAt: 1 },
+  { expireAfterSeconds: 2628003 }
+);
 
 // Apply the uniqueValidator plugin to companySchema.
 companySchema.plugin(uniqueValidator);
@@ -78,6 +83,8 @@ companySchema.methods['toProfileJSONFor'] = function() {
 };
 
 const companyAuthselect = {
+  trackEdit: 1,
+  trackView: 1,
   urId: 1,
   name: 1,
   displayName: 1,
@@ -100,6 +107,8 @@ const companyAuthselect = {
 };
 
 const companyaboutSelect = {
+  trackEdit: 1,
+  trackView: 1,
   urId: 1,
   name: 1,
   displayName: 1,

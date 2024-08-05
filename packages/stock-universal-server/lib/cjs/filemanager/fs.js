@@ -194,7 +194,7 @@ const saveMetaToDb = async (req, res, next) => {
       }
       parsed.profilePic = newSaved._id;
       parsed.newPhotos.push(newSaved);
-    }*/
+    } */
     /* if (parsed.coverPic) {
       const newFileMeta = new fileMeta(parsed.profilePic);
       let savedErr: string;
@@ -208,7 +208,7 @@ const saveMetaToDb = async (req, res, next) => {
       }
       parsed.coverPic = newSaved._id;
       parsed.newPhotos.push(newSaved);
-    }*/
+    } */
     if (parsed.thumbnail) {
         const newFileMeta = new filemeta_model_1.fileMeta(parsed.thumbnail);
         let savedErr;
@@ -257,12 +257,12 @@ const deleteAllFiles = async (filesWithDir) => {
     if (filesWithDir && !filesWithDir.length) {
         // return res.status(401).send({ error: 'unauthorised' }); // TODO better catch
     }
-    const ids = filesWithDir.map((value /** : Ifilewithdir*/) => value._id);
+    const ids = filesWithDir.map((value /** : Ifilewithdir */) => value._id);
     // eslint-disable-next-line @typescript-eslint/naming-convention
     await filemeta_model_1.fileMeta.deleteMany({ _id: { $in: ids } });
     if (filesWithDir && filesWithDir.length) {
         const promises = filesWithDir
-            .map((value /** : Ifilewithdir*/) => new Promise(resolve => {
+            .map((value /** : Ifilewithdir */) => new Promise(resolve => {
             fsControllerLogger.debug('deleting file', value.url);
             const absolutepath = stock_universal_local_1.envConfig.absolutepath;
             const nowpath = path
@@ -323,6 +323,7 @@ const removeBg = (imageSrc) => {
         const config = {
             output: {
                 type: 'mask'
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             }
         };
         (0, background_removal_node_1.removeBackground)(fileLocation, config).then(async (blob) => {
@@ -334,7 +335,7 @@ const removeBg = (imageSrc) => {
                     reject(err);
                     return;
                 }
-                console.log('files saved');
+                fsControllerLogger.debug('files saved');
                 resolve(imageSrc);
             });
         });

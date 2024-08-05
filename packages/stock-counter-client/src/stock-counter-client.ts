@@ -14,9 +14,7 @@ export class StockCounterClient {
    * Creates an instance of the StockCounterClient class.
    * @param axiosInstance The Axios instance to be used for HTTP requests.
    */
-  constructor(
-    axiosInstance: Axios
-  ) {
+  constructor(axiosInstance: Axios) {
     StockCounterClient.ehttp = new EhttpController(axiosInstance);
   }
 }
@@ -26,9 +24,8 @@ export class StockCounterClient {
  * @param axiosInstance - The Axios instance to use for HTTP requests.
  * @returns An object containing the stock counter client.
  */
-export const createStockCounter = (
-  axiosInstance: Axios
-) => {
+export const createStockCounter = (axiosInstance: Axios) => {
   stockCounterClient = new StockCounterClient(axiosInstance);
+
   return { stockCounterClient };
 };

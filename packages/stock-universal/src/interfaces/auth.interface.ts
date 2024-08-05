@@ -10,10 +10,12 @@ import { Iauthresponse } from './return.interface';
  * An object representing an authentication response.
  */
 export interface IauthresponseObj {
+
   /**
    * The status code of the response.
    */
   status: number;
+
   /**
    * The response object.
    */
@@ -24,10 +26,12 @@ export interface IauthresponseObj {
  * An object representing an authentication token.
  */
 export interface Iauthtoken {
+
   /**
    * The ID of the user.
    */
   userId: string;
+
   /**
    * The permissions of the user.
    */
@@ -40,26 +44,32 @@ export interface Iauthtoken {
  * An object representing an administrator login response.
  */
 export interface Iadminloginres {
+
   /**
    * Indicates whether the login was successful.
    */
   success: boolean;
+
   /**
    * The authentication token.
    */
   token?: string;
+
   /**
    * The user object.
    */
   user?: {
+
     /**
      * The name of the user.
      */
     name: string;
+
     /**
      * Indicates whether the user is an administrator.
      */
     admin: boolean;
+
     /**
      * The permissions of the user.
      */

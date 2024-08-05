@@ -1,4 +1,4 @@
-import { IdeleteCredentialsInvRel, Iinvoice, IinvoiceRelated, Isuccess } from '@open-stock/stock-universal';
+import { IdeleteCredentialsInvRel, Iinvoice, IinvoiceRelated, IsubscriptionFeatureState, Isuccess } from '@open-stock/stock-universal';
 import { InvoiceRelated, Receipt } from './receipt.define';
 export declare class InvoiceRelatedWithReceipt extends InvoiceRelated {
     payments: Receipt[];
@@ -77,7 +77,7 @@ export declare class Invoice extends InvoiceRelatedWithReceipt {
      * @param invoiceRelated - The related invoice.
      * @returns A success message.
      */
-    static addInvoice(companyId: string, invoice: Iinvoice, invoiceRelated: IinvoiceRelated): Promise<Isuccess>;
+    static addInvoice(companyId: string, invoice: Iinvoice, invoiceRelated: IinvoiceRelated): Promise<IsubscriptionFeatureState>;
     /**
      * Deletes multiple invoices.
      * @param companyId - The ID of the company

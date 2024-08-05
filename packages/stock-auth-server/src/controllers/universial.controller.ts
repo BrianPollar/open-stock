@@ -17,39 +17,40 @@ import {
   Iuserperm,
   makeRandomString
 } from '@open-stock/stock-universal';
-import { stringifyMongooseErr, verifyObjectId } from '@open-stock/stock-universal-server';
+import { fileMetaLean, stringifyMongooseErr, verifyObjectId } from '@open-stock/stock-universal-server';
 import * as jwt from 'jsonwebtoken';
 import { Document } from 'mongoose';
 import path from 'path';
 import { companyLean } from '../models/company.model';
 import { emailtoken } from '../models/emailtoken.model';
 import { companySubscriptionLean } from '../models/subscriptions/company-subscription.model';
+import { userLean } from '../models/user.model';
 import { stockAuthConfig } from '../stock-auth-local';
 
-const universialControllerLogger = tracer.colorConsole(
-  {
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-      // eslint-disable-next-line no-console
-      console.log(data.output);
-      const logDir = path.join(process.cwd() + '/openstockLog/');
-      fs.mkdir(logDir, { recursive: true }, (err) => {
-        if (err) {
-          if (err) {
-            // eslint-disable-next-line no-console
-            console.log('data.output err ', err);
-          }
-        }
-      });
-      fs.appendFile(logDir + '/auth-server.log', data.rawoutput + '\n', err => {
+const universialControllerLogger = tracer.colorConsole({
+  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+  dateformat: 'HH:MM:ss.L',
+  transport(data) {
+    // eslint-disable-next-line no-console
+    console.log(data.output);
+    const logDir = path.join(process.cwd() + '/openstockLog/');
+
+    fs.mkdir(logDir, { recursive: true }, (err) => {
+      if (err) {
         if (err) {
           // eslint-disable-next-line no-console
-          console.log('raw.output err ', err);
+          console.log('data.output err ', err);
         }
-      });
-    }
-  });
+      }
+    });
+    fs.appendFile(logDir + '/auth-server.log', data.rawoutput + '\n', err => {
+      if (err) {
+        // eslint-disable-next-line no-console
+        console.log('raw.output err ', err);
+      }
+    });
+  }
+});
 
 /**
  * Generates a JWT token with the provided authentication configuration, expiry date, and JWT secret.
@@ -90,15 +91,32 @@ export const setUserInfo = (
   };
 
   universialControllerLogger.info('setUserInfo - details: ', details);
+
   return details;
 };
 
 
+/**
+ * Generates an authentication response object containing the user, company, token, and active subscription information.
+ * @param foundUser - The user object to generate the response for.
+ * @returns A promise that resolves to an authentication response object.
+ */
 export const makeUserReturnObject = async(foundUser): Promise<Iauthresponse> => {
   const company = await companyLean.findById(foundUser?.companyId)
+    .populate({ path: 'owner', model: userLean,
+      populate: [{
+        path: 'photos', model: fileMetaLean
+      }]
+    })
     .lean();
+
+  if (company && (company.owner as any).photos[0]) {
+    company.profilePic = (company.owner as any).photos[0];
+  }
+
   universialControllerLogger.debug('found company: ', company);
   let permissions: Iuserperm;
+
   if (company && company.owner === foundUser._id.toString()) {
     permissions = {
       companyAdminAccess: true
@@ -114,18 +132,25 @@ export const makeUserReturnObject = async(foundUser): Promise<Iauthresponse> => 
     { active: !company.blocked }
   );
   const token = generateToken(
-    userInfo, '1d', stockAuthConfig.authSecrets.jwtSecret);
+    userInfo,
+    '1d',
+    stockAuthConfig.authSecrets.jwtSecret
+  );
   let activeSubscription;
   const now = new Date();
+
   if (company) {
-    const subsctn = await companySubscriptionLean.findOne({ companyId: company._id, status: 'paid' })
+    const subsctn = await companySubscriptionLean
+      .findOne({ companyId: company._id, status: 'paid' })
       .lean()
       .gte('endDate', now)
-      .sort({ endDate: 1 });
+      .sort({ endDate: -1 });
+
     activeSubscription = subsctn;
   }
 
   universialControllerLogger.debug('found foundUser: ', foundUser);
+
   return {
     success: true,
     user: foundUser,
@@ -146,7 +171,8 @@ export const makeUserReturnObject = async(foundUser): Promise<Iauthresponse> => 
 export const validatePhone = async(
   foundUser: Iuser & Document,
   verifycode: string,
-  newPassword: string): Promise<IauthresponseObj> => {
+  newPassword: string
+): Promise<IauthresponseObj> => {
   if (!foundUser) {
     return {
       status: 404,
@@ -168,11 +194,13 @@ export const validatePhone = async(
             msg: 'The token you entered was invalid - please retry.'
           }
         });
+
         return;
       }
       foundUser.verified = true;
       foundUser.expireAt = '';
       let message;
+
       if (newPassword) {
         foundUser.password = newPassword;
         message = `You did it! Your
@@ -183,6 +211,7 @@ export const validatePhone = async(
 				you can now you can customise your profile`;
       }
       const responseObj = await makeUserReturnObject(foundUser);
+
       responseObj.msg = message;
       foundUser.save().then(() => {
         foundUser.save();
@@ -198,12 +227,15 @@ export const validatePhone = async(
             success: false
           }
         });
+
         return;
       });
     };
 
-    return foundUser['verifyAuthyToken'](verifycode,
-      postVerify);
+    return foundUser['verifyAuthyToken'](
+      verifycode,
+      postVerify
+    );
 
     /* const postSave = function(err) {
       if (err) {
@@ -268,7 +300,7 @@ export const validatePhone = async(
           }
         });
       });
-    };*/
+    }; */
   });
 };
 
@@ -289,8 +321,10 @@ export const validateEmail = async(
 ): Promise<IauthresponseObj> => {
   universialControllerLogger.info('validateEmail - %type: ', type);
   let msg: string;
+
   if (!foundUser) {
     msg = 'try signup again, account not found';
+
     return {
       status: 401,
       response: {
@@ -300,6 +334,7 @@ export const validateEmail = async(
     };
   }
   const token = await emailtoken.findOne({ token: verifycode });
+
   if (!token) {
     if (type === '_link') {
       msg = `the verification
@@ -308,6 +343,7 @@ export const validateEmail = async(
       msg = `the verification code
 				has already expired`;
     }
+
     return {
       status: 401,
       response: {
@@ -318,6 +354,7 @@ export const validateEmail = async(
   }
 
   const isValid = verifyObjectId(token.userId);
+
   if (!isValid) {
     return {
       status: 401,
@@ -356,7 +393,9 @@ export const validateEmail = async(
     };
   } else {
     const responseObj = await makeUserReturnObject(foundUser);
+
     responseObj.msg = msg;
+
     return {
       status,
       response: responseObj
@@ -377,6 +416,7 @@ export const sendTokenPhone = (
 ): Promise<Iauthresponse> => new Promise(resolve => {
   universialControllerLogger.info('sendTokenPhone');
   let response: Iauthresponse;
+
   if (enableValidationSMS === '1') {
     foundUser.sendAuthyToken(function(err) {
       if (err) {
@@ -384,14 +424,12 @@ export const sendTokenPhone = (
         response = {
           status: 403,
           success: false,
-          // eslint-disable-next-line @typescript-eslint/naming-convention
           msg: 'Sorry our verification system is down, try again in a while'
         };
       } else {
         response = {
           status: 200,
           success: true,
-          // eslint-disable-next-line @typescript-eslint/naming-convention
           _id: foundUser._id,
           phone: foundUser.phone
         };
@@ -403,7 +441,6 @@ export const sendTokenPhone = (
     response = {
       status: 200,
       success: true,
-      // eslint-disable-next-line @typescript-eslint/naming-convention
       _id: foundUser._id,
       msg: 'Account created (SMS validation disabled)'
     };
@@ -434,6 +471,7 @@ export const sendTokenEmail = (
     userId: foundUser._id,
     token: tokenCode
   });
+
   token.save().then(() => {
     if (type === 'token') {
       mailOptions = {
@@ -529,6 +567,7 @@ height: 100%;
       };
     } else if (type === '_link') {
       const nowLink = 'http://localhost:4200/verify?id=' + token.token;
+
       mailOptions = {
         from: 'info@eagleinfosolutions.com',
         to: foundUser.email,
@@ -623,28 +662,30 @@ height: 100%;
       };
     }
 
-    sendMail(
-      mailOptions).then(res => {
+    sendMail(mailOptions).then(res => {
       universialControllerLogger.info('message sent', res);
       response = {
         status: 200,
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         _id: foundUser._id,
         success: true,
         msg: `Check ${foundUser.email} for verication code`,
         type
       };
       resolve(response);
+
       return;
     }).catch(error => {
-      universialControllerLogger.error('email verication with token error',
-        JSON.stringify(error));
+      universialControllerLogger.error(
+        'email verication with token error',
+        JSON.stringify(error)
+      );
       response = {
         status: 403,
         success: false,
         msg: 'Server validation error, oops probably email verifier is offline, try again later'
       };
       resolve(response);
+
       return;
     });
   }).catch((err) => {
@@ -653,6 +694,7 @@ height: 100%;
     const errResponse: Isuccess = {
       success: false
     };
+
     if (err && err.errors) {
       errResponse.err = stringifyMongooseErr(err.errors);
     } else {
@@ -663,6 +705,7 @@ height: 100%;
       status: 403,
       success: false,
       err: errResponse.err });
+
     return;
   });
 });

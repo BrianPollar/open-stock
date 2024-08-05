@@ -1,6 +1,6 @@
-import { disconnectMongoose, makeNewConnection } from '../../../../stock-universal-server';
-import { expect, describe, it, afterAll, beforeAll } from 'vitest';
 import { Connection } from 'mongoose';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { disconnectMongoose, makeNewConnection } from '../../../../stock-universal-server';
 
 describe('makeNewConnection', () => {
   const dbUrl = 'mongodb://localhost:27017/node_testyyyyy';
@@ -30,6 +30,7 @@ describe('makeNewConnection', () => {
     ]).catch(err => {
       return err;
     });
+
     expect(typeof closed).toBe('object');
     expect(typeof closed[0]).toBe('object');
     await disconnectMongoose();

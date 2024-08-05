@@ -50,6 +50,7 @@ export interface IstockcounterServerConfig {
     */
     localPath: IlocalPath;
     useDummyRoutes?: boolean;
+    ecommerceRevenuePercentage: number;
 }
 /**
  * Represents the local path configuration for the server.
@@ -91,3 +92,4 @@ export declare const runStockCounterServer: (config: IstockcounterServerConfig, 
  * @returns {boolean} True if the stock counter server is running, false otherwise.
  */
 export declare const isCounterServerRunning: () => boolean;
+export declare const runAutoIntervaller: () => void;

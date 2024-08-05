@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { paymentMethod } from '../../../src/constants/common.constant';
 
 describe('paymentMethod', () => {
@@ -25,6 +25,7 @@ describe('paymentMethod', () => {
         value: 'credit'
       }
     ];
+
     expect(paymentMethod).toEqual(expectedPaymentMethods);
   });
 });

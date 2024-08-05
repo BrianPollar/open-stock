@@ -41,7 +41,6 @@ export const addCompany = async (req, res) => {
         }
     }
     const count = await companyMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     companyData.urId = makeUrId(Number(count[0]?.urId || '0'));
     const newCompany = new companyMain(companyData);
@@ -73,12 +72,10 @@ export const addCompany = async (req, res) => {
         await createNotifStn(stn);
         response = {
             success: true,
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             _id: savedCompany._id
         };
     }
     else {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         await user.deleteOne({ _id: savedUser._id });
     }
     return res.status(status).send(response);
@@ -86,19 +83,22 @@ export const addCompany = async (req, res) => {
 export const updateCompany = async (req, res) => {
     const { companyIdParam } = req.params;
     const updatedCompany = req.body.company;
+    const { companyId } = req.user;
+    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    if (!queryId) {
+        return res.status(401).send({ success: false, err: 'unauthourised' });
+    }
     const isValid = verifyObjectId(companyIdParam);
     if (!isValid) {
         return res.status(401).send({ success: false, err: 'unauthourised' });
     }
     const foundCompany = await companyMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .findOneAndUpdate({ companyId: companyIdParam });
+        .findOne({ _id: queryId });
     if (!foundCompany) {
         return res.status(404).send({ success: false });
     }
     if (!foundCompany.urId) {
         const count = await companyMain
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             .find({ companyId: companyIdParam }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
         foundCompany.urId = makeUrId(Number(count[0]?.urId || '0'));
     }
@@ -118,7 +118,7 @@ export const updateCompany = async (req, res) => {
     delete updatedCompany._id;
     const keys = Object.keys(updatedCompany);
     keys.forEach(key => {
-        if (foundCompany[key] && key !== '_id' && key !== 'phone' && key !== 'email') {
+        if (key !== '_id' && key !== 'phone' && key !== 'email') {
             foundCompany[key] = updatedCompany[key] || foundCompany[key];
         }
     });
@@ -214,7 +214,7 @@ const companyAuthLogger = tracer.colorConsole({
     activeSubscription: subsctn
   };
   return res.status(200).send(nowResponse);
-};*/
+}; */
 /* companyAuthRoutes.get('/authexpress/:companyIdParam', requireAuth, async(req, res) => {
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -275,7 +275,7 @@ const companyAuthLogger = tracer.colorConsole({
     token
   };
   return res.status(200).send(nowResponse);
-});*/
+}); */
 /* companyAuthRoutes.post('/login', async(req, res, next) => {
   req.body.from = 'company';
   const { emailPhone } = req.body;
@@ -289,14 +289,14 @@ const companyAuthLogger = tracer.colorConsole({
   req.body.isPhone = isPhone;
   req.body.foundUser = foundUser;
   return next();
-}, checkIpAndAttempt, companyLoginRelegator);*/
+}, checkIpAndAttempt, companyLoginRelegator); */
 /* companyAuthRoutes.post('/signup', (req, res, next) => {
   const user = req.body;
   req.body.user = user;
   return next();
 }, isTooCommonPhrase, isInAdictionaryOnline, signupFactorRelgator, (req, res) => {
   return res.status(401).send({ success: false, msg: 'unauthourised' });
-});*/
+}); */
 /* companyAuthRoutes.post('/recover', async(req, res, next) => {
   const emailPhone = req.body.emailPhone;
   const emailOrPhone = emailPhone === 'phone' ? 'phone' : 'email';
@@ -310,7 +310,7 @@ const companyAuthLogger = tracer.colorConsole({
   const foundCompany = await companyMain.findOne(query);
   req.body.foundUser = foundCompany;
   return next();
-}, recoverAccountFactory);*/
+}, recoverAccountFactory); */
 /* companyAuthRoutes.post('/confirm', async(req, res, next) => {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const { _id, verifycode, how } = req.body;
@@ -328,7 +328,7 @@ const companyAuthLogger = tracer.colorConsole({
   const foundCompany = await companyMain.findById(_id);
   req.body.foundUser = foundCompany;
   return next();
-}, confirmAccountFactory);*/
+}, confirmAccountFactory); */
 /* companyAuthRoutes.put('/resetpaswd', async(req, res, next) => {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const { _id, verifycode } = req.body;
@@ -347,7 +347,7 @@ const companyAuthLogger = tracer.colorConsole({
   const foundCompany = await companyMain.findById(_id);
   req.body.foundUser = foundCompany;
   return next();
-}, resetAccountFactory);*/
+}, resetAccountFactory); */
 companyAuthRoutes.post('/updateprofileimg/:companyIdParam', requireAuth, requireActiveCompany, uploadFiles, appendBody, saveMetaToDb, async (req, res) => {
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -485,7 +485,6 @@ companyAuthRoutes.post('/updatecompanybulkimg/:companyIdParam', requireAuth, req
   }
 
   const deleted = await companyMain
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .deleteMany({ _id: { $in: ids } }).catch(err => {
       companyAuthLogger.error('deletemany users failed with error: ' + err.message);
       return null;
@@ -496,7 +495,7 @@ companyAuthRoutes.post('/updatecompanybulkimg/:companyIdParam', requireAuth, req
   } else {
     return res.status(404).send({ success: Boolean(deleted), err: 'could not delete selected items, try again in a while' });
   }
-});*/
+}); */
 /* companyAuthRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('users', 'delete'), deleteFiles, async(req, res) => {
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -513,7 +512,7 @@ companyAuthRoutes.post('/updatecompanybulkimg/:companyIdParam', requireAuth, req
   } else {
     return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
   }
-});*/
+}); */
 companyAuthRoutes.put('/deleteimages/:companyIdParam', requireAuth, requireActiveCompany, deleteFiles, async (req, res) => {
     const filesWithDir = req.body.filesWithDir;
     const { companyId } = req.user;
@@ -527,7 +526,6 @@ companyAuthRoutes.put('/deleteimages/:companyIdParam', requireAuth, requireActiv
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const company = await companyMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .findOneAndUpdate({ _id: queryId });
     if (!company) {
         return res.status(404).send({ success: false, err: 'item not found' });

@@ -61,7 +61,7 @@ export class Expense extends DatabaseAuto {
      * @async
      * @param companyId - The ID of the company
      * @param {Iexpense} vals - The values to create the expense with.
-     * @returns {Promise<Isuccess>} A success response.
+     * @returns {Promise<IsubscriptionFeatureState>} A success response.
      */
     static async addExpense(companyId, vals) {
         const observer$ = StockCounterClient.ehttp.makePost(`/expense/create/${companyId}`, vals);

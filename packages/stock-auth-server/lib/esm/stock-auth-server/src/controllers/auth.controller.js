@@ -97,7 +97,7 @@ export const checkIpAndAttempt = async (req, res, next) => {
         /* const response: Iauthresponse = {
           success: false,
           err: 'Account does not exist!'
-        };*/
+        }; */
         // return res.status(401).send(response);
     }
     else if (foundIpModel) {
@@ -115,7 +115,7 @@ export const checkIpAndAttempt = async (req, res, next) => {
               success: false,
               err: 'Account does not exist!'
             };
-            return res.status(401).send(response);*/
+            return res.status(401).send(response); */
         }
     }
     if (foundIpModel?.blocked?.status) {
@@ -148,7 +148,7 @@ export const checkIpAndAttempt = async (req, res, next) => {
         nowRes = `email and password
           did not match`;
       }
-    }*/
+    } */
     const attempt = {
         userId: foundUser._id,
         ip,
@@ -287,7 +287,6 @@ export const loginFactorRelgator = async (req, res, next) => {
         return res.status(200).send(response);
     }
     const count = await user
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     const urId = makeUrId(Number(count[0]?.urId || '0'));
     const permissions = {
@@ -334,7 +333,6 @@ export const loginFactorRelgator = async (req, res, next) => {
         result = await sendTokenEmail(saved, type, stockAuthConfig.localSettings.appOfficialName);
     }
     if (!response.success) {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         await user.deleteOne({ _id: saved._id });
         return res.status(200).send(response);
     }
@@ -459,7 +457,7 @@ export const confirmAccountFactory = async (req, res) => {
       .sort({ endDate: 1 });
     if (subsctn) {
       response.response.activeSubscription = subsctn;
-    }*/
+    } */
     return res.status(response.status).send(response.response);
 };
 //# sourceMappingURL=auth.controller.js.map

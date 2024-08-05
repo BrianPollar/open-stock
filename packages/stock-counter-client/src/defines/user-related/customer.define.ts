@@ -1,4 +1,14 @@
-import { Iaddress, Icustomer, IdataArrayResponse, IdeleteCredentialsLocalUser, Ifile, IfileMeta, Isuccess, Iuser } from '@open-stock/stock-universal';
+import {
+  Iaddress,
+  Icustomer,
+  IdataArrayResponse,
+  IdeleteCredentialsLocalUser,
+  Ifile,
+  IfileMeta,
+  IsubscriptionFeatureState,
+  Isuccess,
+  Iuser
+} from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
 import { StockCounterClient } from '../../stock-counter-client';
 import { UserBase } from './userbase.define';
@@ -37,6 +47,7 @@ export class Customer extends UserBase {
   static async getCustomers(companyId: string, offset = 0, limit = 20) {
     const observer$ = StockCounterClient.ehttp.makeGet(`/customer/getall/${offset}/${limit}/${companyId}`);
     const customers = await lastValueFrom(observer$) as IdataArrayResponse;
+
     return {
       count: customers.count,
       customers: customers.data.map(val => new Customer(val as Icustomer))
@@ -53,6 +64,7 @@ export class Customer extends UserBase {
   static async getOneCustomer(filter: IgetOneFilter): Promise<Customer> {
     const observer$ = StockCounterClient.ehttp.makePost('/customer/getone', filter);
     const customer = await lastValueFrom(observer$) as Icustomer;
+
     return new Customer(customer);
   }
 
@@ -64,15 +76,19 @@ export class Customer extends UserBase {
    * @returns {Promise<Isuccess>} - A success response indicating whether the customer creation was successful.
    */
   static async createCustomer(companyId: string, vals: {customer: Icustomer; user: Partial<Iuser>}, files?: Ifile[]): Promise<Isuccess> {
-    let added: Isuccess;
+    let added: IsubscriptionFeatureState;
+
     vals.user.userType = 'customer';
     if (files && files[0]) {
       const observer$ = StockCounterClient.ehttp.uploadFiles(files, `/customer/createimg/${companyId}`, vals);
-      added = await lastValueFrom(observer$) as Isuccess;
+
+      added = await lastValueFrom(observer$) as IsubscriptionFeatureState;
     } else {
       const observer$ = StockCounterClient.ehttp.makePost(`/customer/create/${companyId}`, vals);
-      added = await lastValueFrom(observer$) as Isuccess;
+
+      added = await lastValueFrom(observer$) as IsubscriptionFeatureState;
     }
+
     return added;
   }
 
@@ -86,6 +102,7 @@ export class Customer extends UserBase {
    */
   static async deleteCustomers(companyId: string, credentials: IdeleteCredentialsLocalUser[], filesWithDir: IfileMeta[]): Promise<Isuccess> {
     const observer$ = StockCounterClient.ehttp.makePut(`/customer/deletemany/${companyId}`, { credentials, filesWithDir });
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 
@@ -97,19 +114,23 @@ export class Customer extends UserBase {
    */
   async updateCustomer(companyId: string, vals: {customer: Icustomer; user: Partial<Iuser>}, files?: Ifile[]): Promise<Isuccess> {
     let updated: Isuccess;
+
     vals.customer._id = this._id;
     vals.user._id = typeof this.user === 'string' ? this.user : this.user._id;
     if (files && files[0]) {
       const observer$ = StockCounterClient.ehttp.uploadFiles(files, `/customer/updateimg/${companyId}`, vals);
+
       updated = await lastValueFrom(observer$) as Isuccess;
     } else {
       const observer$ = StockCounterClient.ehttp.makePut(`/customer/update/${companyId}`, vals);
+
       updated = await lastValueFrom(observer$) as Isuccess;
     }
 
     if (updated.success) {
       this.otherAddresses = vals.customer.otherAddresses || this.otherAddresses;
     }
+
     return updated;
   }
 
@@ -122,6 +143,7 @@ export class Customer extends UserBase {
    */
   async deleteCustomer(companyId: string, credential: IdeleteCredentialsLocalUser, filesWithDir: IfileMeta[]): Promise<Isuccess> {
     const observer$ = StockCounterClient.ehttp.makePut(`/customer/deleteone/${companyId}`, { credential, filesWithDir });
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 }

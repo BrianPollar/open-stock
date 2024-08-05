@@ -1,6 +1,8 @@
 import { Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../controllers/database.controller';
 const estimateSchema = new Schema({
+    trackEdit: { type: Schema.ObjectId },
+    trackView: { type: Schema.ObjectId },
     companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
     invoiceRelated: { type: String }
 }, { timestamps: true });
@@ -8,6 +10,8 @@ const estimateSchema = new Schema({
  * for estimate
  */
 const estimateselect = {
+    trackEdit: 1,
+    trackView: 1,
     companyId: 1,
     invoiceRelated: 1
 };

@@ -3,6 +3,8 @@ import { connectAuthDatabase, isAuthDbConnected, mainConnection, mainConnectionL
 const uniqueValidator = require('mongoose-unique-validator');
 /** company subscription schema */
 const companySubscriptionSchema = new Schema({
+    trackEdit: { type: Schema.ObjectId },
+    trackView: { type: Schema.ObjectId },
     companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
     name: { type: String },
     ammount: { type: Number },
@@ -20,6 +22,8 @@ companySubscriptionSchema.index({ endDate: -1 });
 companySubscriptionSchema.plugin(uniqueValidator);
 /** Primary selection object for FAQ */
 const companySubscriptionselect = {
+    trackEdit: 1,
+    trackView: 1,
     companyId: 1,
     name: 1,
     ammount: 1,

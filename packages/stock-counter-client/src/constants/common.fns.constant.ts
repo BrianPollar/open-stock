@@ -21,9 +21,11 @@ export const transformFaqToNameOrImage = (
 ): string => {
   let response: string;
   const logger = new LoggerController();
+
   logger.debug('FaqPipe: transform:: - %faq, %type', faq, type);
   if (type === 'img') {
     let imgSrc: string;
+
     if ((faq.userId as User)?._id) {
       imgSrc = (faq.userId as User).profilePic.url || 'assets/imgs/person.png';
     } else if (faq.userId === 'admin') {
@@ -34,6 +36,7 @@ export const transformFaqToNameOrImage = (
     response = imgSrc;
   } else {
     let name: string;
+
     if ((faq.userId as User)?._id) {
       name = (faq.userId as User)?.fname ? (faq.userId as User).fname + ' ' + (faq.userId as User).lname : 'Assailant';
     } else if (faq.userId === 'admin') {
@@ -44,6 +47,7 @@ export const transformFaqToNameOrImage = (
     response = name;
   }
   logger.debug('FaqPipe: transform:: - response', response);
+
   return response;
 };
 
@@ -52,16 +56,16 @@ export const transformFaqToNameOrImage = (
  * @param id - The estimate ID to transform.
  * @returns The transformed estimate ID.
  */
-export const transformEstimateId = (
-  id: number
-): string => {
+export const transformEstimateId = (id: number): string => {
   const logger = new LoggerController();
+
   logger.debug('EstimateIdPipe:transform:: - id: ', id);
   if (!id) {
     return;
   }
   const len = id.toString().length;
   const start = '#EST-';
+
   switch (len) {
     case 4:
       return start + id;
@@ -79,16 +83,16 @@ export const transformEstimateId = (
  * @param id - The invoice ID to transform.
  * @returns The formatted invoice string.
  */
-export const transformInvoice = (
-  id: number
-): string => {
+export const transformInvoice = (id: number): string => {
   const logger = new LoggerController();
+
   logger.debug('InvoiceIdPipe:transform:: - id: ', id);
   if (!id) {
     return;
   }
   const len = id.toString().length;
   const start = '#INV-';
+
   switch (len) {
     case 4:
       return start + id;
@@ -113,9 +117,11 @@ export const transformUrId = (
   where: string
 ): string => {
   const logger = new LoggerController();
+
   logger.debug('UrIdPipe:PipeTransform:: - id: %id, where: %where', id, where);
   const len = id.length;
   const start = '#' + where + '_';
+
   switch (len) {
     case 4:
       return start + id;
@@ -197,13 +203,16 @@ export const likeFn = (
   item: Item
 ) => {
   const logger = new LoggerController();
+
   if (!currentUser) {
     return { success: false };
   }
+
   return item
     .likeItem(companyId, currentUser._id)
     .catch(err => {
       logger.debug(':like:: - err ', err);
+
       return { success: false };
     });
 };
@@ -221,13 +230,16 @@ export const unLikeFn = (
   item: Item
 ) => {
   const logger = new LoggerController();
+
   if (!currentUser) {
     return { success: false };
   }
+
   return item
     .likeItem(companyId, currentUser._id)
     .catch(err => {
       logger.debug(':unLike:: - err ', err);
+
       return { success: false };
     });
 };
@@ -239,8 +251,7 @@ export const unLikeFn = (
  * @param currentUser - The current user.
  * @returns A boolean value indicating whether the item is liked by the current user.
  */
-export const determineLikedFn = (
-  item: Item, currentUser: User): boolean => {
+export const determineLikedFn = (item: Item, currentUser: User): boolean => {
   if (currentUser &&
     item.likes.includes(currentUser._id)) {
     return true;
@@ -262,12 +273,12 @@ export const markInvStatusAsFn = async(
   val: TinvoiceStatus
 ) => {
   const vals = {
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     _id: invoice._id,
     status: val
   } as Iinvoice;
 
   const invRelated = makeInvoiceRelated(invoice);
+
   invRelated.status = val;
 
   await invoice
@@ -282,7 +293,8 @@ export const markInvStatusAsFn = async(
  */
 export const deleteInvoiceFn = async(
   companyId: string,
-  id: string, invoices: Invoice[]) => {
+  id: string, invoices: Invoice[]
+) => {
   const invoice = invoices
     .find(val => val._id === id);
   const credentials: IdeleteCredentialsInvRel = {
@@ -291,6 +303,7 @@ export const deleteInvoiceFn = async(
     stage: invoice.stage,
     invoiceRelated: invoice.invoiceRelated
   };
+
   await Invoice
     .deleteInvoices(companyId, [credentials]);
 };
@@ -305,6 +318,7 @@ export const deleteInvoiceFn = async(
 export const toggleSelectionFn = (id: string, selections: string[]) => {
   if (selections.includes(id)) {
     const index = selections.findIndex(val => val === id);
+
     selections.splice(index, 1);
   } else {
     selections.push(id);
@@ -332,10 +346,12 @@ export const deleteManyInvoicesFn = (
       invoiceRelated: value.invoiceRelated,
       stage: value.stage
     }));
+
   return Invoice
     .deleteInvoices(companyId, credentials)
     .catch(err => {
       logger.error('InvoicesListComponent:deleteMany:: - err ', err);
+
       return { success: false };
     });
 };
@@ -362,6 +378,7 @@ export const openBoxFn = (val, selectBoxOpen: string[]): void => {
 export const transformNoInvId = (val: number, suffix: string) => {
   const stringified = val.toString();
   let outStr: string;
+
   switch (stringified.length) {
     case 1:
       outStr = '000' + stringified;
@@ -376,6 +393,7 @@ export const transformNoInvId = (val: number, suffix: string) => {
       outStr = stringified;
       break;
   }
+
   return suffix + outStr;
 };
 
@@ -385,12 +403,13 @@ export const transformNoInvId = (val: number, suffix: string) => {
  * @param where The condition to apply the filter.
  * @returns The filtered array of data.
  */
-export const applyBlockDateSelect = (
-  data: (Estimate | Invoice | DeliveryNote | Receipt | Item)[], where: string) => {
+export const applyBlockDateSelect = (data: (Estimate | Invoice | DeliveryNote | Receipt | Item)[], where: string) => {
   let date = new Date();
+
   switch (where) {
     case 'today':
       date = new Date();
+
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return data
         // eslint-disable-next-line max-len

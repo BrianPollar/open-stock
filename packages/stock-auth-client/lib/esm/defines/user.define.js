@@ -3,7 +3,9 @@ import { lastValueFrom } from 'rxjs';
 import { StockAuthClient } from '../stock-auth-client';
 import { Company } from './company.define';
 /**
- * Represents a user and extends the DatabaseAuto class. It has properties that correspond to the fields in the user object, and methods for updating, deleting, and managing the user's profile, addresses, and permissions.
+ * Represents a user and extends the DatabaseAuto class.
+ * It has properties that correspond to the fields in the user object, and methods for updating, deleting,
+ *  and managing the user's profile, addresses, and permissions.
  */
 export class User extends DatabaseAuto {
     /**
@@ -103,7 +105,6 @@ export class User extends DatabaseAuto {
         const details = {
             user: {
                 ...vals,
-                // eslint-disable-next-line @typescript-eslint/naming-convention
                 _id: this._id
             }
         };
@@ -147,7 +148,7 @@ export class User extends DatabaseAuto {
         // this.lname = this.lname || 'admin';
         // this.email = this.email || 'admin';
       }
-    }*/
+    } */
     /**
      * Updates a user's profile information.
      * @param companyId - The ID of the company.
@@ -236,7 +237,6 @@ export class User extends DatabaseAuto {
     async deleteUser(companyId) {
         const observer$ = StockAuthClient.ehttp
             .makePut(`/user/deleteone/${companyId}`, {
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             _id: this._id,
             filesWithDir: [{
                     filename: this.profilePic
@@ -253,7 +253,6 @@ export class User extends DatabaseAuto {
      */
     async deleteImages(companyId, filesWithDir) {
         const observer$ = StockAuthClient.ehttp
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             .makePut(`/user/deleteimages/${companyId}`, { filesWithDir, user: { _id: this._id } });
         const deleted = await lastValueFrom(observer$);
         // eslint-disable-next-line @typescript-eslint/no-unsafe-return

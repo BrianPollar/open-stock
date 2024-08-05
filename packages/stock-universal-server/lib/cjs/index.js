@@ -25,4 +25,6 @@ tslib_1.__exportStar(require("./filemanager/fs"), exports);
 tslib_1.__exportStar(require("./controllers/passport.service"), exports);
 tslib_1.__exportStar(require("./stock-universal-server"), exports);
 tslib_1.__exportStar(require("./models/filemeta.model"), exports);
+tslib_1.__exportStar(require("./models/tracker/track-edit.model"), exports);
+tslib_1.__exportStar(require("./models/tracker/track-view.model"), exports);
 //# sourceMappingURL=index.js.map

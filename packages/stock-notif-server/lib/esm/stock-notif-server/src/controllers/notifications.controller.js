@@ -60,7 +60,7 @@ export const determineUserHasMail = (user) => {
     users: true
   };
   return stn;
-};*/
+}; */
 /**
    * Registers a new user with Authy.
    * @param phone - The user's phone number.
@@ -90,7 +90,7 @@ export const determineUserHasMail = (user) => {
       }
     );
   });
-};*/
+}; */
 /**
    * Requests an SMS token from Authy for the given user.
    * @param authyId - The user's Authy ID.
@@ -109,7 +109,7 @@ export const determineUserHasMail = (user) => {
         }
       });
   });
-};*/
+}; */
 export const sendToken = (phone, countryCode, message) => {
     return new Promise((resolve, reject) => {
         notificationSettings.twilioClient.verify.v2.services(notificationSettings.twilioVerificationSid)
@@ -136,7 +136,7 @@ export const sendToken = (phone, countryCode, message) => {
             reject(err);
             return;
           }
-        });*/
+        }); */
     });
 };
 /**
@@ -192,7 +192,7 @@ export const verifyAuthyToken = (phone, countryCode, code) => {
           } else {
             resolve(response);
           }
-        });*/
+        }); */
     });
 };
 /**
@@ -259,7 +259,7 @@ export const constructMailService = (sendGridApiKey, publicKey, privateKey) => {
         privateKey: vapidKeys.privateKey
       },
       TTL: 60
-    };*/
+    }; */
 };
 /**
  * Creates a notification setting.
@@ -340,7 +340,6 @@ export const updateNotifnViewed = async (user, id) => {
     notificationsControllerLogger.info('updateNotifnViewed - user: ', user);
     const { userId } = user;
     await mainnotificationMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .updateOne({ _id: id }, { $push: { viewed: userId } });
     return true;
 };

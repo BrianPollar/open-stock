@@ -57,7 +57,6 @@ itemOfferRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompan
     }
     itemoffer.companyId = queryId;
     const count = await itemOfferMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     itemoffer.urId = makeUrId(Number(count[0]?.urId || '0'));
     const newDecoy = new itemOfferMain(itemoffer);
@@ -120,7 +119,6 @@ itemOfferRoutes.get('/getall/:type/:offset/:limit/:companyIdParam', async (req, 
             .populate({
             path: 'items', model: itemLean,
             populate: [{
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                 }
             ]
@@ -159,12 +157,10 @@ itemOfferRoutes.get('/getone/:id/:companyIdParam', async (req, res) => {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const items = await itemOfferLean
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .findOne({ _id: id })
         .populate({
         path: 'items', model: itemLean,
         populate: [{
-                // eslint-disable-next-line @typescript-eslint/naming-convention
                 path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
             }
         ]
@@ -222,7 +218,6 @@ itemOfferRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCom
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const deleted = await itemOfferMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .deleteMany({ _id: { $in: ids }, companyId: queryId })
         .catch(err => {
         itemOfferRoutesLogger.error('deletemany - err: ', err);

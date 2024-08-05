@@ -13,9 +13,7 @@ export class StockNotifClient {
    * Creates an instance of StockNotifClient.
    * @param {Axios} axiosInstance - An instance of Axios to make HTTP requests.
    */
-  constructor(
-    axiosInstance: Axios
-  ) {
+  constructor(axiosInstance: Axios) {
     StockNotifClient.ehttp = new EhttpController(axiosInstance);
   }
 }

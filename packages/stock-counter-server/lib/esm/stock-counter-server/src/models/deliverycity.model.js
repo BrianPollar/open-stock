@@ -2,6 +2,8 @@ import { Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
 const uniqueValidator = require('mongoose-unique-validator');
 const deliverycitySchema = new Schema({
+    trackEdit: { type: Schema.ObjectId },
+    trackView: { type: Schema.ObjectId },
     name: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
     companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
     shippingCost: { type: Number, required: [true, 'cannot be empty.'] },
@@ -14,6 +16,8 @@ deliverycitySchema.plugin(uniqueValidator);
  * for deliverycity
  */
 const deliverycityselect = {
+    trackEdit: 1,
+    trackView: 1,
     companyId: 1,
     name: 1,
     shippingCost: 1,

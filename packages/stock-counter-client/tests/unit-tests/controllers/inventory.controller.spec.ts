@@ -1,16 +1,17 @@
-import { expect, describe, beforeEach, it, expectTypeOf } from 'vitest';
+import { beforeEach, describe, expect, expectTypeOf, it } from 'vitest';
 import { InventoryController } from '../../../../stock-counter-client/src/controllers/inventory.controller';
 import { Expense } from '../../../../stock-counter-client/src/defines/expense.define';
 import { Item } from '../../../../stock-counter-client/src/defines/item.define';
 import {
-  createMockPayments, createMockExpenses,
   createMockEstimates,
+  createMockExpenses,
   createMockInvoice,
   createMockInvoiceRelatedPdct,
   createMockInvoiceRelatedPdcts,
-  createMockInvoices,
   createMockInvoiceRelatedWithReceipts,
-  createMockItem, createMockItems
+  createMockInvoices,
+  createMockItem, createMockItems,
+  createMockPayments
 } from '../../../../tests/stock-counter-mocks';
 
 
@@ -31,6 +32,7 @@ describe('InventoryController', () => {
 
   it('#stageRelegator should return true if the stages are equal', () => {
     const relegated = instance.stageRelegator('estimate', 'estimate');
+
     expect(relegated).toBe(true);
     // expect(typeof relegated).toBe('boolen');
     expectTypeOf(relegated).toEqualTypeOf<boolean>(Boolean('true'));
@@ -38,6 +40,7 @@ describe('InventoryController', () => {
 
   it('#stageRelegator should return true if current stage is less than stage', () => {
     const relegated = instance.stageRelegator('estimate', 'invoice');
+
     expect(relegated).toBe(true);
     expect(typeof relegated).toBe('boolean');
     expectTypeOf(relegated).toEqualTypeOf<boolean>(Boolean('true'));
@@ -45,6 +48,7 @@ describe('InventoryController', () => {
 
   it('#stageRelegator should return false if current stage is greater than stage', () => {
     const relegated = instance.stageRelegator('deliverynote', 'estimate');
+
     expect(relegated).toBe(false);
     expect(typeof relegated).toBe('boolean');
     expectTypeOf(relegated).toEqualTypeOf<boolean>(Boolean('true'));
@@ -53,6 +57,7 @@ describe('InventoryController', () => {
   it('#itemExistInRelatedPdct should return false if item does exist in IinvoiceRelatedPdct', () => {
     const relatedPdct = createMockInvoiceRelatedPdct();
     const notExist = instance.itemExistInRelatedPdct('id1', relatedPdct);
+
     expect(notExist).toBe(false);
     expect(typeof notExist).toBe('boolean');
     expectTypeOf(notExist).toEqualTypeOf<boolean>(Boolean('true'));
@@ -60,8 +65,10 @@ describe('InventoryController', () => {
 
   it('#itemExistInRelatedPdct should return true if item exist in IinvoiceRelatedPdct', () => {
     const relatedPdct = createMockInvoiceRelatedPdct();
+
     relatedPdct.item = 'id1';
     const exist = instance.itemExistInRelatedPdct(relatedPdct.item, relatedPdct);
+
     expect(exist).toBe(true);
     expect(typeof exist).toBe('boolean');
     expectTypeOf(exist).toEqualTypeOf<boolean>(Boolean('true'));
@@ -70,6 +77,7 @@ describe('InventoryController', () => {
   it('#calcBulkProfitMarginPdts should return profit margin from items', () => {
     const items = createMockItems(10);
     const calculated = instance.calcBulkProfitMarginPdts(items);
+
     expect(typeof calculated).toBe('number');
     expectTypeOf(calculated).toEqualTypeOf<number>(Number('true'));
   });
@@ -77,6 +85,7 @@ describe('InventoryController', () => {
   it('#calcItemProfitMargin should return profit margin from item', () => {
     const item = createMockItem();
     const calculated = instance.calcItemProfitMargin(item);
+
     expect(typeof calculated).toBe('number');
     expectTypeOf(calculated).toEqualTypeOf<number>(Number('true'));
   });
@@ -84,12 +93,14 @@ describe('InventoryController', () => {
   it('#calcBigExpensePoint should return whic expece is the largest', () => {
     const expenses = createMockExpenses(10);
     const calculated = instance.calcBigExpensePoint(expenses);
+
     expect(calculated).toBeInstanceOf(Expense);
   });
 
   it('#calcSubtotal should return sub total from IinvoiceRelatedPdct', () => {
     const relatedPdcts = createMockInvoiceRelatedPdcts(10);
     const calculated = instance.calcSubtotal(relatedPdcts);
+
     expect(typeof calculated).toBe('number');
     expectTypeOf(calculated).toEqualTypeOf<number>(Number('true'));
   });
@@ -97,6 +108,7 @@ describe('InventoryController', () => {
   it('#calcBalanceDue should return calculate balance due from Invoice', () => {
     const invoice = createMockInvoice();
     const calculated = instance.calcBalanceDue(invoice);
+
     expect(typeof calculated).toBe('number');
     expectTypeOf(calculated).toEqualTypeOf<number>(Number('true'));
   });
@@ -104,6 +116,7 @@ describe('InventoryController', () => {
   it('#calcTotal should return false if item deoes not exists in IinvoiceRelatedPdct', () => {
     const relatedPdcts = createMockInvoiceRelatedPdcts(10);
     const calculated = instance.calcTotal(relatedPdcts, 10);
+
     expect(typeof calculated).toBe('number');
     expectTypeOf(calculated).toEqualTypeOf<number>(Number('true'));
   });
@@ -112,6 +125,7 @@ describe('InventoryController', () => {
     const related = createMockInvoiceRelatedWithReceipts(10);
     const items = createMockItems(10);
     const calculated = instance.getAllItemsProfit(related, items);
+
     expect(typeof calculated).toBe('number');
     expectTypeOf(calculated).toEqualTypeOf<number>(Number('true'));
   });
@@ -119,6 +133,7 @@ describe('InventoryController', () => {
   it('#findItem should return false if item deoes not exists in IinvoiceRelatedPdct', () => {
     const items = createMockItems(10);
     const found = instance.findItem('id1', items);
+
     if (found) {
       expect(found).toBeInstanceOf(Item);
     }
@@ -128,6 +143,7 @@ describe('InventoryController', () => {
     const items = createMockItems(10);
     const id = items[0]._id as unknown as string;
     const calculated = instance.findItem(id, items);
+
     expect(calculated).toBeInstanceOf(Item);
   });
 
@@ -135,6 +151,7 @@ describe('InventoryController', () => {
     const payments = createMockPayments(10);
     const items = createMockItems(10);
     const calculated = instance.getProfitByItem('1d1', payments, items);
+
     expect(typeof calculated).toBe('number');
     expectTypeOf(calculated).toEqualTypeOf<number>(Number('true'));
   });
@@ -142,6 +159,7 @@ describe('InventoryController', () => {
   it('#getExpenseByItem should return false if item deoes not exists in IinvoiceRelatedPdct', () => {
     const item = createMockItem();
     const calculated = instance.getExpenseByItem(item);
+
     expect(typeof calculated).toBe('number');
     expectTypeOf(calculated).toEqualTypeOf<number>(Number('true'));
   });
@@ -150,6 +168,7 @@ describe('InventoryController', () => {
     const date = new Date();
     const otherDate = new Date();
     const returned = instance.deepDateComparison(date, otherDate, 'year');
+
     expect(returned).toHaveProperty('equal');
     expect(returned).toHaveProperty('lessThan');
     expect(returned).toHaveProperty('moreThan');
@@ -161,6 +180,7 @@ describe('InventoryController', () => {
     const date = new Date();
     const expenses = createMockExpenses(10);
     const returned = instance.getExpenseByDay(expenses, date);
+
     expect(returned).toHaveProperty('expenses');
     expect(returned).toHaveProperty('total');
     expect(typeof returned.expenses).toBe('object');
@@ -171,6 +191,7 @@ describe('InventoryController', () => {
     const date = new Date();
     const expenses = createMockExpenses(10);
     const returned = instance.getExpenseByWeek(expenses, date);
+
     expect(returned).toHaveProperty('expenses');
     expect(returned).toHaveProperty('total');
     expect(typeof returned.expenses).toBe('object');
@@ -181,6 +202,7 @@ describe('InventoryController', () => {
     const date = new Date();
     const expenses = createMockExpenses(10);
     const returned = instance.getExpenseByMonth(expenses, date);
+
     expect(returned).toHaveProperty('expenses');
     expect(returned).toHaveProperty('total');
     expect(typeof returned.expenses).toBe('object');
@@ -191,6 +213,7 @@ describe('InventoryController', () => {
     const date = new Date();
     const expenses = createMockExpenses(10);
     const returned = instance.getExpenseByYear(expenses, date);
+
     expect(returned).toHaveProperty('expenses');
     expect(returned).toHaveProperty('total');
     expect(typeof returned.expenses).toBe('object');
@@ -202,6 +225,7 @@ describe('InventoryController', () => {
     const upperDate = new Date();
     const expenses = createMockExpenses(10);
     const returned = instance.getExpenseByDates(expenses, lowerDate, upperDate);
+
     expect(returned).toHaveProperty('expenses');
     expect(returned).toHaveProperty('total');
     expect(typeof returned.expenses).toBe('object');
@@ -212,6 +236,7 @@ describe('InventoryController', () => {
     const date = new Date();
     const relateds = createMockInvoiceRelatedWithReceipts(10);
     const returned = instance.getSalesByDay(relateds, date);
+
     expect(returned).toHaveProperty('sales');
     expect(returned).toHaveProperty('total');
     expect(typeof returned.sales).toBe('object');
@@ -222,6 +247,7 @@ describe('InventoryController', () => {
     const date = new Date();
     const relateds = createMockInvoiceRelatedWithReceipts(10);
     const returned = instance.getSalesByWeek(relateds, date);
+
     expect(returned).toHaveProperty('sales');
     expect(returned).toHaveProperty('total');
     expect(typeof returned.sales).toBe('object');
@@ -232,6 +258,7 @@ describe('InventoryController', () => {
     const date = new Date();
     const relateds = createMockInvoiceRelatedWithReceipts(10);
     const returned = instance.getSalesByMonth(relateds, date);
+
     expect(returned).toHaveProperty('sales');
     expect(returned).toHaveProperty('total');
     expect(typeof returned.sales).toBe('object');
@@ -242,6 +269,7 @@ describe('InventoryController', () => {
     const date = new Date();
     const relateds = createMockInvoiceRelatedWithReceipts(10);
     const returned = instance.getSalesByYear(relateds, date);
+
     expect(returned).toHaveProperty('sales');
     expect(returned).toHaveProperty('total');
     expect(typeof returned.sales).toBe('object');
@@ -253,6 +281,7 @@ describe('InventoryController', () => {
     const upperDate = new Date();
     const relateds = createMockInvoiceRelatedWithReceipts(10);
     const returned = instance.getSalesByDates(relateds, lowerDate, upperDate);
+
     expect(returned).toHaveProperty('sales');
     expect(returned).toHaveProperty('total');
     expect(typeof returned.sales).toBe('object');
@@ -263,6 +292,7 @@ describe('InventoryController', () => {
     const date = new Date();
     const invoices = createMockInvoices(10);
     const returned = instance.getInvoicesByDay(invoices, date);
+
     expect(returned).toHaveProperty('invoices');
     expect(returned).toHaveProperty('total');
     expect(typeof returned.invoices).toBe('object');
@@ -273,6 +303,7 @@ describe('InventoryController', () => {
     const date = new Date();
     const invoices = createMockInvoices(10);
     const returned = instance.getInvoicesByWeek(invoices, date);
+
     expect(returned).toHaveProperty('invoices');
     expect(returned).toHaveProperty('total');
     expect(typeof returned.invoices).toBe('object');
@@ -283,6 +314,7 @@ describe('InventoryController', () => {
     const date = new Date();
     const invoices = createMockInvoices(10);
     const returned = instance.getInvoicesByMonth(invoices, date);
+
     expect(returned).toHaveProperty('invoices');
     expect(returned).toHaveProperty('total');
     expect(typeof returned.invoices).toBe('object');
@@ -293,6 +325,7 @@ describe('InventoryController', () => {
     const date = new Date();
     const invoices = createMockInvoices(10);
     const returned = instance.getInvoicesYear(invoices, date);
+
     expect(returned).toHaveProperty('invoices');
     expect(returned).toHaveProperty('total');
     expect(typeof returned.invoices).toBe('object');
@@ -304,6 +337,7 @@ describe('InventoryController', () => {
     const upperDate = new Date();
     const invoices = createMockInvoices(10);
     const returned = instance.getInvoicesByDates(invoices, lowerDate, upperDate);
+
     expect(returned).toHaveProperty('invoices');
     expect(returned).toHaveProperty('total');
     expect(typeof returned.invoices).toBe('object');
@@ -314,6 +348,7 @@ describe('InventoryController', () => {
     const date = new Date();
     const estimates = createMockEstimates(10);
     const returned = instance.getEstimatesByMonth(estimates, date);
+
     expect(returned).toHaveProperty('estimates');
     expect(returned).toHaveProperty('total');
     expect(typeof returned.estimates).toBe('object');

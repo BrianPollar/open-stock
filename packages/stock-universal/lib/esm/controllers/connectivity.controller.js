@@ -1,4 +1,4 @@
-import { fromEvent, merge, of, Subject } from 'rxjs';
+import { Subject, fromEvent, merge, of } from 'rxjs';
 import { map, takeUntil } from 'rxjs/operators';
 import { LoggerController } from './logger.controller';
 /**

@@ -160,7 +160,7 @@ export type TcombinedProductClass =
   Computer |
   Laptop |
   Desktop |
-  Accessory;*/
+  Accessory; */
 
 /**
  * Represents the possible options for generating a random string.
@@ -395,6 +395,7 @@ export type TuserType =
   'staff' |
   'customer' |
   'eUser';
+
 /**
  * Represents the type of payment.
  * - `nonSubscription`: Indicates a non-subscription payment.

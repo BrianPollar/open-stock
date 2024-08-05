@@ -36,6 +36,7 @@ const express_1 = tslib_1.__importDefault(require("express"));
 const fs = tslib_1.__importStar(require("fs"));
 const path_1 = tslib_1.__importDefault(require("path"));
 const tracer = tslib_1.__importStar(require("tracer"));
+const user_behavoiur_controller_1 = require("../controllers/user-behavoiur.controller");
 const item_model_1 = require("../models/item.model");
 const itemdecoy_model_1 = require("../models/itemdecoy.model");
 const itemoffer_model_1 = require("../models/itemoffer.model");
@@ -80,14 +81,12 @@ exports.itemRoutes = express_1.default.Router();
  * @returns {Promise<Response>} - The express response object with a success status and saved item data
  */
 const addReview = async (req, res) => {
-    const { userId } = req.user;
-    const itemId = req.body.review.itemId;
+    const { itemId, userId } = req.body.review;
     const isValid = (0, stock_universal_server_1.verifyObjectId)(itemId);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const item = await item_model_1.itemMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .findByIdAndUpdate(itemId);
     if (!item) {
         return res.status(404).send({ success: false });
@@ -95,7 +94,7 @@ const addReview = async (req, res) => {
     item.reviewedBy.push(userId || 'tourer');
     item.reviewCount++;
     item.reviewRatingsTotal += req.body.review.rating;
-    item.reviewWeight = item.reviewRatingsTotal / item.reviewedBy.length;
+    item.reviewWeight = item.reviewRatingsTotal / item.reviewedBy.length; // <= 10
     let errResponse;
     const saved = await item.save()
         .catch(err => {
@@ -141,7 +140,6 @@ const removeReview = async (req, res) => {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const item = await item_model_1.itemMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .findOneAndUpdate({ _id: itemId, companyId: queryId });
     if (!item) {
         return res.status(404).send({ success: false });
@@ -199,8 +197,7 @@ exports.itemRoutes.post('/create/:companyIdParam', stock_universal_server_1.requ
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const count = await item_model_1.itemMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+        .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     item.urId = (0, stock_universal_server_1.makeUrId)(Number(count[0]?.urId || '0'));
     const newProd = new item_model_1.itemMain(item);
     let errResponse;
@@ -250,8 +247,7 @@ exports.itemRoutes.post('/createimg/:companyIdParam', stock_universal_server_1.r
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const count = await item_model_1.itemMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+        .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     item.urId = (0, stock_universal_server_1.makeUrId)(Number(count[0]?.urId || '0'));
     const parsed = req.body;
     if (parsed && parsed.newPhotos) {
@@ -309,7 +305,6 @@ exports.itemRoutes.put('/update/:companyIdParam', stock_universal_server_1.requi
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const item = await item_model_1.itemMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .findOne({ _id: updatedProduct._id, companyId: queryId });
     if (!item) {
         return res.status(404).send({ success: false });
@@ -359,7 +354,6 @@ exports.itemRoutes.post('/updateimg/:companyIdParam', stock_universal_server_1.r
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const item = await item_model_1.itemMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .findOne({ _id, companyId: queryId });
     if (!item) {
         return res.status(404).send({ success: false });
@@ -420,7 +414,6 @@ exports.itemRoutes.put('/like/:itemId/:companyIdParam', stock_universal_server_1
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const item = await item_model_1.itemMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .findOneAndUpdate({ _id: itemId, companyId: queryId });
     if (!item) {
         return res.status(404).send({ success: false });
@@ -458,7 +451,6 @@ exports.itemRoutes.put('/unlike/:itemId/:companyIdParam', stock_universal_server
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const item = await item_model_1.itemMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .findOneAndUpdate({ _id: itemId, companyId: queryId });
     if (!item) {
         return res.status(404).send({ success: false });
@@ -494,16 +486,13 @@ exports.itemRoutes.get('/getone/:urId/:companyIdParam', async (req, res) => {
     }
     const item = await item_model_1.itemLean
         .findOne(filter)
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
         .populate({ path: 'companyId', model: stock_auth_server_1.companyLean,
         populate: [{
                 path: 'owner', model: stock_auth_server_1.userLean,
                 populate: [{
-                        // eslint-disable-next-line @typescript-eslint/naming-convention
                         path: 'profilePic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                     }],
-                // eslint-disable-next-line @typescript-eslint/naming-convention
                 transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
             }
         ],
@@ -512,7 +501,6 @@ exports.itemRoutes.get('/getone/:urId/:companyIdParam', async (req, res) => {
                 return null;
             }
             else {
-                // eslint-disable-next-line @typescript-eslint/naming-convention
                 return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
             }
         }
@@ -539,16 +527,13 @@ exports.itemRoutes.get('/filtergeneral/:prop/:val/:offset/:limit/:companyIdParam
     const all = await Promise.all([
         item_model_1.itemLean
             .find(filter)
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
             .populate({ path: 'companyId', model: stock_auth_server_1.companyLean,
             populate: [{
                     path: 'owner', model: stock_auth_server_1.userLean,
                     populate: [{
-                            // eslint-disable-next-line @typescript-eslint/naming-convention
                             path: 'profilePic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                         }],
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
                 }
             ],
@@ -557,7 +542,6 @@ exports.itemRoutes.get('/filtergeneral/:prop/:val/:offset/:limit/:companyIdParam
                     return null;
                 }
                 else {
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
                 }
             }
@@ -585,16 +569,13 @@ exports.itemRoutes.get('/filterrandom/:prop/:val/:offset/:limit/:companyIdParam/
     const all = await Promise.all([
         item_model_1.itemLean
             .find(filter)
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
             .populate({ path: 'companyId', model: stock_auth_server_1.companyLean,
             populate: [{
                     path: 'owner', model: stock_auth_server_1.userLean,
                     populate: [{
-                            // eslint-disable-next-line @typescript-eslint/naming-convention
                             path: 'profilePic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                         }],
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
                 }
             ],
@@ -603,7 +584,6 @@ exports.itemRoutes.get('/filterrandom/:prop/:val/:offset/:limit/:companyIdParam/
                     return null;
                 }
                 else {
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
                 }
             }
@@ -612,7 +592,6 @@ exports.itemRoutes.get('/filterrandom/:prop/:val/:offset/:limit/:companyIdParam/
             .lean(),
         item_model_1.itemLean.countDocuments(filter)
     ]);
-    console.log('filter general all ', all[0]);
     const newItems = all[0].filter(item => item.companyId);
     const response = {
         count: all[1],
@@ -636,16 +615,13 @@ exports.itemRoutes.get('/getall/:offset/:limit/:companyIdParam/:ecomerceCompat',
             .find(filter)
             .skip(offset)
             .limit(limit)
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
             .populate({ path: 'companyId', model: stock_auth_server_1.companyLean,
             populate: [{
                     path: 'owner', model: stock_auth_server_1.userLean,
                     populate: [{
-                            // eslint-disable-next-line @typescript-eslint/naming-convention
                             path: 'profilePic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                         }],
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
                 }
             ],
@@ -654,7 +630,6 @@ exports.itemRoutes.get('/getall/:offset/:limit/:companyIdParam/:ecomerceCompat',
                     return null;
                 }
                 else {
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
                 }
             }
@@ -662,7 +637,95 @@ exports.itemRoutes.get('/getall/:offset/:limit/:companyIdParam/:ecomerceCompat',
             .lean(),
         item_model_1.itemLean.countDocuments(filter)
     ]);
-    console.log('filter general all ', all[0]);
+    const newItems = all[0].filter(item => item.companyId);
+    const response = {
+        count: all[1],
+        data: newItems
+    };
+    return res.status(200).send(response);
+});
+exports.itemRoutes.get('/getbestsellers/:offset/:limit/:companyIdParam/:ecomerceCompat', async (req, res) => {
+    const { companyIdParam, ecomerceCompat } = req.params;
+    let filter = {};
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
+    if (isValid) {
+        filter = { companyId: companyIdParam };
+    }
+    if (ecomerceCompat === 'true') {
+        filter = { ...filter, ecomerceCompat: true };
+    }
+    const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
+    const all = await Promise.all([
+        item_model_1.itemLean
+            .find(filter)
+            .skip(offset)
+            .limit(limit)
+            .sort({ soldCount: 1 })
+            .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+            .populate({ path: 'companyId', model: stock_auth_server_1.companyLean,
+            populate: [{
+                    path: 'owner', model: stock_auth_server_1.userLean,
+                    populate: [{
+                            path: 'profilePic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+                        }],
+                    transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
+                }
+            ],
+            transform: (doc) => {
+                if (doc.blocked) {
+                    return null;
+                }
+                else {
+                    return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
+                }
+            }
+        })
+            .lean(),
+        item_model_1.itemLean.countDocuments(filter)
+    ]);
+    const newItems = all[0].filter(item => item.companyId);
+    const response = {
+        count: all[1],
+        data: newItems
+    };
+    return res.status(200).send(response);
+});
+exports.itemRoutes.get('/gettodaysuggestions/:userId/:offset/:limit/:companyIdParam/:ecomerceCompat', async (req, res) => {
+    const { userId, limit } = req.params;
+    const stnCookie = req.signedCookies['settings'];
+    const { ids, newOffset, newLimit } = await (0, user_behavoiur_controller_1.todaysRecomendation)(limit, stnCookie?.userCookieId, userId);
+    let filter = { ecomerceCompat: true };
+    if (ids && ids.length > 0) {
+        filter = { ...filter, _id: { $in: ids } };
+    }
+    const all = await Promise.all([
+        item_model_1.itemLean
+            .find(filter)
+            .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+            .sort({ timesViewed: 1 })
+            .skip(newOffset)
+            .limit(newLimit)
+            .populate({ path: 'companyId', model: stock_auth_server_1.companyLean,
+            populate: [{
+                    path: 'owner', model: stock_auth_server_1.userLean,
+                    populate: [{
+                            path: 'profilePic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+                        }],
+                    transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
+                }
+            ],
+            transform: (doc) => {
+                if (doc.blocked) {
+                    return null;
+                }
+                else {
+                    return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
+                }
+            }
+        })
+            .lean(),
+        item_model_1.itemLean.countDocuments(filter)
+    ]);
     const newItems = all[0].filter(item => item.companyId);
     const response = {
         count: all[1],
@@ -683,17 +746,14 @@ exports.itemRoutes.get('/gettrending/:offset/:limit/:companyIdParam/:ecomerceCom
     const all = await Promise.all([
         item_model_1.itemLean
             .find(filter)
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
             .sort({ timesViewed: 1 })
             .populate({ path: 'companyId', model: stock_auth_server_1.companyLean,
             populate: [{
                     path: 'owner', model: stock_auth_server_1.userLean,
                     populate: [{
-                            // eslint-disable-next-line @typescript-eslint/naming-convention
                             path: 'profilePic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                         }],
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
                 }
             ],
@@ -702,13 +762,49 @@ exports.itemRoutes.get('/gettrending/:offset/:limit/:companyIdParam/:ecomerceCom
                     return null;
                 }
                 else {
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
                 }
             }
         })
             .lean(),
         item_model_1.itemLean.countDocuments(filter)
+    ]);
+    const newItems = all[0].filter(item => item.companyId);
+    const response = {
+        count: all[1],
+        data: newItems
+    };
+    return res.status(200).send(response);
+});
+exports.itemRoutes.get('/getbehaviourdecoy/:userId/offset/limit/:companyIdParam/:ecomerceCompat', async (req, res) => {
+    const { userId } = req.params;
+    const stnCookie = req.signedCookies['settings'];
+    const { ids } = await (0, user_behavoiur_controller_1.getDecoyFromBehaviour)(stnCookie?.userCookieId, userId);
+    const all = await Promise.all([
+        item_model_1.itemLean
+            .find({ _id: { $in: ids } })
+            .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+            .sort({ timesViewed: 1 })
+            .populate({ path: 'companyId', model: stock_auth_server_1.companyLean,
+            populate: [{
+                    path: 'owner', model: stock_auth_server_1.userLean,
+                    populate: [{
+                            path: 'profilePic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+                        }],
+                    transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
+                }
+            ],
+            transform: (doc) => {
+                if (doc.blocked) {
+                    return null;
+                }
+                else {
+                    return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
+                }
+            }
+        })
+            .lean(),
+        item_model_1.itemLean.countDocuments({ _id: { $in: ids } })
     ]);
     const newItems = all[0].filter(item => item.companyId);
     const response = {
@@ -730,17 +826,14 @@ exports.itemRoutes.get('/getfeatured/:offset/:limit/:companyIdParam/:ecomerceCom
     const all = await Promise.all([
         item_model_1.itemLean
             .find(filter)
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
             .sort({ timesViewed: 1, likesCount: 1, reviewCount: 1 })
             .populate({ path: 'companyId', model: stock_auth_server_1.companyLean,
             populate: [{
                     path: 'owner', model: stock_auth_server_1.userLean,
                     populate: [{
-                            // eslint-disable-next-line @typescript-eslint/naming-convention
                             path: 'profilePic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                         }],
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
                 }
             ],
@@ -749,7 +842,6 @@ exports.itemRoutes.get('/getfeatured/:offset/:limit/:companyIdParam/:ecomerceCom
                     return null;
                 }
                 else {
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
                 }
             }
@@ -778,17 +870,14 @@ exports.itemRoutes.get('/getnew/:offset/:limit/:companyIdParam/:ecomerceCompat',
     const all = await Promise.all([
         item_model_1.itemLean
             .find(filter)
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
             .sort({ createdAt: -1 })
             .populate({ path: 'companyId', model: stock_auth_server_1.companyLean,
             populate: [{
                     path: 'owner', model: stock_auth_server_1.userLean,
                     populate: [{
-                            // eslint-disable-next-line @typescript-eslint/naming-convention
                             path: 'profilePic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                         }],
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
                 }
             ],
@@ -797,7 +886,6 @@ exports.itemRoutes.get('/getnew/:offset/:limit/:companyIdParam/:ecomerceCompat',
                     return null;
                 }
                 else {
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
                 }
             }
@@ -826,17 +914,14 @@ exports.itemRoutes.get('/getbrandnew/:offset/:limit/:companyIdParam/:ecomerceCom
     const all = await Promise.all([
         item_model_1.itemLean
             .find(filter)
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
             .sort({ createdAt: -1 })
             .populate({ path: 'companyId', model: stock_auth_server_1.companyLean,
             populate: [{
                     path: 'owner', model: stock_auth_server_1.userLean,
                     populate: [{
-                            // eslint-disable-next-line @typescript-eslint/naming-convention
                             path: 'profilePic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                         }],
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
                 }
             ],
@@ -845,7 +930,6 @@ exports.itemRoutes.get('/getbrandnew/:offset/:limit/:companyIdParam/:ecomerceCom
                     return null;
                 }
                 else {
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
                 }
             }
@@ -874,17 +958,14 @@ exports.itemRoutes.get('/getused/:offset/:limit/:companyIdParam/:ecomerceCompat'
     const all = await Promise.all([
         item_model_1.itemLean
             .find(filter)
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
             .sort({ createdAt: -1 })
             .populate({ path: 'companyId', model: stock_auth_server_1.companyLean,
             populate: [{
                     path: 'owner', model: stock_auth_server_1.userLean,
                     populate: [{
-                            // eslint-disable-next-line @typescript-eslint/naming-convention
                             path: 'profilePic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                         }],
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
                 }
             ],
@@ -893,7 +974,6 @@ exports.itemRoutes.get('/getused/:offset/:limit/:companyIdParam/:ecomerceCompat'
                     return null;
                 }
                 else {
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
                 }
             }
@@ -924,17 +1004,14 @@ exports.itemRoutes.get('/filterprice/max/:priceFilterValue/:offset/:limit/:compa
         item_model_1.itemLean
             .find(filter)
             .gte('costMeta.sellingPrice', Number(priceFilterValue))
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
             .sort({ createdAt: -1 })
             .populate({ path: 'companyId', model: stock_auth_server_1.companyLean,
             populate: [{
                     path: 'owner', model: stock_auth_server_1.userLean,
                     populate: [{
-                            // eslint-disable-next-line @typescript-eslint/naming-convention
                             path: 'profilePic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                         }],
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
                 }
             ],
@@ -943,7 +1020,6 @@ exports.itemRoutes.get('/filterprice/max/:priceFilterValue/:offset/:limit/:compa
                     return null;
                 }
                 else {
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
                 }
             }
@@ -973,17 +1049,14 @@ exports.itemRoutes.get('/filterprice/min/:priceFilterValue/:offset/:limit/:compa
         item_model_1.itemLean
             .find(filter)
             .lte('costMeta.sellingPrice', Number(priceFilterValue))
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
             .sort({ createdAt: -1 })
             .populate({ path: 'companyId', model: stock_auth_server_1.companyLean,
             populate: [{
                     path: 'owner', model: stock_auth_server_1.userLean,
                     populate: [{
-                            // eslint-disable-next-line @typescript-eslint/naming-convention
                             path: 'profilePic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                         }],
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
                 }
             ],
@@ -992,7 +1065,6 @@ exports.itemRoutes.get('/filterprice/min/:priceFilterValue/:offset/:limit/:compa
                     return null;
                 }
                 else {
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
                 }
             }
@@ -1023,17 +1095,14 @@ exports.itemRoutes.get('/filterprice/eq/:priceFilterMinValue/:priceFilterMaxValu
             .find(filter)
             .gte('costMeta.sellingPrice', Number(priceFilterMaxValue))
             .lte('costMeta.sellingPrice', Number(priceFilterMinValue))
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
             .sort({ createdAt: -1 })
             .populate({ path: 'companyId', model: stock_auth_server_1.companyLean,
             populate: [{
                     path: 'owner', model: stock_auth_server_1.userLean,
                     populate: [{
-                            // eslint-disable-next-line @typescript-eslint/naming-convention
                             path: 'profilePic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                         }],
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
                 }
             ],
@@ -1042,7 +1111,6 @@ exports.itemRoutes.get('/filterprice/eq/:priceFilterMinValue/:priceFilterMaxValu
                     return null;
                 }
                 else {
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
                 }
             }
@@ -1075,17 +1143,14 @@ exports.itemRoutes.get('/filterstars/:starVal/:offset/:limit/:companyIdParam/:ec
             .lte(starVal + 2)
             .gte(starVal)
             .select({ itemId: 1 })
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
             .lean()
             .populate({ path: 'companyId', model: stock_auth_server_1.companyLean,
             populate: [{
                     path: 'owner', model: stock_auth_server_1.userLean,
                     populate: [{
-                            // eslint-disable-next-line @typescript-eslint/naming-convention
                             path: 'profilePic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                         }],
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
                 }
             ],
@@ -1094,7 +1159,6 @@ exports.itemRoutes.get('/filterstars/:starVal/:offset/:limit/:companyIdParam/:ec
                     return null;
                 }
                 else {
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
                 }
             }
@@ -1137,17 +1201,14 @@ exports.itemRoutes.get('/discount/:discountValue/:offset/:limit/:companyIdParam/
                 'costMeta.discount': Number(discountValue)
             }
         ])
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
             .sort({ createdAt: -1 })
             .populate({ path: 'companyId', model: stock_auth_server_1.companyLean,
             populate: [{
                     path: 'owner', model: stock_auth_server_1.userLean,
                     populate: [{
-                            // eslint-disable-next-line @typescript-eslint/naming-convention
                             path: 'profilePic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                         }],
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
                 }
             ],
@@ -1156,7 +1217,6 @@ exports.itemRoutes.get('/discount/:discountValue/:offset/:limit/:companyIdParam/
                     return null;
                 }
                 else {
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
                 }
             }
@@ -1178,7 +1238,6 @@ exports.itemRoutes.post('/getsponsored/:companyIdParam', async (req, res) => {
     let filter = { _id: { $in: ids } };
     const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
     if (isValid) {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         filter = { companyId: companyIdParam, _id: { $in: ids } };
     }
     if (ids && ids.length > 0) {
@@ -1193,9 +1252,7 @@ exports.itemRoutes.post('/getsponsored/:companyIdParam', async (req, res) => {
         return res.status(403).send({ success: false, status: 403, err: 'no sponsored items provided' });
     }
     const items = await item_model_1.itemLean
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .find(filter)
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
         .lean()
         .sort({ timesViewed: 1 })
@@ -1203,10 +1260,8 @@ exports.itemRoutes.post('/getsponsored/:companyIdParam', async (req, res) => {
         populate: [{
                 path: 'owner', model: stock_auth_server_1.userLean,
                 populate: [{
-                        // eslint-disable-next-line @typescript-eslint/naming-convention
                         path: 'profilePic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                     }],
-                // eslint-disable-next-line @typescript-eslint/naming-convention
                 transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
             }
         ],
@@ -1215,7 +1270,6 @@ exports.itemRoutes.post('/getsponsored/:companyIdParam', async (req, res) => {
                 return null;
             }
             else {
-                // eslint-disable-next-line @typescript-eslint/naming-convention
                 return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
             }
         }
@@ -1241,17 +1295,14 @@ exports.itemRoutes.get('/getoffered/:companyIdParam', async (req, res) => {
             }
         ]
     })
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
         .sort({ createdAt: -1 })
         .populate({ path: 'companyId', model: stock_auth_server_1.companyLean,
         populate: [{
                 path: 'owner', model: stock_auth_server_1.userLean,
                 populate: [{
-                        // eslint-disable-next-line @typescript-eslint/naming-convention
                         path: 'profilePic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                     }],
-                // eslint-disable-next-line @typescript-eslint/naming-convention
                 transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
             }
         ],
@@ -1260,7 +1311,6 @@ exports.itemRoutes.get('/getoffered/:companyIdParam', async (req, res) => {
                 return null;
             }
             else {
-                // eslint-disable-next-line @typescript-eslint/naming-convention
                 return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
             }
         }
@@ -1399,14 +1449,11 @@ exports.itemRoutes.put('/deleteone/:id/:companyIdParam', stock_universal_server_
     await itemdecoy_model_1.itemDecoyMain.deleteMany({ companyId: queryId, items: { $elemMatch: { $in: [id] } } });
     // eslint-disable-next-line @typescript-eslint/naming-convention
     const found = await item_model_1.itemMain.findOne({ _id: id, companyId: queryId })
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .populate({ path: 'video', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
         .lean();
     if (found) {
         let filesWithDir = found.photos.map(photo => ({
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             _id: photo._id,
             url: photo.url
         }));
@@ -1440,7 +1487,6 @@ exports.itemRoutes.put('/deletefiles/:companyIdParam', stock_universal_server_1.
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const item = await item_model_1.itemMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .findOneAndUpdate({ _id, companyId: queryId });
     if (!item) {
         return res.status(404).send({ success: false, err: 'item not found' });
@@ -1472,9 +1518,11 @@ exports.itemRoutes.put('/deletefiles/:companyIdParam', stock_universal_server_1.
     }
     return res.status(200).send({ success: true });
 });
-exports.itemRoutes.post('/search/:offset/:limit/:companyIdParam', async (req, res) => {
+exports.itemRoutes.post('/search/:offset/:limit/:companyIdParam;userId', async (req, res) => {
     const { searchterm, searchKey, category, extraFilers, subCategory, ecomerceCompat } = req.body;
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
+    const stnCookie = req.signedCookies['settings'];
+    (0, user_behavoiur_controller_1.registerSearchParams)(searchterm, '', stnCookie?.userCookieId, req.params.userId);
     const { companyIdParam } = req.params;
     if (companyIdParam !== 'undefined') {
         itemRoutesLogger.info('filter item with 999999 def');
@@ -1552,24 +1600,28 @@ exports.itemRoutes.post('/search/:offset/:limit/:companyIdParam', async (req, re
                 };
                 break;
             /* default:
-              return res.status(401).send({ success: false, err: 'unauthorised' });*/
+              return res.status(401).send({ success: false, err: 'unauthorised' }); */
         }
     }
+    /* TODO proper regex
+    const searchFields = ['name', 'description', 'category', 'subCategory', 'brand'];
+    const searchRegex = { $regex: searchterm, $options: 'i' };
+    const searchQuery = searchFields.reduce((acc, field) => {
+      acc[field] = searchRegex;
+      return acc;
+    }, {}); */
     const all = await Promise.all([
         item_model_1.itemLean
             .find({ [searchKey]: { $regex: searchterm, $options: 'i' }, ...filter })
             .skip(offset)
             .limit(limit)
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
             .populate({ path: 'companyId', model: stock_auth_server_1.companyLean,
             populate: [{
                     path: 'owner', model: stock_auth_server_1.userLean,
                     populate: [{
-                            // eslint-disable-next-line @typescript-eslint/naming-convention
                             path: 'profilePic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                         }],
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
                 }
             ],
@@ -1578,7 +1630,6 @@ exports.itemRoutes.post('/search/:offset/:limit/:companyIdParam', async (req, re
                     return null;
                 }
                 else {
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
                 }
             }
@@ -1609,13 +1660,9 @@ exports.itemRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.r
     let filesWithDir;
     // eslint-disable-next-line @typescript-eslint/naming-convention
     const alltoDelete = await item_model_1.itemLean.find({ _id: { $in: ids } })
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .populate({ path: 'profilePic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .populate({ path: 'profileCoverPic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .populate({ path: 'video', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
         .lean();
     for (const user of alltoDelete) {
@@ -1628,7 +1675,6 @@ exports.itemRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.r
     }
     await (0, stock_universal_server_1.deleteAllFiles)(filesWithDir);
     const deleted = await item_model_1.itemMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .deleteMany({ _id: { $in: ids } })
         .catch(err => {
         itemRoutesLogger.error('deletemany - err: ', err);

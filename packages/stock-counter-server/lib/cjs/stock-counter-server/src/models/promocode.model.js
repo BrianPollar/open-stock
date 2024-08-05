@@ -16,6 +16,8 @@ const uniqueValidator = require('mongoose-unique-validator');
  * @param {boolean} timestamps - The timestamps for the promocode.
  */
 const promocodeSchema = new mongoose_1.Schema({
+    trackEdit: { type: mongoose_1.Schema.ObjectId },
+    trackView: { type: mongoose_1.Schema.ObjectId },
     urId: { type: String },
     companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
     code: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
@@ -32,6 +34,8 @@ promocodeSchema.plugin(uniqueValidator);
  * for promocode
  */
 const promocodeselect = {
+    trackEdit: 1,
+    trackView: 1,
     urId: 1,
     companyId: 1,
     code: 1,

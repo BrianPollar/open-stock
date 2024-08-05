@@ -4,19 +4,25 @@ exports.createInvoiceSettingModel = exports.invoiceSettingSelect = exports.invoi
 const mongoose_1 = require("mongoose");
 const database_controller_1 = require("../../../controllers/database.controller");
 const invoiceSettingSchema = new mongoose_1.Schema({
+    trackEdit: { type: mongoose_1.Schema.ObjectId },
+    trackView: { type: mongoose_1.Schema.ObjectId },
     companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
     generalSettings: {},
     taxSettings: {},
-    bankSettings: {}
+    bankSettings: {},
+    printDetails: {}
 }, { timestamps: true });
 /** primary selection object
  * for invoiceSetting
  */
 const invoiceSettingselect = {
+    trackEdit: 1,
+    trackView: 1,
     companyId: 1,
     generalSettings: 1,
     taxSettings: 1,
-    bankSettings: 1
+    bankSettings: 1,
+    printDetails: 1
 };
 /** primary selection object
  * for invoice

@@ -46,7 +46,7 @@ export const expenseReportRoutes = express.Router();
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>} Promise representing the result of the operation
  */
-expenseReportRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'create'), async (req, res, next) => {
+expenseReportRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'create'), async (req, res) => {
     const expenseReport = req.body.expenseReport;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -57,7 +57,6 @@ expenseReportRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCo
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const count = await expenseReportMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     expenseReport.urId = makeUrId(Number(count[0]?.urId || '0'));
     const newExpenseReport = new expenseReportMain(expenseReport);
@@ -231,7 +230,6 @@ expenseReportRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiv
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const deleted = await expenseReportMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .deleteMany({ companyId: queryId, _id: { $in: ids } })
         .catch(err => {
         expenseReportRoutesLogger.error('deletemany - err: ', err);

@@ -1,4 +1,4 @@
-import { TcompanySubPayStatus, TexpoMode, TpayType, TpaymentMethod, TpriceCurrenncy, TsubscriptionDurVal, TsubscriptionFeature, TuserDispNameFormat, TuserType } from '../types/union.types';
+import { TcompanySubPayStatus, TexpoMode, TorderStatus, TpayType, TpaymentMethod, TpriceCurrenncy, TsubscriptionDurVal, TsubscriptionFeature, TuserDispNameFormat, TuserType } from '../types/union.types';
 import { IinvoiceRelated, IurId } from './inventory.interface';
 import { Iitem } from './item.interface';
 /**
@@ -45,7 +45,7 @@ export interface Ibilling {
 /**
  * Represents a company.
  */
-export interface Icompany extends IurId {
+export interface Icompany extends IurId, ItrackStamp {
     /** The name of the company. */
     name: string;
     /** The display name of the company. */
@@ -96,7 +96,7 @@ export interface IblockedReasons {
 /**
  * Represents a user in the system.
  */
-export interface Iuser extends IdatabaseAuto {
+export interface Iuser extends IdatabaseAuto, ItrackStamp {
     /**
      * The unique identifier of the user.
      */
@@ -326,7 +326,7 @@ export interface Ipayment extends IpaymentRelated {
 /**
  * Represents a frequently asked question.
  */
-export interface Ifaq extends IurId {
+export interface Ifaq extends IurId, ItrackStamp {
     /**
      * The name of the person who posted the question.
      */
@@ -356,7 +356,7 @@ export interface Ifaq extends IurId {
 /**
  * Represents an FAQ answer.
  */
-export interface Ifaqanswer extends IurId {
+export interface Ifaqanswer extends IurId, ItrackStamp {
     faq: string;
     userId: string | Iuser;
     ans: string;
@@ -405,7 +405,7 @@ export interface IcompanyPerm {
 /**
  * Represents a delivery city.
  */
-export interface Ideliverycity extends IdatabaseAuto {
+export interface Ideliverycity extends IdatabaseAuto, ItrackStamp {
     companyId?: string;
     name: string;
     shippingCost: number;
@@ -423,7 +423,7 @@ export interface IbagainCredential {
 /**
  * Represents a video object.
  */
-export interface Ivideo extends IdatabaseAuto {
+export interface Ivideo extends IdatabaseAuto, ItrackStamp {
     name: string;
     videoUrl: string;
     formart: string;
@@ -438,7 +438,7 @@ export interface Iexpo {
 /**
  * Represents the top intro interface.
  */
-export interface ItopIntro extends IdatabaseAuto {
+export interface ItopIntro extends IdatabaseAuto, ItrackStamp {
     bottomDesc: string;
     header: string;
     headerDesc: string;
@@ -446,7 +446,7 @@ export interface ItopIntro extends IdatabaseAuto {
 /**
  * Represents a payment-related interface.
  */
-export interface IpaymentRelated extends IinvoiceRelated, IurId {
+export interface IpaymentRelated extends IinvoiceRelated, IurId, ItrackStamp {
     payType?: TpayType;
     companyId?: string;
     paymentRelated?: string;
@@ -459,6 +459,7 @@ export interface IpaymentRelated extends IinvoiceRelated, IurId {
     shipping?: number;
     manuallyAdded?: boolean;
     paymentMethod: TpaymentMethod;
+    orderStatus?: TorderStatus;
 }
 /**
  * Represents the interface for deleting credentials related to payment.
@@ -508,7 +509,7 @@ export interface IdeleteCredentialsLocalUser {
 /**
  * Represents the metadata of a file.
  */
-export interface IfileMeta extends IdatabaseAuto {
+export interface IfileMeta extends IdatabaseAuto, ItrackStamp {
     userOrCompanayId?: string;
     name?: string;
     url: string;
@@ -524,14 +525,14 @@ export interface IsubscriptionFeature {
     limitSize: number;
     remainingSize?: number;
 }
-export interface IsubscriptionPackage extends IdatabaseAuto {
+export interface IsubscriptionPackage extends IdatabaseAuto, ItrackStamp {
     name: string;
     ammount: number;
     duration: TsubscriptionDurVal;
     active?: boolean;
     features: IsubscriptionFeature[];
 }
-export interface IcompanySubscription extends IdatabaseAuto {
+export interface IcompanySubscription extends IdatabaseAuto, ItrackStamp {
     companyId: string;
     name: string;
     ammount: number;
@@ -551,4 +552,41 @@ export interface IsubscriptionDuration {
 export interface ImodelLimit {
     val: number;
     cost: number;
+}
+export interface IuserWallet extends IdatabaseAuto {
+    user: string | Iuser;
+    accountBalance: number;
+    currency: string;
+}
+export interface IwalletHistory extends IdatabaseAuto {
+    wallet: string | IuserWallet;
+    amount: number;
+    type: 'withdrawal' | 'deposit';
+}
+export interface IecommerceRevenue extends IdatabaseAuto {
+    invoiceRelated: string | IinvoiceRelated;
+    amount: number;
+    expireAt?: string;
+}
+export interface ItrackView extends IdatabaseAuto {
+    parent: string;
+    users: {
+        _id: string | Iuser;
+        createdAt: string;
+        updatedAt: string;
+    }[];
+}
+export interface ItrackEdit extends IdatabaseAuto {
+    parent: string;
+    createdBy: string | Iuser;
+    users: {
+        _id: string | Iuser;
+        createdAt: string;
+        updatedAt: string;
+    }[];
+    deletedBy: string | Iuser;
+}
+export interface ItrackStamp {
+    trackEdit?: string | ItrackView;
+    trackView?: string | ItrackEdit;
 }

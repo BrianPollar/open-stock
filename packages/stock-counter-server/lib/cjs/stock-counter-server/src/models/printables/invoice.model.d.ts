@@ -45,6 +45,8 @@ export declare let invoiceLean: Model<Tinvoice>;
  * Represents the invoice select function.
  */
 export declare const invoiceSelect: {
+    trackEdit: number;
+    trackView: number;
     companyId: number;
     invoiceRelated: number;
     dueDate: number;

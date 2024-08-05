@@ -1,7 +1,7 @@
-import { Observable, fromEvent, merge, of, Subject } from 'rxjs';
+import { Observable, Subject, fromEvent, merge, of } from 'rxjs';
 import { map, takeUntil } from 'rxjs/operators';
-import { WindowController } from './window.controller';
 import { LoggerController } from './logger.controller';
+import { WindowController } from './window.controller';
 
 /**
  * Represents a controller for managing connectivity.
@@ -11,9 +11,7 @@ export class ConnectivityController {
   logger = new LoggerController();
   online$: Observable<boolean>;
 
-  constructor(
-    public windowCtrl: WindowController
-  ) {}
+  constructor(public windowCtrl: WindowController) {}
 
   /**
    * Starts listening for online/offline events and updates the `online$` observable accordingly.

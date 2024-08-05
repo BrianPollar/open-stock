@@ -7,6 +7,8 @@ export type TcompanySubscription= Document & IcompanySubscription;
 
 /** company subscription schema */
 const companySubscriptionSchema: Schema = new Schema({
+  trackEdit: { type: Schema.ObjectId },
+  trackView: { type: Schema.ObjectId },
   companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
   name: { type: String },
   ammount: { type: Number },
@@ -27,6 +29,8 @@ companySubscriptionSchema.plugin(uniqueValidator);
 
 /** Primary selection object for FAQ */
 const companySubscriptionselect = {
+  trackEdit: 1,
+  trackView: 1,
   companyId: 1,
   name: 1,
   ammount: 1,

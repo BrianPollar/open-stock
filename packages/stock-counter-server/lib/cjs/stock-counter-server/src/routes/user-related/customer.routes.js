@@ -90,7 +90,6 @@ const updateCustomer = async (req, res) => {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const customer = await customer_model_1.customerMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .findOneAndUpdate({ _id: updatedCustomer._id, companyId: queryId });
     if (!customer) {
         return res.status(404).send({ success: false });
@@ -175,7 +174,6 @@ exports.customerRoutes.post('/getone', stock_universal_server_1.requireAuth, sto
         if (!isValid) {
             return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
         }
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         filter = { ...filter, _id: id };
     }
     if (queryId) {
@@ -189,17 +187,13 @@ exports.customerRoutes.post('/getone', stock_universal_server_1.requireAuth, sto
         filter = { ...filter, user: userId };
     }
     const customer = await customer_model_1.customerLean
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .findOne(filter)
         .populate({ path: 'user', model: stock_auth_server_1.userLean,
         populate: [{
-                // eslint-disable-next-line @typescript-eslint/naming-convention
                 path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
             }, {
-                // eslint-disable-next-line @typescript-eslint/naming-convention
                 path: 'profilePic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
             }, {
-                // eslint-disable-next-line @typescript-eslint/naming-convention
                 path: 'profileCoverPic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
             }] })
         .lean();
@@ -229,13 +223,10 @@ exports.customerRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_unive
             .find({ companyId: queryId })
             .populate({ path: 'user', model: stock_auth_server_1.userLean,
             populate: [{
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                 }, {
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     path: 'profilePic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                 }, {
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     path: 'profileCoverPic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                 }]
         })
@@ -262,7 +253,7 @@ exports.customerRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_unive
  * @returns {Promise} - Promise representing the HTTP response
  */
 exports.customerRoutes.put('/update/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('customers', 'update'), stock_auth_server_1.updateUserBulk, exports.updateCustomer);
-exports.customerRoutes.put('/updateimg/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('customers', 'update'), stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.saveMetaToDb, stock_auth_server_1.updateUserBulk, exports.updateCustomer);
+exports.customerRoutes.post('/updateimg/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('customers', 'update'), stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.saveMetaToDb, stock_auth_server_1.updateUserBulk, exports.updateCustomer);
 /**
  * Route for deleting a single customer.
  * @name PUT /deleteone
@@ -315,7 +306,6 @@ exports.customerRoutes.put('/deletemany/:companyIdParam', stock_universal_server
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const deleted = await customer_model_1.customerMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .deleteMany({ companyId: queryId, _id: { $in: ids } })
         .catch(err => {
         customerRoutesLogger.error('deletemany - err: ', err);

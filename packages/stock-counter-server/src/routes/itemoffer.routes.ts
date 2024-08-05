@@ -10,30 +10,30 @@ import { itemLean } from '../models/item.model';
 import { itemOfferLean, itemOfferMain } from '../models/itemoffer.model';
 
 /** Logger for item offer routes */
-const itemOfferRoutesLogger = tracer.colorConsole(
-  {
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-      // eslint-disable-next-line no-console
-      console.log(data.output);
-      const logDir = path.join(process.cwd() + '/openstockLog/');
-      fs.mkdir(logDir, { recursive: true }, (err) => {
-        if (err) {
-          if (err) {
-            // eslint-disable-next-line no-console
-            console.log('data.output err ', err);
-          }
-        }
-      });
-      fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
+const itemOfferRoutesLogger = tracer.colorConsole({
+  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+  dateformat: 'HH:MM:ss.L',
+  transport(data) {
+    // eslint-disable-next-line no-console
+    console.log(data.output);
+    const logDir = path.join(process.cwd() + '/openstockLog/');
+
+    fs.mkdir(logDir, { recursive: true }, (err) => {
+      if (err) {
         if (err) {
           // eslint-disable-next-line no-console
-          console.log('raw.output err ', err);
+          console.log('data.output err ', err);
         }
-      });
-    }
-  });
+      }
+    });
+    fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
+      if (err) {
+        // eslint-disable-next-line no-console
+        console.log('raw.output err ', err);
+      }
+    });
+  }
+});
 
 /**
  * Router for item offers.
@@ -57,13 +57,14 @@ itemOfferRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompan
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   itemoffer.companyId = queryId;
   const count = await itemOfferMain
-  // eslint-disable-next-line @typescript-eslint/naming-convention
     .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+
   itemoffer.urId = makeUrId(Number(count[0]?.urId || '0'));
   const newDecoy = new itemOfferMain(itemoffer);
   let errResponse: Isuccess;
@@ -80,6 +81,7 @@ itemOfferRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompan
         errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
       }
+
       return errResponse;
     });
 
@@ -89,6 +91,7 @@ itemOfferRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompan
   if (Boolean(saved)) {
     return res.status(403).send('unknown error');
   }
+
   return next();
 }, requireUpdateSubscriptionRecord('offer'));
 
@@ -106,8 +109,10 @@ itemOfferRoutes.get('/getall/:type/:offset/:limit/:companyIdParam', async(req, r
   const { type } = req.params;
   const { companyIdParam } = req.params;
   let query = {} as object;
+
   if (companyIdParam !== 'undefined') {
     const isValid = verifyObjectId(companyIdParam);
+
     if (!isValid) {
       return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
@@ -115,6 +120,7 @@ itemOfferRoutes.get('/getall/:type/:offset/:limit/:companyIdParam', async(req, r
   }
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
   let filter: object;
+
   if (type !== 'all') {
     filter = { type, ...query };
   }
@@ -126,7 +132,6 @@ itemOfferRoutes.get('/getall/:type/:offset/:limit/:companyIdParam', async(req, r
       .populate({
         path: 'items', model: itemLean,
         populate: [{
-        // eslint-disable-next-line @typescript-eslint/naming-convention
           path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
         }
         ]
@@ -138,6 +143,7 @@ itemOfferRoutes.get('/getall/:type/:offset/:limit/:companyIdParam', async(req, r
     count: all[1],
     data: all[0]
   };
+
   return res.status(200).send(response);
 });
 
@@ -155,27 +161,28 @@ itemOfferRoutes.get('/getone/:id/:companyIdParam', async(req, res) => {
   const { id } = req.params;
   const { companyIdParam } = req.params;
   let ids: string[];
+
   if (companyIdParam !== 'undefined') {
     ids = [id, companyIdParam];
   } else {
     ids = [id];
   }
   const isValid = verifyObjectIds(ids);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const items = await itemOfferLean
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .findOne({ _id: id })
     .populate({
       path: 'items', model: itemLean,
       populate: [{
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
       }
       ]
     })
     .lean();
+
   return res.status(200).send(items);
 });
 
@@ -196,11 +203,13 @@ itemOfferRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, requireAct
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectIds([id, queryId]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const deleted = await itemOfferMain.findOneAndDelete({ _id: id, companyId: queryId });
+
   if (Boolean(deleted)) {
     return res.status(200).send({ success: Boolean(deleted) });
   } else {
@@ -225,17 +234,19 @@ itemOfferRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCom
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectIds([...ids, ...[queryId]]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
 
   const deleted = await itemOfferMain
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .deleteMany({ _id: { $in: ids }, companyId: queryId })
     .catch(err => {
       itemOfferRoutesLogger.error('deletemany - err: ', err);
+
       return null;
     });
+
   if (Boolean(deleted)) {
     return res.status(200).send({ success: Boolean(deleted) });
   } else {

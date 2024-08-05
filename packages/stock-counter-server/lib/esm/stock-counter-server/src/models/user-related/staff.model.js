@@ -3,6 +3,8 @@ import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectio
 const uniqueValidator = require('mongoose-unique-validator');
 /** Defines the schema for the staff model. */
 const staffSchema = new Schema({
+    trackEdit: { type: Schema.ObjectId },
+    trackView: { type: Schema.ObjectId },
     companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
     user: { type: mongoose.Types.ObjectId, unique: true, required: [true, 'cannot be empty.'], index: true },
     startDate: { type: Date },
@@ -15,6 +17,8 @@ const staffSchema = new Schema({
 staffSchema.plugin(uniqueValidator);
 /** Defines the primary selection object for staff. */
 const staffselect = {
+    trackEdit: 1,
+    trackView: 1,
     companyId: 1,
     user: 1,
     startDate: 1,

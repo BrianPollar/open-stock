@@ -139,7 +139,6 @@ staffRoutes.post('/getone', requireAuth, requireActiveCompany, roleAuthorisation
         if (!isValid) {
             return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
         }
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         filter = { ...filter, _id: id };
     }
     if (queryId) {
@@ -157,17 +156,13 @@ staffRoutes.post('/getone', requireAuth, requireActiveCompany, roleAuthorisation
         filter = { user: userId };
     }
     const staff = await staffLean
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .findOne(filter)
         .populate({ path: 'user', model: userLean,
         populate: [{
-                // eslint-disable-next-line @typescript-eslint/naming-convention
                 path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
             }, {
-                // eslint-disable-next-line @typescript-eslint/naming-convention
                 path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
             }, {
-                // eslint-disable-next-line @typescript-eslint/naming-convention
                 path: 'profileCoverPic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
             }] })
         .lean();
@@ -187,13 +182,10 @@ staffRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requireAc
             .find({ companyId: queryId })
             .populate({ path: 'user', model: userLean,
             populate: [{
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                 }, {
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                 }, {
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     path: 'profileCoverPic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                 }]
         })
@@ -222,13 +214,10 @@ staffRoutes.get('/getbyrole/:offset/:limit/:role/:companyIdParam', requireAuth, 
             .find({ companyId: queryId })
             .populate({ path: 'user', model: userLean, match: { role },
             populate: [{
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                 }, {
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                 }, {
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     path: 'profileCoverPic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                 }] })
             .skip(offset)
@@ -275,13 +264,10 @@ staffRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, requireA
             .find({ companyId: queryId, ...filters })
             .populate({ path: 'user', model: userLean, match: { ...matchFilter },
             populate: [{
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                 }, {
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                 }, {
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     path: 'profileCoverPic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                 }] })
             .skip(offset)
@@ -297,7 +283,7 @@ staffRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, requireA
     return res.status(200).send(response);
 });
 staffRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('staffs', 'update', true), updateUserBulk, updateStaff);
-staffRoutes.put('/updateimg/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('staffs', 'update', true), uploadFiles, appendBody, saveMetaToDb, updateUserBulk, updateStaff);
+staffRoutes.post('/updateimg/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('staffs', 'update', true), uploadFiles, appendBody, saveMetaToDb, updateUserBulk, updateStaff);
 staffRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('staffs', 'delete'), removeOneUser('staff'), async (req, res) => {
     const { id } = req.body;
     const { companyId } = req.user;
@@ -326,7 +312,6 @@ staffRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const deleted = await staffMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .deleteMany({ _id: { $in: ids }, companyId: queryId })
         .catch(err => {
         staffRoutesLogger.error('deletemany - err: ', err);

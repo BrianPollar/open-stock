@@ -10,6 +10,8 @@ import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectio
 export type Tinvoice = Document & IinvoiceRelatedRef & { dueDate: Date };
 
 const invoiceSchema: Schema<Tinvoice> = new Schema({
+  trackEdit: { type: Schema.ObjectId },
+  trackView: { type: Schema.ObjectId },
   companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
   invoiceRelated: { type: String },
   dueDate: { type: Date }
@@ -19,6 +21,8 @@ const invoiceSchema: Schema<Tinvoice> = new Schema({
  * for invoice
  */
 const invoiceselect = {
+  trackEdit: 1,
+  trackView: 1,
   companyId: 1,
   invoiceRelated: 1,
   dueDate: 1

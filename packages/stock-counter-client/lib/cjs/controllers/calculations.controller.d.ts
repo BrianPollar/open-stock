@@ -68,6 +68,12 @@ export declare class CalculationsController {
      * @returns A new array containing only the first restrictNoTo elements of the original array.
      */
     restrictArrayToLength(data: unknown[], restrictNoTo: number): unknown[];
+    /**
+     * Determines the number of stars to display based on the given weight and where the stars should be displayed.
+     * @param weight - The weight value to use for determining the number of stars.
+     * @param where - Specifies where the stars should be displayed, such as 'full', 'half', or 'empty'.
+     * @returns An array of the determined number of stars.
+     */
     determineStars(weight: number, where: string): number[];
     /**
      * Checks if the dimensions of an image are within the allowed limits.
@@ -84,4 +90,11 @@ export declare class CalculationsController {
      * @returns The tax value.
      */
     taxValFromSubTotal(subTotal: number, tax: number): number;
+    /**
+     * Converts the given amount using the provided exchange rate.
+     * @param amount - The amount to be converted.
+     * @param rate - The exchange rate to use for the conversion.
+     * @returns The converted amount.
+     */
+    convertCurrency(amount: number, rate: number): number;
 }

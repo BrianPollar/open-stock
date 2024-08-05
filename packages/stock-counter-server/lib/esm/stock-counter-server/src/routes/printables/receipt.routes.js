@@ -22,7 +22,6 @@ receiptRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany,
     receipt.companyId = queryId;
     invoiceRelated.companyId = queryId;
     const count = await receiptMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     receipt.urId = makeUrId(Number(count[0]?.urId || '0'));
     const extraNotifDesc = 'Newly created receipt';
@@ -31,7 +30,7 @@ receiptRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany,
         return res.status(invoiceRelatedRes.status).send(invoiceRelatedRes);
     }
     receipt.invoiceRelated = invoiceRelatedRes.id;
-    await makePaymentInstall(receipt, invoiceRelatedRes.id, queryId);
+    await makePaymentInstall(receipt, invoiceRelatedRes.id, queryId, invoiceRelated.creationType);
     // const newReceipt = new receiptMain(receipt);
     /* let errResponse: Isuccess;
     const saved = await newReceipt.save()
@@ -53,7 +52,7 @@ receiptRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany,
     if (errResponse) {
       return res.status(403).send(errResponse);
     }
-    await updateInvoiceRelated(invoiceRelated);*/
+    await updateInvoiceRelated(invoiceRelated); */
     return next();
 }, requireUpdateSubscriptionRecord('receipt'));
 receiptRoutes.get('/getone/:urId/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('receipts', 'read'), async (req, res) => {
@@ -219,7 +218,6 @@ receiptRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompa
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     /** await receiptMain
-      // eslint-disable-next-line @typescript-eslint/naming-convention
       .deleteMany({ _id: { $in: ids } });**/
     const promises = credentials
         .map(async (val) => {

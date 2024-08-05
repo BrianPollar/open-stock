@@ -34,9 +34,7 @@ export class EhttpController {
    * The constructor for the class.
    * @param axiosInstance - An instance of Axios.
    */
-  constructor(
-    public axiosInstance: Axios
-  ) { }
+  constructor(public axiosInstance: Axios) { }
 
   /**
    * A static method that creates a new instance of the class.
@@ -46,7 +44,8 @@ export class EhttpController {
    */
   static create = (baseURL: string, token: string) => {
     // Create a new Axios instance.
-    const instance = Axios.create({
+    // TODO config must come from out
+    const instance = Axios.create({ // TODO config must come from out
       baseURL,
       timeout: 1000,
       headers: {
@@ -84,7 +83,8 @@ export class EhttpController {
     // Return a GET request from the Axios instance.
     return this.axiosInstance.get(route).pipe(
       retry(retryTimes),
-      map(res => res.data));
+      map(res => res.data)
+    );
   }
 
   /**
@@ -95,8 +95,7 @@ export class EhttpController {
    */
   makePut(route: string, extras): Observable<unknown> {
     // Return a PUT request from the Axios instance.
-    return this.axiosInstance.put(route, extras).pipe(
-      map(res => res.data));
+    return this.axiosInstance.put(route, extras).pipe(map(res => res.data));
   }
 
   /**
@@ -107,8 +106,7 @@ export class EhttpController {
    */
   makePost(route: string, extras): Observable<unknown> {
     // Return a POST request from the Axios instance.
-    return this.axiosInstance.post(route, extras).pipe(
-      map(res => res.data));
+    return this.axiosInstance.post(route, extras).pipe(map(res => res.data));
   }
 
   /**
@@ -118,8 +116,7 @@ export class EhttpController {
    */
   makeDelete(route: string): Observable<unknown> {
     // Return a DELETE request from the Axios instance.
-    return this.axiosInstance.delete(route).pipe(
-      map(res => res.data));
+    return this.axiosInstance.delete(route).pipe(map(res => res.data));
   }
 
   /**
@@ -130,8 +127,10 @@ export class EhttpController {
    * @param extras - Any extra data to include in the request.
    * @returns An Observable that emits the response data.
    */
-  uploadFiles(files: Ifile[],
-    url: string, extras?):
+  uploadFiles(
+    files: Ifile[],
+    url: string, extras?
+  ):
     Observable<unknown> {
     // Create a new FormData object.
     const formData: FormData = new FormData();
@@ -150,7 +149,6 @@ export class EhttpController {
     this.logger.debug('uploadFiles:: - url: url , formData: %formData ', url, formData);
 
     // Return a POST request from the Axios instance.
-    return this.axiosInstance.post(url, formData).pipe(
-      map(res => res.data));
+    return this.axiosInstance.post(url, formData).pipe(map(res => res.data));
   }
 }

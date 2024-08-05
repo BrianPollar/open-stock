@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable @typescript-eslint/naming-convention */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.relegatePesapalPayment = exports.paymentMethodDelegator = exports.payOnDelivery = void 0;
+exports.trackOrder = exports.relegatePesapalPayment = exports.paymentMethodDelegator = exports.payOnDelivery = void 0;
 const tslib_1 = require("tslib");
 const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const stock_notif_server_1 = require("@open-stock/stock-notif-server");
@@ -12,7 +12,10 @@ const path_1 = tslib_1.__importDefault(require("path"));
 const tracer = tslib_1.__importStar(require("tracer"));
 const order_model_1 = require("../models/order.model");
 const payment_model_1 = require("../models/payment.model");
+const invoice_model_1 = require("../models/printables/invoice.model");
 const paymentrelated_model_1 = require("../models/printables/paymentrelated/paymentrelated.model");
+const receipt_model_1 = require("../models/printables/receipt.model");
+const invoicerelated_model_1 = require("../models/printables/related/invoicerelated.model");
 const promocode_model_1 = require("../models/promocode.model");
 const paymentrelated_1 = require("../routes/paymentrelated/paymentrelated");
 const invoice_routes_1 = require("../routes/printables/invoice.routes");
@@ -71,14 +74,14 @@ const appendAll = async (paymentRelated, invoiceRelated, order, payment, userId,
     const saved = await addOrder(paymentRelated, invoiceRelated, order, userId, companyId);
     paymentControllerLogger.error('appendAll - saved:', saved);
     if (saved.success) {
-        payment.order = saved._id;
+        payment.order = saved.orderId;
         payment.paymentRelated = saved.paymentRelated;
         payment.invoiceRelated = saved.invoiceRelated;
         await addPayment(payment, userId, paid);
-        return { success: saved.success, status: saved.status, paymentRelated: saved.paymentRelated };
+        return { success: saved.success, status: saved.status, paymentRelated: saved.paymentRelated, invoiceRelated: saved.invoiceRelated, order: saved.orderId };
     }
     else {
-        return { success: saved.success, status: saved.status, err: saved.err };
+        return { success: saved.success, status: saved.status, err: saved.err, paymentRelated: saved.paymentRelated, invoiceRelated: saved.invoiceRelated, order: saved.orderId };
     }
 };
 /**
@@ -92,10 +95,11 @@ const appendAll = async (paymentRelated, invoiceRelated, order, payment, userId,
 const addOrder = async (paymentRelated, invoiceRelated, order, userId, companyId) => {
     paymentControllerLogger.info('addOrder');
     const extraNotifDesc = 'New Order';
+    paymentRelated.orderStatus = 'pending';
     const paymentRelatedId = await (0, paymentrelated_1.relegatePaymentRelatedCreation)(paymentRelated, invoiceRelated, 'order', extraNotifDesc, companyId);
     paymentControllerLogger.error('addOrder - paymentRelatedId', paymentRelatedId);
     if (!paymentRelatedId.success) {
-        return paymentRelatedId;
+        return { success: false, status: 403, paymentRelated: paymentRelatedId.id };
     }
     order.paymentRelated = paymentRelatedId.id;
     const invoice = {
@@ -108,11 +112,11 @@ const addOrder = async (paymentRelated, invoiceRelated, order, userId, companyId
     const invoiceRelatedId = await (0, invoice_routes_1.saveInvoice)(invoice, invoiceRelated, companyId);
     paymentControllerLogger.error('invoiceRelatedId', invoiceRelatedId);
     if (!invoiceRelatedId.success) {
-        return invoiceRelatedId;
+        return { success: false, status: 403, invoiceRelated: invoiceRelatedId.id };
     }
     order.invoiceRelated = invoiceRelatedId.id;
     if (payments && payments.length) {
-        await (0, paymentrelated_1.makePaymentInstall)(payments, invoiceRelatedId.id, companyId);
+        await (0, paymentrelated_1.makePaymentInstall)(payments[0], invoiceRelatedId.id, companyId, 'solo');
     }
     let errResponse;
     const newOrder = new order_model_1.orderMain(order);
@@ -155,7 +159,7 @@ const addOrder = async (paymentRelated, invoiceRelated, order, userId, companyId
     // body.options.orders = true; // TODO
     await (0, stock_notif_server_1.createNotifications)(body);
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    return { success: true, status: 200, _id: withId._id, paymentRelated: (order).paymentRelated, invoiceRelated: invoiceRelatedId };
+    return { success: true, status: 200, orderId: withId._id, paymentRelated: (order).paymentRelated, invoiceRelated: invoiceRelatedId.id };
 };
 /**
  * Adds a payment to the database
@@ -318,14 +322,15 @@ const relegatePesapalPayment = async (paymentRelated, invoiceRelated, type, orde
         id: appended.paymentRelated.toString(),
         currency: paymentRelated.currency || 'UGX',
         amount: paymentRelated.payments[0].amount,
-        description: 'Complet payments for the selected products',
+        description: 'Complete payments for the selected products',
         callback_url: stock_counter_server_1.pesapalPaymentInstance.config.pesapalCallbackUrl,
         cancellation_url: '',
         notification_id: '',
         billing_address: {
             email_address: paymentRelated.shippingAddress.email,
             phone_number: paymentRelated.shippingAddress.phoneNumber,
-            country_code: 'UG',
+            // TODO
+            country_code: paymentRelated.shippingAddress.countryCode || 'UG',
             first_name: paymentRelated.shippingAddress.firstName,
             middle_name: '',
             last_name: paymentRelated.shippingAddress.lastName,
@@ -340,6 +345,12 @@ const relegatePesapalPayment = async (paymentRelated, invoiceRelated, type, orde
     paymentControllerLogger.debug('b4 pesapalPaymentInstance.submitOrder', appended.paymentRelated.toString());
     const response = await stock_counter_server_1.pesapalPaymentInstance.submitOrder(payDetails, appended.paymentRelated.toString(), 'Complete product payment');
     if (!response.success) {
+        const deteils = {
+            paymentRelated: appended.paymentRelated,
+            invoiceRelated: appended.invoiceRelated,
+            order: appended.order
+        };
+        await deleteCreatedDocsOnFailure(deteils);
         return response;
     }
     paymentControllerLogger.debug('pesapalPaymentInstance.submitOrder', response);
@@ -376,4 +387,28 @@ const relegatePesapalPayment = async (paymentRelated, invoiceRelated, type, orde
     return { success: true, status: 200, pesapalOrderRes: response.pesaPalOrderRes, paymentRelated: appended.paymentRelated.toString() };
 };
 exports.relegatePesapalPayment = relegatePesapalPayment;
+const deleteCreatedDocsOnFailure = async ({ paymentRelated, invoiceRelated, order }) => {
+    if (invoiceRelated) {
+        await invoicerelated_model_1.invoiceRelatedMain.deleteOne({ _id: invoiceRelated });
+        await invoice_model_1.invoiceMain.deleteOne({ invoiceRelated });
+        await receipt_model_1.receiptMain.deleteOne({ invoiceRelated });
+    }
+    if (paymentRelated) {
+        await paymentrelated_model_1.paymentRelatedMain.deleteOne({ _id: paymentRelated });
+        await payment_model_1.paymentMain.deleteOne({ paymentRelated });
+    }
+    if (order) {
+        await order_model_1.orderMain.deleteOne({ _id: order });
+    }
+    return true;
+};
+const trackOrder = async (refereceId) => {
+    const paymentRelated = await paymentrelated_model_1.paymentRelatedMain
+        .findOne({ pesaPalorderTrackingId: refereceId }).lean();
+    if (!paymentRelated) {
+        return { success: false };
+    }
+    return { success: true, orderStatus: paymentRelated.orderStatus };
+};
+exports.trackOrder = trackOrder;
 //# sourceMappingURL=payment.controller.js.map

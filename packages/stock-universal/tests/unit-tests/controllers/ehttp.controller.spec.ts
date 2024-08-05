@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import { expect, describe, beforeEach, it } from 'vitest';
-import { EhttpController } from '../../../../stock-universal/src/controllers/ehttp.controller';
 import Axios from 'axios-observable';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { EhttpController } from '../../../../stock-universal/src/controllers/ehttp.controller';
 
 describe('EhttpController', () => {
   let instance: EhttpController;
@@ -30,11 +30,13 @@ describe('EhttpController', () => {
 
   it('should be able to create a new instance of EhttpController', () => {
     const controller = EhttpController.create('https://example.com', 'token');
+
     expect(controller).toBeInstanceOf(EhttpController);
   });
 
   it('should be able to append a token to the headers', () => {
     const controller = EhttpController.create('https://example.com', 'token');
+
     controller.appendToken('new-token');
     expect(controller.axiosInstance.defaults.headers.common['Authorization']).toEqual('new-token');
   });
@@ -45,6 +47,7 @@ describe('EhttpController', () => {
       'Another-Header': 'baz'
     };
     const controller = EhttpController.create('https://example.com', 'token');
+
     controller.appendHeaders(headers);
     expect(controller.axiosInstance.defaults.headers).toEqual(headers);
   });
@@ -52,6 +55,7 @@ describe('EhttpController', () => {
   it('should be able to make a GET request', () => {
     const controller = EhttpController.create('https://example.com', 'token');
     const observable = controller.makeGet('/api/users');
+
     expect(observable).toBeDefined();
   });
 
@@ -60,6 +64,7 @@ describe('EhttpController', () => {
     const observable = controller.makePut('/api/users/1', {
       name: 'John Doe'
     });
+
     expect(observable).toBeDefined();
   });
 
@@ -68,12 +73,14 @@ describe('EhttpController', () => {
     const observable = controller.makePost('/api/users', {
       name: 'John Doe'
     });
+
     expect(observable).toBeDefined();
   });
 
   it('should be able to make a DELETE request', () => {
     const controller = EhttpController.create('https://example.com', 'token');
     const observable = controller.makeDelete('/api/users/1');
+
     expect(observable).toBeDefined();
   });
 
@@ -92,6 +99,7 @@ describe('EhttpController', () => {
       }
     ];
     const observable = controller.uploadFiles(files, '/api/files');
+
     expect(observable).toBeDefined();
   });
 });

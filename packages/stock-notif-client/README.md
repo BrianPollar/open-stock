@@ -69,17 +69,21 @@ const newNotifClient = new StockNotifClient(instance);
 ```
 
 ## Extra Features
+
 Some of the features of @open-stock/stock-notif-client are:
 
 ## NOTE
+
 Most of the features below are automatically implememnted by the library. But If you want to use the classes and functions provided by the library, you can do so by importing them from the library.
 Some of them are elaborated below.
 
 ## Notification Abstraction and Definition
+
 Notification Abstraction and Definition is a class that is used to define the notification and abstract the notification. It is used by the StockNotifClient to define the notification and abstract the notification
 
 # usage
-  ```ts
+
+```ts
 import { NotificationMain, NotifSetting } from "@open-stock/stock-notif-client";
 
 // initialize the NotificationMain

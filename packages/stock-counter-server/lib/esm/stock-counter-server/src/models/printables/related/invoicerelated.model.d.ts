@@ -40,6 +40,8 @@ export declare let invoiceRelatedLean: Model<TinvoiceRelated>;
  * Selects the invoice related fields for querying.
  */
 export declare const invoiceRelatedSelect: {
+    trackEdit: number;
+    trackView: number;
     companyId: number;
     creationType: number;
     estimateId: number;
@@ -58,6 +60,8 @@ export declare const invoiceRelatedSelect: {
     total: number;
     payments: number;
     payType: number;
+    ecommerceSale: number;
+    ecommerceSalePercentage: number;
 };
 /**
  * Creates the InvoiceRelated model.

@@ -43,6 +43,8 @@ export declare let salesReportLean: Model<TsalesReport>;
  * Represents the sales report select statement.
  */
 export declare const salesReportSelect: {
+    trackEdit: number;
+    trackView: number;
     urId: number;
     companyId: number;
     totalAmount: number;

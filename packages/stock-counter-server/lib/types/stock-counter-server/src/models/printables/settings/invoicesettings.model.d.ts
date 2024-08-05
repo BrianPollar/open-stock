@@ -28,18 +28,21 @@ import { IinvoiceSetting } from '@open-stock/stock-universal';
 import { ConnectOptions, Document, Model } from 'mongoose';
 /** model type for invoiceSetting by */
 export type TinvoiceSetting = Document & IinvoiceSetting;
-/** main connection for invoices Operations*/
+/** main connection for invoices Operations */
 export declare let invoiceSettingMain: Model<TinvoiceSetting>;
-/** lean connection for invoices Operations*/
+/** lean connection for invoices Operations */
 export declare let invoiceSettingLean: Model<TinvoiceSetting>;
 /** primary selection object
  * for invoice
  */
 export declare const invoiceSettingSelect: {
+    trackEdit: number;
+    trackView: number;
     companyId: number;
     generalSettings: number;
     taxSettings: number;
     bankSettings: number;
+    printDetails: number;
 };
 /**
  * Creates an instance of the InvoiceSetting model.

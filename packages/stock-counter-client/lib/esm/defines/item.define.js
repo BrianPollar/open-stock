@@ -17,6 +17,7 @@ export class Item extends DatabaseAuto {
         this.photos = [];
         /** The quantity of the item ordered. */
         this.orderedQty = 1;
+        this.soldCount = 0;
         this.appndPdctCtror(data);
     }
     /**
@@ -118,7 +119,6 @@ export class Item extends DatabaseAuto {
         let updated;
         const details = {
             item: {
-                // eslint-disable-next-line @typescript-eslint/naming-convention
                 _id: this._id,
                 ...vals
             }
@@ -255,7 +255,6 @@ export class Item extends DatabaseAuto {
      */
     async deleteFiles(companyId, filesWithDir) {
         const observer$ = StockCounterClient.ehttp
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             .makePut(`/item/deletefiles/${companyId}`, { filesWithDir, item: { _id: this._id } });
         const deleted = await lastValueFrom(observer$);
         // eslint-disable-next-line @typescript-eslint/no-unsafe-return
@@ -325,6 +324,7 @@ export class Item extends DatabaseAuto {
             return val;
         });
         this.ecomerceCompat = data.ecomerceCompat || this.ecomerceCompat;
+        this.soldCount = data.soldCount || this.soldCount;
     }
 }
 //# sourceMappingURL=item.define.js.map

@@ -56,24 +56,18 @@ const removeOneUser = (canByPass) => {
         if (!canRemove.success) {
             return res.status(401).send({ ...canRemove, status: 401 });
         }
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         const found = await stock_auth_server_1.user.findOne({ _id: credential.userId })
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             .populate({ path: 'profilePic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             .populate({ path: 'profileCoverPic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
             .lean();
         if (found) {
             const filesWithDir = found.photos.map(photo => ({
-                // eslint-disable-next-line @typescript-eslint/naming-convention
                 _id: photo._id,
                 url: photo.url
             }));
             await (0, stock_universal_server_1.deleteAllFiles)(filesWithDir);
         }
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         const deleted = await stock_auth_server_1.user.findOneAndDelete({ _id: credential.userId, companyId: queryId });
         req.body.id = credential.id;
         if (!Boolean(deleted)) {
@@ -114,13 +108,9 @@ const removeManyUsers = (canByPass) => {
         req.body.ids = newIds;
         req.body.newPhotosWithDir = newPhotosWithDir;
         let filesWithDir;
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         const alltoDelete = await stock_auth_server_1.user.find({ companyId: queryId, _id: { $in: newUserIds } })
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             .populate({ path: 'profilePic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             .populate({ path: 'profileCoverPic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
             .lean();
         for (const user of alltoDelete) {
@@ -130,7 +120,6 @@ const removeManyUsers = (canByPass) => {
         }
         await (0, stock_universal_server_1.deleteAllFiles)(filesWithDir);
         const deleted = await stock_auth_server_1.user
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             .deleteMany({ companyId: queryId, _id: { $in: newUserIds } })
             .catch(err => {
             localUserRoutesLogger.error('deletemany - err: ', err);

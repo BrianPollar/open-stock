@@ -8,22 +8,27 @@ const uniqueValidator = require('mongoose-unique-validator');
  * Represents a receipt document.
  */
 export type Treceipt = Document & IurId & IinvoiceRelatedRef & {
+
   /**
    * The amount received.
    */
   ammountRcievd: number;
+
   /**
    * The payment mode.
    */
   paymentMode: string;
+
   /**
    * The type of receipt.
    */
   type: string;
+
   /**
    * The date of the receipt.
    */
   date: Date;
+
   /**
    * The total amount.
    */
@@ -31,6 +36,8 @@ export type Treceipt = Document & IurId & IinvoiceRelatedRef & {
 };
 
 const receiptSchema: Schema<Treceipt> = new Schema({
+  trackEdit: { type: Schema.ObjectId },
+  trackView: { type: Schema.ObjectId },
   urId: { type: String },
   companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
   invoiceRelated: { type: String },
@@ -48,6 +55,8 @@ receiptSchema.plugin(uniqueValidator);
  * for receipt
  */
 const receiptselect = {
+  trackEdit: 1,
+  trackView: 1,
   urId: 1,
   companyId: 1,
   invoiceRelated: 1,

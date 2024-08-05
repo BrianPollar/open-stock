@@ -1,4 +1,4 @@
-import { TcompanySubPayStatus, TexpoMode, TpayType, TpaymentMethod, TpriceCurrenncy, TsubscriptionDurVal, TsubscriptionFeature, TuserDispNameFormat, TuserType } from '../types/union.types';
+import { TcompanySubPayStatus, TexpoMode, TorderStatus, TpayType, TpaymentMethod, TpriceCurrenncy, TsubscriptionDurVal, TsubscriptionFeature, TuserDispNameFormat, TuserType } from '../types/union.types';
 import {
   IinvoiceRelated,
   // IpaymentInstall,
@@ -10,7 +10,8 @@ import { Iitem } from './item.interface';
 /**
  * Represents an interface for a database auto-generated entity.
  */
-export interface IdatabaseAuto {
+export interface IdatabaseAuto
+extends ItrackStamp {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   _id?: string;
   createdAt?: Date;
@@ -58,42 +59,60 @@ export interface Ibilling {
  * Represents a company.
  */
 export interface Icompany
-extends IurId {
+extends IurId, ItrackStamp {
+
   /** The name of the company. */
   name: string;
+
   /** The display name of the company. */
   displayName: string;
+
   /** The date of establishment of the company. */
   dateOfEst: string;
   address: string;
+
   /** Additional details about the company. */
   details: string;
+
   /** The format of the company's display name. */
   companyDispNameFormat: string;
+
   /** The business type of the company. */
   businessType: string;
+
   /** The profile picture of the company. */
   profilePic: string | IfileMeta;
+
   /** The profile cover picture of the company. */
   profileCoverPic: string | IfileMeta;
+
   /** The password of the company. */
   password: string;
+
   /** The website address of the company. */
   websiteAddress: string;
+
   /** The photos associated with the company. */
   photos: string[] | IfileMeta[];
+
   /** Indicates if the company is blocked. */
   blocked: boolean;
+
   /** Indicates if the company is verified. */
   verified: boolean;
+
   /** The expiration date of the company. */
   expireAt: string;
+
   /** The reasons for blocking the company. */
   blockedReasons: IblockedReasons;
+
   /** Indicates if the company has left. */
   left?: boolean;
+
   /** The date when the company left. */
   dateLeft: Date;
+
   /**
     * The expiration date of the user's account.
     */
@@ -111,160 +130,200 @@ export interface IblockedReasons {
 /**
  * Represents a user in the system.
  */
-export interface Iuser extends IdatabaseAuto {
+export interface Iuser
+extends IdatabaseAuto, ItrackStamp {
+
   /**
    * The unique identifier of the user.
    */
   // eslint-disable-next-line @typescript-eslint/naming-convention
   _id: string;
+
   /**
    * The user's UR ID.
    */
   urId?: string;
+
   /**
    * The user's first name.
    */
   fname: string;
+
   /**
    * The user's last name.
    */
   lname: string;
+
   /**
    * The user's company name.
    */
   companyName?: string;
+
   /**
    * The user's company ID.
    */
   companyId?: Icompany | string;
+
   /**
    * The user's address(es).
    */
   address: Iaddress[];
+
   /**
    * The user's billing information.
    */
   billing: Ibilling[];
+
   /**
    * The user's green IPs.
    */
   greenIps?: string[];
+
   /**
    * The user's red IPs.
    */
   redIps?: string[];
+
   /**
    * The user's unverified IPs.
    */
   unverifiedIps?: string[];
+
   /**
    * The user's UID.
    */
   uid?: string;
+
   /**
    * The user's DID.
    */
   did?: string;
+
   /**
    * The user's AID.
    */
   aid?: string;
+
   /**
    * The user's age.
    */
   age?: string;
+
   /**
    * The user's gender.
    */
   gender?: string;
+
   /**
    * The user's admin status.
    */
   admin: boolean;
+
   /**
    * The user's permissions.
    */
   permissions: Iuserperm;
+
   /**
    * The user's email address.
    */
   email: string;
+
   /**
    * The user's phone number.
    */
   phone: number;
+
   /**
    * The expiration date of the user's account.
    */
   expireAt?: string;
+
   /**
    * Indicates if the user is verified.
    */
   verified?: boolean;
+
   /**
    * The Authy ID of the user.
    */
   authyId?: string;
+
   /**
    * The user's password.
    */
   password?: string;
+
   /**
    * Indicates if the user is from a social framework.
    */
   fromsocial?: boolean;
+
   /**
    * The social framework used by the user.
    */
   socialframework?: string;
+
   /**
    * The social ID of the user.
    */
   socialId?: string;
+
   /**
    * The blocked status of the user.
    */
   blocked?: IuserBlocked;
+
   /**
    * The country code of the user's phone number.
    */
   countryCode?: string;
+
   /**
    * The amount due for the user.
    */
   amountDue?: number;
+
   /**
    * Indicates if the user was manually added.
    */
   manuallyAdded: boolean;
+
   /**
    * Indicates if the user is online.
    */
   online?: boolean;
+
   /**
    * The salutation for the user.
    */
   salutation?: string;
+
   /**
    * Additional details about the user's company.
    */
   extraCompanyDetails?: string;
+
   /**
    * The display name format for the user.
    */
   userDispNameFormat?: TuserDispNameFormat;
+
   /**
    * The type of user.
    */
   userType?: TuserType;
+
   /**
    * The user's photos.
    */
   photos?: string[] | IfileMeta[];
+
   /**
    * The user's profile picture.
    */
   profilePic?: string | IfileMeta;
+
   /**
    * The user's profile cover picture.
    */
@@ -355,28 +414,34 @@ export interface Ipayment
  * Represents a frequently asked question.
  */
 export interface Ifaq
-extends IurId {
+extends IurId, ItrackStamp {
+
   /**
    * The name of the person who posted the question.
    */
   posterName: string;
+
   /**
    * The email of the person who posted the question.
    */
   posterEmail: string;
+
   /**
    * The ID of the user who posted the question.
    * Can be either a string or an instance of the Iuser interface.
    */
   userId: string | Iuser;
+
   /**
    * The question itself.
    */
   qn: string;
+
   /**
    * The date and time when the question was created.
    */
   createdAt?: Date;
+
   /**
    * Indicates whether the question has been approved.
    */
@@ -388,7 +453,7 @@ extends IurId {
  * Represents an FAQ answer.
  */
 export interface Ifaqanswer
-  extends IurId {
+  extends IurId, ItrackStamp {
   faq: string;
   userId: string | Iuser;
   ans: string;
@@ -442,7 +507,7 @@ export interface IcompanyPerm {
  * Represents a delivery city.
  */
 export interface Ideliverycity
-  extends IdatabaseAuto {
+  extends IdatabaseAuto, ItrackStamp {
   companyId?: string;
   name: string;
   shippingCost: number;
@@ -463,7 +528,7 @@ export interface IbagainCredential {
  * Represents a video object.
  */
 export interface Ivideo
-  extends IdatabaseAuto {
+  extends IdatabaseAuto, ItrackStamp {
   name: string;
   videoUrl: string;
   formart: string;
@@ -481,7 +546,7 @@ export interface Iexpo {
  * Represents the top intro interface.
  */
 export interface ItopIntro
-  extends IdatabaseAuto {
+  extends IdatabaseAuto, ItrackStamp {
   bottomDesc: string;
   header: string;
   headerDesc: string;
@@ -491,7 +556,7 @@ export interface ItopIntro
  * Represents a payment-related interface.
  */
 export interface IpaymentRelated
-extends IinvoiceRelated, IurId {
+extends IinvoiceRelated, IurId, ItrackStamp {
   payType?: TpayType;
   companyId?: string;
   paymentRelated?: string;
@@ -509,6 +574,7 @@ extends IinvoiceRelated, IurId {
   shipping?: number;
   manuallyAdded?: boolean;
   paymentMethod: TpaymentMethod; // momo, airtelmoney or braintree
+  orderStatus?: TorderStatus;
   // status: TorderStatus;
   // payments: string[] | IpaymentInstall[];
 }
@@ -546,6 +612,7 @@ export interface Icity {
  */
 export interface IpromoCode {
   urId: string;
+
   /** The user's company ID. */
   companyId?: string;
   code: string;
@@ -567,7 +634,7 @@ export interface IdeleteCredentialsLocalUser {
  * Represents the metadata of a file.
  */
 export interface IfileMeta
-  extends IdatabaseAuto {
+  extends IdatabaseAuto, ItrackStamp {
   userOrCompanayId?: string;
   name?: string;
   url: string;
@@ -587,7 +654,7 @@ export interface IsubscriptionFeature {
 }
 
 export interface IsubscriptionPackage
-extends IdatabaseAuto {
+extends IdatabaseAuto, ItrackStamp {
   name: string;
   ammount: number;
   duration: TsubscriptionDurVal; // in months
@@ -596,7 +663,7 @@ extends IdatabaseAuto {
 }
 
 export interface IcompanySubscription
-extends IdatabaseAuto {
+extends IdatabaseAuto, ItrackStamp {
   companyId: string;
   name: string;
   ammount: number;
@@ -618,4 +685,53 @@ export interface IsubscriptionDuration {
 export interface ImodelLimit {
   val: number;
   cost: number;
+}
+
+export interface IuserWallet
+extends IdatabaseAuto {
+  user: string | Iuser;
+  accountBalance: number;
+  currency: string; // defaults $
+}
+
+export interface IwalletHistory
+extends IdatabaseAuto {
+  wallet: string | IuserWallet;
+  amount: number;
+  type: 'withdrawal' | 'deposit';
+}
+
+export interface IecommerceRevenue
+extends IdatabaseAuto {
+  invoiceRelated: string | IinvoiceRelated;
+  amount: number;
+  expireAt?: string;
+}
+
+export interface ItrackView
+extends IdatabaseAuto {
+  parent: string;
+  users: {
+    _id: string | Iuser;
+    createdAt: string;
+    updatedAt: string;
+  }[];
+}
+
+export interface ItrackEdit
+extends IdatabaseAuto {
+  parent: string;
+  createdBy: string | Iuser;
+  users: {
+    _id: string | Iuser;
+    createdAt: string;
+    updatedAt: string;
+  }[];
+  deletedBy: string | Iuser;
+}
+
+
+export interface ItrackStamp {
+  trackEdit?: string | ItrackView;
+  trackView?: string | ItrackEdit;
 }

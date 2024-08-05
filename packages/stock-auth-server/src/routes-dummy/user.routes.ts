@@ -15,6 +15,7 @@ userAuthRoutesDummy.get('/authexpress/:companyIdParam', (req, res) => {
     user: createMockUser(),
     token: 'token'
   };
+
   return res.status(200).send(nowResponse);
 });
 
@@ -24,6 +25,7 @@ userAuthRoutesDummy.post('/login', (req, res) => {
     user: createMockUser(),
     token: 'token'
   };
+
   return res.status(200).send(nowResponse);
 });
 
@@ -31,10 +33,10 @@ userAuthRoutesDummy.post('/signup', (req, res) => {
   const response = {
     status: 200,
     success: true,
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     _id: '_id',
     phone: '077477484999'
   };
+
   res.status(200).send(response);
 });
 
@@ -44,6 +46,7 @@ userAuthRoutesDummy.post('recover', (req, res) => {
     message: 'Recovery email sent',
     type: '_link'
   };
+
   res.status(200).send(response);
 });
 
@@ -53,6 +56,7 @@ userAuthRoutesDummy.post('/confirm', (req, res) => {
     msg: 'Password reset successful',
     user: createMockUser()
   };
+
   res.status(200).send(response);
 });
 
@@ -62,6 +66,7 @@ userAuthRoutesDummy.put('/resetpaswd', (req, res) => {
     msg: 'Password reset successful',
     user: createMockUser()
   };
+
   res.status(200).send(response);
 });
 
@@ -74,6 +79,7 @@ userAuthRoutesDummy.post('/sociallogin', (req, res) => {
     success: true,
     user: createMockUser()
   };
+
   res.status(200).send(response);
 });
 
@@ -106,6 +112,7 @@ userAuthRoutesDummy.get('/getusers/:where/:offset/:limit/:companyIdParam', (req,
     count: req.params.limit,
     data: createMockUsers(req.params.limit)
   };
+
   res.status(200).send(response);
 });
 

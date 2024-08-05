@@ -42,6 +42,8 @@ export declare let customerLean: Model<Tcustomer>;
  * Represents a customer select statement.
  */
 export declare const customerSelect: {
+    trackEdit: number;
+    trackView: number;
     companyId: number;
     user: number;
     salutation: number;

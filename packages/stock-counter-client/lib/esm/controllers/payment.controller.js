@@ -18,7 +18,7 @@ export class PaymentController {
      * @returns An object containing the total cost, total shipping, and the final result.
      */
     calculateTargetPriceOrShipping(isShipping, data, city, promoCode) {
-        StockCounterClient.logger.debug('PaymentController:calculate:: - i: %i, data: %data, city: %city', isShipping, data, city);
+        StockCounterClient.logger.debug('PaymentController:calculate:: isShipping', isShipping, data, city);
         let res = 0;
         let totalCost;
         let totalShipping;
@@ -41,7 +41,7 @@ export class PaymentController {
                     res += j.totalCostwithNoShipping;
                 }
                 else {
-                    j.totalCostwithNoShipping = j.rate * j.item.quantity;
+                    j.totalCostwithNoShipping = j.item.costMeta.sellingPrice * j.quantity;
                     res += j.totalCostwithNoShipping;
                 }
             }
@@ -55,7 +55,7 @@ export class PaymentController {
               } else {
                 res += 0;
               }
-            }*/
+            } */
             if (city && city.shippingCost) {
                 res = city.shippingCost; // FOR NOW ALL ITEMS ON ONE SHIPPING COST
             }
@@ -83,7 +83,7 @@ export class PaymentController {
      * @returns An object containing the calculated total cost, total shipping, quantity, and tax value.
      */
     calculateTargetPriceAndShipping(data, city, promoCode, taxPercentage = 0) {
-        StockCounterClient.logger.debug('PaymentController:add:: - data: %data, city: %city', data, city);
+        StockCounterClient.logger.debug('PaymentController:add:: - data: ', data);
         const totalPdct = this.calculateTargetPriceOrShipping(false, data, city, promoCode);
         const totShip = this.calculateTargetPriceOrShipping(true, data, city, promoCode);
         const res = totalPdct.res + totShip.res;
@@ -114,7 +114,7 @@ export class PaymentController {
      */
     async getDeliveryCitys(companyId, deliveryCitys, address, isDemo = false) {
         if (!deliveryCitys?.length) {
-            const { count, citys } = await DeliveryCity
+            const { citys } = await DeliveryCity
                 .getDeliveryCitys(companyId);
             deliveryCitys = citys;
             if (!address) {

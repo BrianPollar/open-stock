@@ -5,22 +5,27 @@ import { connectAuthDatabase, isAuthDbConnected, mainConnection, mainConnectionL
  * Represents a login attempt.
  */
 export interface IloginAttempts extends Document {
+
   /**
    * The ID of the user attempting to login.
    */
   userId: string;
+
   /**
    * The IP address from which the login attempt was made.
    */
   ip: string;
+
   /**
    * Indicates whether the login attempt was successful or not.
    */
   successful: boolean;
+
   /**
    * The date and time when the login attempt was last updated.
    */
   updatedAt: string;
+
   /**
    * The date and time when the login attempt was created.
    */

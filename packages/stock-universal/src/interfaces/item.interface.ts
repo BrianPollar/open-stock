@@ -1,6 +1,5 @@
 import {
-  TitemColor, TitemState,
-  TpriceCurrenncy
+  TitemColor, TitemState
 } from '../types/union.types';
 import { IfileMeta } from './general.interface';
 import { IurId } from './inventory.interface';
@@ -68,6 +67,7 @@ export interface Iitem
   // The `inventoryMeta` property contains the inventory information for the item.
   inventoryMeta: IinventoryMeta[];
   ecomerceCompat: boolean;
+  soldCount: number;
 }
 
 /*
@@ -100,7 +100,7 @@ export interface IcostMeta {
   // The `costPrice` property is the price that the item was purchased for.
   costPrice: number;
   // The `currency` property is the currency that the prices are in.
-  currency: TpriceCurrenncy;
+  // currency: TpriceCurrenncy;
   // The `discount` property is the amount of the discount, if any.
   discount: number;
   // The `offer` property indicates whether the item is currently on offer.

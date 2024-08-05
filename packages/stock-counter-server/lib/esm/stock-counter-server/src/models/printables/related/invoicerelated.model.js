@@ -21,6 +21,8 @@ import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectio
  * @property {Array} payments - The payments made on the invoice.
  */
 const invoiceRelatedSchema = new Schema({
+    trackEdit: { type: Schema.ObjectId },
+    trackView: { type: Schema.ObjectId },
     companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
     creationType: { type: String },
     estimateId: { type: Number },
@@ -38,7 +40,9 @@ const invoiceRelatedSchema = new Schema({
     subTotal: { type: Number },
     total: { type: Number },
     payments: [],
-    payType: { type: String, index: true }
+    payType: { type: String, index: true },
+    ecommerceSale: { type: Boolean, index: true, default: false },
+    ecommerceSalePercentage: { type: Number, index: true, default: 0 }
 }, { timestamps: true });
 // Apply the uniqueValidator plugin to invoiceRelatedSchema.
 // invoiceRelatedSchema.plugin(uniqueValidator);
@@ -46,6 +50,8 @@ const invoiceRelatedSchema = new Schema({
  * for invoiceRelated
  */
 const invoiceRelatedselect = {
+    trackEdit: 1,
+    trackView: 1,
     companyId: 1,
     creationType: 1,
     estimateId: 1,
@@ -63,7 +69,9 @@ const invoiceRelatedselect = {
     subTotal: 1,
     total: 1,
     payments: 1,
-    payType: 1
+    payType: 1,
+    ecommerceSale: 1,
+    ecommerceSalePercentage: 1
 };
 /**
  * Represents the main invoice related model.

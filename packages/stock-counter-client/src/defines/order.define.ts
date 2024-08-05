@@ -1,3 +1,4 @@
+import { User } from '@open-stock/stock-auth-client';
 import {
   IbagainCredential, IdataArrayResponse, IdeleteCredentialsPayRel, IinvoiceRelated,
   Iorder,
@@ -10,7 +11,6 @@ import {
 import { lastValueFrom } from 'rxjs';
 import { StockCounterClient } from '../stock-counter-client';
 import { PaymentRelated } from './payment.define';
-import { User } from '@open-stock/stock-auth-client';
 
 
 /**
@@ -46,6 +46,7 @@ export class Order extends PaymentRelated {
   static async searchOrders(companyId: string, searchterm: string, searchKey: string) {
     const observer$ = StockCounterClient.ehttp.makePost(`/order/search/${companyId}`, { searchterm, searchKey });
     const orders = await lastValueFrom(observer$) as IdataArrayResponse;
+
     return orders.data.map(val => new Order(val as Required<Iorder>));
   }
 
@@ -58,6 +59,7 @@ export class Order extends PaymentRelated {
   static async deleteOrders(companyId: string, credentials: IdeleteCredentialsPayRel[]) {
     const observer$ = StockCounterClient.ehttp.makePut(`/order/deletemany/${companyId}`, { credentials });
     const deleted = await lastValueFrom(observer$) as Isuccess;
+
     return deleted;
   }
 
@@ -72,6 +74,7 @@ export class Order extends PaymentRelated {
   static async getOrders(companyId: string, url = 'getall', offset = 0, limit = 20) {
     const observer$ = StockCounterClient.ehttp.makeGet(`/order/${url}/${offset}/${limit}/${companyId}`);
     const orders = await lastValueFrom(observer$) as IdataArrayResponse;
+
     return {
       count: orders.count,
       orders: orders.data.map(val => new Order(val as Required<Iorder>)) };
@@ -86,6 +89,7 @@ export class Order extends PaymentRelated {
   static async getOneOrder(companyId: string, id: string) {
     const observer$ = StockCounterClient.ehttp.makeGet(`/order/getone/${id}`);
     const order = await lastValueFrom(observer$) as Required<Iorder>;
+
     return new Order(order);
   }
 
@@ -120,6 +124,7 @@ export class Order extends PaymentRelated {
         bagainCred,
         nonce
       });
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 
@@ -152,6 +157,7 @@ export class Order extends PaymentRelated {
         bagainCred,
         nonce
       });
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 
@@ -171,6 +177,7 @@ export class Order extends PaymentRelated {
   ) {
     const observer$ = StockCounterClient.ehttp
       .makePut(`/order/update/${companyId}`, { updatedOrder, paymentRelated, invoiceRelated });
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 
@@ -183,6 +190,7 @@ export class Order extends PaymentRelated {
   async appendDelivery(companyId: string, status: TorderStatus) {
     const observer$ = StockCounterClient.ehttp
       .makePut(`/appendDelivery/${this._id}/${status}`, {});
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 }

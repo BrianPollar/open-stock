@@ -33,6 +33,7 @@ export const validatePhone = (value): IvalidatorResult => {
       message: 'more than 15'
     };
   }
+
   return {
     valid: true,
     message: 'correct number format'

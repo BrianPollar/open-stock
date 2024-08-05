@@ -14,33 +14,46 @@ import { pesapalPaymentInstance } from '../../stock-auth-server';
 import { requireActiveCompany } from '../company-auth';
 
 /** Logger for companySubscription routes */
-const companySubscriptionRoutesLogger = tracer.colorConsole(
-  {
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-      // eslint-disable-next-line no-console
-      console.log(data.output);
-      const logDir = path.join(process.cwd() + '/openstockLog/');
-      fs.mkdir(logDir, { recursive: true }, (err) => {
-        if (err) {
-          if (err) {
-            // eslint-disable-next-line no-console
-            console.log('data.output err ', err);
-          }
-        }
-      });
-      fs.appendFile(logDir + '/auth-server.log', data.rawoutput + '\n', err => {
+const companySubscriptionRoutesLogger = tracer.colorConsole({
+  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+  dateformat: 'HH:MM:ss.L',
+  transport(data) {
+    // eslint-disable-next-line no-console
+    console.log(data.output);
+    const logDir = path.join(process.cwd() + '/openstockLog/');
+
+    fs.mkdir(logDir, { recursive: true }, (err) => {
+      if (err) {
         if (err) {
           // eslint-disable-next-line no-console
-          console.log('raw.output err ', err);
+          console.log('data.output err ', err);
         }
-      });
-    }
-  });
+      }
+    });
+    fs.appendFile(logDir + '/auth-server.log', data.rawoutput + '\n', err => {
+      if (err) {
+        // eslint-disable-next-line no-console
+        console.log('raw.output err ', err);
+      }
+    });
+  }
+});
 
-
-const firePesapalRelegator = async(subctn: IsubscriptionPackage, savedSub: TcompanySubscription, company: Icompany, currUser: Iuser) => {
+/**
+ * Fires the Pesapal relegator to initiate a payment for a company subscription.
+ *
+ * @param subctn - The subscription package details.
+ * @param savedSub - The saved company subscription document.
+ * @param company - The company details.
+ * @param currUser - The current user details.
+ * @returns An object with the success status and the Pesapal order response, or an error object if the operation fails.
+ */
+const firePesapalRelegator = async(
+  subctn: IsubscriptionPackage,
+  savedSub: TcompanySubscription,
+  company: Icompany,
+  currUser: Iuser
+) => {
   const payDetails = {
     id: savedSub._id.toString(),
     currency: 'USD',
@@ -64,21 +77,31 @@ const firePesapalRelegator = async(subctn: IsubscriptionPackage, savedSub: Tcomp
       zip_code: ''
     }
   } as unknown as IpayDetails;
-  const response = await pesapalPaymentInstance.submitOrder(payDetails, subctn._id, 'Complete product payment') ;
+  const response = await pesapalPaymentInstance.submitOrder(
+    payDetails,
+    subctn._id,
+    'Complete product payment'
+  );
+
   if (!response.success) {
     return { success: false, err: response.err };
   }
   const companySub = await companySubscriptionMain.findByIdAndUpdate(savedSub._id);
-  companySub.pesaPalorderTrackingId = response.pesaPalOrderRes.order_tracking_id;
+
+  companySub.pesaPalorderTrackingId =
+    response.pesaPalOrderRes.order_tracking_id;
   let savedErr: string;
-  await companySub.save().catch(err => {
+
+  await companySub.save().catch((err) => {
     companySubscriptionRoutesLogger.error('save error', err);
     savedErr = err;
+
     return null;
   });
   if (savedErr) {
     return { success: false };
   }
+
   return {
     success: true,
     pesaPalOrderRes: {
@@ -88,8 +111,15 @@ const firePesapalRelegator = async(subctn: IsubscriptionPackage, savedSub: Tcomp
 };
 
 
+/**
+ * Calculates the number of days based on the provided duration.
+ *
+ * @param duration - The duration in months.
+ * @returns The number of days for the given duration.
+ */
 export const getDays = (duration: number) => {
   let response: number;
+
   switch (duration) {
     case 1:
       response = 30;
@@ -107,8 +137,10 @@ export const getDays = (duration: number) => {
       response = 12 * 30;
       break;
   }
+
   return response;
 };
+
 /**
  * Router for handling companySubscription-related routes.
  */
@@ -122,6 +154,7 @@ companySubscriptionRoutes.post('/subscribe/:companyIdParam', requireAuth, requir
   let response;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -149,26 +182,33 @@ companySubscriptionRoutes.post('/subscribe/:companyIdParam', requireAuth, requir
   const savedSub = await newCompSub.save().catch(err => {
     companySubscriptionRoutesLogger.error('save error', err);
     savedErr = err;
+
     return null;
   });
+
   if (savedErr) {
     return res.status(500).send({ success: false });
   }
 
   if (companyId !== 'superAdmin') {
     const company = await companyLean.findById(companyId).lean();
+
     if (!company) {
       await companySubscriptionMain.deleteOne({ _id: savedSub._id });
+
       return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const currUser = await userLean.findOne({ _id: company.owner }).lean();
+
     if (!currUser) {
       await companySubscriptionMain.deleteOne({ _id: savedSub._id });
+
       return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     response = await firePesapalRelegator(subscriptionPackage, savedSub, company, currUser);
     if (!response.success) {
       await companySubscriptionMain.deleteOne({ _id: savedSub._id });
+
       return res.status(401).send({ success: false, status: 401, err: response.err });
     }
   }
@@ -180,6 +220,7 @@ companySubscriptionRoutes.get('/getall/:offset/:limit/:companyIdParam', requireA
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
   const { companyId } = (req as Icustomrequest).user;
   let query;
+
   if (companyId !== 'superAdmin') {
     query = { companyId };
   } else {
@@ -197,6 +238,7 @@ companySubscriptionRoutes.get('/getall/:offset/:limit/:companyIdParam', requireA
     count: all[1],
     data: all[0]
   };
+
   return res.status(200).send(response);
 });
 
@@ -206,11 +248,13 @@ companySubscriptionRoutes.put('/deleteone/:companyIdParam', requireAuth, require
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectIds([id, queryId]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const deleted = await companySubscriptionMain.findOneAndDelete({ _id: id, companyId: queryId });
+
   if (Boolean(deleted)) {
     return res.status(200).send({ success: Boolean(deleted) });
   } else {

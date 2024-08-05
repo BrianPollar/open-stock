@@ -44,6 +44,8 @@ export declare let staffLean: Model<Tstaff>;
  * The staffSelect constant represents the selection of staff members.
  */
 export declare const staffSelect: {
+    trackEdit: number;
+    trackView: number;
     companyId: number;
     user: number;
     startDate: number;

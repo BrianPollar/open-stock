@@ -49,7 +49,7 @@ exports.salesReportRoutes = express_1.default.Router();
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>} - Promise object represents the response
  */
-exports.salesReportRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'create'), async (req, res, next) => {
+exports.salesReportRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'create'), async (req, res) => {
     const salesReport = req.body.salesReport;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -60,7 +60,6 @@ exports.salesReportRoutes.post('/create/:companyIdParam', stock_universal_server
     }
     salesReport.companyId = queryId;
     const count = await salesreport_model_1.salesReportMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     salesReport.urId = (0, stock_universal_server_1.makeUrId)(Number(count[0]?.urId || '0'));
     const newSalesReport = new salesreport_model_1.salesReportMain(salesReport);
@@ -231,7 +230,6 @@ exports.salesReportRoutes.put('/deletemany/:companyIdParam', stock_universal_ser
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const deleted = await salesreport_model_1.salesReportMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .deleteMany({ companyId: queryId, _id: { $in: ids } })
         .catch(err => {
         salesReportRoutesLogger.error('deletemany - err: ', err);

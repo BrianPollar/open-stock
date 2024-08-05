@@ -1,3 +1,4 @@
+import { ItrackStamp } from '@open-stock/stock-universal';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
 const uniqueValidator = require('mongoose-unique-validator');
@@ -6,21 +7,29 @@ const uniqueValidator = require('mongoose-unique-validator');
  * Represents a promotional code.
  */
 export interface Ipromocode
-extends Document {
+extends Document, ItrackStamp {
+
   /** The unique identifier of the user. */
   urId: string;
+
   /** The user's company ID. */
   companyId: string;
+
   /** The code of the promotional code. */
   code: string;
+
   /** The amount associated with the promotional code. */
   amount: number;
+
   /** The items associated with the promotional code. */
   items: string[];
+
   /** The room ID associated with the promotional code. */
   roomId: string;
+
   /** The state of the promotional code. */
   state: string;
+
   /** The expiration date of the promotional code. */
   expireAt: string;
 }
@@ -37,6 +46,8 @@ extends Document {
  * @param {boolean} timestamps - The timestamps for the promocode.
  */
 const promocodeSchema: Schema<Ipromocode> = new Schema({
+  trackEdit: { type: Schema.ObjectId },
+  trackView: { type: Schema.ObjectId },
   urId: { type: String },
   companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
   code: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
@@ -47,8 +58,10 @@ const promocodeSchema: Schema<Ipromocode> = new Schema({
   expireAt: { type: String }
 }, { timestamps: true });
 
-promocodeSchema.index({ expireAt: 1 },
-  { expireAfterSeconds: 3600 }); // after 1 hour
+promocodeSchema.index(
+  { expireAt: 1 },
+  { expireAfterSeconds: 3600 }
+); // after 1 hour
 
 // Apply the uniqueValidator plugin to promocodeSchema.
 promocodeSchema.plugin(uniqueValidator);
@@ -57,6 +70,8 @@ promocodeSchema.plugin(uniqueValidator);
  * for promocode
  */
 const promocodeselect = {
+  trackEdit: 1,
+  trackView: 1,
   urId: 1,
   companyId: 1,
   code: 1,

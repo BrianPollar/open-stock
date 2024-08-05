@@ -11,30 +11,30 @@ import { invoiceRelatedLean, invoiceRelatedMain } from '../../models/printables/
 import { deleteAllLinked, makeInvoiceRelatedPdct, relegateInvRelatedCreation } from './related/invoicerelated';
 
 /** Logger for estimate routes */
-const estimateRoutesogger = tracer.colorConsole(
-  {
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-      // eslint-disable-next-line no-console
-      console.log(data.output);
-      const logDir = path.join(process.cwd() + '/openstockLog/');
-      fs.mkdir(logDir, { recursive: true }, (err) => {
-        if (err) {
-          if (err) {
-            // eslint-disable-next-line no-console
-            console.log('data.output err ', err);
-          }
-        }
-      });
-      fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
+const estimateRoutesogger = tracer.colorConsole({
+  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+  dateformat: 'HH:MM:ss.L',
+  transport(data) {
+    // eslint-disable-next-line no-console
+    console.log(data.output);
+    const logDir = path.join(process.cwd() + '/openstockLog/');
+
+    fs.mkdir(logDir, { recursive: true }, (err) => {
+      if (err) {
         if (err) {
           // eslint-disable-next-line no-console
-          console.log('raw.output err ', err);
+          console.log('data.output err ', err);
         }
-      });
-    }
-  });
+      }
+    });
+    fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
+      if (err) {
+        // eslint-disable-next-line no-console
+        console.log('raw.output err ', err);
+      }
+    });
+  }
+});
 
 /**
  * Generates a new estimate ID by finding the highest existing estimate ID and incrementing it by 1.
@@ -47,9 +47,9 @@ const estimateRoutesogger = tracer.colorConsole(
  */
 const makeEstimateId = async(queryId: string) => {
   const count = await invoiceRelatedMain
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .find({ companyId: queryId, estimateId: { $exists: true, $ne: null } }).sort({ _id: -1 }).limit(1).lean().select({ estimateId: 1 });
   let incCount = count[0]?.estimateId || 0;
+
   return ++incCount;
 };
 
@@ -65,9 +65,11 @@ export const updateEstimateUniv = async(
   estimateId: number,
   stage: TestimateStage,
   queryId: string,
-  invoiceId?: number) => {
+  invoiceId?: number
+) => {
   const estimate = await estimateMain
     .findOneAndUpdate({ estimateId, companyId: queryId });
+
   if (!estimate) {
     return false;
   }
@@ -76,14 +78,17 @@ export const updateEstimateUniv = async(
   }
   (estimate as IinvoiceRelated).stage = stage;
   let savedErr: string;
+
   await estimate.save().catch(err => {
     estimateRoutesogger.error('save error', err);
     savedErr = err;
+
     return null;
   });
   if (savedErr) {
     return false;
   }
+
   return true;
 };
 
@@ -102,6 +107,7 @@ estimateRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -110,12 +116,15 @@ estimateRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany
   invoiceRelated.estimateId = await makeEstimateId(companyId);
   const extraNotifDesc = 'Newly created estimate';
   const invoiceRelatedRes = await relegateInvRelatedCreation(invoiceRelated, queryId, extraNotifDesc);
+
   if (!invoiceRelatedRes.success) {
     return res.status(invoiceRelatedRes.status).send(invoiceRelatedRes);
   }
   estimate.invoiceRelated = invoiceRelatedRes.id;
   const newEstimate = new estimateMain(estimate);
   let errResponse: Isuccess;
+
+
   /**
    * Saves a new estimate and returns a response object.
    * @param {Estimate} newEstimate - The new estimate to be saved.
@@ -134,12 +143,14 @@ estimateRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany
         errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
       }
+
       return errResponse;
     });
 
   if (errResponse) {
     return res.status(403).send(errResponse);
   }
+
   return next();
 }, requireUpdateSubscriptionRecord('quotation'));
 
@@ -155,6 +166,7 @@ estimateRoutes.get('/getone/:estimateId/:companyIdParam', requireAuth, requireAc
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -164,12 +176,15 @@ estimateRoutes.get('/getone/:estimateId/:companyIdParam', requireAuth, requireAc
     .populate({ path: 'billingUserId', model: userLean })
     .populate({ path: 'payments', model: receiptLean });
   let returned;
+
   if (invoiceRelated) {
     returned = makeInvoiceRelatedPdct(
       invoiceRelated as Required<IinvoiceRelated>,
         (invoiceRelated as IinvoiceRelated)
-          .billingUserId as unknown as Iuser);
+          .billingUserId as unknown as Iuser
+    );
   }
+
   return res.status(200).send(returned);
 });
 
@@ -185,6 +200,7 @@ estimateRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requir
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -207,13 +223,16 @@ estimateRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requir
   ]);
 
   const returned = all[0]
-    .map(val => makeInvoiceRelatedPdct(val.invoiceRelated as Required<IinvoiceRelated>,
+    .map(val => makeInvoiceRelatedPdct(
+val.invoiceRelated as Required<IinvoiceRelated>,
       (val.invoiceRelated as IinvoiceRelated)
-        .billingUserId as unknown as Iuser));
+        .billingUserId as unknown as Iuser
+    ));
   const response: IdataArrayResponse = {
     count: all[1],
     data: returned
   };
+
   return res.status(200).send(response);
 });
 
@@ -229,10 +248,12 @@ estimateRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompa
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectIds([id, queryId]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const deleted = await deleteAllLinked(invoiceRelated, creationType, stage, 'estimate', companyId);
+
   if (Boolean(deleted)) {
     return res.status(200).send({ success: Boolean(deleted) });
   } else {
@@ -252,6 +273,7 @@ estimateRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, requi
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -274,13 +296,16 @@ estimateRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, requi
     estimateLean.countDocuments({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
   ]);
   const returned = all[0]
-    .map(val => makeInvoiceRelatedPdct(val.invoiceRelated as Required<IinvoiceRelated>,
+    .map(val => makeInvoiceRelatedPdct(
+val.invoiceRelated as Required<IinvoiceRelated>,
       (val.invoiceRelated as IinvoiceRelated)
-        .billingUserId as unknown as Iuser));
+        .billingUserId as unknown as Iuser
+    ));
   const response: IdataArrayResponse = {
     count: all[1],
     data: returned
   };
+
   return res.status(200).send(response);
 });
 
@@ -290,21 +315,25 @@ estimateRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveComp
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   if (!credentials || credentials?.length < 1) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
+
   /** await estimateMain
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .deleteMany({ _id: { $in: ids } });**/
   const promises = credentials
     .map(async val => {
       await deleteAllLinked(val.invoiceRelated, val.creationType, val.stage, 'estimate', queryId);
+
       return new Promise(resolve => resolve(true));
     });
+
   await Promise.all(promises);
+
   return res.status(200).send({ success: true });
 });
 

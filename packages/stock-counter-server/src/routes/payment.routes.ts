@@ -30,30 +30,30 @@ import { receiptLean } from '../models/printables/receipt.model';
 import { pesapalPaymentInstance } from '../stock-counter-server';
 import { relegateInvRelatedCreation } from './printables/related/invoicerelated';
 
-const paymentRoutesLogger = tracer.colorConsole(
-  {
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-      // eslint-disable-next-line no-console
-      console.log(data.output);
-      const logDir = path.join(process.cwd() + '/openstockLog/');
-      fs.mkdir(logDir, { recursive: true }, (err) => {
-        if (err) {
-          if (err) {
-            // eslint-disable-next-line no-console
-            console.log('data.output err ', err);
-          }
-        }
-      });
-      fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
+const paymentRoutesLogger = tracer.colorConsole({
+  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+  dateformat: 'HH:MM:ss.L',
+  transport(data) {
+    // eslint-disable-next-line no-console
+    console.log(data.output);
+    const logDir = path.join(process.cwd() + '/openstockLog/');
+
+    fs.mkdir(logDir, { recursive: true }, (err) => {
+      if (err) {
         if (err) {
           // eslint-disable-next-line no-console
-          console.log('raw.output err ', err);
+          console.log('data.output err ', err);
         }
-      });
-    }
-  });
+      }
+    });
+    fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
+      if (err) {
+        // eslint-disable-next-line no-console
+        console.log('raw.output err ', err);
+      }
+    });
+  }
+});
 
 /**
  * Express router for payment routes.
@@ -71,35 +71,39 @@ paymentRoutes.post('/create/:companyIdParam', requireAuth, async(req, res) => {
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   payment.companyId = queryId;
   const { paymentRelated, invoiceRelated } = req.body;
+
   if (!payment) {
     payment = {
       paymentRelated: ''
     };
   }
   const extraNotifDesc = 'Newly created order';
-  const paymentRelatedRes = await relegatePaymentRelatedCreation(
-    paymentRelated, invoiceRelated, 'order', extraNotifDesc, queryId);
+  const paymentRelatedRes = await relegatePaymentRelatedCreation(paymentRelated, invoiceRelated, 'order', extraNotifDesc, queryId);
+
   if (!paymentRelatedRes.success) {
     return res.status(paymentRelatedRes.status).send(paymentRelatedRes);
   }
   payment.paymentRelated = paymentRelatedRes.id;
 
   const payments = invoiceRelated.payments.slice();
+
   invoiceRelated.payments.length = 0;
   invoiceRelated.payments = [];
   const invoiceRelatedRes = await relegateInvRelatedCreation(invoiceRelated as Required<IinvoiceRelated>, companyId, extraNotifDesc, true);
+
   if (!invoiceRelatedRes.success) {
     return res.status(invoiceRelatedRes.status).send(invoiceRelatedRes);
   }
   payment.invoiceRelated = invoiceRelatedRes.id;
 
   if (payments && payments.length) {
-    await makePaymentInstall(payments, invoiceRelatedRes.id, queryId);
+    await makePaymentInstall(payments, invoiceRelatedRes.id, queryId, invoiceRelated.creationType);
   }
   const newPaymt = new paymentMain(payment);
   let errResponse: Isuccess;
@@ -116,12 +120,14 @@ paymentRoutes.post('/create/:companyIdParam', requireAuth, async(req, res) => {
         errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
       }
+
       return errResponse;
     });
 
   if (errResponse) {
     return res.status(403).send(errResponse);
   }
+
   return res.status(200).send({ success: Boolean(saved) });
 });
 
@@ -130,18 +136,20 @@ paymentRoutes.put('/update/:companyIdParam', requireAuth, async(req, res) => {
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const { updatedPayment, paymentRelated } = req.body;
+
   updatedPayment.companyId = queryId;
   paymentRelated.companyId = queryId;
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const { _id } = updatedPayment;
   const isValid = verifyObjectIds([_id, queryId]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
 
   const payment = await paymentMain
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .findOneAndUpdate({ _id, companyId: queryId });
+
   if (!payment) {
     return res.status(404).send({ success: false });
   }
@@ -162,12 +170,14 @@ paymentRoutes.put('/update/:companyIdParam', requireAuth, async(req, res) => {
         errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
       }
+
       return errResponse;
     });
 
   if (errResponse) {
     return res.status(403).send(errResponse);
   }
+
   return res.status(200).send({ success: Boolean(updated) });
 });
 
@@ -178,11 +188,11 @@ paymentRoutes.get('/getone/:id/:companyIdParam', requireAuth, async(req, res) =>
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectIds([id, queryId]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const payment = await paymentLean
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .findOne({ _id: id, companyId: queryId })
     .lean()
     .populate({ path: 'paymentRelated', model: paymentRelatedLean })
@@ -197,21 +207,23 @@ paymentRoutes.get('/getone/:id/:companyIdParam', requireAuth, async(req, res) =>
       {
         path: 'items.item', model: itemLean,
         populate: [{
-          // eslint-disable-next-line @typescript-eslint/naming-convention
           path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
         }]
       }
       ]
     });
   let returned;
+
   if (payment) {
     returned = makePaymentRelatedPdct(
       payment.paymentRelated as Required<IpaymentRelated>,
       payment.invoiceRelated as Required<IinvoiceRelated>,
       (payment.invoiceRelated as IinvoiceRelated)
         .billingUserId as unknown as Iuser,
-      payment);
+      payment
+    );
   }
+
   return res.status(200).send(returned);
 });
 
@@ -221,6 +233,7 @@ paymentRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, require
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -242,7 +255,6 @@ paymentRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, require
         {
           path: 'items.item', model: itemLean,
           populate: [{
-          // eslint-disable-next-line @typescript-eslint/naming-convention
             path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
           }]
         }]
@@ -255,17 +267,20 @@ paymentRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, require
       val.invoiceRelated as Required<IinvoiceRelated>,
       (val.invoiceRelated as IinvoiceRelated)
         .billingUserId as unknown as Iuser,
-      val));
+      val
+    ));
   const response: IdataArrayResponse = {
     count: all[1],
     data: returned
   };
+
   return res.status(200).send(response);
 });
 
 paymentRoutes.get('/getmypayments/:offset/:limit/:companyIdParam', requireAuth, async(req, res) => {
   const { userId } = (req as unknown as Icustomrequest).user;
   const isValid = verifyObjectId(userId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -285,7 +300,6 @@ paymentRoutes.get('/getmypayments/:offset/:limit/:companyIdParam', requireAuth, 
         {
           path: 'items.item', model: itemLean,
           populate: [{
-          // eslint-disable-next-line @typescript-eslint/naming-convention
             path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
           }]
         }]
@@ -298,11 +312,13 @@ paymentRoutes.get('/getmypayments/:offset/:limit/:companyIdParam', requireAuth, 
       val.invoiceRelated as Required<IinvoiceRelated>,
       (val.invoiceRelated as IinvoiceRelated)
         .billingUserId as unknown as Iuser,
-      val));
+      val
+    ));
   const response: IdataArrayResponse = {
     count: all[1],
     data: returned
   };
+
   return res.status(200).send(response);
 });
 
@@ -312,10 +328,12 @@ paymentRoutes.put('/deleteone/:companyIdParam', requireAuth, requireSuperAdmin, 
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const { id, paymentRelated, invoiceRelated, creationType, where } = req.body;
   const isValid = verifyObjectIds([id, queryId]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const deleted = await deleteAllPayOrderLinked(paymentRelated, invoiceRelated, creationType, where, queryId);
+
   // await paymentMain.findByIdAndDelete(id);
   if (Boolean(deleted)) {
     return res.status(200).send({ success: Boolean(deleted) });
@@ -330,6 +348,7 @@ paymentRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, requir
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -352,7 +371,6 @@ paymentRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, requir
         {
           path: 'items.item', model: itemLean,
           populate: [{
-          // eslint-disable-next-line @typescript-eslint/naming-convention
             path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
           }]
         }]
@@ -365,11 +383,13 @@ paymentRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, requir
       val.invoiceRelated as Required<IinvoiceRelated>,
       (val.invoiceRelated as IinvoiceRelated)
         .billingUserId as unknown as Iuser,
-      val));
+      val
+    ));
   const response: IdataArrayResponse = {
     count: all[1],
     data: returned
   };
+
   return res.status(200).send(response);
 });
 
@@ -379,21 +399,25 @@ paymentRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompa
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   if (!credentials || credentials?.length < 1) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
+
   /** await paymentMain
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .deleteMany({ _id: { $in: ids } });**/
   const promises = credentials
     .map(async val => {
       await deleteAllPayOrderLinked(val.paymentRelated, val.invoiceRelated, val.creationType, val.where, queryId);
+
       return new Promise(resolve => resolve(true));
     });
+
   await Promise.all(promises);
+
   return res.status(200).send({ success: true });
 });
 
@@ -407,21 +431,29 @@ paymentRoutes.get('/ipn', async(req, res) => {
   const orderTrackingId = searchParams.get('OrderTrackingId') ;
   const orderNotificationType = searchParams.get('OrderNotificationType') ;
   const orderMerchantReference = searchParams.get('OrderMerchantReference') ;
-  paymentRoutesLogger.info('ipn - searchParams, %orderTrackingId:, %orderNotificationType:, %orderMerchantReference:',
-    orderTrackingId, orderNotificationType, orderMerchantReference);
+
+  paymentRoutesLogger.info(
+    'ipn - searchParams, %orderTrackingId:, %orderNotificationType:, %orderMerchantReference:',
+    orderTrackingId,
+    orderNotificationType,
+    orderMerchantReference
+  );
 
   const companySub = await companySubscriptionLean.findOne({ pesaPalorderTrackingId: orderTrackingId }).lean();
 
   if (companySub) {
     await updateCompanySubStatus(orderTrackingId);
     await companySub.save();
+
     return res.status(200).send({ success: true });
   }
 
   let savedErr: string;
+
   companySub.save().catch(err => {
     paymentRoutesLogger.error('save error', err);
     savedErr = err;
+
     return null;
   });
   if (savedErr) {
@@ -436,23 +468,29 @@ paymentRoutes.get('/ipn', async(req, res) => {
 
   // return relegatePesaPalNotifications(orderTrackingId, orderNotificationType, orderMerchantReference);
   const response = await pesapalPaymentInstance.getTransactionStatus(orderTrackingId);
+
   if ((response as { success: boolean }).success) {
     await updateInvoicerelatedStatus(orderTrackingId);
   }
+
   return response;
 });
 
 
 paymentRoutes.get('/paymentstatus/:orderTrackingId/:paymentRelated', async(req, res) => {
   const { orderTrackingId } = req.params;
+
   if (!pesapalPaymentInstance) {
     return res.status(403).send({ success: false, err: 'missing some info' });
   }
   const response = await pesapalPaymentInstance.getTransactionStatus(orderTrackingId);
+
   if ((response as {success: boolean}).success) {
     const resp = await updateInvoicerelatedStatus(orderTrackingId);
+
     return res.status(200).send({ success: resp.success });
   }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return res.status(403).send({ success: (response as any).success, err: (response as any).err });
 });
@@ -460,14 +498,24 @@ paymentRoutes.get('/paymentstatus/:orderTrackingId/:paymentRelated', async(req, 
 
 paymentRoutes.get('/subscriptiopaystatus/:orderTrackingId/:subscriptionId', async(req, res) => {
   const { orderTrackingId } = req.params;
+
   if (!pesapalPaymentInstance) {
     return res.status(403).send({ success: false, err: 'missing some info' });
   }
   const response = await pesapalPaymentInstance.getTransactionStatus(orderTrackingId);
+
   if ((response as {success: boolean}).success) {
-    const resp = await updateInvoicerelatedStatus(orderTrackingId);
-    return res.status(200).send({ success: resp.success });
+    const subscription = await companySubscriptionMain.findOne({ subscriptionId: req.params.subscriptionId });
+
+    subscription.active = true;
+    subscription.status = 'paid'; // TODO
+    await subscription.save();
+
+    // TODO update subscription no invoicerelated
+    // const resp = await updateInvoicerelatedStatus(orderTrackingId);
+    return res.status(200).send({ success: true });
   }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return res.status(403).send({ success: (response as any).success, err: (response as any).err });
 });
@@ -475,6 +523,7 @@ paymentRoutes.get('/subscriptiopaystatus/:orderTrackingId/:subscriptionId', asyn
 export const updateInvoicerelatedStatus = async(orderTrackingId: string) => {
   const toUpdate = await invoiceRelatedMain
     .findOneAndUpdate({ pesaPalorderTrackingId: orderTrackingId });
+
   if (toUpdate) {
     toUpdate.status = 'paid';
     let errResponse: Isuccess;
@@ -490,6 +539,7 @@ export const updateInvoicerelatedStatus = async(orderTrackingId: string) => {
         errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
       }
+
       return errResponse;
     });
 
@@ -497,6 +547,7 @@ export const updateInvoicerelatedStatus = async(orderTrackingId: string) => {
       return errResponse;
     }
   }
+
   return { success: true };
 };
 
@@ -504,6 +555,7 @@ export const updateInvoicerelatedStatus = async(orderTrackingId: string) => {
 export const updateCompanySubStatus = async(orderTrackingId: string) => {
   const toUpdate = await companySubscriptionMain
     .findOneAndUpdate({ pesaPalorderTrackingId: orderTrackingId });
+
   if (toUpdate) {
     toUpdate.status = 'paid';
     let errResponse: Isuccess;
@@ -519,6 +571,7 @@ export const updateCompanySubStatus = async(orderTrackingId: string) => {
         errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
       }
+
       return errResponse;
     });
 
@@ -526,5 +579,6 @@ export const updateCompanySubStatus = async(orderTrackingId: string) => {
       return errResponse;
     }
   }
+
   return { success: true };
 };

@@ -20,6 +20,7 @@ class Item extends stock_universal_1.DatabaseAuto {
         this.photos = [];
         /** The quantity of the item ordered. */
         this.orderedQty = 1;
+        this.soldCount = 0;
         this.appndPdctCtror(data);
     }
     /**
@@ -121,7 +122,6 @@ class Item extends stock_universal_1.DatabaseAuto {
         let updated;
         const details = {
             item: {
-                // eslint-disable-next-line @typescript-eslint/naming-convention
                 _id: this._id,
                 ...vals
             }
@@ -258,7 +258,6 @@ class Item extends stock_universal_1.DatabaseAuto {
      */
     async deleteFiles(companyId, filesWithDir) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             .makePut(`/item/deletefiles/${companyId}`, { filesWithDir, item: { _id: this._id } });
         const deleted = await (0, rxjs_1.lastValueFrom)(observer$);
         // eslint-disable-next-line @typescript-eslint/no-unsafe-return
@@ -328,6 +327,7 @@ class Item extends stock_universal_1.DatabaseAuto {
             return val;
         });
         this.ecomerceCompat = data.ecomerceCompat || this.ecomerceCompat;
+        this.soldCount = data.soldCount || this.soldCount;
     }
 }
 exports.Item = Item;

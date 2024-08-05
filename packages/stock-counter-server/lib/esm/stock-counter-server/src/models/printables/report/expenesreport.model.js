@@ -3,6 +3,8 @@ import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectio
 const uniqueValidator = require('mongoose-unique-validator');
 /** Mongoose schema for the expense report document. */
 const expenseReportSchema = new Schema({
+    trackEdit: { type: Schema.ObjectId },
+    trackView: { type: Schema.ObjectId },
     urId: { type: String },
     companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
     totalAmount: { type: Number },
@@ -13,6 +15,8 @@ const expenseReportSchema = new Schema({
 expenseReportSchema.plugin(uniqueValidator);
 /** Primary selection object for expense report document. */
 const expenseReportselect = {
+    trackEdit: 1,
+    trackView: 1,
     urId: 1,
     companyId: 1,
     totalAmount: 1,

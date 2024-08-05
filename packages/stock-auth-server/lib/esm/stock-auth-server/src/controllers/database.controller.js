@@ -26,7 +26,7 @@ const dbConnectionsLogger = tracer.colorConsole({
         });
     }
 });
-/** The  mainConnection  and  mainConnectionLean  variables are used to store the main connections to the database*/
+/** The  mainConnection  and  mainConnectionLean  variables are used to store the main connections to the database */
 export let mainConnection;
 export let mainConnectionLean;
 /**  The  isAuthDbConnected  variable is a flag to indicate whether the authentication database is connected. */

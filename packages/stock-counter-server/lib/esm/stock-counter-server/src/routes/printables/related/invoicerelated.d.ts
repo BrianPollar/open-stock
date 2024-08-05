@@ -64,6 +64,8 @@ export declare const makeInvoiceRelatedPdct: (invoiceRelated: Required<IinvoiceR
     billingUserPhoto: string | import("@open-stock/stock-universal").IfileMeta;
     createdAt: Date;
     payments: string[] | Ireceipt[];
+    ecommerceSale: boolean;
+    ecommerceSalePercentage: number;
 };
 /**
  * Deletes multiple invoice-related documents.
@@ -99,3 +101,8 @@ export declare const deleteManyInvoiceRelated: (ids: string[], queryId: string) 
  * @returns A promise that resolves to an object indicating the success of the deletion operation.
  */
 export declare const deleteAllLinked: (invoiceRelated: string, creationType: TinvoiceType, stage: TestimateStage, from: TestimateStage, queryId: string) => Promise<Isuccess>;
+export declare const updateItemsInventory: (related: string | IinvoiceRelated) => Promise<boolean>;
+export declare const canMakeReceipt: (relatedId: string) => Promise<boolean>;
+export declare const getPaymentsTotal: (payments: string[]) => Promise<number>;
+export declare const updateCustomerDueAmount: (userId: string, amount: number, reduce: boolean) => Promise<boolean>;
+export declare const transFormInvoiceRelatedOnStatus: (oldRelated: IinvoiceRelated, newRelated: IinvoiceRelated) => Required<IinvoiceRelated>;

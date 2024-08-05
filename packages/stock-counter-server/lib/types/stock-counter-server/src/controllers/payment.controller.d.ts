@@ -38,5 +38,12 @@ export declare const relegatePesapalPayment: (paymentRelated: Required<IpaymentR
     success: boolean;
     status: number;
     pesapalOrderRes: import("pesapal3").IorderResponse;
-    paymentRelated: any;
+    paymentRelated: string;
+}>;
+export declare const trackOrder: (refereceId: string) => Promise<{
+    success: boolean;
+    orderStatus?: undefined;
+} | {
+    success: boolean;
+    orderStatus: import("@open-stock/stock-universal").TorderStatus;
 }>;

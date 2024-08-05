@@ -4,6 +4,8 @@ exports.createInvoiceModel = exports.invoiceSelect = exports.invoiceLean = expor
 const mongoose_1 = require("mongoose");
 const database_controller_1 = require("../../controllers/database.controller");
 const invoiceSchema = new mongoose_1.Schema({
+    trackEdit: { type: mongoose_1.Schema.ObjectId },
+    trackView: { type: mongoose_1.Schema.ObjectId },
     companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
     invoiceRelated: { type: String },
     dueDate: { type: Date }
@@ -12,6 +14,8 @@ const invoiceSchema = new mongoose_1.Schema({
  * for invoice
  */
 const invoiceselect = {
+    trackEdit: 1,
+    trackView: 1,
     companyId: 1,
     invoiceRelated: 1,
     dueDate: 1

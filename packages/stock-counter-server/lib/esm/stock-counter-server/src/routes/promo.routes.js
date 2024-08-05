@@ -57,7 +57,6 @@ promocodeRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompan
     }
     const code = makeRandomString(8, 'combined');
     const count = await promocodeMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     const urId = makeUrId(Number(count[0]?.urId || '0'));
     const promocode = {
@@ -111,7 +110,6 @@ promocodeRoutes.get('/getone/:id/:companyIdParam', requireAuth, requireActiveCom
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const promocode = await promocodeLean
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .findOne({ _id: id, companyId: queryId })
         .lean();
     return res.status(200).send(promocode);

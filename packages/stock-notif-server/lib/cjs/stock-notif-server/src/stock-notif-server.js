@@ -47,10 +47,10 @@ exports.runStockNotificationServer = runStockNotificationServer;
 const getCurrentNotificationSettings = async (companyId) => {
     const isValid = (0, stock_universal_server_1.verifyObjectId)(companyId);
     if (!isValid) {
-        return {};
+        return { success: false };
     }
     const stn = await notifsetting_model_1.notifSettingMain.findOne({ companyId }).lean();
-    return stn;
+    return { success: true, stn };
 };
 exports.getCurrentNotificationSettings = getCurrentNotificationSettings;
 /**

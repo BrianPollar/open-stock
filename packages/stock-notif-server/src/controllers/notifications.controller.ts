@@ -28,30 +28,30 @@ import { notificationSettings } from '../stock-notif-local';
 const sgMail = require('@sendgrid/mail');
 
 
-const notificationsControllerLogger = tracer.colorConsole(
-  {
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-      // eslint-disable-next-line no-console
-      console.log(data.output);
-      const logDir = path.join(process.cwd() + '/openstockLog/');
-      fs.mkdir(logDir, { recursive: true }, (err) => {
-        if (err) {
-          if (err) {
-            // eslint-disable-next-line no-console
-            console.log('data.output err ', err);
-          }
-        }
-      });
-      fs.appendFile(logDir + '/notif-server.log', data.rawoutput + '\n', err => {
+const notificationsControllerLogger = tracer.colorConsole({
+  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+  dateformat: 'HH:MM:ss.L',
+  transport(data) {
+    // eslint-disable-next-line no-console
+    console.log(data.output);
+    const logDir = path.join(process.cwd() + '/openstockLog/');
+
+    fs.mkdir(logDir, { recursive: true }, (err) => {
+      if (err) {
         if (err) {
           // eslint-disable-next-line no-console
-          console.log('raw.output err ', err);
+          console.log('data.output err ', err);
         }
-      });
-    }
-  });
+      }
+    });
+    fs.appendFile(logDir + '/notif-server.log', data.rawoutput + '\n', err => {
+      if (err) {
+        // eslint-disable-next-line no-console
+        console.log('raw.output err ', err);
+      }
+    });
+  }
+});
 
 /**
  * Determines whether a user has an email address.
@@ -82,7 +82,7 @@ export const determineUserHasMail = (user: Iuser) => {
     users: true
   };
   return stn;
-};*/
+}; */
 
 /**
    * Registers a new user with Authy.
@@ -113,7 +113,7 @@ export const determineUserHasMail = (user: Iuser) => {
       }
     );
   });
-};*/
+}; */
 
 /**
    * Requests an SMS token from Authy for the given user.
@@ -133,7 +133,7 @@ export const determineUserHasMail = (user: Iuser) => {
         }
       });
   });
-};*/
+}; */
 export const sendToken = (
   phone: string,
   countryCode: string,
@@ -149,9 +149,11 @@ export const sendToken = (
       }).catch(err => {
         if (err) {
           reject(err);
+
           return;
         }
       });
+
     /* notificationSettings.twilioClient.messages.create({
       to: countryCode + phone.toString(),
       from: notificationSettings.twilioNumber,
@@ -164,7 +166,7 @@ export const sendToken = (
         reject(err);
         return;
       }
-    });*/
+    }); */
   });
 };
 
@@ -191,6 +193,7 @@ export const sendSms = (
     }).catch(err => {
       if (err) {
         reject(err);
+
         return;
       }
     });
@@ -219,13 +222,14 @@ export const verifyAuthyToken = (phone: string, countryCode: string, code: strin
       }).catch(err => {
         reject(err);
       });
+
     /* notificationSettings.authy.verify(authyId, otp, (err, response) => {
       if (err) {
         reject(err);
       } else {
         resolve(response);
       }
-    });*/
+    }); */
   });
 };
 
@@ -270,8 +274,10 @@ export const sendMail = async(mailOptions) => {
         notificationsControllerLogger.info('message sent', response);
         resolve({ response });
       }, error => {
-        notificationsControllerLogger.error('email verication with token error',
-          JSON.stringify(error));
+        notificationsControllerLogger.error(
+          'email verication with token error',
+          JSON.stringify(error)
+        );
         reject(error);
       });
   });
@@ -303,9 +309,13 @@ export const constructMailService = (
     publicKey: vapidKeys.publicKey,
     privateKey: vapidKeys.privateKey
   };
-  webPush.setVapidDetails(vapidDetails.subject,
+
+  webPush.setVapidDetails(
+    vapidDetails.subject,
     vapidDetails.publicKey,
-    vapidDetails.privateKey);
+    vapidDetails.privateKey
+  );
+
   /* const options = {
     vapidDetails: {
       subject: 'mailto:example_email@example.com',
@@ -313,7 +323,7 @@ export const constructMailService = (
       privateKey: vapidKeys.privateKey
     },
     TTL: 60
-  };*/
+  }; */
 };
 
 /**
@@ -324,17 +334,20 @@ export const constructMailService = (
 export const createNotifSetting = async(stn): Promise<Isuccess> => {
   let errResponse: Isuccess;
   const notifMain = new notifSettingMain(stn);
+
   await notifMain.save().catch(err => {
     const errResponse: Isuccess = {
       success: false,
       status: 403
     };
+
     if (err && err.errors) {
       errResponse.err = stringifyMongooseErr(err.errors);
     } else {
       errResponse.err = `we are having problems connecting to our databases, 
       try again in a while`;
     }
+
     return errResponse;
   });
 
@@ -389,7 +402,9 @@ export const createPayload = (
       }
     }
   };
+
   notificationsControllerLogger.debug('createPayload - payload: ', payload);
+
   return payload;
 };
 
@@ -402,9 +417,10 @@ export const createPayload = (
 export const updateNotifnViewed = async(user: Iauthtoken, id: string) => {
   notificationsControllerLogger.info('updateNotifnViewed - user: ', user);
   const { userId } = user;
+
   await mainnotificationMain
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .updateOne({ _id: id }, { $push: { viewed: userId } });
+
   return true;
 };
 
@@ -445,6 +461,7 @@ export const makeNotfnBody = (
   } as Imainnotification;
 
   notificationsControllerLogger.debug('makeNotfnBody - notification', notification);
+
   return notification;
 };
 
@@ -456,6 +473,7 @@ export const createNotifications = async(data: {notification: Imainnotification;
       notificationsControllerLogger.error('save Error', err);
     }
   });
+
   return true;
 };
 
@@ -463,6 +481,7 @@ export const createNotifStn = async(stn: InotifSetting): Promise<Isuccess> => {
   const notifMain = new notifSettingMain(stn);
 
   let errResponse: Isuccess;
+
   await notifMain.save().catch(err => {
     errResponse = {
       success: false,
@@ -474,12 +493,14 @@ export const createNotifStn = async(stn: InotifSetting): Promise<Isuccess> => {
       errResponse.err = `we are having problems connecting to our databases, 
       try again in a while`;
     }
+
     return errResponse;
   });
 
   if (errResponse) {
     return errResponse;
   }
+
   return {
     success: true,
     status: 200

@@ -48,7 +48,7 @@ exports.invoicesReportRoutes = express_1.default.Router();
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware
  */
-exports.invoicesReportRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'create'), async (req, res, next) => {
+exports.invoicesReportRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'create'), async (req, res) => {
     const invoicesReport = req.body.invoicesReport;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -59,7 +59,6 @@ exports.invoicesReportRoutes.post('/create/:companyIdParam', stock_universal_ser
     }
     invoicesReport.companyId = queryId;
     const count = await invoicereport_model_1.invoicesReportMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     invoicesReport.urId = (0, stock_universal_server_1.makeUrId)(Number(count[0]?.urId || '0'));
     const newInvoiceReport = new invoicereport_model_1.invoicesReportMain(invoicesReport);
@@ -223,7 +222,6 @@ exports.invoicesReportRoutes.put('/deletemany/:companyIdParam', stock_universal_
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const deleted = await invoicereport_model_1.invoicesReportMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .deleteMany({ companyId: queryId, _id: { $in: ids } })
         .catch(err => {
         invoicesReportRoutesLogger.error('deletemany - err: ', err);

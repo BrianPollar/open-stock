@@ -43,6 +43,8 @@ export declare let deliverycityLean: Model<Tdeliverycity>;
  * Represents the selection of delivery cities.
  */
 export declare const deliverycitySelect: {
+    trackEdit: number;
+    trackView: number;
     companyId: number;
     name: number;
     shippingCost: number;

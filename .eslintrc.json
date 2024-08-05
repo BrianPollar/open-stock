@@ -10,6 +10,88 @@
     "es6": true
   },
   "rules": {
+    // member spacing
+    "lines-between-class-members": [
+      "error",
+      "always",
+      {
+        "exceptAfterSingleLine": true
+      }
+    ],
+    "spaced-comment": [
+      "error",
+      "always",
+      {
+        "line": {
+          "markers": [
+            "/"
+          ],
+          "exceptions": [
+            "-",
+            "+"
+          ]
+        },
+        "block": {
+          "markers": [
+            "!"
+          ],
+          "exceptions": [
+            "*"
+          ],
+          "balanced": true
+        }
+      }
+    ],
+    "lines-around-comment": [
+      "error",
+      {
+        "beforeBlockComment": true,
+        "allowBlockStart": true,
+        "allowBlockEnd": true,
+        "allowObjectStart": true,
+        "allowObjectEnd": true,
+        "allowArrayStart": true,
+        "allowArrayEnd": true
+      }
+    ],
+    "padding-line-between-statements": [
+      "error",
+      {
+        "blankLine": "always",
+        "prev": [
+          "const",
+          "let",
+          "var"
+        ],
+        "next": "*"
+      },
+      {
+        "blankLine": "any",
+        "prev": [
+          "const",
+          "let",
+          "var"
+        ],
+        "next": [
+          "const",
+          "let",
+          "var"
+        ]
+      },
+      {
+        "blankLine": "always",
+        "prev": "*",
+        "next": "return"
+      }
+    ],
+    "function-paren-newline": [
+      "error",
+      "multiline"
+    ],
+    "function-call-argument-newline": [
+      "error",
+      "consistent"
+    ],
     "func-name-matching": 0,
     "indent": [
       2,
@@ -173,7 +255,7 @@
     ],
     "space-infix-ops": 2,
     "space-unary-ops": 2,
-    "spaced-comment": 2,
+    // "spaced-comment": 2,
     "use-isnan": 2,
     //"valid-jsdoc": 2,
     "valid-typeof": 2,
@@ -209,7 +291,11 @@
               "camelCase"
             ],
             "leadingUnderscore": "forbid",
-            "trailingUnderscore": "forbid"
+            "trailingUnderscore": "forbid",
+            "filter": {
+              "regex": "(_id)",
+              "match": false
+            }
           },
           {
             "selector": "variable",
@@ -318,13 +404,13 @@
             ]
           }
         ],
-        "@typescript-eslint/quotes": [
+        /* "@typescript-eslint/quotes": [
           "error",
           "single",
           {
             "allowTemplateLiterals": true
           }
-        ],
+        ],*/
         "@typescript-eslint/member-delimiter-style": [
           "error",
           {

@@ -10,30 +10,30 @@ import { expenseLean } from '../../../models/expense.model';
 import { expenseReportLean, expenseReportMain } from '../../../models/printables/report/expenesreport.model';
 
 /** Logger for expense report routes */
-const expenseReportRoutesLogger = tracer.colorConsole(
-  {
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-      // eslint-disable-next-line no-console
-      console.log(data.output);
-      const logDir = path.join(process.cwd() + '/openstockLog/');
-      fs.mkdir(logDir, { recursive: true }, (err) => {
-        if (err) {
-          if (err) {
-            // eslint-disable-next-line no-console
-            console.log('data.output err ', err);
-          }
-        }
-      });
-      fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
+const expenseReportRoutesLogger = tracer.colorConsole({
+  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+  dateformat: 'HH:MM:ss.L',
+  transport(data) {
+    // eslint-disable-next-line no-console
+    console.log(data.output);
+    const logDir = path.join(process.cwd() + '/openstockLog/');
+
+    fs.mkdir(logDir, { recursive: true }, (err) => {
+      if (err) {
         if (err) {
           // eslint-disable-next-line no-console
-          console.log('raw.output err ', err);
+          console.log('data.output err ', err);
         }
-      });
-    }
-  });
+      }
+    });
+    fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
+      if (err) {
+        // eslint-disable-next-line no-console
+        console.log('raw.output err ', err);
+      }
+    });
+  }
+});
 
 /**
  * Expense report routes.
@@ -51,22 +51,25 @@ export const expenseReportRoutes = express.Router();
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>} Promise representing the result of the operation
  */
-expenseReportRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'create'), async(req, res, next) => {
+expenseReportRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'create'), async(req, res) => {
   const expenseReport = req.body.expenseReport;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+
   expenseReport.companyId = queryId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const count = await expenseReportMain
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+
   expenseReport.urId = makeUrId(Number(count[0]?.urId || '0'));
   const newExpenseReport = new expenseReportMain(expenseReport);
   let errResponse: Isuccess;
+
   await newExpenseReport.save().catch(err => {
     errResponse = {
       success: false,
@@ -78,12 +81,14 @@ expenseReportRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCo
       errResponse.err = `we are having problems connecting to our databases, 
       try again in a while`;
     }
+
     return errResponse;
   });
 
   if (errResponse) {
     return res.status(403).send(errResponse);
   }
+
   return res.status(200).send({ success: true });
 });
 
@@ -104,6 +109,7 @@ expenseReportRoutes.get('/getone/:urId/:companyIdParam', requireAuth, requireAct
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -111,6 +117,7 @@ expenseReportRoutes.get('/getone/:urId/:companyIdParam', requireAuth, requireAct
     .findOne({ urId, companyId: queryId })
     .lean()
     .populate({ path: 'expenses', model: expenseLean });
+
   return res.status(200).send(expenseReport);
 });
 
@@ -131,6 +138,7 @@ expenseReportRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, r
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -152,6 +160,7 @@ expenseReportRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, r
     count: all[1],
     data: all[0]
   };
+
   return res.status(200).send(response);
 });
 
@@ -172,11 +181,13 @@ expenseReportRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, requir
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectIds([id, queryId]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const deleted = await expenseReportMain.findOneAndDelete({ _id: id, companyId: queryId });
+
   if (Boolean(deleted)) {
     return res.status(200).send({ success: Boolean(deleted) });
   } else {
@@ -201,6 +212,7 @@ expenseReportRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, 
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -218,6 +230,7 @@ expenseReportRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, 
     count: all[1],
     data: all[0]
   };
+
   return res.status(200).send(response);
 });
 
@@ -238,17 +251,19 @@ expenseReportRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiv
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectIds([...ids, ...[queryId]]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
 
   const deleted = await expenseReportMain
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .deleteMany({ companyId: queryId, _id: { $in: ids } })
     .catch(err => {
       expenseReportRoutesLogger.error('deletemany - err: ', err);
+
       return null;
     });
+
   if (Boolean(deleted)) {
     return res.status(200).send({ success: Boolean(deleted) });
   } else {

@@ -50,7 +50,6 @@ export const faqRoutes = express.Router();
 faqRoutes.post('/create/:companyIdParam', async (req, res) => {
     const faq = req.body.faq;
     const count = await faqMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     faq.urId = makeUrId(Number(count[0]?.urId || '0'));
     const newFaq = new faqMain(faq);
@@ -94,12 +93,10 @@ faqRoutes.get('/getone/:id/:companyIdParam', async (req, res) => {
     let filter;
     if (companyIdParam !== 'undefined') {
         ids = [id, companyIdParam];
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         filter = { _id: id, companyId: companyIdParam };
     }
     else {
         ids = [id];
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         filter = { _id: id };
     }
     const isValid = verifyObjectIds(ids);
@@ -159,12 +156,10 @@ faqRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, requireActiveCom
     let ids;
     if (companyIdParam !== 'undefined') {
         ids = [id, companyIdParam];
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         filter = { _id: id, companyId: companyIdParam };
     }
     else {
         ids = [id];
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         filter = { _id: id, companyId };
     }
     const isValid = verifyObjectIds(ids);

@@ -97,7 +97,6 @@ export * from './models/faq.model';
 export * from './models/faqanswer.model';
 export * from './models/item.model';
 export * from './models/itemdecoy.model';
-export * from './models/itemlimitted.model';
 export * from './models/itemoffer.model';
 export * from './models/order.model';
 export * from './models/payment.model';
@@ -124,6 +123,7 @@ export * from './routes/printables/settings/invoicesettings.routes';
 
 export * from './routes/user-related/customer.routes';
 export * from './routes/user-related/staff.routes';
+export * from './routes/user-related/wallet.routes';
 
 export * from './routes/cookies.routes';
 export * from './routes/deliverycity.routes';

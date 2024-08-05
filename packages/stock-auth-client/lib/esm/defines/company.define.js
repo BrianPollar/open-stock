@@ -3,7 +3,9 @@ import { lastValueFrom } from 'rxjs';
 import { StockAuthClient } from '../stock-auth-client';
 import { User } from './user.define';
 /**
- * Represents a company and extends the DatabaseAuto class. It has properties that correspond to the fields in the company object, and methods for updating, deleting, and managing the company's profile, addresses, and permissions.
+ * Represents a company and extends the DatabaseAuto class. It has properties that
+ * correspond to the fields in the company object, and methods for updating, deleting, a
+ * nd managing the company's profile, addresses, and permissions.
  */
 export class Company extends DatabaseAuto {
     /**
@@ -124,7 +126,6 @@ export class Company extends DatabaseAuto {
      */
     async deleteImages(companyId, filesWithDir) {
         const observer$ = StockAuthClient.ehttp
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             .makePut(`/company/deleteimages/${companyId}`, { filesWithDir, company: { _id: this._id } });
         const deleted = await lastValueFrom(observer$);
         // eslint-disable-next-line @typescript-eslint/no-unsafe-return
@@ -140,7 +141,6 @@ export class Company extends DatabaseAuto {
     async deleteCompany(companyId) {
         const observer$ = StockAuthClient.ehttp
             .makePut(`/company/deleteone/${companyId}`, {
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             _id: this._id,
             filesWithDir: [{
                     filename: this.profilePic
@@ -175,6 +175,7 @@ export class Company extends DatabaseAuto {
             this.dateLeft = data.dateLeft || this.dateLeft;
             this.blocked = data.blocked || this.blocked;
             this.verified = data.verified || this.verified;
+            this.address = data.address || this.address;
             this.owner = typeof data.owner === 'object' ? new User(data.owner) : data.owner;
         }
     }

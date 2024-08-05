@@ -5,30 +5,30 @@ import * as tracer from 'tracer';
 
 
 // This vat creates a passportLogger named `controllers/passport`.
-const passportLogger = tracer.colorConsole(
-  {
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-      // eslint-disable-next-line no-console
-      console.log(data.output);
-      const logDir = path.join(process.cwd() + '/openstockLog/');
-      fs.mkdir(logDir, { recursive: true }, (err) => {
-        if (err) {
-          if (err) {
-            // eslint-disable-next-line no-console
-            console.log('data.output err ', err);
-          }
-        }
-      });
-      fs.appendFile(logDir + '/universal-server.log', data.rawoutput + '\n', err => {
+const passportLogger = tracer.colorConsole({
+  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+  dateformat: 'HH:MM:ss.L',
+  transport(data) {
+    // eslint-disable-next-line no-console
+    console.log(data.output);
+    const logDir = path.join(process.cwd() + '/openstockLog/');
+
+    fs.mkdir(logDir, { recursive: true }, (err) => {
+      if (err) {
         if (err) {
           // eslint-disable-next-line no-console
-          console.log('raw.output err ', err);
+          console.log('data.output err ', err);
         }
-      });
-    }
-  });
+      }
+    });
+    fs.appendFile(logDir + '/universal-server.log', data.rawoutput + '\n', err => {
+      if (err) {
+        // eslint-disable-next-line no-console
+        console.log('raw.output err ', err);
+      }
+    });
+  }
+});
 
 // This var imports the `passport` module.
 const passport = require('passport');
@@ -76,7 +76,8 @@ export const roleAuthorisation = (nowRole: TroleAuth, permProp: TroleAuthProp, m
   return (
     req,
     res,
-    next) => {
+    next
+  ) => {
     // Get the user's permissions from the request object.
     const { permissions } = (req as Icustomrequest).user;
 
@@ -88,13 +89,16 @@ export const roleAuthorisation = (nowRole: TroleAuth, permProp: TroleAuthProp, m
         permissions[nowRole][permProp] &&
         permissions[nowRole][permProp] === true) {
       passportLogger.debug('roleAuthorisation - permissions', permissions);
+
       return next();
     } else if (mayBeProfile) {
       req.body.profileOnly = 'true';
+
       return next();
     } else {
       // Otherwise, return a 401 Unauthorized error.
       passportLogger.error(`roleAuthorisation - unauthorised to access: ${nowRole}`);
+
       return res.status(401)
         .send('unauthorised');
     }

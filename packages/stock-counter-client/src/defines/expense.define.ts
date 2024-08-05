@@ -1,4 +1,4 @@
-import { DatabaseAuto, IdataArrayResponse, Iexpense, Isuccess, TexpenseCategory } from '@open-stock/stock-universal';
+import { DatabaseAuto, IdataArrayResponse, Iexpense, IsubscriptionFeatureState, Isuccess, TexpenseCategory } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
 import { StockCounterClient } from '../stock-counter-client';
 import { Item } from './item.define';
@@ -10,6 +10,7 @@ import { Item } from './item.define';
 export class Expense extends DatabaseAuto {
   /** The unique identifier of the expense. */
   urId: string;
+
   /** The user's company ID. */
   companyId: string;
 
@@ -62,6 +63,7 @@ export class Expense extends DatabaseAuto {
   static async getExpenses(companyId: string, url = 'getall', offset = 0, limit = 20) {
     const observer$ = StockCounterClient.ehttp.makeGet(`/expense/${url}/${offset}/${limit}/${companyId}`);
     const expenses = await lastValueFrom(observer$) as IdataArrayResponse;
+
     return {
       count: expenses.count,
       expenses: expenses.data.map((val) => new Expense(val as Iexpense))
@@ -79,6 +81,7 @@ export class Expense extends DatabaseAuto {
   static async getOneExpense(companyId: string, urId: string) {
     const observer$ = StockCounterClient.ehttp.makeGet(`/expense/getone/${urId}/${companyId}`);
     const expense = await lastValueFrom(observer$) as Iexpense;
+
     return new Expense(expense);
   }
 
@@ -88,11 +91,12 @@ export class Expense extends DatabaseAuto {
    * @async
    * @param companyId - The ID of the company
    * @param {Iexpense} vals - The values to create the expense with.
-   * @returns {Promise<Isuccess>} A success response.
+   * @returns {Promise<IsubscriptionFeatureState>} A success response.
    */
   static async addExpense(companyId: string, vals: Iexpense) {
     const observer$ = StockCounterClient.ehttp.makePost(`/expense/create/${companyId}`, vals);
-    return await lastValueFrom(observer$) as Isuccess;
+
+    return await lastValueFrom(observer$) as IsubscriptionFeatureState;
   }
 
   /**
@@ -105,6 +109,7 @@ export class Expense extends DatabaseAuto {
    */
   static async deleteExpenses(companyId: string, ids: string[]) {
     const observer$ = StockCounterClient.ehttp.makePut(`/expense/deletemany/${companyId}`, { ids });
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 
@@ -117,6 +122,7 @@ export class Expense extends DatabaseAuto {
    */
   async updateExpense(companyId: string, vals: Iexpense) {
     const observer$ = StockCounterClient.ehttp.makePut(`/expense/update/${companyId}`, vals);
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 
@@ -128,6 +134,7 @@ export class Expense extends DatabaseAuto {
    */
   async deleteExpense(companyId: string) {
     const observer$ = StockCounterClient.ehttp.makeDelete(`/expense/deleteone/${this._id}/${companyId}`);
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 }

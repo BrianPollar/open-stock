@@ -13,7 +13,7 @@ invoiceSettingRoutesDummy.post('/createimg/:companyIdParam', (req, res) => {
 invoiceSettingRoutesDummy.put('/update/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });
 });
-invoiceSettingRoutesDummy.put('/updateimg/:companyIdParam', (req, res) => {
+invoiceSettingRoutesDummy.post('/updateimg/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });
 });
 invoiceSettingRoutesDummy.get('/getone/:id/:companyIdParam', (req, res) => {

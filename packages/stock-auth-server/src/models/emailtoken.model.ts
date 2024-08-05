@@ -7,18 +7,22 @@ const uniqueValidator = require('mongoose-unique-validator');
  * Represents an email token.
  */
 export interface IEmailtoken extends Document {
+
   /**
    * The ID of the user associated with the token.
    */
   userId: string;
+
   /**
    * The token value.
    */
   token: string;
+
   /**
    * The date and time when the token was last updated.
    */
   updatedAt: string;
+
   /**
    * The date and time when the token was created.
    */

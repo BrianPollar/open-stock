@@ -57,7 +57,6 @@ exports.itemDecoyRoutes.post('/create/:how/:companyIdParam', stock_universal_ser
     itemdecoy.companyId = queryId;
     // Get the count of existing decoys and generate a new urId
     const count = await itemdecoy_model_1.itemDecoyMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     const urId = (0, stock_universal_server_1.makeUrId)(Number(count[0]?.urId || '0'));
     let decoy;
@@ -153,7 +152,6 @@ exports.itemDecoyRoutes.get('/getall/:offset/:limit/:companyIdParam', async (req
             .populate({
             path: 'items', model: item_model_1.itemLean,
             populate: [{
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                 }
             ]
@@ -187,12 +185,10 @@ exports.itemDecoyRoutes.get('/getone/:id/:companyIdParam', async (req, res) => {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const items = await itemdecoy_model_1.itemDecoyLean
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .findOne({ _id: id })
         .populate({
         path: 'items', model: item_model_1.itemLean,
         populate: [{
-                // eslint-disable-next-line @typescript-eslint/naming-convention
                 path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
             }
         ]
@@ -238,7 +234,6 @@ exports.itemDecoyRoutes.put('/deletemany/:companyIdParam', stock_universal_serve
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const deleted = await itemdecoy_model_1.itemDecoyMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .deleteMany({ _id: { $in: ids }, companyId: queryId })
         .catch(err => {
         itemDecoyRoutesLogger.error('deletemany - err: ', err);

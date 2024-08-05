@@ -42,6 +42,8 @@ export declare let taxReportLean: Model<TtaxReport>;
  * for taxReport
  */
 export declare const taxReportSelect: {
+    trackEdit: number;
+    trackView: number;
     urId: number;
     companyId: number;
     totalAmount: number;

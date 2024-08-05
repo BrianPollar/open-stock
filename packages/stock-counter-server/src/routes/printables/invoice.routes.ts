@@ -8,37 +8,38 @@ import * as tracer from 'tracer';
 import { invoiceLean, invoiceMain } from '../../models/printables/invoice.model';
 import { receiptLean, receiptMain } from '../../models/printables/receipt.model';
 import { invoiceRelatedLean, invoiceRelatedMain } from '../../models/printables/related/invoicerelated.model';
+import { makePaymentInstall } from '../paymentrelated/paymentrelated';
 import {
   deleteAllLinked,
   makeInvoiceRelatedPdct,
-  relegateInvRelatedCreation, updateInvoiceRelated, updateInvoiceRelatedPayments
+  relegateInvRelatedCreation, updateInvoiceRelated
 } from './related/invoicerelated';
 
 /** Logger for invoice routes */
-const invoiceRoutesLogger = tracer.colorConsole(
-  {
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-      // eslint-disable-next-line no-console
-      console.log(data.output);
-      const logDir = path.join(process.cwd() + '/openstockLog/');
-      fs.mkdir(logDir, { recursive: true }, (err) => {
-        if (err) {
-          if (err) {
-            // eslint-disable-next-line no-console
-            console.log('data.output err ', err);
-          }
-        }
-      });
-      fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
+const invoiceRoutesLogger = tracer.colorConsole({
+  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+  dateformat: 'HH:MM:ss.L',
+  transport(data) {
+    // eslint-disable-next-line no-console
+    console.log(data.output);
+    const logDir = path.join(process.cwd() + '/openstockLog/');
+
+    fs.mkdir(logDir, { recursive: true }, (err) => {
+      if (err) {
         if (err) {
           // eslint-disable-next-line no-console
-          console.log('raw.output err ', err);
+          console.log('data.output err ', err);
         }
-      });
-    }
-  });
+      }
+    });
+    fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
+      if (err) {
+        // eslint-disable-next-line no-console
+        console.log('raw.output err ', err);
+      }
+    });
+  }
+});
 
 /**
  * Generates a new invoice ID based on the given query ID.
@@ -47,9 +48,9 @@ const invoiceRoutesLogger = tracer.colorConsole(
  */
 const makeinvoiceId = async(queryId: string): Promise<number> => {
   const count = await invoiceRelatedMain
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .find({ companyId: queryId, invoiceId: { $exists: true, $ne: null } }).sort({ _id: -1 }).limit(1).lean().select({ invoiceId: 1 });
   let incCount = count[0]?.invoiceId || 0;
+
   return ++incCount;
 };
 
@@ -71,6 +72,7 @@ export const saveInvoice = async(
   invoiceRelated.invoiceId = await makeinvoiceId(queryId);
   const extraNotifDesc = 'Newly created invoice';
   const relatedId = await relegateInvRelatedCreation(invoiceRelated, queryId, extraNotifDesc);
+
   if (!relatedId.success) {
     return relatedId;
   }
@@ -92,6 +94,7 @@ export const saveInvoice = async(
         errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
       }
+
       return errResponse;
     });
 
@@ -100,6 +103,7 @@ export const saveInvoice = async(
       ...errResponse
     };
   }
+
   // await updateInvoiceRelated(invoiceRelated); // !! WHY CALL THIS
   // eslint-disable-next-line @typescript-eslint/naming-convention
   return { success: true, status: 200, id: (saved as {_id: string})._id, invoiceRelatedId: relatedId.id };
@@ -122,6 +126,7 @@ invoiceRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany,
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -132,6 +137,7 @@ invoiceRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany,
   if (!response.success) {
     return res.status(response.status).send({ success: response.success });
   }
+
   return next();
 }, requireUpdateSubscriptionRecord('invoice'));
 
@@ -146,18 +152,20 @@ invoiceRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCompany, 
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+
   updatedInvoice.companyId = queryId;
   invoiceRelated.companyId = queryId;
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const { _id } = updatedInvoice;
   const isValid = verifyObjectIds([_id, queryId]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
 
   const invoice = await invoiceMain
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .findOneAndUpdate({ _id, companyId: queryId });
+
   if (!invoice) {
     return res.status(404).send({ success: false });
   }
@@ -177,12 +185,14 @@ invoiceRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCompany, 
         errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
       }
+
       return errResponse;
     });
 
   if (errResponse) {
     return res.status(403).send(errResponse);
   }
+
   return res.status(200).send({ success: Boolean(updated) });
 });
 
@@ -198,6 +208,7 @@ invoiceRoutes.get('/getone/:invoiceId/:companyIdParam', requireAuth, requireActi
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -207,12 +218,15 @@ invoiceRoutes.get('/getone/:invoiceId/:companyIdParam', requireAuth, requireActi
     .populate({ path: 'billingUserId', model: userLean })
     .populate({ path: 'payments', model: invoiceRelatedLean });
   let returned;
+
   if (invoiceRelated) {
     returned = makeInvoiceRelatedPdct(
       invoiceRelated as Required<IinvoiceRelated>,
       (invoiceRelated as IinvoiceRelated)
-        .billingUserId as unknown as Iuser);
+        .billingUserId as unknown as Iuser
+    );
   }
+
   return res.status(200).send(returned);
 });
 
@@ -222,6 +236,7 @@ invoiceRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, require
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -243,13 +258,16 @@ invoiceRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, require
     invoiceLean.countDocuments({ companyId: queryId })
   ]);
   const returned = all[0]
-    .map(val => makeInvoiceRelatedPdct(val.invoiceRelated as Required<IinvoiceRelated>,
+    .map(val => makeInvoiceRelatedPdct(
+val.invoiceRelated as Required<IinvoiceRelated>,
       (val.invoiceRelated as IinvoiceRelated)
-        .billingUserId as unknown as Iuser));
+        .billingUserId as unknown as Iuser
+    ));
   const response: IdataArrayResponse = {
     count: all[1],
     data: returned
   };
+
   return res.status(200).send(response);
 });
 
@@ -259,10 +277,12 @@ invoiceRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompan
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectIds([id, queryId]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const deleted = await deleteAllLinked(invoiceRelated, creationType, stage, 'invoice', queryId);
+
   if (Boolean(deleted)) {
     return res.status(200).send({ success: Boolean(deleted) });
   } else {
@@ -276,6 +296,7 @@ invoiceRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, requir
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -298,14 +319,17 @@ invoiceRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, requir
     invoiceLean.countDocuments({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
   ]);
   const returned = all[0]
-    .map(val => makeInvoiceRelatedPdct(val.invoiceRelated as Required<IinvoiceRelated>,
+    .map(val => makeInvoiceRelatedPdct(
+val.invoiceRelated as Required<IinvoiceRelated>,
       (val.invoiceRelated as IinvoiceRelated)
-        .billingUserId as unknown as Iuser));
+        .billingUserId as unknown as Iuser
+    ));
 
   const response: IdataArrayResponse = {
     count: all[1],
     data: returned
   };
+
   return res.status(200).send(response);
 });
 
@@ -315,21 +339,25 @@ invoiceRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompa
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   if (!credentials || credentials?.length < 1) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
+
   /** await invoiceMain
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .deleteMany({ _id: { $in: ids } });**/
   const promises = credentials
     .map(async val => {
       await deleteAllLinked(val.invoiceRelated, val.creationType, val.stage, 'invoice', queryId);
+
       return new Promise(resolve => resolve(true));
     });
+
   await Promise.all(promises);
+
   return res.status(200).send({ success: true });
 });
 
@@ -340,16 +368,17 @@ invoiceRoutes.post('/createpayment/:companyIdParam', requireAuth, requireActiveC
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   pay.companyId = queryId;
   const count = await receiptLean
-  // eslint-disable-next-line @typescript-eslint/naming-convention
     .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+
   pay.urId = makeUrId(Number(count[0]?.urId || '0'));
 
-  const newInvoicePaym = new receiptMain(pay);
+  /* const newInvoicePaym = new receiptMain(pay);
   let errResponse: Isuccess;
   const saved = await newInvoicePaym.save().catch(err => {
     errResponse = {
@@ -360,7 +389,7 @@ invoiceRoutes.post('/createpayment/:companyIdParam', requireAuth, requireActiveC
     if (err && err.errors) {
       errResponse.err = stringifyMongooseErr(err.errors);
     } else {
-      errResponse.err = `we are having problems connecting to our databases, 
+      errResponse.err = `we are having problems connecting to our databases,
       try again in a while`;
     }
     return errResponse;
@@ -368,13 +397,15 @@ invoiceRoutes.post('/createpayment/:companyIdParam', requireAuth, requireActiveC
 
   if (errResponse) {
     return res.status(403).send(errResponse);
-  }
+  } */
 
-  await updateInvoiceRelatedPayments(saved as unknown as Ireceipt, queryId);
+  await makePaymentInstall(pay as unknown as Ireceipt, pay.invoiceRelated, queryId, pay.creationType);
+
   return res.status(200).send({ success: true });
 });
 
-invoiceRoutes.put('/updatepayment/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'update'), async(req, res) => {
+// TODO remove define related caller
+/* invoiceRoutes.put('/updatepayment/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'update'), async(req, res) => {
   const pay = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
@@ -385,8 +416,9 @@ invoiceRoutes.put('/updatepayment/:companyIdParam', requireAuth, requireActiveCo
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
 
+  await updateInvoiceRelated(invoiceRelated, queryId);
+
   const foundPay = await receiptMain
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .findByIdAndUpdate(pay._id);
   if (!foundPay) {
     return res.status(404).send({ success: false });
@@ -401,7 +433,7 @@ invoiceRoutes.put('/updatepayment/:companyIdParam', requireAuth, requireActiveCo
     if (err && err.errors) {
       errResponse.err = stringifyMongooseErr(err.errors);
     } else {
-      errResponse.err = `we are having problems connecting to our databases, 
+      errResponse.err = `we are having problems connecting to our databases,
       try again in a while`;
     }
     return errResponse;
@@ -412,7 +444,7 @@ invoiceRoutes.put('/updatepayment/:companyIdParam', requireAuth, requireActiveCo
   }
 
   return res.status(200).send({ success: true });
-});
+}); */
 
 invoiceRoutes.get('/getonepayment/:urId/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'read'), async(req, res) => {
   const { urId } = req.params;
@@ -422,6 +454,7 @@ invoiceRoutes.get('/getonepayment/:urId/:companyIdParam', requireAuth, requireAc
   const invoicePay = await receiptLean
     .findOne({ urId, companyId: queryId })
     .lean();
+
   return res.status(200).send(invoicePay);
 });
 
@@ -430,6 +463,7 @@ invoiceRoutes.get('/getallpayments/:companyIdParam', requireAuth, requireActiveC
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -443,6 +477,7 @@ invoiceRoutes.get('/getallpayments/:companyIdParam', requireAuth, requireActiveC
     count: all[1],
     data: all[0]
   };
+
   return res.status(200).send(response);
 });
 
@@ -452,10 +487,12 @@ invoiceRoutes.put('/deleteonepayment/:companyIdParam', requireAuth, requireActiv
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectIds([id, queryId]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const deleted = await deleteAllLinked(invoiceRelated, creationType, stage, 'invoice', queryId);
+
   if (Boolean(deleted)) {
     return res.status(200).send({ success: Boolean(deleted) });
   } else {
@@ -469,17 +506,19 @@ invoiceRoutes.put('/deletemanypayments/:companyIdParam', requireAuth, requireAct
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectIds([...ids, ...[queryId]]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
 
   const deleted = await receiptMain
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .deleteMany({ _id: { $in: ids }, companyId: queryId })
     .catch(err => {
       invoiceRoutesLogger.error('deletemanypayments - err: ', err);
+
       return null;
     });
+
   if (Boolean(deleted)) {
     return res.status(200).send({ success: Boolean(deleted) });
   } else {

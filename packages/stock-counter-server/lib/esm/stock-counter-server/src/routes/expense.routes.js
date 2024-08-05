@@ -54,7 +54,6 @@ expenseRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany,
     }
     expense.companyId = companyId;
     const count = await expenseMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .find({ companyId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     expense.urId = makeUrId(Number(count[0]?.urId || '0'));
     const newExpense = new expenseMain(expense);
@@ -108,7 +107,6 @@ expenseRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCompany, 
     }
     updatedExpense.companyId = companyId;
     const expense = await expenseMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .findOneAndUpdate({ _id: updatedExpense._id, companyId });
     if (!expense) {
         return res.status(404).send({ success: false });
@@ -154,7 +152,6 @@ expenseRoutes.get('/getone/:id/:companyIdParam', requireAuth, requireActiveCompa
     const { id } = req.params;
     const { companyId } = req.user;
     const expense = await expenseLean
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .findOne({ _id: id, companyId })
         .lean();
     return res.status(200).send(expense);
@@ -254,7 +251,6 @@ expenseRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompa
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const deleted = await expenseMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .deleteMany({ _id: { $in: ids }, companyId })
         .catch(err => {
         expenseRoutesLogger.error('deletemany - err: ', err);

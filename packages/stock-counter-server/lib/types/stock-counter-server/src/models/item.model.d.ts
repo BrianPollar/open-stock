@@ -43,6 +43,8 @@ export declare let itemLean: Model<Iitem>;
  * Represents the item select function.
  */
 export declare const itemSelect: {
+    trackEdit: number;
+    trackView: number;
     urId: number;
     companyId: number;
     numbersInstock: number;
@@ -74,6 +76,7 @@ export declare const itemSelect: {
     brand: number;
     inventoryMeta: number;
     ecomerceCompat: number;
+    soldCount: number;
 };
 /**
  * Creates the item model and connects to the database.

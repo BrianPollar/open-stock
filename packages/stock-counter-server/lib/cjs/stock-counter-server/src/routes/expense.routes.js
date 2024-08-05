@@ -1,8 +1,8 @@
 "use strict";
-/* eslint-disable @typescript-eslint/no-misused-promises */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.expenseRoutes = void 0;
 const tslib_1 = require("tslib");
+/* eslint-disable @typescript-eslint/no-misused-promises */
 const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
@@ -58,7 +58,6 @@ exports.expenseRoutes.post('/create/:companyIdParam', stock_universal_server_1.r
     }
     expense.companyId = companyId;
     const count = await expense_model_1.expenseMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .find({ companyId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     expense.urId = (0, stock_universal_server_1.makeUrId)(Number(count[0]?.urId || '0'));
     const newExpense = new expense_model_1.expenseMain(expense);
@@ -112,7 +111,6 @@ exports.expenseRoutes.put('/update/:companyIdParam', stock_universal_server_1.re
     }
     updatedExpense.companyId = companyId;
     const expense = await expense_model_1.expenseMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .findOneAndUpdate({ _id: updatedExpense._id, companyId });
     if (!expense) {
         return res.status(404).send({ success: false });
@@ -158,7 +156,6 @@ exports.expenseRoutes.get('/getone/:id/:companyIdParam', stock_universal_server_
     const { id } = req.params;
     const { companyId } = req.user;
     const expense = await expense_model_1.expenseLean
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .findOne({ _id: id, companyId })
         .lean();
     return res.status(200).send(expense);
@@ -258,7 +255,6 @@ exports.expenseRoutes.put('/deletemany/:companyIdParam', stock_universal_server_
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const deleted = await expense_model_1.expenseMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .deleteMany({ _id: { $in: ids }, companyId })
         .catch(err => {
         expenseRoutesLogger.error('deletemany - err: ', err);

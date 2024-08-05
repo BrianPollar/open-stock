@@ -1,5 +1,5 @@
-import { Request, Response, NextFunction } from 'express';
-import { describe, beforeEach, vi, afterEach, it, expect } from 'vitest';
+import { NextFunction, Request, Response } from 'express';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('loginFactorRelgator', () => {
   let req: Request;

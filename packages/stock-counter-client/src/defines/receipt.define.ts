@@ -73,6 +73,10 @@ export class InvoiceRelated extends DatabaseAuto {
   /** The end date of the invoice. */
   toDate: Date;
 
+  ecommerceSale = false;
+
+  ecommerceSalePercentage = 0;
+
   /**
    * Creates a new instance of the InvoiceRelated class.
    * @param data The data to initialize the instance with.
@@ -97,6 +101,8 @@ export class InvoiceRelated extends DatabaseAuto {
     this.total = data.total;
     this.fromDate = data.fromDate;
     this.toDate = data.toDate;
+    this.ecommerceSale = data.ecommerceSale || false;
+    this.ecommerceSalePercentage = data.ecommerceSalePercentage || 0;
   }
 
   /**
@@ -108,6 +114,7 @@ export class InvoiceRelated extends DatabaseAuto {
     const observer$ = StockCounterClient.ehttp
       .makeGet(`/invoice/getallpayments/${companyId}`);
     const invoicepays = await lastValueFrom(observer$) as IdataArrayResponse;
+
     return {
       count: invoicepays.count,
       invoicepays: invoicepays.data
@@ -127,6 +134,7 @@ export class InvoiceRelated extends DatabaseAuto {
     const observer$ = StockCounterClient.ehttp
       .makeGet(`/invoice/getonepayment/${urId}/${companyId}`);
     const invoicepay = await lastValueFrom(observer$) as Required<Ireceipt>;
+
     return new Receipt(invoicepay);
   }
 
@@ -142,6 +150,7 @@ export class InvoiceRelated extends DatabaseAuto {
   ) {
     const observer$ = StockCounterClient.ehttp
       .makePost(`/invoice/createpayment/${companyId}`, payment);
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 
@@ -157,6 +166,7 @@ export class InvoiceRelated extends DatabaseAuto {
   ) {
     const observer$ = StockCounterClient.ehttp
       .makePut(`/invoice/deletemanypayments/${companyId}`, { ids });
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 
@@ -170,6 +180,7 @@ export class InvoiceRelated extends DatabaseAuto {
   static async updateInvoicePayment(companyId: string, updatedInvoice: Iinvoice, invoiceRelated: IinvoiceRelated) {
     const observer$ = StockCounterClient.ehttp
       .makePost(`/invoice/updatepayment/${companyId}`, { updatedInvoice, invoiceRelated });
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 
@@ -182,6 +193,7 @@ export class InvoiceRelated extends DatabaseAuto {
   static async updateInvoiceRelated(companyId: string, invoiceRelated: IinvoiceRelated) {
     const observer$ = StockCounterClient.ehttp
       .makePut(`/invoicerelated/update/${companyId}`, { invoiceRelated });
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 }
@@ -190,6 +202,7 @@ export class InvoiceRelated extends DatabaseAuto {
 export class Receipt
   extends InvoiceRelated {
   urId: string;
+
   /** The user's company ID. */
   companyId: string;
   ammountRcievd: number;
@@ -203,9 +216,7 @@ export class Receipt
    * Constructs a new Receipt object.
    * @param data - The required data for the Receipt.
    */
-  constructor(
-    data: Required<Ireceipt>
-  ) {
+  constructor(data: Required<Ireceipt>) {
     super(data);
     this.urId = data.urId;
     this.companyId = data.companyId;
@@ -233,6 +244,7 @@ export class Receipt
     const observer$ = StockCounterClient.ehttp
       .makeGet(`/receipt/${url}/${offset}/${limit}/${companyId}`);
     const receipts = await lastValueFrom(observer$) as IdataArrayResponse;
+
     return {
       count: receipts.count,
       receipts: receipts.data
@@ -253,6 +265,7 @@ export class Receipt
     const observer$ = StockCounterClient.ehttp
       .makeGet(`/receipt/getone/${urId}/${companyId}`);
     const receipt = await lastValueFrom(observer$) as Required<Ireceipt>;
+
     return new Receipt(receipt);
   }
 
@@ -270,6 +283,7 @@ export class Receipt
   ) {
     const observer$ = StockCounterClient.ehttp
       .makePost(`/receipt/create/${companyId}`, { receipt, invoiceRelated });
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 
@@ -285,6 +299,7 @@ export class Receipt
   ) {
     const observer$ = StockCounterClient.ehttp
       .makePut(`/receipt/deletemany/${companyId}`, { credentials });
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 
@@ -303,6 +318,7 @@ export class Receipt
     updatedReceipt._id = this._id;
     const observer$ = StockCounterClient.ehttp
       .makePut(`/receipt/update/${companyId}`, { updatedReceipt, invoiceRelated });
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 }

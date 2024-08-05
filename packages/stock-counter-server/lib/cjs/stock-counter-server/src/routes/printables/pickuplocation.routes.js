@@ -103,7 +103,6 @@ exports.pickupLocationRoutes.put('/update/:companyIdParam', stock_universal_serv
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const pickupLocation = await pickuplocation_model_1.pickupLocationMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .findOneAndUpdate({ _id: updatedPickupLocation._id, companyId: queryId });
     if (!pickupLocation) {
         return res.status(404).send({ success: false });
@@ -152,7 +151,6 @@ exports.pickupLocationRoutes.get('/getone/:id/:companyIdParam', stock_universal_
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const pickupLocation = await pickuplocation_model_1.pickupLocationLean
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .findOne({ _id: id, companyId: queryId })
         .lean();
     return res.status(200).send(pickupLocation);
@@ -272,7 +270,6 @@ exports.pickupLocationRoutes.put('/deletemany/:companyIdParam', stock_universal_
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const deleted = await pickuplocation_model_1.pickupLocationMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .deleteMany({ _id: { $in: ids }, companyId: queryId })
         .catch(err => {
         pickupLocationRoutesLogger.error('deletemany - err: ', err);

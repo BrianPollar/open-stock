@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteAllLinked = exports.deleteManyInvoiceRelated = exports.makeInvoiceRelatedPdct = exports.relegateInvRelatedCreation = exports.updateInvoiceRelated = exports.updateInvoiceRelatedPayments = void 0;
+exports.transFormInvoiceRelatedOnStatus = exports.updateCustomerDueAmount = exports.getPaymentsTotal = exports.canMakeReceipt = exports.updateItemsInventory = exports.deleteAllLinked = exports.deleteManyInvoiceRelated = exports.makeInvoiceRelatedPdct = exports.relegateInvRelatedCreation = exports.updateInvoiceRelated = exports.updateInvoiceRelatedPayments = void 0;
 const tslib_1 = require("tslib");
 const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const stock_notif_server_1 = require("@open-stock/stock-notif-server");
@@ -8,6 +8,7 @@ const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const fs = tslib_1.__importStar(require("fs"));
 const path_1 = tslib_1.__importDefault(require("path"));
 const tracer = tslib_1.__importStar(require("tracer"));
+const item_model_1 = require("../../../models/item.model");
 const deliverynote_model_1 = require("../../../models/printables/deliverynote.model");
 const estimate_model_1 = require("../../../models/printables/estimate.model");
 const invoice_model_1 = require("../../../models/printables/invoice.model");
@@ -53,7 +54,6 @@ const updateInvoiceRelatedPayments = async (payment, queryId) => {
         return { success: false, status: 401, err: 'unauthourised' };
     }
     const related = await invoicerelated_model_1.invoiceRelatedMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .findByIdAndUpdate(payment.invoiceRelated);
     if (!related) {
         return { success: false, err: 'invoice related not found' };
@@ -61,6 +61,14 @@ const updateInvoiceRelatedPayments = async (payment, queryId) => {
     const payments = related.payments || [];
     payments.push(payment._id);
     related.payments = payments;
+    const total = await (0, exports.getPaymentsTotal)(related.payments);
+    // if is not yet paid update neccesary fields
+    if (related.status !== 'paid' && total >= related.total) {
+        await (0, exports.updateItemsInventory)(related);
+        await (0, exports.updateCustomerDueAmount)(related.billingUserId, related.total, true);
+        related.status = 'paid';
+        related.balanceDue = 0;
+    }
     let errResponse;
     const saved = await related.save()
         .catch(err => {
@@ -82,7 +90,6 @@ const updateInvoiceRelatedPayments = async (payment, queryId) => {
         return errResponse;
     }
     else {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         return { success: true, id: saved._id };
     }
 };
@@ -104,7 +111,6 @@ const updateInvoiceRelated = async (invoiceRelated, queryId) => {
         return { success: false, status: 401, err: 'unauthourised' };
     }
     const related = await invoicerelated_model_1.invoiceRelatedMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .findByIdAndUpdate(invoiceRelated.invoiceRelated);
     if (!related) {
         return { success: false, err: 'invoice related not found' };
@@ -113,6 +119,9 @@ const updateInvoiceRelated = async (invoiceRelated, queryId) => {
     if (typeof Number(related.billingUserId) !== 'number') {
         related.billingUserId = invoiceRelated.billingUserId || related.billingUserId;
     }
+    invoiceRelated = (0, exports.transFormInvoiceRelatedOnStatus)(related, invoiceRelated);
+    const oldTotal = related.total;
+    const oldStatus = related.status;
     related.creationType = invoiceRelated.creationType || related.creationType;
     related.estimateId = invoiceRelated.estimateId || related.estimateId;
     related.invoiceId = invoiceRelated.invoiceId || related.invoiceId;
@@ -149,7 +158,14 @@ const updateInvoiceRelated = async (invoiceRelated, queryId) => {
         return errResponse;
     }
     else {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
+        if (oldStatus !== saved.status && saved.status === 'paid') {
+            await (0, exports.updateCustomerDueAmount)(saved.billingUserId, oldTotal, true);
+            await (0, exports.updateItemsInventory)(saved);
+        }
+        else if (saved.status !== 'paid') {
+            await (0, exports.updateCustomerDueAmount)(saved.billingUserId, oldTotal, true);
+            await (0, exports.updateCustomerDueAmount)(saved.billingUserId, saved.total, false);
+        }
         return { success: true, id: saved._id };
     }
 };
@@ -191,6 +207,7 @@ const relegateInvRelatedCreation = async (invoiceRelated, queryId, extraNotifDes
         if (errResponse) {
             return errResponse;
         }
+        await (0, exports.updateCustomerDueAmount)(newInvRelated.billingUserId, newInvRelated.total, false);
         invoiceRelatedLogger.error('AFTER SAVE');
         let route;
         let title = '';
@@ -250,7 +267,6 @@ const relegateInvRelatedCreation = async (invoiceRelated, queryId, extraNotifDes
                 filters: notifFilters
             });
         }
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         return { success: true, id: saved._id };
     }
     else {
@@ -319,6 +335,8 @@ const makeInvoiceRelatedPdct = (invoiceRelated, user, createdAt, extras = {}) =>
         billingUserPhoto: user.profilePic,
         createdAt: createdAt || invoiceRelated.createdAt,
         payments: invoiceRelated.payments,
+        ecommerceSale: invoiceRelated.ecommerceSale,
+        ecommerceSalePercentage: invoiceRelated.ecommerceSalePercentage,
         ...extras
     };
 };
@@ -336,7 +354,6 @@ const deleteManyInvoiceRelated = async (ids, queryId) => {
         return { success: false, statu: 401, err: 'unauthourised' };
     }
     const deleted = await invoicerelated_model_1.invoiceRelatedMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .deleteMany({ _id: { $in: ids }, companyId: queryId })
         .catch(err => {
         invoiceRelatedLogger.debug('deleteManyInvoiceRelated - err: ', err);
@@ -345,7 +362,6 @@ const deleteManyInvoiceRelated = async (ids, queryId) => {
     let deleted2 = true;
     if (deleted) {
         deleted2 = await receipt_model_1.receiptMain
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             .deleteMany({ invoiceRelated: { $in: ids } })
             .catch(err => {
             invoiceRelatedLogger.error('deletemany Pinstalls - err: ', err);
@@ -428,7 +444,7 @@ const deleteAllLinked = async (invoiceRelated, creationType, stage, from, queryI
         deliveryNoteMain.deleteOne({ invoiceRelated }),
         receiptMain.deleteOne({ invoiceRelated })
       ]);
-    }*/
+    } */
 };
 exports.deleteAllLinked = deleteAllLinked;
 /**
@@ -448,4 +464,89 @@ const updateRelatedStage = async (id, stage, queryId) => {
     await related.save();
     return true;
 };
+const updateItemsInventory = async (related) => {
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    let relatedObj;
+    if (typeof related === 'string') {
+        relatedObj = await invoicerelated_model_1.invoiceRelatedMain.findOne({ _id: related }).lean();
+        if (!relatedObj) {
+            return false;
+        }
+    }
+    else {
+        relatedObj = related;
+    }
+    const allPromises = relatedObj.items.map(async (item) => {
+        const product = await item_model_1.itemMain.findOne({ _id: item });
+        if (!product) {
+            return false;
+        }
+        if (product.numbersInstock > 0) {
+            product.numbersInstock--; // TODO if sales on e-commerce fail undo this
+            product.soldCount++; // TODO if sales on e-commerce fail undo this
+            await product.save();
+        }
+        return true;
+    });
+    await Promise.all(allPromises);
+    return true;
+};
+exports.updateItemsInventory = updateItemsInventory;
+const canMakeReceipt = async (relatedId) => {
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    const related = await invoicerelated_model_1.invoiceRelatedMain.findOne({ _id: relatedId });
+    if (!related) {
+        return false;
+    }
+    const total = await (0, exports.getPaymentsTotal)(related.payments);
+    return total >= related.total;
+};
+exports.canMakeReceipt = canMakeReceipt;
+const getPaymentsTotal = async (payments) => {
+    const paymentsPromises = payments.map(async (payment) => {
+        const paymentDoc = await receipt_model_1.receiptMain.findOne({ _id: payment }).lean().select({ ammountRcievd: 1 });
+        if (!paymentDoc) {
+            return null;
+        }
+        return paymentDoc;
+    });
+    const allPromises = await Promise.all(paymentsPromises);
+    return allPromises.reduce((total, payment) => total + payment.ammountRcievd, 0);
+};
+exports.getPaymentsTotal = getPaymentsTotal;
+const updateCustomerDueAmount = async (userId, amount, reduce) => {
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    const billingUser = await stock_auth_server_1.user.findOne({ _id: userId });
+    if (!billingUser) {
+        return false;
+    }
+    if (billingUser.amountDue > 0) {
+        if (reduce) {
+            if (billingUser.amountDue < amount) {
+                billingUser.amountDue = 0;
+            }
+            else {
+                billingUser.amountDue -= amount;
+            }
+        }
+        else {
+            billingUser.amountDue += amount;
+        }
+    }
+    await billingUser.save();
+    return false;
+};
+exports.updateCustomerDueAmount = updateCustomerDueAmount;
+const transFormInvoiceRelatedOnStatus = (oldRelated, newRelated) => {
+    /* if (newRelated.status === oldRelated.status) {
+      return newRelated;
+    } */
+    if (oldRelated.status === 'paid') {
+        // cant change fro paid
+        newRelated.status = 'paid';
+        newRelated.balanceDue = 0;
+    }
+    return newRelated;
+};
+exports.transFormInvoiceRelatedOnStatus = transFormInvoiceRelatedOnStatus;
 //# sourceMappingURL=invoicerelated.js.map

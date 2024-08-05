@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
-
 import { requireActiveCompany, requireCanUseFeature, requireUpdateSubscriptionRecord } from '@open-stock/stock-auth-server';
 import { Icustomrequest, IdataArrayResponse, Isuccess } from '@open-stock/stock-universal';
 import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
@@ -10,30 +9,30 @@ import * as tracer from 'tracer';
 import { expenseLean, expenseMain } from '../models/expense.model';
 
 /** Logger for expense routes */
-const expenseRoutesLogger = tracer.colorConsole(
-  {
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-      // eslint-disable-next-line no-console
-      console.log(data.output);
-      const logDir = path.join(process.cwd() + '/openstockLog/');
-      fs.mkdir(logDir, { recursive: true }, (err) => {
-        if (err) {
-          if (err) {
-            // eslint-disable-next-line no-console
-            console.log('data.output err ', err);
-          }
-        }
-      });
-      fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
+const expenseRoutesLogger = tracer.colorConsole({
+  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+  dateformat: 'HH:MM:ss.L',
+  transport(data) {
+    // eslint-disable-next-line no-console
+    console.log(data.output);
+    const logDir = path.join(process.cwd() + '/openstockLog/');
+
+    fs.mkdir(logDir, { recursive: true }, (err) => {
+      if (err) {
         if (err) {
           // eslint-disable-next-line no-console
-          console.log('raw.output err ', err);
+          console.log('data.output err ', err);
         }
-      });
-    }
-  });
+      }
+    });
+    fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
+      if (err) {
+        // eslint-disable-next-line no-console
+        console.log('raw.output err ', err);
+      }
+    });
+  }
+});
 
 /**
  * Router for handling expense routes.
@@ -52,8 +51,10 @@ export const expenseRoutes = express.Router();
 expenseRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('expense'), roleAuthorisation('expenses', 'create'), async(req, res, next) => {
   const expense = req.body;
   const { companyId } = (req as Icustomrequest).user;
+
   if (companyId !== 'superAdmin') {
     const isValid = verifyObjectId(companyId);
+
     if (!isValid) {
       return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
@@ -61,8 +62,8 @@ expenseRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany,
   expense.companyId = companyId;
 
   const count = await expenseMain
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .find({ companyId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+
   expense.urId = makeUrId(Number(count[0]?.urId || '0'));
   const newExpense = new expenseMain(expense);
   let errResponse: Isuccess;
@@ -79,14 +80,17 @@ expenseRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany,
         errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
       }
+
       return errResponse;
     });
+
   if (errResponse) {
     return res.status(403).send(errResponse);
   }
   if (!Boolean(saved)) {
     return res.status(403).send('unknown error occered');
   }
+
   return next();
 }, requireUpdateSubscriptionRecord('expense'));
 
@@ -103,20 +107,22 @@ expenseRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCompany, 
   const updatedExpense = req.body;
   const { companyId } = (req as Icustomrequest).user;
   let ids: string[];
+
   if (companyId !== 'superAdmin') {
     ids = [updatedExpense._id, companyId];
   } else {
     ids = [updatedExpense._id];
   }
   const isValid = verifyObjectIds(ids);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   updatedExpense.companyId = companyId;
 
   const expense = await expenseMain
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .findOneAndUpdate({ _id: updatedExpense._id, companyId });
+
   if (!expense) {
     return res.status(404).send({ success: false });
   }
@@ -140,12 +146,14 @@ expenseRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCompany, 
         errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
       }
+
       return errResponse;
     });
 
   if (errResponse) {
     return res.status(403).send(errResponse);
   }
+
   return res.status(200).send({ success: Boolean(updated) });
 });
 
@@ -162,9 +170,9 @@ expenseRoutes.get('/getone/:id/:companyIdParam', requireAuth, requireActiveCompa
   const { id } = req.params;
   const { companyId } = (req as Icustomrequest).user;
   const expense = await expenseLean
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .findOne({ _id: id, companyId })
     .lean();
+
   return res.status(200).send(expense);
 });
 
@@ -192,6 +200,7 @@ expenseRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, require
     count: all[1],
     data: all[0]
   };
+
   return res.status(200).send(response);
 });
 
@@ -208,11 +217,13 @@ expenseRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, requireActiv
   const { id } = req.params;
   const { companyId } = (req as Icustomrequest).user;
   const isValid = verifyObjectIds([id]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const deleted = await expenseMain.findOneAndDelete({ _id: id, companyId });
+
   if (Boolean(deleted)) {
     return res.status(200).send({ success: Boolean(deleted) });
   } else {
@@ -245,6 +256,7 @@ expenseRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, requir
     count: all[1],
     data: all[0]
   };
+
   return res.status(200).send(response);
 });
 
@@ -261,17 +273,19 @@ expenseRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompa
   const { ids } = req.body;
   const { companyId } = (req as Icustomrequest).user;
   const isValid = verifyObjectIds([...ids]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
 
   const deleted = await expenseMain
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .deleteMany({ _id: { $in: ids }, companyId })
     .catch(err => {
       expenseRoutesLogger.error('deletemany - err: ', err);
+
       return null;
     });
+
   if (Boolean(deleted)) {
     return res.status(200).send({ success: Boolean(deleted) });
   } else {

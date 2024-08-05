@@ -47,7 +47,7 @@ export const taxReportRoutes = express.Router();
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>} - Promise object representing the response
  */
-taxReportRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'create'), async (req, res, next) => {
+taxReportRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'create'), async (req, res) => {
     const taxReport = req.body.taxReport;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -58,7 +58,6 @@ taxReportRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompan
     }
     taxReport.companyId = queryId;
     const count = await taxReportMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     taxReport.urId = makeUrId(Number(count[0]?.urId || '0'));
     const newTaxReport = new taxReportMain(taxReport);
@@ -234,7 +233,6 @@ taxReportRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCom
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const deleted = await taxReportMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .deleteMany({ companyId: queryId, _id: { $in: ids } })
         .catch(err => {
         taxReportRoutesLogger.error('deletemany - err: ', err);

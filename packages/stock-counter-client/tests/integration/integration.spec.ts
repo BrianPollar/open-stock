@@ -1,7 +1,7 @@
-import Axios from 'axios-observable';
-import { expect, describe, beforeAll, it } from 'vitest';
 import { StockAuthClient } from '@open-stock/stock-auth-client/src/stock-auth-client';
 import { EhttpController, LoggerController } from '@open-stock/stock-universal';
+import Axios from 'axios-observable';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 describe('status integration tests', () => {
   let stockAuthClientInstance: StockAuthClient;

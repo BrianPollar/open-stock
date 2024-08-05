@@ -6,6 +6,8 @@ const database_controller_1 = require("../../controllers/database.controller");
 const uniqueValidator = require('mongoose-unique-validator');
 /** subscription package schema */
 const subscriptionPackageSchema = new mongoose_1.Schema({
+    trackEdit: { type: mongoose_1.Schema.ObjectId },
+    trackView: { type: mongoose_1.Schema.ObjectId },
     name: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
     ammount: { type: Number, unique: true, required: [true, 'cannot be empty.'], index: true },
     duration: { type: Number, required: [true, 'cannot be empty.'], index: true }, // in days
@@ -16,6 +18,8 @@ const subscriptionPackageSchema = new mongoose_1.Schema({
 subscriptionPackageSchema.plugin(uniqueValidator);
 /** Primary selection object for subscription package */
 const subscriptionPackageselect = {
+    trackEdit: 1,
+    trackView: 1,
     name: 1,
     ammount: 1,
     duration: 1,

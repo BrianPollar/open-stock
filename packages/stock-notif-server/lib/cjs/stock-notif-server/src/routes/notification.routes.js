@@ -71,7 +71,6 @@ exports.notifnRoutes.get('/getone/:id/:companyIdParam', stock_universal_server_1
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const notifs = await mainnotification_model_1.mainnotificationLean
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .findOne({ _id: id, companyId: queryId })
         .lean()
         .sort({ name: 'asc' });

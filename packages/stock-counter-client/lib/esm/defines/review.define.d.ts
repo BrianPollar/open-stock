@@ -42,6 +42,9 @@ export declare class Review extends DatabaseAuto {
         count: number;
         reviews: Review[];
     }>;
+    static getRatingCount(id: string, rating: number): Promise<{
+        count: number;
+    }>;
     /**
      * Gets a single review by ID.
      * @param companyId - The ID of the company

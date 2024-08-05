@@ -1,6 +1,6 @@
 {
   "name": "@open-stock/stock-counter-server",
-  "version": "4.1.4",
+  "version": "4.2.66",
   "description": "> TODO: description",
   "main": "lib/cjs/stock-counter-server/src/index.js",
   "module": "lib/esm/stock-counter-server/src/index.js",
@@ -28,7 +28,7 @@
     "@open-stock/stock-universal-server": "*",
     "express": "^4.18.2",
     "mongoose": "^7.5.0",
-    "pesapal3": "^2.0.3"
+    "pesapal3": "^2.0.4"
   },
   "devDependencies": {
     "supertest": "^6.3.3",

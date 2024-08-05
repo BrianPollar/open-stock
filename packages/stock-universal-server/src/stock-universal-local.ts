@@ -1,6 +1,8 @@
 import { IenvironmentConfig } from '@open-stock/stock-universal';
 import { ConnectOptions } from 'mongoose';
 import { createFileMetaModel } from './models/filemeta.model';
+import { createTrackViewModel } from './models/tracker/track-view.model';
+import { createTrackEditModel } from './models/tracker/track-edit.model';
 
 /**
  * Indicates whether the stock universal server is currently running.
@@ -8,7 +10,6 @@ import { createFileMetaModel } from './models/filemeta.model';
 export let isStockUniversalServerRunning = false;
 
 export let envConfig: IenvironmentConfig;
-
 
 /**
  * Creates stock universal server locals.
@@ -25,4 +26,6 @@ export const createStockUniversalServerLocals = (envCfig: IenvironmentConfig) =>
  */
 export const connectUniversalDatabase = async(databaseUrl: string, dbOptions?: ConnectOptions): Promise<void> => {
   await createFileMetaModel(databaseUrl, dbOptions);
+  await createTrackViewModel(databaseUrl, dbOptions);
+  await createTrackEditModel(databaseUrl, dbOptions);
 };

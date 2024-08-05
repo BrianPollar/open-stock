@@ -1,8 +1,8 @@
-import { vi, expect, describe, beforeEach, it, expectTypeOf } from 'vitest';
+import Axios from 'axios-observable';
+import { of } from 'rxjs';
+import { beforeEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 import { InvoiceSettings } from '../../../../../stock-counter-client/src/defines/settings/invoicesetting.define';
 import { StockCounterClient } from '../../../../../stock-counter-client/src/stock-counter-client';
-import { of } from 'rxjs';
-import Axios from 'axios-observable';
 import { createMockInvoiceSettings } from '../../../../../tests/stock-counter-mocks';
 
 describe('InvoiceSettings', () => {
@@ -33,6 +33,7 @@ describe('InvoiceSettings', () => {
   it('#getInvoiceSettings static should get InvoiceSettings array', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makeGet').mockImplementationOnce(() => of([createMockInvoiceSettings()]));
     const list = await InvoiceSettings.getInvoiceSettings(companyId, 'getall', 0, 0);
+
     expect(typeof list).toEqual('object');
     expectTypeOf(list).toEqualTypeOf<InvoiceSettings[]>([]);
     expect(lSpy).toHaveBeenCalledWith('/invoicesettings/getall/0/0/companyId');
@@ -41,6 +42,7 @@ describe('InvoiceSettings', () => {
   it('#getOneInvoiceSettings static should get one InvoiceSettings', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makeGet').mockImplementationOnce(() => of(createMockInvoiceSettings()));
     const one = await InvoiceSettings.getOneInvoiceSettings(companyId, 'urId');
+
     expect(typeof one).toEqual('object');
     expect(one).toBeInstanceOf(InvoiceSettings);
     expect(lSpy).toHaveBeenCalledWith('/invoicesettings/getone/urId');
@@ -49,6 +51,7 @@ describe('InvoiceSettings', () => {
   it('#addInvoiceSettings static should add one InvoiceSettings', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makePost').mockImplementationOnce(() => of({ success: true }));
     const added = await InvoiceSettings.addInvoiceSettings(companyId, createMockInvoiceSettings());
+
     expect(typeof added).toEqual('object');
     expect(added).toHaveProperty('success');
     expect(added.success).toEqual(true);
@@ -60,6 +63,7 @@ describe('InvoiceSettings', () => {
   it('#deleteInvoiceSettings static should delete many InvoiceSettings', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makePut').mockImplementationOnce(() => of({ success: true }));
     const deleted = await InvoiceSettings.deleteInvoiceSettings(companyId, ['ids']);
+
     expect(typeof deleted).toEqual('object');
     expect(deleted).toHaveProperty('success');
     expect(deleted.success).toEqual(true);

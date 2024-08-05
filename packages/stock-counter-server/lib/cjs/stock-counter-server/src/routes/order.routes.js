@@ -63,7 +63,7 @@ exports.orderRoutes.post('/makeorder/:companyIdParam', async (req, res) => {
     /* const isValid = verifyObjectId(companyIdParam);
     if (!isValid) {
       return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }*/
+    } */
     const { order, payment, bagainCred, paymentRelated, invoiceRelated, userObj } = req.body;
     const companyId = order.companyId || companyIdParam ? companyIdParam : 'superAdmin';
     order.companyId = companyId;
@@ -78,7 +78,6 @@ exports.orderRoutes.post('/makeorder/:companyIdParam', async (req, res) => {
         }
         else {
             const count = await stock_auth_server_1.user
-                // eslint-disable-next-line @typescript-eslint/naming-convention
                 .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
             userObj.urId = (0, stock_universal_server_1.makeUrId)(Number(count[0]?.urId || '0'));
             const newUser = new stock_auth_server_1.user(userObj);
@@ -106,7 +105,7 @@ exports.orderRoutes.post('/makeorder/:companyIdParam', async (req, res) => {
     }
     invoiceRelated.billingUser = userDoc.fname + ' ' + userDoc.lname;
     invoiceRelated.billingUserId = userDoc._id;
-    invoiceRelated.billingUserPhoto = (typeof userDoc.profilePic === 'string') ? userDoc.profilePic : (userDoc.profilePic).url;
+    invoiceRelated.billingUserPhoto = (typeof userDoc.profilePic === 'string') ? userDoc.profilePic : (userDoc.profilePic)?.url;
     const done = await (0, payment_controller_1.paymentMethodDelegator)(paymentRelated, invoiceRelated, order.paymentMethod, order, payment, userDoc._id, companyIdParam, bagainCred);
     return res.status(done.status).send({ success: done.success, data: done });
 });
@@ -209,7 +208,6 @@ exports.orderRoutes.put('/update/:companyIdParam', stock_universal_server_1.requ
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const order = await order_model_1.orderMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .findOneAndUpdate({ _id, companyId: queryId });
     if (!order) {
         return res.status(404).send({ success: false });
@@ -258,7 +256,6 @@ exports.orderRoutes.get('/getone/:id/:companyIdParam', stock_universal_server_1.
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const order = await order_model_1.orderLean
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .findOne({ _id: id, companyId: queryId })
         .lean()
         .populate({
@@ -275,7 +272,6 @@ exports.orderRoutes.get('/getone/:id/:companyIdParam', stock_universal_server_1.
             {
                 path: 'items.item', model: item_model_1.itemLean,
                 populate: [{
-                        // eslint-disable-next-line @typescript-eslint/naming-convention
                         path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                     }]
             }]
@@ -314,7 +310,6 @@ exports.orderRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universa
                 {
                     path: 'items.item', model: item_model_1.itemLean,
                     populate: [{
-                            // eslint-disable-next-line @typescript-eslint/naming-convention
                             path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                         }]
                 }]
@@ -351,7 +346,6 @@ exports.orderRoutes.get('/getmyorders/:offset/:limit/:companyIdParam', stock_uni
             {
                 path: 'items.item', model: item_model_1.itemLean,
                 populate: [{
-                        // eslint-disable-next-line @typescript-eslint/naming-convention
                         path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                     }]
             }]
@@ -448,7 +442,6 @@ exports.orderRoutes.post('/search/:offset/:limit/:companyIdParam', stock_univers
                 {
                     path: 'items.item', model: item_model_1.itemLean,
                     populate: [{
-                            // eslint-disable-next-line @typescript-eslint/naming-convention
                             path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                         }]
                 }]
@@ -477,7 +470,6 @@ exports.orderRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     /** await orderMain
-      // eslint-disable-next-line @typescript-eslint/naming-convention
       .deleteMany({ _id: { $in: ids } });**/
     const promises = credentials
         .map(async (val) => {
@@ -486,5 +478,12 @@ exports.orderRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.
     });
     await Promise.all(promises);
     return res.status(200).send({ success: true });
+});
+exports.orderRoutes.get('/trackorder/:refereceId', async (req, res) => {
+    const response = await (0, payment_controller_1.trackOrder)(req.params.refereceId);
+    if (!response.success) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
+    return res.status(200).send({ success: true, orderStatus: response.orderStatus });
 });
 //# sourceMappingURL=order.routes.js.map

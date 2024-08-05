@@ -1,4 +1,4 @@
-import { IinvoiceRelated, IpaymentRelated, Ireceipt, Isuccess, Iuser, TpaymentRelatedType } from '@open-stock/stock-universal';
+import { IinvoiceRelated, IpaymentRelated, Ireceipt, Isuccess, Iuser, TinvoiceType, TpaymentRelatedType } from '@open-stock/stock-universal';
 /**
  * Updates the payment related information.
  * @param paymentRelated - The payment related object to update.
@@ -32,7 +32,7 @@ export declare const relegatePaymentRelatedCreation: (paymentRelated: Required<I
 export declare const makePaymentRelatedPdct: (paymentRelated: Required<IpaymentRelated>, invoiceRelated: Required<IinvoiceRelated>, user: Iuser, meta: any) => {
     companyId: string;
     invoiceRelated: string;
-    creationType: import("@open-stock/stock-universal").TinvoiceType;
+    creationType: TinvoiceType;
     invoiceId: number;
     estimateId: number;
     billingUser: string;
@@ -51,6 +51,8 @@ export declare const makePaymentRelatedPdct: (paymentRelated: Required<IpaymentR
     billingUserPhoto: string | import("@open-stock/stock-universal").IfileMeta;
     createdAt: Date;
     payments: string[] | Ireceipt[];
+    ecommerceSale: boolean;
+    ecommerceSalePercentage: number;
     _id: any;
     updatedAt: any;
     paymentRelated: string;
@@ -89,4 +91,5 @@ export declare const deleteAllPayOrderLinked: (paymentRelated: string, invoiceRe
  * @param queryId - The query ID.
  * @returns A promise that resolves to an object indicating the success of the operation.
  */
-export declare const makePaymentInstall: (receipt: Ireceipt, relatedId: string, queryId: string) => Promise<Isuccess>;
+export declare const makePaymentInstall: (receipt: Ireceipt, relatedId: string, queryId: string, creationType: TinvoiceType) => Promise<false | Isuccess>;
+export declare const notifyAllOnDueDate: () => Promise<boolean>;

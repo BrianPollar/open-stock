@@ -73,7 +73,7 @@ export const currency = [
     /** {
     name: 'US Dollars',
     value: 'USD'
-  },*/
+  }, */
     {
         name: 'Uganda Shillings',
         value: 'UGX'

@@ -63,6 +63,8 @@ export declare let receiptLean: Model<Treceipt>;
  * Represents the receipt select function.
  */
 export declare const receiptSelect: {
+    trackEdit: number;
+    trackView: number;
     urId: number;
     companyId: number;
     invoiceRelated: number;

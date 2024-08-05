@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
-
 import { requireActiveCompany } from '@open-stock/stock-auth-server';
 import { Icustomrequest, IdataArrayResponse, Isuccess, makeRandomString } from '@open-stock/stock-universal';
 import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
@@ -10,30 +9,30 @@ import * as tracer from 'tracer';
 import { promocodeLean, promocodeMain } from '../models/promocode.model';
 
 /** Logger for promocode routes */
-const promocodeRoutesLogger = tracer.colorConsole(
-  {
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-      // eslint-disable-next-line no-console
-      console.log(data.output);
-      const logDir = path.join(process.cwd() + '/openstockLog/');
-      fs.mkdir(logDir, { recursive: true }, (err) => {
-        if (err) {
-          if (err) {
-            // eslint-disable-next-line no-console
-            console.log('data.output err ', err);
-          }
-        }
-      });
-      fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
+const promocodeRoutesLogger = tracer.colorConsole({
+  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+  dateformat: 'HH:MM:ss.L',
+  transport(data) {
+    // eslint-disable-next-line no-console
+    console.log(data.output);
+    const logDir = path.join(process.cwd() + '/openstockLog/');
+
+    fs.mkdir(logDir, { recursive: true }, (err) => {
+      if (err) {
         if (err) {
           // eslint-disable-next-line no-console
-          console.log('raw.output err ', err);
+          console.log('data.output err ', err);
         }
-      });
-    }
-  });
+      }
+    });
+    fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
+      if (err) {
+        // eslint-disable-next-line no-console
+        console.log('raw.output err ', err);
+      }
+    });
+  }
+});
 
 /**
  * Router for handling promo code routes.
@@ -57,12 +56,12 @@ promocodeRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompan
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const code = makeRandomString(8, 'combined');
   const count = await promocodeMain
-  // eslint-disable-next-line @typescript-eslint/naming-convention
     .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
   const urId = makeUrId(Number(count[0]?.urId || '0'));
   const promocode = {
@@ -89,12 +88,14 @@ promocodeRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompan
         errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
       }
+
       return errResponse;
     });
 
   if (errResponse) {
     return res.status(403).send(errResponse);
   }
+
   return res.status(200).send({ success: Boolean(saved), code });
 });
 
@@ -113,13 +114,14 @@ promocodeRoutes.get('/getone/:id/:companyIdParam', requireAuth, requireActiveCom
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectIds([id, queryId]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const promocode = await promocodeLean
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .findOne({ _id: id, companyId: queryId })
     .lean();
+
   return res.status(200).send(promocode);
 });
 
@@ -137,6 +139,7 @@ promocodeRoutes.get('/getonebycode/:code/:companyIdParam', async(req, res) => {
   const promocode = await promocodeLean
     .findOne({ code })
     .lean();
+
   return res.status(200).send(promocode);
 });
 
@@ -156,6 +159,7 @@ promocodeRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requi
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -171,6 +175,7 @@ promocodeRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requi
     count: all[1],
     data: all[0]
   };
+
   return res.status(200).send(response);
 });
 
@@ -189,11 +194,13 @@ promocodeRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, requireAct
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectIds([id, queryId]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const deleted = await promocodeMain.findOneAndDelete({ _id: id, companyId: queryId });
+
   if (Boolean(deleted)) {
     return res.status(200).send({ success: Boolean(deleted) });
   } else {

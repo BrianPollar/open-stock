@@ -40,6 +40,7 @@ notifnRoutes.get('/getmynotifn/:offset/:limit/:companyIdParam', requireAuth, asy
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -56,6 +57,7 @@ notifnRoutes.get('/getmynotifn/:offset/:limit/:companyIdParam', requireAuth, asy
     count: all[1],
     data: all[0]
   };
+
   return res.status(200).send(response);
 });
 
@@ -65,6 +67,7 @@ notifnRoutes.get('/getmyavailnotifn/:offset/:limit/:companyIdParam', requireAuth
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -81,6 +84,7 @@ notifnRoutes.get('/getmyavailnotifn/:offset/:limit/:companyIdParam', requireAuth
     count: all[1],
     data: all[0]
   };
+
   return res.status(200).send(response);
 });
 
@@ -90,14 +94,15 @@ notifnRoutes.get('/getone/:id/:companyIdParam', requireAuth, async(req, res) => 
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const { id } = req.params;
   const isValid = verifyObjectIds([id, queryId]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const notifs = await mainnotificationLean
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .findOne({ _id: id, companyId: queryId })
     .lean()
     .sort({ name: 'asc' });
+
   return res.status(200).send(notifs);
 });
 
@@ -107,11 +112,13 @@ notifnRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, async(req, re
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectIds([id, queryId]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const deleted = await mainnotificationMain.findOneAndRemove({ _id: id, companyId: queryId });
+
   if (Boolean(deleted)) {
     return res.status(200).send({ success: Boolean(deleted) });
   } else {
@@ -125,12 +132,14 @@ notifnRoutes.post('/subscription/:companyIdParam', requireAuth, async(req, res) 
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const { userId, permissions } = (req as Icustomrequest).user;
   const isValid = verifyObjectIds([queryId]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const subscription = req.body;
   let sub = await subscriptionLean
     .findOne({ userId, companyId: queryId });
+
   if (sub) {
     sub.subscription = subscription.subscription;
   } else {
@@ -144,10 +153,12 @@ notifnRoutes.post('/subscription/:companyIdParam', requireAuth, async(req, res) 
       faqs: permissions.faqs,
       buyer: permissions.buyer
     };
+
     sub = new subscriptionMain(newSub);
   }
 
   let errResponse: Isuccess;
+
   await sub.save().catch(err => {
     errResponse = {
       success: false,
@@ -159,6 +170,7 @@ notifnRoutes.post('/subscription/:companyIdParam', requireAuth, async(req, res) 
       errResponse.err = `we are having problems connecting to our databases, 
       try again in a while`;
     }
+
     return errResponse;
   });
 
@@ -176,10 +188,12 @@ notifnRoutes.post('/updateviewed/:companyIdParam', requireAuth, async(req, res) 
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const { id } = req.body;
   const isValid = verifyObjectIds([id, queryId]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   await updateNotifnViewed(user, id);
+
   return res.status(200).send({ success: true });
 });
 
@@ -188,12 +202,14 @@ notifnRoutes.get('/unviewedlength/:companyIdParam', requireAuth, async(req, res)
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const { userId, permissions } = (req as Icustomrequest).user;
 
   let filter;
+
   if (permissions.users &&
     !permissions.orders &&
     !permissions.payments &&
@@ -210,6 +226,7 @@ notifnRoutes.get('/unviewedlength/:companyIdParam', requireAuth, async(req, res)
   const notifsCount = await mainnotificationLean
     .find({ companyId: queryId, viewed: { $nin: [userId] }, ...filter })
     .count();
+
   return res.status(200).send({ count: notifsCount });
 });
 
@@ -227,8 +244,10 @@ notifnRoutes.put('/clearall/:companyIdParam', requireAuth, async(req, res) => {
     let error;
     const saved = await val.save().catch(err => {
       error = err;
+
       return null;
     });
+
     if (error) {
       return new Promise((resolve, reject) => reject(error));
     } else {
@@ -237,6 +256,7 @@ notifnRoutes.put('/clearall/:companyIdParam', requireAuth, async(req, res) => {
   });
 
   let errResponse: Isuccess;
+
   await Promise.all(promises).catch(() => {
     errResponse = {
       success: false,
@@ -257,6 +277,7 @@ notifnRoutes.put('/clearall/:companyIdParam', requireAuth, async(req, res) => {
 notifnRoutes.post('/createstn/:companyIdParam', async(req, res) => {
   const { stn } = req.body;
   const { companyIdParam } = req.params;
+
   stn.companyId = companyIdParam;
   const response = await createNotifStn(stn);
 
@@ -267,11 +288,13 @@ notifnRoutes.put('/updatestn', async(req, res) => {
   const { stn } = req.body;
   const id = stn?._id;
   const isValid = verifyObjectIds([id]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
 
   const notifStn = await notifSettingMain.findById(id);
+
   if (!notifStn) {
     return res.status(404).send({ success: false });
   }
@@ -282,6 +305,7 @@ notifnRoutes.put('/updatestn', async(req, res) => {
   notifStn['users'] = stn.users || notifStn['users'];
 
   let errResponse: Isuccess;
+
   await notifStn.save().catch(err => {
     errResponse = {
       success: false,
@@ -293,6 +317,7 @@ notifnRoutes.put('/updatestn', async(req, res) => {
       errResponse.err = `we are having problems connecting to our databases, 
       try again in a while`;
     }
+
     return errResponse;
   });
 
@@ -311,6 +336,7 @@ notifnRoutes.post('/getstn', requireAuth, async(req, res) => {
   const stns = await notifSettingLean
     .find({ companyId })
     .lean();
+
   return res.status(200).send({ stns });
 });
 

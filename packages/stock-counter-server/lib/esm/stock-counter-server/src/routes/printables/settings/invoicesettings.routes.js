@@ -42,8 +42,15 @@ export const invoiceSettingRoutes = express.Router();
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware
  */
-invoiceSettingRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'create'), async (req, res, next) => {
+invoiceSettingRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'create'), async (req, res) => {
     const invoiceSetting = req.body.invoicesettings;
+    // remove signature and stamp if there
+    if (invoiceSetting.generalSettings.defaultDigitalSignature) {
+        delete invoiceSetting.generalSettings.defaultDigitalSignature;
+    }
+    if (invoiceSetting.generalSettings.defaultDigitalStamp) {
+        delete invoiceSetting.generalSettings.defaultDigitalStamp;
+    }
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
@@ -109,6 +116,13 @@ invoiceSettingRoutes.post('/createimg/:companyIdParam', requireAuth, requireActi
             invoiceSetting.generalSettings.defaultDigitalStamp = req.body.newPhotos[0];
         }
     }
+    // remove signature and stamp are not valid object ids
+    if (!verifyObjectId(invoiceSetting.generalSettings.defaultDigitalSignature)) {
+        delete invoiceSetting.generalSettings.defaultDigitalSignature;
+    }
+    if (!verifyObjectId(invoiceSetting.generalSettings.defaultDigitalStamp)) {
+        delete invoiceSetting.generalSettings.defaultDigitalStamp;
+    }
     const newStn = new invoiceSettingMain(invoiceSetting);
     let errResponse;
     const saved = await newStn.save()
@@ -146,6 +160,7 @@ invoiceSettingRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCo
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    console.log('updatedInvoiceSetting ', updatedInvoiceSetting);
     updatedInvoiceSetting.companyId = queryId;
     // eslint-disable-next-line @typescript-eslint/naming-convention
     const { _id } = updatedInvoiceSetting;
@@ -154,16 +169,32 @@ invoiceSettingRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCo
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const invoiceSetting = await invoiceSettingMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .findOneAndUpdate({ _id, companyId: queryId });
+        .findOne({ _id, companyId: queryId }).lean();
     if (!invoiceSetting) {
         return res.status(404).send({ success: false });
     }
-    invoiceSetting.generalSettings = updatedInvoiceSetting.generalSettings || invoiceSetting.generalSettings;
+    if (!invoiceSetting.generalSettings) {
+        invoiceSetting.generalSettings = {};
+    }
+    const generalSettings = Object.assign({}, invoiceSetting.generalSettings);
+    if (updatedInvoiceSetting?.generalSettings?.currency) {
+        generalSettings.currency = updatedInvoiceSetting.generalSettings.currency;
+    }
+    if (updatedInvoiceSetting?.generalSettings?.defaultDueTime) {
+        generalSettings.defaultDueTime = updatedInvoiceSetting.generalSettings.defaultDueTime;
+    }
+    invoiceSetting.generalSettings = generalSettings;
     invoiceSetting.taxSettings = updatedInvoiceSetting.taxSettings || invoiceSetting.taxSettings;
     invoiceSetting.bankSettings = updatedInvoiceSetting.bankSettings || invoiceSetting.bankSettings;
+    invoiceSetting.printDetails = updatedInvoiceSetting.printDetails || invoiceSetting.printDetails;
+    console.log('generalSettings', generalSettings);
     let errResponse;
-    const updated = await invoiceSetting.save()
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    const updated = await invoiceSettingMain.updateOne({ _id }, { $set: {
+            generalSettings, taxSettings: invoiceSetting.taxSettings,
+            bankSettings: invoiceSetting.bankSettings,
+            printDetails: invoiceSetting.printDetails
+        } })
         .catch(err => {
         invoiceSettingRoutesLogger.error('update - err: ', err);
         errResponse = {
@@ -179,6 +210,7 @@ invoiceSettingRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCo
         }
         return errResponse;
     });
+    console.log('updated ', updated);
     if (errResponse) {
         return res.status(403).send(errResponse);
     }
@@ -193,7 +225,7 @@ invoiceSettingRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCo
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware
  */
-invoiceSettingRoutes.put('/updateimg/:companyIdParam', requireAuth, requireActiveCompany, uploadFiles, appendBody, saveMetaToDb, async (req, res) => {
+invoiceSettingRoutes.post('/updateimg/:companyIdParam', requireAuth, requireActiveCompany, uploadFiles, appendBody, saveMetaToDb, async (req, res) => {
     const updatedInvoiceSetting = req.body.invoicesettings;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -208,17 +240,21 @@ invoiceSettingRoutes.put('/updateimg/:companyIdParam', requireAuth, requireActiv
     // eslint-disable-next-line @typescript-eslint/naming-convention
     const found = await invoiceSettingMain.findOne({ _id, companyId: queryId })
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        .populate({ path: 'generalSettings.defaultDigitalSignature', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+        //  .populate({ path: 'generalSettings.defaultDigitalSignature', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        .populate({ path: 'generalSettings.defaultDigitalStamp', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+        //  .populate({ path: 'generalSettings.defaultDigitalStamp', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
         .lean();
     const invoiceSetting = await invoiceSettingMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .findOneAndUpdate({ _id, companyId: queryId });
+        .findOneAndUpdate({ _id, companyId: queryId }).lean();
+    console.log('all new Files', req.body.newPhotos);
+    console.log('found ', found);
     if (!invoiceSetting) {
         return res.status(404).send({ success: false });
     }
-    let filesWithDir;
+    const filesWithDir = [];
+    if (!invoiceSetting.generalSettings) {
+        invoiceSetting.generalSettings = {};
+    }
     if (req.body.newPhotos) {
         if (updatedInvoiceSetting.generalSettings.defaultDigitalSignature === 'true' &&
             updatedInvoiceSetting.generalSettings.defaultDigitalStamp === 'true') {
@@ -228,30 +264,50 @@ invoiceSettingRoutes.put('/updateimg/:companyIdParam', requireAuth, requireActiv
             if (invoiceSetting.generalSettings.defaultDigitalStamp) {
                 filesWithDir.push(found.generalSettings.defaultDigitalStamp);
             }
-            invoiceSetting.generalSettings.defaultDigitalSignature = req.body.newPhotos[0];
-            invoiceSetting.generalSettings.defaultDigitalStamp = req.body.newPhotos[1];
+            updatedInvoiceSetting.generalSettings.defaultDigitalSignature = req.body.newPhotos[0];
+            updatedInvoiceSetting.generalSettings.defaultDigitalStamp = req.body.newPhotos[1];
         }
         if (updatedInvoiceSetting.generalSettings.defaultDigitalSignature === 'true' &&
             updatedInvoiceSetting.generalSettings.defaultDigitalStamp === 'false') {
             if (invoiceSetting.generalSettings.defaultDigitalSignature) {
                 filesWithDir.push(found.generalSettings.defaultDigitalSignature);
             }
-            invoiceSetting.generalSettings.defaultDigitalSignature = req.body.newPhotos[0];
+            updatedInvoiceSetting.generalSettings.defaultDigitalSignature = req.body.newPhotos[0];
         }
         if (updatedInvoiceSetting.generalSettings.defaultDigitalSignature === 'false' &&
             updatedInvoiceSetting.generalSettings.defaultDigitalStamp === 'true') {
             if (invoiceSetting.generalSettings.defaultDigitalStamp) {
                 filesWithDir.push(found.generalSettings.defaultDigitalStamp);
             }
-            invoiceSetting.generalSettings.defaultDigitalStamp = req.body.newPhotos[0];
+            updatedInvoiceSetting.generalSettings.defaultDigitalStamp = req.body.newPhotos[0];
         }
     }
     await deleteAllFiles(filesWithDir);
-    invoiceSetting.generalSettings = updatedInvoiceSetting.generalSettings || invoiceSetting.generalSettings;
+    const generalSettings = Object.assign({}, invoiceSetting.generalSettings);
+    if (updatedInvoiceSetting?.generalSettings?.currency) {
+        generalSettings.currency = updatedInvoiceSetting.generalSettings.currency;
+    }
+    if (updatedInvoiceSetting?.generalSettings?.defaultDueTime) {
+        generalSettings.defaultDueTime = updatedInvoiceSetting.generalSettings.defaultDueTime;
+    }
+    // add signature and stamp if are valid object ids
+    if (verifyObjectId(updatedInvoiceSetting.generalSettings.defaultDigitalSignature)) {
+        generalSettings.defaultDigitalSignature = updatedInvoiceSetting.generalSettings.defaultDigitalSignature;
+    }
+    if (verifyObjectId(updatedInvoiceSetting.generalSettings.defaultDigitalStamp)) {
+        generalSettings.defaultDigitalStamp = updatedInvoiceSetting.generalSettings.defaultDigitalStamp;
+    }
+    invoiceSetting.generalSettings = generalSettings;
     invoiceSetting.taxSettings = updatedInvoiceSetting.taxSettings || invoiceSetting.taxSettings;
     invoiceSetting.bankSettings = updatedInvoiceSetting.bankSettings || invoiceSetting.bankSettings;
+    invoiceSetting.printDetails = updatedInvoiceSetting.printDetails || invoiceSetting.printDetails;
     let errResponse;
-    const updated = await invoiceSetting.save()
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    const updated = await invoiceSettingMain.updateOne({ _id }, { $set: {
+            generalSettings, taxSettings: invoiceSetting.taxSettings,
+            bankSettings: invoiceSetting.bankSettings,
+            printDetails: invoiceSetting.printDetails
+        } })
         .catch(err => {
         invoiceSettingRoutesLogger.error('updateimg - err: ', err);
         errResponse = {
@@ -270,6 +326,7 @@ invoiceSettingRoutes.put('/updateimg/:companyIdParam', requireAuth, requireActiv
     if (errResponse) {
         return res.status(403).send(errResponse);
     }
+    console.log('updated', updated);
     return res.status(200).send({ success: Boolean(updated) });
 });
 invoiceSettingRoutes.get('/getone/:id/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'read'), async (req, res) => {
@@ -282,11 +339,8 @@ invoiceSettingRoutes.get('/getone/:id/:companyIdParam', requireAuth, requireActi
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const invoiceSetting = await invoiceSettingLean
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .findOne({ _id: id, companyId: queryId })
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .populate({ path: 'generalSettings.defaultDigitalSignature', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .populate({ path: 'generalSettings.defaultDigitalStamp', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
         .lean();
     return res.status(200).send(invoiceSetting);
@@ -303,9 +357,7 @@ invoiceSettingRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, 
     const all = await Promise.all([
         invoiceSettingLean
             .find({ companyId: queryId })
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             .populate({ path: 'generalSettings.defaultDigitalSignature', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             .populate({ path: 'generalSettings.defaultDigitalStamp', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
             .skip(offset)
             .limit(limit)
@@ -370,7 +422,6 @@ invoiceSettingRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActi
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const deleted = await invoiceSettingMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .deleteMany({ companyId: queryId, _id: { $in: ids } })
         .catch(err => {
         invoiceSettingRoutesLogger.error('deletemany - err: ', err);
@@ -399,7 +450,6 @@ invoiceSettingRoutes.put('/deleteimages/:companyIdParam', requireAuth, requireAc
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const invoiceSetting = await invoiceSettingMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .findOneAndUpdate({ _id, companyId: queryId });
     if (!invoiceSetting) {
         return res.status(404).send({ success: false, err: 'item not found' });

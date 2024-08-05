@@ -65,7 +65,7 @@ exports.determineUserHasMail = determineUserHasMail;
     users: true
   };
   return stn;
-};*/
+}; */
 /**
    * Registers a new user with Authy.
    * @param phone - The user's phone number.
@@ -95,7 +95,7 @@ exports.determineUserHasMail = determineUserHasMail;
       }
     );
   });
-};*/
+}; */
 /**
    * Requests an SMS token from Authy for the given user.
    * @param authyId - The user's Authy ID.
@@ -114,7 +114,7 @@ exports.determineUserHasMail = determineUserHasMail;
         }
       });
   });
-};*/
+}; */
 const sendToken = (phone, countryCode, message) => {
     return new Promise((resolve, reject) => {
         stock_notif_local_1.notificationSettings.twilioClient.verify.v2.services(stock_notif_local_1.notificationSettings.twilioVerificationSid)
@@ -141,7 +141,7 @@ const sendToken = (phone, countryCode, message) => {
             reject(err);
             return;
           }
-        });*/
+        }); */
     });
 };
 exports.sendToken = sendToken;
@@ -199,7 +199,7 @@ const verifyAuthyToken = (phone, countryCode, code) => {
           } else {
             resolve(response);
           }
-        });*/
+        }); */
     });
 };
 exports.verifyAuthyToken = verifyAuthyToken;
@@ -269,7 +269,7 @@ const constructMailService = (sendGridApiKey, publicKey, privateKey) => {
         privateKey: vapidKeys.privateKey
       },
       TTL: 60
-    };*/
+    }; */
 };
 exports.constructMailService = constructMailService;
 /**
@@ -353,7 +353,6 @@ const updateNotifnViewed = async (user, id) => {
     notificationsControllerLogger.info('updateNotifnViewed - user: ', user);
     const { userId } = user;
     await mainnotification_model_1.mainnotificationMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .updateOne({ _id: id }, { $push: { viewed: userId } });
     return true;
 };

@@ -1,11 +1,12 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable no-console */
+import { describe, expect, it, vi } from 'vitest';
 import { LoggerController } from '../../../../stock-universal/src/controllers/logger.controller';
-import { vi, describe, it, expect } from 'vitest';
 
 describe('LoggerController', () => {
   it('should have properties defined', () => {
     const controller = new LoggerController();
+
     expect(controller.debug).toBeDefined();
     expect(controller.warn).toBeDefined();
     expect(controller.error).toBeDefined();
@@ -18,6 +19,7 @@ describe('LoggerController', () => {
     const warnSpy = vi.spyOn(controller, 'pWarn');
     const errorSpy = vi.spyOn(controller, 'pError');
     const traceSpy = vi.spyOn(controller, 'pTrace');
+
     controller.debug('This is a debug message');
     controller.warn('This is a warning message');
     controller.error('This is an error message');

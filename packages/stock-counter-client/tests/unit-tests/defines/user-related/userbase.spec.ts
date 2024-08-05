@@ -1,8 +1,8 @@
-import { expect, describe, beforeEach, it } from 'vitest';
 import Axios from 'axios-observable';
-import { StockCounterClient } from '../../../../../stock-counter-client/src/stock-counter-client';
-import { UserBase } from '../../../../../stock-counter-client/src/defines/user-related/userbase.define';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { StockAuthClient } from '../../../../../stock-auth-client/src/stock-auth-client';
+import { UserBase } from '../../../../../stock-counter-client/src/defines/user-related/userbase.define';
+import { StockCounterClient } from '../../../../../stock-counter-client/src/stock-counter-client';
 import { createMockUserBase } from '../../../../../tests/stock-counter-mocks';
 
 class TestBaseUser

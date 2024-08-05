@@ -51,7 +51,7 @@ exports.taxReportRoutes = express_1.default.Router();
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>} - Promise object representing the response
  */
-exports.taxReportRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'create'), async (req, res, next) => {
+exports.taxReportRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'create'), async (req, res) => {
     const taxReport = req.body.taxReport;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -62,7 +62,6 @@ exports.taxReportRoutes.post('/create/:companyIdParam', stock_universal_server_1
     }
     taxReport.companyId = queryId;
     const count = await taxreport_model_1.taxReportMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     taxReport.urId = (0, stock_universal_server_1.makeUrId)(Number(count[0]?.urId || '0'));
     const newTaxReport = new taxreport_model_1.taxReportMain(taxReport);
@@ -238,7 +237,6 @@ exports.taxReportRoutes.put('/deletemany/:companyIdParam', stock_universal_serve
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const deleted = await taxreport_model_1.taxReportMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .deleteMany({ companyId: queryId, _id: { $in: ids } })
         .catch(err => {
         taxReportRoutesLogger.error('deletemany - err: ', err);

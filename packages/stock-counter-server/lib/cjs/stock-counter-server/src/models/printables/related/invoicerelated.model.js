@@ -24,6 +24,8 @@ const database_controller_1 = require("../../../controllers/database.controller"
  * @property {Array} payments - The payments made on the invoice.
  */
 const invoiceRelatedSchema = new mongoose_1.Schema({
+    trackEdit: { type: mongoose_1.Schema.ObjectId },
+    trackView: { type: mongoose_1.Schema.ObjectId },
     companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
     creationType: { type: String },
     estimateId: { type: Number },
@@ -41,7 +43,9 @@ const invoiceRelatedSchema = new mongoose_1.Schema({
     subTotal: { type: Number },
     total: { type: Number },
     payments: [],
-    payType: { type: String, index: true }
+    payType: { type: String, index: true },
+    ecommerceSale: { type: Boolean, index: true, default: false },
+    ecommerceSalePercentage: { type: Number, index: true, default: 0 }
 }, { timestamps: true });
 // Apply the uniqueValidator plugin to invoiceRelatedSchema.
 // invoiceRelatedSchema.plugin(uniqueValidator);
@@ -49,6 +53,8 @@ const invoiceRelatedSchema = new mongoose_1.Schema({
  * for invoiceRelated
  */
 const invoiceRelatedselect = {
+    trackEdit: 1,
+    trackView: 1,
     companyId: 1,
     creationType: 1,
     estimateId: 1,
@@ -66,7 +72,9 @@ const invoiceRelatedselect = {
     subTotal: 1,
     total: 1,
     payments: 1,
-    payType: 1
+    payType: 1,
+    ecommerceSale: 1,
+    ecommerceSalePercentage: 1
 };
 /**
  * Selects the invoice related fields for querying.

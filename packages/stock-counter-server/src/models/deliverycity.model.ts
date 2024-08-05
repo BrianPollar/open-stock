@@ -10,6 +10,8 @@ const uniqueValidator = require('mongoose-unique-validator');
 export type Tdeliverycity = Document & Ideliverycity;
 
 const deliverycitySchema: Schema<Tdeliverycity> = new Schema({
+  trackEdit: { type: Schema.ObjectId },
+  trackView: { type: Schema.ObjectId },
   name: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
   companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
   shippingCost: { type: Number, required: [true, 'cannot be empty.'] },
@@ -24,6 +26,8 @@ deliverycitySchema.plugin(uniqueValidator);
  * for deliverycity
  */
 const deliverycityselect = {
+  trackEdit: 1,
+  trackView: 1,
   companyId: 1,
   name: 1,
   shippingCost: 1,

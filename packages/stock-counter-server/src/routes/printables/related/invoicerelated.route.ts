@@ -12,30 +12,30 @@ import { invoiceRelatedLean } from '../../../models/printables/related/invoicere
 import { makeInvoiceRelatedPdct, updateInvoiceRelated } from './invoicerelated';
 
 /** Logger for file storage */
-const fileStorageLogger = tracer.colorConsole(
-  {
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-      // eslint-disable-next-line no-console
-      console.log(data.output);
-      const logDir = path.join(process.cwd() + '/openstockLog/');
-      fs.mkdir(logDir, { recursive: true }, (err) => {
-        if (err) {
-          if (err) {
-            // eslint-disable-next-line no-console
-            console.log('data.output err ', err);
-          }
-        }
-      });
-      fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
+const fileStorageLogger = tracer.colorConsole({
+  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+  dateformat: 'HH:MM:ss.L',
+  transport(data) {
+    // eslint-disable-next-line no-console
+    console.log(data.output);
+    const logDir = path.join(process.cwd() + '/openstockLog/');
+
+    fs.mkdir(logDir, { recursive: true }, (err) => {
+      if (err) {
         if (err) {
           // eslint-disable-next-line no-console
-          console.log('raw.output err ', err);
+          console.log('data.output err ', err);
         }
-      });
-    }
-  });
+      }
+    });
+    fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
+      if (err) {
+        // eslint-disable-next-line no-console
+        console.log('raw.output err ', err);
+      }
+    });
+  }
+});
 
 /**
  * Router for handling invoice related routes.
@@ -53,23 +53,26 @@ invoiceRelateRoutes.get('/getone/:id/:companyIdParam', requireAuth, requireActiv
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const { id } = req.params;
   const isValid = verifyObjectIds([id, queryId]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
 
   const related = await invoiceRelatedLean
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .findOne({ _id: id, queryId })
     .lean()
     .populate({ path: 'billingUserId', model: userLean })
     .populate({ path: 'payments', model: receiptLean });
   let returned;
+
   if (related) {
     returned = makeInvoiceRelatedPdct(
       related as Required<IinvoiceRelated>,
         (related as unknown as IinvoiceRelated)
-          .billingUserId as unknown as Iuser);
+          .billingUserId as unknown as Iuser
+    );
   }
+
   return res.status(200).send(returned);
 });
 
@@ -85,6 +88,7 @@ invoiceRelateRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, r
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -98,6 +102,7 @@ invoiceRelateRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, r
       .populate({ path: 'payments', model: receiptLean })
       .catch(err => {
         fileStorageLogger.error('getall - err: ', err);
+
         return null;
       }),
     invoiceRelatedLean.countDocuments({ companyId: queryId })
@@ -106,12 +111,17 @@ invoiceRelateRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, r
     count: all[1],
     data: null
   };
+
   if (all[0]) {
     const returned = all[0]
-      .map(val => makeInvoiceRelatedPdct(val as Required<IinvoiceRelated>,
+      .map(val => makeInvoiceRelatedPdct(
+val as Required<IinvoiceRelated>,
         (val as IinvoiceRelated)
-          .billingUserId as unknown as Iuser));
+          .billingUserId as unknown as Iuser
+      ));
+
     response.data = returned;
+
     return res.status(200).send(response);
   } else {
     return res.status(200).send(response);
@@ -133,6 +143,7 @@ invoiceRelateRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, 
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -146,6 +157,7 @@ invoiceRelateRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, 
       .populate({ path: 'payments', model: receiptLean })
       .catch(err => {
         fileStorageLogger.error('getall - err: ', err);
+
         return null;
       }),
     invoiceRelatedLean.countDocuments({ queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
@@ -154,12 +166,17 @@ invoiceRelateRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, 
     count: all[1],
     data: null
   };
+
   if (all[0]) {
     const returned = all[0]
-      .map(val => makeInvoiceRelatedPdct(val as Required<IinvoiceRelated>,
+      .map(val => makeInvoiceRelatedPdct(
+val as Required<IinvoiceRelated>,
         (val as IinvoiceRelated)
-          .billingUserId as unknown as Iuser));
+          .billingUserId as unknown as Iuser
+      ));
+
     response.data = returned;
+
     return res.status(200).send(response);
   } else {
     return res.status(200).send(response);
@@ -176,11 +193,14 @@ invoiceRelateRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCom
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+
   invoiceRelated.companyId = queryId;
   const isValid = verifyObjectIds([invoiceRelated.invoiceRelated, queryId]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   await updateInvoiceRelated(invoiceRelated, companyId);
+
   return res.status(200).send({ success: true });
 });

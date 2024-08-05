@@ -1,5 +1,5 @@
-import { expect, describe, it } from 'vitest';
-import { createDirectories, checkDirectoryExists } from '../../../../stock-universal-server/src/filemanager/filemanager.controller';
+import { describe, expect, it } from 'vitest';
+import { checkDirectoryExists, createDirectories } from '../../../../stock-universal-server/src/filemanager/filemanager.controller';
 
 describe('filemanager', () => {
   const absolutepath = process.cwd();
@@ -23,6 +23,7 @@ describe('createDirectories', () => {
     const absolutepath = '/tmp/my-app';
     const directories = ['uploads', 'logs'];
     const result = await createDirectories(appName, absolutepath, directories);
+
     expect(result).toBe(true);
   });
 });
@@ -32,6 +33,7 @@ describe('checkDirectoryExists', () => {
     const absolutepath = '/tmp/my-app';
     const dir = 'uploads';
     const result = await checkDirectoryExists(absolutepath, dir);
+
     expect(result).toBe('created');
   });
 });

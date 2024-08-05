@@ -32,36 +32,37 @@ import express, { Request, Response } from 'express';
 import * as fs from 'fs';
 import path from 'path';
 import * as tracer from 'tracer';
+import { getDecoyFromBehaviour, registerSearchParams, todaysRecomendation } from '../controllers/user-behavoiur.controller';
 import { itemLean, itemMain } from '../models/item.model';
 import { itemDecoyMain } from '../models/itemdecoy.model';
 import { itemOfferMain } from '../models/itemoffer.model';
 import { reviewLean } from '../models/review.model';
 
 /** The logger for the item routes */
-const itemRoutesLogger = tracer.colorConsole(
-  {
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-      // eslint-disable-next-line no-console
-      console.log(data.output);
-      const logDir = path.join(process.cwd() + '/openstockLog/');
-      fs.mkdir(logDir, { recursive: true }, (err) => {
-        if (err) {
-          if (err) {
-            // eslint-disable-next-line no-console
-            console.log('data.output err ', err);
-          }
-        }
-      });
-      fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
+const itemRoutesLogger = tracer.colorConsole({
+  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+  dateformat: 'HH:MM:ss.L',
+  transport(data) {
+    // eslint-disable-next-line no-console
+    console.log(data.output);
+    const logDir = path.join(process.cwd() + '/openstockLog/');
+
+    fs.mkdir(logDir, { recursive: true }, (err) => {
+      if (err) {
         if (err) {
           // eslint-disable-next-line no-console
-          console.log('raw.output err ', err);
+          console.log('data.output err ', err);
         }
-      });
-    }
-  });
+      }
+    });
+    fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
+      if (err) {
+        // eslint-disable-next-line no-console
+        console.log('raw.output err ', err);
+      }
+    });
+  }
+});
 
 /**
  * Express router for item routes.
@@ -80,22 +81,22 @@ export const itemRoutes = express.Router();
  * @returns {Promise<Response>} - The express response object with a success status and saved item data
  */
 export const addReview = async(req: Request, res: Response): Promise<Response> => {
-  const { userId } = (req as Icustomrequest).user;
-  const itemId = req.body.review.itemId;
+  const { itemId, userId } = req.body.review;
   const isValid = verifyObjectId(itemId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const item = await itemMain
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .findByIdAndUpdate(itemId);
+
   if (!item) {
     return res.status(404).send({ success: false });
   }
   item.reviewedBy.push(userId || 'tourer');
   item.reviewCount++;
   item.reviewRatingsTotal += req.body.review.rating;
-  item.reviewWeight = item.reviewRatingsTotal / item.reviewedBy.length;
+  item.reviewWeight = item.reviewRatingsTotal / item.reviewedBy.length; // <= 10
   let errResponse: Isuccess;
   const saved = await item.save()
     .catch(err => {
@@ -110,12 +111,14 @@ export const addReview = async(req: Request, res: Response): Promise<Response> =
         errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
       }
+
       return errResponse;
     });
 
   if (errResponse) {
     return res.status(403).send(errResponse);
   }
+
   return res.status(200).send({ success: Boolean(saved) });
 };
 
@@ -137,28 +140,32 @@ export const removeReview = async(req: Request, res: Response): Promise<Response
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const { itemId, rating } = req.params;
   const isValid = verifyObjectIds([itemId, queryId]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
 
   const item = await itemMain
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .findOneAndUpdate({ _id: itemId, companyId: queryId });
+
   if (!item) {
     return res.status(404).send({ success: false });
   }
   const found = item.reviewedBy
     .find(val => val === userId || 'tourer');
+
   if (!found) {
     return res.status(404).send({ success: false });
   }
   const indexOf = item.reviewedBy
     .indexOf(found);
+
   item.reviewedBy.splice(indexOf);
   item.reviewCount--;
   item.reviewRatingsTotal -= parseInt(rating, 10);
   item.reviewWeight = item.reviewRatingsTotal / item.reviewedBy.length;
   let errResponse: Isuccess;
+
   await item.save().catch(err => {
     errResponse = {
       success: false,
@@ -170,6 +177,7 @@ export const removeReview = async(req: Request, res: Response): Promise<Response
       errResponse.err = `we are having problems connecting to our databases, 
       try again in a while`;
     }
+
     return errResponse;
   });
 
@@ -195,14 +203,16 @@ itemRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, re
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+
   item.companyId = queryId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const count = await itemMain
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-    .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+    .find({ }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+
   item.urId = makeUrId(Number(count[0]?.urId || '0'));
   const newProd = new itemMain(item);
   let errResponse: Isuccess;
@@ -219,6 +229,7 @@ itemRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, re
         errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
       }
+
       return errResponse;
     });
 
@@ -228,6 +239,7 @@ itemRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, re
   if (!Boolean(saved)) {
     return res.status(403).send('unknown error');
   }
+
   return next();
 }, requireUpdateSubscriptionRecord('item'));
 
@@ -246,17 +258,20 @@ itemRoutes.post('/createimg/:companyIdParam', requireAuth, requireActiveCompany,
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+
   item.companyId = queryId;
   item.ecomerceCompat = true;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const count = await itemMain
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-    .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+    .find({ }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+
   item.urId = makeUrId(Number(count[0]?.urId || '0'));
   const parsed = req.body;
+
   if (parsed && parsed.newPhotos) {
     item.photos = parsed.newPhotos;
   }
@@ -278,6 +293,7 @@ itemRoutes.post('/createimg/:companyIdParam', requireAuth, requireActiveCompany,
         errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
       }
+
       return errResponse;
     });
 
@@ -287,6 +303,7 @@ itemRoutes.post('/createimg/:companyIdParam', requireAuth, requireActiveCompany,
   if (!Boolean(saved)) {
     return res.status(403).send('unknown error');
   }
+
   return next();
 }, requireUpdateSubscriptionRecord('item'));
 
@@ -305,30 +322,34 @@ itemRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCompany, rol
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+
   updatedProduct.companyId = queryId;
   // eslint-disable-next-line @typescript-eslint/naming-convention
   // const { _id } = updatedProduct;
   const isValid = verifyObjectIds([updatedProduct._id, queryId]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
 
 
   const item = await itemMain
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .findOne({ _id: updatedProduct._id, companyId: queryId });
+
   if (!item) {
     return res.status(404).send({ success: false });
   }
 
   if (!item.urId || item.urId === '0') {
     const count = makeRandomString(3, 'numbers');
+
     item.urId = makeUrId(Number(count));
   }
 
   delete updatedProduct._id;
 
   const keys = Object.keys(updatedProduct);
+
   keys.forEach(key => {
     if (item[key] && key !== '_id') {
       item[key] = updatedProduct[key] || item[key];
@@ -348,12 +369,14 @@ itemRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCompany, rol
         errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
       }
+
       return errResponse;
     });
 
   if (errResponse) {
     return res.status(403).send(errResponse);
   }
+
   return res.status(200).send({ success: Boolean(updated) });
 });
 
@@ -365,29 +388,34 @@ itemRoutes.post('/updateimg/:companyIdParam', requireAuth, requireActiveCompany,
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const { _id } = updatedProduct;
   const isValid = verifyObjectIds([_id, queryId]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const item = await itemMain
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .findOne({ _id, companyId: queryId });
+
   if (!item) {
     return res.status(404).send({ success: false });
   }
 
   if (!item.urId || item.urId === '0') {
     const count = makeRandomString(3, 'numbers');
+
     item.urId = makeUrId(Number(count));
   }
 
   const parsed = req.body;
+
   if (parsed && parsed.newPhotos) {
     const oldPhotos = item.photos || [];
+
     item.photos = [...oldPhotos, ...parsed.newPhotos] as string[];
   }
 
   if (parsed && parsed.newVideos) {
     const meta = await fileMetaLean.findById(item.video);
+
     if (meta) {
       await deleteAllFiles([meta]);
     }
@@ -397,6 +425,7 @@ itemRoutes.post('/updateimg/:companyIdParam', requireAuth, requireActiveCompany,
   delete updatedProduct._id;
 
   const keys = Object.keys(updatedProduct);
+
   keys.forEach(key => {
     if (item[key]) {
       item[key] = updatedProduct[key] || item[key];
@@ -416,12 +445,14 @@ itemRoutes.post('/updateimg/:companyIdParam', requireAuth, requireActiveCompany,
         errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
       }
+
       return errResponse;
     });
 
   if (errResponse) {
     return res.status(403).send(errResponse);
   }
+
   return res.status(200).send({ success: Boolean(updated) });
 });
 
@@ -432,19 +463,21 @@ itemRoutes.put('/like/:itemId/:companyIdParam', requireAuth, async(req, res) => 
   const { userId } = (req as unknown as Icustomrequest).user;
   const { itemId } = req.params;
   const isValid = verifyObjectIds([itemId, queryId]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
 
   const item = await itemMain
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .findOneAndUpdate({ _id: itemId, companyId: queryId });
+
   if (!item) {
     return res.status(404).send({ success: false });
   }
   item.likes.push(userId);
   item.likesCount++;
   let errResponse: Isuccess;
+
   await item.save().catch(err => {
     errResponse = {
       success: false,
@@ -456,6 +489,7 @@ itemRoutes.put('/like/:itemId/:companyIdParam', requireAuth, async(req, res) => 
       errResponse.err = `we are having problems connecting to our databases, 
       try again in a while`;
     }
+
     return errResponse;
   });
 
@@ -473,19 +507,21 @@ itemRoutes.put('/unlike/:itemId/:companyIdParam', requireAuth, async(req, res) =
   const { userId } = (req as unknown as Icustomrequest).user;
   const { itemId } = req.params;
   const isValid = verifyObjectIds([itemId, queryId]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
 
   const item = await itemMain
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .findOneAndUpdate({ _id: itemId, companyId: queryId });
+
   if (!item) {
     return res.status(404).send({ success: false });
   }
   item.likes = item.likes.filter(val => val !== userId);
   item.likesCount--;
   let errResponse: Isuccess;
+
   await item.save().catch(err => {
     errResponse = {
       success: false,
@@ -497,6 +533,7 @@ itemRoutes.put('/unlike/:itemId/:companyIdParam', requireAuth, async(req, res) =
       errResponse.err = `we are having problems connecting to our databases, 
       try again in a while`;
     }
+
     return errResponse;
   });
 
@@ -511,22 +548,20 @@ itemRoutes.get('/getone/:urId/:companyIdParam', async(req, res) => {
   const { companyIdParam, urId } = req.params;
   let filter = { urId } as object;
   const isValid = verifyObjectId(companyIdParam);
+
   if (isValid) {
     filter = { urId, companyId: companyIdParam };
   }
 
   const item = await itemLean
     .findOne(filter)
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
     .populate({ path: 'companyId', model: companyLean,
       populate: [{
         path: 'owner', model: userLean,
         populate: [{
-          // eslint-disable-next-line @typescript-eslint/naming-convention
           path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
         }],
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
       }
       ],
@@ -534,15 +569,16 @@ itemRoutes.get('/getone/:urId/:companyIdParam', async(req, res) => {
         if (doc.blocked) {
           return null;
         } else {
-          // eslint-disable-next-line @typescript-eslint/naming-convention
           return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
         }
       }
     })
     .lean();
+
   if (item && !item.companyId) {
     return res.status(200).send({});
   }
+
   return res.status(200).send(item);
 });
 
@@ -550,6 +586,7 @@ itemRoutes.get('/filtergeneral/:prop/:val/:offset/:limit/:companyIdParam/:ecomer
   const { companyIdParam, prop, val, ecomerceCompat } = req.params;
   let filter = { [prop]: { $regex: val, $options: 'i' } } as object;
   const isValid = verifyObjectId(companyIdParam);
+
   if (isValid) {
     filter = { companyId: companyIdParam, [prop]: { $regex: val, $options: 'i' } } ;
   }
@@ -562,16 +599,13 @@ itemRoutes.get('/filtergeneral/:prop/:val/:offset/:limit/:companyIdParam/:ecomer
   const all = await Promise.all([
     itemLean
       .find(filter)
-    // eslint-disable-next-line @typescript-eslint/naming-convention
       .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
       .populate({ path: 'companyId', model: companyLean,
         populate: [{
           path: 'owner', model: userLean,
           populate: [{
-          // eslint-disable-next-line @typescript-eslint/naming-convention
             path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
           }],
-          // eslint-disable-next-line @typescript-eslint/naming-convention
           transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
         }
         ],
@@ -579,7 +613,6 @@ itemRoutes.get('/filtergeneral/:prop/:val/:offset/:limit/:companyIdParam/:ecomer
           if (doc.blocked) {
             return null;
           } else {
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
           }
         }
@@ -592,6 +625,7 @@ itemRoutes.get('/filtergeneral/:prop/:val/:offset/:limit/:companyIdParam/:ecomer
     count: all[1],
     data: newItems
   };
+
   return res.status(200).send(response);
 });
 
@@ -599,6 +633,7 @@ itemRoutes.get('/filterrandom/:prop/:val/:offset/:limit/:companyIdParam/:ecomerc
   const { companyIdParam, prop, val, ecomerceCompat } = req.params;
   let filter = { [prop]: { $regex: val, $options: 'i' } } as object;
   const isValid = verifyObjectId(companyIdParam);
+
   if (isValid) {
     filter = { companyId: companyIdParam, [prop]: { $regex: val, $options: 'i' } } ;
   }
@@ -608,16 +643,13 @@ itemRoutes.get('/filterrandom/:prop/:val/:offset/:limit/:companyIdParam/:ecomerc
   const all = await Promise.all([
     itemLean
       .find(filter)
-    // eslint-disable-next-line @typescript-eslint/naming-convention
       .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
       .populate({ path: 'companyId', model: companyLean,
         populate: [{
           path: 'owner', model: userLean,
           populate: [{
-          // eslint-disable-next-line @typescript-eslint/naming-convention
             path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
           }],
-          // eslint-disable-next-line @typescript-eslint/naming-convention
           transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
         }
         ],
@@ -625,7 +657,6 @@ itemRoutes.get('/filterrandom/:prop/:val/:offset/:limit/:companyIdParam/:ecomerc
           if (doc.blocked) {
             return null;
           } else {
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
           }
         }
@@ -634,12 +665,13 @@ itemRoutes.get('/filterrandom/:prop/:val/:offset/:limit/:companyIdParam/:ecomerc
       .lean(),
     itemLean.countDocuments(filter)
   ]);
-  console.log('filter general all ', all[0]);
+
   const newItems = all[0].filter(item => item.companyId);
   const response: IdataArrayResponse = {
     count: all[1],
     data: newItems
   };
+
   return res.status(200).send(response);
 });
 
@@ -647,6 +679,7 @@ itemRoutes.get('/getall/:offset/:limit/:companyIdParam/:ecomerceCompat', async(r
   const { companyIdParam, ecomerceCompat } = req.params;
   let filter = {} as object;
   const isValid = verifyObjectId(companyIdParam);
+
   if (isValid) {
     filter = { companyId: companyIdParam };
   }
@@ -659,16 +692,13 @@ itemRoutes.get('/getall/:offset/:limit/:companyIdParam/:ecomerceCompat', async(r
       .find(filter)
       .skip(offset)
       .limit(limit)
-    // eslint-disable-next-line @typescript-eslint/naming-convention
       .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
       .populate({ path: 'companyId', model: companyLean,
         populate: [{
           path: 'owner', model: userLean,
           populate: [{
-          // eslint-disable-next-line @typescript-eslint/naming-convention
             path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
           }],
-          // eslint-disable-next-line @typescript-eslint/naming-convention
           transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
         }
         ],
@@ -676,7 +706,6 @@ itemRoutes.get('/getall/:offset/:limit/:companyIdParam/:ecomerceCompat', async(r
           if (doc.blocked) {
             return null;
           } else {
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
           }
         }
@@ -684,12 +713,108 @@ itemRoutes.get('/getall/:offset/:limit/:companyIdParam/:ecomerceCompat', async(r
       .lean(),
     itemLean.countDocuments(filter)
   ]);
-  console.log('filter general all ', all[0]);
+
   const newItems = all[0].filter(item => item.companyId);
   const response: IdataArrayResponse = {
     count: all[1],
     data: newItems
   };
+
+  return res.status(200).send(response);
+});
+
+itemRoutes.get('/getbestsellers/:offset/:limit/:companyIdParam/:ecomerceCompat', async(req, res) => {
+  const { companyIdParam, ecomerceCompat } = req.params;
+  let filter = {} as object;
+  const isValid = verifyObjectId(companyIdParam);
+
+  if (isValid) {
+    filter = { companyId: companyIdParam };
+  }
+  if (ecomerceCompat === 'true') {
+    filter = { ...filter, ecomerceCompat: true };
+  }
+  const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
+  const all = await Promise.all([
+    itemLean
+      .find(filter)
+      .skip(offset)
+      .limit(limit)
+      .sort({ soldCount: 1 })
+      .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+      .populate({ path: 'companyId', model: companyLean,
+        populate: [{
+          path: 'owner', model: userLean,
+          populate: [{
+            path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+          }],
+          transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
+        }
+        ],
+        transform: (doc) => {
+          if (doc.blocked) {
+            return null;
+          } else {
+            return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
+          }
+        }
+      })
+      .lean(),
+    itemLean.countDocuments(filter)
+  ]);
+
+  const newItems = all[0].filter(item => item.companyId);
+  const response: IdataArrayResponse = {
+    count: all[1],
+    data: newItems
+  };
+
+  return res.status(200).send(response);
+});
+
+
+itemRoutes.get('/gettodaysuggestions/:userId/:offset/:limit/:companyIdParam/:ecomerceCompat', async(req, res) => {
+  const { userId, limit } = req.params;
+  const stnCookie = req.signedCookies['settings'];
+  const { ids, newOffset, newLimit } = await todaysRecomendation(limit, stnCookie?.userCookieId, userId);
+  let filter = { ecomerceCompat: true } as object;
+
+  if (ids && ids.length > 0) {
+    filter = { ...filter, _id: { $in: ids } };
+  }
+  const all = await Promise.all([
+    itemLean
+      .find(filter)
+      .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+      .sort({ timesViewed: 1 })
+      .skip(newOffset)
+      .limit(newLimit)
+      .populate({ path: 'companyId', model: companyLean,
+        populate: [{
+          path: 'owner', model: userLean,
+          populate: [{
+            path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+          }],
+          transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
+        }
+        ],
+        transform: (doc) => {
+          if (doc.blocked) {
+            return null;
+          } else {
+            return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
+          }
+        }
+      })
+      .lean(),
+    itemLean.countDocuments(filter)
+  ]);
+  const newItems = all[0].filter(item => item.companyId);
+  const response: IdataArrayResponse = {
+    count: all[1],
+    data: newItems
+  };
+
   return res.status(200).send(response);
 });
 
@@ -697,6 +822,7 @@ itemRoutes.get('/gettrending/:offset/:limit/:companyIdParam/:ecomerceCompat', as
   const { companyIdParam, ecomerceCompat } = req.params;
   let filter = {} as object;
   const isValid = verifyObjectId(companyIdParam);
+
   if (isValid) {
     filter = { companyId: companyIdParam };
   }
@@ -706,17 +832,14 @@ itemRoutes.get('/gettrending/:offset/:limit/:companyIdParam/:ecomerceCompat', as
   const all = await Promise.all([
     itemLean
       .find(filter)
-    // eslint-disable-next-line @typescript-eslint/naming-convention
       .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
       .sort({ timesViewed: 1 })
       .populate({ path: 'companyId', model: companyLean,
         populate: [{
           path: 'owner', model: userLean,
           populate: [{
-          // eslint-disable-next-line @typescript-eslint/naming-convention
             path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
           }],
-          // eslint-disable-next-line @typescript-eslint/naming-convention
           transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
         }
         ],
@@ -724,7 +847,6 @@ itemRoutes.get('/gettrending/:offset/:limit/:companyIdParam/:ecomerceCompat', as
           if (doc.blocked) {
             return null;
           } else {
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
           }
         }
@@ -737,6 +859,46 @@ itemRoutes.get('/gettrending/:offset/:limit/:companyIdParam/:ecomerceCompat', as
     count: all[1],
     data: newItems
   };
+
+  return res.status(200).send(response);
+});
+
+
+itemRoutes.get('/getbehaviourdecoy/:userId/offset/limit/:companyIdParam/:ecomerceCompat', async(req, res) => {
+  const { userId } = req.params;
+  const stnCookie = req.signedCookies['settings'];
+  const { ids } = await getDecoyFromBehaviour(stnCookie?.userCookieId, userId);
+  const all = await Promise.all([
+    itemLean
+      .find({ _id: { $in: ids } })
+      .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+      .sort({ timesViewed: 1 })
+      .populate({ path: 'companyId', model: companyLean,
+        populate: [{
+          path: 'owner', model: userLean,
+          populate: [{
+            path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+          }],
+          transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
+        }
+        ],
+        transform: (doc) => {
+          if (doc.blocked) {
+            return null;
+          } else {
+            return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
+          }
+        }
+      })
+      .lean(),
+    itemLean.countDocuments({ _id: { $in: ids } })
+  ]);
+  const newItems = all[0].filter(item => item.companyId);
+  const response: IdataArrayResponse = {
+    count: all[1],
+    data: newItems
+  };
+
   return res.status(200).send(response);
 });
 
@@ -744,6 +906,7 @@ itemRoutes.get('/getfeatured/:offset/:limit/:companyIdParam/:ecomerceCompat', as
   const { companyIdParam, ecomerceCompat } = req.params;
   let filter = {} as object;
   const isValid = verifyObjectId(companyIdParam);
+
   if (isValid) {
     filter = { companyId: companyIdParam };
   }
@@ -753,17 +916,14 @@ itemRoutes.get('/getfeatured/:offset/:limit/:companyIdParam/:ecomerceCompat', as
   const all = await Promise.all([
     itemLean
       .find(filter)
-    // eslint-disable-next-line @typescript-eslint/naming-convention
       .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
       .sort({ timesViewed: 1, likesCount: 1, reviewCount: 1 })
       .populate({ path: 'companyId', model: companyLean,
         populate: [{
           path: 'owner', model: userLean,
           populate: [{
-          // eslint-disable-next-line @typescript-eslint/naming-convention
             path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
           }],
-          // eslint-disable-next-line @typescript-eslint/naming-convention
           transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
         }
         ],
@@ -771,7 +931,6 @@ itemRoutes.get('/getfeatured/:offset/:limit/:companyIdParam/:ecomerceCompat', as
           if (doc.blocked) {
             return null;
           } else {
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
           }
         }
@@ -784,15 +943,16 @@ itemRoutes.get('/getfeatured/:offset/:limit/:companyIdParam/:ecomerceCompat', as
     count: all[1],
     data: newItems
   };
+
   return res.status(200).send(response);
 });
-
 
 // newly posted
 itemRoutes.get('/getnew/:offset/:limit/:companyIdParam/:ecomerceCompat', async(req, res) => {
   const { companyIdParam, ecomerceCompat } = req.params;
   let filter = {} as object;
   const isValid = verifyObjectId(companyIdParam);
+
   if (isValid) {
     filter = { companyId: companyIdParam };
   }
@@ -802,17 +962,14 @@ itemRoutes.get('/getnew/:offset/:limit/:companyIdParam/:ecomerceCompat', async(r
   const all = await Promise.all([
     itemLean
       .find(filter)
-    // eslint-disable-next-line @typescript-eslint/naming-convention
       .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
       .sort({ createdAt: -1 })
       .populate({ path: 'companyId', model: companyLean,
         populate: [{
           path: 'owner', model: userLean,
           populate: [{
-          // eslint-disable-next-line @typescript-eslint/naming-convention
             path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
           }],
-          // eslint-disable-next-line @typescript-eslint/naming-convention
           transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
         }
         ],
@@ -820,7 +977,6 @@ itemRoutes.get('/getnew/:offset/:limit/:companyIdParam/:ecomerceCompat', async(r
           if (doc.blocked) {
             return null;
           } else {
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
           }
         }
@@ -833,6 +989,7 @@ itemRoutes.get('/getnew/:offset/:limit/:companyIdParam/:ecomerceCompat', async(r
     count: all[1],
     data: newItems
   };
+
   return res.status(200).send(response);
 });
 
@@ -841,6 +998,7 @@ itemRoutes.get('/getbrandnew/:offset/:limit/:companyIdParam/:ecomerceCompat', as
   const { companyIdParam, ecomerceCompat } = req.params;
   let filter = { state: 'new' } as object;
   const isValid = verifyObjectId(companyIdParam);
+
   if (isValid) {
     filter = { companyId: companyIdParam, state: 'new' };
   }
@@ -850,17 +1008,14 @@ itemRoutes.get('/getbrandnew/:offset/:limit/:companyIdParam/:ecomerceCompat', as
   const all = await Promise.all([
     itemLean
       .find(filter)
-    // eslint-disable-next-line @typescript-eslint/naming-convention
       .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
       .sort({ createdAt: -1 })
       .populate({ path: 'companyId', model: companyLean,
         populate: [{
           path: 'owner', model: userLean,
           populate: [{
-          // eslint-disable-next-line @typescript-eslint/naming-convention
             path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
           }],
-          // eslint-disable-next-line @typescript-eslint/naming-convention
           transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
         }
         ],
@@ -868,7 +1023,6 @@ itemRoutes.get('/getbrandnew/:offset/:limit/:companyIdParam/:ecomerceCompat', as
           if (doc.blocked) {
             return null;
           } else {
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
           }
         }
@@ -881,6 +1035,7 @@ itemRoutes.get('/getbrandnew/:offset/:limit/:companyIdParam/:ecomerceCompat', as
     count: all[1],
     data: newItems
   };
+
   return res.status(200).send(response);
 });
 
@@ -889,6 +1044,7 @@ itemRoutes.get('/getused/:offset/:limit/:companyIdParam/:ecomerceCompat', async(
   const { companyIdParam, ecomerceCompat } = req.params;
   let filter = { state: 'refurbished' } as object;
   const isValid = verifyObjectId(companyIdParam);
+
   if (isValid) {
     filter = { companyId: companyIdParam, state: 'refurbished' };
   }
@@ -898,17 +1054,14 @@ itemRoutes.get('/getused/:offset/:limit/:companyIdParam/:ecomerceCompat', async(
   const all = await Promise.all([
     itemLean
       .find(filter)
-    // eslint-disable-next-line @typescript-eslint/naming-convention
       .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
       .sort({ createdAt: -1 })
       .populate({ path: 'companyId', model: companyLean,
         populate: [{
           path: 'owner', model: userLean,
           populate: [{
-          // eslint-disable-next-line @typescript-eslint/naming-convention
             path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
           }],
-          // eslint-disable-next-line @typescript-eslint/naming-convention
           transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
         }
         ],
@@ -916,7 +1069,6 @@ itemRoutes.get('/getused/:offset/:limit/:companyIdParam/:ecomerceCompat', async(
           if (doc.blocked) {
             return null;
           } else {
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
           }
         }
@@ -929,6 +1081,7 @@ itemRoutes.get('/getused/:offset/:limit/:companyIdParam/:ecomerceCompat', async(
     count: all[1],
     data: newItems
   };
+
   return res.status(200).send(response);
 });
 
@@ -937,6 +1090,7 @@ itemRoutes.get('/filterprice/max/:priceFilterValue/:offset/:limit/:companyIdPara
   const { companyIdParam, ecomerceCompat } = req.params;
   let filter = {} as object;
   const isValid = verifyObjectId(companyIdParam);
+
   if (isValid) {
     filter = { companyId: companyIdParam };
   }
@@ -948,17 +1102,14 @@ itemRoutes.get('/filterprice/max/:priceFilterValue/:offset/:limit/:companyIdPara
     itemLean
       .find(filter)
       .gte('costMeta.sellingPrice', Number(priceFilterValue))
-    // eslint-disable-next-line @typescript-eslint/naming-convention
       .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
       .sort({ createdAt: -1 })
       .populate({ path: 'companyId', model: companyLean,
         populate: [{
           path: 'owner', model: userLean,
           populate: [{
-          // eslint-disable-next-line @typescript-eslint/naming-convention
             path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
           }],
-          // eslint-disable-next-line @typescript-eslint/naming-convention
           transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
         }
         ],
@@ -966,7 +1117,6 @@ itemRoutes.get('/filterprice/max/:priceFilterValue/:offset/:limit/:companyIdPara
           if (doc.blocked) {
             return null;
           } else {
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
           }
         }
@@ -979,6 +1129,7 @@ itemRoutes.get('/filterprice/max/:priceFilterValue/:offset/:limit/:companyIdPara
     count: all[1],
     data: newItems
   };
+
   return res.status(200).send(response);
 });
 
@@ -986,6 +1137,7 @@ itemRoutes.get('/filterprice/min/:priceFilterValue/:offset/:limit/:companyIdPara
   const { companyIdParam, ecomerceCompat } = req.params;
   let filter = {} as object;
   const isValid = verifyObjectId(companyIdParam);
+
   if (isValid) {
     filter = { companyId: companyIdParam };
   }
@@ -997,17 +1149,14 @@ itemRoutes.get('/filterprice/min/:priceFilterValue/:offset/:limit/:companyIdPara
     itemLean
       .find(filter)
       .lte('costMeta.sellingPrice', Number(priceFilterValue))
-    // eslint-disable-next-line @typescript-eslint/naming-convention
       .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
       .sort({ createdAt: -1 })
       .populate({ path: 'companyId', model: companyLean,
         populate: [{
           path: 'owner', model: userLean,
           populate: [{
-          // eslint-disable-next-line @typescript-eslint/naming-convention
             path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
           }],
-          // eslint-disable-next-line @typescript-eslint/naming-convention
           transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
         }
         ],
@@ -1015,7 +1164,6 @@ itemRoutes.get('/filterprice/min/:priceFilterValue/:offset/:limit/:companyIdPara
           if (doc.blocked) {
             return null;
           } else {
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
           }
         }
@@ -1028,6 +1176,7 @@ itemRoutes.get('/filterprice/min/:priceFilterValue/:offset/:limit/:companyIdPara
     count: all[1],
     data: newItems
   };
+
   return res.status(200).send(response);
 });
 
@@ -1036,6 +1185,7 @@ itemRoutes.get('/filterprice/eq/:priceFilterMinValue/:priceFilterMaxValue/:offse
   const { companyIdParam, ecomerceCompat } = req.params;
   let filter = {} as object;
   const isValid = verifyObjectId(companyIdParam);
+
   if (isValid) {
     filter = { companyId: companyIdParam };
   }
@@ -1048,17 +1198,14 @@ itemRoutes.get('/filterprice/eq/:priceFilterMinValue/:priceFilterMaxValue/:offse
       .find(filter)
       .gte('costMeta.sellingPrice', Number(priceFilterMaxValue))
       .lte('costMeta.sellingPrice', Number(priceFilterMinValue))
-    // eslint-disable-next-line @typescript-eslint/naming-convention
       .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
       .sort({ createdAt: -1 })
       .populate({ path: 'companyId', model: companyLean,
         populate: [{
           path: 'owner', model: userLean,
           populate: [{
-          // eslint-disable-next-line @typescript-eslint/naming-convention
             path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
           }],
-          // eslint-disable-next-line @typescript-eslint/naming-convention
           transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
         }
         ],
@@ -1066,7 +1213,6 @@ itemRoutes.get('/filterprice/eq/:priceFilterMinValue/:priceFilterMaxValue/:offse
           if (doc.blocked) {
             return null;
           } else {
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
           }
         }
@@ -1079,6 +1225,7 @@ itemRoutes.get('/filterprice/eq/:priceFilterMinValue/:priceFilterMaxValue/:offse
     count: all[1],
     data: newItems
   };
+
   return res.status(200).send(response);
 });
 
@@ -1086,6 +1233,7 @@ itemRoutes.get('/filterstars/:starVal/:offset/:limit/:companyIdParam/:ecomerceCo
   const { companyIdParam, ecomerceCompat } = req.params;
   let filter = {} as object;
   const isValid = verifyObjectId(companyIdParam);
+
   if (isValid) {
     filter = { companyId: companyIdParam };
   }
@@ -1100,17 +1248,14 @@ itemRoutes.get('/filterstars/:starVal/:offset/:limit/:companyIdParam/:ecomerceCo
       .lte(starVal + 2)
       .gte(starVal)
       .select({ itemId: 1 })
-    // eslint-disable-next-line @typescript-eslint/naming-convention
       .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
       .lean()
       .populate({ path: 'companyId', model: companyLean,
         populate: [{
           path: 'owner', model: userLean,
           populate: [{
-          // eslint-disable-next-line @typescript-eslint/naming-convention
             path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
           }],
-          // eslint-disable-next-line @typescript-eslint/naming-convention
           transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
         }
         ],
@@ -1118,7 +1263,6 @@ itemRoutes.get('/filterstars/:starVal/:offset/:limit/:companyIdParam/:ecomerceCo
           if (doc.blocked) {
             return null;
           } else {
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
           }
         }
@@ -1131,6 +1275,7 @@ itemRoutes.get('/filterstars/:starVal/:offset/:limit/:companyIdParam/:ecomerceCo
     count: all[1],
     data: newItems
   };
+
   return res.status(200).send(response);
 });
 
@@ -1138,6 +1283,7 @@ itemRoutes.get('/discount/:discountValue/:offset/:limit/:companyIdParam/:ecomerc
   const { companyIdParam, ecomerceCompat } = req.params;
   let filter = {} as object;
   const isValid = verifyObjectId(companyIdParam);
+
   if (isValid) {
     filter = { companyId: companyIdParam };
   }
@@ -1150,7 +1296,7 @@ itemRoutes.get('/discount/:discountValue/:offset/:limit/:companyIdParam/:ecomerc
       .find(filter)
       .or([
         {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
+          // eslint-disable-next-line @typescript-eslint/naming-convention
           'costMeta.offer': 'true',
           // eslint-disable-next-line @typescript-eslint/naming-convention
           'costMeta.discount': Number(discountValue)
@@ -1162,17 +1308,14 @@ itemRoutes.get('/discount/:discountValue/:offset/:limit/:companyIdParam/:ecomerc
           'costMeta.discount': Number(discountValue)
         }
       ])
-    // eslint-disable-next-line @typescript-eslint/naming-convention
       .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
       .sort({ createdAt: -1 })
       .populate({ path: 'companyId', model: companyLean,
         populate: [{
           path: 'owner', model: userLean,
           populate: [{
-          // eslint-disable-next-line @typescript-eslint/naming-convention
             path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
           }],
-          // eslint-disable-next-line @typescript-eslint/naming-convention
           transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
         }
         ],
@@ -1180,7 +1323,6 @@ itemRoutes.get('/discount/:discountValue/:offset/:limit/:companyIdParam/:ecomerc
           if (doc.blocked) {
             return null;
           } else {
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
           }
         }
@@ -1193,6 +1335,7 @@ itemRoutes.get('/discount/:discountValue/:offset/:limit/:companyIdParam/:ecomerc
     count: all[1],
     data: newItems
   };
+
   return res.status(200).send(response);
 });
 
@@ -1202,13 +1345,14 @@ itemRoutes.post('/getsponsored/:companyIdParam', async(req, res) => {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   let filter = { _id: { $in: ids } } as object;
   const isValid = verifyObjectId(companyIdParam);
+
   if (isValid) {
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     filter = { companyId: companyIdParam, _id: { $in: ids } };
   }
   if (ids && ids.length > 0) {
     for (const id of ids) {
       const isValid = verifyObjectId(id);
+
       if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
       }
@@ -1218,9 +1362,7 @@ itemRoutes.post('/getsponsored/:companyIdParam', async(req, res) => {
   }
 
   const items = await itemLean
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .find(filter)
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
     .lean()
     .sort({ timesViewed: 1 })
@@ -1228,10 +1370,8 @@ itemRoutes.post('/getsponsored/:companyIdParam', async(req, res) => {
       populate: [{
         path: 'owner', model: userLean,
         populate: [{
-          // eslint-disable-next-line @typescript-eslint/naming-convention
           path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
         }],
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
       }
       ],
@@ -1239,13 +1379,13 @@ itemRoutes.post('/getsponsored/:companyIdParam', async(req, res) => {
         if (doc.blocked) {
           return null;
         } else {
-          // eslint-disable-next-line @typescript-eslint/naming-convention
           return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
         }
       }
     })
     .lean();
   const newItems = items.filter(item => item.companyId);
+
   return res.status(200).send(newItems);
 });
 
@@ -1255,6 +1395,7 @@ itemRoutes.get('/getoffered/:companyIdParam', async(req, res) => {
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   let filter = {} as object;
   const isValid = verifyObjectId(queryId);
+
   if (isValid) {
     filter = { companyId: queryId };
   }
@@ -1266,17 +1407,14 @@ itemRoutes.get('/getoffered/:companyIdParam', async(req, res) => {
       }
       ]
     })
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
     .sort({ createdAt: -1 })
     .populate({ path: 'companyId', model: companyLean,
       populate: [{
         path: 'owner', model: userLean,
         populate: [{
-          // eslint-disable-next-line @typescript-eslint/naming-convention
           path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
         }],
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
       }
       ],
@@ -1284,7 +1422,6 @@ itemRoutes.get('/getoffered/:companyIdParam', async(req, res) => {
         if (doc.blocked) {
           return null;
         } else {
-          // eslint-disable-next-line @typescript-eslint/naming-convention
           return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
         }
       }
@@ -1292,6 +1429,7 @@ itemRoutes.get('/getoffered/:companyIdParam', async(req, res) => {
     .lean();
   const newItems = items.filter(item => item.companyId);
   const filtered = newItems.filter(p => p.sponsored?.length && p.sponsored?.length > 0);
+
   return res.status(200).send(filtered);
 });
 
@@ -1302,15 +1440,18 @@ itemRoutes.put('/addsponsored/:id/:companyIdParam', requireAuth, requireActiveCo
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectIds([id, queryId]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const item = await itemMain.findByIdAndUpdate(id);
+
   if (!item) {
     return res.status(404).send({ success: false });
   }
   item.sponsored.push(sponsored);
   let errResponse: Isuccess;
+
   await item.save().catch(err => {
     errResponse = {
       success: false,
@@ -1322,6 +1463,7 @@ itemRoutes.put('/addsponsored/:id/:companyIdParam', requireAuth, requireActiveCo
       errResponse.err = `we are having problems connecting to our databases, 
       try again in a while`;
     }
+
     return errResponse;
   });
 
@@ -1339,20 +1481,25 @@ itemRoutes.put('/updatesponsored/:id/:companyIdParam', requireAuth, requireActiv
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const { sponsored } = req.body;
   const isValid = verifyObjectIds([id, queryId]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const item = await itemMain.findOneAndUpdate({ _id: id, companyId: queryId });
+
   if (!item) {
     return res.status(404).send({ success: false });
   }
   const found = item.sponsored.find(val => val.item === sponsored.item);
+
   if (found) {
     const indexOf = item.sponsored.indexOf(found);
+
     item.sponsored[indexOf] = sponsored;
   }
   let errResponse: Isuccess;
+
   await item.save().catch(err => {
     errResponse = {
       success: false,
@@ -1364,6 +1511,7 @@ itemRoutes.put('/updatesponsored/:id/:companyIdParam', requireAuth, requireActiv
       errResponse.err = `we are having problems connecting to our databases, 
       try again in a while`;
     }
+
     return errResponse;
   });
 
@@ -1380,20 +1528,25 @@ itemRoutes.delete('/deletesponsored/:id/:spnsdId/:companyIdParam', requireAuth, 
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectIds([id, queryId]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const item = await itemMain.findOneAndUpdate({ _id: id, companyId: queryId });
+
   if (!item) {
     return res.status(404).send({ success: false });
   }
   const found = item.sponsored.find(val => val.item === spnsdId);
+
   if (found) {
     const indexOf = item.sponsored.indexOf(found);
+
     item.sponsored.splice(indexOf, 1);
   }
   let errResponse: Isuccess;
+
   await item.save().catch(err => {
     errResponse = {
       success: false,
@@ -1405,6 +1558,7 @@ itemRoutes.delete('/deletesponsored/:id/:spnsdId/:companyIdParam', requireAuth, 
       errResponse.err = `we are having problems connecting to our databases, 
       try again in a while`;
     }
+
     return errResponse;
   });
 
@@ -1421,6 +1575,7 @@ itemRoutes.put('/deleteone/:id/:companyIdParam', requireAuth, requireActiveCompa
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectIds([id, queryId]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -1430,19 +1585,18 @@ itemRoutes.put('/deleteone/:id/:companyIdParam', requireAuth, requireActiveCompa
   await itemDecoyMain.deleteMany({ companyId: queryId, items: { $elemMatch: { $in: [id] } } });
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const found = await itemMain.findOne({ _id: id, companyId: queryId })
-  // eslint-disable-next-line @typescript-eslint/naming-convention
     .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .populate({ path: 'video', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
     .lean();
+
   if (found) {
     let filesWithDir = (found as any).photos.map(photo => (
       {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         _id: photo._id,
         url: photo.url
       }
     ));
+
     if (found.video) {
       filesWithDir = [...filesWithDir, ...[found.video]];
     }
@@ -1450,6 +1604,7 @@ itemRoutes.put('/deleteone/:id/:companyIdParam', requireAuth, requireActiveCompa
   }
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const deleted = await itemMain.findOneAndDelete({ _id: id, companyId: queryId });
+
   if (Boolean(deleted)) {
     return res.status(200).send({ success: Boolean(deleted) });
   } else {
@@ -1462,6 +1617,7 @@ itemRoutes.put('/deletefiles/:companyIdParam', requireAuth, requireActiveCompany
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+
   if (filesWithDir && !filesWithDir.length) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -1469,23 +1625,26 @@ itemRoutes.put('/deletefiles/:companyIdParam', requireAuth, requireActiveCompany
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const { _id } = updatedProduct;
   const isValid = verifyObjectIds([_id, queryId]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const item = await itemMain
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .findOneAndUpdate({ _id, companyId: queryId });
+
   if (!item) {
     return res.status(404).send({ success: false, err: 'item not found' });
   }
   const filesWithDirIds = filesWithDir.map(val => val._id);
   const photos = item.photos;
+
   item.photos = photos
     .filter((p: string) => !filesWithDirIds.includes(p)) as string[];
   if (item.video && filesWithDirIds.includes(item.video as string)) {
     item.video = null;
   }
   let errResponse: Isuccess;
+
   await item.save().catch(err => {
     errResponse = {
       success: false,
@@ -1497,6 +1656,7 @@ itemRoutes.put('/deletefiles/:companyIdParam', requireAuth, requireActiveCompany
       errResponse.err = `we are having problems connecting to our databases, 
       try again in a while`;
     }
+
     return errResponse;
   });
 
@@ -1507,19 +1667,25 @@ itemRoutes.put('/deletefiles/:companyIdParam', requireAuth, requireActiveCompany
   return res.status(200).send({ success: true });
 });
 
-itemRoutes.post('/search/:offset/:limit/:companyIdParam', async(req, res) => {
+itemRoutes.post('/search/:offset/:limit/:companyIdParam;userId', async(req, res) => {
   const { searchterm, searchKey, category, extraFilers, subCategory, ecomerceCompat } = req.body;
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
+  const stnCookie = req.signedCookies['settings'];
+
+  registerSearchParams(searchterm, '', stnCookie?.userCookieId, req.params.userId);
   const { companyIdParam } = req.params;
+
   if (companyIdParam !== 'undefined') {
     itemRoutesLogger.info('filter item with 999999 def');
     const isValid = verifyObjectId(companyIdParam);
+
     if (!isValid) {
       return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
   }
   itemRoutesLogger.info('filter item with 11111');
   let filter;
+
   if (!category || category === 'all') {
     if (subCategory) {
       filter = { subCategory };
@@ -1586,26 +1752,32 @@ itemRoutes.post('/search/:offset/:limit/:companyIdParam', async(req, res) => {
           ...{ brand: extraFilers.val.val }
         };
         break;
+
       /* default:
-        return res.status(401).send({ success: false, err: 'unauthorised' });*/
+        return res.status(401).send({ success: false, err: 'unauthorised' }); */
     }
   }
+
+  /* TODO proper regex
+  const searchFields = ['name', 'description', 'category', 'subCategory', 'brand'];
+  const searchRegex = { $regex: searchterm, $options: 'i' };
+  const searchQuery = searchFields.reduce((acc, field) => {
+    acc[field] = searchRegex;
+    return acc;
+  }, {}); */
 
   const all = await Promise.all([
     itemLean
       .find({ [searchKey]: { $regex: searchterm, $options: 'i' }, ...filter })
       .skip(offset)
       .limit(limit)
-    // eslint-disable-next-line @typescript-eslint/naming-convention
       .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
       .populate({ path: 'companyId', model: companyLean,
         populate: [{
           path: 'owner', model: userLean,
           populate: [{
-          // eslint-disable-next-line @typescript-eslint/naming-convention
             path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
           }],
-          // eslint-disable-next-line @typescript-eslint/naming-convention
           transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
         }
         ],
@@ -1613,7 +1785,6 @@ itemRoutes.post('/search/:offset/:limit/:companyIdParam', async(req, res) => {
           if (doc.blocked) {
             return null;
           } else {
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
           }
         }
@@ -1637,6 +1808,7 @@ itemRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany,
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectIds([...ids, ...[queryId]]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -1648,13 +1820,9 @@ itemRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany,
   let filesWithDir: IfileMeta[];
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const alltoDelete = await itemLean.find({ _id: { $in: ids } })
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .populate({ path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .populate({ path: 'profileCoverPic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .populate({ path: 'video', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
     .lean();
 
@@ -1670,12 +1838,13 @@ itemRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany,
   await deleteAllFiles(filesWithDir);
 
   const deleted = await itemMain
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .deleteMany({ _id: { $in: ids } })
     .catch(err => {
       itemRoutesLogger.error('deletemany - err: ', err);
+
       return null;
     });
+
   if (Boolean(deleted)) {
     return res.status(200).send({ success: Boolean(deleted) });
   } else {

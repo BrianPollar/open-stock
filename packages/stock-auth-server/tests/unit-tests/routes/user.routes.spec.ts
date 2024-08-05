@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach } from 'vitest';
 import { Company, User } from '@open-stock/stock-auth-client';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { createMockCompany, createMockUser } from '../../../../tests/stock-auth-mocks';
 
 describe('userLoginRelegator', () => {

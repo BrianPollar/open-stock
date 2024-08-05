@@ -18,6 +18,7 @@ const path_1 = tslib_1.__importDefault(require("path"));
 const company_model_1 = require("../models/company.model");
 const emailtoken_model_1 = require("../models/emailtoken.model");
 const company_subscription_model_1 = require("../models/subscriptions/company-subscription.model");
+const user_model_1 = require("../models/user.model");
 const stock_auth_local_1 = require("../stock-auth-local");
 const universialControllerLogger = tracer.colorConsole({
     format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
@@ -75,9 +76,22 @@ const setUserInfo = (userId, permissions, companyId, companyPermissions) => {
     return details;
 };
 exports.setUserInfo = setUserInfo;
+/**
+ * Generates an authentication response object containing the user, company, token, and active subscription information.
+ * @param foundUser - The user object to generate the response for.
+ * @returns A promise that resolves to an authentication response object.
+ */
 const makeUserReturnObject = async (foundUser) => {
     const company = await company_model_1.companyLean.findById(foundUser?.companyId)
+        .populate({ path: 'owner', model: user_model_1.userLean,
+        populate: [{
+                path: 'photos', model: stock_universal_server_1.fileMetaLean
+            }]
+    })
         .lean();
+    if (company && company.owner.photos[0]) {
+        company.profilePic = company.owner.photos[0];
+    }
     universialControllerLogger.debug('found company: ', company);
     let permissions;
     if (company && company.owner === foundUser._id.toString()) {
@@ -93,10 +107,11 @@ const makeUserReturnObject = async (foundUser) => {
     let activeSubscription;
     const now = new Date();
     if (company) {
-        const subsctn = await company_subscription_model_1.companySubscriptionLean.findOne({ companyId: company._id, status: 'paid' })
+        const subsctn = await company_subscription_model_1.companySubscriptionLean
+            .findOne({ companyId: company._id, status: 'paid' })
             .lean()
             .gte('endDate', now)
-            .sort({ endDate: 1 });
+            .sort({ endDate: -1 });
         activeSubscription = subsctn;
     }
     universialControllerLogger.debug('found foundUser: ', foundUser);
@@ -236,7 +251,7 @@ const validatePhone = async (foundUser, verifycode, newPassword) => {
               }
             });
           });
-        };*/
+        }; */
     });
 };
 exports.validatePhone = validatePhone;
@@ -345,7 +360,6 @@ enableValidationSMS = '1' // twilio enable sms validation
                 response = {
                     status: 403,
                     success: false,
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     msg: 'Sorry our verification system is down, try again in a while'
                 };
             }
@@ -353,7 +367,6 @@ enableValidationSMS = '1' // twilio enable sms validation
                 response = {
                     status: 200,
                     success: true,
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     _id: foundUser._id,
                     phone: foundUser.phone
                 };
@@ -366,7 +379,6 @@ enableValidationSMS = '1' // twilio enable sms validation
         response = {
             status: 200,
             success: true,
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             _id: foundUser._id,
             msg: 'Account created (SMS validation disabled)'
         };
@@ -587,7 +599,6 @@ height: 100%;
             universialControllerLogger.info('message sent', res);
             response = {
                 status: 200,
-                // eslint-disable-next-line @typescript-eslint/naming-convention
                 _id: foundUser._id,
                 success: true,
                 msg: `Check ${foundUser.email} for verication code`,

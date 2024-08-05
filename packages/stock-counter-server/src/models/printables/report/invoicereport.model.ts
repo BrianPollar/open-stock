@@ -10,6 +10,8 @@ export type TinvoicesReport = Document & IinvoicesReport;
 
 /** Schema definition for invoicesReport */
 const invoicesReportSchema: Schema<TinvoicesReport> = new Schema({
+  trackEdit: { type: Schema.ObjectId },
+  trackView: { type: Schema.ObjectId },
   urId: { type: String },
   companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
   totalAmount: { type: Number },
@@ -22,6 +24,8 @@ invoicesReportSchema.plugin(uniqueValidator);
 
 /** Primary selection object for invoicesReport */
 const invoicesReportselect = {
+  trackEdit: 1,
+  trackView: 1,
   urId: 1,
   companyId: 1,
   totalAmount: 1,

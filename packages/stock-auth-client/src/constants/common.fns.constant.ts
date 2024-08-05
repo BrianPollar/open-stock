@@ -5,8 +5,7 @@ import { User } from '../defines/user.define';
  * @param userId - The user object or user ID.
  * @returns The URID of the user.
  */
-export const resolveUserUrId = (
-  userId: User | string): string => (userId as User)?.urId || (userId as string);
+export const resolveUserUrId = (userId: User | string): string => (userId as User)?.urId || (userId as string);
 
 /**
  * Resolves the image URL based on the provided parameters.

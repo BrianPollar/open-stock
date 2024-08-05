@@ -9,6 +9,13 @@ import { Item } from '../defines/item.define';
 export declare class InventoryController {
     constructor();
     /**
+     * Calculates the company's percentage from an e-commerce sale.
+     * @param amount - The total amount of the e-commerce sale.
+     * @param ecommerceSalePercentage - The percentage of the sale that goes to the e-commerce platform.
+     * @returns The amount that the company will receive from the e-commerce sale.
+     */
+    getCompanyPercentageFromEcommerceSale(amount: number, ecommerceSalePercentage: number): number;
+    /**
      * This method checks if the current stage of an item in the inventory is the same as the specified stage. It returns true if they are the same, otherwise it compares the positions of the stages and returns true if the current stage is before or at the same position as the specified stage.
      * @param currStage - The current stage of the item.
      * @param stage - The specified stage to compare with.
@@ -27,13 +34,13 @@ export declare class InventoryController {
      * @param items - The list of items to calculate the profit margin for.
      * @returns The total profit margin for the list of items.
      */
-    calcBulkProfitMarginPdts(items: Item[]): number;
+    calcBulkProfitMarginPdts(items: Item[], ecommerceSalePercentage?: number): number;
     /**
      * This method calculates the profit margin for a single item. It subtracts the cost price from the selling price of the item.
      * @param item - The item to calculate the profit margin for.
      * @returns The profit margin for the item.
      */
-    calcItemProfitMargin(item: Item): number;
+    calcItemProfitMargin(item: Item, ecommerceSalePercentage?: number): number;
     /**
      * This method calculates the biggest expense point from a list of expenses. It finds the expense with the highest cost and returns it.
      * @param expenses - The list of expenses to find the biggest expense point from.
@@ -45,7 +52,7 @@ export declare class InventoryController {
      * @param items - The list of related products to calculate the subtotal for.
      * @returns The subtotal for the list of related products.
      */
-    calcSubtotal(items: IinvoiceRelatedPdct[]): number;
+    calcSubtotal(items: IinvoiceRelatedPdct[], ecommerceSalePercentage?: number): number;
     /**
      * This method calculates the balance due for an invoice. It subtracts the payment made from the total amount of the invoice.
      * @param invoice - The invoice to calculate the balance due for.
@@ -81,7 +88,7 @@ export declare class InventoryController {
      * @returns The profit for the item across all related invoices.
      */
     getProfitByItem(itemId: string, related: InvoiceRelatedWithReceipt[], allItems: Item[]): number;
-    /** getExpenseByItem(item: Item): This method calculates the total expense for an item. It sums up the cost of each inventory meta entry for the item.*/
+    /** getExpenseByItem(item: Item): This method calculates the total expense for an item. It sums up the cost of each inventory meta entry for the item. */
     getExpenseByItem(item: Item): number;
     /**
      * Compares two dates deeply based on the specified position.

@@ -8,12 +8,13 @@ import * as tracer from 'tracer';
 // const nodemailer = require('nodemailer');
 import { sendMail } from '@open-stock/stock-notif-server';
 import { makeRandomString } from '@open-stock/stock-universal';
-import { stringifyMongooseErr, verifyObjectId } from '@open-stock/stock-universal-server';
+import { fileMetaLean, stringifyMongooseErr, verifyObjectId } from '@open-stock/stock-universal-server';
 import * as jwt from 'jsonwebtoken';
 import path from 'path';
 import { companyLean } from '../models/company.model';
 import { emailtoken } from '../models/emailtoken.model';
 import { companySubscriptionLean } from '../models/subscriptions/company-subscription.model';
+import { userLean } from '../models/user.model';
 import { stockAuthConfig } from '../stock-auth-local';
 const universialControllerLogger = tracer.colorConsole({
     format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
@@ -69,9 +70,22 @@ export const setUserInfo = (userId, permissions, companyId, companyPermissions) 
     universialControllerLogger.info('setUserInfo - details: ', details);
     return details;
 };
+/**
+ * Generates an authentication response object containing the user, company, token, and active subscription information.
+ * @param foundUser - The user object to generate the response for.
+ * @returns A promise that resolves to an authentication response object.
+ */
 export const makeUserReturnObject = async (foundUser) => {
     const company = await companyLean.findById(foundUser?.companyId)
+        .populate({ path: 'owner', model: userLean,
+        populate: [{
+                path: 'photos', model: fileMetaLean
+            }]
+    })
         .lean();
+    if (company && company.owner.photos[0]) {
+        company.profilePic = company.owner.photos[0];
+    }
     universialControllerLogger.debug('found company: ', company);
     let permissions;
     if (company && company.owner === foundUser._id.toString()) {
@@ -87,10 +101,11 @@ export const makeUserReturnObject = async (foundUser) => {
     let activeSubscription;
     const now = new Date();
     if (company) {
-        const subsctn = await companySubscriptionLean.findOne({ companyId: company._id, status: 'paid' })
+        const subsctn = await companySubscriptionLean
+            .findOne({ companyId: company._id, status: 'paid' })
             .lean()
             .gte('endDate', now)
-            .sort({ endDate: 1 });
+            .sort({ endDate: -1 });
         activeSubscription = subsctn;
     }
     universialControllerLogger.debug('found foundUser: ', foundUser);
@@ -229,7 +244,7 @@ export const validatePhone = async (foundUser, verifycode, newPassword) => {
               }
             });
           });
-        };*/
+        }; */
     });
 };
 /**
@@ -336,7 +351,6 @@ enableValidationSMS = '1' // twilio enable sms validation
                 response = {
                     status: 403,
                     success: false,
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     msg: 'Sorry our verification system is down, try again in a while'
                 };
             }
@@ -344,7 +358,6 @@ enableValidationSMS = '1' // twilio enable sms validation
                 response = {
                     status: 200,
                     success: true,
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     _id: foundUser._id,
                     phone: foundUser.phone
                 };
@@ -357,7 +370,6 @@ enableValidationSMS = '1' // twilio enable sms validation
         response = {
             status: 200,
             success: true,
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             _id: foundUser._id,
             msg: 'Account created (SMS validation disabled)'
         };
@@ -577,7 +589,6 @@ height: 100%;
             universialControllerLogger.info('message sent', res);
             response = {
                 status: 200,
-                // eslint-disable-next-line @typescript-eslint/naming-convention
                 _id: foundUser._id,
                 success: true,
                 msg: `Check ${foundUser.email} for verication code`,

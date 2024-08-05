@@ -8,7 +8,10 @@ import path from 'path';
 import * as tracer from 'tracer';
 import { orderMain } from '../models/order.model';
 import { paymentMain } from '../models/payment.model';
+import { invoiceMain } from '../models/printables/invoice.model';
 import { paymentRelatedMain } from '../models/printables/paymentrelated/paymentrelated.model';
+import { receiptMain } from '../models/printables/receipt.model';
+import { invoiceRelatedMain } from '../models/printables/related/invoicerelated.model';
 import { promocodeLean } from '../models/promocode.model';
 import { makePaymentInstall, relegatePaymentRelatedCreation } from '../routes/paymentrelated/paymentrelated';
 import { saveInvoice } from '../routes/printables/invoice.routes';
@@ -66,14 +69,14 @@ const appendAll = async (paymentRelated, invoiceRelated, order, payment, userId,
     const saved = await addOrder(paymentRelated, invoiceRelated, order, userId, companyId);
     paymentControllerLogger.error('appendAll - saved:', saved);
     if (saved.success) {
-        payment.order = saved._id;
+        payment.order = saved.orderId;
         payment.paymentRelated = saved.paymentRelated;
         payment.invoiceRelated = saved.invoiceRelated;
         await addPayment(payment, userId, paid);
-        return { success: saved.success, status: saved.status, paymentRelated: saved.paymentRelated };
+        return { success: saved.success, status: saved.status, paymentRelated: saved.paymentRelated, invoiceRelated: saved.invoiceRelated, order: saved.orderId };
     }
     else {
-        return { success: saved.success, status: saved.status, err: saved.err };
+        return { success: saved.success, status: saved.status, err: saved.err, paymentRelated: saved.paymentRelated, invoiceRelated: saved.invoiceRelated, order: saved.orderId };
     }
 };
 /**
@@ -87,10 +90,11 @@ const appendAll = async (paymentRelated, invoiceRelated, order, payment, userId,
 const addOrder = async (paymentRelated, invoiceRelated, order, userId, companyId) => {
     paymentControllerLogger.info('addOrder');
     const extraNotifDesc = 'New Order';
+    paymentRelated.orderStatus = 'pending';
     const paymentRelatedId = await relegatePaymentRelatedCreation(paymentRelated, invoiceRelated, 'order', extraNotifDesc, companyId);
     paymentControllerLogger.error('addOrder - paymentRelatedId', paymentRelatedId);
     if (!paymentRelatedId.success) {
-        return paymentRelatedId;
+        return { success: false, status: 403, paymentRelated: paymentRelatedId.id };
     }
     order.paymentRelated = paymentRelatedId.id;
     const invoice = {
@@ -103,11 +107,11 @@ const addOrder = async (paymentRelated, invoiceRelated, order, userId, companyId
     const invoiceRelatedId = await saveInvoice(invoice, invoiceRelated, companyId);
     paymentControllerLogger.error('invoiceRelatedId', invoiceRelatedId);
     if (!invoiceRelatedId.success) {
-        return invoiceRelatedId;
+        return { success: false, status: 403, invoiceRelated: invoiceRelatedId.id };
     }
     order.invoiceRelated = invoiceRelatedId.id;
     if (payments && payments.length) {
-        await makePaymentInstall(payments, invoiceRelatedId.id, companyId);
+        await makePaymentInstall(payments[0], invoiceRelatedId.id, companyId, 'solo');
     }
     let errResponse;
     const newOrder = new orderMain(order);
@@ -150,7 +154,7 @@ const addOrder = async (paymentRelated, invoiceRelated, order, userId, companyId
     // body.options.orders = true; // TODO
     await createNotifications(body);
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    return { success: true, status: 200, _id: withId._id, paymentRelated: (order).paymentRelated, invoiceRelated: invoiceRelatedId };
+    return { success: true, status: 200, orderId: withId._id, paymentRelated: (order).paymentRelated, invoiceRelated: invoiceRelatedId.id };
 };
 /**
  * Adds a payment to the database
@@ -312,14 +316,15 @@ export const relegatePesapalPayment = async (paymentRelated, invoiceRelated, typ
         id: appended.paymentRelated.toString(),
         currency: paymentRelated.currency || 'UGX',
         amount: paymentRelated.payments[0].amount,
-        description: 'Complet payments for the selected products',
+        description: 'Complete payments for the selected products',
         callback_url: pesapalPaymentInstance.config.pesapalCallbackUrl,
         cancellation_url: '',
         notification_id: '',
         billing_address: {
             email_address: paymentRelated.shippingAddress.email,
             phone_number: paymentRelated.shippingAddress.phoneNumber,
-            country_code: 'UG',
+            // TODO
+            country_code: paymentRelated.shippingAddress.countryCode || 'UG',
             first_name: paymentRelated.shippingAddress.firstName,
             middle_name: '',
             last_name: paymentRelated.shippingAddress.lastName,
@@ -334,6 +339,12 @@ export const relegatePesapalPayment = async (paymentRelated, invoiceRelated, typ
     paymentControllerLogger.debug('b4 pesapalPaymentInstance.submitOrder', appended.paymentRelated.toString());
     const response = await pesapalPaymentInstance.submitOrder(payDetails, appended.paymentRelated.toString(), 'Complete product payment');
     if (!response.success) {
+        const deteils = {
+            paymentRelated: appended.paymentRelated,
+            invoiceRelated: appended.invoiceRelated,
+            order: appended.order
+        };
+        await deleteCreatedDocsOnFailure(deteils);
         return response;
     }
     paymentControllerLogger.debug('pesapalPaymentInstance.submitOrder', response);
@@ -368,5 +379,28 @@ export const relegatePesapalPayment = async (paymentRelated, invoiceRelated, typ
         }
     }
     return { success: true, status: 200, pesapalOrderRes: response.pesaPalOrderRes, paymentRelated: appended.paymentRelated.toString() };
+};
+const deleteCreatedDocsOnFailure = async ({ paymentRelated, invoiceRelated, order }) => {
+    if (invoiceRelated) {
+        await invoiceRelatedMain.deleteOne({ _id: invoiceRelated });
+        await invoiceMain.deleteOne({ invoiceRelated });
+        await receiptMain.deleteOne({ invoiceRelated });
+    }
+    if (paymentRelated) {
+        await paymentRelatedMain.deleteOne({ _id: paymentRelated });
+        await paymentMain.deleteOne({ paymentRelated });
+    }
+    if (order) {
+        await orderMain.deleteOne({ _id: order });
+    }
+    return true;
+};
+export const trackOrder = async (refereceId) => {
+    const paymentRelated = await paymentRelatedMain
+        .findOne({ pesaPalorderTrackingId: refereceId }).lean();
+    if (!paymentRelated) {
+        return { success: false };
+    }
+    return { success: true, orderStatus: paymentRelated.orderStatus };
 };
 //# sourceMappingURL=payment.controller.js.map

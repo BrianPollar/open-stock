@@ -84,7 +84,7 @@ paymentRoutes.post('/create/:companyIdParam', requireAuth, async (req, res) => {
     }
     payment.invoiceRelated = invoiceRelatedRes.id;
     if (payments && payments.length) {
-        await makePaymentInstall(payments, invoiceRelatedRes.id, queryId);
+        await makePaymentInstall(payments, invoiceRelatedRes.id, queryId, invoiceRelated.creationType);
     }
     const newPaymt = new paymentMain(payment);
     let errResponse;
@@ -123,7 +123,6 @@ paymentRoutes.put('/update/:companyIdParam', requireAuth, async (req, res) => {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const payment = await paymentMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .findOneAndUpdate({ _id, companyId: queryId });
     if (!payment) {
         return res.status(404).send({ success: false });
@@ -162,7 +161,6 @@ paymentRoutes.get('/getone/:id/:companyIdParam', requireAuth, async (req, res) =
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const payment = await paymentLean
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .findOne({ _id: id, companyId: queryId })
         .lean()
         .populate({ path: 'paymentRelated', model: paymentRelatedLean })
@@ -177,7 +175,6 @@ paymentRoutes.get('/getone/:id/:companyIdParam', requireAuth, async (req, res) =
             {
                 path: 'items.item', model: itemLean,
                 populate: [{
-                        // eslint-disable-next-line @typescript-eslint/naming-convention
                         path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                     }]
             }
@@ -217,7 +214,6 @@ paymentRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, require
                 {
                     path: 'items.item', model: itemLean,
                     populate: [{
-                            // eslint-disable-next-line @typescript-eslint/naming-convention
                             path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                         }]
                 }]
@@ -255,7 +251,6 @@ paymentRoutes.get('/getmypayments/:offset/:limit/:companyIdParam', requireAuth, 
                 {
                     path: 'items.item', model: itemLean,
                     populate: [{
-                            // eslint-disable-next-line @typescript-eslint/naming-convention
                             path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                         }]
                 }]
@@ -317,7 +312,6 @@ paymentRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, requir
                 {
                     path: 'items.item', model: itemLean,
                     populate: [{
-                            // eslint-disable-next-line @typescript-eslint/naming-convention
                             path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                         }]
                 }]
@@ -346,7 +340,6 @@ paymentRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompa
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     /** await paymentMain
-      // eslint-disable-next-line @typescript-eslint/naming-convention
       .deleteMany({ _id: { $in: ids } });**/
     const promises = credentials
         .map(async (val) => {
@@ -412,8 +405,13 @@ paymentRoutes.get('/subscriptiopaystatus/:orderTrackingId/:subscriptionId', asyn
     }
     const response = await pesapalPaymentInstance.getTransactionStatus(orderTrackingId);
     if (response.success) {
-        const resp = await updateInvoicerelatedStatus(orderTrackingId);
-        return res.status(200).send({ success: resp.success });
+        const subscription = await companySubscriptionMain.findOne({ subscriptionId: req.params.subscriptionId });
+        subscription.active = true;
+        subscription.status = 'paid'; // TODO
+        await subscription.save();
+        // TODO update subscription no invoicerelated
+        // const resp = await updateInvoicerelatedStatus(orderTrackingId);
+        return res.status(200).send({ success: true });
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return res.status(403).send({ success: response.success, err: response.err });

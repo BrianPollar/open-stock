@@ -5,7 +5,6 @@ tslib_1.__exportStar(require("./constants/common.fns.constant"), exports);
 tslib_1.__exportStar(require("./controllers/auth.controller"), exports);
 tslib_1.__exportStar(require("./defines/company.define"), exports);
 tslib_1.__exportStar(require("./defines/subscriptions/company-subscription.define"), exports);
-// export * from './defines/subscriptions/subscription-package.define';
 tslib_1.__exportStar(require("./defines/user.define"), exports);
 tslib_1.__exportStar(require("./stock-auth-client"), exports);
 //# sourceMappingURL=index.js.map

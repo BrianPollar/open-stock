@@ -47,7 +47,6 @@ const estimateRoutesogger = tracer.colorConsole({
  */
 const makeEstimateId = async (queryId) => {
     const count = await invoicerelated_model_1.invoiceRelatedMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .find({ companyId: queryId, estimateId: { $exists: true, $ne: null } }).sort({ _id: -1 }).limit(1).lean().select({ estimateId: 1 });
     let incCount = count[0]?.estimateId || 0;
     return ++incCount;
@@ -282,7 +281,6 @@ exports.estimateRoutes.put('/deletemany/:companyIdParam', stock_universal_server
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     /** await estimateMain
-      // eslint-disable-next-line @typescript-eslint/naming-convention
       .deleteMany({ _id: { $in: ids } });**/
     const promises = credentials
         .map(async (val) => {

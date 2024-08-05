@@ -85,7 +85,6 @@ export const updateCustomer = async (req, res) => {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const customer = await customerMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .findOneAndUpdate({ _id: updatedCustomer._id, companyId: queryId });
     if (!customer) {
         return res.status(404).send({ success: false });
@@ -169,7 +168,6 @@ customerRoutes.post('/getone', requireAuth, requireActiveCompany, roleAuthorisat
         if (!isValid) {
             return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
         }
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         filter = { ...filter, _id: id };
     }
     if (queryId) {
@@ -183,17 +181,13 @@ customerRoutes.post('/getone', requireAuth, requireActiveCompany, roleAuthorisat
         filter = { ...filter, user: userId };
     }
     const customer = await customerLean
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .findOne(filter)
         .populate({ path: 'user', model: userLean,
         populate: [{
-                // eslint-disable-next-line @typescript-eslint/naming-convention
                 path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
             }, {
-                // eslint-disable-next-line @typescript-eslint/naming-convention
                 path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
             }, {
-                // eslint-disable-next-line @typescript-eslint/naming-convention
                 path: 'profileCoverPic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
             }] })
         .lean();
@@ -223,13 +217,10 @@ customerRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requir
             .find({ companyId: queryId })
             .populate({ path: 'user', model: userLean,
             populate: [{
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                 }, {
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                 }, {
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     path: 'profileCoverPic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                 }]
         })
@@ -256,7 +247,7 @@ customerRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requir
  * @returns {Promise} - Promise representing the HTTP response
  */
 customerRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('customers', 'update'), updateUserBulk, updateCustomer);
-customerRoutes.put('/updateimg/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('customers', 'update'), uploadFiles, appendBody, saveMetaToDb, updateUserBulk, updateCustomer);
+customerRoutes.post('/updateimg/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('customers', 'update'), uploadFiles, appendBody, saveMetaToDb, updateUserBulk, updateCustomer);
 /**
  * Route for deleting a single customer.
  * @name PUT /deleteone
@@ -309,7 +300,6 @@ customerRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveComp
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const deleted = await customerMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .deleteMany({ companyId: queryId, _id: { $in: ids } })
         .catch(err => {
         customerRoutesLogger.error('deletemany - err: ', err);

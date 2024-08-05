@@ -13,18 +13,22 @@
  * Represents the configuration for the environment.
  */
 export interface IenvironmentConfig {
+
   /**
    * The name of the application.
    */
   appName: string;
+
   /**
    * The directory where photos are stored relative to absolutepath.
    */
   photoDirectory: string;
+
   /**
    * The directory where videos are stored relative absolutepath.
    */
   videoDirectory: string;
+
   /**
    * The absolute path to the application directory.
    */

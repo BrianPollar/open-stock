@@ -1,4 +1,4 @@
-import { IdeleteCredentialsLocalUser, Ifile, IfileMeta, Isalary, Istaff, Isuccess, Iuser } from '@open-stock/stock-universal';
+import { IdeleteCredentialsLocalUser, Ifile, IfileMeta, Isalary, Istaff, IsubscriptionFeatureState, Isuccess, Iuser } from '@open-stock/stock-universal';
 import { UserBase } from './userbase.define';
 interface IgetOneFilter {
     id?: string;
@@ -55,7 +55,7 @@ export declare class Staff extends UserBase {
     static createStaff(companyId: string, vals: {
         staff: Istaff;
         user: Partial<Iuser>;
-    }, files?: Ifile[]): Promise<Isuccess>;
+    }, files?: Ifile[]): Promise<IsubscriptionFeatureState>;
     /**
      * Deletes multiple staff members.
      * @param companyId - The ID of the company

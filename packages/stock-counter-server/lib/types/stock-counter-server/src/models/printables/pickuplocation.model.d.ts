@@ -43,6 +43,8 @@ export declare let pickupLocationLean: Model<TpickupLocation>;
  * Represents a pickup location select.
  */
 export declare const pickupLocationSelect: {
+    trackEdit: number;
+    trackView: number;
     companyId: number;
     name: number;
     contact: number;

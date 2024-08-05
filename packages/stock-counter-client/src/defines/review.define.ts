@@ -9,6 +9,7 @@ import { StockCounterClient } from '../stock-counter-client';
 export class Review extends DatabaseAuto {
   /** The user ID associated with the review. */
   urId: string;
+
   /** The user's company ID. */
   companyId: string;
 
@@ -77,9 +78,20 @@ export class Review extends DatabaseAuto {
     const observer$ = StockCounterClient.ehttp
       .makeGet(`/review/${url}/${itemId}/${offset}/${limit}/${companyId}`);
     const reviews = await lastValueFrom(observer$) as IdataArrayResponse;
+
     return {
       count: reviews.count,
       reviews: reviews.data.map(val => new Review(val as IreviewMain)) };
+  }
+
+  static async getRatingCount(
+    id: string,
+    rating: number// 0 - 10
+  ) {
+    const observer$ = StockCounterClient.ehttp.makeGet(`/review/getratingcount/${id}/${rating}`);
+    const count = await lastValueFrom(observer$) ;
+
+    return count as { count: number };
   }
 
   /**
@@ -94,6 +106,7 @@ export class Review extends DatabaseAuto {
   ) {
     const observer$ = StockCounterClient.ehttp.makeGet(`/review/getone/${id}/${companyId}`);
     const review = await lastValueFrom(observer$) as IreviewMain;
+
     return new Review(review);
   }
 
@@ -112,6 +125,7 @@ export class Review extends DatabaseAuto {
         review
       });
     const added = await lastValueFrom(observer$) as Isuccess;
+
     return added;
   }
 
@@ -123,6 +137,7 @@ export class Review extends DatabaseAuto {
   async deleteReview(companyId: string) {
     const observer$ = StockCounterClient.ehttp
       .makeDelete(`/review/deleteone/${this._id}/${this.itemId}/${this.rating}/${companyId}`);
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 }

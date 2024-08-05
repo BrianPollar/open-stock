@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.makePaymentInstall = exports.deleteAllPayOrderLinked = exports.deleteManyPaymentRelated = exports.makePaymentRelatedPdct = exports.relegatePaymentRelatedCreation = exports.updatePaymentRelated = void 0;
+exports.notifyAllOnDueDate = exports.makePaymentInstall = exports.deleteAllPayOrderLinked = exports.deleteManyPaymentRelated = exports.makePaymentRelatedPdct = exports.relegatePaymentRelatedCreation = exports.updatePaymentRelated = void 0;
 const tslib_1 = require("tslib");
 const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const stock_notif_server_1 = require("@open-stock/stock-notif-server");
@@ -12,6 +12,7 @@ const order_model_1 = require("../../models/order.model");
 const payment_model_1 = require("../../models/payment.model");
 const paymentrelated_model_1 = require("../../models/printables/paymentrelated/paymentrelated.model");
 const receipt_model_1 = require("../../models/printables/receipt.model");
+const invoicerelated_model_1 = require("../../models/printables/related/invoicerelated.model");
 const invoicerelated_1 = require("../printables/related/invoicerelated");
 /** Logger for PaymentRelated routes */
 const paymentRelatedLogger = tracer.colorConsole({
@@ -50,7 +51,6 @@ const updatePaymentRelated = async (paymentRelated, queryId) => {
         return { success: false, err: 'unauthourised', status: 401 };
     }
     const related = await paymentrelated_model_1.paymentRelatedMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .findByIdAndUpdate(paymentRelated.paymentRelated);
     if (!related) {
         return { success: true, status: 200 };
@@ -90,7 +90,6 @@ const updatePaymentRelated = async (paymentRelated, queryId) => {
         return errResponse;
     }
     else {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         return { success: true, status: 200, id: saved._id };
     }
 };
@@ -111,12 +110,10 @@ extraNotifDesc, queryId) => {
     let found;
     if (isValid) {
         found = await paymentrelated_model_1.paymentRelatedLean
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             .findOne({ _id: paymentRelated.paymentRelated }).lean().select({ urId: 1 });
     }
     if (!found || paymentRelated.creationType === 'solo') {
         const count = await paymentrelated_model_1.paymentRelatedMain
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
         paymentRelated.urId = (0, stock_universal_server_1.makeUrId)(Number(count[0]?.urId || '0'));
         let errResponse;
@@ -197,22 +194,20 @@ extraNotifDesc, queryId) => {
                 filters: notifFilters
             });
         }
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         return { success: true, status: 200, id: saved._id };
         /** return {
           paymentRelated: saved._id as string
           // invoiceRelated: relatedId
-        };*/
+        }; */
     }
     else {
         await (0, exports.updatePaymentRelated)(paymentRelated, queryId);
         // await updateInvoiceRelated(invoiceRelated);
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         return { success: true, status: 200, id: paymentRelated.paymentRelated._id };
         /** return {
           paymentRelated: paymentRelated.paymentRelated
           // invoiceRelated: invoiceRelated.invoiceRelated
-        };*/
+        }; */
     }
 };
 exports.relegatePaymentRelatedCreation = relegatePaymentRelatedCreation;
@@ -263,7 +258,6 @@ const deleteManyPaymentRelated = async (ids, queryId) => {
         return { success: false, status: 402, err: 'unauthourised' };
     }
     const deletedMany = await paymentrelated_model_1.paymentRelatedMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .deleteMany({ _id: { $in: ids }, companyId: queryId });
     if (Boolean(deletedMany)) {
         return { success: Boolean(deletedMany), status: 200 };
@@ -304,9 +298,15 @@ exports.deleteAllPayOrderLinked = deleteAllPayOrderLinked;
  * @param queryId - The query ID.
  * @returns A promise that resolves to an object indicating the success of the operation.
  */
-const makePaymentInstall = async (receipt, relatedId, queryId) => {
+const makePaymentInstall = async (receipt, relatedId, queryId, creationType) => {
     // const pInstall = invoiceRelated.payments[0] as IpaymentInstall;
     if (receipt) {
+        if (creationType !== 'solo') {
+            const canMake = await (0, invoicerelated_1.canMakeReceipt)(relatedId);
+            if (!canMake) {
+                return false;
+            }
+        }
         receipt.companyId = queryId;
         let errResponse;
         receipt.invoiceRelated = relatedId;
@@ -334,4 +334,224 @@ const makePaymentInstall = async (receipt, relatedId, queryId) => {
     return { success: true };
 };
 exports.makePaymentInstall = makePaymentInstall;
+const notifyAllOnDueDate = async () => {
+    const now = new Date();
+    const withDueDate = await invoicerelated_model_1.invoiceRelatedLean.find({})
+        .gte('toDate', now)
+        .lean();
+    const all = withDueDate.map(async (inv) => {
+        const stn = await (0, stock_notif_server_1.getCurrentNotificationSettings)(inv.companyId);
+        if (!stn.success) {
+            return false;
+        }
+        if (stn && stn['users']) {
+            const title = 'Invoice Due Date';
+            const actions = [{
+                    operation: 'view',
+                    // url: pesapalNotifRedirectUrl + route,
+                    url: '/invoices',
+                    action: '',
+                    title
+                }];
+            const notification = {
+                actions,
+                userId: inv.billingUserId,
+                title,
+                body: 'This is to remind you that, You are late on a product payment',
+                icon: '',
+                notifType: 'users',
+                // photo: string;
+                expireAt: '200000'
+            };
+            await (0, stock_notif_server_1.createNotifications)({
+                notification,
+                filters: null
+            });
+            const billingUser = await stock_auth_server_1.userLean.findOne({ _id: inv.billingUserId }).lean().select({ email: 1 });
+            if (!billingUser) {
+                return false;
+            }
+            const mailOptions = {
+                from: 'info@eagleinfosolutions.com',
+                to: billingUser.email,
+                subject: 'Product Due Date',
+                text: billingUser.fname + ' ' + billingUser.lname + ' Seems you are late on a payment, with',
+                html: `<!DOCTYPE html>
+        <html lang="en">
+        <head>
+<style>
+  body {
+    background: rgb(238, 238, 238);
+  }
+.main-div {
+  max-width: 400px;
+  margin: 0 auto;
+  background: #fff;
+  font-weight: normal;
+}
+  h2 {
+    text-align:center;
+    padding-top: 40px;
+  }
+
+  .body-div{
+    font-weight: lighter;
+    text-align: left;
+    width: 80%;
+    margin: 0 auto;
+    font-size: 0.8em;
+  }
+
+  .code-para{
+    font-size: 1.2em;
+  }
+
+  .last-divi {
+    padding-top: 30px;
+    text-align: center;
+    font-size: 0.7em;
+  }
+
+  .compny-divi {
+    padding-bottom: 40px;
+    text-align: center;
+    font-size: 0.7em;
+  }
+
+  .img-divi {
+    width: 75px;
+    height: 75px;
+    margin-left: calc(100% - 80px);
+  }
+
+  .img-divi-img {
+width: 100%;
+height: 100%;
+    }
+</style>
+</head>
+        <body>
+        <div class="main-div">
+          <div class="img-divi">
+            <img class="img-divi-img" src="https://eagleinfosolutions.com/dist/public/logo2.png" />
+          </div>
+        <h2>Confirm your email address<h2>
+          <div class="body-div">
+          Please review the following and to make, Oue systems have .
+
+          <p>Please enter this verification code to get started on Eagle Info Solutions:</p>
+          <p class="code-para"><b>Clearify and Eagle Info Solutions that all is okay</b> .</p>
+          <p>.</p>
+          
+          <div>Thanks,
+          Eagle Info Solutions
+          </div>
+
+          <div class="last-divi">
+            <a href="https://eagleinfosolutions.com/support">Help</a> | <a href="https://eagleinfosolutions.com/support">Contacts</a>
+          </div>
+
+          <div class="compny-divi"> Eagle Info Solutions Inc, Kampala Uganda</div>
+          </div>
+          </div>
+          </body>
+</html>`
+            };
+            // to user
+            await (0, stock_notif_server_1.sendMail)(mailOptions);
+            // to company
+            const mailOptions2 = {
+                from: 'info@eagleinfosolutions.com',
+                to: billingUser.email,
+                subject: 'Product Due Date',
+                text: billingUser.fname + ' ' + billingUser.lname + ' Seems you are late on a payment, with',
+                html: `<!DOCTYPE html>
+        <html lang="en">
+        <head>
+<style>
+  body {
+    background: rgb(238, 238, 238);
+  }
+.main-div {
+  max-width: 400px;
+  margin: 0 auto;
+  background: #fff;
+  font-weight: normal;
+}
+  h2 {
+    text-align:center;
+    padding-top: 40px;
+  }
+
+  .body-div{
+    font-weight: lighter;
+    text-align: left;
+    width: 80%;
+    margin: 0 auto;
+    font-size: 0.8em;
+  }
+
+  .code-para{
+    font-size: 1.2em;
+  }
+
+  .last-divi {
+    padding-top: 30px;
+    text-align: center;
+    font-size: 0.7em;
+  }
+
+  .compny-divi {
+    padding-bottom: 40px;
+    text-align: center;
+    font-size: 0.7em;
+  }
+
+  .img-divi {
+    width: 75px;
+    height: 75px;
+    margin-left: calc(100% - 80px);
+  }
+
+  .img-divi-img {
+width: 100%;
+height: 100%;
+    }
+</style>
+</head>
+        <body>
+        <div class="main-div">
+          <div class="img-divi">
+            <img class="img-divi-img" src="https://eagleinfosolutions.com/dist/public/logo2.png" />
+          </div>
+        <h2>Confirm your email address<h2>
+          <div class="body-div">
+          Please review the following and to make, Oue systems have .
+
+          <p>Please enter this verification code to get started on Eagle Info Solutions:</p>
+          <p class="code-para"><b>Clearify and Eagle Info Solutions that all is okay</b> .</p>
+          <p>.</p>
+          
+          <div>Thanks,
+          Eagle Info Solutions
+          </div>
+
+          <div class="last-divi">
+            <a href="https://eagleinfosolutions.com/support">Help</a> | <a href="https://eagleinfosolutions.com/support">Contacts</a>
+          </div>
+
+          <div class="compny-divi"> Eagle Info Solutions Inc, Kampala Uganda</div>
+          </div>
+          </div>
+          </body>
+</html>`
+            };
+            await (0, stock_notif_server_1.sendMail)(mailOptions2);
+        }
+        return true;
+    });
+    await Promise.all(all);
+    return true;
+};
+exports.notifyAllOnDueDate = notifyAllOnDueDate;
 //# sourceMappingURL=paymentrelated.js.map

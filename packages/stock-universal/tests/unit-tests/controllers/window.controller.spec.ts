@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { WindowController } from '../../../src/controllers/window.controller';
 
 describe('WindowController', () => {
@@ -10,11 +10,13 @@ describe('WindowController', () => {
 
   it('should return the window object', () => {
     const result = windowController.getWindow();
+
     expect(result).toBeTruthy();
   });
 
   it('should return the location object', () => {
     const result = windowController.getLocation();
+
     expect(result).toBeTruthy();
   });
 
@@ -22,6 +24,7 @@ describe('WindowController', () => {
     const tagName = 'div';
     const createElementSpy = vi.spyOn(document, 'createElement');
     const result = windowController.createElement(tagName);
+
     expect(result).toBeTruthy();
     expect(createElementSpy).toHaveBeenCalled();
     expect(document.createElement).toHaveBeenCalledTimes(1);

@@ -7,6 +7,7 @@ export const getEnvVar = (name: string | string[]) => (req, res, next) => {
   // If `name` is a string, then push it onto an empty array.
   // Otherwise, just use the `name` array as-is.
   let productArr = [];
+
   if (typeof name === 'string') {
     productArr.push(name);
   } else {
@@ -20,8 +21,10 @@ export const getEnvVar = (name: string | string[]) => (req, res, next) => {
   productArr.reduce((acc, name) => {
     if (acc[name]) {
       acc[name] = process.env[name];
+
       return acc;
     }
+
     return {
       ...acc,
       [name]: process.env[name]

@@ -1,6 +1,6 @@
 import { Observable, Subject } from 'rxjs';
-import { WindowController } from './window.controller';
 import { LoggerController } from './logger.controller';
+import { WindowController } from './window.controller';
 /**
  * Represents a controller for managing connectivity.
  */

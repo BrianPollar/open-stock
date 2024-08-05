@@ -43,6 +43,8 @@ export declare let faqanswerLean: Model<Tfaqanswer>;
  * Selects the faqanswer object.
  */
 export declare const faqanswerSelect: {
+    trackEdit: number;
+    trackView: number;
     urId: number;
     companyId: number;
     faq: number;

@@ -11,12 +11,16 @@ import { Invoice } from '../invoice.define';
 export class InvoiceReport extends DatabaseAuto {
   /** The unique identifier of the invoice report */
   urId: string;
+
   /** The user's company ID. */
   companyId: string;
+
   /** The total amount of the invoice report */
   totalAmount: number;
+
   /** The date of the invoice report */
   date: Date;
+
   /** The list of invoices included in the invoice report */
   invoices: Invoice[];
 
@@ -47,6 +51,7 @@ export class InvoiceReport extends DatabaseAuto {
   static async getInvoiceReports(companyId: string, url = 'getall', offset = 0, limit = 20) {
     const observer$ = StockCounterClient.ehttp.makeGet(`/invoicesreport/${url}/${offset}/${limit}/${companyId}`);
     const invoicesreports = await lastValueFrom(observer$) as IdataArrayResponse;
+
     return {
       count: invoicesreports.count,
       invoicesreports: invoicesreports.data.map((val) => new InvoiceReport(val as IinvoicesReport))
@@ -63,6 +68,7 @@ export class InvoiceReport extends DatabaseAuto {
   static async getOneInvoiceReport(companyId: string, urId: string): Promise<InvoiceReport> {
     const observer$ = StockCounterClient.ehttp.makeGet(`/invoicesreport/getone/${urId}/${companyId}`);
     const invoicesreport = await lastValueFrom(observer$) as IinvoicesReport;
+
     return new InvoiceReport(invoicesreport);
   }
 
@@ -75,6 +81,7 @@ export class InvoiceReport extends DatabaseAuto {
    */
   static async addInvoiceReport(companyId: string, vals: IinvoicesReport): Promise<Isuccess> {
     const observer$ = StockCounterClient.ehttp.makePost(`/invoicesreport/create/${companyId}`, vals);
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 
@@ -87,6 +94,7 @@ export class InvoiceReport extends DatabaseAuto {
    */
   static async deleteInvoiceReports(companyId: string, ids: string[]): Promise<Isuccess> {
     const observer$ = StockCounterClient.ehttp.makePut(`/invoicesreport/deletemany/${companyId}`, { ids });
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 }

@@ -1,4 +1,4 @@
-import { IdataArrayResponse, IdeleteCredentialsInvRel, IinvoiceRelated, Isuccess } from '@open-stock/stock-universal';
+import { IdataArrayResponse, IdeleteCredentialsInvRel, IinvoiceRelated, IsubscriptionFeatureState, Isuccess } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
 import { StockCounterClient } from '../stock-counter-client';
 import { InvoiceRelatedWithReceipt } from './invoice.define';
@@ -11,6 +11,7 @@ import { InvoiceRelatedWithReceipt } from './invoice.define';
 export class DeliveryNote extends InvoiceRelatedWithReceipt {
   /** The unique identifier of the delivery note. */
   urId: string;
+
   /** The user's company ID. */
   companyId: string;
 
@@ -42,6 +43,7 @@ export class DeliveryNote extends InvoiceRelatedWithReceipt {
     const observer$ = StockCounterClient.ehttp
       .makeGet(`/deliverynote/${url}/${offset}/${limit}/${companyId}`);
     const deliverynotes = await lastValueFrom(observer$) as IdataArrayResponse;
+
     return {
       count: deliverynotes.count,
       deliverynotes: deliverynotes.data
@@ -63,6 +65,7 @@ export class DeliveryNote extends InvoiceRelatedWithReceipt {
     const observer$ = StockCounterClient.ehttp
       .makeGet(`/deliverynote/getone/${urId}/${companyId}`);
     const deliverynote = await lastValueFrom(observer$) as IinvoiceRelated;
+
     return new DeliveryNote(deliverynote);
   }
 
@@ -80,7 +83,8 @@ export class DeliveryNote extends InvoiceRelatedWithReceipt {
   ) {
     const observer$ = StockCounterClient.ehttp
       .makePost(`/deliverynote/create/${companyId}`, { deliveryNote: {}, invoiceRelated });
-    return await lastValueFrom(observer$) as Isuccess;
+
+    return await lastValueFrom(observer$) as IsubscriptionFeatureState;
   }
 
   /**
@@ -97,6 +101,7 @@ export class DeliveryNote extends InvoiceRelatedWithReceipt {
   ) {
     const observer$ = StockCounterClient.ehttp
       .makePut(`/deliverynote/deletemany/${companyId}`, { credentials });
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 }

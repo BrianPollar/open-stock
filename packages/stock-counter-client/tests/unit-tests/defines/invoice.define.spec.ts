@@ -1,11 +1,11 @@
-import { vi, expect, describe, beforeEach, it, expectTypeOf } from 'vitest';
-import { Invoice } from '../../../../stock-counter-client/src/defines/invoice.define';
-import { IdeleteCredentialsInvRel } from '../../../../stock-universal';
 import { faker } from '@faker-js/faker/locale/en_US';
-import { of } from 'rxjs';
-import { StockCounterClient } from '../../../../stock-counter-client/src/stock-counter-client';
-import Axios from 'axios-observable';
 import { Iinvoice, IinvoiceRelated } from '@open-stock/stock-universal/src';
+import Axios from 'axios-observable';
+import { of } from 'rxjs';
+import { beforeEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
+import { Invoice } from '../../../../stock-counter-client/src/defines/invoice.define';
+import { StockCounterClient } from '../../../../stock-counter-client/src/stock-counter-client';
+import { IdeleteCredentialsInvRel } from '../../../../stock-universal';
 import { createMockInvoice, createMockInvoiceRelated, createMockInvoices } from '../../../../tests/stock-counter-mocks';
 
 describe('Invoice', () => {
@@ -35,6 +35,7 @@ describe('Invoice', () => {
   it('#getInvoices static should get Invoices array', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makeGet').mockImplementationOnce(() => of(createMockInvoices(10)));
     const list = await Invoice.getInvoices(companyId, '/', 0, 0);
+
     expect(typeof list).toEqual('object');
     expectTypeOf(list).toEqualTypeOf<Invoice[]>([]);
     expect(lSpy).toHaveBeenCalled();
@@ -43,6 +44,7 @@ describe('Invoice', () => {
   it('#getOneInvoice static should get one Invoice', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makeGet').mockImplementationOnce(() => of(createMockInvoice()));
     const one = await Invoice.getOneInvoice(companyId, 1);
+
     expect(typeof one).toEqual('object');
     expect(one).toBeInstanceOf(Invoice);
     expect(lSpy).toHaveBeenCalled();
@@ -53,7 +55,9 @@ describe('Invoice', () => {
     const added = await Invoice.addInvoice(
       companyId,
       createMockInvoice() as Iinvoice,
-      createMockInvoiceRelated() as IinvoiceRelated);
+      createMockInvoiceRelated() as IinvoiceRelated
+    );
+
     expect(typeof added).toEqual('object');
     expect(added).toHaveProperty('success');
     expect(added.success).toEqual(true);
@@ -71,6 +75,7 @@ describe('Invoice', () => {
       stage: 'invoice'
     }];
     const deleted = await Invoice.deleteInvoices(companyId, credentials);
+
     expect(typeof deleted).toEqual('object');
     expect(deleted).toHaveProperty('success');
     expect(deleted.success).toEqual(true);
@@ -84,7 +89,9 @@ describe('Invoice', () => {
     const updated = await instance.update(
       companyId,
       createMockInvoice() as Iinvoice,
-      createMockInvoiceRelated());
+      createMockInvoiceRelated()
+    );
+
     expect(typeof updated).toEqual('object');
     expect(updated).toHaveProperty('success');
     expect(updated.success).toEqual(true);

@@ -10,6 +10,8 @@ const uniqueValidator = require('mongoose-unique-validator');
 export type TprofitandlossReport = Document & IprofitAndLossReport;
 
 const profitandlossReportSchema: Schema<TprofitandlossReport> = new Schema({
+  trackEdit: { type: Schema.ObjectId },
+  trackView: { type: Schema.ObjectId },
   urId: { type: String },
   companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
   totalAmount: { type: Number },
@@ -25,6 +27,8 @@ profitandlossReportSchema.plugin(uniqueValidator);
  * for profitandlossReport
  */
 const profitandlossReportselect = {
+  trackEdit: 1,
+  trackView: 1,
   urId: 1,
   companyId: 1,
   totalAmount: 1,

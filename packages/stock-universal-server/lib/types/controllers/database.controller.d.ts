@@ -23,7 +23,7 @@
 /// <reference types="mongoose/types/virtuals" />
 /// <reference types="mongoose/types/inferschematype" />
 import { ConnectOptions, Connection } from 'mongoose';
-/** The  mainConnection  and  mainConnectionLean  variables are used to store the main connections to the database*/
+/** The  mainConnection  and  mainConnectionLean  variables are used to store the main connections to the database */
 export declare let mainConnection: Connection;
 export declare let mainConnectionLean: Connection;
 /**  The  isUniversalDbConnected  variable is a flag to indicate whether the authentication database is connected. */

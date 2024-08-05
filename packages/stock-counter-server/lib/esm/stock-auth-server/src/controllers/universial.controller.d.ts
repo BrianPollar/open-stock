@@ -41,6 +41,11 @@ export declare const generateToken: (authConfig: Iauthtoken, expiryDate: string 
  * @returns The user information.
  */
 export declare const setUserInfo: (userId: string, permissions: Iuserperm, companyId: string, companyPermissions: IcompanyPerm) => Iauthtoken;
+/**
+ * Generates an authentication response object containing the user, company, token, and active subscription information.
+ * @param foundUser - The user object to generate the response for.
+ * @returns A promise that resolves to an authentication response object.
+ */
 export declare const makeUserReturnObject: (foundUser: any) => Promise<Iauthresponse>;
 /**
  * Validates the phone number of a user and performs necessary actions based on the case.

@@ -10,6 +10,8 @@ const uniqueValidator = require('mongoose-unique-validator');
 export type TtaxReport = Document & ItaxReport;
 
 const taxReportSchema: Schema<TtaxReport> = new Schema({
+  trackEdit: { type: Schema.ObjectId },
+  trackView: { type: Schema.ObjectId },
   urId: { type: String },
   companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
   totalAmount: { type: Number },
@@ -25,6 +27,8 @@ taxReportSchema.plugin(uniqueValidator);
  * for taxReport
  */
 const taxReportselect = {
+  trackEdit: 1,
+  trackView: 1,
   urId: 1,
   companyId: 1,
   totalAmount: 1,
@@ -42,10 +46,10 @@ export let taxReportMain: Model<TtaxReport>;
  * Represents a lean tax report model.
  */
 export let taxReportLean: Model<TtaxReport>;
+
 /** primary selection object
  * for taxReport
  */
-
 export const taxReportSelect = taxReportselect;
 
 

@@ -21,41 +21,43 @@ import { customerLean, customerMain } from '../../models/user-related/customer.m
 import { removeManyUsers, removeOneUser } from './locluser.routes';
 
 /** Logger for customer routes */
-const customerRoutesLogger = tracer.colorConsole(
-  {
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-      // eslint-disable-next-line no-console
-      console.log(data.output);
-      const logDir = path.join(process.cwd() + '/openstockLog/');
-      fs.mkdir(logDir, { recursive: true }, (err) => {
-        if (err) {
-          if (err) {
-            // eslint-disable-next-line no-console
-            console.log('data.output err ', err);
-          }
-        }
-      });
-      fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
+const customerRoutesLogger = tracer.colorConsole({
+  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+  dateformat: 'HH:MM:ss.L',
+  transport(data) {
+    // eslint-disable-next-line no-console
+    console.log(data.output);
+    const logDir = path.join(process.cwd() + '/openstockLog/');
+
+    fs.mkdir(logDir, { recursive: true }, (err) => {
+      if (err) {
         if (err) {
           // eslint-disable-next-line no-console
-          console.log('raw.output err ', err);
+          console.log('data.output err ', err);
         }
-      });
-    }
-  });
+      }
+    });
+    fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
+      if (err) {
+        // eslint-disable-next-line no-console
+        console.log('raw.output err ', err);
+      }
+    });
+  }
+});
 
 export const addCustomer = async(req, res, next) => {
   const { companyIdParam } = req.params;
   const { companyId } = (req as Icustomrequest).user;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const customer = req.body.customer;
   const savedUser = req.body.savedUser;
+
   customer.user = savedUser._id;
   customer.companyId = queryId;
   const newCustomer = new customerMain(customer);
@@ -82,12 +84,14 @@ export const addCustomer = async(req, res, next) => {
         errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
       }
+
       return errResponse;
     });
 
   if (errResponse) {
     return res.status(403).send(errResponse);
   }
+
   return next();
 };
 
@@ -96,14 +100,16 @@ export const updateCustomer = async(req, res) => {
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+
   updatedCustomer.companyId = queryId;
   const isValid = verifyObjectIds([updatedCustomer._id, queryId]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const customer = await customerMain
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .findOneAndUpdate({ _id: updatedCustomer._id, companyId: queryId });
+
   if (!customer) {
     return res.status(404).send({ success: false });
   }
@@ -125,14 +131,17 @@ export const updateCustomer = async(req, res) => {
         errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
       }
+
       return errResponse;
     });
 
   if (errResponse) {
     return res.status(403).send(errResponse);
   }
+
   return res.status(200).send({ success: Boolean(updated) });
 };
+
 /**
  * Router for handling customer-related routes.
  */
@@ -180,16 +189,18 @@ customerRoutes.post('/getone', requireAuth, requireActiveCompany, roleAuthorisat
   const { companyId } = (req as Icustomrequest).user;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectIds([queryId]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   let filter = {};
+
   if (id) {
     const isValid = verifyObjectIds([id]);
+
     if (!isValid) {
       return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     filter = { ...filter, _id: id };
   }
   if (queryId) {
@@ -197,26 +208,24 @@ customerRoutes.post('/getone', requireAuth, requireActiveCompany, roleAuthorisat
   }
   if (userId) {
     const isValid = verifyObjectIds([userId]);
+
     if (!isValid) {
       return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     filter = { ...filter, user: userId };
   }
   const customer = await customerLean
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .findOne(filter)
     .populate({ path: 'user', model: userLean,
       populate: [{
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
       }, {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
       }, {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         path: 'profileCoverPic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
       }] })
     .lean();
+
   return res.status(200).send(customer);
 });
 
@@ -236,6 +245,7 @@ customerRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requir
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -244,13 +254,10 @@ customerRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requir
       .find({ companyId: queryId })
       .populate({ path: 'user', model: userLean,
         populate: [{
-        // eslint-disable-next-line @typescript-eslint/naming-convention
           path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
         }, {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
           path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
         }, {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
           path: 'profileCoverPic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
         }]
       })
@@ -263,6 +270,7 @@ customerRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requir
     count: all[1],
     data: all[0]
   };
+
   return res.status(200).send(response);
 });
 
@@ -279,7 +287,7 @@ customerRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requir
  */
 customerRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('customers', 'update'), updateUserBulk, updateCustomer);
 
-customerRoutes.put('/updateimg/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('customers', 'update'), uploadFiles, appendBody, saveMetaToDb, updateUserBulk, updateCustomer);
+customerRoutes.post('/updateimg/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('customers', 'update'), uploadFiles, appendBody, saveMetaToDb, updateUserBulk, updateCustomer);
 
 /**
  * Route for deleting a single customer.
@@ -299,11 +307,13 @@ customerRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompa
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectIds([id, queryId]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const deleted = await customerMain.findOneAndDelete({ _id: id, companyId: queryId });
+
   if (Boolean(deleted)) {
     return res.status(200).send({ success: Boolean(deleted) });
   } else {
@@ -329,16 +339,18 @@ customerRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveComp
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const deleted = await customerMain
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .deleteMany({ companyId: queryId, _id: { $in: ids } })
     .catch(err => {
       customerRoutesLogger.error('deletemany - err: ', err);
+
       return null;
     });
+
   if (Boolean(deleted)) {
     return res.status(200).send({ success: Boolean(deleted) });
   } else {

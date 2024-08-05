@@ -68,6 +68,7 @@ export interface IStockAuthServerConfig {
  * The PesaPal payment instance for the server.
  */
 export let pesapalPaymentInstance: PesaPalController;
+
 /**
  * The URL to redirect to when a notification is received.
  */
@@ -87,6 +88,7 @@ export const runStockAuthServer = async(
 ) => {
   if (!isNotificationsServerRunning()) {
     const error = new Error('Notifications server is not running, please start by firing up that server');
+
     throw error;
   }
 
@@ -112,6 +114,7 @@ export const runStockAuthServer = async(
     stockAuthRouter.use('/companysubscription', companySubscriptionRoutesDummy);
     stockAuthRouter.use('/admin', superAdminRoutesDummy);
   }
+
   return Promise.resolve({ stockAuthRouter });
 };
 

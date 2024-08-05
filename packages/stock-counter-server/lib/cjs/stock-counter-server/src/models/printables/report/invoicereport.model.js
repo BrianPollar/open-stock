@@ -6,6 +6,8 @@ const database_controller_1 = require("../../../controllers/database.controller"
 const uniqueValidator = require('mongoose-unique-validator');
 /** Schema definition for invoicesReport */
 const invoicesReportSchema = new mongoose_1.Schema({
+    trackEdit: { type: mongoose_1.Schema.ObjectId },
+    trackView: { type: mongoose_1.Schema.ObjectId },
     urId: { type: String },
     companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
     totalAmount: { type: Number },
@@ -16,6 +18,8 @@ const invoicesReportSchema = new mongoose_1.Schema({
 invoicesReportSchema.plugin(uniqueValidator);
 /** Primary selection object for invoicesReport */
 const invoicesReportselect = {
+    trackEdit: 1,
+    trackView: 1,
     urId: 1,
     companyId: 1,
     totalAmount: 1,

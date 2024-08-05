@@ -8,30 +8,30 @@ import * as tracer from 'tracer';
 import { envConfig } from '../stock-universal-local';
 
 // This function creates a fileStorageLogger named `controllers/FileStorage`.
-const fileStorageLogger = tracer.colorConsole(
-  {
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-      // eslint-disable-next-line no-console
-      console.log(data.output);
-      const logDir = path.join(process.cwd() + '/openstockLog/');
-      fs.mkdir(logDir, { recursive: true }, (err) => {
-        if (err) {
-          if (err) {
-            // eslint-disable-next-line no-console
-            console.log('data.output err ', err);
-          }
-        }
-      });
-      fs.appendFile(logDir + '/universal-server.log', data.rawoutput + '\n', err => {
+const fileStorageLogger = tracer.colorConsole({
+  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+  dateformat: 'HH:MM:ss.L',
+  transport(data) {
+    // eslint-disable-next-line no-console
+    console.log(data.output);
+    const logDir = path.join(process.cwd() + '/openstockLog/');
+
+    fs.mkdir(logDir, { recursive: true }, (err) => {
+      if (err) {
         if (err) {
           // eslint-disable-next-line no-console
-          console.log('raw.output err ', err);
+          console.log('data.output err ', err);
         }
-      });
-    }
-  });
+      }
+    });
+    fs.appendFile(logDir + '/universal-server.log', data.rawoutput + '\n', err => {
+      if (err) {
+        // eslint-disable-next-line no-console
+        console.log('raw.output err ', err);
+      }
+    });
+  }
+});
 
 /**
  * Represents an extended interface for handling Multer requests.
@@ -72,8 +72,10 @@ const rudimentaryStorage = multer.diskStorage({
     const photoDirectory = envConfig.absolutepath + '/' + envConfig.photoDirectory + '/' + queryId;
 
     const mimeType = file.mimetype;
+
     fileStorageLogger.debug('rudimentaryStorage - mimeType: ', mimeType);
     let storageDir: string;
+
     switch (mimeType) {
       case 'image/png':
       case 'image/jpg':
@@ -88,6 +90,7 @@ const rudimentaryStorage = multer.diskStorage({
         fileStorageLogger.error(`rudimentaryStorage 
         access tried with invalid mimetype,
           ${mimeType}`);
+
         return cb(new Error('mimetype not allowed'), '');
     }
     // const dir = path.join(`${lConfig.openphotoDirectory}`);
@@ -103,6 +106,7 @@ const rudimentaryStorage = multer.diskStorage({
   filename(req: Request, file, cb) {
     const mimeType = file.mimetype;
     let extName: string;
+
     switch (mimeType) {
       case 'image/png':
         extName = '.png';
@@ -123,6 +127,7 @@ const rudimentaryStorage = multer.diskStorage({
         fileStorageLogger.error(`rudimentaryStorage 
         access tried with invalid mimetype,
           ${mimeType}`);
+
         return cb(new Error('mimetype not allowed'), '');
     }
     cb(null, 'FILE_' + makeRandomString(11, 'combined') + extName);

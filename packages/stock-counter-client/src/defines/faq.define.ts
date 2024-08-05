@@ -10,6 +10,7 @@ import { StockCounterClient } from '../stock-counter-client';
 export class Faq extends DatabaseAuto {
   /** The unique identifier of the user who created the FAQ. */
   urId: string;
+
   /** The user's company ID. */
   companyId: string;
 
@@ -63,6 +64,7 @@ export class Faq extends DatabaseAuto {
     const observer$ = StockCounterClient.ehttp
       .makeGet(`/faq/${url}/${offset}/${limit}/${companyId}`);
     const faqs = await lastValueFrom(observer$) as IdataArrayResponse;
+
     return {
       count: faqs.count,
       faqs: faqs.data.map(val => new Faq(val as Ifaq)) };
@@ -77,6 +79,7 @@ export class Faq extends DatabaseAuto {
   static async getOnefaq(companyId: string, id: string) {
     const observer$ = StockCounterClient.ehttp.makeGet(`/faq/getone/${id}`);
     const faq = await lastValueFrom(observer$) as Ifaq;
+
     return new Faq(faq);
   }
 
@@ -91,6 +94,7 @@ export class Faq extends DatabaseAuto {
       .makePost(`/faq/create/${companyId}`, {
         faq
       });
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 
@@ -103,6 +107,7 @@ export class Faq extends DatabaseAuto {
   static async deleteFaqs(companyId: string, ids: string[]) {
     const observer$ = StockCounterClient.ehttp
       .makePut(`/faq/deletemany/${companyId}`, { ids });
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 
@@ -118,9 +123,11 @@ export class Faq extends DatabaseAuto {
         approved
       });
     const added = await lastValueFrom(observer$) as Isuccess;
+
     if (added.success) {
       this.approved = approved;
     }
+
     return added;
   }
 
@@ -132,6 +139,7 @@ export class Faq extends DatabaseAuto {
   async deleteFaq(companyId: string) {
     const observer$ = StockCounterClient.ehttp
       .makeDelete(`/faq/deleteone/${this._id}/${companyId}`);
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 }
@@ -140,6 +148,7 @@ export class Faq extends DatabaseAuto {
 export class FaqAnswer
   extends DatabaseAuto {
   urId: string;
+
   /** The user's company ID. */
   companyId: string;
   faq: string;
@@ -150,9 +159,7 @@ export class FaqAnswer
    * Constructs a new instance of the FaqDefine class.
    * @param data The data object containing the properties for the FaqDefine instance.
    */
-  constructor(
-    data: Ifaqanswer
-  ) {
+  constructor(data: Ifaqanswer) {
     super(data);
     this.urId = data.urId;
     this.companyId = data.companyId;
@@ -177,6 +184,7 @@ export class FaqAnswer
   ) {
     const observer$ = StockCounterClient.ehttp.makeGet(`/faq/getallans/${faq}/${companyId}`);
     const faqans = await lastValueFrom(observer$) as IdataArrayResponse;
+
     return {
       count: faqans.count,
       faqans: faqans.data.map(val => new FaqAnswer(val as Ifaqanswer)) };
@@ -194,6 +202,7 @@ export class FaqAnswer
   ) {
     const observer$ = StockCounterClient.ehttp.makeGet(`/faq/getone/${id}/${companyId}`);
     const faqans = await lastValueFrom(observer$) as Ifaqanswer;
+
     return new FaqAnswer(faqans);
   }
 
@@ -212,6 +221,7 @@ export class FaqAnswer
         faq
       });
     const added = await lastValueFrom(observer$) as Isuccess;
+
     return added;
   }
 
@@ -223,6 +233,7 @@ export class FaqAnswer
   async deleteFaqAns(companyId: string) {
     const observer$ = StockCounterClient.ehttp
       .makeDelete(`/faq/deleteoneans/${this._id}/${companyId}`);
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 }

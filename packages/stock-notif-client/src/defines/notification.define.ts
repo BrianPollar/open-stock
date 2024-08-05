@@ -12,22 +12,31 @@ export class NotificationMain {
   /** The ID of the notification. */
   // eslint-disable-next-line @typescript-eslint/naming-convention
   _id: string;
+
   /** An array of actions associated with the notification. */
   actions: Iactionwithall[];
+
   /** The ID of the user who received the notification. */
   userId: string;
+
   /** The title of the notification. */
   title: string;
+
   /** The body of the notification. */
   body: string;
+
   /** The icon associated with the notification. */
   icon: string;
+
   /** The type of the notification. */
   notifType: TnotifType;
+
   /** The ID of the invoker of the notification. */
   notifInvokerId: string;
+
   /** The expiration date of the notification. */
   expireAt: string;
+
   /** The creation date of the notification. */
   createdAt: string;
 
@@ -56,6 +65,7 @@ export class NotificationMain {
    */
   static async creatNotifs(companyId: string, notif: Imainnotification) {
     const observer$ = StockNotifClient.ehttp.makePost(`/notifn/create/${companyId}`, notif);
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 
@@ -70,6 +80,7 @@ export class NotificationMain {
   static async getNotifications(companyId: string, url = 'getmynotifn', offset = 0, limit = 20) {
     const observer$ = StockNotifClient.ehttp.makeGet(`/notifn/${url}/${offset}/${limit}/${companyId}`);
     const notifications = await lastValueFrom(observer$) as IdataArrayResponse;
+
     return {
       count: notifications.count,
       notifications: notifications.data.map(val => new NotificationMain(val as Imainnotification)) };
@@ -83,6 +94,7 @@ export class NotificationMain {
    */
   static async appendSubscription(companyId: string, subscription: PushSubscription | null) {
     const observer$ = StockNotifClient.ehttp.makePost(`/notifn/subscription/${companyId}`, { subscription });
+
     return lastValueFrom(observer$) as Promise<Isuccess>;
   }
 
@@ -93,6 +105,7 @@ export class NotificationMain {
    */
   static async getUnviewedLength(companyId: string) {
     const observer$ = StockNotifClient.ehttp.makeGet(`/notifn/unviewedlength/${companyId}`);
+
     return await lastValueFrom(observer$) as number;
   }
 
@@ -103,6 +116,7 @@ export class NotificationMain {
    */
   static async clearAll(companyId: string) {
     const observer$ = StockNotifClient.ehttp.makePost(`/notifn/clearall/${companyId}`, {});
+
     return lastValueFrom(observer$) as Promise<Isuccess>;
   }
 
@@ -114,6 +128,7 @@ export class NotificationMain {
   async updateViewed(companyId: string) {
     const observer$ = StockNotifClient.ehttp.makePost(`/notifn/updateviewed/${companyId}`, { id: this._id });
     const response = await lastValueFrom(observer$) as Isuccess;
+
     return response;
   }
 }
@@ -122,12 +137,16 @@ export class NotificationMain {
 export class NotifSetting {
   /** Whether to receive notifications for invoices. */
   invoices: boolean;
+
   /** Whether to receive notifications for payments. */
   payments: boolean;
+
   /** Whether to receive notifications for orders. */
   orders: boolean;
+
   /** Whether to receive notifications for job cards. */
   jobCards: boolean;
+
   /** Whether to receive notifications for users. */
   users: boolean;
 
@@ -165,6 +184,7 @@ export class NotifSetting {
   static async getNotificationsSetting(companyId: string) {
     const observer$ = StockNotifClient.ehttp.makeGet(`/notifn/getstn/${companyId}`);
     const stn = await lastValueFrom(observer$) as InotifSetting[];
+
     return stn.map(val => new NotifSetting(val));
   }
 
@@ -176,6 +196,7 @@ export class NotifSetting {
    */
   async update(companyId: string, vals: InotifSetting) {
     const observer$ = StockNotifClient.ehttp.makePut(`/notifn/updatestn/${companyId}`, vals);
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 }

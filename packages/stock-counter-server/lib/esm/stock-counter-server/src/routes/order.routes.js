@@ -5,7 +5,7 @@ import express from 'express';
 import * as fs from 'fs';
 import path from 'path';
 import * as tracer from 'tracer';
-import { paymentMethodDelegator } from '../controllers/payment.controller';
+import { paymentMethodDelegator, trackOrder } from '../controllers/payment.controller';
 import { itemLean } from '../models/item.model';
 import { orderLean, orderMain } from '../models/order.model';
 import { paymentRelatedLean } from '../models/printables/paymentrelated/paymentrelated.model';
@@ -59,7 +59,7 @@ orderRoutes.post('/makeorder/:companyIdParam', async (req, res) => {
     /* const isValid = verifyObjectId(companyIdParam);
     if (!isValid) {
       return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }*/
+    } */
     const { order, payment, bagainCred, paymentRelated, invoiceRelated, userObj } = req.body;
     const companyId = order.companyId || companyIdParam ? companyIdParam : 'superAdmin';
     order.companyId = companyId;
@@ -74,7 +74,6 @@ orderRoutes.post('/makeorder/:companyIdParam', async (req, res) => {
         }
         else {
             const count = await user
-                // eslint-disable-next-line @typescript-eslint/naming-convention
                 .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
             userObj.urId = makeUrId(Number(count[0]?.urId || '0'));
             const newUser = new user(userObj);
@@ -102,7 +101,7 @@ orderRoutes.post('/makeorder/:companyIdParam', async (req, res) => {
     }
     invoiceRelated.billingUser = userDoc.fname + ' ' + userDoc.lname;
     invoiceRelated.billingUserId = userDoc._id;
-    invoiceRelated.billingUserPhoto = (typeof userDoc.profilePic === 'string') ? userDoc.profilePic : (userDoc.profilePic).url;
+    invoiceRelated.billingUserPhoto = (typeof userDoc.profilePic === 'string') ? userDoc.profilePic : (userDoc.profilePic)?.url;
     const done = await paymentMethodDelegator(paymentRelated, invoiceRelated, order.paymentMethod, order, payment, userDoc._id, companyIdParam, bagainCred);
     return res.status(done.status).send({ success: done.success, data: done });
 });
@@ -205,7 +204,6 @@ orderRoutes.put('/update/:companyIdParam', requireAuth, async (req, res) => {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const order = await orderMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .findOneAndUpdate({ _id, companyId: queryId });
     if (!order) {
         return res.status(404).send({ success: false });
@@ -254,7 +252,6 @@ orderRoutes.get('/getone/:id/:companyIdParam', requireAuth, async (req, res) => 
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const order = await orderLean
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .findOne({ _id: id, companyId: queryId })
         .lean()
         .populate({
@@ -271,7 +268,6 @@ orderRoutes.get('/getone/:id/:companyIdParam', requireAuth, async (req, res) => 
             {
                 path: 'items.item', model: itemLean,
                 populate: [{
-                        // eslint-disable-next-line @typescript-eslint/naming-convention
                         path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                     }]
             }]
@@ -310,7 +306,6 @@ orderRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requireAc
                 {
                     path: 'items.item', model: itemLean,
                     populate: [{
-                            // eslint-disable-next-line @typescript-eslint/naming-convention
                             path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                         }]
                 }]
@@ -347,7 +342,6 @@ orderRoutes.get('/getmyorders/:offset/:limit/:companyIdParam', requireAuth, asyn
             {
                 path: 'items.item', model: itemLean,
                 populate: [{
-                        // eslint-disable-next-line @typescript-eslint/naming-convention
                         path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                     }]
             }]
@@ -444,7 +438,6 @@ orderRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, requireA
                 {
                     path: 'items.item', model: itemLean,
                     populate: [{
-                            // eslint-disable-next-line @typescript-eslint/naming-convention
                             path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                         }]
                 }]
@@ -473,7 +466,6 @@ orderRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     /** await orderMain
-      // eslint-disable-next-line @typescript-eslint/naming-convention
       .deleteMany({ _id: { $in: ids } });**/
     const promises = credentials
         .map(async (val) => {
@@ -482,5 +474,12 @@ orderRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany
     });
     await Promise.all(promises);
     return res.status(200).send({ success: true });
+});
+orderRoutes.get('/trackorder/:refereceId', async (req, res) => {
+    const response = await trackOrder(req.params.refereceId);
+    if (!response.success) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
+    return res.status(200).send({ success: true, orderStatus: response.orderStatus });
 });
 //# sourceMappingURL=order.routes.js.map

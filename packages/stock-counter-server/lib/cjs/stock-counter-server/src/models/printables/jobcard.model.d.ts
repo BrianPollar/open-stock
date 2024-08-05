@@ -42,6 +42,8 @@ export declare let jobCardLean: Model<TjobCard>;
  * Represents a job card select.
  */
 export declare const jobCardSelect: {
+    trackEdit: number;
+    trackView: number;
     urId: number;
     companyId: number;
     client: number;

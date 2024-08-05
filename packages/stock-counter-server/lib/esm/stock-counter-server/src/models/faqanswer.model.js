@@ -2,6 +2,8 @@ import { Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
 const uniqueValidator = require('mongoose-unique-validator');
 const faqanswerSchema = new Schema({
+    trackEdit: { type: Schema.ObjectId },
+    trackView: { type: Schema.ObjectId },
     urId: { type: String },
     companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
     faq: { type: String, required: [true, 'cannot be empty.'], index: true },
@@ -14,6 +16,8 @@ faqanswerSchema.plugin(uniqueValidator);
  * for faq ans
  */
 const faqanswerselect = {
+    trackEdit: 1,
+    trackView: 1,
     urId: 1,
     companyId: 1,
     faq: 1,

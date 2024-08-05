@@ -42,6 +42,8 @@ export declare let expenseLean: Model<Texpense>;
  * Represents the expense select function.
  */
 export declare const expenseSelect: {
+    trackEdit: number;
+    trackView: number;
     urId: number;
     companyId: number;
     name: number;

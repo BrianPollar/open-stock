@@ -18,30 +18,30 @@ import {
 } from './related/invoicerelated';
 
 /** Logger for delivery note routes */
-const deliveryNoteRoutesLogger = tracer.colorConsole(
-  {
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-      // eslint-disable-next-line no-console
-      console.log(data.output);
-      const logDir = path.join(process.cwd() + '/openstockLog/');
-      fs.mkdir(logDir, { recursive: true }, (err) => {
-        if (err) {
-          if (err) {
-            // eslint-disable-next-line no-console
-            console.log('data.output err ', err);
-          }
-        }
-      });
-      fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
+const deliveryNoteRoutesLogger = tracer.colorConsole({
+  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+  dateformat: 'HH:MM:ss.L',
+  transport(data) {
+    // eslint-disable-next-line no-console
+    console.log(data.output);
+    const logDir = path.join(process.cwd() + '/openstockLog/');
+
+    fs.mkdir(logDir, { recursive: true }, (err) => {
+      if (err) {
         if (err) {
           // eslint-disable-next-line no-console
-          console.log('raw.output err ', err);
+          console.log('data.output err ', err);
         }
-      });
-    }
-  });
+      }
+    });
+    fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
+      if (err) {
+        // eslint-disable-next-line no-console
+        console.log('raw.output err ', err);
+      }
+    });
+  }
+});
 
 /**
  * Express router for delivery note routes.
@@ -67,23 +67,26 @@ deliveryNoteRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCom
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   deliveryNote.companyId = queryId;
   invoiceRelated.companyId = queryId;
   const count = await deliveryNoteMain
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+
   deliveryNote.urId = makeUrId(Number(count[0]?.urId || '0'));
   const extraNotifDesc = 'Newly generated delivery note';
   const invoiceRelatedRes = await relegateInvRelatedCreation(invoiceRelated, queryId, extraNotifDesc);
+
   if (!invoiceRelatedRes.success) {
     return res.status(invoiceRelatedRes.status).send(invoiceRelatedRes);
   }
   deliveryNote.invoiceRelated = invoiceRelatedRes.id;
   const newDeliveryNote = new deliveryNoteMain(deliveryNote);
   let errResponse: Isuccess;
+
   await newDeliveryNote.save()
     .catch(err => {
       deliveryNoteRoutesLogger.error('create - err: ', err);
@@ -97,6 +100,7 @@ deliveryNoteRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCom
         errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
       }
+
       return errResponse;
     });
 
@@ -104,6 +108,7 @@ deliveryNoteRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCom
     return res.status(403).send(errResponse);
   }
   await updateInvoiceRelated(invoiceRelated, companyId);
+
   return next();
 }, requireUpdateSubscriptionRecord('quotation'));
 
@@ -124,6 +129,7 @@ deliveryNoteRoutes.get('/getone/:urId/:companyIdParam', requireAuth, requireActi
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -140,16 +146,20 @@ deliveryNoteRoutes.get('/getone/:urId/:companyIdParam', requireAuth, requireActi
       }]
     });
   let returned;
+
   if (deliveryNote) {
     returned = makeInvoiceRelatedPdct(
       deliveryNote.invoiceRelated as Required<IinvoiceRelated>,
       (deliveryNote.invoiceRelated as IinvoiceRelated)
-        .billingUserId as unknown as Iuser, (deliveryNote as IinvoiceRelated).createdAt, {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
+        .billingUserId as unknown as Iuser,
+      (deliveryNote as IinvoiceRelated).createdAt,
+      {
         _id: deliveryNote._id,
         urId: deliveryNote.urId
-      });
+      }
+    );
   }
+
   return res.status(200).send(returned);
 });
 
@@ -171,6 +181,7 @@ deliveryNoteRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, re
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -192,17 +203,21 @@ deliveryNoteRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, re
     deliveryNoteLean.countDocuments({ companyId: queryId })
   ]);
   const returned = all[0]
-    .map(val => makeInvoiceRelatedPdct(val.invoiceRelated as Required<IinvoiceRelated>,
+    .map(val => makeInvoiceRelatedPdct(
+val.invoiceRelated as Required<IinvoiceRelated>,
       (val.invoiceRelated as IinvoiceRelated)
-        .billingUserId as unknown as Iuser, (val).createdAt, {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
+        .billingUserId as unknown as Iuser,
+      (val).createdAt,
+      {
         _id: val._id,
         urId: val.urId
-      }));
+      }
+    ));
   const response: IdataArrayResponse = {
     count: all[1],
     data: returned
   };
+
   return res.status(200).send(response);
 });
 
@@ -226,10 +241,12 @@ deliveryNoteRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveC
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectIds([id, queryId]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const deleted = await deleteAllLinked(invoiceRelated, creationType, stage, 'deliverynote', companyId);
+
   if (Boolean(deleted)) {
     return res.status(200).send({ success: Boolean(deleted) });
   } else {
@@ -258,6 +275,7 @@ deliveryNoteRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, r
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -280,13 +298,16 @@ deliveryNoteRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, r
     deliveryNoteLean.countDocuments({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
   ]);
   const returned = all[0]
-    .map(val => makeInvoiceRelatedPdct(val.invoiceRelated as Required<IinvoiceRelated>,
+    .map(val => makeInvoiceRelatedPdct(
+val.invoiceRelated as Required<IinvoiceRelated>,
       (val.invoiceRelated as IinvoiceRelated)
-        .billingUserId as unknown as Iuser));
+        .billingUserId as unknown as Iuser
+    ));
   const response: IdataArrayResponse = {
     count: all[1],
     data: returned
   };
+
   return res.status(200).send(response);
 });
 
@@ -297,20 +318,24 @@ deliveryNoteRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActive
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
+
   /** const ids = credentials
     .map(val => val.id);
   await deliveryNoteMain
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .deleteMany({ _id: { $in: ids } });**/
   const promises = credentials
     .map(async val => {
       await deleteAllLinked(val.invoiceRelated, val.creationType, val.stage, 'deliverynote', queryId);
+
       return new Promise(resolve => resolve(true));
     });
+
   await Promise.all(promises);
+
   return res.status(200).send({ success: true });
 });
 

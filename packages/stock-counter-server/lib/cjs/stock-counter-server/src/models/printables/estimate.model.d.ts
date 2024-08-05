@@ -42,6 +42,8 @@ export declare let estimateLean: Model<Testimate>;
  * Represents the estimate select function.
  */
 export declare const estimateSelect: {
+    trackEdit: number;
+    trackView: number;
     companyId: number;
     invoiceRelated: number;
 };

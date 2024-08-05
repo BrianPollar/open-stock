@@ -37,6 +37,7 @@ export class AuthController {
     StockAuthClient.logger.debug('AuthService:AuthService:authenticateJwt::');
     const observer$ = StockAuthClient.ehttp
       .makeGet('/user/authexpress');
+
     return lastValueFrom(observer$) ;
   }
 
@@ -54,6 +55,7 @@ export class AuthController {
     StockAuthClient.logger.debug('AuthService:testGoogle:: - loginUrl : %s', userInfo.url);
     const observer$ = StockAuthClient.ehttp
       .makeGet(userInfo.url);
+
     return lastValueFrom(observer$) as Promise<Iauthresponse>;
   }
 
@@ -74,6 +76,7 @@ export class AuthController {
     StockAuthClient.logger.debug('AuthService:login:: - loginUrl : %s', userInfo.url);
     const observer$ = StockAuthClient.ehttp
       .makePost(userInfo.url, { emailPhone: userInfo.emailPhone, passwd: userInfo.password });
+
     return lastValueFrom(observer$) as Promise<Iauthresponse>;
   }
 
@@ -102,9 +105,11 @@ export class AuthController {
       lastName: userInfo.lastName,
       userType: userInfo.userType
     };
+
     StockAuthClient.logger.debug('AuthService:signup:: - signupUrl : %s, email: %email', userInfo.url, userInfo.emailPhone);
     const observer$ = StockAuthClient.ehttp
       .makePost(userInfo.url, details);
+
     return lastValueFrom(observer$) as Promise<Iauthresponse>;
   }
 
@@ -121,6 +126,7 @@ export class AuthController {
       .debug('AuthService:recover:: - recoveryUrl : %s', userInfo.url);
     const observer$ = StockAuthClient.ehttp
       .makePost(userInfo.url, userInfo);
+
     return lastValueFrom(observer$) as Promise<Iauthresponse>;
   }
 
@@ -134,10 +140,12 @@ export class AuthController {
    */
   async confirm(
     userInfo,
-    verifyUrl: string): Promise<Iauthresponse> {
+    verifyUrl: string
+  ): Promise<Iauthresponse> {
     StockAuthClient.logger.debug('AuthService:confirm:: - verifyUrl : %s', verifyUrl);
     const observer$ = StockAuthClient.ehttp
       .makePost(verifyUrl, userInfo);
+
     return lastValueFrom(observer$) as Promise<Iauthresponse>;
   }
 
@@ -148,12 +156,13 @@ export class AuthController {
    * @param userInfo An object containing the social login information.
    * @returns A promise that resolves to the response from the server.
    */
-  async socialLogin(
-    userInfo): Promise<Iauthresponse> {
+  async socialLogin(userInfo): Promise<Iauthresponse> {
     const loginUrl = '/user/sociallogin';
+
     StockAuthClient.logger.debug('AuthService:confirm:: - verifyUrl : %s', loginUrl);
     const observer$ = StockAuthClient.ehttp
       .makePost(loginUrl, userInfo);
+
     return lastValueFrom(observer$) as Promise<Iauthresponse>;
   }
 

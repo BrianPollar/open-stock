@@ -44,7 +44,7 @@ exports.profitAndLossReportRoutes = express_1.default.Router();
  * @param req - The request object.
  * @param res - The response object.
  */
-exports.profitAndLossReportRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'create'), async (req, res, next) => {
+exports.profitAndLossReportRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'create'), async (req, res) => {
     const profitAndLossReport = req.body.profitAndLossReport;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -55,7 +55,6 @@ exports.profitAndLossReportRoutes.post('/create/:companyIdParam', stock_universa
     }
     profitAndLossReport.companyId = queryId;
     const count = await profitandlossreport_model_1.profitandlossReportMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     profitAndLossReport.urId = (0, stock_universal_server_1.makeUrId)(Number(count[0]?.urId || '0'));
     const newProfitAndLossReport = new profitandlossreport_model_1.profitandlossReportMain(profitAndLossReport);
@@ -201,7 +200,6 @@ exports.profitAndLossReportRoutes.put('/deletemany/:companyIdParam', stock_unive
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const deleted = await profitandlossreport_model_1.profitandlossReportMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .deleteMany({ companyId: queryId, _id: { $in: ids } })
         .catch(err => {
         profitAndLossReportRoutesLogger.debug('deletemany - err', err);

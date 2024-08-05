@@ -1,8 +1,8 @@
 "use strict";
-/* eslint-disable @typescript-eslint/no-misused-promises */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.faqRoutes = void 0;
 const tslib_1 = require("tslib");
+/* eslint-disable @typescript-eslint/no-misused-promises */
 const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
@@ -54,7 +54,6 @@ exports.faqRoutes = express_1.default.Router();
 exports.faqRoutes.post('/create/:companyIdParam', async (req, res) => {
     const faq = req.body.faq;
     const count = await faq_model_1.faqMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     faq.urId = (0, stock_universal_server_1.makeUrId)(Number(count[0]?.urId || '0'));
     const newFaq = new faq_model_1.faqMain(faq);
@@ -98,12 +97,10 @@ exports.faqRoutes.get('/getone/:id/:companyIdParam', async (req, res) => {
     let filter;
     if (companyIdParam !== 'undefined') {
         ids = [id, companyIdParam];
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         filter = { _id: id, companyId: companyIdParam };
     }
     else {
         ids = [id];
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         filter = { _id: id };
     }
     const isValid = (0, stock_universal_server_1.verifyObjectIds)(ids);
@@ -163,12 +160,10 @@ exports.faqRoutes.delete('/deleteone/:id/:companyIdParam', stock_universal_serve
     let ids;
     if (companyIdParam !== 'undefined') {
         ids = [id, companyIdParam];
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         filter = { _id: id, companyId: companyIdParam };
     }
     else {
         ids = [id];
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         filter = { _id: id, companyId };
     }
     const isValid = (0, stock_universal_server_1.verifyObjectIds)(ids);

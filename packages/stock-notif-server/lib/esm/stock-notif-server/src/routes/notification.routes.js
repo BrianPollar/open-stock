@@ -67,7 +67,6 @@ notifnRoutes.get('/getone/:id/:companyIdParam', requireAuth, async (req, res) =>
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const notifs = await mainnotificationLean
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .findOne({ _id: id, companyId: queryId })
         .lean()
         .sort({ name: 'asc' });

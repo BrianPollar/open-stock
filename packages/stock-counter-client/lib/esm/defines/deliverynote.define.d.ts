@@ -1,4 +1,4 @@
-import { IdeleteCredentialsInvRel, IinvoiceRelated, Isuccess } from '@open-stock/stock-universal';
+import { IdeleteCredentialsInvRel, IinvoiceRelated, IsubscriptionFeatureState, Isuccess } from '@open-stock/stock-universal';
 import { InvoiceRelatedWithReceipt } from './invoice.define';
 /** DeliveryNote  class: This class extends the  InvoiceRelated  class (which is not provided) and represents a delivery note. It has a  urId  property to store the unique identifier of the delivery note. */
 /**
@@ -44,7 +44,7 @@ export declare class DeliveryNote extends InvoiceRelatedWithReceipt {
      * @param invoiceRelated An `invoiceRelated` object containing the data for the delivery note.
      * @returns A success response.
      */
-    static addDeliveryNote(companyId: string, invoiceRelated: IinvoiceRelated): Promise<Isuccess>;
+    static addDeliveryNote(companyId: string, invoiceRelated: IinvoiceRelated): Promise<IsubscriptionFeatureState>;
     /**
      * Deletes multiple delivery notes based on the provided credentials.
      * Takes an array of `credentials` objects, where each object contains the necessary information to identify and delete a delivery note.

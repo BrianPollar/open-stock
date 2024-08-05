@@ -69,37 +69,45 @@ const authClient = new StockAuthClient(instance);
 ```
 
 ## Extra Features
+
 Here are the features of the stock-auth-client library
 
 ## NOTE
+
 Most of the features below are automatically implememnted by the library. But If you want to use the classes and functions provided by the library, you can do so by importing them from the library.
 Some of them are elaborated below.
 
 ## resolveUserUrId
+
 resolveUserUrId is a function that is used to get the user id from the user object
 
 # usage
-  ```ts
+
+```ts
 import { resolveUserUrId } from "@open-stock/stock-auth-client";
 
 const id = resolveUserUrId(user);
-  ```
+```
 
 ## resolveUserName
+
 resolveUserName is a function that is used to get the user name from the user object
 
 # usage
-  ```ts
+
+```ts
 import { resolveUserName } from "@open-stock/stock-auth-client";
 
 const name = resolveUserName(user);
-  ```
+```
 
 ## AuthController
+
 AuthController is a class that is used to manage the authentication of the user. It is used by the StockAuthClient to manage the authentication of the user
 
 # usage
-  ```ts
+
+```ts
 import { AuthController } from "@open-stock/stock-auth-client";
 
 const authController = new AuthController();
@@ -112,7 +120,7 @@ const url = '/loginurl';
 const emailPhone = 'email@mail.com' || '033333333333';
 const password = 'password';
 const res = await authController.login({
-  url, emailPhone, password
+url, emailPhone, password
 });
 
 // signup users
@@ -121,13 +129,13 @@ const password = 'password';
 const firstName = 'firstName';
 const lastName = 'lastName';
 const res = await authController.signup({
-  emailPhone, password, firstName, lastName
+emailPhone, password, firstName, lastName
 });
 
 // rrecover user account
 const emailPhone = 'email@mail.com' || '033333333333';
 const res = await authController.recover({
-  emailPhone
+emailPhone
 });
 const emailPhone = 'email@mail.com' || '033333333333';
 
@@ -137,14 +145,14 @@ const route = '/recoverurl';
 const password = 'password';
 const newPassword = 'newPassword';
 const res = await authController.confirm({
-  userInfo: {
-    emailPhone,
-    password,
-    newPassword,
-    token
-  },
-  route
-  }
+userInfo: {
+  emailPhone,
+  password,
+  newPassword,
+  token
+},
+route
+}
 });
 
 // sociallogin
@@ -154,31 +162,35 @@ const firstName = 'firstName';
 const lastName = 'lastName';
 
 const res = await authController.socialLogin({
-  emailPhone, password, firstName, lastName
+emailPhone, password, firstName, lastName
 });
-  ```
+```
 
 ## Company Definition
+
 Company Definition is a class that is used to define the company. It is used by the StockAuthClient to define the company
 
 # usage
-  ```ts
+
+```ts
 import { Company } from "@open-stock/stock-auth-client";
 
 const company = new Company();
 // from here you check the definition of the company for all methods
-  ```
+```
 
 ## User
+
 User is a class that is used to define the user. It is used by the StockAuthClient to define the user
 
 # usage
-  ```ts
+
+```ts
 import { User } from "@open-stock/stock-auth-client";
 
 const user = new User();
 // from here you check the definition of the user for all methods
-  ```
+```
 
 ## Documentation
 

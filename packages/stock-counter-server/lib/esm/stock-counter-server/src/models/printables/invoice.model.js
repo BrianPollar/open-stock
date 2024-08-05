@@ -1,6 +1,8 @@
 import { Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../controllers/database.controller';
 const invoiceSchema = new Schema({
+    trackEdit: { type: Schema.ObjectId },
+    trackView: { type: Schema.ObjectId },
     companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
     invoiceRelated: { type: String },
     dueDate: { type: Date }
@@ -9,6 +11,8 @@ const invoiceSchema = new Schema({
  * for invoice
  */
 const invoiceselect = {
+    trackEdit: 1,
+    trackView: 1,
     companyId: 1,
     invoiceRelated: 1,
     dueDate: 1

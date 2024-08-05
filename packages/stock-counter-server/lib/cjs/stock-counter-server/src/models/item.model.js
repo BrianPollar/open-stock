@@ -6,6 +6,8 @@ const database_controller_1 = require("../controllers/database.controller");
 const uniqueValidator = require('mongoose-unique-validator');
 /** Mongoose schema for the item model */
 const itemSchema = new mongoose_1.Schema({
+    trackEdit: { type: mongoose_1.Schema.ObjectId },
+    trackView: { type: mongoose_1.Schema.ObjectId },
     urId: { type: String },
     companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
     numbersInstock: { type: Number, required: [true, 'cannot be empty.'], index: true },
@@ -32,15 +34,17 @@ const itemSchema = new mongoose_1.Schema({
     likesCount: { type: Number, default: 0, index: true },
     timesViewed: { type: Number, default: 0, index: true },
     inventoryMeta: [],
-    // computer
     brand: { type: String },
-    ecomerceCompat: { type: Boolean, default: false }
+    ecomerceCompat: { type: Boolean, default: false },
+    soldCount: { type: Number, default: 0, index: true } // TODO update fields related to this
 }, { timestamps: true });
 itemSchema.index({ createdAt: -1 });
 // Apply the uniqueValidator plugin to itemSchema.
 itemSchema.plugin(uniqueValidator);
 /** Primary selection object for item */
 const itemselect = {
+    trackEdit: 1,
+    trackView: 1,
     urId: 1,
     companyId: 1,
     numbersInstock: 1,
@@ -71,7 +75,8 @@ const itemselect = {
     timesViewed: 1,
     brand: 1,
     inventoryMeta: 1,
-    ecomerceCompat: 1
+    ecomerceCompat: 1,
+    soldCount: 1
 };
 /**
  * Represents the item select function.

@@ -24,7 +24,7 @@ const createMockExpenseReports = (length) => {
     return Array.from({ length }).map(() => (0, exports.createMockExpenseReport)());
 };
 exports.createMockExpenseReports = createMockExpenseReports;
-/** createMockInvoiceReport  function: This function generates a mock invoice report object with random data using the  faker  library. It creates an object with properties such as  urId  (UUID string),  totalAmount  (integer),  date  (Date object), and  invoices  (an array of mock invoices).*/
+/** createMockInvoiceReport  function: This function generates a mock invoice report object with random data using the  faker  library. It creates an object with properties such as  urId  (UUID string),  totalAmount  (integer),  date  (Date object), and  invoices  (an array of mock invoices). */
 const createMockInvoiceReport = () => {
     const report = {
         ...(0, mocks_1.createMockDatabaseAuto)(),
@@ -41,7 +41,7 @@ const createMockInvoiceReports = (length) => {
     return Array.from({ length }).map(() => (0, exports.createMockInvoiceReport)());
 };
 exports.createMockInvoiceReports = createMockInvoiceReports;
-/** This code exports a function called  createMockProfitAndLossReport  that creates a mock profit and loss report. It generates random data using the  faker  library and creates an object with properties such as  urId ,  totalAmount ,  date ,  expenses , and  invoiceRelateds . The  expenses  and  invoiceRelateds  properties are generated using helper functions  createMockExpenses  and  createMockInvoiceRelateds , respectively. The function returns an instance of the  ProfitAndLossReport  class, passing the generated data as an argument.*/
+/** This code exports a function called  createMockProfitAndLossReport  that creates a mock profit and loss report. It generates random data using the  faker  library and creates an object with properties such as  urId ,  totalAmount ,  date ,  expenses , and  invoiceRelateds . The  expenses  and  invoiceRelateds  properties are generated using helper functions  createMockExpenses  and  createMockInvoiceRelateds , respectively. The function returns an instance of the  ProfitAndLossReport  class, passing the generated data as an argument. */
 const createMockProfitAndLossReport = () => {
     const report = {
         ...(0, mocks_1.createMockDatabaseAuto)(),
@@ -59,7 +59,7 @@ const createMockProfitAndLossReports = (length) => {
     return Array.from({ length }).map(() => (0, exports.createMockProfitAndLossReport)());
 };
 exports.createMockProfitAndLossReports = createMockProfitAndLossReports;
-/** The  createMockSalesReport  function generates a single mock sales report object. It uses the  createMockDatabaseAuto  function (which is not shown in the code) to create a base object with common properties for database records. It then adds additional properties specific to sales reports, such as  urId  (a UUID string),  totalAmount  (an integer),  date  (a past date),  estimates  (an array of mock estimates), and  invoiceRelateds  (an array of mock invoice related objects). Finally, it creates a instance of the  SalesReport  class using the generated data and returns it.*/
+/** The  createMockSalesReport  function generates a single mock sales report object. It uses the  createMockDatabaseAuto  function (which is not shown in the code) to create a base object with common properties for database records. It then adds additional properties specific to sales reports, such as  urId  (a UUID string),  totalAmount  (an integer),  date  (a past date),  estimates  (an array of mock estimates), and  invoiceRelateds  (an array of mock invoice related objects). Finally, it creates a instance of the  SalesReport  class using the generated data and returns it. */
 const createMockSalesReport = () => {
     const report = {
         ...(0, mocks_1.createMockDatabaseAuto)(),
@@ -72,12 +72,12 @@ const createMockSalesReport = () => {
     return report;
 };
 exports.createMockSalesReport = createMockSalesReport;
-/** The  createMockSalesReports  function generates an array of mock sales report objects. It takes a  length  parameter to specify the number of reports to generate. It uses the  Array.from  method to create an array with the specified length, and then uses the  map  method to call the  createMockSalesReport  function for each element of the array. The result is an array of mock sales report objects.*/
+/** The  createMockSalesReports  function generates an array of mock sales report objects. It takes a  length  parameter to specify the number of reports to generate. It uses the  Array.from  method to create an array with the specified length, and then uses the  map  method to call the  createMockSalesReport  function for each element of the array. The result is an array of mock sales report objects. */
 const createMockSalesReports = (length) => {
     return Array.from({ length }).map(() => (0, exports.createMockSalesReport)());
 };
 exports.createMockSalesReports = createMockSalesReports;
-/** createMockTaxReport : This function generates a mock tax report object with random data using the  faker  library. It returns an instance of the  TaxReport  class.*/
+/** createMockTaxReport : This function generates a mock tax report object with random data using the  faker  library. It returns an instance of the  TaxReport  class. */
 const createMockTaxReport = () => {
     const report = {
         ...(0, mocks_1.createMockDatabaseAuto)(),
@@ -90,31 +90,32 @@ const createMockTaxReport = () => {
     return report;
 };
 exports.createMockTaxReport = createMockTaxReport;
-/** createMockTaxReports : This function generates an array of mock tax report objects with a specified length. It uses the  createMockTaxReport  function internally.*/
+/** createMockTaxReports : This function generates an array of mock tax report objects with a specified length. It uses the  createMockTaxReport  function internally. */
 const createMockTaxReports = (length) => {
     return Array.from({ length }).map(() => (0, exports.createMockTaxReport)());
 };
 exports.createMockTaxReports = createMockTaxReports;
-/** The  createMockSettingsGeneral  function generates mock data for general invoice settings, including the status, amount, default due time, default digital signature, default digital stamp, and default digital name.*/
+/** The  createMockSettingsGeneral  function generates mock data for general invoice settings, including the status, amount, default due time, default digital signature, default digital stamp, and default digital name. */
 const createMockSettingsGeneral = () => {
     return {
         status: 'paid',
+        currency: 'USD',
         amount: en_US_1.faker.number.int(10).toString(),
         defaultDueTime: en_US_1.faker.date.past(),
         defaultDigitalSignature: 'string',
-        defaultDigitalStamp: en_US_1.faker.image.avatar(),
-        defaultDigitalName: en_US_1.faker.image.avatar()
+        defaultDigitalStamp: en_US_1.faker.image.avatar()
+        // defaultDigitalName: faker.image.avatar()
     };
 };
 exports.createMockSettingsGeneral = createMockSettingsGeneral;
 /** The  createMockSettingsTax  function generates mock data for tax settings, including whether taxes are enabled, the default tax type, VAT percentage, income percentage, items bulk percentage, and GSTIN number. */
 const createMockSettingsTax = () => ({
-    enabled: false,
-    defaultType: 'string',
-    vatPercentage: en_US_1.faker.number.int(2),
-    incomePercentage: en_US_1.faker.number.int(2),
-    itemsBulkPercentage: en_US_1.faker.number.int(2),
-    gstinNo: en_US_1.faker.string.alphanumeric(7),
+    // enabled: false,
+    // defaultType: 'string',
+    // vatPercentage: faker.number.int(2),
+    // incomePercentage: faker.number.int(2),
+    // itemsBulkPercentage: faker.number.int(2),
+    // gstinNo: faker.string.alphanumeric(7),
     taxes: []
 });
 exports.createMockSettingsTax = createMockSettingsTax;
@@ -150,7 +151,7 @@ const createMockDeliveryCity = () => {
     return city;
 };
 exports.createMockDeliveryCity = createMockDeliveryCity;
-/** The code also exports a function  createMockDeliveryCitys  that creates an array of mock delivery city objects. The function takes a length parameter and uses the  createMockDeliveryCity  function to generate the specified number of mock objects.*/
+/** The code also exports a function  createMockDeliveryCitys  that creates an array of mock delivery city objects. The function takes a length parameter and uses the  createMockDeliveryCity  function to generate the specified number of mock objects. */
 const createMockDeliveryCitys = (length) => {
     return Array.from({ length }).map(() => (0, exports.createMockDeliveryCity)());
 };
@@ -169,7 +170,7 @@ const createMockDeliverynotes = (length) => {
     return Array.from({ length }).map(() => (0, exports.createMockDeliverynote)());
 };
 exports.createMockDeliverynotes = createMockDeliverynotes;
-/** The  createMockEstimate  function creates a mock estimate object with random data using the  createMockInvoiceRelatedSolo  function and the  faker  library. It sets the  fromDate  and  toDate  properties to random past and future dates, respectively.*/
+/** The  createMockEstimate  function creates a mock estimate object with random data using the  createMockInvoiceRelatedSolo  function and the  faker  library. It sets the  fromDate  and  toDate  properties to random past and future dates, respectively. */
 const createMockEstimate = () => {
     const estimate = {
         ...(0, exports.createMockInvoiceRelatedSolo)(),
@@ -198,7 +199,7 @@ const mockExpense = (incrementor = 0) => {
     };
 };
 exports.mockExpense = mockExpense;
-/** The  createMockExpense  function creates a  Expense  instance by passing the generated mock expense object to its constructor.*/
+/** The  createMockExpense  function creates a  Expense  instance by passing the generated mock expense object to its constructor. */
 const createMockExpense = (incrementor = 0) => {
     return (0, exports.mockExpense)(incrementor);
 };
@@ -208,7 +209,7 @@ const createMockExpenses = (length) => {
     return Array.from({ length }).map((val, index) => (0, exports.createMockExpense)(index));
 };
 exports.createMockExpenses = createMockExpenses;
-/** The  createMockFaq  function generates a mock FAQ object with random data using the  faker  library. It includes properties such as  urId ,  posterName ,  posterEmail ,  userId ,  qn ,  ans , and  approved . .*/
+/** The  createMockFaq  function generates a mock FAQ object with random data using the  faker  library. It includes properties such as  urId ,  posterName ,  posterEmail ,  userId ,  qn ,  ans , and  approved . . */
 const createMockFaq = () => {
     const faq = {
         ...(0, mocks_1.createMockDatabaseAuto)(),
@@ -228,7 +229,7 @@ const createMockFaqs = (length) => {
     return Array.from({ length }).map(() => (0, exports.createMockFaq)());
 };
 exports.createMockFaqs = createMockFaqs;
-/** The  createMockFaqAnswer  function generates a mock FAQ answer object with random data. It includes properties such as  urId ,  faq ,  userId , and  ans .*/
+/** The  createMockFaqAnswer  function generates a mock FAQ answer object with random data. It includes properties such as  urId ,  faq ,  userId , and  ans . */
 const createMockFaqAnswer = () => {
     const ans = {
         ...(0, mocks_1.createMockDatabaseAuto)(),
@@ -307,7 +308,7 @@ const createMockInvoiceRelatedWithReceipts = (length) => {
     return Array.from({ length }).map(() => (0, exports.createMockInvoiceRelatedWithReceipt)());
 };
 exports.createMockInvoiceRelatedWithReceipts = createMockInvoiceRelatedWithReceipts;
-/** The  createMockInvoiceRelatedsSolo  function creates an array of mock invoice-related objects of a specified length by calling the  createMockInvoiceRelatedSolo  function.*/
+/** The  createMockInvoiceRelatedsSolo  function creates an array of mock invoice-related objects of a specified length by calling the  createMockInvoiceRelatedSolo  function. */
 const createMockInvoiceRelatedsSolo = (length) => {
     return Array.from({ length }).map(() => (0, exports.createMockInvoiceRelatedSolo)());
 };
@@ -321,7 +322,7 @@ const createMockPaymentReceipts = (length) => {
     return Array.from({ length }).map(() => (0, exports.createMockReceipt)());
 };
 exports.createMockPaymentReceipts = createMockPaymentReceipts;
-/** The  createMockInvoice  function generates a mock invoice object by extending the  InvoiceRelated  class and adding a  dueDate  property with a randomly generated date value.*/
+/** The  createMockInvoice  function generates a mock invoice object by extending the  InvoiceRelated  class and adding a  dueDate  property with a randomly generated date value. */
 const createMockInvoice = () => {
     const invoice = {
         ...(0, exports.createMockInvoiceRelatedSolo)(),
@@ -358,12 +359,12 @@ const createMockCart = () => {
     };
 };
 exports.createMockCart = createMockCart;
-/** createMockCarts : This function creates an array of mock cart items with a specified length.*/
+/** createMockCarts : This function creates an array of mock cart items with a specified length. */
 const createMockCarts = (length) => {
     return Array.from({ length }).map(() => (0, exports.createMockCart)());
 };
 exports.createMockCarts = createMockCarts;
-/** createMockInvoiceMeta : This function creates a mock invoice meta object with randomly generated date, quantity, and cost.*/
+/** createMockInvoiceMeta : This function creates a mock invoice meta object with randomly generated date, quantity, and cost. */
 const createMockInvoiceMeta = () => {
     return {
         date: en_US_1.faker.date.past(),
@@ -538,10 +539,10 @@ exports.createMockPayments = createMockPayments;
   };
 
   return PaymentInstall(installs);
-};*/
+}; */
 /* export const createMockPaymentInstalls = (length: 10) => {
   return Array.from({ length }).map(() => createMockPaymentInstall());
-};*/
+}; */
 const createMockProfit = () => {
     const profit = {
         ...(0, mocks_1.createMockDatabaseAuto)(),
@@ -599,18 +600,18 @@ const createMockCustomer = () => {
     return customer;
 };
 exports.createMockCustomer = createMockCustomer;
-/** createMockCustomers : This function takes a number  length  as input and returns an array of mock customer objects. The length of the array is determined by the input parameter. Each mock customer object is created by calling  createMockCustomer() .*/
+/** createMockCustomers : This function takes a number  length  as input and returns an array of mock customer objects. The length of the array is determined by the input parameter. Each mock customer object is created by calling  createMockCustomer() . */
 const createMockCustomers = (length) => {
     return Array.from({ length }).map(() => (0, exports.createMockCustomer)());
 };
 exports.createMockCustomers = createMockCustomers;
-/** The  createMockSalary  function generates a mock salary object with randomly generated amount and type properties.*/
+/** The  createMockSalary  function generates a mock salary object with randomly generated amount and type properties. */
 const createMockSalary = () => ({
     amount: en_US_1.faker.number.int(),
     type: en_US_1.faker.string.alphanumeric(4)
 });
 exports.createMockSalary = createMockSalary;
-/** The  createMockStaff  function creates a mock staff object by combining a mock user base object (not provided) with an employment type and a salary object generated by the  createMockSalary  function. The resulting object is then instantiated as an instance of the  Staff  class.*/
+/** The  createMockStaff  function creates a mock staff object by combining a mock user base object (not provided) with an employment type and a salary object generated by the  createMockSalary  function. The resulting object is then instantiated as an instance of the  Staff  class. */
 const createMockStaff = () => {
     const staff = {
         ...(0, exports.createMockUserBase)(),
@@ -620,12 +621,12 @@ const createMockStaff = () => {
     return staff;
 };
 exports.createMockStaff = createMockStaff;
-/** The  createMockStaffs  function generates an array of mock staff objects by calling the  createMockStaff  function a specified number of times.*/
+/** The  createMockStaffs  function generates an array of mock staff objects by calling the  createMockStaff  function a specified number of times. */
 const createMockStaffs = (length) => {
     return Array.from({ length }).map(() => (0, exports.createMockStaff)());
 };
 exports.createMockStaffs = createMockStaffs;
-/** The  createMockUserBase  function takes an optional parameter  incrementor  and returns an object with properties  user ,  startDate ,  endDate , and  occupation . The  user  property is assigned a random UUID string generated by the  faker.string.uuid()  function. The  startDate  and  endDate  properties are assigned random past and future dates generated by the  faker.date.past()  and  faker.date.future()  functions, respectively. The  occupation  property is assigned a random alphanumeric string generated by the  faker.string.alphanumeric()  function.*/
+/** The  createMockUserBase  function takes an optional parameter  incrementor  and returns an object with properties  user ,  startDate ,  endDate , and  occupation . The  user  property is assigned a random UUID string generated by the  faker.string.uuid()  function. The  startDate  and  endDate  properties are assigned random past and future dates generated by the  faker.date.past()  and  faker.date.future()  functions, respectively. The  occupation  property is assigned a random alphanumeric string generated by the  faker.string.alphanumeric()  function. */
 const createMockUserBase = (incrementor = 0) => ({
     ...(0, mocks_1.createMockDatabaseAuto)(),
     user: en_US_1.faker.string.uuid() + incrementor, // incrementor % 2 ? faker.string.uuid() : createMockUser(),

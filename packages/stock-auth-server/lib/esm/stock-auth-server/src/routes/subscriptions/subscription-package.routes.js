@@ -51,7 +51,6 @@ subscriptionPackageRoutes.post('/create', requireAuth, requireSuperAdmin, async 
 subscriptionPackageRoutes.put('/updateone', requireAuth, requireSuperAdmin, async (req, res) => {
     const subscriptionPackage = req.body;
     const subPackage = await subscriptionPackageLean
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .findOneAndUpdate({ _id: subscriptionPackage._id });
     subPackage.name = subscriptionPackage.name || subPackage.name;
     subPackage.ammount = subscriptionPackage.ammount || subPackage.ammount;
@@ -75,7 +74,7 @@ subscriptionPackageRoutes.get('/getall', async (req, res) => {
         .lean();
     return res.status(200).send(subscriptionPackages);
 });
-subscriptionPackageRoutes.put('/deleteone/:id', requireAuth, requireSuperAdmin, async (req, res) => {
+subscriptionPackageRoutes.put('/deleteone/:id', requireAuth, async (req, res) => {
     const { id } = req.params;
     // eslint-disable-next-line @typescript-eslint/naming-convention
     const deleted = await subscriptionPackageMain.findOneAndDelete({ _id: id });

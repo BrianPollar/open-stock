@@ -42,6 +42,8 @@ export declare let profitandlossReportLean: Model<TprofitandlossReport>;
  * Selects the profit and loss report.
  */
 export declare const profitandlossReportSelect: {
+    trackEdit: number;
+    trackView: number;
     urId: number;
     companyId: number;
     totalAmount: number;

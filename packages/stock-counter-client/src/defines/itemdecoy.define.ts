@@ -1,4 +1,4 @@
-import { DatabaseAuto, IdataArrayResponse, Isuccess } from '@open-stock/stock-universal';
+import { DatabaseAuto, IdataArrayResponse, IsubscriptionFeatureState, Isuccess } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
 import { StockCounterClient } from '../stock-counter-client';
 import { Item } from './item.define';
@@ -11,6 +11,7 @@ import { Item } from './item.define';
 export class ItemDecoy extends DatabaseAuto {
   /** A string representing the UUID */
   urId: string;
+
   /** The user's company ID. */
   companyId: string;
 
@@ -22,6 +23,7 @@ export class ItemDecoy extends DatabaseAuto {
    * @param data An object containing the data to initialize the properties.
    */
   constructor(data: { urId: string;
+
   /** The user's company ID. */
   companyId: string; items: Item[]; }) {
     super(data);
@@ -42,6 +44,7 @@ export class ItemDecoy extends DatabaseAuto {
   static async getItemDecoys(companyId: string, url = 'getall', offset = 0, limit = 20) {
     const observer$ = StockCounterClient.ehttp.makeGet(`/itemdecoy/${url}/${offset}/${limit}/${companyId}`);
     const decoys = await lastValueFrom(observer$) as IdataArrayResponse;
+
     return {
       count: decoys.count,
       decoys: decoys.data.map(val => new ItemDecoy(val as ItemDecoy)) };
@@ -57,6 +60,7 @@ export class ItemDecoy extends DatabaseAuto {
   static async getOneItemDecoy(companyId: string, id: string): Promise<ItemDecoy> {
     const observer$ = StockCounterClient.ehttp.makeGet(`/itemdecoy/getone/${id}/${companyId}`);
     const decoy = await lastValueFrom(observer$) as ItemDecoy;
+
     return new ItemDecoy(decoy);
   }
 
@@ -68,9 +72,10 @@ export class ItemDecoy extends DatabaseAuto {
    * @param itemdecoy An object containing the item decoy data.
    * @returns A success response.
    */
-  static async createItemDecoy(companyId: string, how: 'automatic' | 'manual', itemdecoy: { itemId: string } | { items: string[] }): Promise<Isuccess> {
+  static async createItemDecoy(companyId: string, how: 'automatic' | 'manual', itemdecoy: { itemId: string } | { items: string[] }): Promise<IsubscriptionFeatureState> {
     const observer$ = StockCounterClient.ehttp.makePost(`/itemdecoy/create/${how}/${companyId}`, { itemdecoy });
-    return await lastValueFrom(observer$) as Isuccess;
+
+    return await lastValueFrom(observer$) as IsubscriptionFeatureState;
   }
 
   /**
@@ -83,6 +88,7 @@ export class ItemDecoy extends DatabaseAuto {
   static async deleteItemDecoys(companyId: string, ids: string[]): Promise<Isuccess> {
     const observer$ = StockCounterClient.ehttp.makePut(`/itemdecoy/deletemany/${companyId}`, { ids });
     const deleted = await lastValueFrom(observer$) as Isuccess;
+
     return deleted;
   }
 
@@ -94,6 +100,7 @@ export class ItemDecoy extends DatabaseAuto {
   async deleteItemDecoy(companyId: string): Promise<Isuccess> {
     const observer$ = StockCounterClient.ehttp.makeDelete(`/itemdecoy/deleteone/${this._id}/${companyId}`);
     const deleted = await lastValueFrom(observer$) as Isuccess;
+
     return deleted;
   }
 }

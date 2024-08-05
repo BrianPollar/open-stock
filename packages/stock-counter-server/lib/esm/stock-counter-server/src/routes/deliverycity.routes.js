@@ -93,7 +93,6 @@ deliverycityRoutes.get('/getone/:id/:companyIdParam', async (req, res) => {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const deliverycity = await deliverycityLean
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .findOne({ _id: id, companyId: queryId })
         .lean();
     return res.status(200).send(deliverycity);
@@ -144,7 +143,6 @@ deliverycityRoutes.put('/update/:companyIdParam', requireAuth, requireSuperAdmin
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const deliverycity = await deliverycityMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .findOneAndUpdate({ _id: updatedCity._id });
     if (!deliverycity) {
         return res.status(404).send({ success: false });
@@ -219,7 +217,6 @@ deliverycityRoutes.put('/deletemany/:companyIdParam', requireAuth, requireSuperA
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const deleted = await deliverycityMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .deleteMany({ _id: { $in: ids } })
         .catch(err => {
         deliverycityRoutesLogger.error('deletemany - err: ', err);

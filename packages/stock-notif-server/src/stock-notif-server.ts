@@ -8,7 +8,9 @@ import { mailSenderRoutesDummy } from './routes-dummy/mail.routes';
 import { notifnRoutesDummy } from './routes-dummy/notification.routes';
 import { mailSenderRoutes } from './routes/mail.routes';
 import { notifnRoutes } from './routes/notification.routes';
-import { InotifSecrets, ItwilioAuthySecrets, createNotificationsDatabase, createStockNotifServerLocals, isStockNotifServerRunning, notificationSettings } from './stock-notif-local';
+import {
+  InotifSecrets, ItwilioAuthySecrets, createNotificationsDatabase, createStockNotifServerLocals, isStockNotifServerRunning, notificationSettings
+} from './stock-notif-local';
 
 export interface IstockNotifServerConfig {
   jwtSecret: string;
@@ -26,11 +28,13 @@ export const createService = () => createTwilioService();
 export const runStockNotificationServer = async(config: IstockNotifServerConfig) => {
   if (!isUniversalServerRunning()) {
     const error = new Error('File loacations must be handled properly, please start by firing up that server');
+
     throw error;
   }
   await createNotificationsDatabase(config.databaseConfig.url, config.databaseConfig.dbOptions);
   runPassport(config.jwtSecret);
   const twilioAuthy = makeAuthyTwilio(config.twilioAutyConfig.authyKey, config.twilioAutyConfig.accountSid, config.twilioAutyConfig.authToken);
+
   notificationSettings.twilioClient = twilioAuthy.twilioClient;
   notificationSettings.defaultAuthyMail = config.twilioAutyConfig.defaultMail;
   notificationSettings.twilioNumber = config.twilioAutyConfig.twilioNumber;
@@ -38,6 +42,7 @@ export const runStockNotificationServer = async(config: IstockNotifServerConfig)
   createStockNotifServerLocals();
   constructMailService(config.twilioAutyConfig.sendGridApiKey, config.notifSecrets.notifPublicKey, config.notifSecrets.notifPrivateKey);
   const stockNotifRouter = express.Router();
+
   if (!config.useDummyRoutes) {
     stockNotifRouter.use('/notifn', notifnRoutes);
     stockNotifRouter.use('/mailsender', mailSenderRoutes);
@@ -45,6 +50,7 @@ export const runStockNotificationServer = async(config: IstockNotifServerConfig)
     stockNotifRouter.use('/notifn', notifnRoutesDummy);
     stockNotifRouter.use('/mailsender', mailSenderRoutesDummy);
   }
+
   return Promise.resolve({ stockNotifRouter, notificationSettings });
 };
 
@@ -54,11 +60,13 @@ export const runStockNotificationServer = async(config: IstockNotifServerConfig)
  */
 export const getCurrentNotificationSettings = async(companyId: string) => {
   const isValid = verifyObjectId(companyId);
+
   if (!isValid) {
-    return { };
+    return { success: false };
   }
   const stn = await notifSettingMain.findOne({ companyId }).lean();
-  return stn;
+
+  return { success: true, stn };
 };
 
 /**

@@ -5,6 +5,8 @@ const mongoose_1 = require("mongoose");
 const database_controller_1 = require("../../controllers/database.controller");
 const uniqueValidator = require('mongoose-unique-validator');
 const pickupLocationSchema = new mongoose_1.Schema({
+    trackEdit: { type: mongoose_1.Schema.ObjectId },
+    trackView: { type: mongoose_1.Schema.ObjectId },
     companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
     name: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
     contact: {}
@@ -15,6 +17,8 @@ pickupLocationSchema.plugin(uniqueValidator);
  * for pickupLocation
  */
 const pickupLocationselect = {
+    trackEdit: 1,
+    trackView: 1,
     companyId: 1,
     name: 1,
     contact: 1

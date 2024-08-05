@@ -22,6 +22,8 @@ const uniqueValidator = require('mongoose-unique-validator');
  * @property {Date} updatedAt - Timestamp of last update
  */
 const paymentRelatedSchema = new mongoose_1.Schema({
+    trackEdit: { type: mongoose_1.Schema.ObjectId },
+    trackView: { type: mongoose_1.Schema.ObjectId },
     pesaPalorderTrackingId: { type: String },
     urId: { type: String, required: [true, 'cannot be empty.'] },
     companyId: { type: String },
@@ -40,7 +42,8 @@ const paymentRelatedSchema = new mongoose_1.Schema({
     manuallyAdded: { type: Boolean, default: false },
     // status: { type: String, default: 'pending' },
     paymentMethod: { type: String },
-    payType: { type: String, index: true }
+    payType: { type: String, index: true },
+    orderStatus: { type: String, index: true, default: 'pending' }
 }, { timestamps: true });
 // Apply the uniqueValidator plugin to paymentRelatedSchema.
 paymentRelatedSchema.plugin(uniqueValidator);
@@ -48,6 +51,8 @@ paymentRelatedSchema.plugin(uniqueValidator);
  * for paymentRelated
  */
 const paymentRelatedselect = {
+    trackEdit: 1,
+    trackView: 1,
     pesaPalorderTrackingId: 1,
     urId: 1,
     companyId: 1,
@@ -65,7 +70,8 @@ const paymentRelatedselect = {
     manuallyAdded: 1,
     // status: 1,
     paymentMethod: 1,
-    payType: 1
+    payType: 1,
+    orderStatus: 1
 };
 /**
  * Represents the payment related select function.

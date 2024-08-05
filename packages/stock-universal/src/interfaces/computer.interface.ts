@@ -13,8 +13,6 @@ import { Iitem } from './item.interface';
 
 // This file imports the `TcpuCoreThread`, `TgraphicsName`, `TkeyboradStandard`, `TprocessorName`, `TramSize`, `TramType`, `TscreenSize`, `TstorageDriveType`, `TstorageSizeHdd`, and `TstorageSizeSsd` types from the `union.types` file.
 // This file imports the `Iitem` interface from the `item.interface` file.
-
-
 export interface IcpuModel {
   // The `name` property is the name of the CPU model.
   name: TprocessorName;
@@ -27,8 +25,6 @@ export interface IcpuModel {
 }
 
 // This interface defines the properties of a CPU model.
-
-
 export interface IramModel {
   // The `ramSize` property is the size of the RAM in GB.
   ramSize: TramSize;

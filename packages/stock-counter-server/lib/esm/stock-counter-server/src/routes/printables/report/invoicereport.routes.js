@@ -44,7 +44,7 @@ export const invoicesReportRoutes = express.Router();
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware
  */
-invoicesReportRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'create'), async (req, res, next) => {
+invoicesReportRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'create'), async (req, res) => {
     const invoicesReport = req.body.invoicesReport;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -55,7 +55,6 @@ invoicesReportRoutes.post('/create/:companyIdParam', requireAuth, requireActiveC
     }
     invoicesReport.companyId = queryId;
     const count = await invoicesReportMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     invoicesReport.urId = makeUrId(Number(count[0]?.urId || '0'));
     const newInvoiceReport = new invoicesReportMain(invoicesReport);
@@ -219,7 +218,6 @@ invoicesReportRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActi
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const deleted = await invoicesReportMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .deleteMany({ companyId: queryId, _id: { $in: ids } })
         .catch(err => {
         invoicesReportRoutesLogger.error('deletemany - err: ', err);

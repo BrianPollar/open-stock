@@ -11,30 +11,30 @@ import { addReview, removeReview } from './item.routes';
 /**
  * Logger for review routes
  */
-const reviewRoutesLogger = tracer.colorConsole(
-  {
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-      // eslint-disable-next-line no-console
-      console.log(data.output);
-      const logDir = path.join(process.cwd() + '/openstockLog/');
-      fs.mkdir(logDir, { recursive: true }, (err) => {
-        if (err) {
-          if (err) {
-            // eslint-disable-next-line no-console
-            console.log('data.output err ', err);
-          }
-        }
-      });
-      fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
+const reviewRoutesLogger = tracer.colorConsole({
+  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+  dateformat: 'HH:MM:ss.L',
+  transport(data) {
+    // eslint-disable-next-line no-console
+    console.log(data.output);
+    const logDir = path.join(process.cwd() + '/openstockLog/');
+
+    fs.mkdir(logDir, { recursive: true }, (err) => {
+      if (err) {
         if (err) {
           // eslint-disable-next-line no-console
-          console.log('raw.output err ', err);
+          console.log('data.output err ', err);
         }
-      });
-    }
-  });
+      }
+    });
+    fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
+      if (err) {
+        // eslint-disable-next-line no-console
+        console.log('raw.output err ', err);
+      }
+    });
+  }
+});
 
 /**
  * Express router for review routes
@@ -56,14 +56,16 @@ export const reviewRoutes = express.Router();
  */
 reviewRoutes.post('/create/:companyIdParam', async(req, res, next) => {
   const review = req.body.review;
+
   review.companyId = 'superAdmin';
   const count = (await reviewMain
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 })[0]?.urId) || 0;
+
   review.urId = makeUrId(count);
-  const newFaq = new reviewMain(review);
+  const newReview = new reviewMain(review);
   let errResponse: Isuccess;
-  await newFaq.save()
+
+  await newReview.save()
     .catch(err => {
       reviewRoutesLogger.error('create - err: ', err);
       errResponse = {
@@ -76,12 +78,14 @@ reviewRoutes.post('/create/:companyIdParam', async(req, res, next) => {
         errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
       }
+
       return errResponse;
     });
 
   if (errResponse) {
     return res.status(403).send(errResponse);
   }
+
   return next();
 }, addReview);
 
@@ -100,9 +104,9 @@ reviewRoutes.post('/create/:companyIdParam', async(req, res, next) => {
 reviewRoutes.get('/getone/:id/:companyIdParam', async(req, res) => {
   const { id } = req.params;
   const review = await reviewLean
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .findOne({ _id: id })
     .lean();
+
   return res.status(200).send(review);
 });
 
@@ -132,7 +136,17 @@ reviewRoutes.get('/getall/:id/:offset/:limit/:companyIdParam', async(req, res) =
     count: all[1],
     data: all[0]
   };
+
   return res.status(200).send(response);
+});
+
+reviewRoutes.get('/getratingcount/:id/:rating', async(req, res) => {
+  const { id, rating } = req.params;
+  const review = await reviewLean
+    .find({ itemId: id, rating })
+    .lean();
+
+  return res.status(200).send({ count: review.length });
 });
 
 /**
@@ -154,6 +168,7 @@ reviewRoutes.delete('/deleteone/:id/:itemId/:rating/:companyIdParam', async(req,
   const { id } = req.params;
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const deleted = await reviewMain.findOneAndDelete({ _id: id });
+
   if (Boolean(deleted)) {
     return next();
   } else {

@@ -84,6 +84,7 @@ export class CalculationsController {
     const day = date.getDate();
     const monthIndex = date.getMonth();
     const year = date.getFullYear();
+
     return day + ' ' + monthNames[monthIndex] + ' ' + year;
   }
 
@@ -119,8 +120,15 @@ export class CalculationsController {
     return data.filter((val, index) => index < restrictNoTo);
   }
 
+  /**
+   * Determines the number of stars to display based on the given weight and where the stars should be displayed.
+   * @param weight - The weight value to use for determining the number of stars.
+   * @param where - Specifies where the stars should be displayed, such as 'full', 'half', or 'empty'.
+   * @returns An array of the determined number of stars.
+   */
   determineStars(weight: number, where: string) {
     let long: number;
+
     switch (where) {
       case 'full':
         long = Math.floor(weight / 2);
@@ -130,6 +138,7 @@ export class CalculationsController {
         break;
       case 'empty': {
         const left = 10 - weight;
+
         long = Math.ceil(left / 2);
         break;
       }
@@ -137,6 +146,7 @@ export class CalculationsController {
         long = 0;
         break;
     }
+
     return this.toArray(long);
   }
 
@@ -150,21 +160,25 @@ export class CalculationsController {
   isAllowedDimensionsSize(
     imageSrc: string,
     alloweddimms: Ialloweddimms,
-    expectedMaxSize?: number): Promise<Iimagesizeresponse> {
+    expectedMaxSize?: number
+  ): Promise<Iimagesizeresponse> {
     this.logger
-      .debug(
-        `imageSrc: ${imageSrc},
+      .debug(`imageSrc: ${imageSrc},
         alloweddimms: ${alloweddimms},
         expectedMaxSize: ${expectedMaxSize}`);
+
     return new Promise(resolve => {
       let fileError: string;
       let nowsuccess = true;
       const image = new Image();
+
       image.src = imageSrc;
       image.onload = rs => {
         const target = rs.currentTarget as unknown as IevTarget;
+
         if (expectedMaxSize) {
           const imgSize = target.size;
+
           if (imgSize > expectedMaxSize) {
             nowsuccess = false;
             fileError = 'max file size allowed is ' + expectedMaxSize / 1000000 + 'Mb';
@@ -204,5 +218,15 @@ export class CalculationsController {
    */
   taxValFromSubTotal(subTotal: number, tax: number) {
     return (tax / 100) * subTotal;
+  }
+
+  /**
+   * Converts the given amount using the provided exchange rate.
+   * @param amount - The amount to be converted.
+   * @param rate - The exchange rate to use for the conversion.
+   * @returns The converted amount.
+   */
+  convertCurrency(amount: number, rate: number) {
+    return amount * rate;
   }
 }

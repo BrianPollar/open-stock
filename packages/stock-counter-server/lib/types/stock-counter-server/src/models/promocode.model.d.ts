@@ -24,11 +24,12 @@
 /// <reference types="mongoose/types/validation" />
 /// <reference types="mongoose/types/virtuals" />
 /// <reference types="mongoose/types/inferschematype" />
+import { ItrackStamp } from '@open-stock/stock-universal';
 import { ConnectOptions, Document, Model } from 'mongoose';
 /**
  * Represents a promotional code.
  */
-export interface Ipromocode extends Document {
+export interface Ipromocode extends Document, ItrackStamp {
     /** The unique identifier of the user. */
     urId: string;
     /** The user's company ID. */
@@ -60,6 +61,8 @@ export declare let promocodeLean: Model<Ipromocode>;
  * @returns The selected promocode.
  */
 export declare const promocodeSelect: {
+    trackEdit: number;
+    trackView: number;
     urId: number;
     companyId: number;
     code: number;

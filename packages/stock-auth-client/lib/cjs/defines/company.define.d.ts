@@ -1,7 +1,9 @@
 import { DatabaseAuto, IblockedReasons, Icompany, Ifile, IfileMeta, Isuccess, Iuser } from '@open-stock/stock-universal';
 import { User } from './user.define';
 /**
- * Represents a company and extends the DatabaseAuto class. It has properties that correspond to the fields in the company object, and methods for updating, deleting, and managing the company's profile, addresses, and permissions.
+ * Represents a company and extends the DatabaseAuto class. It has properties that
+ * correspond to the fields in the company object, and methods for updating, deleting, a
+ * nd managing the company's profile, addresses, and permissions.
  */
 export declare class Company extends DatabaseAuto {
     urId: string;

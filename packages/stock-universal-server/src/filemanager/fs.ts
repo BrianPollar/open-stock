@@ -10,30 +10,30 @@ import { fileMeta } from '../models/filemeta.model';
 import { envConfig } from '../stock-universal-local';
 import { IMulterRequest, multerFileds, upload } from './filestorage';
 
-const fsControllerLogger = tracer.colorConsole(
-  {
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-      // eslint-disable-next-line no-console
-      console.log(data.output);
-      const logDir = path.join(process.cwd() + '/openstockLog/');
-      fs.mkdir(logDir, { recursive: true }, (err) => {
-        if (err) {
-          if (err) {
-            // eslint-disable-next-line no-console
-            console.log('data.output err ', err);
-          }
-        }
-      });
-      fs.appendFile(logDir + '/universal-server.log', data.rawoutput + '\n', err => {
+const fsControllerLogger = tracer.colorConsole({
+  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+  dateformat: 'HH:MM:ss.L',
+  transport(data) {
+    // eslint-disable-next-line no-console
+    console.log(data.output);
+    const logDir = path.join(process.cwd() + '/openstockLog/');
+
+    fs.mkdir(logDir, { recursive: true }, (err) => {
+      if (err) {
         if (err) {
           // eslint-disable-next-line no-console
-          console.log('raw.output err ', err);
+          console.log('data.output err ', err);
         }
-      });
-    }
-  });
+      }
+    });
+    fs.appendFile(logDir + '/universal-server.log', data.rawoutput + '\n', err => {
+      if (err) {
+        // eslint-disable-next-line no-console
+        console.log('raw.output err ', err);
+      }
+    });
+  }
+});
 
 /**
  * Uploads files from the request to the server.
@@ -47,15 +47,19 @@ export const uploadFiles = (
   next
 ) => {
   const makeupload = upload.fields(multerFileds);
+
   makeupload(req, res, function(err) {
     if (err instanceof multer.MulterError) {
       fsControllerLogger.error('Multer UPLOAD ERROR', err);
+
       return res.status(500).send({ success: false });
     } else if (err) {
       // An unknown error occurred when uploading.
       fsControllerLogger.error('UNKWON UPLOAD ERROR', err);
+
       return res.status(500).send({ success: false });
     }
+
     return next();
   });
 };
@@ -160,6 +164,7 @@ export const appendBody = (
   parsed.newPhotos = newPhotos;
   parsed.newVideos = newVideos;
   req.body = parsed;
+
   return next();
 };
 
@@ -175,6 +180,7 @@ export const saveMetaToDb = async(
   next
 ) => {
   const parsed = req.body;
+
   if (!parsed) {
     return next();
   }
@@ -188,13 +194,16 @@ export const saveMetaToDb = async(
         const newSaved = await newFileMeta.save().catch(err => {
           fsControllerLogger.error('save error', err);
           savedErr = err;
+
           return null;
         });
+
         if (savedErr) {
           return res.status(500).send({ success: false });
         }
         resolve(newSaved);
       }));
+
     parsed.newPhotos = await Promise.all(promises);
   }
 
@@ -211,7 +220,7 @@ export const saveMetaToDb = async(
     }
     parsed.profilePic = newSaved._id;
     parsed.newPhotos.push(newSaved);
-  }*/
+  } */
 
   /* if (parsed.coverPic) {
     const newFileMeta = new fileMeta(parsed.profilePic);
@@ -226,7 +235,7 @@ export const saveMetaToDb = async(
     }
     parsed.coverPic = newSaved._id;
     parsed.newPhotos.push(newSaved);
-  }*/
+  } */
 
   if (parsed.thumbnail) {
     const newFileMeta = new fileMeta(parsed.thumbnail);
@@ -234,8 +243,10 @@ export const saveMetaToDb = async(
     const newSaved = await newFileMeta.save().catch(err => {
       fsControllerLogger.error('save error', err);
       savedErr = err;
+
       return null;
     });
+
     if (savedErr) {
       return res.status(500).send({ success: false });
     }
@@ -245,9 +256,11 @@ export const saveMetaToDb = async(
 
   if (parsed.newPhotos) {
     const mappedParsedFiles = parsed.newPhotos.map((value: IfileMeta) => value._id);
+
     parsed.newPhotos = mappedParsedFiles;
   }
   req.body = parsed; // newPhotos are strings of ids
+
   return next();
 };
 
@@ -263,15 +276,19 @@ export const updateFiles = (
   next
 ) => {
   const makeupload = upload.fields(multerFileds);
+
   makeupload(req, res, function(err) {
     if (err instanceof multer.MulterError) {
       fsControllerLogger.error('Multer UPLOAD ERROR', err);
+
       return res.status(404).send({ success: false });
     } else if (err) {
       // An unknown error occurred when uploading.
       fsControllerLogger.error('UNKWON UPLOAD ERROR', err);
+
       return res.status(404).send({ success: false });
     }
+
     return next();
   });
 };
@@ -280,29 +297,35 @@ export const deleteAllFiles = async(filesWithDir: IfileMeta[]) => {
   if (filesWithDir && !filesWithDir.length) {
     // return res.status(401).send({ error: 'unauthorised' }); // TODO better catch
   }
-  const ids = filesWithDir.map((value/** : Ifilewithdir*/) => value._id);
+  const ids = filesWithDir.map((value/** : Ifilewithdir */) => value._id);
+
   // eslint-disable-next-line @typescript-eslint/naming-convention
   await fileMeta.deleteMany({ _id: { $in: ids } });
 
   if (filesWithDir && filesWithDir.length) {
     const promises = filesWithDir
-      .map((value/** : Ifilewithdir*/) => new Promise(resolve => {
+      .map((value/** : Ifilewithdir */) => new Promise(resolve => {
         fsControllerLogger.debug('deleting file', value.url);
         const absolutepath = envConfig.absolutepath;
         const nowpath = path
           .join(`${absolutepath}${value.url}`);
+
         fs.unlink(nowpath, (err) => {
           if (err) {
-            fsControllerLogger.error('error while deleting file',
-              err);
+            fsControllerLogger.error(
+              'error while deleting file',
+              err
+            );
             resolve(false);
           } else {
             resolve(true);
           }
         });
       }));
+
     await Promise.all(promises);
   }
+
   return true;
 };
 
@@ -316,9 +339,12 @@ export const deleteAllFiles = async(filesWithDir: IfileMeta[]) => {
 export const deleteFiles = async(
   req,
   res,
-  next) => {
+  next
+) => {
   const { filesWithDir } = req.body;
+
   await deleteAllFiles(filesWithDir);
+
   return next();
 };
 
@@ -333,9 +359,11 @@ export const getOneFile = (
   res
 ) => {
   const { filename } = req.params;
+
   fsControllerLogger.debug(`download, file: ${filename}`);
   const absolutepath = envConfig.absolutepath;
   const fileLocation = path.join(`${absolutepath}${filename}`, filename);
+
   return res.download(fileLocation, filename);
 };
 
@@ -354,18 +382,22 @@ export const removeBg = (imageSrc: string) => {
     const config: Config = {
       output: {
         type: 'mask'
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any
     };
+
     removeBackground(fileLocation, config).then(async(blob: Blob) => {
       const arrayBuffer = await blob.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
+
       fs.writeFile(fileLocation, buffer, {}, (err) => {
         if (err) {
           console.error(err);
           reject(err);
+
           return;
         }
-        console.log('files saved');
+        fsControllerLogger.debug('files saved');
         resolve(imageSrc);
       });
     });

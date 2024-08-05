@@ -25,18 +25,20 @@ export class PaymentController {
    * @returns An object containing the total cost, total shipping, and the final result.
    */
   calculateTargetPriceOrShipping(isShipping: boolean, data: Icart[], city: DeliveryCity, promoCode: IpromoCode | null) {
-    StockCounterClient.logger.debug('PaymentController:calculate:: - i: %i, data: %data, city: %city', isShipping, data, city);
+    StockCounterClient.logger.debug('PaymentController:calculate:: isShipping', isShipping, data, city);
     let res = 0;
     let totalCost: number;
     let totalShipping: number;
 
     if (!isShipping) {
       let alteredData: Icart[];
+
       if (promoCode) {
         /** const filteredItems = data
           .filter(val => promoCode.items.includes(val.item._id || val.item));**/
         const cartWithoutPromo = data
           .filter(val => !promoCode.items.includes(val.item._id || val.item));
+
         alteredData = cartWithoutPromo;
         res += promoCode.amount; // ????
       } else {
@@ -48,7 +50,7 @@ export class PaymentController {
           j.totalCostwithNoShipping = StockCounterClient.calcCtrl.calculateFromDiscount(j.item.costMeta.sellingPrice, j.item.costMeta.discount) * j.quantity;
           res += j.totalCostwithNoShipping;
         } else {
-          j.totalCostwithNoShipping = j.rate * j.item.quantity;
+          j.totalCostwithNoShipping = j.item.costMeta.sellingPrice * j.quantity;
           res += j.totalCostwithNoShipping;
         }
       }
@@ -63,7 +65,7 @@ export class PaymentController {
         } else {
           res += 0;
         }
-      }*/
+      } */
       if (city && city.shippingCost) {
         res = city.shippingCost; // FOR NOW ALL ITEMS ON ONE SHIPPING COST
       } else {
@@ -73,6 +75,7 @@ export class PaymentController {
     }
 
     StockCounterClient.logger.debug('PaymentController:calculate:: - res', res);
+
     return {
       totalCost,
       totalShipping,
@@ -92,17 +95,19 @@ export class PaymentController {
    * @returns An object containing the calculated total cost, total shipping, quantity, and tax value.
    */
   calculateTargetPriceAndShipping(data: Icart[], city: DeliveryCity, promoCode: IpromoCode | null, taxPercentage = 0) {
-    StockCounterClient.logger.debug('PaymentController:add:: - data: %data, city: %city', data, city);
+    StockCounterClient.logger.debug('PaymentController:add:: - data: ', data);
     const totalPdct = this.calculateTargetPriceOrShipping(false, data, city, promoCode);
     const totShip = this.calculateTargetPriceOrShipping(true, data, city, promoCode);
     const res = totalPdct.res + totShip.res;
     let totalCostNshipping = res;
     const qntity = data.reduce((accumulator, val)=> accumulator + (val.item as Item).orderedQty, 0);
     let taxVal = 0;
+
     if (taxPercentage && taxPercentage > 0) {
       taxVal = (taxPercentage / 100) * res;
     }
     totalCostNshipping = res + taxVal;
+
     return {
       res: res + taxVal,
       totalCostNshipping,
@@ -124,8 +129,9 @@ export class PaymentController {
    */
   async getDeliveryCitys(companyId: string, deliveryCitys: DeliveryCity[], address?: Iaddress, isDemo = false) {
     if (!deliveryCitys?.length) {
-      const { count, citys } = await DeliveryCity
+      const { citys } = await DeliveryCity
         .getDeliveryCitys(companyId);
+
       deliveryCitys = citys;
       if (!address) {
         this.currentCity = deliveryCitys[0];
@@ -137,6 +143,7 @@ export class PaymentController {
     if (isDemo) {
       this.currentCity = deliveryCitys[0];
     }
+
     return deliveryCitys;
   }
 
@@ -155,6 +162,7 @@ export class PaymentController {
     this.currentCity = deliveryCitys.find(val => val._id === addr.city);
     const date = new Date();
     const deliversInDays = this.currentCity.deliversInDays;
+
     if (deliversInDays < 30) {
       date.setDate(date.getDate() + deliversInDays);
     } else if (deliversInDays > 30 && deliversInDays < 360) {
@@ -162,6 +170,7 @@ export class PaymentController {
     } else {
       date.setFullYear(date.getFullYear() + Math.round(deliversInDays / 360));
     }
+
     return date;
   }
 }

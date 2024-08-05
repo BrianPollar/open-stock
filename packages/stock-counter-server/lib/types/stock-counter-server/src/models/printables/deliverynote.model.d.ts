@@ -43,6 +43,8 @@ export declare let deliveryNoteLean: Model<TdeliveryNote>;
  * Selects the delivery note.
  */
 export declare const deliveryNoteSelect: {
+    trackEdit: number;
+    trackView: number;
     urId: number;
     companyId: number;
     invoiceRelated: number;

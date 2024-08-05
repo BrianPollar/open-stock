@@ -5,37 +5,53 @@ import { StockAuthClient } from '../stock-auth-client';
 import { Company } from './company.define';
 
 /**
- * Represents a user and extends the DatabaseAuto class. It has properties that correspond to the fields in the user object, and methods for updating, deleting, and managing the user's profile, addresses, and permissions.
+ * Represents a user and extends the DatabaseAuto class.
+ * It has properties that correspond to the fields in the user object, and methods for updating, deleting,
+ *  and managing the user's profile, addresses, and permissions.
  */
 export class User extends DatabaseAuto {
+  //
   /** The user's ID. */
   urId: string;
+
   /** The user's company ID. */
   companyId: Company;
+
   /** The user's full name. */
   names: string;
+
   /** The user's first name. */
   fname: string;
+
   /** The user's last name. */
   lname: string;
+
   /** The user's company name. */
   companyName: string;
+
   /** The user's email address. */
   email: string;
+
   /** The user's address. */
   address: Iaddress[] = [];
+
   /** The user's billing information. */
   billing: Ibilling[] = [];
+
   /** The user's unique ID. */
   uid: string;
+
   /** The user's department ID. */
   did: string;
+
   /** The user's address ID. */
   aid: string;
+
   /** The user's photos. */
   photos: IfileMeta[];
   profilePic: IfileMeta;
   profileCoverPic: IfileMeta;
+
   /** Whether the user is an admin. */
   // admin = false;
   /** Whether the user is a sub-admin. */
@@ -44,18 +60,26 @@ export class User extends DatabaseAuto {
   permissions: Iuserperm = {
     companyAdminAccess: false
   };
+
+
   /** The user's phone number. */
   phone: number;
+
   /** The amount due from the user. */
   amountDue = 0;
+
   /** Whether the user was manually added. */
   manuallyAdded: boolean;
+
   /** Whether the user is currently online. */
   online = false;
+
   /** The user's salutation. */
   salutation: string;
+
   /** Additional company details. */
   extraCompanyDetails: string;
+
   /** The format for displaying the user's name. */
   userDispNameFormat: TuserDispNameFormat = 'firstLast';
   userType?: TuserType;
@@ -81,6 +105,7 @@ export class User extends DatabaseAuto {
   static async getUsers(companyId: string, where: TuserType | 'all' | 'registered', offset = 0, limit = 20) {
     const observer$ = StockAuthClient.ehttp.makeGet(`/user/getusers/${where}/${offset}/${limit}/${companyId}`);
     const users = await lastValueFrom(observer$) as IdataArrayResponse;
+
     return {
       count: users.count,
       users: users.data.map(val => new User(val as Iuser))
@@ -96,6 +121,7 @@ export class User extends DatabaseAuto {
   static async getOneUser(companyId: string, urId: string) {
     const observer$ = StockAuthClient.ehttp.makeGet(`/user/getoneuser/${urId}/${companyId}`);
     const user = await lastValueFrom(observer$) as Iuser;
+
     return new User(user);
   }
 
@@ -111,13 +137,17 @@ export class User extends DatabaseAuto {
       user: vals
     };
     let added: Isuccess;
+
     if (files && files[0]) {
       const observer$ = StockAuthClient.ehttp.uploadFiles(files, `/user/adduserimg/${companyId}`, details);
+
       added = await lastValueFrom(observer$) as Isuccess;
     } else {
       const observer$ = StockAuthClient.ehttp.makePost(`/user/adduser/${companyId}`, details);
+
       added = await lastValueFrom(observer$) as Isuccess;
     }
+
     return added;
   }
 
@@ -130,6 +160,7 @@ export class User extends DatabaseAuto {
    */
   static async deleteUsers(companyId: string, ids: string[], filesWithDir: IfileMeta[]) {
     const observer$ = StockAuthClient.ehttp.makePut(`/user/deletemany/${companyId}`, { ids, filesWithDir });
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 
@@ -144,18 +175,21 @@ export class User extends DatabaseAuto {
     const details = {
       user: {
         ...vals,
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         _id: this._id
       }
     };
     let updated: Isuccess;
+
     if (files && files[0]) {
       const observer$ = StockAuthClient.ehttp.uploadFiles(files, `/user/updateuserbulkimg/${companyId}`, details);
+
       updated = await lastValueFrom(observer$) as Isuccess;
     } else {
       const observer$ = StockAuthClient.ehttp.makePut(`/user/updateuserbulk/${companyId}`, details);
+
       updated = await lastValueFrom(observer$) as Isuccess;
     }
+
     return updated;
   }
 
@@ -188,7 +222,7 @@ export class User extends DatabaseAuto {
       // this.lname = this.lname || 'admin';
       // this.email = this.email || 'admin';
     }
-  }*/
+  } */
 
   /**
    * Updates a user's profile information.
@@ -202,23 +236,29 @@ export class User extends DatabaseAuto {
     companyId: string,
     vals,
     formtype: string,
-    files?: Ifile[]) {
+    files?: Ifile[]
+  ) {
     let updated: Isuccess;
+
     if (files && files.length > 0) {
       const observer$ = StockAuthClient.ehttp
         .uploadFiles(
           files,
           '/user/updateprofileimg',
-          vals);
+          vals
+        );
+
       updated = await lastValueFrom(observer$) as Isuccess;
     } else {
       const observer$ = StockAuthClient.ehttp
         .makePut(`/user/updateprofile/${formtype}/${companyId}`, vals);
+
       updated = await lastValueFrom(observer$) as Isuccess;
     }
     if (updated.success) {
       this.appendUpdate(vals.userdetails);
     }
+
     return updated;
   }
 
@@ -234,6 +274,7 @@ export class User extends DatabaseAuto {
     const observer$ = StockAuthClient.ehttp
       .makePut(`/user/addupdateaddr/${this._id}/${companyId}`, { address, how, type });
     const updated = await lastValueFrom(observer$) as Isuccess;
+
     if (updated.success) {
       if (how === 'create') {
         if (type === 'billing') {
@@ -243,6 +284,7 @@ export class User extends DatabaseAuto {
         }
       } else if (how === 'update') {
         let found: Iaddress | Ibilling | undefined;
+
         if (type === 'billing') {
           found = this.billing.find(val => val.id === address.id);
         } else {
@@ -257,6 +299,7 @@ export class User extends DatabaseAuto {
         this.address = this.address.filter(val => val.id !== address.id);
       }
     }
+
     return updated;
   }
 
@@ -270,7 +313,9 @@ export class User extends DatabaseAuto {
     const observer$ = StockAuthClient.ehttp
       .makePut(`/user/updatepermissions/${this._id}/${companyId}`, { permissions });
     const updated = await lastValueFrom(observer$) as Isuccess;
+
     this.permissions = permissions;
+
     return updated;
   }
 
@@ -281,14 +326,16 @@ export class User extends DatabaseAuto {
    */
   async deleteUser(companyId: string) {
     const observer$ = StockAuthClient.ehttp
-      .makePut(`/user/deleteone/${companyId}`,
+      .makePut(
+        `/user/deleteone/${companyId}`,
         {
-          // eslint-disable-next-line @typescript-eslint/naming-convention
           _id: this._id,
           filesWithDir: [{
             filename: this.profilePic
-          }] });
+          }] }
+      );
     const deleted = await lastValueFrom(observer$) as Isuccess;
+
     return deleted;
   }
 
@@ -300,12 +347,13 @@ export class User extends DatabaseAuto {
    */
   async deleteImages(companyId: string, filesWithDir: IfileMeta[]) {
     const observer$ = StockAuthClient.ehttp
-    // eslint-disable-next-line @typescript-eslint/naming-convention
       .makePut(`/user/deleteimages/${companyId}`, { filesWithDir, user: { _id: this._id } });
     const deleted = await lastValueFrom(observer$) as Isuccess;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     const toStrings = filesWithDir.map(val => val._id);
+
     this.photos = this.photos.filter(val => !toStrings.includes(val._id));
+
     return deleted;
   }
 

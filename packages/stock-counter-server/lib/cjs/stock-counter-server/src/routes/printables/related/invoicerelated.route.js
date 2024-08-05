@@ -55,7 +55,6 @@ exports.invoiceRelateRoutes.get('/getone/:id/:companyIdParam', stock_universal_s
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const related = await invoicerelated_model_1.invoiceRelatedLean
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .findOne({ _id: id, queryId })
         .lean()
         .populate({ path: 'billingUserId', model: stock_auth_server_1.userLean })

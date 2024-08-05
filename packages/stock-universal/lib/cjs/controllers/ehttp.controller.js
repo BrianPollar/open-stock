@@ -111,6 +111,7 @@ exports.EhttpController = EhttpController;
  */
 EhttpController.create = (baseURL, token) => {
     // Create a new Axios instance.
+    // TODO config must come from out
     const instance = axios_observable_1.default.create({
         baseURL,
         timeout: 1000,

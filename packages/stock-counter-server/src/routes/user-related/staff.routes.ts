@@ -20,45 +20,49 @@ import * as tracer from 'tracer';
 import { staffLean, staffMain } from '../../models/user-related/staff.model';
 import { removeManyUsers, removeOneUser } from './locluser.routes';
 
-const staffRoutesLogger = tracer.colorConsole(
-  {
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-      // eslint-disable-next-line no-console
-      console.log(data.output);
-      const logDir = path.join(process.cwd() + '/openstockLog/');
-      fs.mkdir(logDir, { recursive: true }, (err) => {
-        if (err) {
-          if (err) {
-            // eslint-disable-next-line no-console
-            console.log('data.output err ', err);
-          }
-        }
-      });
-      fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
+const staffRoutesLogger = tracer.colorConsole({
+  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+  dateformat: 'HH:MM:ss.L',
+  transport(data) {
+    // eslint-disable-next-line no-console
+    console.log(data.output);
+    const logDir = path.join(process.cwd() + '/openstockLog/');
+
+    fs.mkdir(logDir, { recursive: true }, (err) => {
+      if (err) {
         if (err) {
           // eslint-disable-next-line no-console
-          console.log('raw.output err ', err);
+          console.log('data.output err ', err);
         }
-      });
-    }
-  });
+      }
+    });
+    fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
+      if (err) {
+        // eslint-disable-next-line no-console
+        console.log('raw.output err ', err);
+      }
+    });
+  }
+});
 
 export const addStaff = async(req, res, next) => {
   const { companyIdParam } = req.params;
   const { companyId } = (req as Icustomrequest).user;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const staff = req.body.staff;
   const savedUser = req.body.savedUser;
+
   staff.user = savedUser._id;
   staff.companyId = queryId;
   const newStaff = new staffMain(staff);
   let errResponse: Isuccess;
+
+
   /**
    * Saves a new staff member to the database.
    * @param {Staff} newStaff - The new staff member to be saved.
@@ -77,12 +81,14 @@ export const addStaff = async(req, res, next) => {
         errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
       }
+
       return errResponse;
     });
 
   if (errResponse) {
     return res.status(403).send(errResponse);
   }
+
   return next();
 };
 
@@ -91,8 +97,10 @@ export const updateStaff = async(req, res) => {
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+
   updatedStaff.companyId = queryId;
   const isValid = verifyObjectIds([updatedStaff._id, queryId]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -101,10 +109,12 @@ export const updateStaff = async(req, res) => {
 
   if (req.body.profileOnly === 'true') {
     const { userId } = (req as Icustomrequest).user;
+
     filter = { user: userId };
   }
   const staff = await staffMain
     .findOneAndUpdate(filter);
+
   if (!staff) {
     return res.status(404).send({ success: false });
   }
@@ -127,14 +137,17 @@ export const updateStaff = async(req, res) => {
         errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
       }
+
       return errResponse;
     });
 
   if (errResponse) {
     return res.status(403).send(errResponse);
   }
+
   return res.status(200).send({ success: Boolean(updated) });
 };
+
 /**
  * Router for staff related routes.
  */
@@ -150,16 +163,18 @@ staffRoutes.post('/getone', requireAuth, requireActiveCompany, roleAuthorisation
   const { companyId } = (req as Icustomrequest).user;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectIds([queryId]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   let filter = {};
+
   if (id) {
     const isValid = verifyObjectIds([id]);
+
     if (!isValid) {
       return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     filter = { ...filter, _id: id };
   }
   if (queryId) {
@@ -167,6 +182,7 @@ staffRoutes.post('/getone', requireAuth, requireActiveCompany, roleAuthorisation
   }
   if (userId) {
     const isValid = verifyObjectIds([userId]);
+
     if (!isValid) {
       return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
@@ -175,23 +191,21 @@ staffRoutes.post('/getone', requireAuth, requireActiveCompany, roleAuthorisation
 
   if (req.body.profileOnly === 'true') {
     const { userId } = (req as Icustomrequest).user;
+
     filter = { user: userId };
   }
   const staff = await staffLean
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .findOne(filter)
     .populate({ path: 'user', model: userLean,
       populate: [{
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
       }, {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
       }, {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         path: 'profileCoverPic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
       }] })
     .lean();
+
   return res.status(200).send(staff);
 });
 
@@ -201,6 +215,7 @@ staffRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requireAc
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -209,13 +224,10 @@ staffRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requireAc
       .find({ companyId: queryId })
       .populate({ path: 'user', model: userLean,
         populate: [{
-        // eslint-disable-next-line @typescript-eslint/naming-convention
           path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
         }, {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
           path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
         }, {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
           path: 'profileCoverPic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
         }]
       })
@@ -228,6 +240,7 @@ staffRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requireAc
     count: all[1],
     data: all[0]
   };
+
   return res.status(200).send(response);
 });
 
@@ -237,6 +250,7 @@ staffRoutes.get('/getbyrole/:offset/:limit/:role/:companyIdParam', requireAuth, 
   const { companyIdParam, role } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -245,13 +259,10 @@ staffRoutes.get('/getbyrole/:offset/:limit/:role/:companyIdParam', requireAuth, 
       .find({ companyId: queryId })
       .populate({ path: 'user', model: userLean, match: { role },
         populate: [{
-        // eslint-disable-next-line @typescript-eslint/naming-convention
           path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
         }, {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
           path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
         }, {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
           path: 'profileCoverPic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
         }] })
       .skip(offset)
@@ -264,6 +275,7 @@ staffRoutes.get('/getbyrole/:offset/:limit/:role/:companyIdParam', requireAuth, 
     count: all[1],
     data: staffsToReturn
   };
+
   return res.status(200).send(response);
 });
 
@@ -274,6 +286,7 @@ staffRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, requireA
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -292,6 +305,7 @@ staffRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, requireA
       break;
   }
   let matchFilter;
+
   if (!extraDetails) {
     matchFilter = {};
   }
@@ -300,13 +314,10 @@ staffRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, requireA
       .find({ companyId: queryId, ...filters })
       .populate({ path: 'user', model: userLean, match: { ...matchFilter },
         populate: [{
-        // eslint-disable-next-line @typescript-eslint/naming-convention
           path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
         }, {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
           path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
         }, {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
           path: 'profileCoverPic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
         }] })
       .skip(offset)
@@ -319,12 +330,13 @@ staffRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, requireA
     count: all[1],
     data: staffsToReturn
   };
+
   return res.status(200).send(response);
 });
 
 staffRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('staffs', 'update', true), updateUserBulk, updateStaff);
 
-staffRoutes.put('/updateimg/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('staffs', 'update', true), uploadFiles, appendBody, saveMetaToDb, updateUserBulk, updateStaff);
+staffRoutes.post('/updateimg/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('staffs', 'update', true), uploadFiles, appendBody, saveMetaToDb, updateUserBulk, updateStaff);
 
 staffRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('staffs', 'delete'), removeOneUser('staff'), async(req, res) => {
   const { id } = req.body;
@@ -332,11 +344,13 @@ staffRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompany,
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectIds([id, queryId]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const deleted = await staffMain.findOneAndDelete({ _id: id, companyId: queryId });
+
   if (Boolean(deleted)) {
     return res.status(200).send({ success: Boolean(deleted) });
   } else {
@@ -350,17 +364,19 @@ staffRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectIds([...ids, ...[queryId]]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
 
   const deleted = await staffMain
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .deleteMany({ _id: { $in: ids }, companyId: queryId })
     .catch(err => {
       staffRoutesLogger.error('deletemany - err: ', err);
+
       return null;
     });
+
   if (Boolean(deleted)) {
     return res.status(200).send({ success: Boolean(deleted) });
   } else {

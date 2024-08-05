@@ -5,7 +5,9 @@ import { StockAuthClient } from '../stock-auth-client';
 import { User } from './user.define';
 
 /**
- * Represents a company and extends the DatabaseAuto class. It has properties that correspond to the fields in the company object, and methods for updating, deleting, and managing the company's profile, addresses, and permissions.
+ * Represents a company and extends the DatabaseAuto class. It has properties that
+ * correspond to the fields in the company object, and methods for updating, deleting, a
+ * nd managing the company's profile, addresses, and permissions.
  */
 export class Company extends DatabaseAuto {
   urId: string;
@@ -46,6 +48,7 @@ export class Company extends DatabaseAuto {
   static async getCompanys(companyId: string, offset = 0, limit = 20) {
     const observer$ = StockAuthClient.ehttp.makeGet(`/company/getcompanys/${offset}/${limit}/${companyId}`);
     const companys = await lastValueFrom(observer$) as IdataArrayResponse;
+
     return {
       count: companys.count,
       companys: companys.data.map(val => new Company(val as Icompany))
@@ -61,6 +64,7 @@ export class Company extends DatabaseAuto {
   static async getOneCompany(companyId: string, urId: string) {
     const observer$ = StockAuthClient.ehttp.makeGet(`/company/getonecompany/${urId}/${companyId}`);
     const company = await lastValueFrom(observer$) as Icompany;
+
     return new Company(company);
   }
 
@@ -73,13 +77,17 @@ export class Company extends DatabaseAuto {
    */
   static async addCompany(companyId: string, vals: {company: Icompany; user: Partial<Iuser>}, files?: Ifile[]) {
     let added: Isuccess;
+
     if (files && files[0]) {
       const observer$ = StockAuthClient.ehttp.uploadFiles(files, `/company/addcompanyimg/${companyId}`, vals);
+
       added = await lastValueFrom(observer$) as Isuccess;
     } else {
       const observer$ = StockAuthClient.ehttp.makePost('/company/addcompany', vals);
+
       added = await lastValueFrom(observer$) as Isuccess;
     }
+
     return added;
   }
 
@@ -92,6 +100,7 @@ export class Company extends DatabaseAuto {
    */
   static async deleteCompanys(companyId: string, ids: string[], filesWithDir: IfileMeta[]) {
     const observer$ = StockAuthClient.ehttp.makePut(`/company/deletemany/${companyId}`, { ids, filesWithDir });
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 
@@ -105,13 +114,17 @@ export class Company extends DatabaseAuto {
   async updateCompanyBulk(companyId: string, vals: {company: Partial<Icompany>; user: Partial<Iuser>}, files?: Ifile[]) {
     vals.company._id = this._id;
     let added: Isuccess;
+
     if (files && files[0]) {
       const observer$ = StockAuthClient.ehttp.uploadFiles(files, `/company/updatecompanybulkimg/${companyId}`, vals);
+
       added = await lastValueFrom(observer$) as Isuccess;
     } else {
       const observer$ = StockAuthClient.ehttp.makePut(`/company/updatecompanybulk/${companyId}`, vals);
+
       added = await lastValueFrom(observer$) as Isuccess;
     }
+
     return added;
   }
 
@@ -127,23 +140,29 @@ export class Company extends DatabaseAuto {
     companyId: string,
     vals,
     formtype: string,
-    files?: Ifile[]) {
+    files?: Ifile[]
+  ) {
     let updated: Isuccess;
+
     if (files && files.length > 0) {
       const observer$ = StockAuthClient.ehttp
         .uploadFiles(
           files,
           '/company/updateprofileimg',
-          vals);
+          vals
+        );
+
       updated = await lastValueFrom(observer$) as Isuccess;
     } else {
       const observer$ = StockAuthClient.ehttp
         .makePut(`/company/updateprofile/${formtype}/${companyId}`, vals);
+
       updated = await lastValueFrom(observer$) as Isuccess;
     }
     if (updated.success) {
       this.appendUpdate(vals.companydetails);
     }
+
     return updated;
   }
 
@@ -155,12 +174,13 @@ export class Company extends DatabaseAuto {
    */
   async deleteImages(companyId: string, filesWithDir: IfileMeta[]) {
     const observer$ = StockAuthClient.ehttp
-    // eslint-disable-next-line @typescript-eslint/naming-convention
       .makePut(`/company/deleteimages/${companyId}`, { filesWithDir, company: { _id: this._id } });
     const deleted = await lastValueFrom(observer$) as Isuccess;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     const toStrings = filesWithDir.map(val => val._id);
+
     this.photos = this.photos.filter(val => !toStrings.includes(val._id));
+
     return deleted;
   }
 
@@ -171,9 +191,9 @@ export class Company extends DatabaseAuto {
    */
   async deleteCompany(companyId: string) {
     const observer$ = StockAuthClient.ehttp
-      .makePut(`/company/deleteone/${companyId}`,
+      .makePut(
+        `/company/deleteone/${companyId}`,
         {
-          // eslint-disable-next-line @typescript-eslint/naming-convention
           _id: this._id,
           filesWithDir: [{
             filename: this.profilePic
@@ -181,8 +201,10 @@ export class Company extends DatabaseAuto {
           {
             filename: this.profileCoverPic
           }
-          ] });
+          ] }
+      );
     const deleted = await lastValueFrom(observer$) as Isuccess;
+
     return deleted;
   }
 
@@ -208,6 +230,7 @@ export class Company extends DatabaseAuto {
       this.dateLeft = data.dateLeft || this.dateLeft;
       this.blocked = data.blocked || this.blocked;
       this.verified = data.verified || this.verified;
+      this.address = data.address || this.address;
       this.owner = typeof data.owner === 'object' ? new User(data.owner) : data.owner;
     }
   }

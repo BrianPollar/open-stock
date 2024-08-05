@@ -22,6 +22,7 @@ interface IschemaMethods {
 
 
 export type Tuser = Document & Iuser & IschemaMethods;
+
 /**
  * User schema definition.
  * @typedef {Object} Tuser
@@ -57,43 +58,48 @@ export type Tuser = Document & Iuser & IschemaMethods;
  * @property {Date} createdAt - User creation date.
  * @property {Date} updatedAt - User update date.
  */
-const userSchema: Schema<Tuser> = new Schema({
-  urId: { type: String, required: [true, 'cannot be empty.'], index: true },
-  companyId: { type: String, index: true },
-  fname: { type: String, index: true },
-  lname: { type: String, index: true },
-  companyName: { type: String, index: true },
-  salutation: { type: String },
-  extraCompanyDetails: { type: String },
-  userDispNameFormat: { type: String, default: 'firstLast' },
-  address: [],
-  billing: [],
-  profilePic: { type: String },
-  profileCoverPic: { type: String },
-  photos: [{ type: String }],
-  age: { type: String },
-  gender: { type: String },
-  admin: { type: Boolean, default: false },
-  permissions: {},
-  email: { type: String },
-  phone: { type: Number },
-  expireAt: { type: String },
-  verified: { type: Boolean, default: false },
-  // authyId: { type: String },
-  password: { type: String },
-  fromsocial: { type: Boolean },
-  socialframework: { type: String },
-  socialId: { type: String },
-  countryCode: { type: String, default: '+256' },
-  amountDue: { type: Number, default: 0 },
-  manuallyAdded: { type: Boolean, default: false },
-  userType: { type: String, default: 'eUser' }
-},
-{ timestamps: true }
+const userSchema: Schema<Tuser> = new Schema(
+  {
+    trackEdit: { type: Schema.ObjectId },
+    trackView: { type: Schema.ObjectId },
+    urId: { type: String, required: [true, 'cannot be empty.'], index: true },
+    companyId: { type: String, index: true },
+    fname: { type: String, index: true },
+    lname: { type: String, index: true },
+    companyName: { type: String, index: true },
+    salutation: { type: String },
+    extraCompanyDetails: { type: String },
+    userDispNameFormat: { type: String, default: 'firstLast' },
+    address: [],
+    billing: [],
+    profilePic: { type: String },
+    profileCoverPic: { type: String },
+    photos: [{ type: String }],
+    age: { type: String },
+    gender: { type: String },
+    admin: { type: Boolean, default: false },
+    permissions: {},
+    email: { type: String },
+    phone: { type: Number },
+    expireAt: { type: String },
+    verified: { type: Boolean, default: false },
+    // authyId: { type: String },
+    password: { type: String },
+    fromsocial: { type: Boolean },
+    socialframework: { type: String },
+    socialId: { type: String },
+    countryCode: { type: String, default: '+256' },
+    amountDue: { type: Number, default: 0 },
+    manuallyAdded: { type: Boolean, default: false },
+    userType: { type: String, default: 'eUser' }
+  },
+  { timestamps: true }
 );
 
-userSchema.index({ expireAt: 1 },
-  { expireAfterSeconds: 2628003 });
+userSchema.index(
+  { expireAt: 1 },
+  { expireAfterSeconds: 2628003 }
+);
 
 // Apply the uniqueValidator plugin to userSchema.
 userSchema.plugin(uniqueValidator);
@@ -152,7 +158,7 @@ userSchema.methods['sendAuthyToken'] = function(cb) {
         sendToken(this.authyId).then((resp) => cb.call(this, null, resp)).catch(err => cb.call(this, err));
       });
     }).catch(err => cb.call(this, err));
-  } else {*/
+  } else { */
   // Otherwise send token to a known user
   sendToken(
     this.phone,

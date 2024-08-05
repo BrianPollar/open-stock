@@ -64,7 +64,7 @@ class Expense extends stock_universal_1.DatabaseAuto {
      * @async
      * @param companyId - The ID of the company
      * @param {Iexpense} vals - The values to create the expense with.
-     * @returns {Promise<Isuccess>} A success response.
+     * @returns {Promise<IsubscriptionFeatureState>} A success response.
      */
     static async addExpense(companyId, vals) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makePost(`/expense/create/${companyId}`, vals);

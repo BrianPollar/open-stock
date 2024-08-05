@@ -41,10 +41,10 @@ export const runStockNotificationServer = async (config) => {
 export const getCurrentNotificationSettings = async (companyId) => {
     const isValid = verifyObjectId(companyId);
     if (!isValid) {
-        return {};
+        return { success: false };
     }
     const stn = await notifSettingMain.findOne({ companyId }).lean();
-    return stn;
+    return { success: true, stn };
 };
 /**
  * Checks if the notifications server is running.

@@ -39,6 +39,8 @@ export declare let companySubscriptionLean: Model<TcompanySubscription>;
  * Selects the companySubscriptionselect constant from the companySubscription.model module.
  */
 export declare const companySubscriptionSelect: {
+    trackEdit: number;
+    trackView: number;
     companyId: number;
     name: number;
     ammount: number;

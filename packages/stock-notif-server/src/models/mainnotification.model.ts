@@ -9,24 +9,34 @@ import { connectNotifDatabase, isNotifDbConnected, mainConnection, mainConnectio
 
 /** Interface for the main notification object. */
 export interface IMainnotification extends Document {
+
   /** Actions to be taken for the notification. */
   actions: Iactionwithall[];
+
   /** ID of the user who will receive the notification. */
   userId: string;
+
   /** Title of the notification. */
   title: string;
+
   /** Body of the notification. */
   body: string;
+
   /** Icon to be displayed with the notification. */
   icon: string;
+
   /** Expiration time of the notification in milliseconds. */
   expireAt: number;
+
   /** Type of the notification. */
   notifType: TnotifType;
+
   /** ID of the object that invoked the notification. */
   notifInvokerId: string;
+
   /** Whether the notification is active or not. */
   active: boolean;
+
   /** Array of user IDs who have viewed the notification. */
   viewed: string[];
 }

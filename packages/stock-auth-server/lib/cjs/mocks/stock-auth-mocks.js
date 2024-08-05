@@ -12,7 +12,7 @@ const createPermProp = (state = 'normal') => {
     };
 };
 exports.createPermProp = createPermProp;
-/** createMockUserperm  function: This function takes a state parameter and returns an object representing user permissions. The permissions object is based on the state value, where each permission is set to  true  if the state is not equal to 'normal', and  false  otherwise*/
+/** createMockUserperm  function: This function takes a state parameter and returns an object representing user permissions. The permissions object is based on the state value, where each permission is set to  true  if the state is not equal to 'normal', and  false  otherwise */
 const createMockUserperm = (state = 'normal') => {
     return {
         orders: (0, exports.createPermProp)(state),
@@ -42,7 +42,7 @@ const createMockCompanyPerm = (active = true) => {
     };
 };
 exports.createMockCompanyPerm = createMockCompanyPerm;
-/** createMockAddress  function: This function creates a mock address object with randomly generated values using the  faker  library*/
+/** createMockAddress  function: This function creates a mock address object with randomly generated values using the  faker  library */
 const createMockAddress = () => {
     return {
         id: en_US_1.faker.string.sample(),
@@ -59,7 +59,7 @@ const createMockAddress = () => {
     };
 };
 exports.createMockAddress = createMockAddress;
-/** createMockBilling  function: This function creates a mock billing object with randomly generated values using the  faker  library.*/
+/** createMockBilling  function: This function creates a mock billing object with randomly generated values using the  faker  library. */
 const createMockBilling = () => {
     return {
         id: en_US_1.faker.string.sample(),

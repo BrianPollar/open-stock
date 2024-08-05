@@ -37,6 +37,7 @@ receiptRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany,
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -44,17 +45,19 @@ receiptRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany,
   receipt.companyId = queryId;
   invoiceRelated.companyId = queryId;
   const count = await receiptMain
-  // eslint-disable-next-line @typescript-eslint/naming-convention
     .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+
   receipt.urId = makeUrId(Number(count[0]?.urId || '0'));
   const extraNotifDesc = 'Newly created receipt';
   const invoiceRelatedRes = await relegateInvRelatedCreation(invoiceRelated, queryId, extraNotifDesc);
+
   if (!invoiceRelatedRes.success) {
     return res.status(invoiceRelatedRes.status).send(invoiceRelatedRes);
   }
 
   receipt.invoiceRelated = invoiceRelatedRes.id;
-  await makePaymentInstall(receipt, invoiceRelatedRes.id, queryId);
+  await makePaymentInstall(receipt, invoiceRelatedRes.id, queryId, invoiceRelated.creationType);
+
   // const newReceipt = new receiptMain(receipt);
   /* let errResponse: Isuccess;
   const saved = await newReceipt.save()
@@ -76,7 +79,7 @@ receiptRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany,
   if (errResponse) {
     return res.status(403).send(errResponse);
   }
-  await updateInvoiceRelated(invoiceRelated);*/
+  await updateInvoiceRelated(invoiceRelated); */
   return next();
 }, requireUpdateSubscriptionRecord('receipt'));
 
@@ -86,6 +89,7 @@ receiptRoutes.get('/getone/:urId/:companyIdParam', requireAuth, requireActiveCom
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -102,14 +106,18 @@ receiptRoutes.get('/getone/:urId/:companyIdParam', requireAuth, requireActiveCom
       }]
     });
   let returned;
+
   if (receipt) {
     const relateds = makeInvoiceRelatedPdct(
       receipt.invoiceRelated as Required<IinvoiceRelated>,
       (receipt.invoiceRelated as IinvoiceRelated)
-        .billingUserId as unknown as Iuser);
+        .billingUserId as unknown as Iuser
+    );
+
     // ensure reciepts are properly being populated
     returned = { ...receipt, ...relateds };
   }
+
   return res.status(200).send(returned);
 });
 
@@ -119,6 +127,7 @@ receiptRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, require
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -141,15 +150,19 @@ receiptRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, require
   ]);
   const returned = all[0]
     .map(val => {
-      const related = makeInvoiceRelatedPdct(val.invoiceRelated as Required<IinvoiceRelated>,
+      const related = makeInvoiceRelatedPdct(
+val.invoiceRelated as Required<IinvoiceRelated>,
       (val.invoiceRelated as IinvoiceRelated)
-        .billingUserId as unknown as Iuser);
+        .billingUserId as unknown as Iuser
+      );
+
       return { ...val, ...related };
     });
   const response: IdataArrayResponse = {
     count: all[1],
     data: returned
   };
+
   return res.status(200).send(response);
 });
 
@@ -159,10 +172,12 @@ receiptRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompan
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectIds([id, queryId]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const deleted = await deleteAllLinked(invoiceRelated, creationType, stage, 'receipt', queryId);
+
   if (Boolean(deleted)) {
     return res.status(200).send({ success: Boolean(deleted) });
   } else {
@@ -176,6 +191,7 @@ receiptRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, requir
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -198,13 +214,16 @@ receiptRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, requir
     receiptLean.countDocuments({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
   ]);
   const returned = all[0]
-    .map(val => makeInvoiceRelatedPdct(val.invoiceRelated as Required<IinvoiceRelated>,
+    .map(val => makeInvoiceRelatedPdct(
+val.invoiceRelated as Required<IinvoiceRelated>,
       (val.invoiceRelated as IinvoiceRelated)
-        .billingUserId as unknown as Iuser));
+        .billingUserId as unknown as Iuser
+    ));
   const response: IdataArrayResponse = {
     count: all[1],
     data: returned
   };
+
   return res.status(200).send(response);
 });
 
@@ -213,28 +232,34 @@ receiptRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCompany, 
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+
   updatedReceipt.companyId = queryId;
   invoiceRelated.companyId = queryId;
   const isValid = verifyObjectIds([updatedReceipt._id, queryId]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const found = await receiptMain.findOneAndUpdate({ _id: updatedReceipt._id, companyId: queryId });
+
   if (!found) {
     return res.status(404).send({ success: false, status: 404, err: 'not found' });
   }
   found.paymentMode = updatedReceipt.paymentMode || found.paymentMode;
   let savedErr: string;
+
   await found.save().catch(err => {
     receiptRoutes.error('save error', err);
     savedErr = err;
+
     return null;
   });
   if (savedErr) {
     return res.status(500).send({ success: false });
   }
   await updateInvoiceRelated(invoiceRelated, queryId);
+
   return res.status(200).send({ success: true });
 });
 
@@ -244,20 +269,24 @@ receiptRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompa
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   if (!credentials || credentials?.length < 1) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
+
   /** await receiptMain
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .deleteMany({ _id: { $in: ids } });**/
   const promises = credentials
     .map(async val => {
       await deleteAllLinked(val.invoiceRelated, val.creationType, val.stage, 'receipt', queryId);
+
       return new Promise(resolve => resolve(true));
     });
+
   await Promise.all(promises);
+
   return res.status(200).send({ success: true });
 });

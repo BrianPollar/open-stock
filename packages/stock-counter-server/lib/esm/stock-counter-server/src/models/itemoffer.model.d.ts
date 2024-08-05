@@ -25,10 +25,11 @@
 /// <reference types="mongoose/types/virtuals" />
 /// <reference types="mongoose/types/inferschematype" />
 import { ConnectOptions, Document, Model } from 'mongoose';
+import { ItrackStamp } from '@open-stock/stock-universal';
 /**
  * Represents an item offer.
  */
-export interface IitemOffer extends Document {
+export interface IitemOffer extends Document, ItrackStamp {
     /** The user's ID. */
     urId: string;
     /** The user's company ID. */
@@ -58,6 +59,8 @@ export declare let itemOfferLean: Model<IitemOffer>;
  * Represents the item offer select function.
  */
 export declare const itemOfferSelect: {
+    trackEdit: number;
+    trackView: number;
     urId: number;
     companyId: number;
     items: number;

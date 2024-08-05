@@ -1,4 +1,4 @@
-import { TitemColor, TitemState, TpriceCurrenncy } from '../types/union.types';
+import { TitemColor, TitemState } from '../types/union.types';
 import { IfileMeta } from './general.interface';
 import { IurId } from './inventory.interface';
 export interface Iitem extends IurId {
@@ -31,11 +31,11 @@ export interface Iitem extends IurId {
     orderedQty?: number;
     inventoryMeta: IinventoryMeta[];
     ecomerceCompat: boolean;
+    soldCount: number;
 }
 export interface IcostMeta {
     sellingPrice: number;
     costPrice: number;
-    currency: TpriceCurrenncy;
     discount: number;
     offer: boolean;
 }

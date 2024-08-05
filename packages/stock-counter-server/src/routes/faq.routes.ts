@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
-
 import { requireActiveCompany } from '@open-stock/stock-auth-server';
 import { Icustomrequest, IdataArrayResponse, Isuccess } from '@open-stock/stock-universal';
 import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
@@ -11,30 +10,30 @@ import { faqLean, faqMain } from '../models/faq.model';
 import { faqanswerLean, faqanswerMain } from '../models/faqanswer.model';
 
 /** Logger for faqRoutes */
-const faqRoutesLogger = tracer.colorConsole(
-  {
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-      // eslint-disable-next-line no-console
-      console.log(data.output);
-      const logDir = path.join(process.cwd() + '/openstockLog/');
-      fs.mkdir(logDir, { recursive: true }, (err) => {
-        if (err) {
-          if (err) {
-            // eslint-disable-next-line no-console
-            console.log('data.output err ', err);
-          }
-        }
-      });
-      fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
+const faqRoutesLogger = tracer.colorConsole({
+  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+  dateformat: 'HH:MM:ss.L',
+  transport(data) {
+    // eslint-disable-next-line no-console
+    console.log(data.output);
+    const logDir = path.join(process.cwd() + '/openstockLog/');
+
+    fs.mkdir(logDir, { recursive: true }, (err) => {
+      if (err) {
         if (err) {
           // eslint-disable-next-line no-console
-          console.log('raw.output err ', err);
+          console.log('data.output err ', err);
         }
-      });
-    }
-  });
+      }
+    });
+    fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
+      if (err) {
+        // eslint-disable-next-line no-console
+        console.log('raw.output err ', err);
+      }
+    });
+  }
+});
 
 /**
  * Router for FAQ routes.
@@ -56,8 +55,8 @@ export const faqRoutes = express.Router();
 faqRoutes.post('/create/:companyIdParam', async(req, res) => {
   const faq = req.body.faq;
   const count = await faqMain
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .find({ }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+
   faq.urId = makeUrId(Number(count[0]?.urId || '0'));
   const newFaq = new faqMain(faq);
   let errResponse: Isuccess;
@@ -74,12 +73,14 @@ faqRoutes.post('/create/:companyIdParam', async(req, res) => {
         errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
       }
+
       return errResponse;
     });
 
   if (errResponse) {
     return res.status(403).send(errResponse);
   }
+
   return res.status(200).send({ success: Boolean(saved) });
 });
 
@@ -99,22 +100,23 @@ faqRoutes.get('/getone/:id/:companyIdParam', async(req, res) => {
   // const { companyId } = (req as Icustomrequest).user;
   let ids: string[];
   let filter: object;
+
   if (companyIdParam !== 'undefined') {
     ids = [id, companyIdParam];
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     filter = { _id: id, companyId: companyIdParam };
   } else {
     ids = [id];
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     filter = { _id: id };
   }
   const isValid = verifyObjectIds(ids);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const faq = await faqLean
     .findOne(filter)
     .lean();
+
   return res.status(200).send(faq);
 });
 
@@ -144,6 +146,7 @@ faqRoutes.get('/getall/:offset/:limit/:companyIdParam', async(req, res) => {
     count: all[1],
     data: all[0]
   };
+
   return res.status(200).send(response);
 });
 
@@ -165,21 +168,22 @@ faqRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, requireActiveCom
   const { companyIdParam } = req.params;
   let filter: object;
   let ids: string[];
+
   if (companyIdParam !== 'undefined') {
     ids = [id, companyIdParam];
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     filter = { _id: id, companyId: companyIdParam };
   } else {
     ids = [id];
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     filter = { _id: id, companyId };
   }
   const isValid = verifyObjectIds(ids);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const deleted = await faqMain.findOneAndDelete(filter);
+
   if (Boolean(deleted)) {
     return res.status(200).send({ success: Boolean(deleted) });
   } else {
@@ -203,8 +207,10 @@ faqRoutes.post('/createans/:companyIdParam', requireAuth, requireActiveCompany, 
   const faq = req.body.faq;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
+
   if (companyIdParam !== 'undefined') {
     const isValid = verifyObjectId(companyIdParam);
+
     if (!isValid) {
       return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
@@ -212,6 +218,7 @@ faqRoutes.post('/createans/:companyIdParam', requireAuth, requireActiveCompany, 
   faq.companyId = companyId;
 
   const count = await faqanswerMain.countDocuments();
+
   faq.urId = makeUrId(count);
   const newFaqAns = new faqanswerMain(faq);
   let errResponse: Isuccess;
@@ -228,12 +235,14 @@ faqRoutes.post('/createans/:companyIdParam', requireAuth, requireActiveCompany, 
         errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
       }
+
       return errResponse;
     });
 
   if (errResponse) {
     return res.status(403).send(errResponse);
   }
+
   return res.status(200).send({ success: Boolean(saved) });
 });
 
@@ -252,6 +261,7 @@ faqRoutes.get('/getallans/:faqId/:companyIdParam', async(req, res) => {
   const faqsAns = await faqanswerLean
     .find({ faq: req.params.faqId })
     .lean();
+
   return res.status(200).send(faqsAns);
 });
 
@@ -270,6 +280,7 @@ faqRoutes.delete('/deleteoneans/:id/:companyIdParam', requireAuth, requireActive
   const { id } = req.params;
   const { companyIdParam } = req.params;
   const isValid = verifyObjectIds([id, companyIdParam]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -277,8 +288,10 @@ faqRoutes.delete('/deleteoneans/:id/:companyIdParam', requireAuth, requireActive
   const deleted = await faqanswerMain.findOneAndDelete({ _id: id, companyId: companyIdParam })
     .catch(err => {
       faqRoutesLogger.error('deleteoneans - err: ', err);
+
       return null;
     });
+
   if (Boolean(deleted)) {
     return res.status(200).send({ success: Boolean(deleted) });
   } else {

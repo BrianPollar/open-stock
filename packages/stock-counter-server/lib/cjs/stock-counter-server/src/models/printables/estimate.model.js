@@ -4,6 +4,8 @@ exports.createEstimateModel = exports.estimateSelect = exports.estimateLean = ex
 const mongoose_1 = require("mongoose");
 const database_controller_1 = require("../../controllers/database.controller");
 const estimateSchema = new mongoose_1.Schema({
+    trackEdit: { type: mongoose_1.Schema.ObjectId },
+    trackView: { type: mongoose_1.Schema.ObjectId },
     companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
     invoiceRelated: { type: String }
 }, { timestamps: true });
@@ -11,6 +13,8 @@ const estimateSchema = new mongoose_1.Schema({
  * for estimate
  */
 const estimateselect = {
+    trackEdit: 1,
+    trackView: 1,
     companyId: 1,
     invoiceRelated: 1
 };

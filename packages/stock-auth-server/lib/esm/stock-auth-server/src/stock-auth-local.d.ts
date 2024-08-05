@@ -22,7 +22,7 @@
 /// <reference types="mongoose/types/validation" />
 /// <reference types="mongoose/types/virtuals" />
 /// <reference types="mongoose/types/inferschematype" />
-/** The  connectAuthDatabase  function connects to the authentication database by creating the required models.*/
+/** The  connectAuthDatabase  function connects to the authentication database by creating the required models. */
 import { ConnectOptions } from 'mongoose';
 import { IStockAuthServerConfig } from './stock-auth-server';
 /**

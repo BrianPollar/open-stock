@@ -4,30 +4,30 @@ import path from 'path';
 import * as tracer from 'tracer';
 
 // This var creates a dbConnectionsLogger named `DbConnections`.
-const dbConnectionsLogger = tracer.colorConsole(
-  {
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-      // eslint-disable-next-line no-console
-      console.log(data.output);
-      const logDir = path.join(process.cwd() + '/openstockLog/');
-      fs.mkdir(logDir, { recursive: true }, (err) => {
-        if (err) {
-          if (err) {
-            // eslint-disable-next-line no-console
-            console.log('data.output err ', err);
-          }
-        }
-      });
-      fs.appendFile(logDir + '/universal-server.log', data.rawoutput + '\n', err => {
+const dbConnectionsLogger = tracer.colorConsole({
+  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+  dateformat: 'HH:MM:ss.L',
+  transport(data) {
+    // eslint-disable-next-line no-console
+    console.log(data.output);
+    const logDir = path.join(process.cwd() + '/openstockLog/');
+
+    fs.mkdir(logDir, { recursive: true }, (err) => {
+      if (err) {
         if (err) {
           // eslint-disable-next-line no-console
-          console.log('raw.output err ', err);
+          console.log('data.output err ', err);
         }
-      });
-    }
-  });
+      }
+    });
+    fs.appendFile(logDir + '/universal-server.log', data.rawoutput + '\n', err => {
+      if (err) {
+        // eslint-disable-next-line no-console
+        console.log('raw.output err ', err);
+      }
+    });
+  }
+});
 
 /**
  * Creates a new MongoDB connection.
@@ -54,9 +54,11 @@ export const makeNewConnection = async(
 
   // Set up a connected handler that logs the connection event to the console.
   db.on('connected', () => {
-    mongoose.set('debug',
+    mongoose.set(
+      'debug',
       (col, method, query, doc) => {
         const name = db.name;
+
         dbConnectionsLogger.debug(`"MONGODB :: " 
         name [name: %s]
         col [col:%s], method [method:%s],
@@ -64,7 +66,8 @@ export const makeNewConnection = async(
         ${name}, ${col}, ${method}, 
         ${JSON.stringify(query)},
         ${JSON.stringify(doc)}`);
-      });
+      }
+    );
     dbConnectionsLogger.info(`MONGODB SUCCESS ::
         connected [uri:"%s"], ${uri}`);
   });

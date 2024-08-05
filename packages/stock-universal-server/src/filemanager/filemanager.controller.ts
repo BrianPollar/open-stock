@@ -5,30 +5,30 @@ import path from 'path';
 import * as tracer from 'tracer';
 
 // This function creates a fileMangerLogger named `FileManger`.
-const fileMangerLogger = tracer.colorConsole(
-  {
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-      // eslint-disable-next-line no-console
-      console.log(data.output);
-      const logDir = path.join(process.cwd() + '/openstockLog/');
-      fs.mkdir(logDir, { recursive: true }, (err) => {
-        if (err) {
-          if (err) {
-            // eslint-disable-next-line no-console
-            console.log('data.output err ', err);
-          }
-        }
-      });
-      fs.appendFile(logDir + '/universal-server.log', data.rawoutput + '\n', err => {
+const fileMangerLogger = tracer.colorConsole({
+  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+  dateformat: 'HH:MM:ss.L',
+  transport(data) {
+    // eslint-disable-next-line no-console
+    console.log(data.output);
+    const logDir = path.join(process.cwd() + '/openstockLog/');
+
+    fs.mkdir(logDir, { recursive: true }, (err) => {
+      if (err) {
         if (err) {
           // eslint-disable-next-line no-console
-          console.log('raw.output err ', err);
+          console.log('data.output err ', err);
         }
-      });
-    }
-  });
+      }
+    });
+    fs.appendFile(logDir + '/universal-server.log', data.rawoutput + '\n', err => {
+      if (err) {
+        // eslint-disable-next-line no-console
+        console.log('raw.output err ', err);
+      }
+    });
+  }
+});
 
 /**
  * Creates directories for an application.
@@ -37,8 +37,7 @@ const fileMangerLogger = tracer.colorConsole(
  * @param directories - An array of directory names to be created.
  * @returns A promise that resolves to a boolean indicating whether the directories were successfully created.
  */
-export const createDirectories = async(
-  envConfig: IenvironmentConfig): Promise<boolean> => {
+export const createDirectories = async(envConfig: IenvironmentConfig): Promise<boolean> => {
   // Check if the directory for the app name exists.
   await checkDirectoryExists(envConfig.absolutepath, '', 'first');
 
@@ -51,6 +50,7 @@ export const createDirectories = async(
     .map(async(value) => {
       // Check if the directory exists.
       await checkDirectoryExists(envConfig.absolutepath, value);
+
       // Return a promise that always resolves to true.
       return new Promise(resolve => resolve(true));
     });
@@ -75,8 +75,7 @@ export const createDirectories = async(
  *          - 'exists' if the directory already exists.
  *          - 'someError' if there was an error accessing or creating the directory.
  */
-export const checkDirectoryExists = (
-  absolutepath: string, dir: string, casel?): Promise<string> => {
+export const checkDirectoryExists = (absolutepath: string, dir: string, casel?): Promise<string> => {
   return new Promise(resolve => {
     // Create a variable to store the directory path.
     let myDir;
@@ -90,8 +89,10 @@ export const checkDirectoryExists = (
     }
 
     // Log the directory path.
-    fileMangerLogger.debug('FileManager',
-      `"checkDirectoryExists", ${myDir}`);
+    fileMangerLogger.debug(
+      'FileManager',
+      `"checkDirectoryExists", ${myDir}`
+    );
 
     // Check if the directory exists.
     access(myDir, function(err) {
@@ -100,9 +101,11 @@ export const checkDirectoryExists = (
         mkdir(myDir, function(mkdirErr) {
           // If there is an error creating the directory, then log it.
           if (mkdirErr) {
-            fileMangerLogger.error('FileManager',
+            fileMangerLogger.error(
+              'FileManager',
               `"checkDirectoryExists 
-                fse.mkdir error", ${mkdirErr}`);
+                fse.mkdir error", ${mkdirErr}`
+            );
           }
 
           // Resolve the promise with the string `created`.
@@ -110,9 +113,11 @@ export const checkDirectoryExists = (
         });
       } else if (err) {
         // If there is an error accessing the directory, then log it.
-        fileMangerLogger.error('FileManager',
+        fileMangerLogger.error(
+          'FileManager',
           `"checkDirectoryExists 
-            fse.access error", ${err}`);
+            fse.access error", ${err}`
+        );
 
         // Resolve the promise with the string `someError`.
         resolve('someError');

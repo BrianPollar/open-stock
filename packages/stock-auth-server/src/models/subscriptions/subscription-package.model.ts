@@ -7,6 +7,8 @@ export type TsubscriptionPackage= Document & IsubscriptionPackage;
 
 /** subscription package schema */
 const subscriptionPackageSchema: Schema = new Schema({
+  trackEdit: { type: Schema.ObjectId },
+  trackView: { type: Schema.ObjectId },
   name: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
   ammount: { type: Number, unique: true, required: [true, 'cannot be empty.'], index: true },
   duration: { type: Number, required: [true, 'cannot be empty.'], index: true }, // in days
@@ -19,6 +21,8 @@ subscriptionPackageSchema.plugin(uniqueValidator);
 
 /** Primary selection object for subscription package */
 const subscriptionPackageselect = {
+  trackEdit: 1,
+  trackView: 1,
   name: 1,
   ammount: 1,
   duration: 1,

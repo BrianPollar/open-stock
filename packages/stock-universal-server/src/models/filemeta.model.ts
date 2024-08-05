@@ -5,6 +5,8 @@ import { connectUniversalDatabase, isUniversalDbConnected, mainConnection, mainC
 const uniqueValidator = require('mongoose-unique-validator');
 
 const fileMetaSchema: Schema<IfileMeta> = new Schema({
+  trackEdit: { type: Schema.ObjectId },
+  trackView: { type: Schema.ObjectId },
   userOrCompanayId: { type: String },
   name: { type: String },
   url: { type: String },

@@ -42,6 +42,8 @@ export declare let faqLean: Model<Tfaq>;
  * Selects the faqselect constant from the faq.model module.
  */
 export declare const faqSelect: {
+    trackEdit: number;
+    trackView: number;
     urId: number;
     companyId: number;
     posterName: number;

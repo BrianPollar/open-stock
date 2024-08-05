@@ -20,7 +20,7 @@ invoiceSettingRoutesDummy.put('/update/:companyIdParam', (req, res) => {
 });
 
 
-invoiceSettingRoutesDummy.put('/updateimg/:companyIdParam', (req, res) => {
+invoiceSettingRoutesDummy.post('/updateimg/:companyIdParam', (req, res) => {
   res.status(200).send({ success: true });
 });
 
@@ -33,6 +33,7 @@ invoiceSettingRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, re
     count: req.params.limit,
     data: [createMockInvoiceSettings()]
   };
+
   res.status(200).send(response);
 });
 
@@ -45,6 +46,7 @@ invoiceSettingRoutesDummy.post('/search/:offset/:limit/:companyIdParam', (req, r
     count: req.params.limit,
     data: [createMockInvoiceSettings()]
   };
+
   res.status(200).send(response);
 });
 

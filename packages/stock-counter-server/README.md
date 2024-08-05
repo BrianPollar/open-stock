@@ -79,22 +79,25 @@ app.use(stockCounterRouter);
 ## Documentation
 
 ## Extra Features
+
 Here are the features of the stock-counter-server library
 
 ## NOTE
+
 Most of the features below are automatically implememnted by the library. But If you want to use the classes and functions provided by the library, you can do so by importing them from the library.
 Some of them are elaborated below.
 
 ## paymentController
+
 paymentController is a function that is used to get the payment controller.
 
 # usage
-  ```ts
-import { payOnDelivery } from '@open-stock/stock-counter-server';
 
-// check all the functions implementations in the file containing payOnDelivery for more functionalities to handle payment 
+```ts
+import { payOnDelivery } from "@open-stock/stock-counter-server";
+
+// check all the functions implementations in the file containing payOnDelivery for more functionalities to handle payment
 ```
-
 
 The source code of the website can be found [here](https://github.com/BrianPollar/stock-counter-server). Contributions are welcome!
 

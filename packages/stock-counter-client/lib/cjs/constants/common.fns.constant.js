@@ -239,7 +239,6 @@ exports.determineLikedFn = determineLikedFn;
  */
 const markInvStatusAsFn = async (companyId, invoice, val) => {
     const vals = {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         _id: invoice._id,
         status: val
     };

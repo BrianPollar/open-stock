@@ -1,7 +1,7 @@
-import Axios from 'axios-observable';
-import { expect, describe, beforeAll, it } from 'vitest';
-import { StockAuthClient } from '../../src/stock-auth-client';
 import { EhttpController, LoggerController } from '@open-stock/stock-universal';
+import Axios from 'axios-observable';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { StockAuthClient } from '../../src/stock-auth-client';
 
 describe('status integration tests', () => {
   let stockAuthClientInstance: StockAuthClient;
@@ -9,9 +9,7 @@ describe('status integration tests', () => {
     baseURL: 'https://yourapi.com',
     timeout: 1000,
     headers: {
-      // eslint-disable-next-line @typescript-eslint/naming-convention
       'X-Custom-Header': 'foobar',
-      // eslint-disable-next-line @typescript-eslint/naming-convention
       Authorization: 'auth-token'
     }
   });

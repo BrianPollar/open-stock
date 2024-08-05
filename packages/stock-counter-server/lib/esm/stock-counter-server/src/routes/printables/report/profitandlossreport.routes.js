@@ -40,7 +40,7 @@ export const profitAndLossReportRoutes = express.Router();
  * @param req - The request object.
  * @param res - The response object.
  */
-profitAndLossReportRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'create'), async (req, res, next) => {
+profitAndLossReportRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'create'), async (req, res) => {
     const profitAndLossReport = req.body.profitAndLossReport;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -51,7 +51,6 @@ profitAndLossReportRoutes.post('/create/:companyIdParam', requireAuth, requireAc
     }
     profitAndLossReport.companyId = queryId;
     const count = await profitandlossReportMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     profitAndLossReport.urId = makeUrId(Number(count[0]?.urId || '0'));
     const newProfitAndLossReport = new profitandlossReportMain(profitAndLossReport);
@@ -197,7 +196,6 @@ profitAndLossReportRoutes.put('/deletemany/:companyIdParam', requireAuth, requir
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const deleted = await profitandlossReportMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .deleteMany({ companyId: queryId, _id: { $in: ids } })
         .catch(err => {
         profitAndLossReportRoutesLogger.debug('deletemany - err', err);

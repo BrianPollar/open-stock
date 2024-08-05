@@ -18,6 +18,7 @@ class InvoiceSettings extends stock_universal_1.DatabaseAuto {
         this.generalSettings = data.generalSettings;
         this.taxSettings = data.taxSettings;
         this.bankSettings = data.bankSettings;
+        this.printDetails = data.printDetails;
     }
     /**
      * Retrieves all invoice settings from the server, with optional pagination parameters for offset and limit.
@@ -96,7 +97,6 @@ class InvoiceSettings extends stock_universal_1.DatabaseAuto {
         const details = {
             invoicesettings: {
                 ...vals,
-                // eslint-disable-next-line @typescript-eslint/naming-convention
                 _id: this._id
             },
             filesWithDir: [{
@@ -128,7 +128,6 @@ class InvoiceSettings extends stock_universal_1.DatabaseAuto {
      */
     async deleteImages(companyId, where, filesWithDir) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             .makePut(`/invoicesettings/deleteimages/${companyId}`, { filesWithDir, item: { _id: this._id } });
         const deleted = await (0, rxjs_1.lastValueFrom)(observer$);
         // eslint-disable-next-line @typescript-eslint/no-unsafe-return

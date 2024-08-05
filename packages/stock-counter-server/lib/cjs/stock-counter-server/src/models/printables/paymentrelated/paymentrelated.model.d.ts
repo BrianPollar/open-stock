@@ -42,6 +42,8 @@ export declare let paymentRelatedLean: Model<TpaymentRelated>;
  * Represents the payment related select function.
  */
 export declare const paymentRelatedSelect: {
+    trackEdit: number;
+    trackView: number;
     pesaPalorderTrackingId: number;
     urId: number;
     companyId: number;
@@ -55,6 +57,7 @@ export declare const paymentRelatedSelect: {
     manuallyAdded: number;
     paymentMethod: number;
     payType: number;
+    orderStatus: number;
 };
 /**
  * Creates a payment related model.

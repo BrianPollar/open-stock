@@ -101,7 +101,7 @@ const checkIpAndAttempt = async (req, res, next) => {
         /* const response: Iauthresponse = {
           success: false,
           err: 'Account does not exist!'
-        };*/
+        }; */
         // return res.status(401).send(response);
     }
     else if (foundIpModel) {
@@ -119,7 +119,7 @@ const checkIpAndAttempt = async (req, res, next) => {
               success: false,
               err: 'Account does not exist!'
             };
-            return res.status(401).send(response);*/
+            return res.status(401).send(response); */
         }
     }
     if (foundIpModel?.blocked?.status) {
@@ -152,7 +152,7 @@ const checkIpAndAttempt = async (req, res, next) => {
         nowRes = `email and password
           did not match`;
       }
-    }*/
+    } */
     const attempt = {
         userId: foundUser._id,
         ip,
@@ -295,7 +295,6 @@ const loginFactorRelgator = async (req, res, next) => {
         return res.status(200).send(response);
     }
     const count = await user_model_1.user
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     const urId = (0, stock_universal_server_1.makeUrId)(Number(count[0]?.urId || '0'));
     const permissions = {
@@ -342,7 +341,6 @@ const loginFactorRelgator = async (req, res, next) => {
         result = await (0, universial_controller_1.sendTokenEmail)(saved, type, stock_auth_local_1.stockAuthConfig.localSettings.appOfficialName);
     }
     if (!response.success) {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         await user_model_1.user.deleteOne({ _id: saved._id });
         return res.status(200).send(response);
     }
@@ -470,7 +468,7 @@ const confirmAccountFactory = async (req, res) => {
       .sort({ endDate: 1 });
     if (subsctn) {
       response.response.activeSubscription = subsctn;
-    }*/
+    } */
     return res.status(response.status).send(response.response);
 };
 exports.confirmAccountFactory = confirmAccountFactory;

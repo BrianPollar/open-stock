@@ -62,7 +62,6 @@ deliveryNoteRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCom
     deliveryNote.companyId = queryId;
     invoiceRelated.companyId = queryId;
     const count = await deliveryNoteMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     deliveryNote.urId = makeUrId(Number(count[0]?.urId || '0'));
     const extraNotifDesc = 'Newly generated delivery note';
@@ -131,7 +130,6 @@ deliveryNoteRoutes.get('/getone/:urId/:companyIdParam', requireAuth, requireActi
     if (deliveryNote) {
         returned = makeInvoiceRelatedPdct(deliveryNote.invoiceRelated, deliveryNote.invoiceRelated
             .billingUserId, deliveryNote.createdAt, {
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             _id: deliveryNote._id,
             urId: deliveryNote.urId
         });
@@ -179,7 +177,6 @@ deliveryNoteRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, re
     const returned = all[0]
         .map(val => makeInvoiceRelatedPdct(val.invoiceRelated, val.invoiceRelated
         .billingUserId, (val).createdAt, {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         _id: val._id,
         urId: val.urId
     }));
@@ -283,7 +280,6 @@ deliveryNoteRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActive
     /** const ids = credentials
       .map(val => val.id);
     await deliveryNoteMain
-      // eslint-disable-next-line @typescript-eslint/naming-convention
       .deleteMany({ _id: { $in: ids } });**/
     const promises = credentials
         .map(async (val) => {

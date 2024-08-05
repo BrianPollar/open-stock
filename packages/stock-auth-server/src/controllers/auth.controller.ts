@@ -9,30 +9,30 @@ import { userip } from '../models/userip.model';
 import { stockAuthConfig } from '../stock-auth-local';
 import { sendTokenEmail, sendTokenPhone, validateEmail, validatePhone } from './universial.controller';
 
-const authControllerLogger = tracer.colorConsole(
-  {
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-      // eslint-disable-next-line no-console
-      console.log(data.output);
-      const logDir = path.join(process.cwd() + '/openstockLog/');
-      fs.mkdir(logDir, { recursive: true }, (err) => {
-        if (err) {
-          if (err) {
-            // eslint-disable-next-line no-console
-            console.log('data.output err ', err);
-          }
-        }
-      });
-      fs.appendFile(logDir + '/auth-server.log', data.rawoutput + '\n', err => {
+const authControllerLogger = tracer.colorConsole({
+  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+  dateformat: 'HH:MM:ss.L',
+  transport(data) {
+    // eslint-disable-next-line no-console
+    console.log(data.output);
+    const logDir = path.join(process.cwd() + '/openstockLog/');
+
+    fs.mkdir(logDir, { recursive: true }, (err) => {
+      if (err) {
         if (err) {
           // eslint-disable-next-line no-console
-          console.log('raw.output err ', err);
+          console.log('data.output err ', err);
         }
-      });
-    }
-  });
+      }
+    });
+    fs.appendFile(logDir + '/auth-server.log', data.rawoutput + '\n', err => {
+      if (err) {
+        // eslint-disable-next-line no-console
+        console.log('raw.output err ', err);
+      }
+    });
+  }
+});
 
 const comparePassword = (foundUser, passwd: string, isPhone: boolean): Promise<{ attemptSuccess: boolean; nowRes}> => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -41,6 +41,7 @@ const comparePassword = (foundUser, passwd: string, isPhone: boolean): Promise<{
     foundUser['comparePassword'](passwd, function(err, isMatch) {
       let attemptSuccess = false;
       let nowRes = 'wrong account or password';
+
       if (err) {
         authControllerLogger.error('user has wrong password', err);
         attemptSuccess = false;
@@ -63,6 +64,8 @@ const comparePassword = (foundUser, passwd: string, isPhone: boolean): Promise<{
     });
   });
 };
+
+
 /**
  * Checks if the IP address is valid and attempts to log in the user.
  * @param req - The request object.
@@ -73,6 +76,7 @@ const comparePassword = (foundUser, passwd: string, isPhone: boolean): Promise<{
 export const checkIpAndAttempt = async(req, res, next) => {
   // let isPhone: boolean;
   const { foundUser, passwd, isPhone } = req.body;
+
   if (!foundUser?.password || !foundUser?.verified) {
     return next();
   }
@@ -91,9 +95,11 @@ export const checkIpAndAttempt = async(req, res, next) => {
       greenIps: [ip]
     });
     let savedErr: string;
+
     await foundIpModel.save().catch(err => {
       authControllerLogger.error('save error', err);
       savedErr = err;
+
       return null;
     });
 
@@ -104,7 +110,7 @@ export const checkIpAndAttempt = async(req, res, next) => {
     /* const response: Iauthresponse = {
       success: false,
       err: 'Account does not exist!'
-    };*/
+    }; */
     // return res.status(401).send(response);
   } else if (foundIpModel) {
     const containsRedIp = foundIpModel.redIps.includes(ip);
@@ -115,15 +121,17 @@ export const checkIpAndAttempt = async(req, res, next) => {
         success: false,
         err: 'We dont recognize the ip your are trying to login from!'
       };
+
       return res.status(401).send(response);
     }
 
     if (!containsGreenIp) {
+
       /* const response: Iauthresponse = {
         success: false,
         err: 'Account does not exist!'
       };
-      return res.status(401).send(response);*/
+      return res.status(401).send(response); */
     }
   }
 
@@ -134,6 +142,7 @@ export const checkIpAndAttempt = async(req, res, next) => {
         due to suspicious activities please contact,
         support`
     };
+
     return res.status(401).send(response);
   }
 
@@ -144,6 +153,7 @@ export const checkIpAndAttempt = async(req, res, next) => {
         due to suspicious activities please contact,
         support`
     };
+
     return res.status(401).send(response);
   }
 
@@ -160,7 +170,7 @@ export const checkIpAndAttempt = async(req, res, next) => {
       nowRes = `email and password
         did not match`;
     }
-  }*/
+  } */
 
 
   const attempt = {
@@ -174,6 +184,7 @@ export const checkIpAndAttempt = async(req, res, next) => {
   const lastAttempt = await newAttemp.save().catch(err => {
     authControllerLogger.error('save error', err);
     savedErr = err;
+
     return null;
   });
 
@@ -188,6 +199,7 @@ export const checkIpAndAttempt = async(req, res, next) => {
       success: false,
       err: nowRes
     };
+
     return res.status(401).send(response);
   }
 
@@ -198,6 +210,7 @@ export const checkIpAndAttempt = async(req, res, next) => {
   };
   await foundIpModel.save().catch(err => {
     authControllerLogger.error('save err', err);
+
     return;
   });
 
@@ -214,16 +227,20 @@ export const checkIpAndAttempt = async(req, res, next) => {
  */
 export const isTooCommonPhrase = (req, res, next) => {
   const passwd = req.body.passwd;
+
   if (req.localEnv) {
     const { commonPhraseData } = req.localEnv;
+
     if (commonPhraseData.includes(passwd)) {
       const toSend = {
         success: false,
         msg: 'the password selected is to easy'
       };
+
       return res.status(403).send(toSend);
     }
   }
+
   return next();
 };
 
@@ -237,16 +254,20 @@ export const isTooCommonPhrase = (req, res, next) => {
  */
 export const isInAdictionaryOnline = (req, res, next) => {
   const passwd = req.params.passwd;
+
   if (req.localEnv) {
     const { commonDictData } = req.localEnv;
+
     if (commonDictData.includes(passwd)) {
       const toSend = {
         success: false,
         msg: 'the password you entered was found somwhere online, please use another one'
       };
+
       return res.status(403).send(toSend);
     }
   }
+
   return next();
 };
 
@@ -283,6 +304,7 @@ export const loginFactorRelgator = async(req, res, next) => {
   let email;
   let query;
   let isPhone: boolean;
+
   authControllerLogger.debug(`signup, 
     emailPhone: ${emailPhone}`);
 
@@ -300,6 +322,7 @@ export const loginFactorRelgator = async(req, res, next) => {
     phone = emailPhone;
   }
   const foundUser = await user.findOne(query);
+
   if (foundUser) {
     const phoneOrEmail = isPhone ? 'phone' : 'email';
     const response: Iauthresponse = {
@@ -307,11 +330,11 @@ export const loginFactorRelgator = async(req, res, next) => {
       err: phoneOrEmail +
         ', already exists, try using another'
     };
+
     return res.status(200).send(response);
   }
 
   const count = await user
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .find({ }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
   const urId = makeUrId(Number(count[0]?.urId || '0'));
 
@@ -347,6 +370,7 @@ export const loginFactorRelgator = async(req, res, next) => {
       response.err = `we are having problems connecting to our databases, 
       try again in a while`;
     }
+
     return err;
   });
 
@@ -356,16 +380,16 @@ export const loginFactorRelgator = async(req, res, next) => {
 
   let result: Iauthresponse;
   const type = 'token'; // note now is only token but build a counter later to make sur that the token and link methods are shared
+
   if (isPhone) {
     result = await sendTokenPhone(saved);
   } else {
-    result = await sendTokenEmail(
-    saved as unknown as Iuser, type, stockAuthConfig.localSettings.appOfficialName);
+    result = await sendTokenEmail(saved as unknown as Iuser, type, stockAuthConfig.localSettings.appOfficialName);
   }
 
   if (!response.success) {
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     await user.deleteOne({ _id: saved._id });
+
     return res.status(200).send(response);
   }
   if (Boolean(result.success)) {
@@ -376,6 +400,7 @@ export const loginFactorRelgator = async(req, res, next) => {
     success: false,
     err: 'we could not process your request, something went wrong, but we are working on it, ensure you are entering the right credentials'
   };
+
   return res.status(500).send(toSend);
 };
 
@@ -388,9 +413,11 @@ export const loginFactorRelgator = async(req, res, next) => {
 export const resetAccountFactory = async(req, res) => {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const { foundUser, _id, verifycode, how, password } = req.body;
+
   authControllerLogger.debug(`resetpassword, 
     verifycode: ${verifycode}`);
   const isValid = verifyObjectIds([_id]);
+
   if (!isValid) {
     return {
       status: 401,
@@ -401,15 +428,20 @@ export const resetAccountFactory = async(req, res) => {
     };
   }
   let response: IauthresponseObj;
+
   if (how === 'phone') {
     response = await validatePhone(foundUser, verifycode, password);
   } else {
     const type = '_code';
-    response = await validateEmail(foundUser,
+
+    response = await validateEmail(
+      foundUser,
       type,
       verifycode,
-      password);
+      password
+    );
   }
+
   return res.status(response.status).send(response.response);
 };
 
@@ -422,15 +454,18 @@ export const resetAccountFactory = async(req, res) => {
 export const recoverAccountFactory = async(req, res) => {
   const { appOfficialName } = stockAuthConfig.localSettings;
   const { foundUser, emailPhone, navRoute } = req.body;
+
   authControllerLogger.debug(`recover, 
     emailphone: ${emailPhone}`);
 
   let response: Iauthresponse = { success: false };
+
   if (!foundUser) {
     response = {
       success: false,
       err: 'account does not exist'
     };
+
     return res.status(401).send(response);
   }
 
@@ -440,6 +475,7 @@ export const recoverAccountFactory = async(req, res) => {
     response = await sendTokenPhone(foundUser);
   } else {
     const type = 'token';
+
     response = await sendTokenEmail(foundUser, type, appOfficialName);
   }
   if (navRoute) {
@@ -453,6 +489,7 @@ export const recoverAccountFactory = async(req, res) => {
       response.navRoute = 'reset';
     }
   }
+
   return res.status(response.status).send(response);
 };
 
@@ -465,8 +502,10 @@ export const recoverAccountFactory = async(req, res) => {
 export const confirmAccountFactory = async(req, res) => {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const { foundUser, _id, verifycode, nowHow, type, password } = req.body;
+
   authControllerLogger.debug(`verify, verifycode: ${verifycode}, how: ${nowHow}`);
   const isValid = verifyObjectIds([_id]);
+
   if (!isValid) {
     return {
       status: 401,
@@ -477,13 +516,16 @@ export const confirmAccountFactory = async(req, res) => {
     };
   }
   let response: IauthresponseObj;
+
   if (nowHow === 'phone') {
     response = await validatePhone(foundUser, verifycode, password);
   } else {
-    response = await validateEmail(foundUser,
+    response = await validateEmail(
+      foundUser,
       type,
       verifycode,
-      password);
+      password
+    );
   }
 
   /* const now = new Date();
@@ -499,7 +541,7 @@ export const confirmAccountFactory = async(req, res) => {
     .sort({ endDate: 1 });
   if (subsctn) {
     response.response.activeSubscription = subsctn;
-  }*/
+  } */
 
   return res.status(response.status).send(response.response);
 };

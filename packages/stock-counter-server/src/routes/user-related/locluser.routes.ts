@@ -10,30 +10,30 @@ import { customerLean } from '../../models/user-related/customer.model';
 import { staffLean } from '../../models/user-related/staff.model';
 
 /** Logger for local user routes. */
-const localUserRoutesLogger = tracer.colorConsole(
-  {
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-      // eslint-disable-next-line no-console
-      console.log(data.output);
-      const logDir = path.join(process.cwd() + '/openstockLog/');
-      fs.mkdir(logDir, { recursive: true }, (err) => {
-        if (err) {
-          if (err) {
-            // eslint-disable-next-line no-console
-            console.log('data.output err ', err);
-          }
-        }
-      });
-      fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
+const localUserRoutesLogger = tracer.colorConsole({
+  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+  dateformat: 'HH:MM:ss.L',
+  transport(data) {
+    // eslint-disable-next-line no-console
+    console.log(data.output);
+    const logDir = path.join(process.cwd() + '/openstockLog/');
+
+    fs.mkdir(logDir, { recursive: true }, (err) => {
+      if (err) {
         if (err) {
           // eslint-disable-next-line no-console
-          console.log('raw.output err ', err);
+          console.log('data.output err ', err);
         }
-      });
-    }
-  });
+      }
+    });
+    fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
+      if (err) {
+        // eslint-disable-next-line no-console
+        console.log('raw.output err ', err);
+      }
+    });
+  }
+});
 
   interface IuserLinkedInMoreModels {
     success: boolean;
@@ -56,34 +56,33 @@ export const removeOneUser = (canByPass: TcanByPass) => {
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
     const isValid = verifyObjectIds([credential.userId, queryId]);
+
     if (!isValid) {
       return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const canRemove = await canRemoveOneUser(credential.userId, canByPass);
+
     if (!canRemove.success) {
       return res.status(401).send({ ...canRemove, status: 401 });
     }
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     const found = await user.findOne({ _id: credential.userId })
-      // eslint-disable-next-line @typescript-eslint/naming-convention
       .populate({ path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-      // eslint-disable-next-line @typescript-eslint/naming-convention
       .populate({ path: 'profileCoverPic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-      // eslint-disable-next-line @typescript-eslint/naming-convention
       .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
       .lean();
+
     if (found) {
       const filesWithDir = found.photos.map(photo => (
         {
-          // eslint-disable-next-line @typescript-eslint/naming-convention
           _id: photo._id,
           url: photo.url
         }
       ));
+
       await deleteAllFiles(filesWithDir);
     }
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     const deleted = await user.findOneAndDelete({ _id: credential.userId, companyId: queryId });
+
     req.body.id = credential.id;
     if (!Boolean(deleted)) {
       return res.status(404).send({ success: Boolean(deleted), err: 'could not delete selected items, try again in a while' });
@@ -106,31 +105,31 @@ export const removeManyUsers = (canByPass: TcanByPass) => {
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
     const isValid = verifyObjectIds([...credentials.map(val => val.userId), ...[queryId]]);
+
     if (!isValid) {
       return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const promises = req.body.credentials.map(async(val) => {
       const canRemove = await canRemoveOneUser(val.userId, canByPass);
+
       return Promise.resolve({ ...canRemove, ...val });
     });
     const all = await Promise.all(promises);
     const newIds = all.filter(val => val.success).map(val => val.id);
     const newUserIds = all.filter(val => val.success).map(val => val.userId);
+
     if (newIds.length <= 0) {
       return res.status(401).send({ success: false, status: 401, err: 'sorry all users selected are linked' });
     }
 
     const newPhotosWithDir = req.body.filesWithDir.filter(val => newUserIds.includes(val.id));
+
     req.body.ids = newIds;
     req.body.newPhotosWithDir = newPhotosWithDir;
     let filesWithDir: IfileMeta[];
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     const alltoDelete = await user.find({ companyId: queryId, _id: { $in: newUserIds } })
-      // eslint-disable-next-line @typescript-eslint/naming-convention
       .populate({ path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-      // eslint-disable-next-line @typescript-eslint/naming-convention
       .populate({ path: 'profileCoverPic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-      // eslint-disable-next-line @typescript-eslint/naming-convention
       .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
       .lean();
 
@@ -143,12 +142,13 @@ export const removeManyUsers = (canByPass: TcanByPass) => {
     await deleteAllFiles(filesWithDir);
 
     const deleted = await user
-      // eslint-disable-next-line @typescript-eslint/naming-convention
       .deleteMany({ companyId: queryId, _id: { $in: newUserIds } })
       .catch(err => {
         localUserRoutesLogger.error('deletemany - err: ', err);
+
         return null;
       });
+
     if (!Boolean(deleted)) {
       return res.status(404).send({ success: Boolean(deleted), err: 'could not delete selected items, try again in a while' });
     }
@@ -163,6 +163,7 @@ export const removeManyUsers = (canByPass: TcanByPass) => {
    */
 export const canRemoveOneUser = async(id: string, byPass: TcanByPass): Promise<IuserLinkedInMoreModels> => {
   const hasInvRelated = await invoiceRelatedLean.findOne({ billingUserId: id });
+
   if (hasInvRelated) {
     return {
       success: false,
@@ -172,6 +173,7 @@ export const canRemoveOneUser = async(id: string, byPass: TcanByPass): Promise<I
 
   if (byPass !== 'customer') {
     const hasCustomer = await customerLean.findOne({ user: id });
+
     if (hasCustomer) {
       return {
         success: false,
@@ -182,6 +184,7 @@ export const canRemoveOneUser = async(id: string, byPass: TcanByPass): Promise<I
 
   if (byPass !== 'customer' && byPass !== 'staff') {
     const hasStaff = await staffLean.findOne({ user: id });
+
     if (hasStaff) {
       return {
         success: false,

@@ -12,30 +12,30 @@ import { estimateLean } from '../../../models/printables/estimate.model';
 import { taxReportLean, taxReportMain } from '../../../models/printables/report/taxreport.model';
 
 /** Logger for tax report routes */
-const taxReportRoutesLogger = tracer.colorConsole(
-  {
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-      // eslint-disable-next-line no-console
-      console.log(data.output);
-      const logDir = path.join(process.cwd() + '/openstockLog/');
-      fs.mkdir(logDir, { recursive: true }, (err) => {
-        if (err) {
-          if (err) {
-            // eslint-disable-next-line no-console
-            console.log('data.output err ', err);
-          }
-        }
-      });
-      fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
+const taxReportRoutesLogger = tracer.colorConsole({
+  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+  dateformat: 'HH:MM:ss.L',
+  transport(data) {
+    // eslint-disable-next-line no-console
+    console.log(data.output);
+    const logDir = path.join(process.cwd() + '/openstockLog/');
+
+    fs.mkdir(logDir, { recursive: true }, (err) => {
+      if (err) {
         if (err) {
           // eslint-disable-next-line no-console
-          console.log('raw.output err ', err);
+          console.log('data.output err ', err);
         }
-      });
-    }
-  });
+      }
+    });
+    fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
+      if (err) {
+        // eslint-disable-next-line no-console
+        console.log('raw.output err ', err);
+      }
+    });
+  }
+});
 
 /**
  * Router for tax report routes.
@@ -53,22 +53,24 @@ export const taxReportRoutes = express.Router();
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>} - Promise object representing the response
  */
-taxReportRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'create'), async(req, res, next) => {
+taxReportRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'create'), async(req, res) => {
   const taxReport = req.body.taxReport;
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   taxReport.companyId = queryId;
   const count = await taxReportMain
-  // eslint-disable-next-line @typescript-eslint/naming-convention
     .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+
   taxReport.urId = makeUrId(Number(count[0]?.urId || '0'));
   const newTaxReport = new taxReportMain(taxReport);
   let errResponse: Isuccess;
+
   await newTaxReport.save()
     .catch(err => {
       taxReportRoutesLogger.error('create - err: ', err);
@@ -82,12 +84,14 @@ taxReportRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompan
         errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
       }
+
       return errResponse;
     });
 
   if (errResponse) {
     return res.status(403).send(errResponse);
   }
+
   return res.status(200).send({ success: true });
 });
 
@@ -108,6 +112,7 @@ taxReportRoutes.get('/getone/:urId/:companyIdParam', requireAuth, requireActiveC
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -116,6 +121,7 @@ taxReportRoutes.get('/getone/:urId/:companyIdParam', requireAuth, requireActiveC
     .lean()
     .populate({ path: 'estimates', model: estimateLean })
     .populate({ path: 'payments', model: paymentLean });
+
   return res.status(200).send(taxReport);
 });
 
@@ -136,6 +142,7 @@ taxReportRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requi
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -153,6 +160,7 @@ taxReportRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requi
     count: all[1],
     data: all[0]
   };
+
   return res.status(200).send(response);
 });
 
@@ -173,11 +181,13 @@ taxReportRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, requireAct
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectIds([id, queryId]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const deleted = await taxReportMain.findOneAndDelete({ _id: id, companyId: queryId });
+
   if (Boolean(deleted)) {
     return res.status(200).send({ success: Boolean(deleted) });
   } else {
@@ -202,6 +212,7 @@ taxReportRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, requ
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectId(queryId);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -221,6 +232,7 @@ taxReportRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, requ
     count: all[1],
     data: all[0]
   };
+
   return res.status(200).send(response);
 });
 
@@ -241,17 +253,19 @@ taxReportRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCom
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
   const isValid = verifyObjectIds([...ids, ...[queryId]]);
+
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
 
   const deleted = await taxReportMain
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .deleteMany({ companyId: queryId, _id: { $in: ids } })
     .catch(err => {
       taxReportRoutesLogger.error('deletemany - err: ', err);
+
       return null;
     });
+
   if (Boolean(deleted)) {
     return res.status(200).send({ success: Boolean(deleted) });
   } else {

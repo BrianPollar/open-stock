@@ -31,15 +31,16 @@ export declare let isStockCounterServerRunning: boolean;
  * The redirect URL for Pesapal notifications.
  */
 export declare let pesapalNotifRedirectUrl: string;
+export declare let ecommerceRevenuePercentage: number;
 /**
  * Creates stock counter server locals.
  * @param notifRedirectUrl - The notification redirect URL.
  */
-export declare const createStockCounterServerLocals: (notifRedirectUrl: string) => void;
+export declare const createStockCounterServerLocals: (notifRedirectUrl: string, ecommerceRevenuePerntge: number) => void;
 /**
  * Connects to the Stock Counter database.
  * po 8
  * @param databaseUrl The database URL for the server.
  * @returns A promise with the database models.
  */
-export declare const connectStockCounterDatabase: (databaseUrl: string, dbOptions?: ConnectOptions) => Promise<[void, void, void, void, void, void, void, void, void, void, void, void, void, void, void, void, void, void, void, void, void, void, void, void, void, void, void, void]>;
+export declare const connectStockCounterDatabase: (databaseUrl: string, dbOptions?: ConnectOptions) => Promise<[void, void, void, void, void, void, void, void, void, void, void, void, void, void, void, void, void, void, void, void, void, void, void, void, void, void, void, void, void, void]>;

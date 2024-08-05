@@ -43,6 +43,8 @@ export declare let companyLean: Model<Tcompany>;
  * Represents the company authentication select function.
  */
 export declare const companyAuthSelect: {
+    trackEdit: number;
+    trackView: number;
     urId: number;
     name: number;
     displayName: number;
@@ -67,6 +69,8 @@ export declare const companyAuthSelect: {
  * Selects the company about information.
  */
 export declare const companyAboutSelect: {
+    trackEdit: number;
+    trackView: number;
     urId: number;
     name: number;
     displayName: number;

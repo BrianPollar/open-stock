@@ -19,11 +19,25 @@ export declare const makeSettingsCookie: (req: any, res: any) => any;
  * @param res - The response object.
  * @returns The response object with a status of 200 and a success message.
  */
-export declare const makeCartCookie: (req: any, res: any) => any;
+export declare const makeCartCookie: (req: any, res: any) => Promise<any>;
 /**
  * Creates a recent cookie.
  * @param req - The request object.
  * @param res - The response object.
  * @returns The response object with a status of 200 and a success message.
  */
-export declare const makeRecentCookie: (req: any, res: any) => any;
+export declare const makeRecentCookie: (req: any, res: any) => Promise<any>;
+/**
+ * Creates a recent cookie.
+ * @param req - The request object.
+ * @param res - The response object.
+ * @returns The response object with a status of 200 and a success message.
+ */
+export declare const makeWishListCookie: (req: any, res: any) => Promise<any>;
+/**
+ * Creates a recent cookie.
+ * @param req - The request object.
+ * @param res - The response object.
+ * @returns The response object with a status of 200 and a success message.
+ */
+export declare const makeCompareListCookie: (req: any, res: any) => Promise<any>;

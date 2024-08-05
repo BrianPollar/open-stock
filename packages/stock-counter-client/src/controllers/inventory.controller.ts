@@ -11,6 +11,24 @@ export class InventoryController {
   constructor() { }
 
   /**
+   * Calculates the company's percentage from an e-commerce sale.
+   * @param amount - The total amount of the e-commerce sale.
+   * @param ecommerceSalePercentage - The percentage of the sale that goes to the e-commerce platform.
+   * @returns The amount that the company will receive from the e-commerce sale.
+   */
+  getCompanyPercentageFromEcommerceSale(
+    amount: number,
+    ecommerceSalePercentage: number
+  ) {
+    if (!ecommerceSalePercentage || ecommerceSalePercentage >= 100) {
+      // we dont allow 100% cat off
+      ecommerceSalePercentage = 0;
+    }
+
+    return ((100 - ecommerceSalePercentage) / 100) * amount;
+  }
+
+  /**
    * This method checks if the current stage of an item in the inventory is the same as the specified stage. It returns true if they are the same, otherwise it compares the positions of the stages and returns true if the current stage is before or at the same position as the specified stage.
    * @param currStage - The current stage of the item.
    * @param stage - The specified stage to compare with.
@@ -42,6 +60,7 @@ export class InventoryController {
         .find(val => val.name === stage);
       const foundCurrentStage = stagesNum
         .find(val => val.name === currStage);
+
       return foundCurrentStage.pos <= foundEstStage.pos;
     }
   }
@@ -61,9 +80,9 @@ export class InventoryController {
    * @param items - The list of items to calculate the profit margin for.
    * @returns The total profit margin for the list of items.
    */
-  calcBulkProfitMarginPdts(items: Item[]) {
+  calcBulkProfitMarginPdts(items: Item[], ecommerceSalePercentage = 0) {
     return items
-      .reduce((acc, pdt) => acc + (pdt.costMeta.sellingPrice - pdt.costMeta.costPrice), 0);
+      .reduce((acc, pdt) => acc + (this.getCompanyPercentageFromEcommerceSale(pdt.costMeta.sellingPrice, ecommerceSalePercentage) - pdt.costMeta.costPrice), 0);
   }
 
   /**
@@ -71,8 +90,8 @@ export class InventoryController {
    * @param item - The item to calculate the profit margin for.
    * @returns The profit margin for the item.
    */
-  calcItemProfitMargin(item: Item) {
-    return item.costMeta.sellingPrice - item.costMeta.costPrice;
+  calcItemProfitMargin(item: Item, ecommerceSalePercentage = 0) {
+    return this.getCompanyPercentageFromEcommerceSale(item.costMeta.sellingPrice, ecommerceSalePercentage) - item.costMeta.costPrice;
   }
 
   /**
@@ -83,6 +102,7 @@ export class InventoryController {
   calcBigExpensePoint(expenses: Expense[]) {
     const toNums = expenses.map(val => val.cost);
     const max = Math.max(...toNums);
+
     return expenses.find(val => val.cost === max);
   }
 
@@ -91,9 +111,9 @@ export class InventoryController {
    * @param items - The list of related products to calculate the subtotal for.
    * @returns The subtotal for the list of related products.
    */
-  calcSubtotal(items: IinvoiceRelatedPdct[]) {
+  calcSubtotal(items: IinvoiceRelatedPdct[], ecommerceSalePercentage = 0) {
     return items
-      .reduce((acc, val) => acc + (val.amount * val.quantity), 0);
+      .reduce((acc, val) => acc + (this.getCompanyPercentageFromEcommerceSale(val.amount, ecommerceSalePercentage) * val.quantity), 0);
   }
 
   /**
@@ -102,7 +122,7 @@ export class InventoryController {
    * @returns The balance due for the invoice.
    */
   calcBalanceDue(invoice: Invoice) {
-    return invoice.total - invoice.paymentMade;
+    return this.getCompanyPercentageFromEcommerceSale(invoice.total, invoice.ecommerceSalePercentage) - invoice.paymentMade;
   }
 
   /**
@@ -115,6 +135,7 @@ export class InventoryController {
     const total = items
       .reduce((acc, val) => acc + (val.amount * val.quantity), 0);
     const nowTax = (tax / 100) * total;
+
     return total + nowTax;
   }
 
@@ -128,7 +149,7 @@ export class InventoryController {
     return related
       .reduce((acc, val) => acc + val.items
         // eslint-disable-next-line max-len
-        .reduce((acc1, val1) => acc1 + (val.payments?.reduce((acc3, val3) => val3.amount + acc3, 0) - this.findItem(val1.item, allItems)?.costMeta.costPrice || 0), 0), 0);
+        .reduce((acc1, val1) => acc1 + (val.payments?.reduce((acc3, val3) => (this.getCompanyPercentageFromEcommerceSale(val3.amount, val.ecommerceSalePercentage) + acc3), 0) - this.findItem(val1.item, allItems)?.costMeta.costPrice || 0), 0), 0);
   }
 
   /**
@@ -152,15 +173,18 @@ export class InventoryController {
     const filtered = related
       .filter(val => {
         const found = val.items?.find(pdt => pdt.item === itemId);
+
         if (found) {
           return val;
         }
+
         return null;
       });
+
     return this.getAllItemsProfit(filtered, allItems);
   }
 
-  /** getExpenseByItem(item: Item): This method calculates the total expense for an item. It sums up the cost of each inventory meta entry for the item.*/
+  /** getExpenseByItem(item: Item): This method calculates the total expense for an item. It sums up the cost of each inventory meta entry for the item. */
   getExpenseByItem(item: Item) {
     return item.inventoryMeta
       .reduce((acc, val) => acc + val.cost, 0);
@@ -278,13 +302,16 @@ export class InventoryController {
     const filtered = expenses
       .filter(val => {
         const expDate = new Date(val.createdAt);
+
         if (this.deepDateComparison(date, expDate, 'year').equal &&
         this.deepDateComparison(date, expDate, 'month').equal &&
         this.deepDateComparison(date, expDate, 'day').equal) {
           return val;
         }
+
         return null;
       });
+
     return {
       expenses: filtered,
       total: filtered.reduce((acc, val) => acc + val.cost, 0)
@@ -301,13 +328,16 @@ export class InventoryController {
     const filtered = expenses
       .filter(val => {
         const expDate = new Date(val.createdAt);
+
         if (this.deepDateComparison(date, expDate, 'year').equal &&
             this.deepDateComparison(date, expDate, 'month').equal &&
             this.deepDateComparison(date, expDate, 'week').equal) {
           return val;
         }
+
         return null;
       });
+
     return {
       expenses: filtered,
       total: filtered.reduce((acc, val) => acc + val.cost, 0)
@@ -324,12 +354,15 @@ export class InventoryController {
     const filtered = expenses
       .filter(val => {
         const expDate = new Date(val.createdAt);
+
         if (this.deepDateComparison(date, expDate, 'year').equal &&
             this.deepDateComparison(date, expDate, 'month').equal) {
           return val;
         }
+
         return null;
       });
+
     return {
       expenses: filtered,
       total: filtered.reduce((acc, val) => acc + val.cost, 0)
@@ -346,11 +379,14 @@ export class InventoryController {
     const filtered = expenses
       .filter(val => {
         const expDate = new Date(val.createdAt);
+
         if (this.deepDateComparison(date, expDate, 'year').equal) {
           return val;
         }
+
         return null;
       });
+
     return {
       expenses: filtered,
       total: filtered.reduce((acc, val) => acc + val.cost, 0)
@@ -368,12 +404,15 @@ export class InventoryController {
     const filtered = expenses
       .filter(val => {
         const expDate = new Date(val.createdAt);
+
         if (this.deepDateComparison(lowerDate, expDate, 'year').moreThan &&
         this.deepDateComparison(upperDate, expDate, 'year').lessThan) {
           return val;
         }
+
         return null;
       });
+
     return {
       expenses: filtered,
       total: filtered.reduce((acc, val) => acc + val.cost, 0)
@@ -390,16 +429,19 @@ export class InventoryController {
     const filtered = invoiceRelateds
       .filter(val => {
         const saleDate = new Date(val.createdAt);
+
         if (this.deepDateComparison(date, saleDate, 'year').equal &&
         this.deepDateComparison(date, saleDate, 'month').equal &&
         this.deepDateComparison(date, saleDate, 'day').equal) {
           return val;
         }
+
         return null;
       });
+
     return {
       sales: filtered,
-      total: filtered.reduce((acc, val) => acc + val.payments.reduce((acc1, val1) => acc1 + val1.amount, 0), 0)
+      total: filtered.reduce((acc, val) => acc + this.getCompanyPercentageFromEcommerceSale(val.payments.reduce((acc1, val1) => acc1 + val1.amount, 0), val.ecommerceSalePercentage), 0)
     };
   }
 
@@ -413,15 +455,18 @@ export class InventoryController {
     const filtered = invoiceRelateds
       .filter(val => {
         const saleDate = new Date(val.createdAt);
+
         if (this.deepDateComparison(date, saleDate, 'year').equal &&
             this.deepDateComparison(date, saleDate, 'month').equal) {
           return val;
         }
+
         return null;
       });
+
     return {
       sales: filtered,
-      total: filtered?.reduce((acc, val) => acc + val.payments?.reduce((acc1, val1) => acc1 + val1.amount, 0), 0)
+      total: filtered?.reduce((acc, val) => acc + this.getCompanyPercentageFromEcommerceSale(val.payments?.reduce((acc1, val1) => acc1 + val1.amount, 0), val.ecommerceSalePercentage), 0)
     };
   }
 
@@ -435,15 +480,18 @@ export class InventoryController {
     const filtered = invoiceRelateds
       .filter(val => {
         const saleDate = new Date(val.createdAt);
+
         if (this.deepDateComparison(date, saleDate, 'year').equal &&
             this.deepDateComparison(date, saleDate, 'month').equal) {
           return val;
         }
+
         return null;
       });
+
     return {
       sales: filtered,
-      total: filtered?.reduce((acc, val) => acc + val.payments?.reduce((acc1, val1) => acc1 + val1.amount, 0), 0)
+      total: filtered?.reduce((acc, val) => acc + this.getCompanyPercentageFromEcommerceSale(val.payments?.reduce((acc1, val1) => acc1 + val1.amount, 0), val.ecommerceSalePercentage), 0)
     };
   }
 
@@ -457,14 +505,17 @@ export class InventoryController {
     const filtered = invoiceRelateds
       .filter(val => {
         const saleDate = new Date(val.createdAt);
+
         if (this.deepDateComparison(date, saleDate, 'year').equal) {
           return val;
         }
+
         return null;
       });
+
     return {
       sales: filtered,
-      total: filtered?.reduce((acc, val) => acc + val.payments?.reduce((acc1, val1) => acc1 + val1.amount, 0), 0)
+      total: filtered?.reduce((acc, val) => acc + this.getCompanyPercentageFromEcommerceSale(val.payments?.reduce((acc1, val1) => acc1 + val1.amount, 0), val.ecommerceSalePercentage), 0)
     };
   }
 
@@ -479,15 +530,18 @@ export class InventoryController {
     const filtered = invoiceRelateds
       .filter(val => {
         const expDate = new Date(val.createdAt);
+
         if (this.deepDateComparison(lowerDate, expDate, 'year').moreThan &&
         this.deepDateComparison(upperDate, expDate, 'year').lessThan) {
           return val;
         }
+
         return null;
       });
+
     return {
       sales: filtered,
-      total: filtered.reduce((acc, val) => acc + val.payments.reduce((acc1, val1) => acc1 + val1.amount, 0), 0)
+      total: filtered.reduce((acc, val) => acc + this.getCompanyPercentageFromEcommerceSale(val.payments.reduce((acc1, val1) => acc1 + val1.amount, 0), val.ecommerceSalePercentage), 0)
     };
   }
 
@@ -501,16 +555,19 @@ export class InventoryController {
     const filtered = invoices
       .filter(val => {
         const saleDate = new Date(val.createdAt);
+
         if (this.deepDateComparison(date, saleDate, 'year').equal &&
         this.deepDateComparison(date, saleDate, 'month').equal &&
         this.deepDateComparison(date, saleDate, 'day').equal) {
           return val;
         }
+
         return null;
       });
+
     return {
       invoices: filtered,
-      total: filtered.reduce((acc, val) => acc + val.cost, 0)
+      total: filtered.reduce((acc, val) => acc + this.getCompanyPercentageFromEcommerceSale(val.cost, val.ecommerceSalePercentage), 0)
     };
   }
 
@@ -524,15 +581,18 @@ export class InventoryController {
     const filtered = invoices
       .filter(val => {
         const saleDate = new Date(val.createdAt);
+
         if (this.deepDateComparison(date, saleDate, 'year').equal &&
             this.deepDateComparison(date, saleDate, 'month').equal) {
           return val;
         }
+
         return null;
       });
+
     return {
       invoices: filtered,
-      total: filtered.reduce((acc, val) => acc + val.cost, 0)
+      total: filtered.reduce((acc, val) => acc + this.getCompanyPercentageFromEcommerceSale(val.cost, val.ecommerceSalePercentage), 0)
     };
   }
 
@@ -546,15 +606,18 @@ export class InventoryController {
     const filtered = invoices
       .filter(val => {
         const expDate = new Date(val.createdAt);
+
         if (this.deepDateComparison(date, expDate, 'year').equal &&
             this.deepDateComparison(date, expDate, 'month').equal) {
           return val;
         }
+
         return null;
       });
+
     return {
       invoices: filtered,
-      total: filtered.reduce((acc, val) => acc + val.cost, 0)
+      total: filtered.reduce((acc, val) => acc + this.getCompanyPercentageFromEcommerceSale(val.cost, val.ecommerceSalePercentage), 0)
     };
   }
 
@@ -568,14 +631,17 @@ export class InventoryController {
     const filtered = invoices
       .filter(val => {
         const saleDate = new Date(val.createdAt);
+
         if (this.deepDateComparison(date, saleDate, 'year').equal) {
           return val;
         }
+
         return null;
       });
+
     return {
       invoices: filtered,
-      total: filtered.reduce((acc, val) => acc + val.cost, 0)
+      total: filtered.reduce((acc, val) => acc + this.getCompanyPercentageFromEcommerceSale(val.cost, val.ecommerceSalePercentage), 0)
     };
   }
 
@@ -590,15 +656,18 @@ export class InventoryController {
     const filtered = invoices
       .filter(val => {
         const expDate = new Date(val.createdAt);
+
         if (this.deepDateComparison(lowerDate, expDate, 'year').moreThan &&
         this.deepDateComparison(upperDate, expDate, 'year').lessThan) {
           return val;
         }
+
         return null;
       });
+
     return {
       invoices: filtered,
-      total: filtered.reduce((acc, val) => acc + val.cost, 0)
+      total: filtered.reduce((acc, val) => acc + this.getCompanyPercentageFromEcommerceSale(val.cost, val.ecommerceSalePercentage), 0)
     };
   }
 
@@ -612,15 +681,18 @@ export class InventoryController {
     const filtered = estimates
       .filter(val => {
         const expDate = new Date(val.createdAt);
+
         if (this.deepDateComparison(date, expDate, 'year').equal &&
             this.deepDateComparison(date, expDate, 'month').equal) {
           return val;
         }
+
         return null;
       });
+
     return {
       estimates: filtered,
-      total: filtered.reduce((acc, val) => acc + val.cost, 0)
+      total: filtered.reduce((acc, val) => acc + this.getCompanyPercentageFromEcommerceSale(val.cost, val.ecommerceSalePercentage), 0)
     };
   }
 
@@ -633,9 +705,11 @@ export class InventoryController {
   getWeek(fromDate: Date) {
     const sunday = new Date(fromDate.setDate(fromDate.getDate() - fromDate.getDay()));
     const result = [new Date(sunday)];
+
     while (sunday.setDate(sunday.getDate() + 1) && sunday.getDay() !== 0) {
       result.push(new Date(sunday));
     }
+
     return result;
   }
 }

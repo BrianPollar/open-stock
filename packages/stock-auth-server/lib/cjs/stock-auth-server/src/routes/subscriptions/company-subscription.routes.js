@@ -36,6 +36,15 @@ const companySubscriptionRoutesLogger = tracer.colorConsole({
         });
     }
 });
+/**
+ * Fires the Pesapal relegator to initiate a payment for a company subscription.
+ *
+ * @param subctn - The subscription package details.
+ * @param savedSub - The saved company subscription document.
+ * @param company - The company details.
+ * @param currUser - The current user details.
+ * @returns An object with the success status and the Pesapal order response, or an error object if the operation fails.
+ */
 const firePesapalRelegator = async (subctn, savedSub, company, currUser) => {
     const payDetails = {
         id: savedSub._id.toString(),
@@ -65,9 +74,10 @@ const firePesapalRelegator = async (subctn, savedSub, company, currUser) => {
         return { success: false, err: response.err };
     }
     const companySub = await company_subscription_model_1.companySubscriptionMain.findByIdAndUpdate(savedSub._id);
-    companySub.pesaPalorderTrackingId = response.pesaPalOrderRes.order_tracking_id;
+    companySub.pesaPalorderTrackingId =
+        response.pesaPalOrderRes.order_tracking_id;
     let savedErr;
-    await companySub.save().catch(err => {
+    await companySub.save().catch((err) => {
         companySubscriptionRoutesLogger.error('save error', err);
         savedErr = err;
         return null;
@@ -82,6 +92,12 @@ const firePesapalRelegator = async (subctn, savedSub, company, currUser) => {
         }
     };
 };
+/**
+ * Calculates the number of days based on the provided duration.
+ *
+ * @param duration - The duration in months.
+ * @returns The number of days for the given duration.
+ */
 const getDays = (duration) => {
     let response;
     switch (duration) {
@@ -108,7 +124,7 @@ exports.getDays = getDays;
  * Router for handling companySubscription-related routes.
  */
 exports.companySubscriptionRoutes = express_1.default.Router();
-exports.companySubscriptionRoutes.post('/subscribe/:companyIdParam', stock_universal_server_1.requireAuth, company_auth_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('payments', 'create'), async (req, res) => {
+exports.companySubscriptionRoutes.post('/subscribe/:companyIdParam', stock_universal_server_1.requireAuth, company_auth_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('subscriptions', 'create'), async (req, res) => {
     companySubscriptionRoutesLogger.info('making companySubscriptionRoutes');
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -188,7 +204,7 @@ exports.companySubscriptionRoutes.get('/getall/:offset/:limit/:companyIdParam', 
     };
     return res.status(200).send(response);
 });
-exports.companySubscriptionRoutes.put('/deleteone/:companyIdParam', stock_universal_server_1.requireAuth, company_auth_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('payments', 'delete'), async (req, res) => {
+exports.companySubscriptionRoutes.put('/deleteone/:companyIdParam', stock_universal_server_1.requireAuth, company_auth_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('subscriptions', 'delete'), async (req, res) => {
     const { id } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;

@@ -1,31 +1,42 @@
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
+import { ItrackStamp } from '@open-stock/stock-universal';
 const uniqueValidator = require('mongoose-unique-validator');
 
 /**
  * Represents an item offer.
  */
 export interface IitemOffer
-extends Document {
+extends Document, ItrackStamp {
+
   /** The user's ID. */
   urId: string;
+
   /** The user's company ID. */
   companyId: string;
+
   /** The list of items in the offer. */
   items: string[];
+
   /** The expiration date of the offer. */
   expireAt: Date;
+
   /** The type of the offer. */
   type: string;
+
   /** The header of the offer. */
   header: string;
+
   /** The subheader of the offer. */
   subHeader: string;
+
   /** The amount of the offer. */
   ammount: number;
 }
 
 const itemOfferSchema: Schema<IitemOffer> = new Schema({
+  trackEdit: { type: Schema.ObjectId },
+  trackView: { type: Schema.ObjectId },
   urId: { type: String },
   companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
   items: [],
@@ -36,8 +47,10 @@ const itemOfferSchema: Schema<IitemOffer> = new Schema({
   ammount: { type: Number }
 }, { timestamps: true });
 
-itemOfferSchema.index({ expireAt: 1 },
-  { expireAfterSeconds: 2628003 });
+itemOfferSchema.index(
+  { expireAt: 1 },
+  { expireAfterSeconds: 2628003 }
+);
 
 // Apply the uniqueValidator plugin to itemOfferSchema.
 itemOfferSchema.plugin(uniqueValidator);
@@ -46,6 +59,8 @@ itemOfferSchema.plugin(uniqueValidator);
  * for itemOffer
  */
 const itemOfferselect = {
+  trackEdit: 1,
+  trackView: 1,
   urId: 1,
   companyId: 1,
   items: 1,

@@ -25,11 +25,12 @@
 /// <reference types="mongoose/types/virtuals" />
 /// <reference types="mongoose/types/inferschematype" />
 import { ConnectOptions, Document, Model } from 'mongoose';
+import { ItrackStamp } from '@open-stock/stock-universal';
 /** model type for itemDecoy by */
 /**
  * Represents an item decoy in the system.
  */
-export interface IitemDecoy extends Document {
+export interface IitemDecoy extends Document, ItrackStamp {
     /**
      * The unique identifier of the user.
      */
@@ -59,6 +60,8 @@ export declare let itemDecoyLean: Model<IitemDecoy>;
  * Selects the item decoy.
  */
 export declare const itemDecoySelect: {
+    trackEdit: number;
+    trackView: number;
     urId: number;
     companyId: number;
     type: number;

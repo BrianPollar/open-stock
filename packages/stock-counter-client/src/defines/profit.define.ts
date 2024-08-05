@@ -42,6 +42,7 @@ export class Profit extends DatabaseAuto {
   static async getProfits(companyId: string, url = 'getall', offset = 0, limit = 20) {
     const observer$ = StockCounterClient.ehttp.makeGet(`profit/${url}/${offset}/${limit}/${companyId}`);
     const profits = await lastValueFrom(observer$) as IdataArrayResponse;
+
     return {
       count: profits.count,
       profits: profits.data.map(val => new Profit(val as Iprofit)) };
@@ -58,6 +59,7 @@ export class Profit extends DatabaseAuto {
   static async getOneProfit(companyId: string, id: string): Promise<Profit> {
     const observer$ = StockCounterClient.ehttp.makeGet('profit/getone/' + id + '/' + companyId);
     const profit = await lastValueFrom(observer$) as Iprofit;
+
     return new Profit(profit);
   }
 
@@ -71,6 +73,7 @@ export class Profit extends DatabaseAuto {
    */
   static async addProfit(companyId: string, vals: Iprofit): Promise<Isuccess> {
     const observer$ = StockCounterClient.ehttp.makePost(`/profit/create/${companyId}`, vals);
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 
@@ -86,6 +89,7 @@ export class Profit extends DatabaseAuto {
    */
   static async deleteProfits(companyId: string, ids: string[], filesWithDir: IfileMeta[], url: string): Promise<Isuccess> {
     const observer$ = StockCounterClient.ehttp.makePut(`${url}/${companyId}`, { ids, filesWithDir });
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 
@@ -98,6 +102,7 @@ export class Profit extends DatabaseAuto {
    */
   async updateProfit(companyId: string, vals: Iprofit): Promise<Isuccess> {
     const observer$ = StockCounterClient.ehttp.makePut(`profit/update/${companyId}`, vals);
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 }

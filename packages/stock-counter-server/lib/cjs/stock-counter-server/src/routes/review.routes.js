@@ -56,12 +56,11 @@ exports.reviewRoutes.post('/create/:companyIdParam', async (req, res, next) => {
     const review = req.body.review;
     review.companyId = 'superAdmin';
     const count = (await review_model_1.reviewMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 })[0]?.urId) || 0;
     review.urId = (0, stock_universal_server_1.makeUrId)(count);
-    const newFaq = new review_model_1.reviewMain(review);
+    const newReview = new review_model_1.reviewMain(review);
     let errResponse;
-    await newFaq.save()
+    await newReview.save()
         .catch(err => {
         reviewRoutesLogger.error('create - err: ', err);
         errResponse = {
@@ -97,7 +96,6 @@ exports.reviewRoutes.post('/create/:companyIdParam', async (req, res, next) => {
 exports.reviewRoutes.get('/getone/:id/:companyIdParam', async (req, res) => {
     const { id } = req.params;
     const review = await review_model_1.reviewLean
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .findOne({ _id: id })
         .lean();
     return res.status(200).send(review);
@@ -129,6 +127,13 @@ exports.reviewRoutes.get('/getall/:id/:offset/:limit/:companyIdParam', async (re
         data: all[0]
     };
     return res.status(200).send(response);
+});
+exports.reviewRoutes.get('/getratingcount/:id/:rating', async (req, res) => {
+    const { id, rating } = req.params;
+    const review = await review_model_1.reviewLean
+        .find({ itemId: id, rating })
+        .lean();
+    return res.status(200).send({ count: review.length });
 });
 /**
  * Route for deleting a single review by ID

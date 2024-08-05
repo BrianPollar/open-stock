@@ -1,4 +1,4 @@
-import { IdataArrayResponse, IdeleteCredentialsInvRel, Iinvoice, IinvoiceRelated, Isuccess } from '@open-stock/stock-universal';
+import { IdataArrayResponse, IdeleteCredentialsInvRel, Iinvoice, IinvoiceRelated, IsubscriptionFeatureState, Isuccess } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
 import { StockCounterClient } from '../stock-counter-client';
 import { InvoiceRelated, Receipt } from './receipt.define';
@@ -39,6 +39,7 @@ export class InvoiceRelatedWithReceipt
     const observer$ = StockCounterClient.ehttp
       .makeGet(`/invoicerelated/${url}/${offset}/${limit}/${companyId}`);
     const invoiceRelateds = await lastValueFrom(observer$) as IdataArrayResponse;
+
     return {
       count: invoiceRelateds.count,
       invoiceRelateds: invoiceRelateds.data
@@ -69,6 +70,7 @@ export class InvoiceRelatedWithReceipt
     const observer$ = StockCounterClient.ehttp
       .makePost(`/invoicerelated/search/${offset}/${limit}/${companyId}`, body);
     const invoiceRelateds = await lastValueFrom(observer$) as IdataArrayResponse;
+
     return {
       count: invoiceRelateds.count,
       invoiceRelateds: invoiceRelateds.data
@@ -89,6 +91,7 @@ export class InvoiceRelatedWithReceipt
     const observer$ = StockCounterClient.ehttp
       .makeGet(`/invoicerelated/getone/${id}/${companyId}`);
     const invoiceRelated = await lastValueFrom(observer$) as Required<IinvoiceRelated>;
+
     return new InvoiceRelatedWithReceipt(invoiceRelated);
   }
 }
@@ -127,6 +130,7 @@ export class Invoice extends InvoiceRelatedWithReceipt {
     const observer$ = StockCounterClient.ehttp
       .makeGet(`/invoice/${url}/${offset}/${limit}/${companyId}`);
     const invoices = await lastValueFrom(observer$) as IdataArrayResponse;
+
     return {
       count: invoices.count,
       invoices: invoices.data
@@ -146,6 +150,7 @@ export class Invoice extends InvoiceRelatedWithReceipt {
     const observer$ = StockCounterClient.ehttp
       .makeGet(`/invoice/getone/${invoiceId}/${companyId}`);
     const invoice = await lastValueFrom(observer$) as Required<Iinvoice>;
+
     return new Invoice(invoice);
   }
 
@@ -163,7 +168,8 @@ export class Invoice extends InvoiceRelatedWithReceipt {
   ) {
     const observer$ = StockCounterClient.ehttp
       .makePost(`/invoice/create/${companyId}`, { invoice, invoiceRelated });
-    return await lastValueFrom(observer$) as Isuccess;
+
+    return await lastValueFrom(observer$) as IsubscriptionFeatureState;
   }
 
   /**
@@ -178,6 +184,7 @@ export class Invoice extends InvoiceRelatedWithReceipt {
   ) {
     const observer$ = StockCounterClient.ehttp
       .makePut(`/invoice/deletemany/${companyId}`, { credentials });
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 
@@ -192,6 +199,7 @@ export class Invoice extends InvoiceRelatedWithReceipt {
     updatedInvoice._id = this._id;
     const observer$ = StockCounterClient.ehttp
       .makePut(`/invoice/update/${companyId}`, { updatedInvoice, invoiceRelated });
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 }

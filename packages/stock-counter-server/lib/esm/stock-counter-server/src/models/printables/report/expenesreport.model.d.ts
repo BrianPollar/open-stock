@@ -43,6 +43,8 @@ export declare let expenseReportLean: Model<TexpenseReport>;
  * Represents the select statement for the expense report.
  */
 export declare const expenseReportSelect: {
+    trackEdit: number;
+    trackView: number;
     urId: number;
     companyId: number;
     totalAmount: number;

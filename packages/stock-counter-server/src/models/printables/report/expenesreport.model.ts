@@ -11,6 +11,8 @@ export type TexpenseReport = Document & IexpenseReport;
 
 /** Mongoose schema for the expense report document. */
 const expenseReportSchema: Schema<TexpenseReport> = new Schema({
+  trackEdit: { type: Schema.ObjectId },
+  trackView: { type: Schema.ObjectId },
   urId: { type: String },
   companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
   totalAmount: { type: Number },
@@ -23,6 +25,8 @@ expenseReportSchema.plugin(uniqueValidator);
 
 /** Primary selection object for expense report document. */
 const expenseReportselect = {
+  trackEdit: 1,
+  trackView: 1,
   urId: 1,
   companyId: 1,
   totalAmount: 1,

@@ -78,6 +78,12 @@ class CalculationsController {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-return
         return data.filter((val, index) => index < restrictNoTo);
     }
+    /**
+     * Determines the number of stars to display based on the given weight and where the stars should be displayed.
+     * @param weight - The weight value to use for determining the number of stars.
+     * @param where - Specifies where the stars should be displayed, such as 'full', 'half', or 'empty'.
+     * @returns An array of the determined number of stars.
+     */
     determineStars(weight, where) {
         let long;
         switch (where) {
@@ -155,6 +161,15 @@ class CalculationsController {
      */
     taxValFromSubTotal(subTotal, tax) {
         return (tax / 100) * subTotal;
+    }
+    /**
+     * Converts the given amount using the provided exchange rate.
+     * @param amount - The amount to be converted.
+     * @param rate - The exchange rate to use for the conversion.
+     * @returns The converted amount.
+     */
+    convertCurrency(amount, rate) {
+        return amount * rate;
     }
 }
 exports.CalculationsController = CalculationsController;

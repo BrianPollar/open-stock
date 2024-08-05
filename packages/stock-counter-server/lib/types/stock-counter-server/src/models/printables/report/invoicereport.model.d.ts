@@ -42,6 +42,8 @@ export declare let invoicesReportLean: Model<TinvoicesReport>;
  * Select statement for generating invoices report.
  */
 export declare const invoicesReportSelect: {
+    trackEdit: number;
+    trackView: number;
     urId: number;
     companyId: number;
     totalAmount: number;

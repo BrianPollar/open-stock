@@ -1,4 +1,5 @@
 /// <reference types="mongoose/types/connection" />
+/// <reference types="mongoose/types/types" />
 /// <reference types="mongoose/types/aggregate" />
 /// <reference types="mongoose/types/callback" />
 /// <reference types="mongoose/types/collection" />
@@ -44,7 +45,15 @@ export declare const runStockNotificationServer: (config: IstockNotifServerConfi
  * Retrieves the current notification settings.
  * @returns {Promise<TnotifSetting>} A promise that resolves to the current notification settings.
  */
-export declare const getCurrentNotificationSettings: (companyId: string) => Promise<{}>;
+export declare const getCurrentNotificationSettings: (companyId: string) => Promise<{
+    success: boolean;
+    stn?: undefined;
+} | {
+    success: boolean;
+    stn: import("mongoose").FlattenMaps<import("./models/notifsetting.model").TnotifSetting> & {
+        _id: import("mongoose").Types.ObjectId;
+    };
+}>;
 /**
  * Checks if the notifications server is running.
  * @returns {boolean} True if the notifications server is running, false otherwise.

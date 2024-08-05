@@ -1,8 +1,8 @@
 "use strict";
-/* eslint-disable @typescript-eslint/no-misused-promises */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.promocodeRoutes = void 0;
 const tslib_1 = require("tslib");
+/* eslint-disable @typescript-eslint/no-misused-promises */
 const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const stock_universal_1 = require("@open-stock/stock-universal");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
@@ -61,7 +61,6 @@ exports.promocodeRoutes.post('/create/:companyIdParam', stock_universal_server_1
     }
     const code = (0, stock_universal_1.makeRandomString)(8, 'combined');
     const count = await promocode_model_1.promocodeMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     const urId = (0, stock_universal_server_1.makeUrId)(Number(count[0]?.urId || '0'));
     const promocode = {
@@ -115,7 +114,6 @@ exports.promocodeRoutes.get('/getone/:id/:companyIdParam', stock_universal_serve
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const promocode = await promocode_model_1.promocodeLean
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .findOne({ _id: id, companyId: queryId })
         .lean();
     return res.status(200).send(promocode);

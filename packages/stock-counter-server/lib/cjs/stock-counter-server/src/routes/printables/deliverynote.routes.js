@@ -66,7 +66,6 @@ exports.deliveryNoteRoutes.post('/create/:companyIdParam', stock_universal_serve
     deliveryNote.companyId = queryId;
     invoiceRelated.companyId = queryId;
     const count = await deliverynote_model_1.deliveryNoteMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     deliveryNote.urId = (0, stock_universal_server_1.makeUrId)(Number(count[0]?.urId || '0'));
     const extraNotifDesc = 'Newly generated delivery note';
@@ -135,7 +134,6 @@ exports.deliveryNoteRoutes.get('/getone/:urId/:companyIdParam', stock_universal_
     if (deliveryNote) {
         returned = (0, invoicerelated_1.makeInvoiceRelatedPdct)(deliveryNote.invoiceRelated, deliveryNote.invoiceRelated
             .billingUserId, deliveryNote.createdAt, {
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             _id: deliveryNote._id,
             urId: deliveryNote.urId
         });
@@ -183,7 +181,6 @@ exports.deliveryNoteRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_u
     const returned = all[0]
         .map(val => (0, invoicerelated_1.makeInvoiceRelatedPdct)(val.invoiceRelated, val.invoiceRelated
         .billingUserId, (val).createdAt, {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         _id: val._id,
         urId: val.urId
     }));
@@ -287,7 +284,6 @@ exports.deliveryNoteRoutes.put('/deletemany/:companyIdParam', stock_universal_se
     /** const ids = credentials
       .map(val => val.id);
     await deliveryNoteMain
-      // eslint-disable-next-line @typescript-eslint/naming-convention
       .deleteMany({ _id: { $in: ids } });**/
     const promises = credentials
         .map(async (val) => {

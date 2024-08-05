@@ -145,7 +145,6 @@ exports.staffRoutes.post('/getone', stock_universal_server_1.requireAuth, stock_
         if (!isValid) {
             return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
         }
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         filter = { ...filter, _id: id };
     }
     if (queryId) {
@@ -163,17 +162,13 @@ exports.staffRoutes.post('/getone', stock_universal_server_1.requireAuth, stock_
         filter = { user: userId };
     }
     const staff = await staff_model_1.staffLean
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .findOne(filter)
         .populate({ path: 'user', model: stock_auth_server_1.userLean,
         populate: [{
-                // eslint-disable-next-line @typescript-eslint/naming-convention
                 path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
             }, {
-                // eslint-disable-next-line @typescript-eslint/naming-convention
                 path: 'profilePic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
             }, {
-                // eslint-disable-next-line @typescript-eslint/naming-convention
                 path: 'profileCoverPic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
             }] })
         .lean();
@@ -193,13 +188,10 @@ exports.staffRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universa
             .find({ companyId: queryId })
             .populate({ path: 'user', model: stock_auth_server_1.userLean,
             populate: [{
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                 }, {
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     path: 'profilePic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                 }, {
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     path: 'profileCoverPic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                 }]
         })
@@ -228,13 +220,10 @@ exports.staffRoutes.get('/getbyrole/:offset/:limit/:role/:companyIdParam', stock
             .find({ companyId: queryId })
             .populate({ path: 'user', model: stock_auth_server_1.userLean, match: { role },
             populate: [{
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                 }, {
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     path: 'profilePic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                 }, {
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     path: 'profileCoverPic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                 }] })
             .skip(offset)
@@ -281,13 +270,10 @@ exports.staffRoutes.post('/search/:offset/:limit/:companyIdParam', stock_univers
             .find({ companyId: queryId, ...filters })
             .populate({ path: 'user', model: stock_auth_server_1.userLean, match: { ...matchFilter },
             populate: [{
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                 }, {
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     path: 'profilePic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                 }, {
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     path: 'profileCoverPic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
                 }] })
             .skip(offset)
@@ -303,7 +289,7 @@ exports.staffRoutes.post('/search/:offset/:limit/:companyIdParam', stock_univers
     return res.status(200).send(response);
 });
 exports.staffRoutes.put('/update/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('staffs', 'update', true), stock_auth_server_1.updateUserBulk, exports.updateStaff);
-exports.staffRoutes.put('/updateimg/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('staffs', 'update', true), stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.saveMetaToDb, stock_auth_server_1.updateUserBulk, exports.updateStaff);
+exports.staffRoutes.post('/updateimg/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('staffs', 'update', true), stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.saveMetaToDb, stock_auth_server_1.updateUserBulk, exports.updateStaff);
 exports.staffRoutes.put('/deleteone/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('staffs', 'delete'), (0, locluser_routes_1.removeOneUser)('staff'), async (req, res) => {
     const { id } = req.body;
     const { companyId } = req.user;
@@ -332,7 +318,6 @@ exports.staffRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const deleted = await staff_model_1.staffMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .deleteMany({ _id: { $in: ids }, companyId: queryId })
         .catch(err => {
         staffRoutesLogger.error('deletemany - err: ', err);

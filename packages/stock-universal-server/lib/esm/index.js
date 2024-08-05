@@ -22,4 +22,6 @@ export * from './filemanager/fs';
 export * from './controllers/passport.service';
 export * from './stock-universal-server';
 export * from './models/filemeta.model';
+export * from './models/tracker/track-edit.model';
+export * from './models/tracker/track-view.model';
 //# sourceMappingURL=index.js.map

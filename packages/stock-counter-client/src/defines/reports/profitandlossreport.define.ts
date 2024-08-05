@@ -13,6 +13,7 @@ The class has several static methods:
  */
 export class ProfitAndLossReport extends DatabaseAuto {
   urId: string;
+
   /** The user's company ID. */
   companyId: string;
   totalAmount: number;
@@ -49,6 +50,7 @@ export class ProfitAndLossReport extends DatabaseAuto {
   static async getProfitAndLossReports(companyId: string, url = 'getall', offset = 0, limit = 20) {
     const observer$ = StockCounterClient.ehttp.makeGet(`/profitandlossreport//${url}/${offset}/${limit}/${companyId}`);
     const profitandlossreports = await lastValueFrom(observer$) as IdataArrayResponse;
+
     return {
       count: profitandlossreports.count,
       profitandlossreports: profitandlossreports.data.map((val) => new ProfitAndLossReport(val as IprofitAndLossReport))
@@ -64,6 +66,7 @@ export class ProfitAndLossReport extends DatabaseAuto {
   static async getOneProfitAndLossReport(companyId: string, urId: string) {
     const observer$ = StockCounterClient.ehttp.makeGet(`/profitandlossreport/getone/${urId}/${companyId}`);
     const profitandlossreport = await lastValueFrom(observer$) as IprofitAndLossReport;
+
     return new ProfitAndLossReport(profitandlossreport);
   }
 
@@ -75,6 +78,7 @@ export class ProfitAndLossReport extends DatabaseAuto {
    */
   static async addProfitAndLossReport(companyId: string, vals: IprofitAndLossReport) {
     const observer$ = StockCounterClient.ehttp.makePost(`/profitandlossreport/create/${companyId}`, vals);
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 
@@ -86,6 +90,7 @@ export class ProfitAndLossReport extends DatabaseAuto {
    */
   static async deleteProfitAndLossReports(companyId: string, ids: string[]) {
     const observer$ = StockCounterClient.ehttp.makePut(`/profitandlossreport/deletemany/${companyId}`, { ids });
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 }

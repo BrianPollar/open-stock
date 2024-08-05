@@ -36,7 +36,7 @@ export type Treview = Document & IreviewMain;
  * Represents the main review model.
  */
 export declare let reviewMain: Model<Treview>;
-/** lean connection for reviews Operations*/
+/** lean connection for reviews Operations */
 /**
  * Represents a lean review model.
  */

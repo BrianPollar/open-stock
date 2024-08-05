@@ -10,14 +10,19 @@ import { InvoiceRelatedWithReceipt } from '../invoice.define';
 export class TaxReport extends DatabaseAuto {
   /** A string representing the unique identifier of the tax report. */
   urId: string;
+
   /** The user's company ID. */
   companyId: string;
+
   /** A number representing the total amount of the tax report. */
   totalAmount: number;
+
   /** A Date object representing the date of the tax report. */
   date: Date;
+
   /** An array of Estimate objects representing the estimates related to the tax report. */
   estimates: Estimate[];
+
   /** An array of InvoiceRelatedWithReceipt objects representing the invoice-related information of the tax report. */
   invoiceRelateds: InvoiceRelatedWithReceipt[];
 
@@ -51,6 +56,7 @@ export class TaxReport extends DatabaseAuto {
   static async getTaxReports(companyId: string, url = 'getall', offset = 0, limit = 20) {
     const observer$ = StockCounterClient.ehttp.makeGet(`/taxreport/${url}/${offset}/${limit}/${companyId}`);
     const taxreports = await lastValueFrom(observer$) as IdataArrayResponse;
+
     return {
       count: taxreports.count,
       taxreports: taxreports.data.map((val) => new TaxReport(val as ItaxReport))
@@ -66,6 +72,7 @@ export class TaxReport extends DatabaseAuto {
   static async getOneTaxReport(companyId: string, urId: string) {
     const observer$ = StockCounterClient.ehttp.makeGet(`/taxreport/getone/${urId}/${companyId}`);
     const taxreport = await lastValueFrom(observer$) as ItaxReport;
+
     return new TaxReport(taxreport);
   }
 
@@ -77,6 +84,7 @@ export class TaxReport extends DatabaseAuto {
    */
   static async addTaxReport(companyId: string, vals: ItaxReport) {
     const observer$ = StockCounterClient.ehttp.makePost(`/taxreport/create/${companyId}`, vals);
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 
@@ -88,6 +96,7 @@ export class TaxReport extends DatabaseAuto {
    */
   static async deleteTaxReports(companyId: string, ids: string[]) {
     const observer$ = StockCounterClient.ehttp.makePut(`/taxreport/deletemany/${companyId}`, { ids });
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 }

@@ -11,6 +11,7 @@ companyAuthRoutesDummy.get('/authexpress/:companyIdParam', (req, res) => {
     user: createMockCompany(),
     token: 'token'
   };
+
   return res.status(200).send(nowResponse);
 });
 
@@ -20,6 +21,7 @@ companyAuthRoutesDummy.post('recover', (req, res) => {
     message: 'Recovery email sent',
     type: '_link'
   };
+
   res.status(200).send(response);
 });
 
@@ -29,6 +31,7 @@ companyAuthRoutesDummy.post('/confirm', (req, res) => {
     msg: 'Password reset successful',
     user: createMockUser()
   };
+
   res.status(200).send(response);
 });
 
@@ -38,6 +41,7 @@ companyAuthRoutesDummy.put('/resetpaswd', (req, res) => {
     msg: 'Password reset successful',
     user: createMockUser()
   };
+
   res.status(200).send(response);
 });
 
@@ -56,6 +60,7 @@ companyAuthRoutesDummy.post('/addcompanyimg/:companyIdParam', (req, res) => {
 
 companyAuthRoutesDummy.get('/getonecompany/:urId/:companyIdParam', (req, res) => {
   const company = createMockCompany();
+
   return res.status(200).send(company);
 });
 
@@ -64,6 +69,7 @@ companyAuthRoutesDummy.get('/getcompanys/:offset/:limit/:companyIdParam', (req, 
     count: req.params.limit,
     data: createMockCompanys(req.params.limit)
   };
+
   return res.status(200).send(response);
 });
 
