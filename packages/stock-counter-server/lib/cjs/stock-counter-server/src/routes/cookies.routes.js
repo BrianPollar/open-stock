@@ -11,8 +11,8 @@ const express_1 = tslib_1.__importDefault(require("express"));
 const fs = tslib_1.__importStar(require("fs"));
 const path_1 = tslib_1.__importDefault(require("path"));
 const tracer = tslib_1.__importStar(require("tracer"));
-const cookies_service_1 = require("../controllers/cookies.service");
 const item_model_1 = require("../models/item.model");
+const cookies_1 = require("../utils/cookies");
 /** Logger for the cookiesRoutes module */
 const cookiesRoutesLogger = tracer.colorConsole({
     format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
@@ -64,7 +64,7 @@ exports.cookiesRoutes.get('/getsettings/:userId', (req, res, next) => {
     }
     cookiesRoutesLogger.info('getsettings - stnCookie: ', stnCookie);
     return res.send(stnCookie);
-}, cookies_service_1.makeSettingsCookie);
+}, cookies_1.makeSettingsCookie);
 /**
  * PUT request handler for updating settings cookie.
  * The existing settings cookie is cleared and replaced with the new cookie.
@@ -84,7 +84,7 @@ exports.cookiesRoutes.put('/updatesettings/:userId', (req, res, next) => {
     req.body.stnCookie = stnCookie;
     cookiesRoutesLogger.info('updatesettings - stnCookie: ', stnCookie);
     return next();
-}, cookies_service_1.makeSettingsCookie);
+}, cookies_1.makeSettingsCookie);
 /**
  * PUT request handler for adding an item to the cart cookie.
  * If the cart cookie does not exist, a new empty array is created.
@@ -103,7 +103,7 @@ exports.cookiesRoutes.put('/addcartitem/:userId', (req, res, next) => {
     req.body.cartCookie = cartCookie;
     cookiesRoutesLogger.info('addcartitem - cartCookie: ', cartCookie);
     return next();
-}, cookies_service_1.makeCartCookie);
+}, cookies_1.makeCartCookie);
 /**
  * PUT request handler for adding an item to the recent cookie.
  * If the recent cookie does not exist, a new empty array is created.
@@ -126,7 +126,7 @@ exports.cookiesRoutes.put('/addrecentitem/:userId', (req, res, next) => {
     req.body.recentCookie = recentCookie;
     cookiesRoutesLogger.info('addrecentitem - recentCookie: ', recentCookie);
     return next();
-}, cookies_service_1.makeRecentCookie);
+}, cookies_1.makeRecentCookie);
 exports.cookiesRoutes.put('/addwishlistitem/:userId', (req, res, next) => {
     const stnCookie = req.signedCookies['settings'];
     if (!stnCookie) {
@@ -142,7 +142,7 @@ exports.cookiesRoutes.put('/addwishlistitem/:userId', (req, res, next) => {
     req.body.wishListCookie = wishListCookie;
     cookiesRoutesLogger.info('addwishlistitem - wishListCookie: ', wishListCookie);
     return next();
-}, cookies_service_1.makeWishListCookie);
+}, cookies_1.makeWishListCookie);
 exports.cookiesRoutes.put('/addcomparelistitems/:userId', (req, res, next) => {
     const stnCookie = req.signedCookies['settings'];
     if (!stnCookie) {
@@ -158,7 +158,7 @@ exports.cookiesRoutes.put('/addcomparelistitems/:userId', (req, res, next) => {
     req.body.compareListCookie = compareListCookie;
     cookiesRoutesLogger.info('addcompareListitem - compareListCookie: ', compareListCookie);
     return next();
-}, cookies_service_1.makeCompareListCookie);
+}, cookies_1.makeCompareListCookie);
 /**
  * PUT request handler for deleting an item from the cart cookie.
  * If the cart cookie does not exist, a success response is returned.
@@ -181,7 +181,7 @@ exports.cookiesRoutes.put('/deletecartitem/:id', (req, res, next) => {
     req.body.cartCookie = cartCookie;
     cookiesRoutesLogger.info('deletecartitem - cartCookie', cartCookie);
     return next();
-}, cookies_service_1.makeCartCookie);
+}, cookies_1.makeCartCookie);
 exports.cookiesRoutes.put('/deletewishlistitem/:id', (req, res, next) => {
     const stnCookie = req.signedCookies['settings'];
     if (!stnCookie) {
@@ -197,7 +197,7 @@ exports.cookiesRoutes.put('/deletewishlistitem/:id', (req, res, next) => {
     req.body.wishListCookie = wishListCookie;
     cookiesRoutesLogger.info('deletewishlistitem - wishListCookie', wishListCookie);
     return next();
-}, cookies_service_1.makeWishListCookie);
+}, cookies_1.makeWishListCookie);
 exports.cookiesRoutes.put('/deletecomparelistitem', (req, res, next) => {
     const stnCookie = req.signedCookies['settings'];
     if (!stnCookie) {
@@ -213,7 +213,7 @@ exports.cookiesRoutes.put('/deletecomparelistitem', (req, res, next) => {
     req.body.compareListCookie = compareListCookie;
     cookiesRoutesLogger.info('deletecomparelistitem - compareListCookie', compareListCookie);
     return next();
-}, cookies_service_1.makeCompareListCookie);
+}, cookies_1.makeCompareListCookie);
 /**
  * PUT request handler for clearing the cart cookie.
  * The cart cookie is cleared and a success response is returned.
@@ -256,25 +256,7 @@ exports.cookiesRoutes.get('/appendtocart', async (req, res) => {
     }
     const items = await item_model_1.itemLean
         .find({ _id: { $in: modified } })
-        .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-        .populate({ path: 'companyId', model: stock_auth_server_1.companyLean,
-        populate: [{
-                path: 'owner', model: stock_auth_server_1.userLean,
-                populate: [{
-                        path: 'profilePic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-                    }],
-                transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
-            }
-        ],
-        transform: (doc) => {
-            if (doc.blocked) {
-                return null;
-            }
-            else {
-                return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
-            }
-        }
-    })
+        .populate([(0, stock_auth_server_1.populatePhotos)(), (0, stock_auth_server_1.populateCompany)()])
         .lean();
     const newProds = items
         .filter(item => item.companyId)
@@ -307,25 +289,7 @@ exports.cookiesRoutes.get('/appendtorecent', async (req, res) => {
     }
     const items = await item_model_1.itemLean
         .find({ _id: { $in: recentCookie } })
-        .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-        .populate({ path: 'companyId', model: stock_auth_server_1.companyLean,
-        populate: [{
-                path: 'owner', model: stock_auth_server_1.userLean,
-                populate: [{
-                        path: 'profilePic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-                    }],
-                transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
-            }
-        ],
-        transform: (doc) => {
-            if (doc.blocked) {
-                return null;
-            }
-            else {
-                return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
-            }
-        }
-    })
+        .populate([(0, stock_auth_server_1.populatePhotos)(), (0, stock_auth_server_1.populateCompany)()])
         .lean();
     return res.status(200).send(items.filter(item => item.companyId));
 });
@@ -346,25 +310,7 @@ exports.cookiesRoutes.get('/appendtowishlist', async (req, res) => {
     }
     const items = await item_model_1.itemLean
         .find({ _id: { $in: wishListCookie } })
-        .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-        .populate({ path: 'companyId', model: stock_auth_server_1.companyLean,
-        populate: [{
-                path: 'owner', model: stock_auth_server_1.userLean,
-                populate: [{
-                        path: 'profilePic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-                    }],
-                transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
-            }
-        ],
-        transform: (doc) => {
-            if (doc.blocked) {
-                return null;
-            }
-            else {
-                return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
-            }
-        }
-    })
+        .populate([(0, stock_auth_server_1.populatePhotos)(), (0, stock_auth_server_1.populateCompany)()])
         .lean();
     return res.status(200).send(items.filter(item => item.companyId));
 });
@@ -385,25 +331,7 @@ exports.cookiesRoutes.get('/appendtocomparelist', async (req, res) => {
     }
     const items = await item_model_1.itemLean
         .find({ _id: { $in: compareListCookie } })
-        .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-        .populate({ path: 'companyId', model: stock_auth_server_1.companyLean,
-        populate: [{
-                path: 'owner', model: stock_auth_server_1.userLean,
-                populate: [{
-                        path: 'profilePic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-                    }],
-                transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
-            }
-        ],
-        transform: (doc) => {
-            if (doc.blocked) {
-                return null;
-            }
-            else {
-                return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
-            }
-        }
-    })
+        .populate([(0, stock_auth_server_1.populatePhotos)(), (0, stock_auth_server_1.populateCompany)()])
         .lean();
     return res.status(200).send(items.filter(item => item.companyId));
 });

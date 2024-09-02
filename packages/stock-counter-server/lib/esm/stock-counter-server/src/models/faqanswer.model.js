@@ -1,25 +1,26 @@
+import { createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
 import { Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
+import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 const faqanswerSchema = new Schema({
-    trackEdit: { type: Schema.ObjectId },
-    trackView: { type: Schema.ObjectId },
-    urId: { type: String },
-    companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
+    ...withUrIdAndCompanySchemaObj,
     faq: { type: String, required: [true, 'cannot be empty.'], index: true },
     userId: { type: String, required: [true, 'cannot be empty.'] },
     ans: { type: String, required: [true, 'cannot be empty.'], index: true }
-}, { timestamps: true });
+}, { timestamps: true, collection: 'faqanswers' });
+faqanswerSchema.pre('updateOne', function (next) {
+    return preUpdateDocExpire(this, next);
+});
+faqanswerSchema.pre('updateMany', function (next) {
+    return preUpdateDocExpire(this, next);
+});
 // Apply the uniqueValidator plugin to faqanswerSchema.
 faqanswerSchema.plugin(uniqueValidator);
 /** primary selection object
  * for faq ans
  */
 const faqanswerselect = {
-    trackEdit: 1,
-    trackView: 1,
-    urId: 1,
-    companyId: 1,
+    ...withUrIdAndCompanySelectObj,
     faq: 1,
     userId: 1,
     ans: 1
@@ -44,6 +45,7 @@ export const faqanswerSelect = faqanswerselect;
  * @param lean Whether to create the Faqanswer model for the lean connection.
  */
 export const createFaqanswerModel = async (dbUrl, dbOptions, main = true, lean = true) => {
+    createExpireDocIndex(faqanswerSchema);
     if (!isStockDbConnected) {
         await connectStockDatabase(dbUrl, dbOptions);
     }

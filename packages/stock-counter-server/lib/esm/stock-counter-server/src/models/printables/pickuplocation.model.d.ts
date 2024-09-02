@@ -5,13 +5,11 @@
 /// <reference types="mongoose/types/collection" />
 /// <reference types="mongoose/types/connection" />
 /// <reference types="mongoose/types/cursor" />
-/// <reference types="mongoose/types/document" />
 /// <reference types="mongoose/types/error" />
 /// <reference types="mongoose/types/expressions" />
 /// <reference types="mongoose/types/helpers" />
 /// <reference types="mongoose/types/middlewares" />
 /// <reference types="mongoose/types/indexes" />
-/// <reference types="mongoose/types/models" />
 /// <reference types="mongoose/types/mongooseoptions" />
 /// <reference types="mongoose/types/pipelinestage" />
 /// <reference types="mongoose/types/populate" />
@@ -43,11 +41,14 @@ export declare let pickupLocationLean: Model<TpickupLocation>;
  * Represents a pickup location select.
  */
 export declare const pickupLocationSelect: {
-    trackEdit: number;
-    trackView: number;
-    companyId: number;
     name: number;
     contact: number;
+    urId: number;
+    companyId: number;
+    trackEdit: number;
+    trackView: number;
+    isDeleted: number;
+    trackDeleted: number;
 };
 /**
  * Creates a new PickupLocation model with the specified database URL, main connection and lean connection.

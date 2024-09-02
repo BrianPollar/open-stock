@@ -1,6 +1,6 @@
 {
   "name": "@open-stock/stock-auth-client",
-  "version": "4.2.66",
+  "version": "4.2.152",
   "description": "> TODO: description linking roll all fuck",
   "main": "lib/cjs/index.js",
   "module": "lib/esm/index.js",

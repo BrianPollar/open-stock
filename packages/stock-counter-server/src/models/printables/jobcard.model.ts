@@ -1,6 +1,7 @@
 import { IjobCard } from '@open-stock/stock-universal';
+import { createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../controllers/database.controller';
+import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 
 /**
@@ -9,15 +10,21 @@ const uniqueValidator = require('mongoose-unique-validator');
 export type TjobCard = Document & IjobCard;
 
 const jobCardSchema: Schema<TjobCard> = new Schema({
-  trackEdit: { type: Schema.ObjectId },
-  trackView: { type: Schema.ObjectId },
-  urId: { type: String },
-  companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
+  ...withUrIdAndCompanySchemaObj,
   client: { },
   machine: { },
   problem: { },
   cost: { type: Number }
-}, { timestamps: true });
+}, { timestamps: true, collection: 'jobcards' });
+
+jobCardSchema.pre('updateOne', function(next) {
+  return preUpdateDocExpire(this, next);
+});
+
+jobCardSchema.pre('updateMany', function(next) {
+  return preUpdateDocExpire(this, next);
+});
+
 
 // Apply the uniqueValidator plugin to jobCardSchema.
 jobCardSchema.plugin(uniqueValidator);
@@ -26,10 +33,7 @@ jobCardSchema.plugin(uniqueValidator);
  * for jobCard
  */
 const jobCardselect = {
-  trackEdit: 1,
-  trackView: 1,
-  urId: 1,
-  companyId: 1,
+  ...withUrIdAndCompanySelectObj,
   client: 1,
   machine: 1,
   problem: 1,
@@ -59,6 +63,7 @@ export const jobCardSelect = jobCardselect;
  * @param lean Whether to create a lean connection or not. Defaults to true.
  */
 export const createJobCardModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
+  createExpireDocIndex(jobCardSchema);
   if (!isStockDbConnected) {
     await connectStockDatabase(dbUrl, dbOptions);
   }

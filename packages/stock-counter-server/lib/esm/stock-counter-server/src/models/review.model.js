@@ -1,5 +1,6 @@
+import { preUpdateDocExpire } from '@open-stock/stock-universal-server';
 import { Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
+import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 /**
  * Defines the schema for a review object.
@@ -25,9 +26,15 @@ const reviewSchema = new Schema({
     images: [],
     userId: { type: String },
     itemId: { type: String }
-}, { timestamps: true });
+}, { timestamps: true, collection: 'reviews' });
 // Apply the uniqueValidator plugin to reviewSchema.
 reviewSchema.plugin(uniqueValidator);
+reviewSchema.pre('updateOne', function (next) {
+    return preUpdateDocExpire(this, next);
+});
+reviewSchema.pre('updateMany', function (next) {
+    return preUpdateDocExpire(this, next);
+});
 /** primary selection object
  * for review
  */

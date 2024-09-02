@@ -5,13 +5,11 @@
 /// <reference types="mongoose/types/collection" />
 /// <reference types="mongoose/types/connection" />
 /// <reference types="mongoose/types/cursor" />
-/// <reference types="mongoose/types/document" />
 /// <reference types="mongoose/types/error" />
 /// <reference types="mongoose/types/expressions" />
 /// <reference types="mongoose/types/helpers" />
 /// <reference types="mongoose/types/middlewares" />
 /// <reference types="mongoose/types/indexes" />
-/// <reference types="mongoose/types/models" />
 /// <reference types="mongoose/types/mongooseoptions" />
 /// <reference types="mongoose/types/pipelinestage" />
 /// <reference types="mongoose/types/populate" />
@@ -48,8 +46,6 @@ export declare let userBehaviourMain: Model<TuserBehaviour>;
  */
 export declare let userBehaviourLean: Model<TuserBehaviour>;
 export declare const userBehaviourSelect: {
-    trackEdit: number;
-    trackView: number;
     user: number;
     userCookieId: number;
     recents: number;
@@ -57,6 +53,10 @@ export declare const userBehaviourSelect: {
     wishList: number;
     compareList: number;
     searchTerms: number;
+    trackEdit: number;
+    trackView: number;
+    isDeleted: number;
+    trackDeleted: number;
 };
 /**
  * Creates a review model with the specified database URL, main connection flag, and lean flag.

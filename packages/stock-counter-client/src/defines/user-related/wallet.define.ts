@@ -9,7 +9,6 @@ export class UserWallet {
   constructor(wallet: IuserWallet) {}
 }
 
-
 export class UserWalletHistory {
   constructor(walletHist: IwalletHistory) {
 

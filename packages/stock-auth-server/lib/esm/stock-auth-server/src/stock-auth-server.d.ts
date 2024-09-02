@@ -41,13 +41,6 @@ export interface IaAuth {
     password: string;
 }
 /**
- * Represents the configuration options for the stock-auth-server.
- */
-export interface IlAuth {
-    jwtSecret: string;
-    cookieSecret: string;
-}
-/**
  * Represents the local environment configuration.
  */
 export interface IlocalEnv {
@@ -62,7 +55,6 @@ export interface IlocalEnv {
  */
 export interface IStockAuthServerConfig {
     adminAuth: IaAuth;
-    authSecrets: IlAuth;
     localSettings: IlocalEnv;
     databaseConfig: {
         url: string;
@@ -70,6 +62,7 @@ export interface IStockAuthServerConfig {
     };
     localPath: IlocalPath;
     useDummyRoutes?: boolean;
+    permanentlyDeleteAfter: number;
 }
 /**
  * The PesaPal payment instance for the server.

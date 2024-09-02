@@ -72,10 +72,13 @@ exports.faqRoutes.post('/create/:companyIdParam', async (req, res) => {
             errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
         }
-        return errResponse;
+        return err;
     });
     if (errResponse) {
         return res.status(403).send(errResponse);
+    }
+    if (saved && saved._id) {
+        (0, stock_universal_server_1.addParentToLocals)(res, saved._id, faq_model_1.faqMain.collection.collectionName, 'makeTrackEdit');
     }
     return res.status(200).send({ success: Boolean(saved) });
 });
@@ -108,8 +111,11 @@ exports.faqRoutes.get('/getone/:id/:companyIdParam', async (req, res) => {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const faq = await faq_model_1.faqLean
-        .findOne(filter)
+        .findOne({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
         .lean();
+    if (faq) {
+        (0, stock_universal_server_1.addParentToLocals)(res, faq._id, faq_model_1.faqMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(faq);
 });
 /**
@@ -128,16 +134,19 @@ exports.faqRoutes.get('/getall/:offset/:limit/:companyIdParam', async (req, res)
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const all = await Promise.all([
         faq_model_1.faqLean
-            .find({})
+            .find({ ...(0, stock_universal_server_1.makePredomFilter)(req) })
             .skip(offset)
             .limit(limit)
             .lean(),
-        faq_model_1.faqLean.countDocuments({})
+        faq_model_1.faqLean.countDocuments({ ...(0, stock_universal_server_1.makePredomFilter)(req) })
     ]);
     const response = {
         count: all[1],
         data: all[0]
     };
+    for (const val of all[0]) {
+        (0, stock_universal_server_1.addParentToLocals)(res, val._id, faq_model_1.faqMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
 /**
@@ -173,6 +182,7 @@ exports.faqRoutes.delete('/deleteone/:id/:companyIdParam', stock_universal_serve
     // eslint-disable-next-line @typescript-eslint/naming-convention
     const deleted = await faq_model_1.faqMain.findOneAndDelete(filter);
     if (Boolean(deleted)) {
+        (0, stock_universal_server_1.addParentToLocals)(res, id, faq_model_1.faqMain.collection.collectionName, 'trackDataDelete');
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
@@ -220,7 +230,7 @@ exports.faqRoutes.post('/createans/:companyIdParam', stock_universal_server_1.re
             errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
         }
-        return errResponse;
+        return err;
     });
     if (errResponse) {
         return res.status(403).send(errResponse);
@@ -240,7 +250,7 @@ exports.faqRoutes.post('/createans/:companyIdParam', stock_universal_server_1.re
  */
 exports.faqRoutes.get('/getallans/:faqId/:companyIdParam', async (req, res) => {
     const faqsAns = await faqanswer_model_1.faqanswerLean
-        .find({ faq: req.params.faqId })
+        .find({ faq: req.params.faqId, ...(0, stock_universal_server_1.makePredomFilter)(req) })
         .lean();
     return res.status(200).send(faqsAns);
 });

@@ -1,5 +1,5 @@
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import { connectAuthDatabase, isAuthDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
+import { connectAuthDatabase, isAuthDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 
 /**
  * Represents a login attempt.
@@ -36,7 +36,7 @@ const loginAtempsSchema: Schema<IloginAttempts> = new Schema({
   userId: { type: String, index: true },
   ip: { type: String, index: true },
   successful: { type: Boolean, default: true }
-}, { timestamps: true });
+}, { timestamps: true, collection: 'loginatempts' });
 
 
 /**

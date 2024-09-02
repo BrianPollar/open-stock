@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-type-arguments */
 import { IinvoiceRelated } from '@open-stock/stock-universal';
+import { createExpireDocIndex, preUpdateDocExpire, withCompanySchemaObj, withCompanySelectObj } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../../controllers/database.controller';
+import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../../utils/database';
 // const uniqueValidator = require('mongoose-unique-validator');
 
 /** model interface for invoiceRelated by */
@@ -28,9 +29,7 @@ export type TinvoiceRelated = Document & IinvoiceRelated;
  * @property {Array} payments - The payments made on the invoice.
  */
 const invoiceRelatedSchema: Schema<TinvoiceRelated> = new Schema({
-  trackEdit: { type: Schema.ObjectId },
-  trackView: { type: Schema.ObjectId },
-  companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
+  ...withCompanySchemaObj,
   creationType: { type: String },
   estimateId: { type: Number },
   invoiceId: { type: Number },
@@ -50,7 +49,15 @@ const invoiceRelatedSchema: Schema<TinvoiceRelated> = new Schema({
   payType: { type: String, index: true },
   ecommerceSale: { type: Boolean, index: true, default: false },
   ecommerceSalePercentage: { type: Number, index: true, default: 0 }
-}, { timestamps: true });
+}, { timestamps: true, collection: 'invoicerelateds' });
+
+invoiceRelatedSchema.pre('updateOne', function(next) {
+  return preUpdateDocExpire(this, next);
+});
+
+invoiceRelatedSchema.pre('updateMany', function(next) {
+  return preUpdateDocExpire(this, next);
+});
 
 // Apply the uniqueValidator plugin to invoiceRelatedSchema.
 // invoiceRelatedSchema.plugin(uniqueValidator);
@@ -59,9 +66,7 @@ const invoiceRelatedSchema: Schema<TinvoiceRelated> = new Schema({
  * for invoiceRelated
  */
 const invoiceRelatedselect = {
-  trackEdit: 1,
-  trackView: 1,
-  companyId: 1,
+  ...withCompanySelectObj,
   creationType: 1,
   estimateId: 1,
   invoiceId: 1,
@@ -105,6 +110,7 @@ export const invoiceRelatedSelect = invoiceRelatedselect;
  * @param lean - Indicates whether to create the lean connection model. Default is true.
  */
 export const createInvoiceRelatedModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
+  createExpireDocIndex(invoiceRelatedSchema);
   if (!isStockDbConnected) {
     await connectStockDatabase(dbUrl, dbOptions);
   }

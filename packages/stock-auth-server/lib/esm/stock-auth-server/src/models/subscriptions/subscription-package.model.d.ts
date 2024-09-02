@@ -39,13 +39,15 @@ export declare let subscriptionPackageLean: Model<TsubscriptionPackage>;
  * Selects the subscriptionPackageselect constant from the subscriptionPackage.model module.
  */
 export declare const subscriptionPackageSelect: {
-    trackEdit: number;
-    trackView: number;
     name: number;
     ammount: number;
     duration: number;
     active: number;
     features: number;
+    trackEdit: number;
+    trackView: number;
+    isDeleted: number;
+    trackDeleted: number;
 };
 /**
  * Creates a new subscription package model.

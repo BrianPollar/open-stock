@@ -7,9 +7,9 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable @typescript-eslint/no-misused-promises */
 import { Iauthresponse, Iauthtoken, Icustomrequest } from '@open-stock/stock-universal';
+import { stockUniversalConfig } from '@open-stock/stock-universal-server';
 import express from 'express';
-import { generateToken, setUserInfo } from '../controllers/universial.controller';
-import { stockAuthConfig } from '../stock-auth-local';
+import { generateToken, setUserInfo } from '../utils/universial';
 // import { notifConfig } from '../../config/notif.config';
 // import { createNotifications, NotificationController } from '../controllers/notifications.controller';
 // const passport = require('passport');
@@ -58,7 +58,7 @@ superAdminRoutes.post('/login', (req, res) => {
     const user = {
       comapany
     } as any;
-    const token = generateToken(userInfo, '1d', stockAuthConfig.authSecrets.jwtSecret);
+    const token = generateToken(userInfo, '1d', stockUniversalConfig.authSecrets.jwtSecret);
     const nowResponse = {
       success: true,
       user,

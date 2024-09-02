@@ -1,6 +1,7 @@
 import { Icustomer } from '@open-stock/stock-universal';
+import { createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
 import mongoose, { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../controllers/database.controller';
+import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 
 /**
@@ -10,24 +11,29 @@ export type Tcustomer = Document & Icustomer;
 
 /** Defines the schema for the customer model. */
 const customerSchema: Schema<Tcustomer> = new Schema({
-  trackEdit: { type: Schema.ObjectId },
-  trackView: { type: Schema.ObjectId },
-  companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
+  ...withUrIdAndCompanySchemaObj,
   user: { type: mongoose.Types.ObjectId, unique: true, required: [true, 'cannot be empty.'], index: true },
   startDate: { type: Date },
   endDate: { type: Date },
   occupation: { type: String },
   otherAddresses: []
-}, { timestamps: true });
+}, { timestamps: true, collection: 'customers' });
+
+customerSchema.pre('updateOne', function(next) {
+  return preUpdateDocExpire(this, next);
+});
+
+customerSchema.pre('updateMany', function(next) {
+  return preUpdateDocExpire(this, next);
+});
+
 
 // Apply the uniqueValidator plugin to customerSchema.
 customerSchema.plugin(uniqueValidator);
 
 /** Defines the main selection object for customer. */
 const customerselect = {
-  trackEdit: 1,
-  trackView: 1,
-  companyId: 1,
+  ...withUrIdAndCompanySelectObj,
   user: 1,
   salutation: 1,
   endDate: 1,
@@ -58,6 +64,7 @@ export const customerSelect = customerselect;
  * @param lean Whether to create the lean connection.
  */
 export const createCustomerModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
+  createExpireDocIndex(customerSchema);
   if (!isStockDbConnected) {
     await connectStockDatabase(dbUrl, dbOptions);
   }

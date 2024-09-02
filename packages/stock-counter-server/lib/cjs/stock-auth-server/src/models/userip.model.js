@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createUseripModel = exports.useripLean = exports.userip = void 0;
 const mongoose_1 = require("mongoose");
-const database_controller_1 = require("../controllers/database.controller");
+const database_1 = require("../utils/database");
 const uniqueValidator = require('mongoose-unique-validator');
 const useripSchema = new mongoose_1.Schema({
     userOrCompanayId: { type: String },
@@ -10,7 +10,7 @@ const useripSchema = new mongoose_1.Schema({
     redIps: [],
     unverifiedIps: [],
     blocked: {}
-}, { timestamps: true });
+}, { timestamps: true, collection: 'userips' });
 // Apply the uniqueValidator plugin to useripSchema.
 useripSchema.plugin(uniqueValidator);
 /**
@@ -21,14 +21,14 @@ useripSchema.plugin(uniqueValidator);
  * @param lean Whether to create the lean email token model.
  */
 const createUseripModel = async (dbUrl, dbOptions, main = true, lean = true) => {
-    if (!database_controller_1.isAuthDbConnected) {
-        await (0, database_controller_1.connectAuthDatabase)(dbUrl, dbOptions);
+    if (!database_1.isAuthDbConnected) {
+        await (0, database_1.connectAuthDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.userip = database_controller_1.mainConnection.model('userip', useripSchema);
+        exports.userip = database_1.mainConnection.model('userip', useripSchema);
     }
     if (lean) {
-        exports.useripLean = database_controller_1.mainConnectionLean.model('userip', useripSchema);
+        exports.useripLean = database_1.mainConnectionLean.model('userip', useripSchema);
     }
 };
 exports.createUseripModel = createUseripModel;

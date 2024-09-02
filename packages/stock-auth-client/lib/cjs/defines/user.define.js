@@ -38,6 +38,16 @@ class User extends stock_universal_1.DatabaseAuto {
         this.appendUpdate(data);
     }
     /**
+     * Checks if a user with the given email or phone number exists.
+     * @param emailPhone The email or phone number to check.
+     * @returns A boolean indicating whether the user exists.
+     */
+    static async existsEmailOrPhone(emailPhone) {
+        const observer$ = stock_auth_client_1.StockAuthClient.ehttp.makeGet(`/user/existsemailphone/${emailPhone}`);
+        const response = await (0, rxjs_1.lastValueFrom)(observer$);
+        return response.exists;
+    }
+    /**
      * Retrieves multiple users from a specified URL, with optional offset and limit parameters.
      * @param companyId - The ID of the company
      * @param url The URL to retrieve the users from.

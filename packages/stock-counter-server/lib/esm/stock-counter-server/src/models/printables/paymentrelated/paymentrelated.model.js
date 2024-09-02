@@ -1,5 +1,6 @@
+import { createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
 import { Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../../controllers/database.controller';
+import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 /**
  * Payment Related Schema
@@ -19,11 +20,8 @@ const uniqueValidator = require('mongoose-unique-validator');
  * @property {Date} updatedAt - Timestamp of last update
  */
 const paymentRelatedSchema = new Schema({
-    trackEdit: { type: Schema.ObjectId },
-    trackView: { type: Schema.ObjectId },
+    ...withUrIdAndCompanySchemaObj,
     pesaPalorderTrackingId: { type: String },
-    urId: { type: String, required: [true, 'cannot be empty.'] },
-    companyId: { type: String },
     // creationType: { type: String, required: [true, 'cannot be empty.'] },
     // items: [{ type: String }],
     orderDate: { type: Date, index: true },
@@ -41,18 +39,20 @@ const paymentRelatedSchema = new Schema({
     paymentMethod: { type: String },
     payType: { type: String, index: true },
     orderStatus: { type: String, index: true, default: 'pending' }
-}, { timestamps: true });
+}, { timestamps: true, collection: 'paymentrelateds' });
 // Apply the uniqueValidator plugin to paymentRelatedSchema.
 paymentRelatedSchema.plugin(uniqueValidator);
+paymentRelatedSchema.pre('updateOne', function (next) {
+    return preUpdateDocExpire(this, next);
+});
+paymentRelatedSchema.pre('updateMany', function (next) {
+    return preUpdateDocExpire(this, next);
+});
 /** primary selection object
  * for paymentRelated
  */
 const paymentRelatedselect = {
-    trackEdit: 1,
-    trackView: 1,
-    pesaPalorderTrackingId: 1,
-    urId: 1,
-    companyId: 1,
+    ...withUrIdAndCompanySelectObj,
     // items: 1,
     orderDate: 1,
     paymentDate: 1,
@@ -89,6 +89,7 @@ export const paymentRelatedSelect = paymentRelatedselect;
  * @param lean - Indicates whether to create the lean connection model. Default is true.
  */
 export const createPaymentRelatedModel = async (dbUrl, dbOptions, main = true, lean = true) => {
+    createExpireDocIndex(paymentRelatedSchema);
     if (!isStockDbConnected) {
         await connectStockDatabase(dbUrl, dbOptions);
     }

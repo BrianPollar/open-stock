@@ -1,6 +1,6 @@
 import { user, userLean } from '@open-stock/stock-auth-server';
 import { createNotifications, getCurrentNotificationSettings, sendMail } from '@open-stock/stock-notif-server';
-import { makeUrId, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { addParentToLocals, makeUrId, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import * as fs from 'fs';
 import path from 'path';
 import * as tracer from 'tracer';
@@ -99,7 +99,7 @@ export const updatePaymentRelated = async (paymentRelated, queryId) => {
  * @param queryId - The query ID.
  * @returns A promise that resolves to an object containing the success status and the ID of the created or updated entity.
  */
-export const relegatePaymentRelatedCreation = async (paymentRelated, invoiceRelated, type, // say payment or order
+export const relegatePaymentRelatedCreation = async (res, paymentRelated, invoiceRelated, type, // say payment or order
 extraNotifDesc, queryId) => {
     const isValid = verifyObjectId(paymentRelated.paymentRelated);
     let found;
@@ -125,8 +125,11 @@ extraNotifDesc, queryId) => {
                 errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
             }
-            return errResponse;
+            return err;
         });
+        if (saved && saved._id) {
+            addParentToLocals(res, saved._id, 'paymentrelateds', 'makeTrackEdit');
+        }
         if (errResponse) {
             return errResponse;
         }
@@ -250,8 +253,12 @@ export const deleteManyPaymentRelated = async (ids, queryId) => {
     if (!isValid) {
         return { success: false, status: 402, err: 'unauthourised' };
     }
+    /* const deletedMany = await paymentRelatedMain
+      .deleteMany({ _id: { $in: ids }, companyId: queryId }); */
     const deletedMany = await paymentRelatedMain
-        .deleteMany({ _id: { $in: ids }, companyId: queryId });
+        .updateMany({ _id: { $in: ids }, companyId: queryId }, {
+        $set: { isDeleted: true }
+    });
     if (Boolean(deletedMany)) {
         return { success: Boolean(deletedMany), status: 200 };
     }
@@ -271,14 +278,26 @@ export const deleteAllPayOrderLinked = async (paymentRelated, invoiceRelated, cr
     await deleteManyPaymentRelated([paymentRelated], queryId);
     await deleteManyInvoiceRelated([invoiceRelated], queryId);
     if (creationType !== 'solo') {
-        await paymentMain.deleteOne({ paymentRelated });
-        await orderMain.deleteOne({ paymentRelated });
+        /* await paymentMain.deleteOne({ paymentRelated });
+        await orderMain.deleteOne({ paymentRelated }); */
+        await paymentMain.updateOne({ paymentRelated }, {
+            $set: { isDeleted: true }
+        });
+        await orderMain.updateOne({ paymentRelated }, {
+            $set: { isDeleted: true }
+        });
     }
     else if (where === 'payment') {
-        await paymentMain.deleteOne({ paymentRelated });
+        /* await paymentMain.deleteOne({ paymentRelated }); */
+        await paymentMain.updateOne({ paymentRelated }, {
+            $set: { isDeleted: true }
+        });
     }
     else if (where === 'order') {
-        await orderMain.deleteOne({ paymentRelated });
+        /* await orderMain.deleteOne({ paymentRelated }); */
+        await orderMain.updateOne({ paymentRelated }, {
+            $set: { isDeleted: true }
+        });
     }
 };
 // .catch(err => {});
@@ -289,7 +308,7 @@ export const deleteAllPayOrderLinked = async (paymentRelated, invoiceRelated, cr
  * @param queryId - The query ID.
  * @returns A promise that resolves to an object indicating the success of the operation.
  */
-export const makePaymentInstall = async (receipt, relatedId, queryId, creationType) => {
+export const makePaymentInstall = async (res, receipt, relatedId, queryId, creationType) => {
     // const pInstall = invoiceRelated.payments[0] as IpaymentInstall;
     if (receipt) {
         if (creationType !== 'solo') {
@@ -314,8 +333,11 @@ export const makePaymentInstall = async (receipt, relatedId, queryId, creationTy
                 errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
             }
-            return errResponse;
+            return err;
         });
+        if (savedPinstall && savedPinstall._id) {
+            addParentToLocals(res, savedPinstall._id, 'receipts', 'makeTrackEdit');
+        }
         if (errResponse) {
             return errResponse;
         }
@@ -324,6 +346,10 @@ export const makePaymentInstall = async (receipt, relatedId, queryId, creationTy
     }
     return { success: true };
 };
+/**
+   * Sends a notification to all users with a due date.
+   * @returns A promise that resolves to true if all notifications were sent successfully.
+   */
 export const notifyAllOnDueDate = async () => {
     const now = new Date();
     const withDueDate = await invoiceRelatedLean.find({})

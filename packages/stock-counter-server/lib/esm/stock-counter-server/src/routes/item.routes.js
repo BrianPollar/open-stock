@@ -25,18 +25,18 @@
  * @requires itemOfferMain
  * @requires itemDecoyMain
  */
-import { companyLean, requireActiveCompany, requireCanUseFeature, requireUpdateSubscriptionRecord, userLean } from '@open-stock/stock-auth-server';
+import { populateCompany, populatePhotos, populateTrackEdit, populateTrackView, requireActiveCompany, requireCanUseFeature, requireUpdateSubscriptionRecord } from '@open-stock/stock-auth-server';
 import { makeRandomString } from '@open-stock/stock-universal';
-import { appendBody, deleteAllFiles, deleteFiles, fileMetaLean, makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, saveMetaToDb, stringifyMongooseErr, uploadFiles, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { addParentToLocals, appendBody, appendUserToReqIfTokenExist, deleteAllFiles, deleteFiles, fileMetaLean, makeCompanyBasedQuery, makePredomFilter, makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, saveMetaToDb, stringifyMongooseErr, uploadFiles, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import * as fs from 'fs';
 import path from 'path';
 import * as tracer from 'tracer';
-import { getDecoyFromBehaviour, registerSearchParams, todaysRecomendation } from '../controllers/user-behavoiur.controller';
 import { itemLean, itemMain } from '../models/item.model';
 import { itemDecoyMain } from '../models/itemdecoy.model';
 import { itemOfferMain } from '../models/itemoffer.model';
 import { reviewLean } from '../models/review.model';
+import { getDecoyFromBehaviour, registerSearchParams, todaysRecomendation } from '../utils/user-behavoiur';
 /** The logger for the item routes */
 const itemRoutesLogger = tracer.colorConsole({
     format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
@@ -126,16 +126,14 @@ export const addReview = async (req, res) => {
  */
 export const removeReview = async (req, res) => {
     const { userId } = req.user;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const { filter } = makeCompanyBasedQuery(req);
     const { itemId, rating } = req.params;
-    const isValid = verifyObjectIds([itemId, queryId]);
+    const isValid = verifyObjectIds([itemId]);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const item = await itemMain
-        .findOneAndUpdate({ _id: itemId, companyId: queryId });
+        .findOneAndUpdate({ _id: itemId, ...filter });
     if (!item) {
         return res.status(404).send({ success: false });
     }
@@ -182,14 +180,8 @@ export const removeReview = async (req, res) => {
  */
 itemRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('item'), roleAuthorisation('items', 'create'), async (req, res, next) => {
     const item = req.body.item;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    item.companyId = queryId;
-    const isValid = verifyObjectId(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = makeCompanyBasedQuery(req);
+    item.companyId = filter.companyId;
     const count = await itemMain
         .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     item.urId = makeUrId(Number(count[0]?.urId || '0'));
@@ -209,10 +201,13 @@ itemRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, re
             errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
         }
-        return errResponse;
+        return err;
     });
     if (errResponse) {
         return res.status(403).send(errResponse);
+    }
+    if (saved && saved._id) {
+        addParentToLocals(res, saved._id, itemMain.collection.collectionName, 'makeTrackEdit');
     }
     if (!Boolean(saved)) {
         return res.status(403).send('unknown error');
@@ -231,15 +226,9 @@ itemRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, re
  */
 itemRoutes.post('/createimg/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('item'), roleAuthorisation('items', 'create'), uploadFiles, appendBody, saveMetaToDb, async (req, res, next) => {
     const item = req.body.item;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    item.companyId = queryId;
+    const { filter } = makeCompanyBasedQuery(req);
+    item.companyId = filter.companyId;
     item.ecomerceCompat = true;
-    const isValid = verifyObjectId(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
     const count = await itemMain
         .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     item.urId = makeUrId(Number(count[0]?.urId || '0'));
@@ -266,10 +255,13 @@ itemRoutes.post('/createimg/:companyIdParam', requireAuth, requireActiveCompany,
             errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
         }
-        return errResponse;
+        return err;
     });
     if (errResponse) {
         return res.status(403).send(errResponse);
+    }
+    if (saved && saved._id) {
+        addParentToLocals(res, saved._id, itemMain.collection.collectionName, 'makeTrackEdit');
     }
     if (!Boolean(saved)) {
         return res.status(403).send('unknown error');
@@ -288,18 +280,16 @@ itemRoutes.post('/createimg/:companyIdParam', requireAuth, requireActiveCompany,
  */
 itemRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('items', 'update'), async (req, res) => {
     const updatedProduct = req.body.item;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    updatedProduct.companyId = queryId;
+    const { filter } = makeCompanyBasedQuery(req);
+    updatedProduct.companyId = filter.companyId;
     // eslint-disable-next-line @typescript-eslint/naming-convention
     // const { _id } = updatedProduct;
-    const isValid = verifyObjectIds([updatedProduct._id, queryId]);
+    const isValid = verifyObjectIds([updatedProduct._id]);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const item = await itemMain
-        .findOne({ _id: updatedProduct._id, companyId: queryId });
+        .findOne({ _id: updatedProduct._id, ...filter });
     if (!item) {
         return res.status(404).send({ success: false });
     }
@@ -338,17 +328,15 @@ itemRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCompany, rol
 });
 itemRoutes.post('/updateimg/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('items', 'update'), uploadFiles, appendBody, saveMetaToDb, async (req, res) => {
     const updatedProduct = req.body.item;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const { filter } = makeCompanyBasedQuery(req);
     // eslint-disable-next-line @typescript-eslint/naming-convention
     const { _id } = updatedProduct;
-    const isValid = verifyObjectIds([_id, queryId]);
+    const isValid = verifyObjectIds([_id]);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const item = await itemMain
-        .findOne({ _id, companyId: queryId });
+        .findOne({ _id, ...filter });
     if (!item) {
         return res.status(404).send({ success: false });
     }
@@ -364,7 +352,7 @@ itemRoutes.post('/updateimg/:companyIdParam', requireAuth, requireActiveCompany,
     if (parsed && parsed.newVideos) {
         const meta = await fileMetaLean.findById(item.video);
         if (meta) {
-            await deleteAllFiles([meta]);
+            await deleteAllFiles([meta], true);
         }
         item.video = parsed.newVideos[0];
     }
@@ -398,17 +386,15 @@ itemRoutes.post('/updateimg/:companyIdParam', requireAuth, requireActiveCompany,
     return res.status(200).send({ success: Boolean(updated) });
 });
 itemRoutes.put('/like/:itemId/:companyIdParam', requireAuth, async (req, res) => {
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const { filter } = makeCompanyBasedQuery(req);
     const { userId } = req.user;
     const { itemId } = req.params;
-    const isValid = verifyObjectIds([itemId, queryId]);
+    const isValid = verifyObjectIds([itemId]);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const item = await itemMain
-        .findOneAndUpdate({ _id: itemId, companyId: queryId });
+        .findOneAndUpdate({ _id: itemId, ...filter });
     if (!item) {
         return res.status(404).send({ success: false });
     }
@@ -471,7 +457,7 @@ itemRoutes.put('/unlike/:itemId/:companyIdParam', requireAuth, async (req, res) 
     }
     return res.status(200).send({ success: true });
 });
-itemRoutes.get('/getone/:urId/:companyIdParam', async (req, res) => {
+itemRoutes.get('/getone/:urId/:companyIdParam', appendUserToReqIfTokenExist, async (req, res) => {
     const { companyIdParam, urId } = req.params;
     let filter = { urId };
     const isValid = verifyObjectId(companyIdParam);
@@ -479,33 +465,16 @@ itemRoutes.get('/getone/:urId/:companyIdParam', async (req, res) => {
         filter = { urId, companyId: companyIdParam };
     }
     const item = await itemLean
-        .findOne(filter)
-        .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-        .populate({ path: 'companyId', model: companyLean,
-        populate: [{
-                path: 'owner', model: userLean,
-                populate: [{
-                        path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-                    }],
-                transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
-            }
-        ],
-        transform: (doc) => {
-            if (doc.blocked) {
-                return null;
-            }
-            else {
-                return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
-            }
-        }
-    })
+        .findOne({ ...filter })
+        .populate([populatePhotos(true), populateCompany()])
         .lean();
-    if (item && !item.companyId) {
+    if (!item || !item.companyId) {
         return res.status(200).send({});
     }
+    addParentToLocals(res, item._id, itemMain.collection.collectionName, 'trackDataView');
     return res.status(200).send(item);
 });
-itemRoutes.get('/filtergeneral/:prop/:val/:offset/:limit/:companyIdParam/:ecomerceCompat', async (req, res) => {
+itemRoutes.get('/filtergeneral/:prop/:val/:offset/:limit/:companyIdParam/:ecomerceCompat', appendUserToReqIfTokenExist, async (req, res) => {
     const { companyIdParam, prop, val, ecomerceCompat } = req.params;
     let filter = { [prop]: { $regex: val, $options: 'i' } };
     const isValid = verifyObjectId(companyIdParam);
@@ -520,28 +489,10 @@ itemRoutes.get('/filtergeneral/:prop/:val/:offset/:limit/:companyIdParam/:ecomer
     }
     const all = await Promise.all([
         itemLean
-            .find(filter)
-            .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-            .populate({ path: 'companyId', model: companyLean,
-            populate: [{
-                    path: 'owner', model: userLean,
-                    populate: [{
-                            path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-                        }],
-                    transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
-                }
-            ],
-            transform: (doc) => {
-                if (doc.blocked) {
-                    return null;
-                }
-                else {
-                    return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
-                }
-            }
-        })
+            .find({ ...filter, ...makePredomFilter(req) })
+            .populate([populatePhotos(true), populateCompany()])
             .lean(),
-        itemLean.countDocuments(filter)
+        itemLean.countDocuments({ ...filter, ...makePredomFilter(req) })
     ]);
     const newItems = all[0].filter(item => item.companyId);
     const response = {
@@ -550,7 +501,7 @@ itemRoutes.get('/filtergeneral/:prop/:val/:offset/:limit/:companyIdParam/:ecomer
     };
     return res.status(200).send(response);
 });
-itemRoutes.get('/filterrandom/:prop/:val/:offset/:limit/:companyIdParam/:ecomerceCompat', async (req, res) => {
+itemRoutes.get('/filterrandom/:prop/:val/:offset/:limit/:companyIdParam/:ecomerceCompat', appendUserToReqIfTokenExist, async (req, res) => {
     const { companyIdParam, prop, val, ecomerceCompat } = req.params;
     let filter = { [prop]: { $regex: val, $options: 'i' } };
     const isValid = verifyObjectId(companyIdParam);
@@ -562,29 +513,11 @@ itemRoutes.get('/filterrandom/:prop/:val/:offset/:limit/:companyIdParam/:ecomerc
     }
     const all = await Promise.all([
         itemLean
-            .find(filter)
-            .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-            .populate({ path: 'companyId', model: companyLean,
-            populate: [{
-                    path: 'owner', model: userLean,
-                    populate: [{
-                            path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-                        }],
-                    transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
-                }
-            ],
-            transform: (doc) => {
-                if (doc.blocked) {
-                    return null;
-                }
-                else {
-                    return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
-                }
-            }
-        })
+            .find({ ...filter, ...makePredomFilter(req) })
+            .populate([populatePhotos(true), populateCompany()])
             .sort({ timesViewed: 1, likesCount: 1, reviewCount: 1 })
             .lean(),
-        itemLean.countDocuments(filter)
+        itemLean.countDocuments({ ...filter, ...makePredomFilter(req) })
     ]);
     const newItems = all[0].filter(item => item.companyId);
     const response = {
@@ -593,12 +526,12 @@ itemRoutes.get('/filterrandom/:prop/:val/:offset/:limit/:companyIdParam/:ecomerc
     };
     return res.status(200).send(response);
 });
-itemRoutes.get('/getall/:offset/:limit/:companyIdParam/:ecomerceCompat', async (req, res) => {
+itemRoutes.get('/getall/:offset/:limit/:companyIdParam/:ecomerceCompat', appendUserToReqIfTokenExist, async (req, res) => {
     const { companyIdParam, ecomerceCompat } = req.params;
     let filter = {};
     const isValid = verifyObjectId(companyIdParam);
     if (isValid) {
-        filter = { companyId: companyIdParam };
+        // filter = { companyId: companyIdParam }; //TODO
     }
     if (ecomerceCompat === 'true') {
         filter = { ...filter, ecomerceCompat: true };
@@ -606,39 +539,24 @@ itemRoutes.get('/getall/:offset/:limit/:companyIdParam/:ecomerceCompat', async (
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     const all = await Promise.all([
         itemLean
-            .find(filter)
+            .find({ ...filter, ...makePredomFilter(req) })
             .skip(offset)
             .limit(limit)
-            .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-            .populate({ path: 'companyId', model: companyLean,
-            populate: [{
-                    path: 'owner', model: userLean,
-                    populate: [{
-                            path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-                        }],
-                    transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
-                }
-            ],
-            transform: (doc) => {
-                if (doc.blocked) {
-                    return null;
-                }
-                else {
-                    return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
-                }
-            }
-        })
+            .populate([populatePhotos(true), populateCompany(), populateTrackEdit(), populateTrackView()])
             .lean(),
-        itemLean.countDocuments(filter)
+        itemLean.countDocuments({ ...filter, ...makePredomFilter(req) })
     ]);
     const newItems = all[0].filter(item => item.companyId);
     const response = {
         count: all[1],
         data: newItems
     };
+    for (const val of all[0]) {
+        addParentToLocals(res, val._id, itemMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
-itemRoutes.get('/getbestsellers/:offset/:limit/:companyIdParam/:ecomerceCompat', async (req, res) => {
+itemRoutes.get('/getbestsellers/:offset/:limit/:companyIdParam/:ecomerceCompat', appendUserToReqIfTokenExist, async (req, res) => {
     const { companyIdParam, ecomerceCompat } = req.params;
     let filter = {};
     const isValid = verifyObjectId(companyIdParam);
@@ -651,40 +569,25 @@ itemRoutes.get('/getbestsellers/:offset/:limit/:companyIdParam/:ecomerceCompat',
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     const all = await Promise.all([
         itemLean
-            .find(filter)
+            .find({ ...filter, ...makePredomFilter(req) })
             .skip(offset)
             .limit(limit)
             .sort({ soldCount: 1 })
-            .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-            .populate({ path: 'companyId', model: companyLean,
-            populate: [{
-                    path: 'owner', model: userLean,
-                    populate: [{
-                            path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-                        }],
-                    transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
-                }
-            ],
-            transform: (doc) => {
-                if (doc.blocked) {
-                    return null;
-                }
-                else {
-                    return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
-                }
-            }
-        })
+            .populate([populatePhotos(true), populateCompany()])
             .lean(),
-        itemLean.countDocuments(filter)
+        itemLean.countDocuments({ ...filter, ...makePredomFilter(req) })
     ]);
     const newItems = all[0].filter(item => item.companyId);
     const response = {
         count: all[1],
         data: newItems
     };
+    for (const val of newItems) {
+        addParentToLocals(res, val._id, itemMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
-itemRoutes.get('/gettodaysuggestions/:userId/:offset/:limit/:companyIdParam/:ecomerceCompat', async (req, res) => {
+itemRoutes.get('/gettodaysuggestions/:userId/:offset/:limit/:companyIdParam/:ecomerceCompat', appendUserToReqIfTokenExist, async (req, res) => {
     const { userId, limit } = req.params;
     const stnCookie = req.signedCookies['settings'];
     const { ids, newOffset, newLimit } = await todaysRecomendation(limit, stnCookie?.userCookieId, userId);
@@ -694,40 +597,25 @@ itemRoutes.get('/gettodaysuggestions/:userId/:offset/:limit/:companyIdParam/:eco
     }
     const all = await Promise.all([
         itemLean
-            .find(filter)
-            .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+            .find({ ...filter, ...makePredomFilter(req) })
             .sort({ timesViewed: 1 })
             .skip(newOffset)
             .limit(newLimit)
-            .populate({ path: 'companyId', model: companyLean,
-            populate: [{
-                    path: 'owner', model: userLean,
-                    populate: [{
-                            path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-                        }],
-                    transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
-                }
-            ],
-            transform: (doc) => {
-                if (doc.blocked) {
-                    return null;
-                }
-                else {
-                    return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
-                }
-            }
-        })
+            .populate([populatePhotos(true), populateCompany()])
             .lean(),
-        itemLean.countDocuments(filter)
+        itemLean.countDocuments({ ...filter, ...makePredomFilter(req) })
     ]);
     const newItems = all[0].filter(item => item.companyId);
     const response = {
         count: all[1],
         data: newItems
     };
+    for (const val of newItems) {
+        addParentToLocals(res, val._id, itemMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
-itemRoutes.get('/gettrending/:offset/:limit/:companyIdParam/:ecomerceCompat', async (req, res) => {
+itemRoutes.get('/gettrending/:offset/:limit/:companyIdParam/:ecomerceCompat', appendUserToReqIfTokenExist, async (req, res) => {
     const { companyIdParam, ecomerceCompat } = req.params;
     let filter = {};
     const isValid = verifyObjectId(companyIdParam);
@@ -739,75 +627,45 @@ itemRoutes.get('/gettrending/:offset/:limit/:companyIdParam/:ecomerceCompat', as
     }
     const all = await Promise.all([
         itemLean
-            .find(filter)
-            .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+            .find({ ...filter, ...makePredomFilter(req) })
             .sort({ timesViewed: 1 })
-            .populate({ path: 'companyId', model: companyLean,
-            populate: [{
-                    path: 'owner', model: userLean,
-                    populate: [{
-                            path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-                        }],
-                    transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
-                }
-            ],
-            transform: (doc) => {
-                if (doc.blocked) {
-                    return null;
-                }
-                else {
-                    return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
-                }
-            }
-        })
+            .populate([populatePhotos(true), populateCompany()])
             .lean(),
-        itemLean.countDocuments(filter)
+        itemLean.countDocuments({ ...filter, ...makePredomFilter(req) })
     ]);
     const newItems = all[0].filter(item => item.companyId);
     const response = {
         count: all[1],
         data: newItems
     };
+    for (const val of newItems) {
+        addParentToLocals(res, val._id, itemMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
-itemRoutes.get('/getbehaviourdecoy/:userId/offset/limit/:companyIdParam/:ecomerceCompat', async (req, res) => {
+itemRoutes.get('/getbehaviourdecoy/:userId/offset/limit/:companyIdParam/:ecomerceCompat', appendUserToReqIfTokenExist, async (req, res) => {
     const { userId } = req.params;
     const stnCookie = req.signedCookies['settings'];
     const { ids } = await getDecoyFromBehaviour(stnCookie?.userCookieId, userId);
     const all = await Promise.all([
         itemLean
-            .find({ _id: { $in: ids } })
-            .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+            .find({ _id: { $in: ids }, ...makePredomFilter(req) })
             .sort({ timesViewed: 1 })
-            .populate({ path: 'companyId', model: companyLean,
-            populate: [{
-                    path: 'owner', model: userLean,
-                    populate: [{
-                            path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-                        }],
-                    transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
-                }
-            ],
-            transform: (doc) => {
-                if (doc.blocked) {
-                    return null;
-                }
-                else {
-                    return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
-                }
-            }
-        })
+            .populate([populatePhotos(true), populateCompany()])
             .lean(),
-        itemLean.countDocuments({ _id: { $in: ids } })
+        itemLean.countDocuments({ _id: { $in: ids }, ...makePredomFilter(req) })
     ]);
     const newItems = all[0].filter(item => item.companyId);
     const response = {
         count: all[1],
         data: newItems
     };
+    for (const val of newItems) {
+        addParentToLocals(res, val._id, itemMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
-itemRoutes.get('/getfeatured/:offset/:limit/:companyIdParam/:ecomerceCompat', async (req, res) => {
+itemRoutes.get('/getfeatured/:offset/:limit/:companyIdParam/:ecomerceCompat', appendUserToReqIfTokenExist, async (req, res) => {
     const { companyIdParam, ecomerceCompat } = req.params;
     let filter = {};
     const isValid = verifyObjectId(companyIdParam);
@@ -819,39 +677,24 @@ itemRoutes.get('/getfeatured/:offset/:limit/:companyIdParam/:ecomerceCompat', as
     }
     const all = await Promise.all([
         itemLean
-            .find(filter)
-            .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+            .find({ ...filter, ...makePredomFilter(req) })
             .sort({ timesViewed: 1, likesCount: 1, reviewCount: 1 })
-            .populate({ path: 'companyId', model: companyLean,
-            populate: [{
-                    path: 'owner', model: userLean,
-                    populate: [{
-                            path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-                        }],
-                    transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
-                }
-            ],
-            transform: (doc) => {
-                if (doc.blocked) {
-                    return null;
-                }
-                else {
-                    return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
-                }
-            }
-        })
+            .populate([populatePhotos(true), populateCompany()])
             .lean(),
-        itemLean.countDocuments(filter)
+        itemLean.countDocuments({ ...filter, ...makePredomFilter(req) })
     ]);
     const newItems = all[0].filter(item => item.companyId);
     const response = {
         count: all[1],
         data: newItems
     };
+    for (const val of newItems) {
+        addParentToLocals(res, val._id, itemMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
 // newly posted
-itemRoutes.get('/getnew/:offset/:limit/:companyIdParam/:ecomerceCompat', async (req, res) => {
+itemRoutes.get('/getnew/:offset/:limit/:companyIdParam/:ecomerceCompat', appendUserToReqIfTokenExist, async (req, res) => {
     const { companyIdParam, ecomerceCompat } = req.params;
     let filter = {};
     const isValid = verifyObjectId(companyIdParam);
@@ -863,39 +706,24 @@ itemRoutes.get('/getnew/:offset/:limit/:companyIdParam/:ecomerceCompat', async (
     }
     const all = await Promise.all([
         itemLean
-            .find(filter)
-            .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+            .find({ ...filter, ...makePredomFilter(req) })
             .sort({ createdAt: -1 })
-            .populate({ path: 'companyId', model: companyLean,
-            populate: [{
-                    path: 'owner', model: userLean,
-                    populate: [{
-                            path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-                        }],
-                    transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
-                }
-            ],
-            transform: (doc) => {
-                if (doc.blocked) {
-                    return null;
-                }
-                else {
-                    return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
-                }
-            }
-        })
+            .populate([populatePhotos(true), populateCompany()])
             .lean(),
-        itemLean.countDocuments(filter)
+        itemLean.countDocuments({ ...filter, ...makePredomFilter(req) })
     ]);
     const newItems = all[0].filter(item => item.companyId);
     const response = {
         count: all[1],
         data: newItems
     };
+    for (const val of newItems) {
+        addParentToLocals(res, val._id, itemMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
 // new not used
-itemRoutes.get('/getbrandnew/:offset/:limit/:companyIdParam/:ecomerceCompat', async (req, res) => {
+itemRoutes.get('/getbrandnew/:offset/:limit/:companyIdParam/:ecomerceCompat', appendUserToReqIfTokenExist, async (req, res) => {
     const { companyIdParam, ecomerceCompat } = req.params;
     let filter = { state: 'new' };
     const isValid = verifyObjectId(companyIdParam);
@@ -907,39 +735,24 @@ itemRoutes.get('/getbrandnew/:offset/:limit/:companyIdParam/:ecomerceCompat', as
     }
     const all = await Promise.all([
         itemLean
-            .find(filter)
-            .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+            .find({ ...filter, ...makePredomFilter(req) })
             .sort({ createdAt: -1 })
-            .populate({ path: 'companyId', model: companyLean,
-            populate: [{
-                    path: 'owner', model: userLean,
-                    populate: [{
-                            path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-                        }],
-                    transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
-                }
-            ],
-            transform: (doc) => {
-                if (doc.blocked) {
-                    return null;
-                }
-                else {
-                    return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
-                }
-            }
-        })
+            .populate([populatePhotos(true), populateCompany()])
             .lean(),
-        itemLean.countDocuments(filter)
+        itemLean.countDocuments({ ...filter, ...makePredomFilter(req) })
     ]);
     const newItems = all[0].filter(item => item.companyId);
     const response = {
         count: all[1],
         data: newItems
     };
+    for (const val of newItems) {
+        addParentToLocals(res, val._id, itemMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
 // new not used
-itemRoutes.get('/getused/:offset/:limit/:companyIdParam/:ecomerceCompat', async (req, res) => {
+itemRoutes.get('/getused/:offset/:limit/:companyIdParam/:ecomerceCompat', appendUserToReqIfTokenExist, async (req, res) => {
     const { companyIdParam, ecomerceCompat } = req.params;
     let filter = { state: 'refurbished' };
     const isValid = verifyObjectId(companyIdParam);
@@ -951,39 +764,24 @@ itemRoutes.get('/getused/:offset/:limit/:companyIdParam/:ecomerceCompat', async 
     }
     const all = await Promise.all([
         itemLean
-            .find(filter)
-            .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+            .find({ ...filter, ...makePredomFilter(req) })
             .sort({ createdAt: -1 })
-            .populate({ path: 'companyId', model: companyLean,
-            populate: [{
-                    path: 'owner', model: userLean,
-                    populate: [{
-                            path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-                        }],
-                    transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
-                }
-            ],
-            transform: (doc) => {
-                if (doc.blocked) {
-                    return null;
-                }
-                else {
-                    return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
-                }
-            }
-        })
+            .populate([populatePhotos(true), populateCompany()])
             .lean(),
-        itemLean.countDocuments(filter)
+        itemLean.countDocuments({ ...filter, ...makePredomFilter(req) })
     ]);
     const newItems = all[0].filter(item => item.companyId);
     const response = {
         count: all[1],
         data: newItems
     };
+    for (const val of all[0]) {
+        addParentToLocals(res, val._id, itemMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
 // filterprice
-itemRoutes.get('/filterprice/max/:priceFilterValue/:offset/:limit/:companyIdParam/:ecomerceCompat', async (req, res) => {
+itemRoutes.get('/filterprice/max/:priceFilterValue/:offset/:limit/:companyIdParam/:ecomerceCompat', appendUserToReqIfTokenExist, async (req, res) => {
     const { companyIdParam, ecomerceCompat } = req.params;
     let filter = {};
     const isValid = verifyObjectId(companyIdParam);
@@ -996,39 +794,24 @@ itemRoutes.get('/filterprice/max/:priceFilterValue/:offset/:limit/:companyIdPara
     const { priceFilterValue } = req.params;
     const all = await Promise.all([
         itemLean
-            .find(filter)
+            .find({ ...filter, ...makePredomFilter(req) })
             .gte('costMeta.sellingPrice', Number(priceFilterValue))
-            .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
             .sort({ createdAt: -1 })
-            .populate({ path: 'companyId', model: companyLean,
-            populate: [{
-                    path: 'owner', model: userLean,
-                    populate: [{
-                            path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-                        }],
-                    transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
-                }
-            ],
-            transform: (doc) => {
-                if (doc.blocked) {
-                    return null;
-                }
-                else {
-                    return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
-                }
-            }
-        })
+            .populate([populatePhotos(true), populateCompany()])
             .lean(),
-        itemLean.countDocuments(filter)
+        itemLean.countDocuments({ ...filter, ...makePredomFilter(req) })
     ]);
     const newItems = all[0].filter(item => item.companyId);
     const response = {
         count: all[1],
         data: newItems
     };
+    for (const val of newItems) {
+        addParentToLocals(res, val._id, itemMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
-itemRoutes.get('/filterprice/min/:priceFilterValue/:offset/:limit/:companyIdParam/:ecomerceCompat', async (req, res) => {
+itemRoutes.get('/filterprice/min/:priceFilterValue/:offset/:limit/:companyIdParam/:ecomerceCompat', appendUserToReqIfTokenExist, async (req, res) => {
     const { companyIdParam, ecomerceCompat } = req.params;
     let filter = {};
     const isValid = verifyObjectId(companyIdParam);
@@ -1041,39 +824,24 @@ itemRoutes.get('/filterprice/min/:priceFilterValue/:offset/:limit/:companyIdPara
     const { priceFilterValue } = req.params;
     const all = await Promise.all([
         itemLean
-            .find(filter)
+            .find({ ...filter, ...makePredomFilter(req) })
             .lte('costMeta.sellingPrice', Number(priceFilterValue))
-            .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
             .sort({ createdAt: -1 })
-            .populate({ path: 'companyId', model: companyLean,
-            populate: [{
-                    path: 'owner', model: userLean,
-                    populate: [{
-                            path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-                        }],
-                    transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
-                }
-            ],
-            transform: (doc) => {
-                if (doc.blocked) {
-                    return null;
-                }
-                else {
-                    return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
-                }
-            }
-        })
+            .populate([populatePhotos(true), populateCompany()])
             .lean(),
-        itemLean.countDocuments(filter)
+        itemLean.countDocuments({ ...filter, ...makePredomFilter(req) })
     ]);
     const newItems = all[0].filter(item => item.companyId);
     const response = {
         count: all[1],
         data: newItems
     };
+    for (const val of newItems) {
+        addParentToLocals(res, val._id, itemMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
-itemRoutes.get('/filterprice/eq/:priceFilterMinValue/:priceFilterMaxValue/:offset/:limit/:companyIdParam/:ecomerceCompat', async (req, res) => {
+itemRoutes.get('/filterprice/eq/:priceFilterMinValue/:priceFilterMaxValue/:offset/:limit/:companyIdParam/:ecomerceCompat', appendUserToReqIfTokenExist, async (req, res) => {
     const { companyIdParam, ecomerceCompat } = req.params;
     let filter = {};
     const isValid = verifyObjectId(companyIdParam);
@@ -1086,40 +854,25 @@ itemRoutes.get('/filterprice/eq/:priceFilterMinValue/:priceFilterMaxValue/:offse
     const { priceFilterMinValue, priceFilterMaxValue } = req.params;
     const all = await Promise.all([
         itemLean
-            .find(filter)
+            .find({ ...filter, ...makePredomFilter(req) })
             .gte('costMeta.sellingPrice', Number(priceFilterMaxValue))
             .lte('costMeta.sellingPrice', Number(priceFilterMinValue))
-            .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
             .sort({ createdAt: -1 })
-            .populate({ path: 'companyId', model: companyLean,
-            populate: [{
-                    path: 'owner', model: userLean,
-                    populate: [{
-                            path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-                        }],
-                    transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
-                }
-            ],
-            transform: (doc) => {
-                if (doc.blocked) {
-                    return null;
-                }
-                else {
-                    return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
-                }
-            }
-        })
+            .populate([populatePhotos(true), populateCompany()])
             .lean(),
-        itemLean.countDocuments(filter)
+        itemLean.countDocuments({ ...filter, ...makePredomFilter(req) })
     ]);
     const newItems = all[0].filter(item => item.companyId);
     const response = {
         count: all[1],
         data: newItems
     };
+    for (const val of newItems) {
+        addParentToLocals(res, val._id, itemMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
-itemRoutes.get('/filterstars/:starVal/:offset/:limit/:companyIdParam/:ecomerceCompat', async (req, res) => {
+itemRoutes.get('/filterstars/:starVal/:offset/:limit/:companyIdParam/:ecomerceCompat', appendUserToReqIfTokenExist, async (req, res) => {
     const { companyIdParam, ecomerceCompat } = req.params;
     let filter = {};
     const isValid = verifyObjectId(companyIdParam);
@@ -1132,42 +885,27 @@ itemRoutes.get('/filterstars/:starVal/:offset/:limit/:companyIdParam/:ecomerceCo
     const starVal = Number(req.params.starVal);
     const all = await Promise.all([
         reviewLean
-            .find(filter)
+            .find({ ...filter, ...makePredomFilter(req) })
             .where('rating') // rating
             .lte(starVal + 2)
             .gte(starVal)
             .select({ itemId: 1 })
-            .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
             .lean()
-            .populate({ path: 'companyId', model: companyLean,
-            populate: [{
-                    path: 'owner', model: userLean,
-                    populate: [{
-                            path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-                        }],
-                    transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
-                }
-            ],
-            transform: (doc) => {
-                if (doc.blocked) {
-                    return null;
-                }
-                else {
-                    return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
-                }
-            }
-        })
+            .populate([populatePhotos(true), populateCompany()])
             .lean(),
-        reviewLean.countDocuments(filter)
+        reviewLean.countDocuments({ ...filter, ...makePredomFilter(req) })
     ]);
     const newItems = all[0].filter(val => val.companyId);
     const response = {
         count: all[1],
         data: newItems
     };
+    for (const val of newItems) {
+        addParentToLocals(res, val._id, itemMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
-itemRoutes.get('/discount/:discountValue/:offset/:limit/:companyIdParam/:ecomerceCompat', async (req, res) => {
+itemRoutes.get('/discount/:discountValue/:offset/:limit/:companyIdParam/:ecomerceCompat', appendUserToReqIfTokenExist, async (req, res) => {
     const { companyIdParam, ecomerceCompat } = req.params;
     let filter = {};
     const isValid = verifyObjectId(companyIdParam);
@@ -1180,7 +918,7 @@ itemRoutes.get('/discount/:discountValue/:offset/:limit/:companyIdParam/:ecomerc
     const { discountValue } = req.params;
     const all = await Promise.all([
         itemLean
-            .find(filter)
+            .find({ ...filter, ...makePredomFilter(req) })
             .or([
             {
                 // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -1195,37 +933,22 @@ itemRoutes.get('/discount/:discountValue/:offset/:limit/:companyIdParam/:ecomerc
                 'costMeta.discount': Number(discountValue)
             }
         ])
-            .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
             .sort({ createdAt: -1 })
-            .populate({ path: 'companyId', model: companyLean,
-            populate: [{
-                    path: 'owner', model: userLean,
-                    populate: [{
-                            path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-                        }],
-                    transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
-                }
-            ],
-            transform: (doc) => {
-                if (doc.blocked) {
-                    return null;
-                }
-                else {
-                    return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
-                }
-            }
-        })
+            .populate([populatePhotos(true), populateCompany()])
             .lean(),
-        itemLean.countDocuments(filter)
+        itemLean.countDocuments({ ...filter, ...makePredomFilter(req) })
     ]);
     const newItems = all[0].filter(item => item.companyId);
     const response = {
         count: all[1],
         data: newItems
     };
+    for (const val of newItems) {
+        addParentToLocals(res, val._id, itemMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
-itemRoutes.post('/getsponsored/:companyIdParam', async (req, res) => {
+itemRoutes.post('/getsponsored/:companyIdParam', appendUserToReqIfTokenExist, async (req, res) => {
     const { companyIdParam } = req.params;
     const ids = req.body.sponsored;
     // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -1246,33 +969,18 @@ itemRoutes.post('/getsponsored/:companyIdParam', async (req, res) => {
         return res.status(403).send({ success: false, status: 403, err: 'no sponsored items provided' });
     }
     const items = await itemLean
-        .find(filter)
-        .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+        .find({ ...filter, ...makePredomFilter(req) })
         .lean()
         .sort({ timesViewed: 1 })
-        .populate({ path: 'companyId', model: companyLean,
-        populate: [{
-                path: 'owner', model: userLean,
-                populate: [{
-                        path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-                    }],
-                transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
-            }
-        ],
-        transform: (doc) => {
-            if (doc.blocked) {
-                return null;
-            }
-            else {
-                return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
-            }
-        }
-    })
+        .populate([populatePhotos(true), populateCompany()])
         .lean();
     const newItems = items.filter(item => item.companyId);
+    for (const val of newItems) {
+        addParentToLocals(res, val._id, itemMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(newItems);
 });
-itemRoutes.get('/getoffered/:companyIdParam', async (req, res) => {
+itemRoutes.get('/getoffered/:companyIdParam', appendUserToReqIfTokenExist, async (req, res) => {
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
@@ -1282,33 +990,15 @@ itemRoutes.get('/getoffered/:companyIdParam', async (req, res) => {
         filter = { companyId: queryId };
     }
     const items = await itemLean
-        .find(filter)
+        .find({ ...filter, ...makePredomFilter(req) })
         .populate({ path: 'sponsored', model: itemLean,
         populate: [{
                 path: 'photos', model: fileMetaLean
             }
         ]
     })
-        .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
         .sort({ createdAt: -1 })
-        .populate({ path: 'companyId', model: companyLean,
-        populate: [{
-                path: 'owner', model: userLean,
-                populate: [{
-                        path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-                    }],
-                transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
-            }
-        ],
-        transform: (doc) => {
-            if (doc.blocked) {
-                return null;
-            }
-            else {
-                return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
-            }
-        }
-    })
+        .populate([populatePhotos(true), populateCompany()])
         .lean();
     const newItems = items.filter(item => item.companyId);
     const filtered = newItems.filter(p => p.sponsored?.length && p.sponsored?.length > 0);
@@ -1317,13 +1007,7 @@ itemRoutes.get('/getoffered/:companyIdParam', async (req, res) => {
 itemRoutes.put('/addsponsored/:id/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('items', 'update'), async (req, res) => {
     const { id } = req.params;
     const { sponsored } = req.body;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = verifyObjectIds([id, queryId]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = makeCompanyBasedQuery(req);
     const item = await itemMain.findByIdAndUpdate(id);
     if (!item) {
         return res.status(404).send({ success: false });
@@ -1349,18 +1033,12 @@ itemRoutes.put('/addsponsored/:id/:companyIdParam', requireAuth, requireActiveCo
     }
     return res.status(200).send({ success: true });
 });
-itemRoutes.put('/updatesponsored/:id/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('items', 'update'), deleteFiles, async (req, res) => {
+itemRoutes.put('/updatesponsored/:id/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('items', 'update'), async (req, res) => {
     const { id } = req.params;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
     const { sponsored } = req.body;
-    const isValid = verifyObjectIds([id, queryId]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = makeCompanyBasedQuery(req);
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    const item = await itemMain.findOneAndUpdate({ _id: id, companyId: queryId });
+    const item = await itemMain.findOneAndUpdate({ _id: id, ...filter });
     if (!item) {
         return res.status(404).send({ success: false });
     }
@@ -1391,15 +1069,9 @@ itemRoutes.put('/updatesponsored/:id/:companyIdParam', requireAuth, requireActiv
 });
 itemRoutes.delete('/deletesponsored/:id/:spnsdId/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('items', 'update'), async (req, res) => {
     const { id, spnsdId } = req.params;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = verifyObjectIds([id, queryId]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = makeCompanyBasedQuery(req);
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    const item = await itemMain.findOneAndUpdate({ _id: id, companyId: queryId });
+    const item = await itemMain.findOneAndUpdate({ _id: id, ...filter });
     if (!item) {
         return res.status(404).send({ success: false });
     }
@@ -1430,20 +1102,14 @@ itemRoutes.delete('/deletesponsored/:id/:spnsdId/:companyIdParam', requireAuth, 
 });
 itemRoutes.put('/deleteone/:id/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('items', 'delete'), async (req, res) => {
     const { id } = req.params;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = verifyObjectIds([id, queryId]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = makeCompanyBasedQuery(req);
     // start by removing offers
-    await itemOfferMain.deleteMany({ companyId: queryId, items: { $elemMatch: { $in: [id] } } });
+    await itemOfferMain.deleteMany({ ...filter, items: { $elemMatch: { $in: [id] } } });
     // also remove decoys
-    await itemDecoyMain.deleteMany({ companyId: queryId, items: { $elemMatch: { $in: [id] } } });
+    await itemDecoyMain.deleteMany({ ...filter, items: { $elemMatch: { $in: [id] } } });
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    const found = await itemMain.findOne({ _id: id, companyId: queryId })
-        .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+    const found = await itemMain.findOne({ _id: id, ...filter })
+        .populate([populatePhotos(true)])
         .populate({ path: 'video', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
         .lean();
     if (found) {
@@ -1457,31 +1123,27 @@ itemRoutes.put('/deleteone/:id/:companyIdParam', requireAuth, requireActiveCompa
         await deleteAllFiles(filesWithDir);
     }
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    const deleted = await itemMain.findOneAndDelete({ _id: id, companyId: queryId });
+    // const deleted = await itemMain.findOneAndDelete({ _id: id, ...filter });
+    const deleted = await itemMain.updateOne({ _id: id, ...filter }, { $set: { isDeleted: true } });
     if (Boolean(deleted)) {
+        addParentToLocals(res, id, itemMain.collection.collectionName, 'trackDataDelete');
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
         return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
-itemRoutes.put('/deletefiles/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('items', 'delete'), deleteFiles, async (req, res) => {
+itemRoutes.put('/deletefiles/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('items', 'delete'), deleteFiles(true), async (req, res) => {
     const filesWithDir = req.body.filesWithDir;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const { filter } = makeCompanyBasedQuery(req);
     if (filesWithDir && !filesWithDir.length) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const updatedProduct = req.body.item;
     // eslint-disable-next-line @typescript-eslint/naming-convention
     const { _id } = updatedProduct;
-    const isValid = verifyObjectIds([_id, queryId]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
     const item = await itemMain
-        .findOneAndUpdate({ _id, companyId: queryId });
+        .findOneAndUpdate({ _id, ...filter });
     if (!item) {
         return res.status(404).send({ success: false, err: 'item not found' });
     }
@@ -1606,30 +1268,12 @@ itemRoutes.post('/search/:offset/:limit/:companyIdParam;userId', async (req, res
     }, {}); */
     const all = await Promise.all([
         itemLean
-            .find({ [searchKey]: { $regex: searchterm, $options: 'i' }, ...filter })
+            .find({ [searchKey]: { $regex: searchterm, $options: 'i' }, ...filter, ...makePredomFilter(req) })
             .skip(offset)
             .limit(limit)
-            .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-            .populate({ path: 'companyId', model: companyLean,
-            populate: [{
-                    path: 'owner', model: userLean,
-                    populate: [{
-                            path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-                        }],
-                    transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
-                }
-            ],
-            transform: (doc) => {
-                if (doc.blocked) {
-                    return null;
-                }
-                else {
-                    return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
-                }
-            }
-        })
+            .populate([populatePhotos(true), populateCompany()])
             .lean(),
-        itemLean.countDocuments({ [searchKey]: { $regex: searchterm, $options: 'i' }, ...filter })
+        itemLean.countDocuments({ [searchKey]: { $regex: searchterm, $options: 'i' }, ...filter, ...makePredomFilter(req) })
     ]);
     const newItems = all[0].filter(item => item.companyId);
     const response = {
@@ -1640,23 +1284,23 @@ itemRoutes.post('/search/:offset/:limit/:companyIdParam;userId', async (req, res
 });
 itemRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('items', 'delete'), async (req, res) => {
     const { ids } = req.body;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = verifyObjectIds([...ids, ...[queryId]]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = makeCompanyBasedQuery(req);
     // start by removing offers
-    await itemOfferMain.deleteMany({ companyId: queryId, items: { $elemMatch: { $in: ids } } });
+    /* await itemOfferMain.deleteMany({ companyId: queryId, items: { $elemMatch: { $in: ids } } }); */
+    // TODO tarack ehe
+    await itemOfferMain.updateOne({ ...filter, items: { $elemMatch: { $in: ids } } }, {
+        $set: { isDeleted: true }
+    });
     // also remove decoys
-    await itemDecoyMain.deleteMany({ companyId: queryId, items: { $elemMatch: { $in: ids } } });
+    /* await itemDecoyMain.deleteMany({ companyId: queryId, items: { $elemMatch: { $in: ids } } }); */
+    // TODO TARC
+    await itemDecoyMain.updateOne({ ...filter, items: { $elemMatch: { $in: ids } } }, {
+        $set: { isDeleted: true }
+    });
     let filesWithDir;
     // eslint-disable-next-line @typescript-eslint/naming-convention
     const alltoDelete = await itemLean.find({ _id: { $in: ids } })
-        .populate({ path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-        .populate({ path: 'profileCoverPic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-        .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+        .populate([populatePhotos(true)])
         .populate({ path: 'video', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
         .lean();
     for (const user of alltoDelete) {
@@ -1668,13 +1312,25 @@ itemRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany,
         }
     }
     await deleteAllFiles(filesWithDir);
+    /* const deleted = await itemMain
+      .deleteMany({ _id: { $in: ids } })
+      .catch(err => {
+        itemRoutesLogger.error('deletemany - err: ', err);
+  
+        return null;
+      }); */
     const deleted = await itemMain
-        .deleteMany({ _id: { $in: ids } })
+        .updateMany({ _id: { $in: ids } }, {
+        $set: { isDeleted: true }
+    })
         .catch(err => {
         itemRoutesLogger.error('deletemany - err: ', err);
         return null;
     });
     if (Boolean(deleted)) {
+        for (const val of ids) {
+            addParentToLocals(res, val, itemMain.collection.collectionName, 'trackDataDelete');
+        }
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {

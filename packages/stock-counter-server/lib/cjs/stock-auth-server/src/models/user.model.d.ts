@@ -5,13 +5,11 @@
 /// <reference types="mongoose/types/collection" />
 /// <reference types="mongoose/types/connection" />
 /// <reference types="mongoose/types/cursor" />
-/// <reference types="mongoose/types/document" />
 /// <reference types="mongoose/types/error" />
 /// <reference types="mongoose/types/expressions" />
 /// <reference types="mongoose/types/helpers" />
 /// <reference types="mongoose/types/middlewares" />
 /// <reference types="mongoose/types/indexes" />
-/// <reference types="mongoose/types/models" />
 /// <reference types="mongoose/types/mongooseoptions" />
 /// <reference types="mongoose/types/pipelinestage" />
 /// <reference types="mongoose/types/populate" />
@@ -26,7 +24,7 @@
 /// <reference types="mongoose/types/inferschematype" />
 import { Iuser } from '@open-stock/stock-universal';
 import { ConnectOptions, Document, Model } from 'mongoose';
-interface IschemaMethods {
+export interface IschemaMethods {
     comparePassword: (...args: any[]) => void;
     sendAuthyToken: (...args: any[]) => void;
     verifyAuthyToken: (...args: any[]) => void;
@@ -48,7 +46,6 @@ export declare let userLean: Model<Tuser>;
  * Represents the user authentication select function.
  */
 export declare const userAuthSelect: {
-    urId: number;
     fname: number;
     lname: number;
     companyName: number;
@@ -78,12 +75,17 @@ export declare const userAuthSelect: {
     createdAt: number;
     userType: number;
     photos: number;
+    urId: number;
+    companyId: number;
+    trackEdit: number;
+    trackView: number;
+    isDeleted: number;
+    trackDeleted: number;
 };
 /**
  * Represents the userAboutSelect constant.
  */
 export declare const userAboutSelect: {
-    urId: number;
     fname: number;
     lname: number;
     companyName: number;
@@ -104,6 +106,12 @@ export declare const userAboutSelect: {
     photos: number;
     profilePic: number;
     profileCoverPic: number;
+    urId: number;
+    companyId: number;
+    trackEdit: number;
+    trackView: number;
+    isDeleted: number;
+    trackDeleted: number;
 };
 /**
  * Creates a user model with the specified database URL.
@@ -112,4 +120,3 @@ export declare const userAboutSelect: {
  * @param lean Indicates whether to create the lean user model.
  */
 export declare const createUserModel: (dbUrl: string, dbOptions?: ConnectOptions, main?: boolean, lean?: boolean) => Promise<void>;
-export {};

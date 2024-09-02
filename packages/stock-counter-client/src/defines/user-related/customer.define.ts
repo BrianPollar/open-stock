@@ -61,8 +61,8 @@ export class Customer extends UserBase {
    * @param {string} id - The customer ID.
    * @returns {Promise<Customer>} - A single Customer instance created from the retrieved customer data.
    */
-  static async getOneCustomer(filter: IgetOneFilter): Promise<Customer> {
-    const observer$ = StockCounterClient.ehttp.makePost('/customer/getone', filter);
+  static async getOneCustomer(companyId: string, filter: IgetOneFilter): Promise<Customer> {
+    const observer$ = StockCounterClient.ehttp.makePost(`/customer/getone/${companyId}`, filter);
     const customer = await lastValueFrom(observer$) as Icustomer;
 
     return new Customer(customer);

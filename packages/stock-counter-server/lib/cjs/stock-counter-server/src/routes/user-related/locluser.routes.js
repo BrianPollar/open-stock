@@ -56,10 +56,11 @@ const removeOneUser = (canByPass) => {
         if (!canRemove.success) {
             return res.status(401).send({ ...canRemove, status: 401 });
         }
+        /* const found = await user.findOne({ _id: credential.userId })
+          .populate([populateProfilePic(true), populateProfileCoverPic(true), populatePhotos(true), populateTrackEdit(), populateTrackView() ])
+          .lean(); */
         const found = await stock_auth_server_1.user.findOne({ _id: credential.userId })
-            .populate({ path: 'profilePic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-            .populate({ path: 'profileCoverPic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-            .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+            .populate([(0, stock_auth_server_1.populateProfilePic)(true), (0, stock_auth_server_1.populateProfileCoverPic)(true), (0, stock_auth_server_1.populatePhotos)(true), (0, stock_auth_server_1.populateTrackEdit)(), (0, stock_auth_server_1.populateTrackView)()])
             .lean();
         if (found) {
             const filesWithDir = found.photos.map(photo => ({
@@ -68,7 +69,11 @@ const removeOneUser = (canByPass) => {
             }));
             await (0, stock_universal_server_1.deleteAllFiles)(filesWithDir);
         }
-        const deleted = await stock_auth_server_1.user.findOneAndDelete({ _id: credential.userId, companyId: queryId });
+        /* const deleted = await user.findOneAndDelete({ _id: credential.userId, companyId: queryId }); */
+        // !!
+        const deleted = await stock_auth_server_1.user.updateOne({ _id: credential.userId, companyId: queryId }, {
+            $set: { isDeleted: true }
+        });
         req.body.id = credential.id;
         if (!Boolean(deleted)) {
             return res.status(404).send({ success: Boolean(deleted), err: 'could not delete selected items, try again in a while' });
@@ -109,9 +114,7 @@ const removeManyUsers = (canByPass) => {
         req.body.newPhotosWithDir = newPhotosWithDir;
         let filesWithDir;
         const alltoDelete = await stock_auth_server_1.user.find({ companyId: queryId, _id: { $in: newUserIds } })
-            .populate({ path: 'profilePic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-            .populate({ path: 'profileCoverPic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-            .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+            .populate([(0, stock_auth_server_1.populateProfilePic)(true), (0, stock_auth_server_1.populateProfileCoverPic)(true), (0, stock_auth_server_1.populatePhotos)(true), (0, stock_auth_server_1.populateTrackEdit)(), (0, stock_auth_server_1.populateTrackView)()])
             .lean();
         for (const user of alltoDelete) {
             if (user.photos?.length > 0) {
@@ -119,8 +122,17 @@ const removeManyUsers = (canByPass) => {
             }
         }
         await (0, stock_universal_server_1.deleteAllFiles)(filesWithDir);
+        /* const deleted = await user
+          .deleteMany({ companyId: queryId, _id: { $in: newUserIds } })
+          .catch(err => {
+            localUserRoutesLogger.error('deletemany - err: ', err);
+    
+            return null;
+          }); */
         const deleted = await stock_auth_server_1.user
-            .deleteMany({ companyId: queryId, _id: { $in: newUserIds } })
+            .updateMany({ companyId: queryId, _id: { $in: newUserIds } }, {
+            $set: { isDeleted: true }
+        })
             .catch(err => {
             localUserRoutesLogger.error('deletemany - err: ', err);
             return null;
@@ -145,12 +157,18 @@ const canRemoveOneUser = async (id, byPass) => {
             msg: 'user is linked to invoice, or estimate or delivery note or receipt'
         };
     }
+    if (byPass === 'all') {
+        return {
+            success: false,
+            msg: 'respecting bypass all and only checked if user has invoice, now moving on'
+        };
+    }
     if (byPass !== 'customer') {
         const hasCustomer = await customer_model_1.customerLean.findOne({ user: id });
         if (hasCustomer) {
             return {
                 success: false,
-                msg: 'user is linked to customer'
+                msg: 'user is linked to customer' // or user is a customer
             };
         }
     }

@@ -1,18 +1,23 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createUserWalletHistoryModel = exports.userWalletHistorySelect = exports.userWalletHistoryLean = exports.userWalletHistoryMain = void 0;
+const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const mongoose_1 = require("mongoose");
-const database_controller_1 = require("../../../controllers/database.controller");
+const database_1 = require("../../../utils/database");
 const userWalletHistorySchema = new mongoose_1.Schema({
-    trackEdit: { type: mongoose_1.Schema.ObjectId },
-    trackView: { type: mongoose_1.Schema.ObjectId },
+    ...stock_universal_server_1.globalSchemaObj,
     wallet: { type: String, index: true },
     amount: { type: String, required: [true, 'cannot be empty.'], index: true },
     type: { type: String, required: [true, 'cannot be empty.'], index: true }
-}, { timestamps: true });
+}, { timestamps: true, collection: 'userwallethistories' });
+userWalletHistorySchema.pre('updateOne', function (next) {
+    return (0, stock_universal_server_1.preUpdateDocExpire)(this, next);
+});
+userWalletHistorySchema.pre('updateMany', function (next) {
+    return (0, stock_universal_server_1.preUpdateDocExpire)(this, next);
+});
 const userWalletHistoryselect = {
-    trackEdit: 1,
-    trackView: 1,
+    ...stock_universal_server_1.globalSelectObj,
     wallet: 1,
     amount: 1,
     type: 1
@@ -25,14 +30,15 @@ exports.userWalletHistorySelect = userWalletHistoryselect;
  * @param lean Indicates whether to create the lean connection model.
  */
 const createUserWalletHistoryModel = async (dbUrl, dbOptions, main = true, lean = true) => {
-    if (!database_controller_1.isStockDbConnected) {
-        await (0, database_controller_1.connectStockDatabase)(dbUrl, dbOptions);
+    (0, stock_universal_server_1.createExpireDocIndex)(userWalletHistorySchema);
+    if (!database_1.isStockDbConnected) {
+        await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.userWalletHistoryMain = database_controller_1.mainConnection.model('UserWalletHistory', userWalletHistorySchema);
+        exports.userWalletHistoryMain = database_1.mainConnection.model('UserWalletHistory', userWalletHistorySchema);
     }
     if (lean) {
-        exports.userWalletHistoryLean = database_controller_1.mainConnectionLean.model('UserWalletHistory', userWalletHistorySchema);
+        exports.userWalletHistoryLean = database_1.mainConnectionLean.model('UserWalletHistory', userWalletHistorySchema);
     }
 };
 exports.createUserWalletHistoryModel = createUserWalletHistoryModel;

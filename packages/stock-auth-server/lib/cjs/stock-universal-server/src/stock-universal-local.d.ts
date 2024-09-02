@@ -22,17 +22,17 @@
 /// <reference types="mongoose/types/validation" />
 /// <reference types="mongoose/types/virtuals" />
 /// <reference types="mongoose/types/inferschematype" />
-import { IenvironmentConfig } from '@open-stock/stock-universal';
 import { ConnectOptions } from 'mongoose';
+import { IStockUniversalServerConfig } from './stock-universal-server';
 /**
  * Indicates whether the stock universal server is currently running.
  */
 export declare let isStockUniversalServerRunning: boolean;
-export declare let envConfig: IenvironmentConfig;
+export declare let stockUniversalConfig: IStockUniversalServerConfig;
 /**
  * Creates stock universal server locals.
  */
-export declare const createStockUniversalServerLocals: (envCfig: IenvironmentConfig) => void;
+export declare const createStockUniversalServerLocals: (config: IStockUniversalServerConfig) => void;
 /**
  * Connects to the authentication database by creating the required models.
  * @param {string} databaseUrl - The URL of the authentication database.

@@ -1,24 +1,23 @@
 import { ItrackView } from '@open-stock/stock-universal';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import { isUniversalDbConnected, mainConnection, mainConnectionLean } from '../../controllers/database.controller';
-import { connectUniversalDatabase } from '../../stock-universal-local';
-const uniqueValidator = require('mongoose-unique-validator');
+import { connectUniversalDatabase, stockUniversalConfig } from '../../stock-universal-local';
+import { isUniversalDbConnected, mainConnection, mainConnectionLean } from '../../utils/database';
 
 export type TtrackView = Document & ItrackView;
 
 /** subscription package schema */
 const trackViewSchema: Schema = new Schema<TtrackView>({
   parent: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
-  users: []
-}, { timestamps: true });
-
-// Apply the uniqueValidator plugin to trackViewSchema.
-trackViewSchema.plugin(uniqueValidator);
+  users: [],
+  collectionName: { type: String },
+  expireDocAfter: { type: Date, default: null }
+}, { timestamps: true, collection: 'trackviews' });
 
 /** Primary selection object for subscription package */
 const trackViewselect = {
   parent: 1,
-  users: 1
+  users: 1,
+  collectionName: 1
 };
 
 /**
@@ -44,6 +43,10 @@ export const trackViewSelect = trackViewselect;
  * @param lean Whether to create a lean connection.
  */
 export const createTrackViewModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
+  trackViewSchema.index(
+    { expireDocAfter: 1 },
+    { expireAfterSeconds: stockUniversalConfig.expireDocAfterSeconds }
+  );
   if (!isUniversalDbConnected) {
     await connectUniversalDatabase(dbUrl, dbOptions);
   }

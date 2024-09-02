@@ -1,27 +1,28 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createInvoicesReportModel = exports.invoicesReportSelect = exports.invoicesReportLean = exports.invoicesReportMain = void 0;
+const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const mongoose_1 = require("mongoose");
-const database_controller_1 = require("../../../controllers/database.controller");
+const database_1 = require("../../../utils/database");
 const uniqueValidator = require('mongoose-unique-validator');
 /** Schema definition for invoicesReport */
 const invoicesReportSchema = new mongoose_1.Schema({
-    trackEdit: { type: mongoose_1.Schema.ObjectId },
-    trackView: { type: mongoose_1.Schema.ObjectId },
-    urId: { type: String },
-    companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
+    ...stock_universal_server_1.withUrIdAndCompanySchemaObj,
     totalAmount: { type: Number },
     date: { type: Date },
     invoices: []
-}, { timestamps: true });
+}, { timestamps: true, collection: 'invoicesreports' });
+invoicesReportSchema.pre('updateOne', function (next) {
+    return (0, stock_universal_server_1.preUpdateDocExpire)(this, next);
+});
+invoicesReportSchema.pre('updateMany', function (next) {
+    return (0, stock_universal_server_1.preUpdateDocExpire)(this, next);
+});
 // Apply the uniqueValidator plugin to invoicesReportSchema.
 invoicesReportSchema.plugin(uniqueValidator);
 /** Primary selection object for invoicesReport */
 const invoicesReportselect = {
-    trackEdit: 1,
-    trackView: 1,
-    urId: 1,
-    companyId: 1,
+    ...stock_universal_server_1.withUrIdAndCompanySelectObj,
     totalAmount: 1,
     date: 1,
     invoices: 1
@@ -37,14 +38,15 @@ exports.invoicesReportSelect = invoicesReportselect;
  * @param lean - Whether to create the lean connection for invoicesReports Operations.
  */
 const createInvoicesReportModel = async (dbUrl, dbOptions, main = true, lean = true) => {
-    if (!database_controller_1.isStockDbConnected) {
-        await (0, database_controller_1.connectStockDatabase)(dbUrl, dbOptions);
+    (0, stock_universal_server_1.createExpireDocIndex)(invoicesReportSchema);
+    if (!database_1.isStockDbConnected) {
+        await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.invoicesReportMain = database_controller_1.mainConnection.model('invoicesReport', invoicesReportSchema);
+        exports.invoicesReportMain = database_1.mainConnection.model('invoicesReport', invoicesReportSchema);
     }
     if (lean) {
-        exports.invoicesReportLean = database_controller_1.mainConnectionLean.model('invoicesReport', invoicesReportSchema);
+        exports.invoicesReportLean = database_1.mainConnectionLean.model('invoicesReport', invoicesReportSchema);
     }
 };
 exports.createInvoicesReportModel = createInvoicesReportModel;

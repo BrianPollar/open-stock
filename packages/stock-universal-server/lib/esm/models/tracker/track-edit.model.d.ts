@@ -41,6 +41,7 @@ export declare const trackEditSelect: {
     createdBy: number;
     users: number;
     deletedBy: number;
+    collectionName: number;
 };
 /**
  * Creates a new subscription package model.

@@ -1,6 +1,7 @@
 import { IinvoicesReport } from '@open-stock/stock-universal';
+import { createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../../controllers/database.controller';
+import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 
 /**
@@ -10,24 +11,27 @@ export type TinvoicesReport = Document & IinvoicesReport;
 
 /** Schema definition for invoicesReport */
 const invoicesReportSchema: Schema<TinvoicesReport> = new Schema({
-  trackEdit: { type: Schema.ObjectId },
-  trackView: { type: Schema.ObjectId },
-  urId: { type: String },
-  companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
+  ...withUrIdAndCompanySchemaObj,
   totalAmount: { type: Number },
   date: { type: Date },
   invoices: []
-}, { timestamps: true });
+}, { timestamps: true, collection: 'invoicesreports' });
+
+invoicesReportSchema.pre('updateOne', function(next) {
+  return preUpdateDocExpire(this, next);
+});
+
+invoicesReportSchema.pre('updateMany', function(next) {
+  return preUpdateDocExpire(this, next);
+});
+
 
 // Apply the uniqueValidator plugin to invoicesReportSchema.
 invoicesReportSchema.plugin(uniqueValidator);
 
 /** Primary selection object for invoicesReport */
 const invoicesReportselect = {
-  trackEdit: 1,
-  trackView: 1,
-  urId: 1,
-  companyId: 1,
+  ...withUrIdAndCompanySelectObj,
   totalAmount: 1,
   date: 1,
   invoices: 1
@@ -55,6 +59,7 @@ export const invoicesReportSelect = invoicesReportselect;
  * @param lean - Whether to create the lean connection for invoicesReports Operations.
  */
 export const createInvoicesReportModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
+  createExpireDocIndex(invoicesReportSchema);
   if (!isStockDbConnected) {
     await connectStockDatabase(dbUrl, dbOptions);
   }

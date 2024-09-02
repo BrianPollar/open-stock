@@ -18,6 +18,7 @@ const path_1 = tslib_1.__importDefault(require("path"));
 const tracer = tslib_1.__importStar(require("tracer"));
 const company_model_1 = require("../models/company.model");
 const user_model_1 = require("../models/user.model");
+const query_1 = require("../utils/query");
 const company_auth_1 = require("./company-auth");
 const superadmin_routes_1 = require("./superadmin.routes");
 const user_routes_1 = require("./user.routes");
@@ -63,7 +64,11 @@ const addCompany = async (req, res) => {
       try again in a while`;
         }
         response = errResponse;
+        return err;
     });
+    if (savedCompany && savedCompany._id) {
+        (0, stock_universal_server_1.addParentToLocals)(res, savedCompany._id, company_model_1.companyMain.collection.collectionName, 'makeTrackEdit');
+    }
     if (!response.err && savedCompany) {
         const stn = {
             companyId: savedCompany._id,
@@ -104,7 +109,7 @@ const updateCompany = async (req, res) => {
     }
     if (!foundCompany.urId) {
         const count = await company_model_1.companyMain
-            .find({ companyId: companyIdParam }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+            .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
         foundCompany.urId = (0, stock_universal_server_1.makeUrId)(Number(count[0]?.urId || '0'));
     }
     const parsed = req.body;
@@ -386,7 +391,7 @@ exports.companyAuthRoutes.post('/updateprofileimg/:companyIdParam', stock_univer
     }
     let status = 200;
     let response = { success: true };
-    await foundCompany.save().catch((err) => {
+    const updated = await foundCompany.save().catch((err) => {
         status = 403;
         const errResponse = {
             success: false
@@ -400,6 +405,9 @@ exports.companyAuthRoutes.post('/updateprofileimg/:companyIdParam', stock_univer
         }
         response = errResponse;
     });
+    if (updated) {
+        (0, stock_universal_server_1.addParentToLocals)(res, queryId, company_model_1.companyMain.collection.collectionName, 'trackDataDelete');
+    }
     return res.status(status).send(response);
 });
 exports.companyAuthRoutes.put('/blockunblock/:companyIdParam', stock_universal_server_1.requireAuth, superadmin_routes_1.requireSuperAdmin, async (req, res) => {
@@ -446,13 +454,12 @@ exports.companyAuthRoutes.get('/getonecompany/:urId/:companyIdParam', stock_univ
     }
     const oneCompany = await company_model_1.companyLean
         .findById(companyIdParam)
-        .populate({ path: 'profilePic', model: stock_universal_server_1.fileMetaLean })
-        .populate({ path: 'profileCoverPic', model: stock_universal_server_1.fileMetaLean })
-        .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean })
+        .populate([(0, query_1.populateProfilePic)(), (0, query_1.populateProfileCoverPic)(), (0, query_1.populatePhotos)(), (0, query_1.populateTrackEdit)(), (0, query_1.populateTrackView)()])
         .lean();
     if (!oneCompany) {
         return res.status(200).send({});
     }
+    (0, stock_universal_server_1.addParentToLocals)(res, oneCompany._id, company_model_1.companyMain.collection.collectionName, 'trackDataView');
     return res.status(200).send(oneCompany);
 });
 exports.companyAuthRoutes.get('/getcompanys/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, superadmin_routes_1.requireSuperAdmin, async (req, res) => {
@@ -465,9 +472,7 @@ exports.companyAuthRoutes.get('/getcompanys/:offset/:limit/:companyIdParam', sto
             .sort({ createdAt: 1 })
             .limit(Number(currLimit))
             .skip(Number(currOffset))
-            .populate({ path: 'profilePic', model: stock_universal_server_1.fileMetaLean })
-            .populate({ path: 'profileCoverPic', model: stock_universal_server_1.fileMetaLean })
-            .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean })
+            .populate([(0, query_1.populateProfilePic)(), (0, query_1.populateProfileCoverPic)(), (0, query_1.populatePhotos)(), (0, query_1.populateTrackEdit)(), (0, query_1.populateTrackView)()])
             .lean(),
         company_model_1.companyLean.countDocuments()
     ]);
@@ -476,6 +481,9 @@ exports.companyAuthRoutes.get('/getcompanys/:offset/:limit/:companyIdParam', sto
         count: all[1],
         data: filteredFaqs
     };
+    for (const val of filteredFaqs) {
+        (0, stock_universal_server_1.addParentToLocals)(res, val._id, company_model_1.companyMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
 // db.users.updateOne({ _id: ObjectId('6641c3d122dfefc4809ebe66') }, { $set: { email: "pollarbrian@gmail.com" } })
@@ -519,7 +527,7 @@ exports.companyAuthRoutes.post('/updatecompanybulkimg/:companyIdParam', stock_un
     return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
   }
 }); */
-exports.companyAuthRoutes.put('/deleteimages/:companyIdParam', stock_universal_server_1.requireAuth, company_auth_1.requireActiveCompany, stock_universal_server_1.deleteFiles, async (req, res) => {
+exports.companyAuthRoutes.put('/deleteimages/:companyIdParam', stock_universal_server_1.requireAuth, company_auth_1.requireActiveCompany, (0, stock_universal_server_1.deleteFiles)(true), async (req, res) => {
     const filesWithDir = req.body.filesWithDir;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -532,19 +540,25 @@ exports.companyAuthRoutes.put('/deleteimages/:companyIdParam', stock_universal_s
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const company = await company_model_1.companyMain
-        .findOneAndUpdate({ _id: queryId });
+        .findOne({ _id: queryId })
+        .lean();
     if (!company) {
         return res.status(404).send({ success: false, err: 'item not found' });
     }
     const photos = company.photos;
     const filesWithDirIds = filesWithDir
         .map(val => val._id);
-    company.photos = photos
-        .filter((p) => !filesWithDirIds.includes(p));
-    company.profilePic = company.photos.find(p => p === company.profilePic);
-    company.profileCoverPic = company.photos.find(p => p === company.profileCoverPic);
     let errResponse;
-    await company.save().catch(err => {
+    await company_model_1.companyMain.updateOne({
+        _id: queryId
+    }, {
+        $set: {
+            photos: photos
+                .filter((p) => !filesWithDirIds.includes(p)),
+            profilePic: company.photos.find(p => p === company.profilePic),
+            profileCoverPic: company.photos.find(p => p === company.profileCoverPic)
+        }
+    }).catch(err => {
         errResponse = {
             success: false,
             status: 403
@@ -561,6 +575,7 @@ exports.companyAuthRoutes.put('/deleteimages/:companyIdParam', stock_universal_s
     if (errResponse) {
         return res.status(403).send(errResponse);
     }
+    (0, stock_universal_server_1.addParentToLocals)(res, queryId, company_model_1.companyMain.collection.collectionName, 'makeTrackEdit');
     return res.status(200).send({ success: true });
 });
 //# sourceMappingURL=company.routes.js.map

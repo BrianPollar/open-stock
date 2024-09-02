@@ -1,11 +1,11 @@
 import { requireActiveCompany } from '@open-stock/stock-auth-server';
-import { Icustomrequest, IdataArrayResponse, Isuccess } from '@open-stock/stock-universal';
+import { IdataArrayResponse, Isuccess } from '@open-stock/stock-universal';
 import {
-  offsetLimitRelegator,
-  requireAuth,
-  stringifyMongooseErr,
-  verifyObjectId,
-  verifyObjectIds
+  addParentToLocals,
+  makeCompanyBasedQuery,
+  offsetLimitRelegator, requireAuth,
+  roleAuthorisation,
+  stringifyMongooseErr
 } from '@open-stock/stock-universal-server';
 import express from 'express';
 import * as fs from 'fs';
@@ -56,17 +56,11 @@ export const pickupLocationRoutes = express.Router();
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>}
  */
-pickupLocationRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, async(req, res) => {
+pickupLocationRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('deliveryCitys', 'create'), async(req, res) => {
   const pickupLocation = req.body;
-  const { companyId } = (req as Icustomrequest).user;
-  const { companyIdParam } = req.params;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const isValid = verifyObjectId(queryId);
+  const { filter } = makeCompanyBasedQuery(req);
 
-  if (!isValid) {
-    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-  }
-  pickupLocation.companyId = queryId;
+  pickupLocation.companyId = filter.companyId;
   const newPickupLocation = new pickupLocationMain(pickupLocation);
   let errResponse: Isuccess;
   const saved = await newPickupLocation.save()
@@ -83,12 +77,17 @@ pickupLocationRoutes.post('/create/:companyIdParam', requireAuth, requireActiveC
         try again in a while`;
       }
 
-      return errResponse;
+      return err;
     });
 
   if (errResponse) {
     return res.status(403).send(errResponse);
   }
+
+  if (saved && saved._id) {
+    addParentToLocals(res, saved._id, pickupLocationMain.collection.collectionName, 'makeTrackEdit');
+  }
+
 
   return res.status(200).send({ success: Boolean(saved) });
 });
@@ -103,29 +102,30 @@ pickupLocationRoutes.post('/create/:companyIdParam', requireAuth, requireActiveC
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>}
  */
-pickupLocationRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCompany, async(req, res) => {
+pickupLocationRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('deliveryCitys', 'update'), async(req, res) => {
   const updatedPickupLocation = req.body;
-  const { companyId } = (req as Icustomrequest).user;
-  const { companyIdParam } = req.params;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const { filter } = makeCompanyBasedQuery(req);
 
-  updatedPickupLocation.companyId = queryId;
-  const isValid = verifyObjectIds([updatedPickupLocation._id, queryId]);
-
-  if (!isValid) {
-    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-  }
+  updatedPickupLocation.companyId = filter.companyId;
 
   const pickupLocation = await pickupLocationMain
-    .findOneAndUpdate({ _id: updatedPickupLocation._id, companyId: queryId });
+    .findOne({ _id: updatedPickupLocation._id, ...filter })
+    .lean();
 
   if (!pickupLocation) {
     return res.status(404).send({ success: false });
   }
-  pickupLocation.name = updatedPickupLocation.name || pickupLocation.name;
-  pickupLocation.contact = updatedPickupLocation.contact || pickupLocation.contact;
+
   let errResponse: Isuccess;
-  const updated = await pickupLocation.save()
+  const updated = await pickupLocationMain.updateOne({
+    _id: updatedPickupLocation._id, ...filter
+  }, {
+    $set: {
+      name: updatedPickupLocation.name || pickupLocation.name,
+      contact: updatedPickupLocation.contact || pickupLocation.contact,
+      isDeleted: updatedPickupLocation.isDeleted || pickupLocation.isDeleted
+    }
+  })
     .catch(err => {
       pickupLocationRoutesLogger.error('update - err: ', err);
       errResponse = {
@@ -146,6 +146,8 @@ pickupLocationRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCo
     return res.status(403).send(errResponse);
   }
 
+  addParentToLocals(res, pickupLocation._id, pickupLocationMain.collection.collectionName, 'makeTrackEdit');
+
   return res.status(200).send({ success: Boolean(updated) });
 });
 
@@ -159,19 +161,16 @@ pickupLocationRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCo
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>}
  */
-pickupLocationRoutes.get('/getone/:id/:companyIdParam', requireAuth, requireActiveCompany, async(req, res) => {
+pickupLocationRoutes.get('/getone/:id/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('deliveryCitys', 'read'), async(req, res) => {
   const { id } = req.params;
-  const { companyId } = (req as Icustomrequest).user;
-  const { companyIdParam } = req.params;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const isValid = verifyObjectIds([id, queryId]);
-
-  if (!isValid) {
-    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-  }
+  const { filter } = makeCompanyBasedQuery(req);
   const pickupLocation = await pickupLocationLean
-    .findOne({ _id: id, companyId: queryId })
+    .findOne({ _id: id, ...filter })
     .lean();
+
+  if (pickupLocation) {
+    addParentToLocals(res, pickupLocation._id, pickupLocationMain.collection.collectionName, 'trackDataView');
+  }
 
   return res.status(200).send(pickupLocation);
 });
@@ -186,28 +185,25 @@ pickupLocationRoutes.get('/getone/:id/:companyIdParam', requireAuth, requireActi
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>}
  */
-pickupLocationRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, async(req, res) => {
+pickupLocationRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('deliveryCitys', 'read'), async(req, res) => {
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
-  const { companyId } = (req as Icustomrequest).user;
-  const { companyIdParam } = req.params;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const isValid = verifyObjectId(queryId);
-
-  if (!isValid) {
-    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-  }
+  const { filter } = makeCompanyBasedQuery(req);
   const all = await Promise.all([
     pickupLocationLean
-      .find({ companyId: queryId })
+      .find({ ...filter })
       .skip(offset)
       .limit(limit)
       .lean(),
-    pickupLocationLean.countDocuments({ companyId: queryId })
+    pickupLocationLean.countDocuments({ ...filter })
   ]);
   const response: IdataArrayResponse = {
     count: all[1],
     data: all[0]
   };
+
+  for (const val of all[0]) {
+    addParentToLocals(res, val._id, pickupLocationMain.collection.collectionName, 'trackDataView');
+  }
 
   return res.status(200).send(response);
 });
@@ -222,20 +218,16 @@ pickupLocationRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, 
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>}
  */
-pickupLocationRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, requireActiveCompany, async(req, res) => {
+pickupLocationRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('deliveryCitys', 'delete'), async(req, res) => {
   const { id } = req.params;
-  const { companyId } = (req as Icustomrequest).user;
-  const { companyIdParam } = req.params;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const isValid = verifyObjectIds([id, queryId]);
-
-  if (!isValid) {
-    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-  }
+  const { filter } = makeCompanyBasedQuery(req);
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  const deleted = await pickupLocationMain.findOneAndDelete({ _id: id, companyId: queryId });
+  // const deleted = await pickupLocationMain.findOneAndDelete({ _id: id, ...filter });
+  const deleted = await pickupLocationMain.updateOne({ _id: id, ...filter }, { $set: { isDeleted: true } });
 
   if (Boolean(deleted)) {
+    addParentToLocals(res, id, pickupLocationMain.collection.collectionName, 'trackDataDelete');
+
     return res.status(200).send({ success: Boolean(deleted) });
   } else {
     return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
@@ -252,29 +244,26 @@ pickupLocationRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, requi
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>}
  */
-pickupLocationRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, async(req, res) => {
+pickupLocationRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('deliveryCitys', 'read'), async(req, res) => {
   const { searchterm, searchKey } = req.body;
-  const { companyId } = (req as Icustomrequest).user;
-  const { companyIdParam } = req.params;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const isValid = verifyObjectId(queryId);
-
-  if (!isValid) {
-    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-  }
+  const { filter } = makeCompanyBasedQuery(req);
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
   const all = await Promise.all([
     pickupLocationLean
-      .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+      .find({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
       .skip(offset)
       .limit(limit)
       .lean(),
-    pickupLocationLean.countDocuments({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+    pickupLocationLean.countDocuments({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
   ]);
   const response: IdataArrayResponse = {
     count: all[1],
     data: all[0]
   };
+
+  for (const val of all[0]) {
+    addParentToLocals(res, val._id, pickupLocationMain.collection.collectionName, 'trackDataView');
+  }
 
   return res.status(200).send(response);
 });
@@ -289,19 +278,22 @@ pickupLocationRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth,
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>}
  */
-pickupLocationRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, async(req, res) => {
+pickupLocationRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('deliveryCitys', 'delete'), async(req, res) => {
   const { ids } = req.body;
-  const { companyId } = (req as Icustomrequest).user;
-  const { companyIdParam } = req.params;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const isValid = verifyObjectIds([...ids, ...[queryId]]);
+  const { filter } = makeCompanyBasedQuery(req);
 
-  if (!isValid) {
-    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-  }
+  /* const deleted = await pickupLocationMain
+    .deleteMany({ _id: { $in: ids }, ...filter })
+    .catch(err => {
+      pickupLocationRoutesLogger.error('deletemany - err: ', err);
+
+      return null;
+    }); */
 
   const deleted = await pickupLocationMain
-    .deleteMany({ _id: { $in: ids }, companyId: queryId })
+    .updateMany({ _id: { $in: ids }, ...filter }, {
+      $set: { isDeleted: true }
+    })
     .catch(err => {
       pickupLocationRoutesLogger.error('deletemany - err: ', err);
 
@@ -309,6 +301,10 @@ pickupLocationRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActi
     });
 
   if (Boolean(deleted)) {
+    for (const val of ids) {
+      addParentToLocals(res, val, pickupLocationMain.collection.collectionName, 'trackDataDelete');
+    }
+
     return res.status(200).send({ success: Boolean(deleted) });
   } else {
     return res.status(404).send({ success: Boolean(deleted), err: 'could not delete selected items, try again in a while' });

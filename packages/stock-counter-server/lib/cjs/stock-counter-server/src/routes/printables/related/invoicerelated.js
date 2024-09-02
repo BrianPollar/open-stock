@@ -105,13 +105,15 @@ exports.updateInvoiceRelatedPayments = updateInvoiceRelatedPayments;
  * @param queryId - The query ID.
  * @returns A promise that resolves to an object containing the success status and the updated invoice related ID.
  */
-const updateInvoiceRelated = async (invoiceRelated, queryId) => {
+const updateInvoiceRelated = async (res, invoiceRelated, queryId) => {
     const isValid = (0, stock_universal_server_1.verifyObjectId)(invoiceRelated.invoiceRelated);
     if (!isValid) {
         return { success: false, status: 401, err: 'unauthourised' };
     }
+    // !!
     const related = await invoicerelated_model_1.invoiceRelatedMain
-        .findByIdAndUpdate(invoiceRelated.invoiceRelated);
+        .findById(invoiceRelated.invoiceRelated)
+        .lean();
     if (!related) {
         return { success: false, err: 'invoice related not found' };
     }
@@ -122,23 +124,29 @@ const updateInvoiceRelated = async (invoiceRelated, queryId) => {
     invoiceRelated = (0, exports.transFormInvoiceRelatedOnStatus)(related, invoiceRelated);
     const oldTotal = related.total;
     const oldStatus = related.status;
-    related.creationType = invoiceRelated.creationType || related.creationType;
-    related.estimateId = invoiceRelated.estimateId || related.estimateId;
-    related.invoiceId = invoiceRelated.invoiceId || related.invoiceId;
-    related.billingUser = invoiceRelated.billingUser || related.billingUser;
-    related.items = invoiceRelated.items || related.items;
-    related.fromDate = invoiceRelated.fromDate || related.fromDate;
-    related.toDate = invoiceRelated.toDate || related.toDate;
-    related.status = invoiceRelated.status || related.status;
-    related.stage = invoiceRelated.stage || related.stage;
-    related.cost = invoiceRelated.cost || related.cost;
-    related.paymentMade = invoiceRelated.paymentMade || related.paymentMade;
-    related.tax = invoiceRelated.tax || related.tax;
-    related.balanceDue = invoiceRelated.balanceDue || related.balanceDue;
-    related.subTotal = invoiceRelated.subTotal || related.subTotal;
-    related.total = invoiceRelated.total || related.total;
     let errResponse;
-    const saved = await related.save()
+    const saved = await invoicerelated_model_1.invoiceRelatedMain.updateOne({
+        _id: invoiceRelated.invoiceRelated
+    }, {
+        $set: {
+            creationType: invoiceRelated.creationType || related.creationType,
+            estimateId: invoiceRelated.estimateId || related.estimateId,
+            invoiceId: invoiceRelated.invoiceId || related.invoiceId,
+            billingUser: invoiceRelated.billingUser || related.billingUser,
+            items: invoiceRelated.items || related.items,
+            fromDate: invoiceRelated.fromDate || related.fromDate,
+            toDate: invoiceRelated.toDate || related.toDate,
+            status: invoiceRelated.status || related.status,
+            stage: invoiceRelated.stage || related.stage,
+            cost: invoiceRelated.cost || related.cost,
+            paymentMade: invoiceRelated.paymentMade || related.paymentMade,
+            tax: invoiceRelated.tax || related.tax,
+            balanceDue: invoiceRelated.balanceDue || related.balanceDue,
+            subTotal: invoiceRelated.subTotal || related.subTotal,
+            total: invoiceRelated.total || related.total,
+            isDeleted: invoiceRelated.isDeleted || related.isDeleted
+        }
+    })
         .catch(err => {
         invoiceRelatedLogger.error('updateInvoiceRelated - err: ', err);
         errResponse = {
@@ -166,6 +174,7 @@ const updateInvoiceRelated = async (invoiceRelated, queryId) => {
             await (0, exports.updateCustomerDueAmount)(saved.billingUserId, oldTotal, true);
             await (0, exports.updateCustomerDueAmount)(saved.billingUserId, saved.total, false);
         }
+        (0, stock_universal_server_1.addParentToLocals)(res, related._id, 'invoicerelateds', 'makeTrackEdit');
         return { success: true, id: saved._id };
     }
 };
@@ -178,7 +187,7 @@ exports.updateInvoiceRelated = updateInvoiceRelated;
  * @param bypassNotif - Whether to bypass sending notifications.
  * @returns A promise that resolves with a success status and an optional ID.
  */
-const relegateInvRelatedCreation = async (invoiceRelated, queryId, extraNotifDesc, bypassNotif = false) => {
+const relegateInvRelatedCreation = async (res, invoiceRelated, queryId, extraNotifDesc, bypassNotif = false) => {
     invoiceRelatedLogger.debug('relegateInvRelatedCreation - invoiceRelated', invoiceRelated);
     invoiceRelated.companyId = queryId;
     const isValid = (0, stock_universal_server_1.verifyObjectId)(invoiceRelated.invoiceRelated);
@@ -202,8 +211,11 @@ const relegateInvRelatedCreation = async (invoiceRelated, queryId, extraNotifDes
                 errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
             }
-            return errResponse;
+            return err;
         });
+        if (saved && saved._id) {
+            (0, stock_universal_server_1.addParentToLocals)(res, saved._id, 'invoicerelateds', 'makeTrackEdit');
+        }
         if (errResponse) {
             return errResponse;
         }
@@ -270,7 +282,7 @@ const relegateInvRelatedCreation = async (invoiceRelated, queryId, extraNotifDes
         return { success: true, id: saved._id };
     }
     else {
-        await (0, exports.updateInvoiceRelated)(invoiceRelated, queryId);
+        await (0, exports.updateInvoiceRelated)(res, invoiceRelated, queryId);
         return { success: true, id: invoiceRelated.invoiceRelated };
     }
 };
@@ -300,6 +312,7 @@ const makeInvoiceRelatedPdct = (invoiceRelated, user, createdAt, extras = {}) =>
         }
     }
     return {
+        _id: invoiceRelated._id,
         companyId: invoiceRelated.companyId,
         invoiceRelated: invoiceRelated._id,
         creationType: invoiceRelated.creationType,
@@ -353,16 +366,34 @@ const deleteManyInvoiceRelated = async (ids, queryId) => {
     if (!isValid) {
         return { success: false, statu: 401, err: 'unauthourised' };
     }
+    /* const deleted = await invoiceRelatedMain
+      .deleteMany({ _id: { $in: ids }, companyId: queryId })
+      .catch(err => {
+        invoiceRelatedLogger.debug('deleteManyInvoiceRelated - err: ', err);
+  
+        return null;
+      }); */
     const deleted = await invoicerelated_model_1.invoiceRelatedMain
-        .deleteMany({ _id: { $in: ids }, companyId: queryId })
+        .updateMany({ _id: { $in: ids }, companyId: queryId }, {
+        $set: { isDeleted: true }
+    })
         .catch(err => {
         invoiceRelatedLogger.debug('deleteManyInvoiceRelated - err: ', err);
         return null;
     });
     let deleted2 = true;
     if (deleted) {
+        /* deleted2 = await receiptMain
+          .deleteMany({ invoiceRelated: { $in: ids } })
+          .catch(err => {
+            invoiceRelatedLogger.error('deletemany Pinstalls - err: ', err);
+    
+            return null;
+          }); */
         deleted2 = await receipt_model_1.receiptMain
-            .deleteMany({ invoiceRelated: { $in: ids } })
+            .updateMany({ invoiceRelated: { $in: ids } }, {
+            $set: { isDeleted: true }
+        })
             .catch(err => {
             invoiceRelatedLogger.error('deletemany Pinstalls - err: ', err);
             return null;
@@ -392,18 +423,30 @@ const deleteAllLinked = async (invoiceRelated, creationType, stage, from, queryI
     }
     let changedStage;
     if (from === 'estimate') {
-        await estimate_model_1.estimateMain.deleteOne({ invoiceRelated, companyId: queryId });
+        /* await estimateMain.deleteOne({ invoiceRelated, companyId: queryId }); */
+        await estimate_model_1.estimateMain.updateOne({ invoiceRelated, companyId: queryId }, {
+            $set: { isDeleted: true }
+        });
     }
     else if (from === 'invoice') {
         changedStage = 'estimate';
-        await invoice_model_1.invoiceMain.deleteOne({ invoiceRelated, companyId: queryId });
+        /* await invoiceMain.deleteOne({ invoiceRelated, companyId: queryId }); */
+        await invoice_model_1.invoiceMain.updateOne({ invoiceRelated, companyId: queryId }, {
+            $set: { isDeleted: true }
+        });
     }
     else if (from === 'deliverynote') {
-        await deliverynote_model_1.deliveryNoteMain.deleteOne({ invoiceRelated, companyId: queryId });
+        /* await deliveryNoteMain.deleteOne({ invoiceRelated, companyId: queryId }); */
+        await deliverynote_model_1.deliveryNoteMain.updateOne({ invoiceRelated, companyId: queryId }, {
+            $set: { isDeleted: true }
+        });
         changedStage = 'invoice';
     }
     else if (from === 'receipt') {
-        await receipt_model_1.receiptMain.deleteOne({ invoiceRelated, companyId: queryId });
+        /* await receiptMain.deleteOne({ invoiceRelated, companyId: queryId }); */
+        await receipt_model_1.receiptMain.updateOne({ invoiceRelated, companyId: queryId }, {
+            $set: { isDeleted: true }
+        });
         changedStage = 'deliverynote';
     }
     let response = {
@@ -456,12 +499,18 @@ exports.deleteAllLinked = deleteAllLinked;
  */
 const updateRelatedStage = async (id, stage, queryId) => {
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    const related = await invoicerelated_model_1.invoiceRelatedMain.findOneAndUpdate({ _id: id, companyId: queryId });
+    const related = await invoicerelated_model_1.invoiceRelatedMain
+        .findOne({ _id: id, companyId: queryId })
+        .lean();
     if (!related) {
         return false;
     }
     related.stage = stage;
-    await related.save();
+    await invoicerelated_model_1.invoiceRelatedMain.updateOne({
+        _id: id, companyId: queryId
+    }, {
+        $set: { stage }
+    });
     return true;
 };
 const updateItemsInventory = async (related) => {

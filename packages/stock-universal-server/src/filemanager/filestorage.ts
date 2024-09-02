@@ -5,7 +5,7 @@ import { mkdir } from 'fs-extra';
 import multer from 'multer';
 import * as path from 'path';
 import * as tracer from 'tracer';
-import { envConfig } from '../stock-universal-local';
+import { stockUniversalConfig } from '../stock-universal-local';
 
 // This function creates a fileStorageLogger named `controllers/FileStorage`.
 const fileStorageLogger = tracer.colorConsole({
@@ -68,8 +68,8 @@ const rudimentaryStorage = multer.diskStorage({
     const { companyId } = (req as Icustomrequest).user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const videoDirectory = envConfig.absolutepath + '/' + envConfig.videoDirectory + '/' + queryId;
-    const photoDirectory = envConfig.absolutepath + '/' + envConfig.photoDirectory + '/' + queryId;
+    const videoDirectory = stockUniversalConfig.envCfig.absolutepath + '/' + stockUniversalConfig.envCfig.videoDirectory + '/' + queryId;
+    const photoDirectory = stockUniversalConfig.envCfig.absolutepath + '/' + stockUniversalConfig.envCfig.photoDirectory + '/' + queryId;
 
     const mimeType = file.mimetype;
 

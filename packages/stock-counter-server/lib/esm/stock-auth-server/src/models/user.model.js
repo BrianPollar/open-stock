@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 import { sendSms, sendToken, verifyAuthyToken } from '@open-stock/stock-notif-server';
+import { createExpireDocIndex, preSavePassword, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
 import bcrypt from 'bcrypt';
 import { Schema } from 'mongoose';
-import { connectAuthDatabase, isAuthDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
+import { connectAuthDatabase, isAuthDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 // Create authenticated Authy and Twilio API clients
 // const authy = require('authy')(config.authyKey);
 // const twilioClient = require('twilio')(config.accountSid, config.authToken);
@@ -43,10 +44,7 @@ const uniqueValidator = require('mongoose-unique-validator');
  * @property {Date} updatedAt - User update date.
  */
 const userSchema = new Schema({
-    trackEdit: { type: Schema.ObjectId },
-    trackView: { type: Schema.ObjectId },
-    urId: { type: String, required: [true, 'cannot be empty.'], index: true },
-    companyId: { type: String, index: true },
+    ...withUrIdAndCompanySchemaObj,
     fname: { type: String, index: true },
     lname: { type: String, index: true },
     companyName: { type: String, index: true },
@@ -75,33 +73,60 @@ const userSchema = new Schema({
     amountDue: { type: Number, default: 0 },
     manuallyAdded: { type: Boolean, default: false },
     userType: { type: String, default: 'eUser' }
-}, { timestamps: true });
+}, { timestamps: true, collection: 'users' });
 userSchema.index({ expireAt: 1 }, { expireAfterSeconds: 2628003 });
 // Apply the uniqueValidator plugin to userSchema.
 userSchema.plugin(uniqueValidator);
 // dealing with hasing password
-userSchema.pre('save', function (next) {
+userSchema.pre('save', async function (next) {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const user = this;
     // only hash the password if it has been modified (or is new)
     if (!user.isModified('password')) {
         return next();
     }
+    const { hash, err } = await preSavePassword(this.get('password'));
+    if (err) {
+        return next(err);
+    }
+    user['password'] = hash;
+    /*
     // generate a salt
-    bcrypt.genSalt(10, function (err, salt) {
+    bcrypt.genSalt(10, function(err, salt) {
+      if (err) {
+        return next(err);
+      }
+  
+      // hash the password using our new salt
+      bcrypt.hash(user['password'], salt, function(err, hash) {
+        if (err) {
+          return next(err);
+        }
+        // override the cleartext password with the hashed one
+        user['password'] = hash;
+        next();
+      });
+    }); */
+});
+userSchema.pre('updateOne', async function (next) {
+    if (this.get('password')) {
+        const { hash, err } = await preSavePassword(this.get('password'));
         if (err) {
             return next(err);
         }
-        // hash the password using our new salt
-        bcrypt.hash(user['password'], salt, function (err, hash) {
-            if (err) {
-                return next(err);
-            }
-            // override the cleartext password with the hashed one
-            user['password'] = hash;
-            next();
-        });
-    });
+        this.set({ password: hash });
+    }
+    preUpdateDocExpire(this, next);
+});
+userSchema.pre('updateMany', async function (next) {
+    if (this.get('password')) {
+        const { hash, err } = await preSavePassword(this.get('password'));
+        if (err) {
+            return next(err);
+        }
+        this.set({ password: hash });
+    }
+    preUpdateDocExpire(this, next);
 });
 userSchema.methods['comparePassword'] = function (candidatePassword, cb) {
     bcrypt.compare(candidatePassword, this.password, function (err, isMatch) {
@@ -195,7 +220,7 @@ userSchema.methods['toJSONFor'] = function () {
     };
 };
 const userAuthselect = {
-    urId: 1,
+    ...withUrIdAndCompanySelectObj,
     fname: 1,
     lname: 1,
     companyName: 1,
@@ -227,7 +252,7 @@ const userAuthselect = {
     photos: 1
 };
 const useraboutSelect = {
-    urId: 1,
+    ...withUrIdAndCompanySelectObj,
     fname: 1,
     lname: 1,
     companyName: 1,
@@ -272,6 +297,7 @@ export const userAboutSelect = useraboutSelect;
  * @param lean Indicates whether to create the lean user model.
  */
 export const createUserModel = async (dbUrl, dbOptions, main = true, lean = true) => {
+    createExpireDocIndex(userSchema);
     if (!isAuthDbConnected) {
         await connectAuthDatabase(dbUrl, dbOptions);
     }

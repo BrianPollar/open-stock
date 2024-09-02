@@ -394,7 +394,9 @@ export type TuserType =
   'company' |
   'staff' |
   'customer' |
-  'eUser';
+  'eUser' |
+  'manager' |
+  'other';
 
 /**
  * Represents the type of payment.
@@ -429,7 +431,8 @@ export type TroleAuth =
   'reports' |
   'companyProfile' |
   'mails' |
-  'subscriptions';
+  'subscriptions' |
+  'deliveryCitys';
 
 /**
  * Represents the possible values for the TroleAuthProp type.
@@ -465,3 +468,13 @@ export type TsubscriptionFeature =
 export type TcompanySubPayStatus = 'paid' | 'failed' | 'canceled' | 'pending';
 
 export type TsubscriptionDurVal = 1 | 2 | 3 | 6 | 12;
+
+
+export type TuserActionTrackState = 'delete' | 'update' | 'create' | 'restore';
+
+export type TtrackWhat = 'makeTrackEdit' | 'trackDataView' | 'trackDataRestore' | 'trackDataDelete';
+
+export type TdataTypeForTrack = 'user' | 'company' | 'company-subscription' | 'customer' | 'delivery-city' | 'delivery-note' | 'estimate' |
+'expense-report' | 'expense' | 'faq-answer' | 'faqs' | 'file' | 'invoice-related' | 'invoice' | 'invoice-setting' |
+'invoices-report' | 'item-decoy' | 'item-offer' | 'item' | 'order' | 'payment' | 'pickup-location' | 'profitandloss-report' | 'receipt' |
+'review' | 'sales-report' | 'staff';

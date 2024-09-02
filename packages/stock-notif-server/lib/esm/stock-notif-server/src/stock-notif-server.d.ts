@@ -37,6 +37,11 @@ export interface IstockNotifServerConfig {
     useDummyRoutes?: boolean;
 }
 export declare const createService: () => void;
+/**
+   * Runs the stock notification server by setting up the necessary configurations, connecting to the database, initializing passport authentication, and returning the notification routes.
+   * @param {IstockNotifServerConfig} config - The server configuration.
+   * @returns {Promise<{stockNotifRouter, notificationSettings}>}
+   */
 export declare const runStockNotificationServer: (config: IstockNotifServerConfig) => Promise<{
     stockNotifRouter: any;
     notificationSettings: import("./stock-notif-local").InotificationConfig;

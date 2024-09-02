@@ -24,6 +24,7 @@ expenseRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) => {
     count: req.params.limit,
     data: createMockExpenses(Number(req.params.limit))
   };
+
   res.status(200).send(response);
 });
 
@@ -36,6 +37,7 @@ expenseRoutesDummy.post('/search/:offset/:limit/:companyIdParam', (req, res) => 
     count: req.params.limit,
     data: createMockExpenses(Number(req.params.limit))
   };
+
   res.status(200).send(response);
 });
 

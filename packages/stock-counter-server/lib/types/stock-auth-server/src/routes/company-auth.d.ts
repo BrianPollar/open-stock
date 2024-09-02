@@ -16,6 +16,17 @@ export declare const requireCanUseFeature: (feature: TsubscriptionFeature) => (r
  */
 export declare const requireActiveCompany: (req: any, res: any, next: any) => any;
 /**
+   * Middleware that checks if the companyIdParam is valid ObjectId.
+   * If the user is superAdmin or has byPassActiveCompany permission, it checks the companyIdParam.
+   * If the companyIdParam is invalid, it sends a 401 Unauthorized response.
+   *
+   * @param req - The Express request object.
+   * @param res - The Express response object.
+   * @param next - The next middleware function in the chain.
+   * @returns Calls the next middleware function if the companyIdParam is valid, otherwise sends a 401 Unauthorized response.
+   */
+export declare const checkCompanyIdIfSuperAdminOrCanByPassCompanyId: (req: any, res: any, next: any) => any;
+/**
  * Middleware that checks if the current user's company has a valid subscription for the given feature.
  *
  * @param feature - The type of subscription feature to check.
@@ -27,5 +38,3 @@ export declare const requireActiveCompany: (req: any, res: any, next: any) => an
  * - Returns a 200 OK response if the check passes, or a 401 Unauthorized response if the check fails.
  */
 export declare const requireUpdateSubscriptionRecord: (feature: TsubscriptionFeature) => (req: any, res: any) => Promise<any>;
-export declare const requireDeliveryMan: () => (req: any, res: any, next: any) => Promise<void>;
-export declare const requireVendorManger: () => (req: any, res: any, next: any) => Promise<void>;

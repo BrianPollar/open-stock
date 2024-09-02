@@ -51,7 +51,7 @@ exports.deliverycityRoutes = express_1.default.Router();
  * @param {Object} req.body.deliverycity - Delivery city object to create
  * @returns {Object} - Returns a success object with a boolean indicating if the city was saved successfully
  */
-exports.deliverycityRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireSuperAdmin, async (req, res) => {
+exports.deliverycityRoutes.post('/create', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('deliveryCitys', 'create'), async (req, res) => {
     const deliverycity = req.body.deliverycity;
     const newDeliverycity = new deliverycity_model_1.deliverycityMain(deliverycity);
     let errResponse;
@@ -69,10 +69,13 @@ exports.deliverycityRoutes.post('/create/:companyIdParam', stock_universal_serve
             errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
         }
-        return errResponse;
+        return err;
     });
     if (errResponse) {
         return res.status(403).send(errResponse);
+    }
+    if (saved && saved._id) {
+        (0, stock_universal_server_1.addParentToLocals)(res, saved._id, deliverycity_model_1.deliverycityMain.collection.collectionName, 'makeTrackEdit');
     }
     return res.status(200).send({ success: Boolean(saved) });
 });
@@ -87,18 +90,14 @@ exports.deliverycityRoutes.post('/create/:companyIdParam', stock_universal_serve
  * @param {string} req.params.id - ID of the delivery city to retrieve
  * @returns {Object} - Returns the delivery city object
  */
-exports.deliverycityRoutes.get('/getone/:id/:companyIdParam', async (req, res) => {
+exports.deliverycityRoutes.get('/getone/:id', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
     const { id } = req.params;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)([id, queryId]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
     const deliverycity = await deliverycity_model_1.deliverycityLean
-        .findOne({ _id: id, companyId: queryId })
+        .findOne({ _id: id })
         .lean();
+    if (deliverycity) {
+        (0, stock_universal_server_1.addParentToLocals)(res, deliverycity._id, deliverycity_model_1.deliverycityMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(deliverycity);
 });
 /**
@@ -113,11 +112,11 @@ exports.deliverycityRoutes.get('/getone/:id/:companyIdParam', async (req, res) =
  * @param {string} req.params.limit - Limit for pagination
  * @returns {Object[]} - Returns an array of delivery city objects
  */
-exports.deliverycityRoutes.get('/getall/:offset/:limit/:companyIdParam', async (req, res) => {
+exports.deliverycityRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const all = await Promise.all([
         deliverycity_model_1.deliverycityLean
-            .find({})
+            .find({ isDeleted: false })
             .skip(offset)
             .limit(limit)
             .lean(),
@@ -127,6 +126,9 @@ exports.deliverycityRoutes.get('/getall/:offset/:limit/:companyIdParam', async (
         count: all[1],
         data: all[0]
     };
+    for (const val of all[0]) {
+        (0, stock_universal_server_1.addParentToLocals)(res, val._id, deliverycity_model_1.deliverycityMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
 /**
@@ -140,23 +142,30 @@ exports.deliverycityRoutes.get('/getall/:offset/:limit/:companyIdParam', async (
  * @param {Object} req.body - Updated delivery city object
  * @returns {Object} - Returns a success object with a boolean indicating if the city was updated successfully
  */
-exports.deliverycityRoutes.put('/update/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireSuperAdmin, async (req, res) => {
+exports.deliverycityRoutes.put('/update', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('deliveryCitys', 'update'), async (req, res) => {
     const updatedCity = req.body;
     const isValid = (0, stock_universal_server_1.verifyObjectIds)([updatedCity._id]);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const deliverycity = await deliverycity_model_1.deliverycityMain
-        .findOneAndUpdate({ _id: updatedCity._id });
+        .findOne({ _id: updatedCity._id, ...(0, stock_universal_server_1.makePredomFilter)(req) })
+        .lean();
     if (!deliverycity) {
         return res.status(404).send({ success: false });
     }
-    deliverycity.name = updatedCity.name || deliverycity.name;
-    deliverycity.shippingCost = updatedCity.shippingCost || deliverycity.shippingCost;
-    deliverycity.currency = updatedCity.currency || deliverycity.currency;
-    deliverycity.deliversInDays = updatedCity.deliversInDays || deliverycity.deliversInDays;
     let errResponse;
-    const updated = await deliverycity.save()
+    const updated = await deliverycity_model_1.deliverycityMain.updateOne({
+        _id: updatedCity._id
+    }, {
+        $set: {
+            name: updatedCity.name || deliverycity.name,
+            shippingCost: updatedCity.shippingCost || deliverycity.shippingCost,
+            currency: updatedCity.currency || deliverycity.currency,
+            deliversInDays: updatedCity.deliversInDays || deliverycity.deliversInDays,
+            isDeleted: updatedCity.isDeleted || deliverycity.isDeleted
+        }
+    })
         .catch(err => {
         deliverycityRoutesLogger.error('update - err: ', err);
         errResponse = {
@@ -175,6 +184,7 @@ exports.deliverycityRoutes.put('/update/:companyIdParam', stock_universal_server
     if (errResponse) {
         return res.status(403).send(errResponse);
     }
+    (0, stock_universal_server_1.addParentToLocals)(res, updatedCity._id, deliverycity_model_1.deliverycityMain.collection.collectionName, 'makeTrackEdit');
     return res.status(200).send({ success: Boolean(updated) });
 });
 /**
@@ -188,15 +198,17 @@ exports.deliverycityRoutes.put('/update/:companyIdParam', stock_universal_server
  * @param {string} req.params.id - ID of the delivery city to delete
  * @returns {Object} - Returns a success object with a boolean indicating if the city was deleted successfully
  */
-exports.deliverycityRoutes.delete('/deleteone/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireSuperAdmin, async (req, res) => {
+exports.deliverycityRoutes.delete('/deleteone/:id', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('deliveryCitys', 'delete'), async (req, res) => {
     const { id } = req.params;
     const isValid = (0, stock_universal_server_1.verifyObjectIds)([id]);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    const deleted = await deliverycity_model_1.deliverycityMain.findOneAndDelete({ _id: id });
+    // const deleted = await deliverycityMain.findOneAndDelete({ _id: id });
+    const deleted = await deliverycity_model_1.deliverycityMain.updateOne({ _id: id, ...(0, stock_universal_server_1.makePredomFilter)(req) }, { $set: { isDeleted: true } });
     if (Boolean(deleted)) {
+        (0, stock_universal_server_1.addParentToLocals)(res, id, deliverycity_model_1.deliverycityMain.collection.collectionName, 'trackDataDelete');
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
@@ -214,19 +226,31 @@ exports.deliverycityRoutes.delete('/deleteone/:id/:companyIdParam', stock_univer
  * @param {string[]} req.body.ids - Array of IDs of the delivery cities to delete
  * @returns {Object} - Returns a success object with a boolean indicating if the cities were deleted successfully
  */
-exports.deliverycityRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireSuperAdmin, async (req, res) => {
+exports.deliverycityRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('deliveryCitys', 'delete'), async (req, res) => {
     const { ids } = req.body;
     const isValid = (0, stock_universal_server_1.verifyObjectIds)([...ids]);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
+    /* const deleted = await deliverycityMain
+      .deleteMany({ _id: { $in: ids } })
+      .catch(err => {
+        deliverycityRoutesLogger.error('deletemany - err: ', err);
+  
+        return null;
+      }); */
     const deleted = await deliverycity_model_1.deliverycityMain
-        .deleteMany({ _id: { $in: ids } })
+        .updateMany({ _id: { $in: ids } }, {
+        $set: { isDeleted: true }
+    })
         .catch(err => {
         deliverycityRoutesLogger.error('deletemany - err: ', err);
         return null;
     });
     if (Boolean(deleted)) {
+        for (const val of ids) {
+            (0, stock_universal_server_1.addParentToLocals)(res, val, deliverycity_model_1.deliverycityMain.collection.collectionName, 'trackDataDelete');
+        }
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {

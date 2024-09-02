@@ -25,12 +25,30 @@
 import { IenvironmentConfig } from '@open-stock/stock-universal';
 import { ConnectOptions } from 'mongoose';
 /**
+ * Represents the configuration options for the stock-auth-server.
+ */
+export interface IlAuth {
+    jwtSecret: string;
+    cookieSecret: string;
+}
+export interface IStockUniversalServerConfig {
+    authSecrets: IlAuth;
+    envCfig: IenvironmentConfig;
+    trackUsers?: boolean;
+    expireDocAfterSeconds?: number;
+    databaseConfig: {
+        url: string;
+        dbOptions?: ConnectOptions;
+    };
+}
+/**
  * Runs the stock universal server.
  * @param databaseConfigUrl - The URL of the database configuration.
  * @returns A promise that resolves to an object indicating whether the stock universal server is running.
  */
-export declare const runStockUniversalServer: (envCfig: IenvironmentConfig, databaseConfigUrl: string, dbOptions?: ConnectOptions) => Promise<{
+export declare const runStockUniversalServer: (config: IStockUniversalServerConfig) => Promise<{
     isStockUniversalServerRunning: boolean;
+    stockUniversalRouter: any;
 }>;
 /**
  * Checks if the universal server for stock is running.

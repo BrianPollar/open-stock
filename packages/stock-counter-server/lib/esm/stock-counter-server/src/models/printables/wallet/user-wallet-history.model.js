@@ -1,15 +1,20 @@
+import { createExpireDocIndex, globalSchemaObj, globalSelectObj, preUpdateDocExpire } from '@open-stock/stock-universal-server';
 import { Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../../controllers/database.controller';
+import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../../utils/database';
 const userWalletHistorySchema = new Schema({
-    trackEdit: { type: Schema.ObjectId },
-    trackView: { type: Schema.ObjectId },
+    ...globalSchemaObj,
     wallet: { type: String, index: true },
     amount: { type: String, required: [true, 'cannot be empty.'], index: true },
     type: { type: String, required: [true, 'cannot be empty.'], index: true }
-}, { timestamps: true });
+}, { timestamps: true, collection: 'userwallethistories' });
+userWalletHistorySchema.pre('updateOne', function (next) {
+    return preUpdateDocExpire(this, next);
+});
+userWalletHistorySchema.pre('updateMany', function (next) {
+    return preUpdateDocExpire(this, next);
+});
 const userWalletHistoryselect = {
-    trackEdit: 1,
-    trackView: 1,
+    ...globalSelectObj,
     wallet: 1,
     amount: 1,
     type: 1
@@ -32,6 +37,7 @@ export const userWalletHistorySelect = userWalletHistoryselect;
  * @param lean Indicates whether to create the lean connection model.
  */
 export const createUserWalletHistoryModel = async (dbUrl, dbOptions, main = true, lean = true) => {
+    createExpireDocIndex(userWalletHistorySchema);
     if (!isStockDbConnected) {
         await connectStockDatabase(dbUrl, dbOptions);
     }

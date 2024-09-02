@@ -20,7 +20,7 @@ export declare const updateInvoiceRelatedPayments: (payment: Ireceipt, queryId: 
  * @param queryId - The query ID.
  * @returns A promise that resolves to an object containing the success status and the updated invoice related ID.
  */
-export declare const updateInvoiceRelated: (invoiceRelated: Required<IinvoiceRelated>, queryId: string) => Promise<Isuccess & {
+export declare const updateInvoiceRelated: (res: any, invoiceRelated: Required<IinvoiceRelated>, queryId: string) => Promise<Isuccess & {
     id?: string;
 }>;
 /**
@@ -31,7 +31,7 @@ export declare const updateInvoiceRelated: (invoiceRelated: Required<IinvoiceRel
  * @param bypassNotif - Whether to bypass sending notifications.
  * @returns A promise that resolves with a success status and an optional ID.
  */
-export declare const relegateInvRelatedCreation: (invoiceRelated: Required<IinvoiceRelated>, queryId: string, extraNotifDesc: string, bypassNotif?: boolean) => Promise<Isuccess & {
+export declare const relegateInvRelatedCreation: (res: any, invoiceRelated: Required<IinvoiceRelated>, queryId: string, extraNotifDesc: string, bypassNotif?: boolean) => Promise<Isuccess & {
     id?: string;
 }>;
 /**
@@ -43,6 +43,7 @@ export declare const relegateInvRelatedCreation: (invoiceRelated: Required<Iinvo
  * @returns The created invoice related product.
  */
 export declare const makeInvoiceRelatedPdct: (invoiceRelated: Required<IinvoiceRelated>, user: Iuser, createdAt?: Date, extras?: {}) => {
+    _id: string;
     companyId: string;
     invoiceRelated: string;
     creationType: TinvoiceType;

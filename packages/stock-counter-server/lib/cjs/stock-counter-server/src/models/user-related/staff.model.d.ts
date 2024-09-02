@@ -5,13 +5,11 @@
 /// <reference types="mongoose/types/collection" />
 /// <reference types="mongoose/types/connection" />
 /// <reference types="mongoose/types/cursor" />
-/// <reference types="mongoose/types/document" />
 /// <reference types="mongoose/types/error" />
 /// <reference types="mongoose/types/expressions" />
 /// <reference types="mongoose/types/helpers" />
 /// <reference types="mongoose/types/middlewares" />
 /// <reference types="mongoose/types/indexes" />
-/// <reference types="mongoose/types/models" />
 /// <reference types="mongoose/types/mongooseoptions" />
 /// <reference types="mongoose/types/pipelinestage" />
 /// <reference types="mongoose/types/populate" />
@@ -44,15 +42,18 @@ export declare let staffLean: Model<Tstaff>;
  * The staffSelect constant represents the selection of staff members.
  */
 export declare const staffSelect: {
-    trackEdit: number;
-    trackView: number;
-    companyId: number;
     user: number;
     startDate: number;
     endDate: number;
     occupation: number;
     employmentType: number;
     salary: number;
+    urId: number;
+    companyId: number;
+    trackEdit: number;
+    trackView: number;
+    isDeleted: number;
+    trackDeleted: number;
 };
 /**
  * Creates a new staff model with the given database URL.

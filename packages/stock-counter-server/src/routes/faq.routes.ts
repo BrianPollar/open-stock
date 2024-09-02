@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
 import { requireActiveCompany } from '@open-stock/stock-auth-server';
 import { Icustomrequest, IdataArrayResponse, Isuccess } from '@open-stock/stock-universal';
-import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { addParentToLocals, makePredomFilter, makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import * as fs from 'fs';
 import path from 'path';
@@ -74,11 +74,15 @@ faqRoutes.post('/create/:companyIdParam', async(req, res) => {
         try again in a while`;
       }
 
-      return errResponse;
+      return err;
     });
 
   if (errResponse) {
     return res.status(403).send(errResponse);
+  }
+
+  if (saved && saved._id) {
+    addParentToLocals(res, saved._id, faqMain.collection.collectionName, 'makeTrackEdit');
   }
 
   return res.status(200).send({ success: Boolean(saved) });
@@ -114,8 +118,12 @@ faqRoutes.get('/getone/:id/:companyIdParam', async(req, res) => {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const faq = await faqLean
-    .findOne(filter)
+    .findOne({ ...filter, ...makePredomFilter(req) })
     .lean();
+
+  if (faq) {
+    addParentToLocals(res, faq._id, faqMain.collection.collectionName, 'trackDataView');
+  }
 
   return res.status(200).send(faq);
 });
@@ -136,16 +144,20 @@ faqRoutes.get('/getall/:offset/:limit/:companyIdParam', async(req, res) => {
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
   const all = await Promise.all([
     faqLean
-      .find({ })
+      .find({ ...makePredomFilter(req) })
       .skip(offset)
       .limit(limit)
       .lean(),
-    faqLean.countDocuments({ })
+    faqLean.countDocuments({ ...makePredomFilter(req) })
   ]);
   const response: IdataArrayResponse = {
     count: all[1],
     data: all[0]
   };
+
+  for (const val of all[0]) {
+    addParentToLocals(res, val._id, faqMain.collection.collectionName, 'trackDataView');
+  }
 
   return res.status(200).send(response);
 });
@@ -185,6 +197,8 @@ faqRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, requireActiveCom
   const deleted = await faqMain.findOneAndDelete(filter);
 
   if (Boolean(deleted)) {
+    addParentToLocals(res, id, faqMain.collection.collectionName, 'trackDataDelete');
+
     return res.status(200).send({ success: Boolean(deleted) });
   } else {
     return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
@@ -236,7 +250,7 @@ faqRoutes.post('/createans/:companyIdParam', requireAuth, requireActiveCompany, 
         try again in a while`;
       }
 
-      return errResponse;
+      return err;
     });
 
   if (errResponse) {
@@ -259,7 +273,7 @@ faqRoutes.post('/createans/:companyIdParam', requireAuth, requireActiveCompany, 
  */
 faqRoutes.get('/getallans/:faqId/:companyIdParam', async(req, res) => {
   const faqsAns = await faqanswerLean
-    .find({ faq: req.params.faqId })
+    .find({ faq: req.params.faqId, ...makePredomFilter(req) })
     .lean();
 
   return res.status(200).send(faqsAns);

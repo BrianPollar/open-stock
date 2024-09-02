@@ -1,4 +1,5 @@
 import { Icustomrequest, TsubscriptionFeature } from '@open-stock/stock-universal';
+import { verifyObjectId } from '@open-stock/stock-universal-server';
 import * as fs from 'fs';
 import path from 'path';
 import * as tracer from 'tracer';
@@ -85,9 +86,25 @@ export const requireActiveCompany = (req, res, next) => {
   const { userId } = (req as Icustomrequest).user;
 
   if (userId === 'superAdmin') {
+    const isValid = verifyObjectId(req.params.companyIdParam);
+
+    if (!isValid) {
+      return res.status(401).send({ success: false, err: 'unauthorised' });
+    }
+
     return next();
   }
-  const { companyPermissions } = (req as Icustomrequest).user;
+  const { companyPermissions, superAdimPerms } = (req as Icustomrequest).user;
+
+  if (superAdimPerms && superAdimPerms.byPassActiveCompany) {
+    const isValid = verifyObjectId(req.params.companyIdParam);
+
+    if (!isValid) {
+      return res.status(401).send({ success: false, err: 'unauthorised' });
+    }
+
+    return next();
+  }
 
   // no company
   if (companyPermissions && !companyPermissions.active) {
@@ -95,6 +112,30 @@ export const requireActiveCompany = (req, res, next) => {
   }
 
   return next();
+};
+
+/**
+   * Middleware that checks if the companyIdParam is valid ObjectId.
+   * If the user is superAdmin or has byPassActiveCompany permission, it checks the companyIdParam.
+   * If the companyIdParam is invalid, it sends a 401 Unauthorized response.
+   *
+   * @param req - The Express request object.
+   * @param res - The Express response object.
+   * @param next - The next middleware function in the chain.
+   * @returns Calls the next middleware function if the companyIdParam is valid, otherwise sends a 401 Unauthorized response.
+   */
+export const checkCompanyIdIfSuperAdminOrCanByPassCompanyId = (req, res, next) => {
+  const { userId, superAdimPerms } = (req as Icustomrequest).user || {};
+
+  if (userId === 'superAdmin' || (superAdimPerms && superAdimPerms.byPassActiveCompany)) {
+    const isValid = verifyObjectId(req.params.companyIdParam);
+
+    if (!isValid) {
+      return res.status(401).send({ success: false, err: 'unauthorised' });
+    }
+
+    return next();
+  }
 };
 
 /**
@@ -161,17 +202,3 @@ export const requireUpdateSubscriptionRecord = (feature: TsubscriptionFeature) =
     return res.status(200).send({ success: Boolean(updated), features });
   };
 };
-
-export const requireDeliveryMan = () => {
-  return async(req, res, next) => {
-    const { userId } = (req as Icustomrequest).user;
-  };
-};
-
-
-export const requireVendorManger = () => {
-  return async(req, res, next) => {
-    const { userId } = (req as Icustomrequest).user;
-  };
-};
-

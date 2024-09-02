@@ -60,6 +60,12 @@ export declare class User extends DatabaseAuto {
      */
     constructor(data: Iuser);
     /**
+     * Checks if a user with the given email or phone number exists.
+     * @param emailPhone The email or phone number to check.
+     * @returns A boolean indicating whether the user exists.
+     */
+    static existsEmailOrPhone(emailPhone: string): Promise<boolean>;
+    /**
      * Retrieves multiple users from a specified URL, with optional offset and limit parameters.
      * @param companyId - The ID of the company
      * @param url The URL to retrieve the users from.

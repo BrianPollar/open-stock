@@ -1,6 +1,6 @@
-import { requireActiveCompany, user } from '@open-stock/stock-auth-server';
+import { populatePhotos, populateProfileCoverPic, populateProfilePic, populateTrackEdit, populateTrackView, requireActiveCompany, user } from '@open-stock/stock-auth-server';
 import { Icustomrequest, IfileMeta } from '@open-stock/stock-universal';
-import { deleteAllFiles, fileMetaLean, requireAuth, roleAuthorisation, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { deleteAllFiles, requireAuth, roleAuthorisation, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import * as fs from 'fs';
 import path from 'path';
@@ -40,7 +40,7 @@ const localUserRoutesLogger = tracer.colorConsole({
     msg: string;
   }
 
-  type TcanByPass = 'customer' | 'staff' | 'none';
+  type TcanByPass = 'customer' | 'staff' | 'none' | 'all';
 
 /**
    * Removes one user from the database.
@@ -65,10 +65,13 @@ export const removeOneUser = (canByPass: TcanByPass) => {
     if (!canRemove.success) {
       return res.status(401).send({ ...canRemove, status: 401 });
     }
+
+    /* const found = await user.findOne({ _id: credential.userId })
+      .populate([populateProfilePic(true), populateProfileCoverPic(true), populatePhotos(true), populateTrackEdit(), populateTrackView() ])
+      .lean(); */
+
     const found = await user.findOne({ _id: credential.userId })
-      .populate({ path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-      .populate({ path: 'profileCoverPic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-      .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+      .populate([populateProfilePic(true), populateProfileCoverPic(true), populatePhotos(true), populateTrackEdit(), populateTrackView() ])
       .lean();
 
     if (found) {
@@ -81,7 +84,13 @@ export const removeOneUser = (canByPass: TcanByPass) => {
 
       await deleteAllFiles(filesWithDir);
     }
-    const deleted = await user.findOneAndDelete({ _id: credential.userId, companyId: queryId });
+
+    /* const deleted = await user.findOneAndDelete({ _id: credential.userId, companyId: queryId }); */
+
+    // !!
+    const deleted = await user.updateOne({ _id: credential.userId, companyId: queryId }, {
+      $set: { isDeleted: true }
+    });
 
     req.body.id = credential.id;
     if (!Boolean(deleted)) {
@@ -128,9 +137,7 @@ export const removeManyUsers = (canByPass: TcanByPass) => {
     req.body.newPhotosWithDir = newPhotosWithDir;
     let filesWithDir: IfileMeta[];
     const alltoDelete = await user.find({ companyId: queryId, _id: { $in: newUserIds } })
-      .populate({ path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-      .populate({ path: 'profileCoverPic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-      .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+      .populate([populateProfilePic(true), populateProfileCoverPic(true), populatePhotos(true), populateTrackEdit(), populateTrackView() ])
       .lean();
 
     for (const user of alltoDelete) {
@@ -141,13 +148,24 @@ export const removeManyUsers = (canByPass: TcanByPass) => {
 
     await deleteAllFiles(filesWithDir);
 
-    const deleted = await user
+    /* const deleted = await user
       .deleteMany({ companyId: queryId, _id: { $in: newUserIds } })
       .catch(err => {
         localUserRoutesLogger.error('deletemany - err: ', err);
 
         return null;
+      }); */
+
+    const deleted = await user
+      .updateMany({ companyId: queryId, _id: { $in: newUserIds } }, {
+        $set: { isDeleted: true }
+      })
+      .catch(err => {
+        localUserRoutesLogger.error('deletemany - err: ', err);
+
+        return null;
       });
+
 
     if (!Boolean(deleted)) {
       return res.status(404).send({ success: Boolean(deleted), err: 'could not delete selected items, try again in a while' });
@@ -171,13 +189,20 @@ export const canRemoveOneUser = async(id: string, byPass: TcanByPass): Promise<I
     };
   }
 
+  if (byPass === 'all') {
+    return {
+      success: false,
+      msg: 'respecting bypass all and only checked if user has invoice, now moving on'
+    };
+  }
+
   if (byPass !== 'customer') {
     const hasCustomer = await customerLean.findOne({ user: id });
 
     if (hasCustomer) {
       return {
         success: false,
-        msg: 'user is linked to customer'
+        msg: 'user is linked to customer' // or user is a customer
       };
     }
   }

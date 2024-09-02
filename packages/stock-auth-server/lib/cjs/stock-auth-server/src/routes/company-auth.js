@@ -1,7 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.requireVendorManger = exports.requireDeliveryMan = exports.requireUpdateSubscriptionRecord = exports.requireActiveCompany = exports.requireCanUseFeature = void 0;
+exports.requireUpdateSubscriptionRecord = exports.checkCompanyIdIfSuperAdminOrCanByPassCompanyId = exports.requireActiveCompany = exports.requireCanUseFeature = void 0;
 const tslib_1 = require("tslib");
+const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const fs = tslib_1.__importStar(require("fs"));
 const path_1 = tslib_1.__importDefault(require("path"));
 const tracer = tslib_1.__importStar(require("tracer"));
@@ -78,9 +79,20 @@ const requireActiveCompany = (req, res, next) => {
     companyAuthLogger.info('requireActiveCompany');
     const { userId } = req.user;
     if (userId === 'superAdmin') {
+        const isValid = (0, stock_universal_server_1.verifyObjectId)(req.params.companyIdParam);
+        if (!isValid) {
+            return res.status(401).send({ success: false, err: 'unauthorised' });
+        }
         return next();
     }
-    const { companyPermissions } = req.user;
+    const { companyPermissions, superAdimPerms } = req.user;
+    if (superAdimPerms && superAdimPerms.byPassActiveCompany) {
+        const isValid = (0, stock_universal_server_1.verifyObjectId)(req.params.companyIdParam);
+        if (!isValid) {
+            return res.status(401).send({ success: false, err: 'unauthorised' });
+        }
+        return next();
+    }
     // no company
     if (companyPermissions && !companyPermissions.active) {
         return res.status(401).send({ success: false, err: 'unauthorised' });
@@ -88,6 +100,27 @@ const requireActiveCompany = (req, res, next) => {
     return next();
 };
 exports.requireActiveCompany = requireActiveCompany;
+/**
+   * Middleware that checks if the companyIdParam is valid ObjectId.
+   * If the user is superAdmin or has byPassActiveCompany permission, it checks the companyIdParam.
+   * If the companyIdParam is invalid, it sends a 401 Unauthorized response.
+   *
+   * @param req - The Express request object.
+   * @param res - The Express response object.
+   * @param next - The next middleware function in the chain.
+   * @returns Calls the next middleware function if the companyIdParam is valid, otherwise sends a 401 Unauthorized response.
+   */
+const checkCompanyIdIfSuperAdminOrCanByPassCompanyId = (req, res, next) => {
+    const { userId, superAdimPerms } = req.user || {};
+    if (userId === 'superAdmin' || (superAdimPerms && superAdimPerms.byPassActiveCompany)) {
+        const isValid = (0, stock_universal_server_1.verifyObjectId)(req.params.companyIdParam);
+        if (!isValid) {
+            return res.status(401).send({ success: false, err: 'unauthorised' });
+        }
+        return next();
+    }
+};
+exports.checkCompanyIdIfSuperAdminOrCanByPassCompanyId = checkCompanyIdIfSuperAdminOrCanByPassCompanyId;
 /**
  * Middleware that checks if the current user's company has a valid subscription for the given feature.
  *
@@ -145,16 +178,4 @@ const requireUpdateSubscriptionRecord = (feature) => {
     };
 };
 exports.requireUpdateSubscriptionRecord = requireUpdateSubscriptionRecord;
-const requireDeliveryMan = () => {
-    return async (req, res, next) => {
-        const { userId } = req.user;
-    };
-};
-exports.requireDeliveryMan = requireDeliveryMan;
-const requireVendorManger = () => {
-    return async (req, res, next) => {
-        const { userId } = req.user;
-    };
-};
-exports.requireVendorManger = requireVendorManger;
 //# sourceMappingURL=company-auth.js.map

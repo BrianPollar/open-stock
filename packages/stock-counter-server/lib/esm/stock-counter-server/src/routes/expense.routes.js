@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
 import { requireActiveCompany, requireCanUseFeature, requireUpdateSubscriptionRecord } from '@open-stock/stock-auth-server';
-import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { addParentToLocals, makeCompanyBasedQuery, makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import * as fs from 'fs';
 import path from 'path';
@@ -45,16 +45,10 @@ export const expenseRoutes = express.Router();
  */
 expenseRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('expense'), roleAuthorisation('expenses', 'create'), async (req, res, next) => {
     const expense = req.body;
-    const { companyId } = req.user;
-    if (companyId !== 'superAdmin') {
-        const isValid = verifyObjectId(companyId);
-        if (!isValid) {
-            return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-        }
-    }
-    expense.companyId = companyId;
+    const { filter } = makeCompanyBasedQuery(req);
+    expense.companyId = filter.companyId;
     const count = await expenseMain
-        .find({ companyId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+        .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     expense.urId = makeUrId(Number(count[0]?.urId || '0'));
     const newExpense = new expenseMain(expense);
     let errResponse;
@@ -72,10 +66,13 @@ expenseRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany,
             errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
         }
-        return errResponse;
+        return err;
     });
     if (errResponse) {
         return res.status(403).send(errResponse);
+    }
+    if (saved && saved._id) {
+        addParentToLocals(res, saved._id, expenseMain.collection.collectionName, 'makeTrackEdit');
     }
     if (!Boolean(saved)) {
         return res.status(403).send('unknown error occered');
@@ -93,32 +90,29 @@ expenseRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany,
  */
 expenseRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('expenses', 'update'), async (req, res) => {
     const updatedExpense = req.body;
-    const { companyId } = req.user;
+    const { filter } = makeCompanyBasedQuery(req);
     let ids;
-    if (companyId !== 'superAdmin') {
-        ids = [updatedExpense._id, companyId];
-    }
-    else {
-        ids = [updatedExpense._id];
-    }
-    const isValid = verifyObjectIds(ids);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
-    updatedExpense.companyId = companyId;
+    updatedExpense.companyId = filter.companyId;
     const expense = await expenseMain
-        .findOneAndUpdate({ _id: updatedExpense._id, companyId });
+        .findOne({ _id: updatedExpense._id, ...filter })
+        .lean();
     if (!expense) {
         return res.status(404).send({ success: false });
     }
-    expense.name = updatedExpense.name || expense.name;
-    expense.person = updatedExpense.person || expense.person;
-    expense.cost = updatedExpense.cost || expense.cost;
-    expense.category = updatedExpense.category || expense.category;
-    expense.items = updatedExpense.items || expense.items;
-    expense.note = updatedExpense.note || expense.note;
     let errResponse;
-    const updated = await expense.save()
+    const updated = await expenseMain.updateOne({
+        _id: updatedExpense._id, ...filter
+    }, {
+        $set: {
+            name: updatedExpense.name || expense.name,
+            person: updatedExpense.person || expense.person,
+            cost: updatedExpense.cost || expense.cost,
+            category: updatedExpense.category || expense.category,
+            items: updatedExpense.items || expense.items,
+            note: updatedExpense.note || expense.note,
+            isDeleted: updatedExpense.isDeleted || expense.isDeleted
+        }
+    })
         .catch(err => {
         expenseRoutesLogger.error('update - err: ', err);
         errResponse = {
@@ -137,6 +131,7 @@ expenseRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCompany, 
     if (errResponse) {
         return res.status(403).send(errResponse);
     }
+    addParentToLocals(res, updatedExpense._id, expenseMain.collection.collectionName, 'makeTrackEdit');
     return res.status(200).send({ success: Boolean(updated) });
 });
 /**
@@ -150,10 +145,13 @@ expenseRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCompany, 
  */
 expenseRoutes.get('/getone/:id/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('expenses', 'read'), async (req, res) => {
     const { id } = req.params;
-    const { companyId } = req.user;
+    const { filter } = makeCompanyBasedQuery(req);
     const expense = await expenseLean
-        .findOne({ _id: id, companyId })
+        .findOne({ _id: id, ...filter })
         .lean();
+    if (expense) {
+        addParentToLocals(res, expense._id, expenseMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(expense);
 });
 /**
@@ -167,19 +165,22 @@ expenseRoutes.get('/getone/:id/:companyIdParam', requireAuth, requireActiveCompa
  */
 expenseRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('expenses', 'read'), async (req, res) => {
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
-    const { companyId } = req.user;
+    const { filter } = makeCompanyBasedQuery(req);
     const all = await Promise.all([
         expenseLean
-            .find({ companyId })
+            .find(filter)
             .skip(offset)
             .limit(limit)
             .lean(),
-        expenseLean.countDocuments({ companyId })
+        expenseLean.countDocuments(filter)
     ]);
     const response = {
         count: all[1],
         data: all[0]
     };
+    for (const val of all[0]) {
+        addParentToLocals(res, val._id, expenseMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
 /**
@@ -193,14 +194,12 @@ expenseRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, require
  */
 expenseRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('expenses', 'delete'), async (req, res) => {
     const { id } = req.params;
-    const { companyId } = req.user;
-    const isValid = verifyObjectIds([id]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = makeCompanyBasedQuery(req);
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    const deleted = await expenseMain.findOneAndDelete({ _id: id, companyId });
+    // const deleted = await expenseMain.findOneAndDelete({ _id: id, companyId });
+    const deleted = await expenseMain.updateOne({ _id: id, ...filter }, { $set: { isDeleted: true } });
     if (Boolean(deleted)) {
+        addParentToLocals(res, id, expenseMain.collection.collectionName, 'trackDataDelete');
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
@@ -218,20 +217,23 @@ expenseRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, requireActiv
  */
 expenseRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('expenses', 'read'), async (req, res) => {
     const { searchterm, searchKey } = req.body;
-    const { companyId } = req.user;
+    const { filter } = makeCompanyBasedQuery(req);
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     const all = await Promise.all([
         expenseLean
-            .find({ companyId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+            .find({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
             .skip(offset)
             .limit(limit)
             .lean(),
-        expenseLean.countDocuments({ companyId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+        expenseLean.countDocuments({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
     ]);
     const response = {
         count: all[1],
         data: all[0]
     };
+    for (const val of all[0]) {
+        addParentToLocals(res, val._id, expenseMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
 /**
@@ -245,18 +247,30 @@ expenseRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, requir
  */
 expenseRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('expenses', 'delete'), async (req, res) => {
     const { ids } = req.body;
-    const { companyId } = req.user;
+    const { filter } = makeCompanyBasedQuery(req);
     const isValid = verifyObjectIds([...ids]);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
+    /* const deleted = await expenseMain
+      .deleteMany({ _id: { $in: ids }, companyId })
+      .catch(err => {
+        expenseRoutesLogger.error('deletemany - err: ', err);
+  
+        return null;
+      }); */
     const deleted = await expenseMain
-        .deleteMany({ _id: { $in: ids }, companyId })
+        .updateMany({ _id: { $in: ids }, ...filter }, {
+        $set: { isDeleted: true }
+    })
         .catch(err => {
         expenseRoutesLogger.error('deletemany - err: ', err);
         return null;
     });
     if (Boolean(deleted)) {
+        for (const val of ids) {
+            addParentToLocals(res, val, expenseMain.collection.collectionName, 'trackDataDelete');
+        }
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {

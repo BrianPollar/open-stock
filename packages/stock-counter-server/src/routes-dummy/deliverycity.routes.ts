@@ -20,6 +20,7 @@ deliverycityRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res)
     count: req.params.limit,
     data: createMockDeliveryCitys(Number(req.params.limit))
   };
+
   res.status(200).send(response);
 });
 

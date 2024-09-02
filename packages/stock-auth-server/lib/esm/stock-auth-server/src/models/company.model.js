@@ -1,12 +1,13 @@
+import { createExpireDocIndex, globalSchemaObj, globalSelectObj, preUpdateDocExpire } from '@open-stock/stock-universal-server';
 import { Schema } from 'mongoose';
-import { connectAuthDatabase, isAuthDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
+import { connectAuthDatabase, isAuthDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 // Create authenticated Authy and Twilio API clients
 // const authy = require('authy')(config.authyKey);
 // const twilioClient = require('twilio')(config.accountSid, config.authToken);
 const uniqueValidator = require('mongoose-unique-validator');
 export const companySchema = new Schema({
-    trackEdit: { type: Schema.ObjectId },
-    trackView: { type: Schema.ObjectId },
+    ...globalSchemaObj,
+    trackDeleted: { type: Schema.ObjectId },
     urId: { type: String, required: [true, 'cannot be empty.'], index: true },
     name: { type: String, required: [true, 'cannot be empty.'], index: true },
     displayName: { type: String, required: [true, 'cannot be empty.'], index: true },
@@ -26,9 +27,15 @@ export const companySchema = new Schema({
     expireAt: { type: String },
     blockedReasons: {},
     owner: { type: String } // user
-}, { timestamps: true });
+}, { timestamps: true, collection: 'companies' });
 companySchema.index({ createdAt: -1 });
 companySchema.index({ expireAt: 1 }, { expireAfterSeconds: 2628003 });
+companySchema.pre('updateOne', function (next) {
+    return preUpdateDocExpire(this, next);
+});
+companySchema.pre('updateMany', function (next) {
+    return preUpdateDocExpire(this, next);
+});
 // Apply the uniqueValidator plugin to companySchema.
 companySchema.plugin(uniqueValidator);
 companySchema.methods['toAuthJSON'] = function () {
@@ -63,9 +70,7 @@ companySchema.methods['toProfileJSONFor'] = function () {
     };
 };
 const companyAuthselect = {
-    trackEdit: 1,
-    trackView: 1,
-    urId: 1,
+    ...globalSelectObj,
     name: 1,
     displayName: 1,
     dateOfEst: 1,
@@ -86,9 +91,7 @@ const companyAuthselect = {
     dateLeft: 1
 };
 const companyaboutSelect = {
-    trackEdit: 1,
-    trackView: 1,
-    urId: 1,
+    ...globalSelectObj,
     name: 1,
     displayName: 1,
     dateOfEst: 1,
@@ -131,6 +134,7 @@ export const companyAboutSelect = companyaboutSelect;
  * @param lean Optional parameter indicating whether to create the lean company model. Default is true.
  */
 export const createCompanyModel = async (dbUrl, dbOptions, main = true, lean = true) => {
+    createExpireDocIndex(companySchema);
     if (!isAuthDbConnected) {
         await connectAuthDatabase(dbUrl, dbOptions);
     }

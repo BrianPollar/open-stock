@@ -1,24 +1,25 @@
+import { createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
 import { Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../../controllers/database.controller';
+import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 /** Mongoose schema for the expense report document. */
 const expenseReportSchema = new Schema({
-    trackEdit: { type: Schema.ObjectId },
-    trackView: { type: Schema.ObjectId },
-    urId: { type: String },
-    companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
+    ...withUrIdAndCompanySchemaObj,
     totalAmount: { type: Number },
     date: { type: Date },
     expenses: []
-}, { timestamps: true });
+}, { timestamps: true, collection: 'expensereports' });
 // Apply the uniqueValidator plugin to expenseReportSchema.
 expenseReportSchema.plugin(uniqueValidator);
+expenseReportSchema.pre('updateOne', function (next) {
+    return preUpdateDocExpire(this, next);
+});
+expenseReportSchema.pre('updateMany', function (next) {
+    return preUpdateDocExpire(this, next);
+});
 /** Primary selection object for expense report document. */
 const expenseReportselect = {
-    trackEdit: 1,
-    trackView: 1,
-    urId: 1,
-    companyId: 1,
+    ...withUrIdAndCompanySelectObj,
     totalAmount: 1,
     date: 1,
     expenses: 1
@@ -42,6 +43,7 @@ export const expenseReportSelect = expenseReportselect;
  * @param lean - Whether to create a lean connection for expense report operations.
  */
 export const createExpenseReportModel = async (dbUrl, dbOptions, main = true, lean = true) => {
+    createExpireDocIndex(expenseReportSchema);
     if (!isStockDbConnected) {
         await connectStockDatabase(dbUrl, dbOptions);
     }

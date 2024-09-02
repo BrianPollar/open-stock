@@ -1,1 +1,1 @@
-{"version":3,"file":"wallet.define.js","sourceRoot":"","sources":["../../../../src/defines/user-related/wallet.define.ts"],"names":[],"mappings":"AAGA,MAAM,OAAO,UAAU;IAKrB,YAAY,MAAmB,IAAG,CAAC;CACpC;AAGD,MAAM,OAAO,iBAAiB;IAC5B,YAAY,UAA0B;IAEtC,CAAC;CACF"}
+{"version":3,"file":"wallet.define.js","sourceRoot":"","sources":["../../../../src/defines/user-related/wallet.define.ts"],"names":[],"mappings":"AAGA,MAAM,OAAO,UAAU;IAKrB,YAAY,MAAmB,IAAG,CAAC;CACpC;AAED,MAAM,OAAO,iBAAiB;IAC5B,YAAY,UAA0B;IAEtC,CAAC;CACF"}

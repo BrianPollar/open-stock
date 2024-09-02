@@ -2,28 +2,31 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createStaffModel = exports.staffSelect = exports.staffLean = exports.staffMain = void 0;
 const tslib_1 = require("tslib");
+const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const mongoose_1 = tslib_1.__importStar(require("mongoose"));
-const database_controller_1 = require("../../controllers/database.controller");
+const database_1 = require("../../utils/database");
 const uniqueValidator = require('mongoose-unique-validator');
 /** Defines the schema for the staff model. */
 const staffSchema = new mongoose_1.Schema({
-    trackEdit: { type: mongoose_1.Schema.ObjectId },
-    trackView: { type: mongoose_1.Schema.ObjectId },
-    companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
+    ...stock_universal_server_1.withUrIdAndCompanySchemaObj,
     user: { type: mongoose_1.default.Types.ObjectId, unique: true, required: [true, 'cannot be empty.'], index: true },
     startDate: { type: Date },
     endDate: { type: Date },
     occupation: { type: String },
     employmentType: { type: String },
     salary: {}
-}, { timestamps: true });
+}, { timestamps: true, collection: 'staffs' });
+staffSchema.pre('updateOne', function (next) {
+    return (0, stock_universal_server_1.preUpdateDocExpire)(this, next);
+});
+staffSchema.pre('updateMany', function (next) {
+    return (0, stock_universal_server_1.preUpdateDocExpire)(this, next);
+});
 // Apply the uniqueValidator plugin to staffSchema.
 staffSchema.plugin(uniqueValidator);
 /** Defines the primary selection object for staff. */
 const staffselect = {
-    trackEdit: 1,
-    trackView: 1,
-    companyId: 1,
+    ...stock_universal_server_1.withUrIdAndCompanySelectObj,
     user: 1,
     startDate: 1,
     endDate: 1,
@@ -44,14 +47,15 @@ exports.staffSelect = staffselect;
  * @param lean Whether to create the lean connection for staff operations.
  */
 const createStaffModel = async (dbUrl, dbOptions, main = true, lean = true) => {
-    if (!database_controller_1.isStockDbConnected) {
-        await (0, database_controller_1.connectStockDatabase)(dbUrl, dbOptions);
+    (0, stock_universal_server_1.createExpireDocIndex)(staffSchema);
+    if (!database_1.isStockDbConnected) {
+        await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.staffMain = database_controller_1.mainConnection.model('Staff', staffSchema);
+        exports.staffMain = database_1.mainConnection.model('Staff', staffSchema);
     }
     if (lean) {
-        exports.staffLean = database_controller_1.mainConnectionLean.model('Staff', staffSchema);
+        exports.staffLean = database_1.mainConnectionLean.model('Staff', staffSchema);
     }
 };
 exports.createStaffModel = createStaffModel;

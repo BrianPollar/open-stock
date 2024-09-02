@@ -4,10 +4,10 @@ exports.notifnRoutes = void 0;
 const tslib_1 = require("tslib");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
-const notifications_controller_1 = require("../controllers/notifications.controller");
 const mainnotification_model_1 = require("../models/mainnotification.model");
 const notifsetting_model_1 = require("../models/notifsetting.model");
 const subscriptions_model_1 = require("../models/subscriptions.model");
+const notifications_1 = require("../utils/notifications");
 /**
  * Router for handling notification routes.
  */
@@ -86,7 +86,8 @@ exports.notifnRoutes.delete('/deleteone/:id/:companyIdParam', stock_universal_se
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    const deleted = await mainnotification_model_1.mainnotificationMain.findOneAndRemove({ _id: id, companyId: queryId });
+    // const deleted = await mainnotificationMain.findOneAndRemove({ _id: id, companyId: queryId });
+    const deleted = await mainnotification_model_1.mainnotificationMain.updateOne({ _id: id, companyId: queryId }, { $set: { isDeleted: true } });
     if (Boolean(deleted)) {
         return res.status(200).send({ success: Boolean(deleted) });
     }
@@ -135,12 +136,12 @@ exports.notifnRoutes.post('/subscription/:companyIdParam', stock_universal_serve
             errResponse.err = `we are having problems connecting to our databases, 
       try again in a while`;
         }
-        return errResponse;
+        return err;
     });
     if (errResponse) {
         return res.status(403).send(errResponse);
     }
-    res.status(200).send({ success: true });
+    return res.status(200).send({ success: true });
 });
 exports.notifnRoutes.post('/updateviewed/:companyIdParam', stock_universal_server_1.requireAuth, async (req, res) => {
     const user = req.user;
@@ -152,7 +153,7 @@ exports.notifnRoutes.post('/updateviewed/:companyIdParam', stock_universal_serve
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
-    await (0, notifications_controller_1.updateNotifnViewed)(user, id);
+    await (0, notifications_1.updateNotifnViewed)(user, id);
     return res.status(200).send({ success: true });
 });
 exports.notifnRoutes.get('/unviewedlength/:companyIdParam', stock_universal_server_1.requireAuth, async (req, res) => {
@@ -224,7 +225,7 @@ exports.notifnRoutes.post('/createstn/:companyIdParam', async (req, res) => {
     const { stn } = req.body;
     const { companyIdParam } = req.params;
     stn.companyId = companyIdParam;
-    const response = await (0, notifications_controller_1.createNotifStn)(stn);
+    const response = await (0, notifications_1.createNotifStn)(stn);
     return res.status(response.status).send({ success: response.success });
 });
 exports.notifnRoutes.put('/updatestn', async (req, res) => {

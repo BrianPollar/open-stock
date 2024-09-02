@@ -51,20 +51,14 @@ exports.salesReportRoutes = express_1.default.Router();
  */
 exports.salesReportRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'create'), async (req, res) => {
     const salesReport = req.body.salesReport;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
-    salesReport.companyId = queryId;
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
+    salesReport.companyId = filter.companyId;
     const count = await salesreport_model_1.salesReportMain
-        .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+        .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     salesReport.urId = (0, stock_universal_server_1.makeUrId)(Number(count[0]?.urId || '0'));
     const newSalesReport = new salesreport_model_1.salesReportMain(salesReport);
     let errResponse;
-    await newSalesReport.save()
+    const saved = await newSalesReport.save()
         .catch(err => {
         salesReportRoutesLogger.error('create - err: ', err);
         errResponse = {
@@ -78,10 +72,13 @@ exports.salesReportRoutes.post('/create/:companyIdParam', stock_universal_server
             errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
         }
-        return errResponse;
+        return err;
     });
     if (errResponse) {
         return res.status(403).send(errResponse);
+    }
+    if (saved && saved._id) {
+        (0, stock_universal_server_1.addParentToLocals)(res, saved._id, salesreport_model_1.salesReportLean.collection.collectionName, 'makeTrackEdit');
     }
     return res.status(200).send({ success: true });
 });
@@ -97,18 +94,15 @@ exports.salesReportRoutes.post('/create/:companyIdParam', stock_universal_server
  */
 exports.salesReportRoutes.get('/getone/:urId/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'read'), async (req, res) => {
     const { urId } = req.params;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     const salesReport = await salesreport_model_1.salesReportLean
-        .findOne({ urId, companyId: queryId })
+        .findOne({ urId, ...filter })
         .lean()
         .populate({ path: 'estimates', model: estimate_model_1.estimateLean })
         .populate({ path: 'invoiceRelateds', model: invoicerelated_model_1.invoiceRelatedLean });
+    if (salesReport) {
+        (0, stock_universal_server_1.addParentToLocals)(res, salesReport._id, salesreport_model_1.salesReportLean.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(salesReport);
 });
 /**
@@ -123,27 +117,24 @@ exports.salesReportRoutes.get('/getone/:urId/:companyIdParam', stock_universal_s
  */
 exports.salesReportRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'read'), async (req, res) => {
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     const all = await Promise.all([
         salesreport_model_1.salesReportLean
-            .find({ companyId: queryId })
+            .find({ ...filter })
             .skip(offset)
             .limit(limit)
             .lean()
             .populate({ path: 'estimates', model: estimate_model_1.estimateLean })
             .populate({ path: 'invoiceRelateds', model: invoicerelated_model_1.invoiceRelatedLean }),
-        salesreport_model_1.salesReportLean.countDocuments({ companyId: queryId })
+        salesreport_model_1.salesReportLean.countDocuments({ ...filter })
     ]);
     const response = {
         count: all[1],
         data: all[0]
     };
+    for (const val of all[0]) {
+        (0, stock_universal_server_1.addParentToLocals)(res, val._id, salesreport_model_1.salesReportLean.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
 /**
@@ -158,16 +149,12 @@ exports.salesReportRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_un
  */
 exports.salesReportRoutes.delete('/deleteone/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'delete'), async (req, res) => {
     const { id } = req.params;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)([id, queryId]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    const deleted = await salesreport_model_1.salesReportMain.findOneAndDelete({ _id: id, companyId: queryId });
+    // const deleted = await salesReportMain.findOneAndDelete({ _id: id, ...filter });
+    const deleted = await salesreport_model_1.salesReportMain.updateOne({ _id: id, ...filter }, { $set: { isDeleted: true } });
     if (Boolean(deleted)) {
+        (0, stock_universal_server_1.addParentToLocals)(res, id, salesreport_model_1.salesReportLean.collection.collectionName, 'trackDataDelete');
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
@@ -186,28 +173,25 @@ exports.salesReportRoutes.delete('/deleteone/:id/:companyIdParam', stock_univers
  */
 exports.salesReportRoutes.post('/search/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'read'), async (req, res) => {
     const { searchterm, searchKey } = req.body;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const all = await Promise.all([
         salesreport_model_1.salesReportLean
-            .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+            .find({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
             .skip(offset)
             .limit(limit)
             .lean()
             .populate({ path: 'estimates', model: estimate_model_1.estimateLean })
             .populate({ path: 'invoiceRelateds', model: invoicerelated_model_1.invoiceRelatedLean }),
-        salesreport_model_1.salesReportLean.countDocuments({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+        salesreport_model_1.salesReportLean.countDocuments({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
     ]);
     const response = {
         count: all[1],
         data: all[0]
     };
+    for (const val of all[0]) {
+        (0, stock_universal_server_1.addParentToLocals)(res, val._id, salesreport_model_1.salesReportLean.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
 /**
@@ -222,20 +206,26 @@ exports.salesReportRoutes.post('/search/:offset/:limit/:companyIdParam', stock_u
  */
 exports.salesReportRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'delete'), async (req, res) => {
     const { ids } = req.body;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)([...ids, ...[queryId]]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
+    /* const deleted = await salesReportMain
+      .deleteMany({ ...filter, _id: { $in: ids } })
+      .catch(err => {
+        salesReportRoutesLogger.error('deletemany - err: ', err);
+  
+        return null;
+      }); */
     const deleted = await salesreport_model_1.salesReportMain
-        .deleteMany({ companyId: queryId, _id: { $in: ids } })
+        .updateMany({ ...filter, _id: { $in: ids } }, {
+        $set: { isDeleted: true }
+    })
         .catch(err => {
         salesReportRoutesLogger.error('deletemany - err: ', err);
         return null;
     });
     if (Boolean(deleted)) {
+        for (const val of ids) {
+            (0, stock_universal_server_1.addParentToLocals)(res, val, salesreport_model_1.salesReportLean.collection.collectionName, 'trackDataDelete');
+        }
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {

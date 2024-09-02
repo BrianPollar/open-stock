@@ -6,7 +6,7 @@
  */
 
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import { connectNotifDatabase, isNotifDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
+import { connectNotifDatabase, isNotifDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 
 /**
@@ -23,7 +23,7 @@ export interface ISubscription extends Document {
 const subscriptionSchema: Schema<ISubscription> = new Schema({
   subscription: {},
   userId: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true }
-}, { timestamps: true });
+}, { timestamps: true, collection: 'subscriptions' });
 
 // Apply the uniqueValidator plugin to subscriptionSchema.
 subscriptionSchema.plugin(uniqueValidator);

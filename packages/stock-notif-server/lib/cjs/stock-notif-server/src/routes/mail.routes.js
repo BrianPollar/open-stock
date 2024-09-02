@@ -6,7 +6,7 @@ const express_1 = tslib_1.__importDefault(require("express"));
 const fs = tslib_1.__importStar(require("fs"));
 const path_1 = tslib_1.__importDefault(require("path"));
 const tracer = tslib_1.__importStar(require("tracer"));
-const notifications_controller_1 = require("../controllers/notifications.controller");
+const notifications_1 = require("../utils/notifications");
 /** Logger for mailPackage routes */
 const mailPackageRoutesLogger = tracer.colorConsole({
     format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
@@ -31,6 +31,14 @@ const mailPackageRoutesLogger = tracer.colorConsole({
         });
     }
 });
+/**
+ * Sends a verification email to the specified email with a token.
+ * @param emailFrom - The email address of the sender.
+ * @param emailTo - The email address of the recipient.
+ * @param subject - The subject of the email.
+ * @param message - The content of the email.
+ * @returns A Promise that resolves to a boolean indicating whether the email was successfully sent.
+ */
 const sendRandomEmail = (emailFrom, emailTo, subject, message) => new Promise(resolve => {
     mailPackageRoutesLogger.info('sendTokenEmail');
     const mailOptions = {
@@ -113,7 +121,7 @@ height: 100%;
       </body>
 </html>`
     };
-    (0, notifications_controller_1.sendMail)(mailOptions).then(res => {
+    (0, notifications_1.sendMail)(mailOptions).then(res => {
         mailPackageRoutesLogger.info('message sent', res);
         resolve(true);
         return;

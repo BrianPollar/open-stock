@@ -10,8 +10,7 @@ const fs = tslib_1.__importStar(require("fs"));
 const path_1 = tslib_1.__importDefault(require("path"));
 const tracer = tslib_1.__importStar(require("tracer"));
 const deliverynote_model_1 = require("../../models/printables/deliverynote.model");
-const receipt_model_1 = require("../../models/printables/receipt.model");
-const invoicerelated_model_1 = require("../../models/printables/related/invoicerelated.model");
+const query_1 = require("../../utils/query");
 const invoicerelated_1 = require("./related/invoicerelated");
 /** Logger for delivery note routes */
 const deliveryNoteRoutesLogger = tracer.colorConsole({
@@ -56,27 +55,21 @@ exports.deliveryNoteRoutes = express_1.default.Router();
  */
 exports.deliveryNoteRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_auth_server_1.requireCanUseFeature)('quotation'), (0, stock_universal_server_1.roleAuthorisation)('deliveryNotes', 'create'), async (req, res, next) => {
     const { deliveryNote, invoiceRelated } = req.body;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
-    deliveryNote.companyId = queryId;
-    invoiceRelated.companyId = queryId;
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
+    deliveryNote.companyId = filter.companyId;
+    invoiceRelated.companyId = filter.companyId;
     const count = await deliverynote_model_1.deliveryNoteMain
-        .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+        .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     deliveryNote.urId = (0, stock_universal_server_1.makeUrId)(Number(count[0]?.urId || '0'));
     const extraNotifDesc = 'Newly generated delivery note';
-    const invoiceRelatedRes = await (0, invoicerelated_1.relegateInvRelatedCreation)(invoiceRelated, queryId, extraNotifDesc);
+    const invoiceRelatedRes = await (0, invoicerelated_1.relegateInvRelatedCreation)(res, invoiceRelated, filter.companyId, extraNotifDesc);
     if (!invoiceRelatedRes.success) {
         return res.status(invoiceRelatedRes.status).send(invoiceRelatedRes);
     }
     deliveryNote.invoiceRelated = invoiceRelatedRes.id;
     const newDeliveryNote = new deliverynote_model_1.deliveryNoteMain(deliveryNote);
     let errResponse;
-    await newDeliveryNote.save()
+    const saved = await newDeliveryNote.save()
         .catch(err => {
         deliveryNoteRoutesLogger.error('create - err: ', err);
         errResponse = {
@@ -90,12 +83,15 @@ exports.deliveryNoteRoutes.post('/create/:companyIdParam', stock_universal_serve
             errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
         }
-        return errResponse;
+        return err;
     });
     if (errResponse) {
         return res.status(403).send(errResponse);
     }
-    await (0, invoicerelated_1.updateInvoiceRelated)(invoiceRelated, companyId);
+    if (saved && saved._id) {
+        (0, stock_universal_server_1.addParentToLocals)(res, saved._id, deliverynote_model_1.deliveryNoteLean.collection.collectionName, 'makeTrackEdit');
+    }
+    await (0, invoicerelated_1.updateInvoiceRelated)(res, invoiceRelated, filter.companyId);
     return next();
 }, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('quotation'));
 /**
@@ -111,25 +107,11 @@ exports.deliveryNoteRoutes.post('/create/:companyIdParam', stock_universal_serve
  */
 exports.deliveryNoteRoutes.get('/getone/:urId/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('deliveryNotes', 'read'), async (req, res) => {
     const { urId } = req.params;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     const deliveryNote = await deliverynote_model_1.deliveryNoteLean
-        .findOne({ urId, companyId: queryId })
+        .findOne({ urId, ...filter })
         .lean()
-        .populate({
-        path: 'invoiceRelated', model: invoicerelated_model_1.invoiceRelatedLean,
-        populate: [{
-                path: 'billingUserId', model: stock_auth_server_1.userLean
-            },
-            {
-                path: 'payments', model: receipt_model_1.receiptLean
-            }]
-    });
+        .populate([(0, query_1.populateInvoiceRelated)(), (0, stock_auth_server_1.populateTrackEdit)(), (0, stock_auth_server_1.populateTrackView)()]);
     let returned;
     if (deliveryNote) {
         returned = (0, invoicerelated_1.makeInvoiceRelatedPdct)(deliveryNote.invoiceRelated, deliveryNote.invoiceRelated
@@ -137,6 +119,7 @@ exports.deliveryNoteRoutes.get('/getone/:urId/:companyIdParam', stock_universal_
             _id: deliveryNote._id,
             urId: deliveryNote.urId
         });
+        (0, stock_universal_server_1.addParentToLocals)(res, deliveryNote._id, deliverynote_model_1.deliveryNoteLean.collection.collectionName, 'trackDataView');
     }
     return res.status(200).send(returned);
 });
@@ -154,29 +137,15 @@ exports.deliveryNoteRoutes.get('/getone/:urId/:companyIdParam', stock_universal_
  */
 exports.deliveryNoteRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('deliveryNotes', 'read'), async (req, res) => {
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     const all = await Promise.all([
         deliverynote_model_1.deliveryNoteLean
-            .find({ companyId: queryId })
+            .find(filter)
             .skip(offset)
             .limit(limit)
             .lean()
-            .populate({
-            path: 'invoiceRelated', model: invoicerelated_model_1.invoiceRelatedLean,
-            populate: [{
-                    path: 'billingUserId', model: stock_auth_server_1.userLean
-                },
-                {
-                    path: 'payments', model: receipt_model_1.receiptLean
-                }]
-        }),
-        deliverynote_model_1.deliveryNoteLean.countDocuments({ companyId: queryId })
+            .populate([(0, query_1.populateInvoiceRelated)(), (0, stock_auth_server_1.populateTrackEdit)(), (0, stock_auth_server_1.populateTrackView)()]),
+        deliverynote_model_1.deliveryNoteLean.countDocuments(filter)
     ]);
     const returned = all[0]
         .map(val => (0, invoicerelated_1.makeInvoiceRelatedPdct)(val.invoiceRelated, val.invoiceRelated
@@ -188,6 +157,9 @@ exports.deliveryNoteRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_u
         count: all[1],
         data: returned
     };
+    for (const val of all[0]) {
+        (0, stock_universal_server_1.addParentToLocals)(res, val._id, deliverynote_model_1.deliveryNoteLean.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
 /**
@@ -206,15 +178,10 @@ exports.deliveryNoteRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_u
  */
 exports.deliveryNoteRoutes.put('/deleteone/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('deliveryNotes', 'delete'), async (req, res) => {
     const { id, invoiceRelated, creationType, stage } = req.body;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)([id, queryId]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
-    const deleted = await (0, invoicerelated_1.deleteAllLinked)(invoiceRelated, creationType, stage, 'deliverynote', companyId);
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
+    const deleted = await (0, invoicerelated_1.deleteAllLinked)(invoiceRelated, creationType, stage, 'deliverynote', filter.companyId);
     if (Boolean(deleted)) {
+        (0, stock_universal_server_1.addParentToLocals)(res, id, deliverynote_model_1.deliveryNoteLean.collection.collectionName, 'trackDataDelete');
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
@@ -238,30 +205,16 @@ exports.deliveryNoteRoutes.put('/deleteone/:companyIdParam', stock_universal_ser
  */
 exports.deliveryNoteRoutes.post('/search/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('deliveryNotes', 'read'), async (req, res) => {
     const { searchterm, searchKey } = req.body;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const all = await Promise.all([
         deliverynote_model_1.deliveryNoteLean
-            .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+            .find({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
             .skip(offset)
             .limit(limit)
             .lean()
-            .populate({
-            path: 'invoiceRelated', model: invoicerelated_model_1.invoiceRelatedLean,
-            populate: [{
-                    path: 'billingUserId', model: stock_auth_server_1.userLean
-                },
-                {
-                    path: 'payments', model: receipt_model_1.receiptLean
-                }]
-        }),
-        deliverynote_model_1.deliveryNoteLean.countDocuments({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+            .populate([(0, query_1.populateInvoiceRelated)(), (0, stock_auth_server_1.populateTrackEdit)(), (0, stock_auth_server_1.populateTrackView)()]),
+        deliverynote_model_1.deliveryNoteLean.countDocuments({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
     ]);
     const returned = all[0]
         .map(val => (0, invoicerelated_1.makeInvoiceRelatedPdct)(val.invoiceRelated, val.invoiceRelated
@@ -270,27 +223,27 @@ exports.deliveryNoteRoutes.post('/search/:offset/:limit/:companyIdParam', stock_
         count: all[1],
         data: returned
     };
+    for (const val of all[0]) {
+        (0, stock_universal_server_1.addParentToLocals)(res, val._id, deliverynote_model_1.deliveryNoteLean.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
 exports.deliveryNoteRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('deliveryNotes', 'delete'), async (req, res) => {
     const { credentials } = req.body;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     /** const ids = credentials
       .map(val => val.id);
     await deliveryNoteMain
       .deleteMany({ _id: { $in: ids } });**/
     const promises = credentials
         .map(async (val) => {
-        await (0, invoicerelated_1.deleteAllLinked)(val.invoiceRelated, val.creationType, val.stage, 'deliverynote', queryId);
+        await (0, invoicerelated_1.deleteAllLinked)(val.invoiceRelated, val.creationType, val.stage, 'deliverynote', filter.companyId);
         return new Promise(resolve => resolve(true));
     });
     await Promise.all(promises);
+    for (const val of credentials) {
+        (0, stock_universal_server_1.addParentToLocals)(res, val.id, deliverynote_model_1.deliveryNoteLean.collection.collectionName, 'trackDataDelete');
+    }
     return res.status(200).send({ success: true });
 });
 //# sourceMappingURL=deliverynote.routes.js.map

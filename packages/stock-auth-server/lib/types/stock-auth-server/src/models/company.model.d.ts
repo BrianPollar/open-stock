@@ -43,9 +43,6 @@ export declare let companyLean: Model<Tcompany>;
  * Represents the company authentication select function.
  */
 export declare const companyAuthSelect: {
-    trackEdit: number;
-    trackView: number;
-    urId: number;
     name: number;
     displayName: number;
     dateOfEst: number;
@@ -64,14 +61,15 @@ export declare const companyAuthSelect: {
     blockedReasons: number;
     left: number;
     dateLeft: number;
+    trackEdit: number;
+    trackView: number;
+    isDeleted: number;
+    trackDeleted: number;
 };
 /**
  * Selects the company about information.
  */
 export declare const companyAboutSelect: {
-    trackEdit: number;
-    trackView: number;
-    urId: number;
     name: number;
     displayName: number;
     dateOfEst: number;
@@ -90,6 +88,10 @@ export declare const companyAboutSelect: {
     blockedReasons: number;
     left: number;
     dateLeft: number;
+    trackEdit: number;
+    trackView: number;
+    isDeleted: number;
+    trackDeleted: number;
 };
 /**
  * Creates a company model with the specified database URL.

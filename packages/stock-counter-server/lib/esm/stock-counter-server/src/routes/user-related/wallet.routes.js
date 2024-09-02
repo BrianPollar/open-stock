@@ -1,11 +1,11 @@
-/* eslint-disable @typescript-eslint/no-misused-promises */
-import { userLean } from '@open-stock/stock-auth-server';
-import { fileMetaLean, offsetLimitRelegator, requireAuth, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { makeCompanyBasedQuery, offsetLimitRelegator, requireAuth, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import * as fs from 'fs';
 import path from 'path';
 import * as tracer from 'tracer';
 import { userWalletLean, userWalletMain } from '../../models/printables/wallet/user-wallet.model';
+import { populateUser } from '../../utils/query';
+import { populateTrackEdit, populateTrackView } from '@open-stock/stock-auth-server';
 const walletRoutesLogger = tracer.colorConsole({
     format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
     dateformat: 'HH:MM:ss.L',
@@ -37,73 +37,46 @@ walletRoutes.post('/create/:companyIdParam', requireAuth);
 walletRoutes.post('/createimg/:companyIdParam', requireAuth);
 walletRoutes.post('/getone', requireAuth, async (req, res) => {
     const { id, userId } = req.body;
-    const companyIdParam = req.body.companyId;
-    const { companyId } = req.user;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = verifyObjectIds([queryId]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
-    let filter = {};
+    const { filter } = makeCompanyBasedQuery(req);
+    let filter2 = {};
     if (id) {
         const isValid = verifyObjectIds([id]);
         if (!isValid) {
             return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
         }
-        filter = { ...filter, _id: id };
+        filter2 = { ...filter2, _id: id };
     }
-    if (queryId) {
-        filter = { ...filter, companyId: queryId };
-    }
+    /* if (queryId) {
+      filter = { ...filter, ...filter };
+    } */
     if (userId) {
         const isValid = verifyObjectIds([userId]);
         if (!isValid) {
             return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
         }
-        filter = { ...filter, user: userId };
+        filter2 = { ...filter2, user: userId };
     }
     if (req.body.profileOnly === 'true') {
         const { userId } = req.user;
-        filter = { user: userId };
+        filter2 = { user: userId };
     }
     const wallet = await userWalletLean
-        .findOne(filter)
-        .populate({ path: 'user', model: userLean,
-        populate: [{
-                path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-            }, {
-                path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-            }, {
-                path: 'profileCoverPic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-            }] })
+        .findOne({ ...filter, ...filter2 })
+        .populate([populateUser(), populateTrackEdit(), populateTrackView()])
         .lean();
     return res.status(200).send(wallet);
 });
 walletRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, async (req, res) => {
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = verifyObjectId(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = makeCompanyBasedQuery(req);
     const all = await Promise.all([
         userWalletLean
-            .find({ companyId: queryId })
-            .populate({ path: 'user', model: userLean,
-            populate: [{
-                    path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-                }, {
-                    path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-                }, {
-                    path: 'profileCoverPic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-                }]
-        })
+            .find({ ...filter })
+            .populate([populateUser(), populateTrackEdit(), populateTrackView()])
             .skip(offset)
             .limit(limit)
             .lean(),
-        userWalletLean.countDocuments({ companyId: queryId })
+        userWalletLean.countDocuments({ ...filter })
     ]);
     const response = {
         count: all[1],
@@ -113,28 +86,15 @@ walletRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, async (r
 });
 walletRoutes.get('/getbyrole/:offset/:limit/:role/:companyIdParam', requireAuth, async (req, res) => {
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
-    const { companyId } = req.user;
-    const { companyIdParam, role } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = verifyObjectId(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = makeCompanyBasedQuery(req);
     const all = await Promise.all([
         userWalletLean
-            .find({ companyId: queryId })
-            .populate({ path: 'user', model: userLean, match: { role },
-            populate: [{
-                    path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-                }, {
-                    path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-                }, {
-                    path: 'profileCoverPic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-                }] })
+            .find({ ...filter })
+            .populate([populateUser(), populateTrackEdit(), populateTrackView()])
             .skip(offset)
             .limit(limit)
             .lean(),
-        userWalletLean.countDocuments({ companyId: queryId })
+        userWalletLean.countDocuments({ ...filter })
     ]);
     const walletsToReturn = all[0].filter(val => val.user);
     const response = {
@@ -144,15 +104,9 @@ walletRoutes.get('/getbyrole/:offset/:limit/:role/:companyIdParam', requireAuth,
     return res.status(200).send(response);
 });
 walletRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, async (req, res) => {
-    const { searchterm, searchKey, extraDetails } = req.body;
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = verifyObjectId(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { searchterm, searchKey, extraDetails } = req.body;
+    const { filter } = makeCompanyBasedQuery(req);
     let filters;
     switch (searchKey) {
         case 'startDate':
@@ -172,19 +126,12 @@ walletRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, async (
     }
     const all = await Promise.all([
         userWalletLean
-            .find({ companyId: queryId, ...filters })
-            .populate({ path: 'user', model: userLean, match: { ...matchFilter },
-            populate: [{
-                    path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-                }, {
-                    path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-                }, {
-                    path: 'profileCoverPic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-                }] })
+            .find({ ...filter, ...filters })
+            .populate([populateUser(), populateTrackEdit(), populateTrackView()])
             .skip(offset)
             .limit(limit)
             .lean(),
-        userWalletLean.countDocuments({ companyId: queryId, ...filters })
+        userWalletLean.countDocuments({ ...filter, ...filters })
     ]);
     const walletsToReturn = all[0].filter(val => val.user);
     const response = {
@@ -197,15 +144,10 @@ walletRoutes.put('/update/:companyIdParam', requireAuth);
 walletRoutes.post('/updateimg/:companyIdParam', requireAuth);
 walletRoutes.put('/deleteone/:companyIdParam', requireAuth, async (req, res) => {
     const { id } = req.body;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = verifyObjectIds([id, queryId]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = makeCompanyBasedQuery(req);
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    const deleted = await userWalletMain.findOneAndDelete({ _id: id, companyId: queryId });
+    // const deleted = await userWalletMain.findOneAndDelete({ _id: id, ...filter });
+    const deleted = await userWalletMain.updateOne({ _id: id, ...filter }, { $set: { isDeleted: true } });
     if (Boolean(deleted)) {
         return res.status(200).send({ success: Boolean(deleted) });
     }
@@ -215,15 +157,18 @@ walletRoutes.put('/deleteone/:companyIdParam', requireAuth, async (req, res) => 
 });
 walletRoutes.put('/deletemany/:companyIdParam', requireAuth, async (req, res) => {
     const { ids } = req.body;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = verifyObjectIds([...ids, ...[queryId]]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = makeCompanyBasedQuery(req);
+    /* const deleted = await userWalletMain
+      .deleteMany({ _id: { $in: ids }, ...filter })
+      .catch(err => {
+        walletRoutesLogger.error('deletemany - err: ', err);
+  
+        return null;
+      }); */
     const deleted = await userWalletMain
-        .deleteMany({ _id: { $in: ids }, companyId: queryId })
+        .updateMany({ _id: { $in: ids }, ...filter }, {
+        $set: { isDeleted: true }
+    })
         .catch(err => {
         walletRoutesLogger.error('deletemany - err: ', err);
         return null;

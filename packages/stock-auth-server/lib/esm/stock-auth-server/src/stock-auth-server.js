@@ -1,5 +1,5 @@
 import { isNotificationsServerRunning } from '@open-stock/stock-notif-server';
-import { runPassport } from '@open-stock/stock-universal-server';
+import { runPassport, stockUniversalConfig } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { companyAuthRoutesDummy } from './routes-dummy/company.routes';
 import { companySubscriptionRoutesDummy } from './routes-dummy/subscriptions/company-subscription.routes';
@@ -34,7 +34,7 @@ export const runStockAuthServer = async (config, paymentInstance) => {
     createStockAuthServerLocals(config);
     // connect models
     await connectAuthDatabase(config.databaseConfig.url, config.databaseConfig.dbOptions);
-    runPassport(config.authSecrets.jwtSecret);
+    runPassport(stockUniversalConfig.authSecrets.jwtSecret);
     const stockAuthRouter = express.Router();
     if (!config.useDummyRoutes) {
         stockAuthRouter.use('/user', userAuthRoutes);

@@ -1,12 +1,17 @@
+import { createExpireDocIndex, preUpdateDocExpire, withCompanySchemaObj } from '@open-stock/stock-universal-server';
 import { Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../controllers/database.controller';
+import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../utils/database';
 const invoiceSchema = new Schema({
-    trackEdit: { type: Schema.ObjectId },
-    trackView: { type: Schema.ObjectId },
-    companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
+    ...withCompanySchemaObj,
     invoiceRelated: { type: String },
     dueDate: { type: Date }
-}, { timestamps: true });
+}, { timestamps: true, collection: 'invoices' });
+invoiceSchema.pre('updateOne', function (next) {
+    return preUpdateDocExpire(this, next);
+});
+invoiceSchema.pre('updateMany', function (next) {
+    return preUpdateDocExpire(this, next);
+});
 /** primary selection object
  * for invoice
  */
@@ -37,6 +42,7 @@ export const invoiceSelect = invoiceselect;
  * @param lean Whether to create the lean invoice model.
  */
 export const createInvoiceModel = async (dbUrl, dbOptions, main = true, lean = true) => {
+    createExpireDocIndex(invoiceSchema);
     if (!isStockDbConnected) {
         await connectStockDatabase(dbUrl, dbOptions);
     }

@@ -22,6 +22,7 @@ salesReportRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) 
     count: req.params.limit,
     data: createMockSalesReports(Number(req.params.limit))
   };
+
   res.status(200).send(response);
 });
 
@@ -36,6 +37,7 @@ salesReportRoutesDummy.post('/search/:offset/:limit/:companyIdParam', (req, res)
     count: req.params.limit,
     data: createMockSalesReports(Number(req.params.limit))
   };
+
   res.status(200).send(response);
 });
 

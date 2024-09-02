@@ -7,13 +7,14 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable @typescript-eslint/no-misused-promises */
 import { createNotifStn } from '@open-stock/stock-notif-server';
-import { appendBody, deleteFiles, fileMetaLean, makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, saveMetaToDb, stringifyMongooseErr, uploadFiles, verifyObjectId } from '@open-stock/stock-universal-server';
+import { addParentToLocals, appendBody, deleteFiles, makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, saveMetaToDb, stringifyMongooseErr, uploadFiles, verifyObjectId } from '@open-stock/stock-universal-server';
 import express from 'express';
 import * as fs from 'fs';
 import path from 'path';
 import * as tracer from 'tracer';
 import { companyLean, companyMain } from '../models/company.model';
 import { user } from '../models/user.model';
+import { populatePhotos, populateProfileCoverPic, populateProfilePic, populateTrackEdit, populateTrackView } from '../utils/query';
 import { requireActiveCompany } from './company-auth';
 import { requireSuperAdmin } from './superadmin.routes';
 import { addUser, updateUserBulk } from './user.routes';
@@ -59,7 +60,11 @@ export const addCompany = async (req, res) => {
       try again in a while`;
         }
         response = errResponse;
+        return err;
     });
+    if (savedCompany && savedCompany._id) {
+        addParentToLocals(res, savedCompany._id, companyMain.collection.collectionName, 'makeTrackEdit');
+    }
     if (!response.err && savedCompany) {
         const stn = {
             companyId: savedCompany._id,
@@ -99,7 +104,7 @@ export const updateCompany = async (req, res) => {
     }
     if (!foundCompany.urId) {
         const count = await companyMain
-            .find({ companyId: companyIdParam }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+            .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
         foundCompany.urId = makeUrId(Number(count[0]?.urId || '0'));
     }
     const parsed = req.body;
@@ -380,7 +385,7 @@ companyAuthRoutes.post('/updateprofileimg/:companyIdParam', requireAuth, require
     }
     let status = 200;
     let response = { success: true };
-    await foundCompany.save().catch((err) => {
+    const updated = await foundCompany.save().catch((err) => {
         status = 403;
         const errResponse = {
             success: false
@@ -394,6 +399,9 @@ companyAuthRoutes.post('/updateprofileimg/:companyIdParam', requireAuth, require
         }
         response = errResponse;
     });
+    if (updated) {
+        addParentToLocals(res, queryId, companyMain.collection.collectionName, 'trackDataDelete');
+    }
     return res.status(status).send(response);
 });
 companyAuthRoutes.put('/blockunblock/:companyIdParam', requireAuth, requireSuperAdmin, async (req, res) => {
@@ -440,13 +448,12 @@ companyAuthRoutes.get('/getonecompany/:urId/:companyIdParam', requireAuth, requi
     }
     const oneCompany = await companyLean
         .findById(companyIdParam)
-        .populate({ path: 'profilePic', model: fileMetaLean })
-        .populate({ path: 'profileCoverPic', model: fileMetaLean })
-        .populate({ path: 'photos', model: fileMetaLean })
+        .populate([populateProfilePic(), populateProfileCoverPic(), populatePhotos(), populateTrackEdit(), populateTrackView()])
         .lean();
     if (!oneCompany) {
         return res.status(200).send({});
     }
+    addParentToLocals(res, oneCompany._id, companyMain.collection.collectionName, 'trackDataView');
     return res.status(200).send(oneCompany);
 });
 companyAuthRoutes.get('/getcompanys/:offset/:limit/:companyIdParam', requireAuth, requireSuperAdmin, async (req, res) => {
@@ -459,9 +466,7 @@ companyAuthRoutes.get('/getcompanys/:offset/:limit/:companyIdParam', requireAuth
             .sort({ createdAt: 1 })
             .limit(Number(currLimit))
             .skip(Number(currOffset))
-            .populate({ path: 'profilePic', model: fileMetaLean })
-            .populate({ path: 'profileCoverPic', model: fileMetaLean })
-            .populate({ path: 'photos', model: fileMetaLean })
+            .populate([populateProfilePic(), populateProfileCoverPic(), populatePhotos(), populateTrackEdit(), populateTrackView()])
             .lean(),
         companyLean.countDocuments()
     ]);
@@ -470,6 +475,9 @@ companyAuthRoutes.get('/getcompanys/:offset/:limit/:companyIdParam', requireAuth
         count: all[1],
         data: filteredFaqs
     };
+    for (const val of filteredFaqs) {
+        addParentToLocals(res, val._id, companyMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
 // db.users.updateOne({ _id: ObjectId('6641c3d122dfefc4809ebe66') }, { $set: { email: "pollarbrian@gmail.com" } })
@@ -513,7 +521,7 @@ companyAuthRoutes.post('/updatecompanybulkimg/:companyIdParam', requireAuth, req
     return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
   }
 }); */
-companyAuthRoutes.put('/deleteimages/:companyIdParam', requireAuth, requireActiveCompany, deleteFiles, async (req, res) => {
+companyAuthRoutes.put('/deleteimages/:companyIdParam', requireAuth, requireActiveCompany, deleteFiles(true), async (req, res) => {
     const filesWithDir = req.body.filesWithDir;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -526,19 +534,25 @@ companyAuthRoutes.put('/deleteimages/:companyIdParam', requireAuth, requireActiv
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const company = await companyMain
-        .findOneAndUpdate({ _id: queryId });
+        .findOne({ _id: queryId })
+        .lean();
     if (!company) {
         return res.status(404).send({ success: false, err: 'item not found' });
     }
     const photos = company.photos;
     const filesWithDirIds = filesWithDir
         .map(val => val._id);
-    company.photos = photos
-        .filter((p) => !filesWithDirIds.includes(p));
-    company.profilePic = company.photos.find(p => p === company.profilePic);
-    company.profileCoverPic = company.photos.find(p => p === company.profileCoverPic);
     let errResponse;
-    await company.save().catch(err => {
+    await companyMain.updateOne({
+        _id: queryId
+    }, {
+        $set: {
+            photos: photos
+                .filter((p) => !filesWithDirIds.includes(p)),
+            profilePic: company.photos.find(p => p === company.profilePic),
+            profileCoverPic: company.photos.find(p => p === company.profileCoverPic)
+        }
+    }).catch(err => {
         errResponse = {
             success: false,
             status: 403
@@ -555,6 +569,7 @@ companyAuthRoutes.put('/deleteimages/:companyIdParam', requireAuth, requireActiv
     if (errResponse) {
         return res.status(403).send(errResponse);
     }
+    addParentToLocals(res, queryId, companyMain.collection.collectionName, 'makeTrackEdit');
     return res.status(200).send({ success: true });
 });
 //# sourceMappingURL=company.routes.js.map

@@ -1,5 +1,5 @@
 import { EhttpController, LoggerController } from '@open-stock/stock-universal';
-import { CalculationsController } from './controllers/calculations.controller';
+import { CalculationsController } from './utils/calculations';
 export let stockCounterClient;
 export class StockCounterClient {
     /**

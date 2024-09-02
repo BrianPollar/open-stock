@@ -1,6 +1,7 @@
 import { IinvoiceRelated, IpaymentRelated } from '@open-stock/stock-universal';
+import { createExpireDocIndex, preUpdateDocExpire } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
+import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 
 /**
@@ -11,6 +12,7 @@ export type Torder = Document & {
   paymentRelated: string | IpaymentRelated;
   invoiceRelated: string | IinvoiceRelated;
   deliveryDate: Date;
+  isDeleted?: boolean;
 };
 
 const orderSchema: Schema<Torder> = new Schema({
@@ -18,10 +20,19 @@ const orderSchema: Schema<Torder> = new Schema({
   paymentRelated: { type: String, unique: true },
   invoiceRelated: { type: String, unique: true },
   deliveryDate: { type: Date, required: [true, 'cannot be empty.'], index: true }
-}, { timestamps: true });
+}, { timestamps: true, collection: 'orders' });
 
 // Apply the uniqueValidator plugin to orderSchema.
 orderSchema.plugin(uniqueValidator);
+
+orderSchema.pre('updateOne', function(next) {
+  return preUpdateDocExpire(this, next);
+});
+
+orderSchema.pre('updateMany', function(next) {
+  return preUpdateDocExpire(this, next);
+});
+
 
 /** primary selection object
  * for order
@@ -56,6 +67,7 @@ export const orderSelect = orderselect;
  * @param lean Whether to create the lean connection model.
  */
 export const createOrderModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
+  createExpireDocIndex(orderSchema);
   if (!isStockDbConnected) {
     await connectStockDatabase(dbUrl, dbOptions);
   }

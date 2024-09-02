@@ -1,8 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createInvoiceRelatedModel = exports.invoiceRelatedSelect = exports.invoiceRelatedLean = exports.invoiceRelatedMain = void 0;
+const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const mongoose_1 = require("mongoose");
-const database_controller_1 = require("../../../controllers/database.controller");
+const database_1 = require("../../../utils/database");
 /**
  * Represents the schema for the invoice related model.
  * @typedef {Object} TinvoiceRelated
@@ -24,9 +25,7 @@ const database_controller_1 = require("../../../controllers/database.controller"
  * @property {Array} payments - The payments made on the invoice.
  */
 const invoiceRelatedSchema = new mongoose_1.Schema({
-    trackEdit: { type: mongoose_1.Schema.ObjectId },
-    trackView: { type: mongoose_1.Schema.ObjectId },
-    companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
+    ...stock_universal_server_1.withCompanySchemaObj,
     creationType: { type: String },
     estimateId: { type: Number },
     invoiceId: { type: Number },
@@ -46,16 +45,20 @@ const invoiceRelatedSchema = new mongoose_1.Schema({
     payType: { type: String, index: true },
     ecommerceSale: { type: Boolean, index: true, default: false },
     ecommerceSalePercentage: { type: Number, index: true, default: 0 }
-}, { timestamps: true });
+}, { timestamps: true, collection: 'invoicerelateds' });
+invoiceRelatedSchema.pre('updateOne', function (next) {
+    return (0, stock_universal_server_1.preUpdateDocExpire)(this, next);
+});
+invoiceRelatedSchema.pre('updateMany', function (next) {
+    return (0, stock_universal_server_1.preUpdateDocExpire)(this, next);
+});
 // Apply the uniqueValidator plugin to invoiceRelatedSchema.
 // invoiceRelatedSchema.plugin(uniqueValidator);
 /** primary selection object
  * for invoiceRelated
  */
 const invoiceRelatedselect = {
-    trackEdit: 1,
-    trackView: 1,
-    companyId: 1,
+    ...stock_universal_server_1.withCompanySelectObj,
     creationType: 1,
     estimateId: 1,
     invoiceId: 1,
@@ -87,14 +90,15 @@ exports.invoiceRelatedSelect = invoiceRelatedselect;
  * @param lean - Indicates whether to create the lean connection model. Default is true.
  */
 const createInvoiceRelatedModel = async (dbUrl, dbOptions, main = true, lean = true) => {
-    if (!database_controller_1.isStockDbConnected) {
-        await (0, database_controller_1.connectStockDatabase)(dbUrl, dbOptions);
+    (0, stock_universal_server_1.createExpireDocIndex)(invoiceRelatedSchema);
+    if (!database_1.isStockDbConnected) {
+        await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.invoiceRelatedMain = database_controller_1.mainConnection.model('invoiceRelated', invoiceRelatedSchema);
+        exports.invoiceRelatedMain = database_1.mainConnection.model('invoiceRelated', invoiceRelatedSchema);
     }
     if (lean) {
-        exports.invoiceRelatedLean = database_controller_1.mainConnectionLean.model('invoiceRelated', invoiceRelatedSchema);
+        exports.invoiceRelatedLean = database_1.mainConnectionLean.model('invoiceRelated', invoiceRelatedSchema);
     }
 };
 exports.createInvoiceRelatedModel = createInvoiceRelatedModel;

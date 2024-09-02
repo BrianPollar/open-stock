@@ -1,6 +1,7 @@
 import { IinvoiceRelated, IpaymentRelated } from '@open-stock/stock-universal';
+import { createExpireDocIndex, preUpdateDocExpire } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
+import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 
 /**
@@ -11,6 +12,7 @@ export type Tpayment = Document & {
   paymentRelated: string | IpaymentRelated;
   invoiceRelated: string | IinvoiceRelated;
   order: string;
+  isDeleted?: boolean;
 };
 
 const paymentSchema: Schema<Tpayment> = new Schema({
@@ -18,10 +20,19 @@ const paymentSchema: Schema<Tpayment> = new Schema({
   paymentRelated: { type: String, unique: true },
   invoiceRelated: { type: String, unique: true },
   order: { type: String }
-}, { timestamps: true });
+}, { timestamps: true, collection: 'payments' });
 
 // Apply the uniqueValidator plugin to paymentSchema.
 paymentSchema.plugin(uniqueValidator);
+
+paymentSchema.pre('updateOne', function(next) {
+  return preUpdateDocExpire(this, next);
+});
+
+paymentSchema.pre('updateMany', function(next) {
+  return preUpdateDocExpire(this, next);
+});
+
 
 /** primary selection object
  * for payment
@@ -56,6 +67,7 @@ export const paymentSelect = paymentselect;
  * @param lean Whether to create the payment model for the lean connection.
  */
 export const createPaymentModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
+  createExpireDocIndex(paymentSchema);
   if (!isStockDbConnected) {
     await connectStockDatabase(dbUrl, dbOptions);
   }

@@ -61,7 +61,7 @@ exports.promocodeRoutes.post('/create/:companyIdParam', stock_universal_server_1
     }
     const code = (0, stock_universal_1.makeRandomString)(8, 'combined');
     const count = await promocode_model_1.promocodeMain
-        .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+        .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     const urId = (0, stock_universal_server_1.makeUrId)(Number(count[0]?.urId || '0'));
     const promocode = {
         urId,
@@ -88,10 +88,13 @@ exports.promocodeRoutes.post('/create/:companyIdParam', stock_universal_server_1
             errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
         }
-        return errResponse;
+        return err;
     });
     if (errResponse) {
         return res.status(403).send(errResponse);
+    }
+    if (saved && saved._id) {
+        (0, stock_universal_server_1.addParentToLocals)(res, saved._id, promocode_model_1.promocodeMain.collection.collectionName, 'makeTrackEdit');
     }
     return res.status(200).send({ success: Boolean(saved), code });
 });
@@ -106,16 +109,13 @@ exports.promocodeRoutes.post('/create/:companyIdParam', stock_universal_server_1
  */
 exports.promocodeRoutes.get('/getone/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'read'), async (req, res) => {
     const { id } = req.params;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)([id, queryId]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     const promocode = await promocode_model_1.promocodeLean
-        .findOne({ _id: id, companyId: queryId })
+        .findOne({ _id: id, ...filter })
         .lean();
+    if (promocode) {
+        (0, stock_universal_server_1.addParentToLocals)(res, promocode._id, promocode_model_1.promocodeMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(promocode);
 });
 /**
@@ -132,6 +132,9 @@ exports.promocodeRoutes.get('/getonebycode/:code/:companyIdParam', async (req, r
     const promocode = await promocode_model_1.promocodeLean
         .findOne({ code })
         .lean();
+    if (promocode) {
+        (0, stock_universal_server_1.addParentToLocals)(res, promocode._id, promocode_model_1.promocodeMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(promocode);
 });
 /**
@@ -146,25 +149,22 @@ exports.promocodeRoutes.get('/getonebycode/:code/:companyIdParam', async (req, r
  */
 exports.promocodeRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'read'), async (req, res) => {
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     const all = await Promise.all([
         promocode_model_1.promocodeLean
-            .find({ companyId: queryId })
+            .find(filter)
             .skip(offset)
             .limit(limit)
             .lean(),
-        promocode_model_1.promocodeLean.countDocuments({ companyId: queryId })
+        promocode_model_1.promocodeLean.countDocuments(filter)
     ]);
     const response = {
         count: all[1],
         data: all[0]
     };
+    for (const val of all[0]) {
+        (0, stock_universal_server_1.addParentToLocals)(res, val._id, promocode_model_1.promocodeMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
 /**
@@ -186,8 +186,10 @@ exports.promocodeRoutes.delete('/deleteone/:id/:companyIdParam', stock_universal
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    const deleted = await promocode_model_1.promocodeMain.findOneAndDelete({ _id: id, companyId: queryId });
+    // const deleted = await promocodeMain.findOneAndDelete({ _id: id, companyId: queryId });
+    const deleted = await promocode_model_1.promocodeMain.updateOne({ _id: id, companyId: queryId }, { $set: { isDeleted: true } });
     if (Boolean(deleted)) {
+        (0, stock_universal_server_1.addParentToLocals)(res, id, promocode_model_1.promocodeMain.collection.collectionName, 'trackDataDelete');
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {

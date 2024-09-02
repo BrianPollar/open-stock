@@ -1,6 +1,7 @@
-import { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
 import { ItrackStamp } from '@open-stock/stock-universal';
+import { createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
+import { ConnectOptions, Document, Model, Schema } from 'mongoose';
+import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 
 /**
@@ -35,17 +36,14 @@ extends Document, ItrackStamp {
 }
 
 const itemOfferSchema: Schema<IitemOffer> = new Schema({
-  trackEdit: { type: Schema.ObjectId },
-  trackView: { type: Schema.ObjectId },
-  urId: { type: String },
-  companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
+  ...withUrIdAndCompanySchemaObj,
   items: [],
   expireAt: { type: Date },
   type: { type: String },
   header: { type: String },
   subHeader: { type: String },
   ammount: { type: Number }
-}, { timestamps: true });
+}, { timestamps: true, collection: 'itemoffers' });
 
 itemOfferSchema.index(
   { expireAt: 1 },
@@ -55,14 +53,20 @@ itemOfferSchema.index(
 // Apply the uniqueValidator plugin to itemOfferSchema.
 itemOfferSchema.plugin(uniqueValidator);
 
+itemOfferSchema.pre('updateOne', function(next) {
+  return preUpdateDocExpire(this, next);
+});
+
+itemOfferSchema.pre('updateMany', function(next) {
+  return preUpdateDocExpire(this, next);
+});
+
+
 /** primary selection object
  * for itemOffer
  */
 const itemOfferselect = {
-  trackEdit: 1,
-  trackView: 1,
-  urId: 1,
-  companyId: 1,
+  ...withUrIdAndCompanySelectObj,
   items: 1,
   expireAt: 1,
   type: 1,
@@ -94,6 +98,7 @@ export const itemOfferSelect = itemOfferselect;
  * @returns {Promise<void>} - A promise that resolves when the models have been created.
  */
 export const createItemOfferModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
+  createExpireDocIndex(itemOfferSchema);
   if (!isStockDbConnected) {
     await connectStockDatabase(dbUrl, dbOptions);
   }

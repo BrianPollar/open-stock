@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 /* eslint-disable @typescript-eslint/no-misused-promises */
 import { Icompany, Icustomrequest, IdataArrayResponse, IsubscriptionPackage, Iuser } from '@open-stock/stock-universal';
-import { offsetLimitRelegator, requireAuth, roleAuthorisation, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { addParentToLocals, makePredomFilter, offsetLimitRelegator, requireAuth, roleAuthorisation, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import * as fs from 'fs';
 import path from 'path';
@@ -186,6 +186,11 @@ companySubscriptionRoutes.post('/subscribe/:companyIdParam', requireAuth, requir
     return null;
   });
 
+  if (savedSub && savedSub._id) {
+    addParentToLocals(res, savedSub._id, companySubscriptionMain.collection.collectionName, 'makeTrackEdit');
+  }
+
+
   if (savedErr) {
     return res.status(500).send({ success: false });
   }
@@ -224,7 +229,7 @@ companySubscriptionRoutes.get('/getall/:offset/:limit/:companyIdParam', requireA
   if (companyId !== 'superAdmin') {
     query = { companyId };
   } else {
-    query = { status: 'paid' };
+    query = { ...makePredomFilter(req) };
   }
   const all = await Promise.all([
     companySubscriptionLean
@@ -239,6 +244,10 @@ companySubscriptionRoutes.get('/getall/:offset/:limit/:companyIdParam', requireA
     data: all[0]
   };
 
+  for (const val of all[0]) {
+    addParentToLocals(res, val._id, companySubscriptionMain.collection.collectionName, 'trackDataView');
+  }
+
   return res.status(200).send(response);
 });
 
@@ -252,10 +261,14 @@ companySubscriptionRoutes.put('/deleteone/:companyIdParam', requireAuth, require
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  const deleted = await companySubscriptionMain.findOneAndDelete({ _id: id, companyId: queryId });
+
+  // const deleted = await companySubscriptionMain.findOneAndDelete({ _id: id, companyId: queryId });
+
+  const deleted = await companySubscriptionMain.updateOne({ _id: id, companyId: queryId }, { $set: { isDeleted: true } });
 
   if (Boolean(deleted)) {
+    addParentToLocals(res, id, companySubscriptionMain.collection.collectionName, 'trackDataDelete');
+
     return res.status(200).send({ success: Boolean(deleted) });
   } else {
     return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });

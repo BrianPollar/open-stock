@@ -41,6 +41,7 @@ export declare let trackViewLean: Model<TtrackView>;
 export declare const trackViewSelect: {
     parent: number;
     users: number;
+    collectionName: number;
 };
 /**
  * Creates a new subscription package model.

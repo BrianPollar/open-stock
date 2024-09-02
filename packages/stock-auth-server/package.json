@@ -1,6 +1,6 @@
 {
   "name": "@open-stock/stock-auth-server",
-  "version": "4.2.66",
+  "version": "4.2.152",
   "description": "> TODO: description",
   "main": "lib/cjs/stock-auth-server/src/index.js",
   "module": "lib/esm/stock-auth-server/src/index.js",

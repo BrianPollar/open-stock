@@ -16,6 +16,7 @@ itemOfferRoutesDummy.get('/getall/:type/:offset/:limit/:companyIdParam', (req, r
     count: req.params.limit,
     data: createMockItemOffers(Number(req.params.limit))
   };
+
   res.status(200).send(response);
 });
 

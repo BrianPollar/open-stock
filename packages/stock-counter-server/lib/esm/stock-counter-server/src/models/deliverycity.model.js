@@ -1,24 +1,27 @@
+import { createExpireDocIndex, preUpdateDocExpire, withCompanySchemaObj, withCompanySelectObj } from '@open-stock/stock-universal-server';
 import { Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
+import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 const deliverycitySchema = new Schema({
-    trackEdit: { type: Schema.ObjectId },
-    trackView: { type: Schema.ObjectId },
+    ...withCompanySchemaObj,
     name: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
-    companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
     shippingCost: { type: Number, required: [true, 'cannot be empty.'] },
     currency: { type: String, required: [true, 'cannot be empty.'] },
     deliversInDays: { type: Number, required: [true, 'cannot be empty.'] }
-}, { timestamps: true });
+}, { timestamps: true, collection: 'deliverycities' });
+deliverycitySchema.pre('updateOne', function (next) {
+    return preUpdateDocExpire(this, next);
+});
+deliverycitySchema.pre('updateMany', function (next) {
+    return preUpdateDocExpire(this, next);
+});
 // Apply the uniqueValidator plugin to deliverycitySchema.
 deliverycitySchema.plugin(uniqueValidator);
 /** primary selection object
  * for deliverycity
  */
 const deliverycityselect = {
-    trackEdit: 1,
-    trackView: 1,
-    companyId: 1,
+    ...withCompanySelectObj,
     name: 1,
     shippingCost: 1,
     currency: 1,
@@ -43,6 +46,7 @@ export const deliverycitySelect = deliverycityselect;
  * @param lean Whether to create a lean connection or not.
  */
 export const createDeliverycityModel = async (dbUrl, dbOptions, main = true, lean = true) => {
+    createExpireDocIndex(deliverycitySchema);
     if (!isStockDbConnected) {
         await connectStockDatabase(dbUrl, dbOptions);
     }

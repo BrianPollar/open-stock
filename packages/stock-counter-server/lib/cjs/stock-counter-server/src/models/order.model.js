@@ -1,17 +1,24 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createOrderModel = exports.orderSelect = exports.orderLean = exports.orderMain = void 0;
+const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const mongoose_1 = require("mongoose");
-const database_controller_1 = require("../controllers/database.controller");
+const database_1 = require("../utils/database");
 const uniqueValidator = require('mongoose-unique-validator');
 const orderSchema = new mongoose_1.Schema({
     companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
     paymentRelated: { type: String, unique: true },
     invoiceRelated: { type: String, unique: true },
     deliveryDate: { type: Date, required: [true, 'cannot be empty.'], index: true }
-}, { timestamps: true });
+}, { timestamps: true, collection: 'orders' });
 // Apply the uniqueValidator plugin to orderSchema.
 orderSchema.plugin(uniqueValidator);
+orderSchema.pre('updateOne', function (next) {
+    return (0, stock_universal_server_1.preUpdateDocExpire)(this, next);
+});
+orderSchema.pre('updateMany', function (next) {
+    return (0, stock_universal_server_1.preUpdateDocExpire)(this, next);
+});
 /** primary selection object
  * for order
  */
@@ -33,14 +40,15 @@ exports.orderSelect = orderselect;
  * @param lean Whether to create the lean connection model.
  */
 const createOrderModel = async (dbUrl, dbOptions, main = true, lean = true) => {
-    if (!database_controller_1.isStockDbConnected) {
-        await (0, database_controller_1.connectStockDatabase)(dbUrl, dbOptions);
+    (0, stock_universal_server_1.createExpireDocIndex)(orderSchema);
+    if (!database_1.isStockDbConnected) {
+        await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.orderMain = database_controller_1.mainConnection.model('Order', orderSchema);
+        exports.orderMain = database_1.mainConnection.model('Order', orderSchema);
     }
     if (lean) {
-        exports.orderLean = database_controller_1.mainConnectionLean.model('Order', orderSchema);
+        exports.orderLean = database_1.mainConnectionLean.model('Order', orderSchema);
     }
 };
 exports.createOrderModel = createOrderModel;

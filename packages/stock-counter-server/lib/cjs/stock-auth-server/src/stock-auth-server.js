@@ -30,7 +30,7 @@ const runStockAuthServer = async (config, paymentInstance) => {
     (0, stock_auth_local_1.createStockAuthServerLocals)(config);
     // connect models
     await (0, stock_auth_local_1.connectAuthDatabase)(config.databaseConfig.url, config.databaseConfig.dbOptions);
-    (0, stock_universal_server_1.runPassport)(config.authSecrets.jwtSecret);
+    (0, stock_universal_server_1.runPassport)(stock_universal_server_1.stockUniversalConfig.authSecrets.jwtSecret);
     const stockAuthRouter = express_1.default.Router();
     if (!config.useDummyRoutes) {
         stockAuthRouter.use('/user', user_routes_2.userAuthRoutes);

@@ -1,4 +1,5 @@
-import { makeUrId, offsetLimitRelegator, stringifyMongooseErr } from '@open-stock/stock-universal-server';
+import { makePredomFilter } from '@open-stock/stock-universal-server';
+import { addParentToLocals, makeUrId, offsetLimitRelegator, stringifyMongooseErr } from '@open-stock/stock-universal-server';
 import express from 'express';
 import * as fs from 'fs';
 import path from 'path';
@@ -56,7 +57,7 @@ reviewRoutes.post('/create/:companyIdParam', async (req, res, next) => {
     review.urId = makeUrId(count);
     const newReview = new reviewMain(review);
     let errResponse;
-    await newReview.save()
+    const saved = await newReview.save()
         .catch(err => {
         reviewRoutesLogger.error('create - err: ', err);
         errResponse = {
@@ -70,10 +71,13 @@ reviewRoutes.post('/create/:companyIdParam', async (req, res, next) => {
             errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
         }
-        return errResponse;
+        return err;
     });
     if (errResponse) {
         return res.status(403).send(errResponse);
+    }
+    if (saved && saved._id) {
+        addParentToLocals(res, saved._id, reviewMain.collection.collectionName, 'makeTrackEdit');
     }
     return next();
 }, addReview);
@@ -92,8 +96,11 @@ reviewRoutes.post('/create/:companyIdParam', async (req, res, next) => {
 reviewRoutes.get('/getone/:id/:companyIdParam', async (req, res) => {
     const { id } = req.params;
     const review = await reviewLean
-        .findOne({ _id: id })
+        .findOne({ _id: id, ...makePredomFilter(req) })
         .lean();
+    if (review) {
+        addParentToLocals(res, review._id, reviewMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(review);
 });
 /**
@@ -112,7 +119,7 @@ reviewRoutes.get('/getall/:id/:offset/:limit/:companyIdParam', async (req, res) 
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     const all = await Promise.all([
         reviewLean
-            .find({ itemId: req.params.id })
+            .find({ itemId: req.params.id, ...makePredomFilter(req) })
             .skip(offset)
             .limit(limit)
             .lean(),
@@ -122,6 +129,9 @@ reviewRoutes.get('/getall/:id/:offset/:limit/:companyIdParam', async (req, res) 
         count: all[1],
         data: all[0]
     };
+    for (const val of all[0]) {
+        addParentToLocals(res, val._id, reviewMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
 reviewRoutes.get('/getratingcount/:id/:rating', async (req, res) => {
@@ -149,8 +159,10 @@ reviewRoutes.get('/getratingcount/:id/:rating', async (req, res) => {
 reviewRoutes.delete('/deleteone/:id/:itemId/:rating/:companyIdParam', async (req, res, next) => {
     const { id } = req.params;
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    const deleted = await reviewMain.findOneAndDelete({ _id: id });
+    // const deleted = await reviewMain.findOneAndDelete({ _id: id });
+    const deleted = await reviewMain.updateOne({ _id: id }, { $set: { isDeleted: true } });
     if (Boolean(deleted)) {
+        addParentToLocals(res, id, reviewMain.collection.collectionName, 'trackDataDelete');
         return next();
     }
     else {

@@ -1,8 +1,6 @@
 import { isUniversalServerRunning, runPassport, verifyObjectId } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { ConnectOptions } from 'mongoose';
-import { constructMailService } from './controllers/notifications.controller';
-import { createTwilioService, makeAuthyTwilio } from './controllers/twilio.controller';
 import { notifSettingMain } from './models/notifsetting.model';
 import { mailSenderRoutesDummy } from './routes-dummy/mail.routes';
 import { notifnRoutesDummy } from './routes-dummy/notification.routes';
@@ -11,6 +9,8 @@ import { notifnRoutes } from './routes/notification.routes';
 import {
   InotifSecrets, ItwilioAuthySecrets, createNotificationsDatabase, createStockNotifServerLocals, isStockNotifServerRunning, notificationSettings
 } from './stock-notif-local';
+import { constructMailService } from './utils/notifications';
+import { createTwilioService, makeAuthyTwilio } from './utils/twilio';
 
 export interface IstockNotifServerConfig {
   jwtSecret: string;
@@ -25,6 +25,11 @@ export interface IstockNotifServerConfig {
 
 export const createService = () => createTwilioService();
 
+/**
+   * Runs the stock notification server by setting up the necessary configurations, connecting to the database, initializing passport authentication, and returning the notification routes.
+   * @param {IstockNotifServerConfig} config - The server configuration.
+   * @returns {Promise<{stockNotifRouter, notificationSettings}>}
+   */
 export const runStockNotificationServer = async(config: IstockNotifServerConfig) => {
   if (!isUniversalServerRunning()) {
     const error = new Error('File loacations must be handled properly, please start by firing up that server');
@@ -39,6 +44,7 @@ export const runStockNotificationServer = async(config: IstockNotifServerConfig)
   notificationSettings.defaultAuthyMail = config.twilioAutyConfig.defaultMail;
   notificationSettings.twilioNumber = config.twilioAutyConfig.twilioNumber;
   notificationSettings.twilioVerificationSid = config.twilioAutyConfig.twilioVerificationSid;
+
   createStockNotifServerLocals();
   constructMailService(config.twilioAutyConfig.sendGridApiKey, config.notifSecrets.notifPublicKey, config.notifSecrets.notifPrivateKey);
   const stockNotifRouter = express.Router();

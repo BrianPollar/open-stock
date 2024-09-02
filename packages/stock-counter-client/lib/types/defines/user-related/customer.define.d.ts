@@ -36,7 +36,7 @@ export declare class Customer extends UserBase {
      * @param {string} id - The customer ID.
      * @returns {Promise<Customer>} - A single Customer instance created from the retrieved customer data.
      */
-    static getOneCustomer(filter: IgetOneFilter): Promise<Customer>;
+    static getOneCustomer(companyId: string, filter: IgetOneFilter): Promise<Customer>;
     /**
      * Creates a new customer.
      * @static

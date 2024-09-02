@@ -49,16 +49,10 @@ exports.pickupLocationRoutes = express_1.default.Router();
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>}
  */
-exports.pickupLocationRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, async (req, res) => {
+exports.pickupLocationRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('deliveryCitys', 'create'), async (req, res) => {
     const pickupLocation = req.body;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
-    pickupLocation.companyId = queryId;
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
+    pickupLocation.companyId = filter.companyId;
     const newPickupLocation = new pickuplocation_model_1.pickupLocationMain(pickupLocation);
     let errResponse;
     const saved = await newPickupLocation.save()
@@ -75,10 +69,13 @@ exports.pickupLocationRoutes.post('/create/:companyIdParam', stock_universal_ser
             errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
         }
-        return errResponse;
+        return err;
     });
     if (errResponse) {
         return res.status(403).send(errResponse);
+    }
+    if (saved && saved._id) {
+        (0, stock_universal_server_1.addParentToLocals)(res, saved._id, pickuplocation_model_1.pickupLocationMain.collection.collectionName, 'makeTrackEdit');
     }
     return res.status(200).send({ success: Boolean(saved) });
 });
@@ -92,25 +89,26 @@ exports.pickupLocationRoutes.post('/create/:companyIdParam', stock_universal_ser
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>}
  */
-exports.pickupLocationRoutes.put('/update/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, async (req, res) => {
+exports.pickupLocationRoutes.put('/update/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('deliveryCitys', 'update'), async (req, res) => {
     const updatedPickupLocation = req.body;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    updatedPickupLocation.companyId = queryId;
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)([updatedPickupLocation._id, queryId]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
+    updatedPickupLocation.companyId = filter.companyId;
     const pickupLocation = await pickuplocation_model_1.pickupLocationMain
-        .findOneAndUpdate({ _id: updatedPickupLocation._id, companyId: queryId });
+        .findOne({ _id: updatedPickupLocation._id, ...filter })
+        .lean();
     if (!pickupLocation) {
         return res.status(404).send({ success: false });
     }
-    pickupLocation.name = updatedPickupLocation.name || pickupLocation.name;
-    pickupLocation.contact = updatedPickupLocation.contact || pickupLocation.contact;
     let errResponse;
-    const updated = await pickupLocation.save()
+    const updated = await pickuplocation_model_1.pickupLocationMain.updateOne({
+        _id: updatedPickupLocation._id, ...filter
+    }, {
+        $set: {
+            name: updatedPickupLocation.name || pickupLocation.name,
+            contact: updatedPickupLocation.contact || pickupLocation.contact,
+            isDeleted: updatedPickupLocation.isDeleted || pickupLocation.isDeleted
+        }
+    })
         .catch(err => {
         pickupLocationRoutesLogger.error('update - err: ', err);
         errResponse = {
@@ -129,6 +127,7 @@ exports.pickupLocationRoutes.put('/update/:companyIdParam', stock_universal_serv
     if (errResponse) {
         return res.status(403).send(errResponse);
     }
+    (0, stock_universal_server_1.addParentToLocals)(res, pickupLocation._id, pickuplocation_model_1.pickupLocationMain.collection.collectionName, 'makeTrackEdit');
     return res.status(200).send({ success: Boolean(updated) });
 });
 /**
@@ -141,18 +140,15 @@ exports.pickupLocationRoutes.put('/update/:companyIdParam', stock_universal_serv
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>}
  */
-exports.pickupLocationRoutes.get('/getone/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, async (req, res) => {
+exports.pickupLocationRoutes.get('/getone/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('deliveryCitys', 'read'), async (req, res) => {
     const { id } = req.params;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)([id, queryId]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     const pickupLocation = await pickuplocation_model_1.pickupLocationLean
-        .findOne({ _id: id, companyId: queryId })
+        .findOne({ _id: id, ...filter })
         .lean();
+    if (pickupLocation) {
+        (0, stock_universal_server_1.addParentToLocals)(res, pickupLocation._id, pickuplocation_model_1.pickupLocationMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(pickupLocation);
 });
 /**
@@ -165,27 +161,24 @@ exports.pickupLocationRoutes.get('/getone/:id/:companyIdParam', stock_universal_
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>}
  */
-exports.pickupLocationRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, async (req, res) => {
+exports.pickupLocationRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('deliveryCitys', 'read'), async (req, res) => {
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     const all = await Promise.all([
         pickuplocation_model_1.pickupLocationLean
-            .find({ companyId: queryId })
+            .find({ ...filter })
             .skip(offset)
             .limit(limit)
             .lean(),
-        pickuplocation_model_1.pickupLocationLean.countDocuments({ companyId: queryId })
+        pickuplocation_model_1.pickupLocationLean.countDocuments({ ...filter })
     ]);
     const response = {
         count: all[1],
         data: all[0]
     };
+    for (const val of all[0]) {
+        (0, stock_universal_server_1.addParentToLocals)(res, val._id, pickuplocation_model_1.pickupLocationMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
 /**
@@ -198,18 +191,14 @@ exports.pickupLocationRoutes.get('/getall/:offset/:limit/:companyIdParam', stock
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>}
  */
-exports.pickupLocationRoutes.delete('/deleteone/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, async (req, res) => {
+exports.pickupLocationRoutes.delete('/deleteone/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('deliveryCitys', 'delete'), async (req, res) => {
     const { id } = req.params;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)([id, queryId]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    const deleted = await pickuplocation_model_1.pickupLocationMain.findOneAndDelete({ _id: id, companyId: queryId });
+    // const deleted = await pickupLocationMain.findOneAndDelete({ _id: id, ...filter });
+    const deleted = await pickuplocation_model_1.pickupLocationMain.updateOne({ _id: id, ...filter }, { $set: { isDeleted: true } });
     if (Boolean(deleted)) {
+        (0, stock_universal_server_1.addParentToLocals)(res, id, pickuplocation_model_1.pickupLocationMain.collection.collectionName, 'trackDataDelete');
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
@@ -226,28 +215,25 @@ exports.pickupLocationRoutes.delete('/deleteone/:id/:companyIdParam', stock_univ
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>}
  */
-exports.pickupLocationRoutes.post('/search/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, async (req, res) => {
+exports.pickupLocationRoutes.post('/search/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('deliveryCitys', 'read'), async (req, res) => {
     const { searchterm, searchKey } = req.body;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const all = await Promise.all([
         pickuplocation_model_1.pickupLocationLean
-            .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+            .find({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
             .skip(offset)
             .limit(limit)
             .lean(),
-        pickuplocation_model_1.pickupLocationLean.countDocuments({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+        pickuplocation_model_1.pickupLocationLean.countDocuments({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
     ]);
     const response = {
         count: all[1],
         data: all[0]
     };
+    for (const val of all[0]) {
+        (0, stock_universal_server_1.addParentToLocals)(res, val._id, pickuplocation_model_1.pickupLocationMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
 /**
@@ -260,22 +246,28 @@ exports.pickupLocationRoutes.post('/search/:offset/:limit/:companyIdParam', stoc
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>}
  */
-exports.pickupLocationRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, async (req, res) => {
+exports.pickupLocationRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('deliveryCitys', 'delete'), async (req, res) => {
     const { ids } = req.body;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)([...ids, ...[queryId]]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
+    /* const deleted = await pickupLocationMain
+      .deleteMany({ _id: { $in: ids }, ...filter })
+      .catch(err => {
+        pickupLocationRoutesLogger.error('deletemany - err: ', err);
+  
+        return null;
+      }); */
     const deleted = await pickuplocation_model_1.pickupLocationMain
-        .deleteMany({ _id: { $in: ids }, companyId: queryId })
+        .updateMany({ _id: { $in: ids }, ...filter }, {
+        $set: { isDeleted: true }
+    })
         .catch(err => {
         pickupLocationRoutesLogger.error('deletemany - err: ', err);
         return null;
     });
     if (Boolean(deleted)) {
+        for (const val of ids) {
+            (0, stock_universal_server_1.addParentToLocals)(res, val, pickuplocation_model_1.pickupLocationMain.collection.collectionName, 'trackDataDelete');
+        }
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {

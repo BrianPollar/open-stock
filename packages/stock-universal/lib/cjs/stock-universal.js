@@ -1,15 +1,7 @@
 "use strict";
-/**
- * Represents the configuration for the database.
- */
-// export interface IdatabaseConfig {
-/**
-   * The URL of the database.
-   */
-// url: string;
-// }
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.StockUniversal = void 0;
+const ehttp_1 = require("./utils/ehttp");
 /**
  * Represents the configuration options for the app.
  */
@@ -31,8 +23,9 @@ class StockUniversal {
      * Creates an instance of StockUniversal.
      * @param environment - The environment configuration object.
      */
-    constructor(environment) {
+    constructor(environment, axiosInstance) {
         StockUniversal.environment = environment;
+        StockUniversal.ehttp = new ehttp_1.EhttpController(axiosInstance);
     }
 }
 exports.StockUniversal = StockUniversal;

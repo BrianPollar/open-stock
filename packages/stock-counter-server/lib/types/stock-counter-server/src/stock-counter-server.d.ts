@@ -2,7 +2,6 @@
 /// <reference types="mongoose/types/aggregate" />
 /// <reference types="mongoose/types/callback" />
 /// <reference types="mongoose/types/collection" />
-/// <reference types="mongoose/types/connection" />
 /// <reference types="mongoose/types/cursor" />
 /// <reference types="mongoose/types/document" />
 /// <reference types="mongoose/types/error" />
@@ -23,7 +22,6 @@
 /// <reference types="mongoose/types/validation" />
 /// <reference types="mongoose/types/virtuals" />
 /// <reference types="mongoose/types/inferschematype" />
-import { IlAuth } from '@open-stock/stock-auth-server';
 import { ConnectOptions } from 'mongoose';
 import { PesaPalController } from 'pesapal3';
 /**
@@ -33,7 +31,6 @@ export interface IstockcounterServerConfig {
     /**
      * The authentication secrets for the server.
      */
-    authSecrets: IlAuth;
     /**
     * The database configuration.
     */

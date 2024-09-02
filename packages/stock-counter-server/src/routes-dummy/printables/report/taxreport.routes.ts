@@ -25,6 +25,7 @@ taxReportRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) =>
     count: req.params.limit,
     data: createMockTaxReports(Number(req.params.limit))
   };
+
   res.status(200).send(response);
 });
 
@@ -39,6 +40,7 @@ taxReportRoutesDummy.post('/search/:offset/:limit/:companyIdParam', (req, res) =
     count: req.params.limit,
     data: createMockTaxReports(Number(req.params.limit))
   };
+
   res.status(200).send(response);
 });
 

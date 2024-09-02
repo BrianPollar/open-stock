@@ -7,7 +7,7 @@ import { Iinvoice, IinvoiceRelated, Isuccess } from '@open-stock/stock-universal
  * @returns A promise that resolves to an object containing the success status,
  *          the ID of the saved invoice, and the ID of the related information.
  */
-export declare const saveInvoice: (invoice: Iinvoice, invoiceRelated: Required<IinvoiceRelated>, queryId: string) => Promise<Isuccess & {
+export declare const saveInvoice: (res: any, invoice: Iinvoice, invoiceRelated: Required<IinvoiceRelated>, queryId: string) => Promise<Isuccess & {
     id?: string;
     invoiceRelatedId?: string;
 }>;

@@ -1,13 +1,15 @@
-import { requireActiveCompany, requireCanUseFeature, requireUpdateSubscriptionRecord, userLean } from '@open-stock/stock-auth-server';
-import { Icustomrequest, IdataArrayResponse, Iinvoice, IinvoiceRelated, Ireceipt, Isuccess, Iuser } from '@open-stock/stock-universal';
-import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { populateTrackEdit, populateTrackView, requireActiveCompany, requireCanUseFeature, requireUpdateSubscriptionRecord } from '@open-stock/stock-auth-server';
+import { IdataArrayResponse, Iinvoice, IinvoiceRelated, Ireceipt, Isuccess, Iuser } from '@open-stock/stock-universal';
+import { addParentToLocals, makeCompanyBasedQuery, makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr } from '@open-stock/stock-universal-server';
 import express from 'express';
 import * as fs from 'fs';
 import path from 'path';
+import { filter } from 'rxjs';
 import * as tracer from 'tracer';
 import { invoiceLean, invoiceMain } from '../../models/printables/invoice.model';
 import { receiptLean, receiptMain } from '../../models/printables/receipt.model';
 import { invoiceRelatedLean, invoiceRelatedMain } from '../../models/printables/related/invoicerelated.model';
+import { populateBillingUser, populateInvoiceRelated, populatePayments } from '../../utils/query';
 import { makePaymentInstall } from '../paymentrelated/paymentrelated';
 import {
   deleteAllLinked,
@@ -48,7 +50,7 @@ const invoiceRoutesLogger = tracer.colorConsole({
  */
 const makeinvoiceId = async(queryId: string): Promise<number> => {
   const count = await invoiceRelatedMain
-    .find({ companyId: queryId, invoiceId: { $exists: true, $ne: null } }).sort({ _id: -1 }).limit(1).lean().select({ invoiceId: 1 });
+    .find({ ...filter, invoiceId: { $exists: true, $ne: null } }).sort({ _id: -1 }).limit(1).lean().select({ invoiceId: 1 });
   let incCount = count[0]?.invoiceId || 0;
 
   return ++incCount;
@@ -63,6 +65,7 @@ const makeinvoiceId = async(queryId: string): Promise<number> => {
  *          the ID of the saved invoice, and the ID of the related information.
  */
 export const saveInvoice = async(
+  res,
   invoice: Iinvoice,
   invoiceRelated: Required<IinvoiceRelated>,
   queryId: string
@@ -71,7 +74,7 @@ export const saveInvoice = async(
   invoiceRelated.companyId = queryId;
   invoiceRelated.invoiceId = await makeinvoiceId(queryId);
   const extraNotifDesc = 'Newly created invoice';
-  const relatedId = await relegateInvRelatedCreation(invoiceRelated, queryId, extraNotifDesc);
+  const relatedId = await relegateInvRelatedCreation(res, invoiceRelated, queryId, extraNotifDesc);
 
   if (!relatedId.success) {
     return relatedId;
@@ -95,13 +98,17 @@ export const saveInvoice = async(
         try again in a while`;
       }
 
-      return errResponse;
+      return err;
     });
 
   if (errResponse) {
     return {
       ...errResponse
     };
+  }
+
+  if (saved && saved._id) {
+    addParentToLocals(res, saved._id, invoiceLean.collection.collectionName, 'makeTrackEdit');
   }
 
   // await updateInvoiceRelated(invoiceRelated); // !! WHY CALL THIS
@@ -122,17 +129,11 @@ export const invoiceRoutes = express.Router();
  */
 invoiceRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('invoice'), roleAuthorisation('invoices', 'create'), async(req, res, next) => {
   const { invoice, invoiceRelated } = req.body;
-  const { companyId } = (req as Icustomrequest).user;
-  const { companyIdParam } = req.params;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const isValid = verifyObjectId(queryId);
+  const { filter } = makeCompanyBasedQuery(req);
 
-  if (!isValid) {
-    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-  }
-  invoice.companyId = queryId;
-  invoiceRelated.companyId = queryId;
-  const response = await saveInvoice(invoice, invoiceRelated, queryId);
+  invoice.companyId = filter.companyId;
+  invoiceRelated.companyId = filter.companyId;
+  const response = await saveInvoice(res, invoice, invoiceRelated, filter.companyId);
 
   if (!response.success) {
     return res.status(response.status).send({ success: response.success });
@@ -149,30 +150,31 @@ invoiceRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany,
  */
 invoiceRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'update'), async(req, res) => {
   const { updatedInvoice, invoiceRelated } = req.body.invoice;
-  const { companyId } = (req as Icustomrequest).user;
-  const { companyIdParam } = req.params;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const { filter } = makeCompanyBasedQuery(req);
 
-  updatedInvoice.companyId = queryId;
-  invoiceRelated.companyId = queryId;
+  updatedInvoice.companyId = filter.companyId;
+  invoiceRelated.companyId = filter.companyId;
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const { _id } = updatedInvoice;
-  const isValid = verifyObjectIds([_id, queryId]);
-
-  if (!isValid) {
-    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-  }
 
   const invoice = await invoiceMain
-    .findOneAndUpdate({ _id, companyId: queryId });
+    .findOne({ _id, ...filter })
+    .lean();
 
   if (!invoice) {
     return res.status(404).send({ success: false });
   }
-  invoice.dueDate = updatedInvoice.dueDate || invoice.dueDate;
-  await updateInvoiceRelated(invoiceRelated, queryId);
+
+  await updateInvoiceRelated(res, invoiceRelated, filter.companyId);
   let errResponse: Isuccess;
-  const updated = await invoice.save()
+  const updated = await invoiceMain.updateOne({
+    _id, ...filter
+  }, {
+    $set: {
+      dueDate: updatedInvoice.dueDate || invoice.dueDate,
+      isDeleted: updatedInvoice.isDeleted || invoice.isDeleted
+    }
+  })
     .catch(err => {
       invoiceRoutesLogger.error('update - err: ', err);
       errResponse = {
@@ -193,6 +195,8 @@ invoiceRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCompany, 
     return res.status(403).send(errResponse);
   }
 
+  addParentToLocals(res, invoice._id, invoiceLean.collection.collectionName, 'makeTrackEdit');
+
   return res.status(200).send({ success: Boolean(updated) });
 });
 
@@ -204,19 +208,11 @@ invoiceRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCompany, 
  */
 invoiceRoutes.get('/getone/:invoiceId/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'read'), async(req, res) => {
   const { invoiceId } = req.params;
-  const { companyId } = (req as Icustomrequest).user;
-  const { companyIdParam } = req.params;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const isValid = verifyObjectId(queryId);
-
-  if (!isValid) {
-    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-  }
+  const { filter } = makeCompanyBasedQuery(req);
   const invoiceRelated = await invoiceRelatedLean
-    .findOne({ invoiceId, companyId: queryId })
+    .findOne({ invoiceId, ...filter })
     .lean()
-    .populate({ path: 'billingUserId', model: userLean })
-    .populate({ path: 'payments', model: invoiceRelatedLean });
+    .populate([populatePayments(), populateBillingUser(), populateTrackEdit(), populateTrackView()]);
   let returned;
 
   if (invoiceRelated) {
@@ -225,6 +221,8 @@ invoiceRoutes.get('/getone/:invoiceId/:companyIdParam', requireAuth, requireActi
       (invoiceRelated as IinvoiceRelated)
         .billingUserId as unknown as Iuser
     );
+
+    // addParentToLocals(res, invoiceRelated._id, invoiceLean.collection.collectionName, 'trackDataView'); // TODO
   }
 
   return res.status(200).send(returned);
@@ -232,58 +230,46 @@ invoiceRoutes.get('/getone/:invoiceId/:companyIdParam', requireAuth, requireActi
 
 invoiceRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'read'), async(req, res) => {
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
-  const { companyId } = (req as Icustomrequest).user;
-  const { companyIdParam } = req.params;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const isValid = verifyObjectId(queryId);
-
-  if (!isValid) {
-    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-  }
+  const { filter } = makeCompanyBasedQuery(req);
   const all = await Promise.all([
     invoiceLean
-      .find({ companyId: queryId })
+      .find({ ...filter })
       .skip(offset)
       .limit(limit)
       .lean()
-      .populate({
-        path: 'invoiceRelated', model: invoiceRelatedLean,
-        populate: [{
-          path: 'billingUserId', model: userLean
-        },
-        {
-          path: 'payments', model: receiptLean
-        }]
-      }),
-    invoiceLean.countDocuments({ companyId: queryId })
+      .populate([populateInvoiceRelated(), populateTrackEdit(), populateTrackView()]),
+    invoiceLean.countDocuments({ ...filter })
   ]);
   const returned = all[0]
     .map(val => makeInvoiceRelatedPdct(
-val.invoiceRelated as Required<IinvoiceRelated>,
+      val.invoiceRelated as Required<IinvoiceRelated>,
       (val.invoiceRelated as IinvoiceRelated)
-        .billingUserId as unknown as Iuser
+        .billingUserId as unknown as Iuser,
+      null,
+      {
+        _id: val._id
+      }
     ));
   const response: IdataArrayResponse = {
     count: all[1],
     data: returned
   };
 
+  for (const val of all[0]) {
+    addParentToLocals(res, val._id, invoiceLean.collection.collectionName, 'trackDataView');
+  }
+
   return res.status(200).send(response);
 });
 
 invoiceRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'delete'), async(req, res) => {
   const { id, invoiceRelated, creationType, stage } = req.body;
-  const { companyId } = (req as Icustomrequest).user;
-  const { companyIdParam } = req.params;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const isValid = verifyObjectIds([id, queryId]);
-
-  if (!isValid) {
-    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-  }
-  const deleted = await deleteAllLinked(invoiceRelated, creationType, stage, 'invoice', queryId);
+  const { filter } = makeCompanyBasedQuery(req);
+  const deleted = await deleteAllLinked(invoiceRelated, creationType, stage, 'invoice', filter.companyId);
 
   if (Boolean(deleted)) {
+    addParentToLocals(res, id, invoiceLean.collection.collectionName, 'trackDataDelete');
+
     return res.status(200).send({ success: Boolean(deleted) });
   } else {
     return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
@@ -292,31 +278,16 @@ invoiceRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompan
 
 invoiceRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'read'), async(req, res) => {
   const { searchterm, searchKey } = req.body;
-  const { companyId } = (req as Icustomrequest).user;
-  const { companyIdParam } = req.params;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const isValid = verifyObjectId(queryId);
-
-  if (!isValid) {
-    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-  }
+  const { filter } = makeCompanyBasedQuery(req);
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
   const all = await Promise.all([
     invoiceLean
-      .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+      .find({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
       .skip(offset)
       .limit(limit)
       .lean()
-      .populate({
-        path: 'invoiceRelated', model: invoiceRelatedLean,
-        populate: [{
-          path: 'billingUserId', model: userLean
-        },
-        {
-          path: 'payments', model: receiptLean
-        }]
-      }),
-    invoiceLean.countDocuments({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+      .populate([populateInvoiceRelated(), populateTrackEdit(), populateTrackView()]),
+    invoiceLean.countDocuments({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
   ]);
   const returned = all[0]
     .map(val => makeInvoiceRelatedPdct(
@@ -330,19 +301,17 @@ val.invoiceRelated as Required<IinvoiceRelated>,
     data: returned
   };
 
+  for (const val of all[0]) {
+    addParentToLocals(res, val._id, invoiceLean.collection.collectionName, 'trackDataView');
+  }
+
   return res.status(200).send(response);
 });
 
 invoiceRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'delete'), async(req, res) => {
   const { credentials } = req.body;
-  const { companyId } = (req as Icustomrequest).user;
-  const { companyIdParam } = req.params;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const isValid = verifyObjectId(queryId);
+  const { filter } = makeCompanyBasedQuery(req);
 
-  if (!isValid) {
-    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-  }
   if (!credentials || credentials?.length < 1) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
@@ -351,12 +320,16 @@ invoiceRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompa
     .deleteMany({ _id: { $in: ids } });**/
   const promises = credentials
     .map(async val => {
-      await deleteAllLinked(val.invoiceRelated, val.creationType, val.stage, 'invoice', queryId);
+      await deleteAllLinked(val.invoiceRelated, val.creationType, val.stage, 'invoice', filter.companyId);
 
       return new Promise(resolve => resolve(true));
     });
 
   await Promise.all(promises);
+
+  for (const val of credentials) {
+    addParentToLocals(res, val.id, invoiceLean.collection.collectionName, 'trackDataDelete');
+  }
 
   return res.status(200).send({ success: true });
 });
@@ -364,17 +337,11 @@ invoiceRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompa
 // payments
 invoiceRoutes.post('/createpayment/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'create'), async(req, res) => {
   const pay = req.body;
-  const { companyId } = (req as Icustomrequest).user;
-  const { companyIdParam } = req.params;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const isValid = verifyObjectId(queryId);
+  const { filter } = makeCompanyBasedQuery(req);
 
-  if (!isValid) {
-    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-  }
-  pay.companyId = queryId;
+  pay.companyId = filter.companyId;
   const count = await receiptLean
-    .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+    .find({ }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
 
   pay.urId = makeUrId(Number(count[0]?.urId || '0'));
 
@@ -399,7 +366,7 @@ invoiceRoutes.post('/createpayment/:companyIdParam', requireAuth, requireActiveC
     return res.status(403).send(errResponse);
   } */
 
-  await makePaymentInstall(pay as unknown as Ireceipt, pay.invoiceRelated, queryId, pay.creationType);
+  await makePaymentInstall(res, pay as unknown as Ireceipt, pay.invoiceRelated, filter.companyId, pay.creationType);
 
   return res.status(200).send({ success: true });
 });
@@ -448,30 +415,21 @@ invoiceRoutes.post('/createpayment/:companyIdParam', requireAuth, requireActiveC
 
 invoiceRoutes.get('/getonepayment/:urId/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'read'), async(req, res) => {
   const { urId } = req.params;
-  const { companyId } = (req as Icustomrequest).user;
-  const { companyIdParam } = req.params;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const { filter } = makeCompanyBasedQuery(req);
   const invoicePay = await receiptLean
-    .findOne({ urId, companyId: queryId })
+    .findOne({ urId, ...filter })
     .lean();
 
   return res.status(200).send(invoicePay);
 });
 
 invoiceRoutes.get('/getallpayments/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'read'), async(req, res) => {
-  const { companyId } = (req as Icustomrequest).user;
-  const { companyIdParam } = req.params;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const isValid = verifyObjectId(queryId);
-
-  if (!isValid) {
-    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-  }
+  const { filter } = makeCompanyBasedQuery(req);
   const all = await Promise.all([
     receiptLean
-      .find({ companyId: queryId })
+      .find(filter)
       .lean(),
-    receiptLean.countDocuments({ companyId: queryId })
+    receiptLean.countDocuments(filter)
   ]);
   const response: IdataArrayResponse = {
     count: all[1],
@@ -482,16 +440,9 @@ invoiceRoutes.get('/getallpayments/:companyIdParam', requireAuth, requireActiveC
 });
 
 invoiceRoutes.put('/deleteonepayment/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'delete'), async(req, res) => {
-  const { id, invoiceRelated, creationType, stage } = req.body;
-  const { companyId } = (req as Icustomrequest).user;
-  const { companyIdParam } = req.params;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const isValid = verifyObjectIds([id, queryId]);
-
-  if (!isValid) {
-    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-  }
-  const deleted = await deleteAllLinked(invoiceRelated, creationType, stage, 'invoice', queryId);
+  const { invoiceRelated, creationType, stage } = req.body;
+  const { filter } = makeCompanyBasedQuery(req);
+  const deleted = await deleteAllLinked(invoiceRelated, creationType, stage, 'invoice', filter.companyId);
 
   if (Boolean(deleted)) {
     return res.status(200).send({ success: Boolean(deleted) });
@@ -502,17 +453,10 @@ invoiceRoutes.put('/deleteonepayment/:companyIdParam', requireAuth, requireActiv
 
 invoiceRoutes.put('/deletemanypayments/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'delete'), async(req, res) => {
   const { ids } = req.body;
-  const { companyId } = (req as Icustomrequest).user;
-  const { companyIdParam } = req.params;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const isValid = verifyObjectIds([...ids, ...[queryId]]);
-
-  if (!isValid) {
-    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-  }
+  const { filter } = makeCompanyBasedQuery(req);
 
   const deleted = await receiptMain
-    .deleteMany({ _id: { $in: ids }, companyId: queryId })
+    .deleteMany({ _id: { $in: ids }, ...filter })
     .catch(err => {
       invoiceRoutesLogger.error('deletemanypayments - err: ', err);
 

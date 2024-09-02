@@ -20,6 +20,7 @@ customerRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) => 
     count: req.params.limit,
     data: createMockCustomers(Number(req.params.limit))
   };
+
   res.status(200).send(response);
 });
 

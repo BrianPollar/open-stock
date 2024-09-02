@@ -1,6 +1,7 @@
 import { ItrackStamp } from '@open-stock/stock-universal';
+import { createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
+import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 
 /**
@@ -46,17 +47,14 @@ extends Document, ItrackStamp {
  * @param {boolean} timestamps - The timestamps for the promocode.
  */
 const promocodeSchema: Schema<Ipromocode> = new Schema({
-  trackEdit: { type: Schema.ObjectId },
-  trackView: { type: Schema.ObjectId },
-  urId: { type: String },
-  companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
+  ...withUrIdAndCompanySchemaObj,
   code: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
   items: [{ type: String, required: [true, 'cannot be empty.'] }],
   amount: { type: Number, required: [true, 'cannot be empty.'] },
   roomId: { type: String, required: [true, 'cannot be empty.'] },
   state: { type: String, default: 'virgin' },
   expireAt: { type: String }
-}, { timestamps: true });
+}, { timestamps: true, collection: 'promocodes' });
 
 promocodeSchema.index(
   { expireAt: 1 },
@@ -66,14 +64,20 @@ promocodeSchema.index(
 // Apply the uniqueValidator plugin to promocodeSchema.
 promocodeSchema.plugin(uniqueValidator);
 
+promocodeSchema.pre('updateOne', function(next) {
+  return preUpdateDocExpire(this, next);
+});
+
+promocodeSchema.pre('updateMany', function(next) {
+  return preUpdateDocExpire(this, next);
+});
+
+
 /** primary selection object
  * for promocode
  */
 const promocodeselect = {
-  trackEdit: 1,
-  trackView: 1,
-  urId: 1,
-  companyId: 1,
+  ...withUrIdAndCompanySelectObj,
   code: 1,
   amount: 1,
   items: 1,
@@ -105,6 +109,7 @@ export const promocodeSelect = promocodeselect;
  * @param lean Optional parameter indicating whether to create the lean promocode model. Default is true.
  */
 export const createPromocodeModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
+  createExpireDocIndex(promocodeSchema);
   if (!isStockDbConnected) {
     await connectStockDatabase(dbUrl, dbOptions);
   }

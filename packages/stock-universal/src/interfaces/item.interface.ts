@@ -78,20 +78,20 @@ export interface Irating {
   storeRatingRount: number;
   rating: number;
   storeRating: number;
-}*/
+} */
 
 /*
 export interface Ireview {
   people: string[];
   count: number;
   storeReviews: string[];
-}*/
+} */
 
 /*
 export interface Ioffer {
   ammount: number;
   expiry: Date;
-}*/
+} */
 
 
 export interface IcostMeta {

@@ -23,6 +23,7 @@ deliveryNoteRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res)
     count: req.params.limit,
     data: createMockDeliverynotes(Number(req.params.limit))
   };
+
   res.status(200).send(response);
 });
 
@@ -35,6 +36,7 @@ deliveryNoteRoutesDummy.post('/search/:offset/:limit/:companyIdParam', (req, res
     count: req.params.limit,
     data: createMockDeliverynotes(Number(req.params.limit))
   };
+
   res.status(200).send(response);
 });
 

@@ -1,31 +1,32 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createExpenseModel = exports.expenseSelect = exports.expenseLean = exports.expenseMain = void 0;
+const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const mongoose_1 = require("mongoose");
-const database_controller_1 = require("../controllers/database.controller");
+const database_1 = require("../utils/database");
 const uniqueValidator = require('mongoose-unique-validator');
 const expenseSchema = new mongoose_1.Schema({
-    trackEdit: { type: mongoose_1.Schema.ObjectId },
-    trackView: { type: mongoose_1.Schema.ObjectId },
-    urId: { type: String },
-    companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
+    ...stock_universal_server_1.withUrIdAndCompanySchemaObj,
     name: { type: String, required: [true, 'cannot be empty.'], index: true },
     person: { type: String },
     cost: { type: Number, required: [true, 'cannot be empty.'], index: true },
     category: { type: String },
     note: { type: String },
     items: []
-}, { timestamps: true });
+}, { timestamps: true, collection: 'expenses' });
+expenseSchema.pre('updateOne', function (next) {
+    return (0, stock_universal_server_1.preUpdateDocExpire)(this, next);
+});
+expenseSchema.pre('updateMany', function (next) {
+    return (0, stock_universal_server_1.preUpdateDocExpire)(this, next);
+});
 // Apply the uniqueValidator plugin to expenseSchema.
 expenseSchema.plugin(uniqueValidator);
 /** primary selection object
  * for expense
  */
 const expenseselect = {
-    trackEdit: 1,
-    trackView: 1,
-    urId: 1,
-    companyId: 1,
+    ...stock_universal_server_1.withUrIdAndCompanySelectObj,
     name: 1,
     person: 1,
     cost: 1,
@@ -45,14 +46,15 @@ exports.expenseSelect = expenseselect;
  * @param lean Whether to create the model for the lean connection.
  */
 const createExpenseModel = async (dbUrl, dbOptions, main = true, lean = true) => {
-    if (!database_controller_1.isStockDbConnected) {
-        await (0, database_controller_1.connectStockDatabase)(dbUrl, dbOptions);
+    (0, stock_universal_server_1.createExpireDocIndex)(expenseSchema);
+    if (!database_1.isStockDbConnected) {
+        await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.expenseMain = database_controller_1.mainConnection.model('Expense', expenseSchema);
+        exports.expenseMain = database_1.mainConnection.model('Expense', expenseSchema);
     }
     if (lean) {
-        exports.expenseLean = database_controller_1.mainConnectionLean.model('Expense', expenseSchema);
+        exports.expenseLean = database_1.mainConnectionLean.model('Expense', expenseSchema);
     }
 };
 exports.createExpenseModel = createExpenseModel;

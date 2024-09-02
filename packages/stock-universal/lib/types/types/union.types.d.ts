@@ -194,7 +194,7 @@ export type TnotifType = 'orders' | 'payments' | 'users' | 'jobcards' | 'invoice
  * Represents the format options for displaying a user's display name.
  */
 export type TuserDispNameFormat = 'firstLast' | 'lastFirst' | 'companyName';
-export type TuserType = 'company' | 'staff' | 'customer' | 'eUser';
+export type TuserType = 'company' | 'staff' | 'customer' | 'eUser' | 'manager' | 'other';
 /**
  * Represents the type of payment.
  * - `nonSubscription`: Indicates a non-subscription payment.
@@ -205,7 +205,7 @@ export type TpayType = 'nonSubscription' | 'subscription';
  * Represents a union type for role authorization.
  * @typedef {('orders' | 'payments' | 'users' | 'items' | 'faqs' | 'videos' | 'printables' | 'buyer')} TroleAuth
  */
-export type TroleAuth = 'orders' | 'payments' | 'users' | 'items' | 'faqs' | 'buyer' | 'customers' | 'staffs' | 'estimates' | 'invoices' | 'decoys' | 'offers' | 'jobCards' | 'deliveryNotes' | 'receipts' | 'expenses' | 'reports' | 'companyProfile' | 'mails' | 'subscriptions';
+export type TroleAuth = 'orders' | 'payments' | 'users' | 'items' | 'faqs' | 'buyer' | 'customers' | 'staffs' | 'estimates' | 'invoices' | 'decoys' | 'offers' | 'jobCards' | 'deliveryNotes' | 'receipts' | 'expenses' | 'reports' | 'companyProfile' | 'mails' | 'subscriptions' | 'deliveryCitys';
 /**
  * Represents the possible values for the TroleAuthProp type.
  * - 'create': Indicates the permission to create.
@@ -217,3 +217,6 @@ export type TroleAuthProp = 'create' | 'read' | 'update' | 'delete';
 export type TsubscriptionFeature = 'customer' | 'staff' | 'quotation' | 'invoice' | 'item' | 'decoy' | 'offer' | 'order' | 'job-card' | 'receipt' | 'expense' | 'web-hosting' | 'mail-hosting' | 'companyAdminAccess';
 export type TcompanySubPayStatus = 'paid' | 'failed' | 'canceled' | 'pending';
 export type TsubscriptionDurVal = 1 | 2 | 3 | 6 | 12;
+export type TuserActionTrackState = 'delete' | 'update' | 'create' | 'restore';
+export type TtrackWhat = 'makeTrackEdit' | 'trackDataView' | 'trackDataRestore' | 'trackDataDelete';
+export type TdataTypeForTrack = 'user' | 'company' | 'company-subscription' | 'customer' | 'delivery-city' | 'delivery-note' | 'estimate' | 'expense-report' | 'expense' | 'faq-answer' | 'faqs' | 'file' | 'invoice-related' | 'invoice' | 'invoice-setting' | 'invoices-report' | 'item-decoy' | 'item-offer' | 'item' | 'order' | 'payment' | 'pickup-location' | 'profitandloss-report' | 'receipt' | 'review' | 'sales-report' | 'staff';

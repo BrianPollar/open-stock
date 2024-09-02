@@ -2,7 +2,7 @@
  * @file This file defines several interfaces related to authentication and authorization.
  * @packageDocumentation
  */
-import { IcompanyPerm, Iuserperm } from './general.interface';
+import { IcompanyPerm, IsuperAdimPerms, Iuserperm } from './general.interface';
 import { Iauthresponse } from './return.interface';
 /**
  * An object representing an authentication response.
@@ -25,6 +25,7 @@ export interface Iauthtoken {
      * The ID of the user.
      */
     userId: string;
+    superAdimPerms?: IsuperAdimPerms;
     /**
      * The permissions of the user.
      */

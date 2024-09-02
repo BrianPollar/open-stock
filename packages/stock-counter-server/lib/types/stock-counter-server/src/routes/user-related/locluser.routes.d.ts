@@ -2,7 +2,7 @@ interface IuserLinkedInMoreModels {
     success: boolean;
     msg: string;
 }
-type TcanByPass = 'customer' | 'staff' | 'none';
+type TcanByPass = 'customer' | 'staff' | 'none' | 'all';
 /**
    * Removes one user from the database.
    * @param req - Express Request object.

@@ -70,8 +70,8 @@ const tslib_1 = require("tslib");
  *   - Review
  * - Stock-counter-server
  */
-tslib_1.__exportStar(require("./controllers/cookies.service"), exports);
-tslib_1.__exportStar(require("./controllers/payment.controller"), exports);
+tslib_1.__exportStar(require("./utils/cookies"), exports);
+tslib_1.__exportStar(require("./utils/payment"), exports);
 tslib_1.__exportStar(require("./models/printables/paymentrelated/paymentrelated.model"), exports);
 // export * from './models/printables/paymentrelated/paymentsinstalls.model';
 tslib_1.__exportStar(require("./models/printables/related/invoicerelated.model"), exports);
@@ -132,4 +132,6 @@ tslib_1.__exportStar(require("./routes/payment.routes"), exports);
 tslib_1.__exportStar(require("./routes/promo.routes"), exports);
 tslib_1.__exportStar(require("./routes/review.routes"), exports);
 tslib_1.__exportStar(require("./stock-counter-server"), exports);
+tslib_1.__exportStar(require("./routes/user-related/locluser.routes"), exports);
+tslib_1.__exportStar(require("./utils/query"), exports);
 //# sourceMappingURL=index.js.map

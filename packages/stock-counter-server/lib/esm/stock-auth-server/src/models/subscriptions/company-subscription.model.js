@@ -1,30 +1,27 @@
+import { createExpireDocIndex, withCompanySchemaObj, withCompanySelectObj } from '@open-stock/stock-universal-server';
 import { Schema } from 'mongoose';
-import { connectAuthDatabase, isAuthDbConnected, mainConnection, mainConnectionLean } from '../../controllers/database.controller';
+import { connectAuthDatabase, isAuthDbConnected, mainConnection, mainConnectionLean } from '../../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 /** company subscription schema */
 const companySubscriptionSchema = new Schema({
-    trackEdit: { type: Schema.ObjectId },
-    trackView: { type: Schema.ObjectId },
-    companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
+    ...withCompanySchemaObj,
     name: { type: String },
     ammount: { type: Number },
     duration: { type: Number },
     active: { type: Boolean, default: false },
-    subscriprionId: { type: String },
+    // subscriprionId: { type: String },
     startDate: { type: Date, required: [true, 'cannot be empty.'], index: true },
     endDate: { type: Date, required: [true, 'cannot be empty.'], index: true },
     pesaPalorderTrackingId: { type: String, inddex: true },
     status: { type: String },
     features: []
-}, { timestamps: true });
+}, { timestamps: true, collection: 'companysubscriptions' });
 companySubscriptionSchema.index({ endDate: -1 });
 // Apply the uniqueValidator plugin to companySubscriptionSchema.
 companySubscriptionSchema.plugin(uniqueValidator);
 /** Primary selection object for FAQ */
 const companySubscriptionselect = {
-    trackEdit: 1,
-    trackView: 1,
-    companyId: 1,
+    ...withCompanySelectObj,
     name: 1,
     ammount: 1,
     duration: 1,
@@ -56,6 +53,7 @@ export const companySubscriptionSelect = companySubscriptionselect;
  * @param lean Whether to create a lean connection.
  */
 export const createCompanySubscription = async (dbUrl, dbOptions, main = true, lean = true) => {
+    createExpireDocIndex(companySubscriptionSchema);
     if (!isAuthDbConnected) {
         await connectAuthDatabase(dbUrl, dbOptions);
     }

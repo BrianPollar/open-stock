@@ -323,7 +323,7 @@ export class Item extends DatabaseAuto {
             }
             return val;
         });
-        this.ecomerceCompat = data.ecomerceCompat || this.ecomerceCompat;
+        this.ecomerceCompat = data.ecomerceCompat;
         this.soldCount = data.soldCount || this.soldCount;
     }
 }

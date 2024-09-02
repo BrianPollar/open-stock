@@ -44,7 +44,7 @@ exports.ecommerceRevenuePercentage = 0;
  * Creates stock counter server locals.
  * @param notifRedirectUrl - The notification redirect URL.
  */
-const createStockCounterServerLocals = (notifRedirectUrl, ecommerceRevenuePerntge) => {
+const createStockCounterServerLocals = (notifRedirectUrl, ecommerceRevenuePerntge, trackUsersBool = true) => {
     exports.isStockCounterServerRunning = true;
     exports.pesapalNotifRedirectUrl = notifRedirectUrl;
     exports.ecommerceRevenuePercentage = ecommerceRevenuePerntge;

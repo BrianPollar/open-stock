@@ -5,7 +5,7 @@
 
 import { InotifSetting } from '@open-stock/stock-universal';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import { connectNotifDatabase, isNotifDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
+import { connectNotifDatabase, isNotifDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 
 /**
  * Represents the type for a notification setting.
@@ -21,7 +21,7 @@ const notifSettingSchema: Schema<TnotifSetting> = new Schema({
   orders: { type: Boolean, default: true },
   jobCards: { type: Boolean, default: true },
   users: { type: Boolean, default: true }
-}, { timestamps: true });
+}, { timestamps: true, collection: 'notifsettings' });
 
 /** Primary selection object for notification settings */
 const notifSettingselect = {

@@ -1,9 +1,9 @@
 import { offsetLimitRelegator, requireAuth, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
-import { createNotifStn, updateNotifnViewed } from '../controllers/notifications.controller';
 import { mainnotificationLean, mainnotificationMain } from '../models/mainnotification.model';
 import { notifSettingLean, notifSettingMain } from '../models/notifsetting.model';
 import { subscriptionLean, subscriptionMain } from '../models/subscriptions.model';
+import { createNotifStn, updateNotifnViewed } from '../utils/notifications';
 /**
  * Router for handling notification routes.
  */
@@ -82,7 +82,8 @@ notifnRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, async (req, r
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    const deleted = await mainnotificationMain.findOneAndRemove({ _id: id, companyId: queryId });
+    // const deleted = await mainnotificationMain.findOneAndRemove({ _id: id, companyId: queryId });
+    const deleted = await mainnotificationMain.updateOne({ _id: id, companyId: queryId }, { $set: { isDeleted: true } });
     if (Boolean(deleted)) {
         return res.status(200).send({ success: Boolean(deleted) });
     }
@@ -131,12 +132,12 @@ notifnRoutes.post('/subscription/:companyIdParam', requireAuth, async (req, res)
             errResponse.err = `we are having problems connecting to our databases, 
       try again in a while`;
         }
-        return errResponse;
+        return err;
     });
     if (errResponse) {
         return res.status(403).send(errResponse);
     }
-    res.status(200).send({ success: true });
+    return res.status(200).send({ success: true });
 });
 notifnRoutes.post('/updateviewed/:companyIdParam', requireAuth, async (req, res) => {
     const user = req.user;

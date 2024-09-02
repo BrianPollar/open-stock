@@ -1,8 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createReviewModel = exports.reviewSelect = exports.reviewLean = exports.reviewMain = void 0;
+const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const mongoose_1 = require("mongoose");
-const database_controller_1 = require("../controllers/database.controller");
+const database_1 = require("../utils/database");
 const uniqueValidator = require('mongoose-unique-validator');
 /**
  * Defines the schema for a review object.
@@ -28,9 +29,15 @@ const reviewSchema = new mongoose_1.Schema({
     images: [],
     userId: { type: String },
     itemId: { type: String }
-}, { timestamps: true });
+}, { timestamps: true, collection: 'reviews' });
 // Apply the uniqueValidator plugin to reviewSchema.
 reviewSchema.plugin(uniqueValidator);
+reviewSchema.pre('updateOne', function (next) {
+    return (0, stock_universal_server_1.preUpdateDocExpire)(this, next);
+});
+reviewSchema.pre('updateMany', function (next) {
+    return (0, stock_universal_server_1.preUpdateDocExpire)(this, next);
+});
 /** primary selection object
  * for review
  */
@@ -57,14 +64,14 @@ exports.reviewSelect = reviewselect;
  * @param lean Indicates whether to create the lean connection model.
  */
 const createReviewModel = async (dbUrl, dbOptions, main = true, lean = true) => {
-    if (!database_controller_1.isStockDbConnected) {
-        await (0, database_controller_1.connectStockDatabase)(dbUrl, dbOptions);
+    if (!database_1.isStockDbConnected) {
+        await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.reviewMain = database_controller_1.mainConnection.model('Review', reviewSchema);
+        exports.reviewMain = database_1.mainConnection.model('Review', reviewSchema);
     }
     if (lean) {
-        exports.reviewLean = database_controller_1.mainConnectionLean.model('Review', reviewSchema);
+        exports.reviewLean = database_1.mainConnectionLean.model('Review', reviewSchema);
     }
 };
 exports.createReviewModel = createReviewModel;

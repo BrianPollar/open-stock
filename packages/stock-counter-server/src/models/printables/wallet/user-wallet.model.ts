@@ -1,6 +1,7 @@
 import { IuserWallet } from '@open-stock/stock-universal';
+import { createExpireDocIndex, globalSchemaObj, globalSelectObj, preUpdateDocExpire } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../../controllers/database.controller';
+import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../../utils/database';
 
 /**
  * Represents the Mongoose document type for a user wallet.
@@ -9,16 +10,22 @@ import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectio
 export type TuserWallet = Document & IuserWallet;
 
 const userWalletSchema: Schema = new Schema({
-  trackEdit: { type: Schema.ObjectId },
-  trackView: { type: Schema.ObjectId },
+  ...globalSchemaObj,
   user: { type: String, required: [true, 'cannot be empty.'], index: true },
   amount: { type: Number, required: [true, 'cannot be empty.'], index: true },
   type: { type: String }
-}, { timestamps: true });
+}, { timestamps: true, collection: 'userwallets' });
+
+userWalletSchema.pre('updateOne', function(next) {
+  return preUpdateDocExpire(this, next);
+});
+
+userWalletSchema.pre('updateMany', function(next) {
+  return preUpdateDocExpire(this, next);
+});
 
 const userWalletselect = {
-  trackEdit: 1,
-  trackView: 1,
+  ...globalSelectObj,
   user: 1,
   amount: 1,
   type: 1
@@ -45,6 +52,7 @@ export const userWalletSelect = userWalletselect;
  * @param lean Indicates whether to create the lean connection model.
  */
 export const createUserWalletModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
+  createExpireDocIndex(userWalletSchema);
   if (!isStockDbConnected) {
     await connectStockDatabase(dbUrl, dbOptions);
   }

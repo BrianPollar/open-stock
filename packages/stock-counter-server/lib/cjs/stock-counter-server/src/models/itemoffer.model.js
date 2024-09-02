@@ -1,32 +1,33 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createItemOfferModel = exports.itemOfferSelect = exports.itemOfferLean = exports.itemOfferMain = void 0;
+const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const mongoose_1 = require("mongoose");
-const database_controller_1 = require("../controllers/database.controller");
+const database_1 = require("../utils/database");
 const uniqueValidator = require('mongoose-unique-validator');
 const itemOfferSchema = new mongoose_1.Schema({
-    trackEdit: { type: mongoose_1.Schema.ObjectId },
-    trackView: { type: mongoose_1.Schema.ObjectId },
-    urId: { type: String },
-    companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
+    ...stock_universal_server_1.withUrIdAndCompanySchemaObj,
     items: [],
     expireAt: { type: Date },
     type: { type: String },
     header: { type: String },
     subHeader: { type: String },
     ammount: { type: Number }
-}, { timestamps: true });
+}, { timestamps: true, collection: 'itemoffers' });
 itemOfferSchema.index({ expireAt: 1 }, { expireAfterSeconds: 2628003 });
 // Apply the uniqueValidator plugin to itemOfferSchema.
 itemOfferSchema.plugin(uniqueValidator);
+itemOfferSchema.pre('updateOne', function (next) {
+    return (0, stock_universal_server_1.preUpdateDocExpire)(this, next);
+});
+itemOfferSchema.pre('updateMany', function (next) {
+    return (0, stock_universal_server_1.preUpdateDocExpire)(this, next);
+});
 /** primary selection object
  * for itemOffer
  */
 const itemOfferselect = {
-    trackEdit: 1,
-    trackView: 1,
-    urId: 1,
-    companyId: 1,
+    ...stock_universal_server_1.withUrIdAndCompanySelectObj,
     items: 1,
     expireAt: 1,
     type: 1,
@@ -46,14 +47,15 @@ exports.itemOfferSelect = itemOfferselect;
  * @returns {Promise<void>} - A promise that resolves when the models have been created.
  */
 const createItemOfferModel = async (dbUrl, dbOptions, main = true, lean = true) => {
-    if (!database_controller_1.isStockDbConnected) {
-        await (0, database_controller_1.connectStockDatabase)(dbUrl, dbOptions);
+    (0, stock_universal_server_1.createExpireDocIndex)(itemOfferSchema);
+    if (!database_1.isStockDbConnected) {
+        await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.itemOfferMain = database_controller_1.mainConnection.model('ItemOffer', itemOfferSchema);
+        exports.itemOfferMain = database_1.mainConnection.model('ItemOffer', itemOfferSchema);
     }
     if (lean) {
-        exports.itemOfferLean = database_controller_1.mainConnectionLean.model('ItemOffer', itemOfferSchema);
+        exports.itemOfferLean = database_1.mainConnectionLean.model('ItemOffer', itemOfferSchema);
     }
 };
 exports.createItemOfferModel = createItemOfferModel;

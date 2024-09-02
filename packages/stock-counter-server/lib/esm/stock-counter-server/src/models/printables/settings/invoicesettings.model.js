@@ -1,21 +1,24 @@
+import { createExpireDocIndex, preUpdateDocExpire, withCompanySchemaObj, withCompanySelectObj } from '@open-stock/stock-universal-server';
 import { Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../../controllers/database.controller';
+import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../../utils/database';
 const invoiceSettingSchema = new Schema({
-    trackEdit: { type: Schema.ObjectId },
-    trackView: { type: Schema.ObjectId },
-    companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
+    ...withCompanySchemaObj,
     generalSettings: {},
     taxSettings: {},
     bankSettings: {},
     printDetails: {}
-}, { timestamps: true });
+}, { timestamps: true, collection: 'invoicesettings' });
+invoiceSettingSchema.pre('updateOne', function (next) {
+    return preUpdateDocExpire(this, next);
+});
+invoiceSettingSchema.pre('updateMany', function (next) {
+    return preUpdateDocExpire(this, next);
+});
 /** primary selection object
  * for invoiceSetting
  */
 const invoiceSettingselect = {
-    trackEdit: 1,
-    trackView: 1,
-    companyId: 1,
+    ...withCompanySelectObj,
     generalSettings: 1,
     taxSettings: 1,
     bankSettings: 1,
@@ -37,6 +40,7 @@ export const invoiceSettingSelect = invoiceSettingselect;
  * @returns {Promise<void>} - A promise that resolves when the model is created.
  */
 export const createInvoiceSettingModel = async (dbUrl, dbOptions, main = true, lean = true) => {
+    createExpireDocIndex(invoiceSettingSchema);
     if (!isStockDbConnected) {
         await connectStockDatabase(dbUrl, dbOptions);
     }

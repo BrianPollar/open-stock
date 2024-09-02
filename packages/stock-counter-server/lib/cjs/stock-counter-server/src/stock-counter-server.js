@@ -76,7 +76,7 @@ const runStockCounterServer = async (config, paymentInstance) => {
     // connect models
     await (0, stock_counter_local_1.connectStockCounterDatabase)(config.databaseConfig.url, config.databaseConfig.dbOptions);
     exports.pesapalPaymentInstance = paymentInstance;
-    (0, stock_universal_server_1.runPassport)(config.authSecrets.jwtSecret);
+    (0, stock_universal_server_1.runPassport)(stock_universal_server_1.stockUniversalConfig.authSecrets.jwtSecret);
     const stockCounterRouter = express_1.default.Router();
     if (!config.useDummyRoutes) {
         stockCounterRouter.use('/review', review_routes_1.reviewRoutes);

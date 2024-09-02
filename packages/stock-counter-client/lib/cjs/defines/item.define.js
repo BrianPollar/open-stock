@@ -326,7 +326,7 @@ class Item extends stock_universal_1.DatabaseAuto {
             }
             return val;
         });
-        this.ecomerceCompat = data.ecomerceCompat || this.ecomerceCompat;
+        this.ecomerceCompat = data.ecomerceCompat;
         this.soldCount = data.soldCount || this.soldCount;
     }
 }

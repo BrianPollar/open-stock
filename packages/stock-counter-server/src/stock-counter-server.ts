@@ -20,8 +20,8 @@ import { invoiceSettingRoutes } from './routes/printables/settings/invoicesettin
 import { promocodeRoutes } from './routes/promo.routes';
 import { reviewRoutes } from './routes/review.routes';
 // import { paymentInstallsRoutes } from './routes/paymentrelated/paymentinstalls.routes';
-import { IlAuth, isAuthServerRunning } from '@open-stock/stock-auth-server';
-import { runPassport } from '@open-stock/stock-universal-server';
+import { isAuthServerRunning } from '@open-stock/stock-auth-server';
+import { runPassport, stockUniversalConfig } from '@open-stock/stock-universal-server';
 import { ConnectOptions } from 'mongoose';
 import { PesaPalController } from 'pesapal3';
 import { cookiesRoutesDummy } from './routes-dummy/cookies.routes';
@@ -68,7 +68,7 @@ export interface IstockcounterServerConfig {
   /**
    * The authentication secrets for the server.
    */
-  authSecrets: IlAuth;
+  // authSecrets: IlAuth;
 
   /**
   * The database configuration.
@@ -89,6 +89,7 @@ export interface IstockcounterServerConfig {
   localPath: IlocalPath;
   useDummyRoutes?: boolean;
   ecommerceRevenuePercentage: number; // leas than 100
+
 }
 
 /**
@@ -143,7 +144,7 @@ export const runStockCounterServer = async(
 
   pesapalPaymentInstance = paymentInstance;
 
-  runPassport(config.authSecrets.jwtSecret);
+  runPassport(stockUniversalConfig.authSecrets.jwtSecret);
   const stockCounterRouter = express.Router();
 
   if (!config.useDummyRoutes) {
@@ -233,7 +234,10 @@ export const runStockCounterServer = async(
     stockCounterRouter.use('/staff', staffRoutesDummy);
     stockCounterRouter.use('/localuser', localUserRoutesDummy);
   }
-  createStockCounterServerLocals(config.pesapalNotificationRedirectUrl, config.ecommerceRevenuePercentage);
+  createStockCounterServerLocals(
+    config.pesapalNotificationRedirectUrl,
+    config.ecommerceRevenuePercentage
+  );
   runAutoIntervaller();
 
   return Promise.resolve({ stockCounterRouter });

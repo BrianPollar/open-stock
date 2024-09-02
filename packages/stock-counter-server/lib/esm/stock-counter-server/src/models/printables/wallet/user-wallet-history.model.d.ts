@@ -5,13 +5,11 @@
 /// <reference types="mongoose/types/collection" />
 /// <reference types="mongoose/types/connection" />
 /// <reference types="mongoose/types/cursor" />
-/// <reference types="mongoose/types/document" />
 /// <reference types="mongoose/types/error" />
 /// <reference types="mongoose/types/expressions" />
 /// <reference types="mongoose/types/helpers" />
 /// <reference types="mongoose/types/middlewares" />
 /// <reference types="mongoose/types/indexes" />
-/// <reference types="mongoose/types/models" />
 /// <reference types="mongoose/types/mongooseoptions" />
 /// <reference types="mongoose/types/pipelinestage" />
 /// <reference types="mongoose/types/populate" />
@@ -48,11 +46,13 @@ export declare let userWalletHistoryMain: Model<TuserWalletHistory>;
  */
 export declare let userWalletHistoryLean: Model<TuserWalletHistory>;
 export declare const userWalletHistorySelect: {
-    trackEdit: number;
-    trackView: number;
     wallet: number;
     amount: number;
     type: number;
+    trackEdit: number;
+    trackView: number;
+    isDeleted: number;
+    trackDeleted: number;
 };
 /**
  * Creates a review model with the specified database URL, main connection flag, and lean flag.

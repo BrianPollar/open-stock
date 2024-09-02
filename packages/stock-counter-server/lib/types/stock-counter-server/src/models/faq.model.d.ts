@@ -5,13 +5,11 @@
 /// <reference types="mongoose/types/collection" />
 /// <reference types="mongoose/types/connection" />
 /// <reference types="mongoose/types/cursor" />
-/// <reference types="mongoose/types/document" />
 /// <reference types="mongoose/types/error" />
 /// <reference types="mongoose/types/expressions" />
 /// <reference types="mongoose/types/helpers" />
 /// <reference types="mongoose/types/middlewares" />
 /// <reference types="mongoose/types/indexes" />
-/// <reference types="mongoose/types/models" />
 /// <reference types="mongoose/types/mongooseoptions" />
 /// <reference types="mongoose/types/pipelinestage" />
 /// <reference types="mongoose/types/populate" />
@@ -42,14 +40,16 @@ export declare let faqLean: Model<Tfaq>;
  * Selects the faqselect constant from the faq.model module.
  */
 export declare const faqSelect: {
-    trackEdit: number;
-    trackView: number;
-    urId: number;
-    companyId: number;
     posterName: number;
     posterEmail: number;
     userId: number;
     qn: number;
+    urId: number;
+    companyId: number;
+    trackEdit: number;
+    trackView: number;
+    isDeleted: number;
+    trackDeleted: number;
 };
 /**
  * Creates a new FAQ model.

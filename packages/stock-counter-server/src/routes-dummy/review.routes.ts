@@ -20,6 +20,7 @@ reviewRoutesDummy.get('/getall/:id/:companyIdParam', (req, res) => {
     count: 10,
     data: createMockReviews(10)
   };
+
   res.status(200).send(response);
 });
 

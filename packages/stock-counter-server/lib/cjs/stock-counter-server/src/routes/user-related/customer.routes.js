@@ -10,6 +10,7 @@ const fs = tslib_1.__importStar(require("fs"));
 const path_1 = tslib_1.__importDefault(require("path"));
 const tracer = tslib_1.__importStar(require("tracer"));
 const customer_model_1 = require("../../models/user-related/customer.model");
+const query_1 = require("../../utils/query");
 const locluser_routes_1 = require("./locluser.routes");
 /** Logger for customer routes */
 const customerRoutesLogger = tracer.colorConsole({
@@ -35,18 +36,25 @@ const customerRoutesLogger = tracer.colorConsole({
         });
     }
 });
+/**
+   * Adds a new customer to the database.
+   * @function
+   * @memberof module:customerRoutes
+   * @inner
+   * @param {Request} req - The express request object.
+   * @param {Response} res - The express response object.
+   * @param {NextFunction} next - The express next function.
+   * @returns {Promise} - Promise representing the saved customer
+   */
 const addCustomer = async (req, res, next) => {
-    const { companyIdParam } = req.params;
-    const { companyId } = req.user;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     const customer = req.body.customer;
     const savedUser = req.body.savedUser;
     customer.user = savedUser._id;
-    customer.companyId = queryId;
+    customer.companyId = filter.companyId;
+    const count = await customer_model_1.customerMain
+        .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+    customer.urId = (0, stock_universal_server_1.makeUrId)(Number(count[0]?.urId || '0'));
     const newCustomer = new customer_model_1.customerMain(customer);
     let errResponse;
     /**
@@ -57,7 +65,7 @@ const addCustomer = async (req, res, next) => {
      * @param {Customer} newCustomer - The new customer to be saved.
      * @returns {Promise} - Promise representing the saved customer
      */
-    await newCustomer.save()
+    const saved = await newCustomer.save()
         .catch(err => {
         customerRoutesLogger.error('create - err: ', err);
         errResponse = {
@@ -71,35 +79,49 @@ const addCustomer = async (req, res, next) => {
             errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
         }
-        return errResponse;
+        return err;
     });
     if (errResponse) {
         return res.status(403).send(errResponse);
     }
+    if (saved && saved._id) {
+        (0, stock_universal_server_1.addParentToLocals)(res, saved._id, customer_model_1.customerMain.collection.collectionName, 'makeTrackEdit');
+    }
     return next();
 };
 exports.addCustomer = addCustomer;
+/**
+   * Updates a customer by ID.
+   * @name PUT /updateone/:companyIdParam
+   * @function
+   * @memberof module:customerRoutes
+   * @inner
+   * @param {string} path - Express path
+   * @param {callback} middleware - Express middleware
+   * @returns {Promise} - Promise representing the update result
+   */
 const updateCustomer = async (req, res) => {
     const updatedCustomer = req.body.customer;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    updatedCustomer.companyId = queryId;
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)([updatedCustomer._id, queryId]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
+    updatedCustomer.companyId = filter.companyId;
     const customer = await customer_model_1.customerMain
-        .findOneAndUpdate({ _id: updatedCustomer._id, companyId: queryId });
+        .findOne({ _id: updatedCustomer._id, ...filter })
+        .lean();
     if (!customer) {
         return res.status(404).send({ success: false });
     }
-    customer.startDate = updatedCustomer.startDate || customer.startDate;
-    customer.endDate = updatedCustomer.endDate || customer.endDate;
-    customer.occupation = updatedCustomer.occupation || customer.occupation;
-    customer.otherAddresses = updatedCustomer.otherAddresses || customer.otherAddresses;
     let errResponse;
-    const updated = await customer.save()
+    const updated = await customer_model_1.customerMain.updateOne({
+        _id: updatedCustomer._id, ...filter
+    }, {
+        $set: {
+            startDate: updatedCustomer.startDate || customer.startDate,
+            endDate: updatedCustomer.endDate || customer.endDate,
+            occupation: updatedCustomer.occupation || customer.occupation,
+            otherAddresses: updatedCustomer.otherAddresses || customer.otherAddresses,
+            isDeleted: updatedCustomer.isDeleted || customer.isDeleted
+        }
+    })
         .catch(err => {
         customerRoutesLogger.error('update - err: ', err);
         errResponse = {
@@ -118,6 +140,7 @@ const updateCustomer = async (req, res) => {
     if (errResponse) {
         return res.status(403).send(errResponse);
     }
+    (0, stock_universal_server_1.addParentToLocals)(res, customer._id, customer_model_1.customerMain.collection.collectionName, 'makeTrackEdit');
     return res.status(200).send({ success: Boolean(updated) });
 };
 exports.updateCustomer = updateCustomer;
@@ -159,44 +182,34 @@ exports.customerRoutes.post('/createimg/:companyIdParam', stock_universal_server
  * @param {callback} middleware - Express middleware
  * @returns {Promise} - Promise representing the HTTP response
  */
-exports.customerRoutes.post('/getone', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('customers', 'read'), async (req, res) => {
+exports.customerRoutes.post('/getone/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('customers', 'read'), async (req, res) => {
     const { id, userId } = req.body;
-    const companyIdParam = req.body.companyId;
-    const { companyId } = req.user;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)([queryId]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
-    let filter = {};
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
+    let filter2 = {};
     if (id) {
         const isValid = (0, stock_universal_server_1.verifyObjectIds)([id]);
         if (!isValid) {
             return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
         }
-        filter = { ...filter, _id: id };
+        filter2 = { ...filter2, _id: id };
     }
-    if (queryId) {
-        filter = { ...filter, companyId: queryId };
-    }
+    /* if (queryId) {
+      filter = { ...filter, ...filter };
+    } */
     if (userId) {
         const isValid = (0, stock_universal_server_1.verifyObjectIds)([userId]);
         if (!isValid) {
             return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
         }
-        filter = { ...filter, user: userId };
+        filter2 = { ...filter2, user: userId };
     }
     const customer = await customer_model_1.customerLean
-        .findOne(filter)
-        .populate({ path: 'user', model: stock_auth_server_1.userLean,
-        populate: [{
-                path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-            }, {
-                path: 'profilePic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-            }, {
-                path: 'profileCoverPic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-            }] })
+        .findOne({ ...filter2, ...filter })
+        .populate([(0, query_1.populateUser)(), (0, stock_auth_server_1.populateTrackEdit)(), (0, stock_auth_server_1.populateTrackView)()])
         .lean();
+    if (customer) {
+        (0, stock_universal_server_1.addParentToLocals)(res, customer._id, customer_model_1.customerMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(customer);
 });
 /**
@@ -211,34 +224,23 @@ exports.customerRoutes.post('/getone', stock_universal_server_1.requireAuth, sto
  */
 exports.customerRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('customers', 'read'), async (req, res) => {
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     const all = await Promise.all([
         customer_model_1.customerLean
-            .find({ companyId: queryId })
-            .populate({ path: 'user', model: stock_auth_server_1.userLean,
-            populate: [{
-                    path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-                }, {
-                    path: 'profilePic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-                }, {
-                    path: 'profileCoverPic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-                }]
-        })
+            .find({ ...filter })
+            .populate([(0, query_1.populateUser)(), (0, stock_auth_server_1.populateTrackEdit)(), (0, stock_auth_server_1.populateTrackView)()])
             .skip(offset)
             .limit(limit)
             .lean(),
-        customer_model_1.customerLean.countDocuments({ companyId: queryId })
+        customer_model_1.customerLean.countDocuments({ ...filter })
     ]);
     const response = {
         count: all[1],
         data: all[0]
     };
+    for (const val of all[0]) {
+        (0, stock_universal_server_1.addParentToLocals)(res, val._id, customer_model_1.customerMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
 /**
@@ -268,16 +270,12 @@ exports.customerRoutes.post('/updateimg/:companyIdParam', stock_universal_server
  */
 exports.customerRoutes.put('/deleteone/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('customers', 'delete'), (0, locluser_routes_1.removeOneUser)('customer'), async (req, res) => {
     const { id } = req.body;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)([id, queryId]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    const deleted = await customer_model_1.customerMain.findOneAndDelete({ _id: id, companyId: queryId });
+    // const deleted = await customerMain.findOneAndDelete({ _id: id, ...filter });
+    const deleted = await customer_model_1.customerMain.updateOne({ _id: id, ...filter }, { $set: { isDeleted: true } }, { $set: { isDeleted: true } });
     if (Boolean(deleted)) {
+        (0, stock_universal_server_1.addParentToLocals)(res, id, customer_model_1.customerMain.collection.collectionName, 'trackDataDelete');
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
@@ -298,20 +296,26 @@ exports.customerRoutes.put('/deleteone/:companyIdParam', stock_universal_server_
  */
 exports.customerRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('customers', 'delete'), (0, locluser_routes_1.removeManyUsers)('staff'), async (req, res) => {
     const { ids } = req.body;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
+    /* const deleted = await customerMain
+      .deleteMany({ ...filter, _id: { $in: ids } })
+      .catch(err => {
+        customerRoutesLogger.error('deletemany - err: ', err);
+  
+        return null;
+      }); */
     const deleted = await customer_model_1.customerMain
-        .deleteMany({ companyId: queryId, _id: { $in: ids } })
+        .updateMany({ ...filter, _id: { $in: ids } }, {
+        $set: { isDeleted: true }
+    })
         .catch(err => {
         customerRoutesLogger.error('deletemany - err: ', err);
         return null;
     });
     if (Boolean(deleted)) {
+        for (const val of ids) {
+            (0, stock_universal_server_1.addParentToLocals)(res, val, customer_model_1.customerMain.collection.collectionName, 'trackDataDelete');
+        }
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {

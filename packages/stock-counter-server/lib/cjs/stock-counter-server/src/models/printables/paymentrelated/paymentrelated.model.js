@@ -1,8 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createPaymentRelatedModel = exports.paymentRelatedSelect = exports.paymentRelatedLean = exports.paymentRelatedMain = void 0;
+const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const mongoose_1 = require("mongoose");
-const database_controller_1 = require("../../../controllers/database.controller");
+const database_1 = require("../../../utils/database");
 const uniqueValidator = require('mongoose-unique-validator');
 /**
  * Payment Related Schema
@@ -22,11 +23,8 @@ const uniqueValidator = require('mongoose-unique-validator');
  * @property {Date} updatedAt - Timestamp of last update
  */
 const paymentRelatedSchema = new mongoose_1.Schema({
-    trackEdit: { type: mongoose_1.Schema.ObjectId },
-    trackView: { type: mongoose_1.Schema.ObjectId },
+    ...stock_universal_server_1.withUrIdAndCompanySchemaObj,
     pesaPalorderTrackingId: { type: String },
-    urId: { type: String, required: [true, 'cannot be empty.'] },
-    companyId: { type: String },
     // creationType: { type: String, required: [true, 'cannot be empty.'] },
     // items: [{ type: String }],
     orderDate: { type: Date, index: true },
@@ -44,18 +42,20 @@ const paymentRelatedSchema = new mongoose_1.Schema({
     paymentMethod: { type: String },
     payType: { type: String, index: true },
     orderStatus: { type: String, index: true, default: 'pending' }
-}, { timestamps: true });
+}, { timestamps: true, collection: 'paymentrelateds' });
 // Apply the uniqueValidator plugin to paymentRelatedSchema.
 paymentRelatedSchema.plugin(uniqueValidator);
+paymentRelatedSchema.pre('updateOne', function (next) {
+    return (0, stock_universal_server_1.preUpdateDocExpire)(this, next);
+});
+paymentRelatedSchema.pre('updateMany', function (next) {
+    return (0, stock_universal_server_1.preUpdateDocExpire)(this, next);
+});
 /** primary selection object
  * for paymentRelated
  */
 const paymentRelatedselect = {
-    trackEdit: 1,
-    trackView: 1,
-    pesaPalorderTrackingId: 1,
-    urId: 1,
-    companyId: 1,
+    ...stock_universal_server_1.withUrIdAndCompanySelectObj,
     // items: 1,
     orderDate: 1,
     paymentDate: 1,
@@ -84,14 +84,15 @@ exports.paymentRelatedSelect = paymentRelatedselect;
  * @param lean - Indicates whether to create the lean connection model. Default is true.
  */
 const createPaymentRelatedModel = async (dbUrl, dbOptions, main = true, lean = true) => {
-    if (!database_controller_1.isStockDbConnected) {
-        await (0, database_controller_1.connectStockDatabase)(dbUrl, dbOptions);
+    (0, stock_universal_server_1.createExpireDocIndex)(paymentRelatedSchema);
+    if (!database_1.isStockDbConnected) {
+        await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.paymentRelatedMain = database_controller_1.mainConnection.model('paymentRelated', paymentRelatedSchema);
+        exports.paymentRelatedMain = database_1.mainConnection.model('paymentRelated', paymentRelatedSchema);
     }
     if (lean) {
-        exports.paymentRelatedLean = database_controller_1.mainConnectionLean.model('paymentRelated', paymentRelatedSchema);
+        exports.paymentRelatedLean = database_1.mainConnectionLean.model('paymentRelated', paymentRelatedSchema);
     }
 };
 exports.createPaymentRelatedModel = createPaymentRelatedModel;

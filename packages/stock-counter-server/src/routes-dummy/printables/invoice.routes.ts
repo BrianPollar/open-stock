@@ -24,6 +24,7 @@ invoiceRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) => {
     count: req.params.limit,
     data: createMockInvoices(Number(req.params.limit))
   };
+
   res.status(200).send(response);
 });
 
@@ -57,6 +58,7 @@ invoiceRoutesDummy.get('/getallpayments/:companyIdParam', (req, res) => {
     count: 10,
     data: createMockReceipts(10)
   };
+
   res.status(200).send(response);
 });
 

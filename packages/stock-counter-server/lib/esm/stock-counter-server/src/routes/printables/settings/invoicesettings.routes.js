@@ -1,10 +1,11 @@
-import { requireActiveCompany } from '@open-stock/stock-auth-server';
-import { appendBody, deleteAllFiles, deleteFiles, fileMetaLean, offsetLimitRelegator, requireAuth, roleAuthorisation, saveMetaToDb, stringifyMongooseErr, uploadFiles, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { populateTrackEdit, populateTrackView, requireActiveCompany } from '@open-stock/stock-auth-server';
+import { addParentToLocals, appendBody, deleteAllFiles, deleteFiles, makeCompanyBasedQuery, offsetLimitRelegator, requireAuth, roleAuthorisation, saveMetaToDb, stringifyMongooseErr, uploadFiles, verifyObjectId } from '@open-stock/stock-universal-server';
 import express from 'express';
 import * as fs from 'fs';
 import path from 'path';
 import * as tracer from 'tracer';
 import { invoiceSettingLean, invoiceSettingMain } from '../../../models/printables/settings/invoicesettings.model';
+import { populateSignature, populateStamp } from '../../../utils/query';
 /** Logger for invoice setting routes */
 const invoiceSettingRoutesLogger = tracer.colorConsole({
     format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
@@ -51,17 +52,11 @@ invoiceSettingRoutes.post('/create/:companyIdParam', requireAuth, requireActiveC
     if (invoiceSetting.generalSettings.defaultDigitalStamp) {
         delete invoiceSetting.generalSettings.defaultDigitalStamp;
     }
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = verifyObjectId(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
-    invoiceSetting.companyId = queryId;
+    const { filter } = makeCompanyBasedQuery(req);
+    invoiceSetting.companyId = filter.companyId;
     const newJobCard = new invoiceSettingMain(invoiceSetting);
     let errResponse;
-    await newJobCard.save()
+    const saved = await newJobCard.save()
         .catch(err => {
         invoiceSettingRoutesLogger.error('create - err: ', err);
         errResponse = {
@@ -75,10 +70,13 @@ invoiceSettingRoutes.post('/create/:companyIdParam', requireAuth, requireActiveC
             errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
         }
-        return errResponse;
+        return err;
     });
     if (errResponse) {
         return res.status(403).send(errResponse);
+    }
+    if (saved && saved._id) {
+        addParentToLocals(res, saved._id, invoiceSettingLean.collection.collectionName, 'makeTrackEdit');
     }
     return res.status(200).send({ success: true });
 });
@@ -93,14 +91,8 @@ invoiceSettingRoutes.post('/create/:companyIdParam', requireAuth, requireActiveC
  */
 invoiceSettingRoutes.post('/createimg/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'create'), uploadFiles, appendBody, saveMetaToDb, async (req, res) => {
     const invoiceSetting = req.body.invoicesettings;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = verifyObjectId(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
-    invoiceSetting.companyId = queryId;
+    const { filter } = makeCompanyBasedQuery(req);
+    invoiceSetting.companyId = filter.companyId;
     if (req.body.newPhotos) {
         if (invoiceSetting.generalSettings.defaultDigitalSignature === 'true' &&
             invoiceSetting.generalSettings.defaultDigitalStamp === 'true') {
@@ -108,11 +100,11 @@ invoiceSettingRoutes.post('/createimg/:companyIdParam', requireAuth, requireActi
             invoiceSetting.generalSettings.defaultDigitalStamp = req.body.newPhotos[1];
         }
         if (invoiceSetting.generalSettings.defaultDigitalSignature === 'true' &&
-            invoiceSetting.generalSettings.defaultDigitalSignature === 'false') {
+            invoiceSetting.generalSettings.defaultDigitalStamp === 'false') {
             invoiceSetting.generalSettings.defaultDigitalSignature = req.body.newPhotos[0];
         }
         if (invoiceSetting.generalSettings.defaultDigitalSignature === 'false' &&
-            invoiceSetting.generalSettings.defaultDigitalSignature === 'true') {
+            invoiceSetting.generalSettings.defaultDigitalStamp === 'true') {
             invoiceSetting.generalSettings.defaultDigitalStamp = req.body.newPhotos[0];
         }
     }
@@ -139,10 +131,13 @@ invoiceSettingRoutes.post('/createimg/:companyIdParam', requireAuth, requireActi
             errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
         }
-        return errResponse;
+        return err;
     });
     if (errResponse) {
         return res.status(403).send(errResponse);
+    }
+    if (saved && saved._id) {
+        addParentToLocals(res, saved._id, invoiceSettingLean.collection.collectionName, 'makeTrackEdit');
     }
     return res.status(200).send({ success: Boolean(saved) });
 });
@@ -157,19 +152,13 @@ invoiceSettingRoutes.post('/createimg/:companyIdParam', requireAuth, requireActi
  */
 invoiceSettingRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'update'), async (req, res) => {
     const updatedInvoiceSetting = req.body.invoicesettings;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    console.log('updatedInvoiceSetting ', updatedInvoiceSetting);
-    updatedInvoiceSetting.companyId = queryId;
+    const { filter } = makeCompanyBasedQuery(req);
+    invoiceSettingRoutesLogger.debug('updatedInvoiceSetting ', updatedInvoiceSetting);
+    updatedInvoiceSetting.companyId = filter.companyId;
     // eslint-disable-next-line @typescript-eslint/naming-convention
     const { _id } = updatedInvoiceSetting;
-    const isValid = verifyObjectIds([_id, queryId]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
     const invoiceSetting = await invoiceSettingMain
-        .findOne({ _id, companyId: queryId }).lean();
+        .findOne({ _id, ...filter }).lean();
     if (!invoiceSetting) {
         return res.status(404).send({ success: false });
     }
@@ -187,7 +176,8 @@ invoiceSettingRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCo
     invoiceSetting.taxSettings = updatedInvoiceSetting.taxSettings || invoiceSetting.taxSettings;
     invoiceSetting.bankSettings = updatedInvoiceSetting.bankSettings || invoiceSetting.bankSettings;
     invoiceSetting.printDetails = updatedInvoiceSetting.printDetails || invoiceSetting.printDetails;
-    console.log('generalSettings', generalSettings);
+    invoiceSetting.isDeleted = updatedInvoiceSetting.isDeleted || invoiceSetting.isDeleted;
+    invoiceSettingRoutesLogger.debug('generalSettings', generalSettings);
     let errResponse;
     // eslint-disable-next-line @typescript-eslint/naming-convention
     const updated = await invoiceSettingMain.updateOne({ _id }, { $set: {
@@ -210,10 +200,11 @@ invoiceSettingRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCo
         }
         return errResponse;
     });
-    console.log('updated ', updated);
+    invoiceSettingRoutesLogger.debug('updated ', updated);
     if (errResponse) {
         return res.status(403).send(errResponse);
     }
+    addParentToLocals(res, invoiceSetting._id, invoiceSettingLean.collection.collectionName, 'makeTrackEdit');
     return res.status(200).send({ success: Boolean(updated) });
 });
 /**
@@ -227,27 +218,22 @@ invoiceSettingRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCo
  */
 invoiceSettingRoutes.post('/updateimg/:companyIdParam', requireAuth, requireActiveCompany, uploadFiles, appendBody, saveMetaToDb, async (req, res) => {
     const updatedInvoiceSetting = req.body.invoicesettings;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    updatedInvoiceSetting.companyId = queryId;
+    const { filter } = makeCompanyBasedQuery(req);
+    updatedInvoiceSetting.companyId = filter.companyId;
     // eslint-disable-next-line @typescript-eslint/naming-convention
     const { _id } = updatedInvoiceSetting;
-    const isValid = verifyObjectIds([_id, queryId]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    const found = await invoiceSettingMain.findOne({ _id, companyId: queryId })
+    const found = await invoiceSettingMain.findOne({ _id, ...filter })
         // eslint-disable-next-line @typescript-eslint/naming-convention
         //  .populate({ path: 'generalSettings.defaultDigitalSignature', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
         // eslint-disable-next-line @typescript-eslint/naming-convention
         //  .populate({ path: 'generalSettings.defaultDigitalStamp', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
         .lean();
     const invoiceSetting = await invoiceSettingMain
-        .findOneAndUpdate({ _id, companyId: queryId }).lean();
-    console.log('all new Files', req.body.newPhotos);
-    console.log('found ', found);
+        .findOne({ _id, ...filter })
+        .lean();
+    invoiceSettingRoutesLogger.debug('all new Files', req.body.newPhotos);
+    invoiceSettingRoutesLogger.info('found ', found);
     if (!invoiceSetting) {
         return res.status(404).send({ success: false });
     }
@@ -255,6 +241,8 @@ invoiceSettingRoutes.post('/updateimg/:companyIdParam', requireAuth, requireActi
     if (!invoiceSetting.generalSettings) {
         invoiceSetting.generalSettings = {};
     }
+    invoiceSettingRoutesLogger.debug('updatedInvoiceSetting ', updatedInvoiceSetting);
+    invoiceSettingRoutesLogger.error('settings newPhotos', req.body.newPhotos);
     if (req.body.newPhotos) {
         if (updatedInvoiceSetting.generalSettings.defaultDigitalSignature === 'true' &&
             updatedInvoiceSetting.generalSettings.defaultDigitalStamp === 'true') {
@@ -282,7 +270,7 @@ invoiceSettingRoutes.post('/updateimg/:companyIdParam', requireAuth, requireActi
             updatedInvoiceSetting.generalSettings.defaultDigitalStamp = req.body.newPhotos[0];
         }
     }
-    await deleteAllFiles(filesWithDir);
+    await deleteAllFiles(filesWithDir, true);
     const generalSettings = Object.assign({}, invoiceSetting.generalSettings);
     if (updatedInvoiceSetting?.generalSettings?.currency) {
         generalSettings.currency = updatedInvoiceSetting.generalSettings.currency;
@@ -291,16 +279,22 @@ invoiceSettingRoutes.post('/updateimg/:companyIdParam', requireAuth, requireActi
         generalSettings.defaultDueTime = updatedInvoiceSetting.generalSettings.defaultDueTime;
     }
     // add signature and stamp if are valid object ids
+    invoiceSettingRoutesLogger.info('b4 verify updatedInvoiceSetting', updatedInvoiceSetting.generalSettings);
+    invoiceSettingRoutesLogger.info('ALLL IN verify', verifyObjectId(updatedInvoiceSetting.generalSettings.defaultDigitalSignature));
     if (verifyObjectId(updatedInvoiceSetting.generalSettings.defaultDigitalSignature)) {
+        invoiceSettingRoutesLogger.info('passed signature', updatedInvoiceSetting.generalSettings.defaultDigitalSignature);
         generalSettings.defaultDigitalSignature = updatedInvoiceSetting.generalSettings.defaultDigitalSignature;
     }
     if (verifyObjectId(updatedInvoiceSetting.generalSettings.defaultDigitalStamp)) {
+        invoiceSettingRoutesLogger.info('passed stamp ', updatedInvoiceSetting.generalSettings.defaultDigitalStamp);
         generalSettings.defaultDigitalStamp = updatedInvoiceSetting.generalSettings.defaultDigitalStamp;
     }
     invoiceSetting.generalSettings = generalSettings;
     invoiceSetting.taxSettings = updatedInvoiceSetting.taxSettings || invoiceSetting.taxSettings;
     invoiceSetting.bankSettings = updatedInvoiceSetting.bankSettings || invoiceSetting.bankSettings;
     invoiceSetting.printDetails = updatedInvoiceSetting.printDetails || invoiceSetting.printDetails;
+    invoiceSettingRoutesLogger.debug('generalSettings b4 update', generalSettings);
+    invoiceSettingRoutesLogger.info('get the repeat ', invoiceSetting.generalSettings);
     let errResponse;
     // eslint-disable-next-line @typescript-eslint/naming-convention
     const updated = await invoiceSettingMain.updateOne({ _id }, { $set: {
@@ -326,62 +320,51 @@ invoiceSettingRoutes.post('/updateimg/:companyIdParam', requireAuth, requireActi
     if (errResponse) {
         return res.status(403).send(errResponse);
     }
-    console.log('updated', updated);
+    addParentToLocals(res, found._id, invoiceSettingLean.collection.collectionName, 'makeTrackEdit');
+    invoiceSettingRoutesLogger.debug('updated', updated);
     return res.status(200).send({ success: Boolean(updated) });
 });
 invoiceSettingRoutes.get('/getone/:id/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'read'), async (req, res) => {
     const { id } = req.params;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = verifyObjectIds([id, queryId]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = makeCompanyBasedQuery(req);
     const invoiceSetting = await invoiceSettingLean
-        .findOne({ _id: id, companyId: queryId })
-        .populate({ path: 'generalSettings.defaultDigitalSignature', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-        .populate({ path: 'generalSettings.defaultDigitalStamp', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+        .findOne({ _id: id, ...filter })
+        .populate([populateSignature(), populateStamp(), populateTrackEdit(), populateTrackView()])
         .lean();
+    if (invoiceSetting) {
+        addParentToLocals(res, invoiceSetting._id, invoiceSettingLean.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(invoiceSetting);
 });
 invoiceSettingRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'read'), async (req, res) => {
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = verifyObjectId(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = makeCompanyBasedQuery(req);
     const all = await Promise.all([
         invoiceSettingLean
-            .find({ companyId: queryId })
-            .populate({ path: 'generalSettings.defaultDigitalSignature', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-            .populate({ path: 'generalSettings.defaultDigitalStamp', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+            .find({ ...filter })
+            .populate([populateSignature(), populateStamp(), populateTrackEdit(), populateTrackView()])
             .skip(offset)
             .limit(limit)
             .lean(),
-        invoiceSettingLean.countDocuments({ companyId: queryId })
+        invoiceSettingLean.countDocuments({ ...filter })
     ]);
     const response = {
         count: all[1],
         data: all[0]
     };
+    for (const val of all[0]) {
+        addParentToLocals(res, val._id, invoiceSettingLean.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
-invoiceSettingRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, async (req, res) => {
+invoiceSettingRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'delete'), async (req, res) => {
     const { id } = req.params;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = verifyObjectIds([id, queryId]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = makeCompanyBasedQuery(req);
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    const deleted = await invoiceSettingMain.findOneAndDelete({ _id: id, companyId: queryId });
+    // const deleted = await invoiceSettingMain.findOneAndDelete({ _id: id, ...filter });
+    const deleted = await invoiceSettingMain.updateOne({ _id: id, ...filter }, { $set: { isDeleted: true } });
     if (Boolean(deleted)) {
+        addParentToLocals(res, id, invoiceSettingLean.collection.collectionName, 'trackDataDelete');
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
@@ -390,21 +373,15 @@ invoiceSettingRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, async
 });
 invoiceSettingRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'read'), async (req, res) => {
     const { searchterm, searchKey } = req.body;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = verifyObjectId(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = makeCompanyBasedQuery(req);
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     const all = await Promise.all([
         invoiceSettingLean
-            .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+            .find({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
             .skip(offset)
             .limit(limit)
             .lean(),
-        invoiceSettingLean.countDocuments({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+        invoiceSettingLean.countDocuments({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
     ]);
     const response = {
         count: all[1],
@@ -414,55 +391,62 @@ invoiceSettingRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth,
 });
 invoiceSettingRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'delete'), async (req, res) => {
     const { ids } = req.body;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = verifyObjectIds([...ids, ...[queryId]]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = makeCompanyBasedQuery(req);
+    /* const deleted = await invoiceSettingMain
+      .deleteMany({ ...filter, _id: { $in: ids } })
+      .catch(err => {
+        invoiceSettingRoutesLogger.error('deletemany - err: ', err);
+  
+        return null;
+      }); */
     const deleted = await invoiceSettingMain
-        .deleteMany({ companyId: queryId, _id: { $in: ids } })
+        .updateMany({ ...filter, _id: { $in: ids } }, {
+        $set: { isDeleted: true }
+    })
         .catch(err => {
         invoiceSettingRoutesLogger.error('deletemany - err: ', err);
         return null;
     });
     if (Boolean(deleted)) {
+        for (const val of ids) {
+            addParentToLocals(res, val, invoiceSettingLean.collection.collectionName, 'trackDataDelete');
+        }
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
         return res.status(404).send({ success: Boolean(deleted), err: 'could not delete selected items, try again in a while' });
     }
 });
-invoiceSettingRoutes.put('/deleteimages/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'delete'), deleteFiles, async (req, res) => {
+invoiceSettingRoutes.put('/deleteimages/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'delete'), deleteFiles(true), async (req, res) => {
     const filesWithDir = req.body.filesWithDir;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const { filter } = makeCompanyBasedQuery(req);
     if (filesWithDir && !filesWithDir.length) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const updatedProduct = req.body.item;
     // eslint-disable-next-line @typescript-eslint/naming-convention
     const { _id } = updatedProduct;
-    const isValid = verifyObjectIds([_id, queryId]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
     const invoiceSetting = await invoiceSettingMain
-        .findOneAndUpdate({ _id, companyId: queryId });
+        .findOne({ _id, ...filter })
+        .lean();
     if (!invoiceSetting) {
         return res.status(404).send({ success: false, err: 'item not found' });
     }
     const filesWithDirIds = filesWithDir.map(val => val._id);
     if (filesWithDirIds.includes(invoiceSetting.generalSettings.defaultDigitalSignature)) {
-        invoiceSetting.generalSettings.defaultDigitalSignature = '';
+        delete invoiceSetting.generalSettings.defaultDigitalSignature;
     }
     if (filesWithDirIds.includes(invoiceSetting.generalSettings.defaultDigitalStamp)) {
-        invoiceSetting.generalSettings.defaultDigitalStamp = '';
+        delete invoiceSetting.generalSettings.defaultDigitalStamp;
     }
     let errResponse;
-    await invoiceSetting.save().catch(err => {
+    await invoiceSettingMain.updateOne({
+        _id, ...filter
+    }, {
+        $set: {
+            generalSettings: invoiceSetting.generalSettings
+        }
+    }).catch(err => {
         errResponse = {
             success: false,
             status: 403
@@ -479,6 +463,7 @@ invoiceSettingRoutes.put('/deleteimages/:companyIdParam', requireAuth, requireAc
     if (errResponse) {
         return res.status(403).send(errResponse);
     }
+    addParentToLocals(res, invoiceSetting._id, invoiceSettingLean.collection.collectionName, 'makeTrackEdit');
     return res.status(200).send({ success: true });
 });
 //# sourceMappingURL=invoicesettings.routes.js.map

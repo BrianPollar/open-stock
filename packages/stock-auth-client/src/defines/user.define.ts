@@ -95,6 +95,18 @@ export class User extends DatabaseAuto {
   }
 
   /**
+   * Checks if a user with the given email or phone number exists.
+   * @param emailPhone The email or phone number to check.
+   * @returns A boolean indicating whether the user exists.
+   */
+  static async existsEmailOrPhone(emailPhone: string) {
+    const observer$ = StockAuthClient.ehttp.makeGet(`/user/existsemailphone/${emailPhone}`);
+    const response = await lastValueFrom(observer$) as Isuccess & { exists: boolean };
+
+    return response.exists;
+  }
+
+  /**
    * Retrieves multiple users from a specified URL, with optional offset and limit parameters.
    * @param companyId - The ID of the company
    * @param url The URL to retrieve the users from.

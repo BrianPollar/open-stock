@@ -7,7 +7,7 @@ import multer from 'multer';
 import * as path from 'path';
 import * as tracer from 'tracer';
 import { fileMeta } from '../models/filemeta.model';
-import { envConfig } from '../stock-universal-local';
+import { stockUniversalConfig } from '../stock-universal-local';
 import { IMulterRequest, multerFileds, upload } from './filestorage';
 
 const fsControllerLogger = tracer.colorConsole({
@@ -81,8 +81,8 @@ export const appendBody = (
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const videoDirectory = path.join(envConfig.videoDirectory + '/' + queryId + '/');
-  const photoDirectory = path.join(envConfig.photoDirectory + '/' + queryId + '/');
+  const videoDirectory = path.join(stockUniversalConfig.envCfig.videoDirectory + '/' + queryId + '/');
+  const photoDirectory = path.join(stockUniversalConfig.envCfig.photoDirectory + '/' + queryId + '/');
   const { userId } = (req as Icustomrequest).user;
   const parsed = JSON.parse(req.body.data);
   const newPhotos: IfileMeta[] = [];
@@ -255,7 +255,7 @@ export const saveMetaToDb = async(
   }
 
   if (parsed.newPhotos) {
-    const mappedParsedFiles = parsed.newPhotos.map((value: IfileMeta) => value._id);
+    const mappedParsedFiles = parsed.newPhotos.map((value: IfileMeta) => value._id.toString());
 
     parsed.newPhotos = mappedParsedFiles;
   }
@@ -293,20 +293,26 @@ export const updateFiles = (
   });
 };
 
-export const deleteAllFiles = async(filesWithDir: IfileMeta[]) => {
+// TODO batch file delete after doc expires
+export const deleteAllFiles = async(filesWithDir: IfileMeta[], directlyRemove = false) => {
   if (filesWithDir && !filesWithDir.length) {
     // return res.status(401).send({ error: 'unauthorised' }); // TODO better catch
   }
   const ids = filesWithDir.map((value/** : Ifilewithdir */) => value._id);
 
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  await fileMeta.deleteMany({ _id: { $in: ids } });
+  // await fileMeta.deleteMany({ _id: { $in: ids } });
+  if (!directlyRemove) {
+    await fileMeta.updateMany({ _id: { $in: ids } }, { $set: { isDeleted: true } });
+  } else {
+    await fileMeta.deleteMany({ _id: { $in: ids } });
+  }
 
-  if (filesWithDir && filesWithDir.length) {
+  if (filesWithDir && filesWithDir.length && directlyRemove) {
     const promises = filesWithDir
       .map((value/** : Ifilewithdir */) => new Promise(resolve => {
         fsControllerLogger.debug('deleting file', value.url);
-        const absolutepath = envConfig.absolutepath;
+        const absolutepath = stockUniversalConfig.envCfig.absolutepath;
         const nowpath = path
           .join(`${absolutepath}${value.url}`);
 
@@ -336,16 +342,18 @@ export const deleteAllFiles = async(filesWithDir: IfileMeta[]) => {
  * @param next - The next middleware function.
  * @returns A Promise that resolves when the files are deleted.
  */
-export const deleteFiles = async(
-  req,
-  res,
-  next
-) => {
-  const { filesWithDir } = req.body;
+export const deleteFiles = (directlyRemove = false) => {
+  return async(
+    req,
+    res,
+    next
+  ) => {
+    const { filesWithDir } = req.body;
 
-  await deleteAllFiles(filesWithDir);
+    await deleteAllFiles(filesWithDir, directlyRemove);
 
-  return next();
+    return next();
+  };
 };
 
 /**
@@ -361,7 +369,7 @@ export const getOneFile = (
   const { filename } = req.params;
 
   fsControllerLogger.debug(`download, file: ${filename}`);
-  const absolutepath = envConfig.absolutepath;
+  const absolutepath = stockUniversalConfig.envCfig.absolutepath;
   const fileLocation = path.join(`${absolutepath}${filename}`, filename);
 
   return res.download(fileLocation, filename);
@@ -377,7 +385,7 @@ export const returnLazyFn = (req, res) => res.status(200).send({ success: true }
 
 export const removeBg = (imageSrc: string) => {
   return new Promise((resolve, reject) => {
-    const absolutepath = envConfig.absolutepath;
+    const absolutepath = stockUniversalConfig.envCfig.absolutepath;
     const fileLocation = path.join(`${absolutepath}${imageSrc}`);
     const config: Config = {
       output: {

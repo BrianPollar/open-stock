@@ -21,7 +21,7 @@ import { promocodeRoutes } from './routes/promo.routes';
 import { reviewRoutes } from './routes/review.routes';
 // import { paymentInstallsRoutes } from './routes/paymentrelated/paymentinstalls.routes';
 import { isAuthServerRunning } from '@open-stock/stock-auth-server';
-import { runPassport } from '@open-stock/stock-universal-server';
+import { runPassport, stockUniversalConfig } from '@open-stock/stock-universal-server';
 import { cookiesRoutesDummy } from './routes-dummy/cookies.routes';
 import { deliverycityRoutesDummy } from './routes-dummy/deliverycity.routes';
 import { expenseRoutesDummy } from './routes-dummy/expense.routes';
@@ -80,7 +80,7 @@ export const runStockCounterServer = async (config, paymentInstance) => {
     // connect models
     await connectStockCounterDatabase(config.databaseConfig.url, config.databaseConfig.dbOptions);
     pesapalPaymentInstance = paymentInstance;
-    runPassport(config.authSecrets.jwtSecret);
+    runPassport(stockUniversalConfig.authSecrets.jwtSecret);
     const stockCounterRouter = express.Router();
     if (!config.useDummyRoutes) {
         stockCounterRouter.use('/review', reviewRoutes);

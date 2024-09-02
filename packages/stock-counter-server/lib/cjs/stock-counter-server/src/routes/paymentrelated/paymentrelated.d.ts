@@ -18,7 +18,7 @@ export declare const updatePaymentRelated: (paymentRelated: Required<IpaymentRel
  * @param queryId - The query ID.
  * @returns A promise that resolves to an object containing the success status and the ID of the created or updated entity.
  */
-export declare const relegatePaymentRelatedCreation: (paymentRelated: Required<IpaymentRelated>, invoiceRelated: Required<IinvoiceRelated>, type: 'payment' | 'order', extraNotifDesc: string, queryId: string) => Promise<Isuccess & {
+export declare const relegatePaymentRelatedCreation: (res: any, paymentRelated: Required<IpaymentRelated>, invoiceRelated: Required<IinvoiceRelated>, type: 'payment' | 'order', extraNotifDesc: string, queryId: string) => Promise<Isuccess & {
     id?: string;
 }>;
 /**
@@ -30,6 +30,7 @@ export declare const relegatePaymentRelatedCreation: (paymentRelated: Required<I
  * @returns The payment related product object.
  */
 export declare const makePaymentRelatedPdct: (paymentRelated: Required<IpaymentRelated>, invoiceRelated: Required<IinvoiceRelated>, user: Iuser, meta: any) => {
+    _id: string;
     companyId: string;
     invoiceRelated: string;
     creationType: TinvoiceType;
@@ -53,7 +54,6 @@ export declare const makePaymentRelatedPdct: (paymentRelated: Required<IpaymentR
     payments: string[] | Ireceipt[];
     ecommerceSale: boolean;
     ecommerceSalePercentage: number;
-    _id: any;
     updatedAt: any;
     paymentRelated: string;
     urId: string;
@@ -91,5 +91,9 @@ export declare const deleteAllPayOrderLinked: (paymentRelated: string, invoiceRe
  * @param queryId - The query ID.
  * @returns A promise that resolves to an object indicating the success of the operation.
  */
-export declare const makePaymentInstall: (receipt: Ireceipt, relatedId: string, queryId: string, creationType: TinvoiceType) => Promise<false | Isuccess>;
+export declare const makePaymentInstall: (res: any, receipt: Ireceipt, relatedId: string, queryId: string, creationType: TinvoiceType) => Promise<false | Isuccess>;
+/**
+   * Sends a notification to all users with a due date.
+   * @returns A promise that resolves to true if all notifications were sent successfully.
+   */
 export declare const notifyAllOnDueDate: () => Promise<boolean>;

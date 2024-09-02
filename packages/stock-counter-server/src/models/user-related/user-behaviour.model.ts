@@ -4,20 +4,19 @@
  * The `createReviewModel` function can be used to create the main and lean connection models for the user behaviour data.
  */
 import { IuserBehaviour } from '@open-stock/stock-universal';
+import { createExpireDocIndex, globalSchemaObj, globalSelectObj, preUpdateDocExpire } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../controllers/database.controller';
+import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../utils/database';
 
 /**
  * Represents the type of a user behaviour document in the database.
  * This type extends the `Document` type from Mongoose and the `IuserBehaviour` interface,
  * which likely defines the shape of a user behaviour document.
  */
-
 export type TuserBehaviour = Document & IuserBehaviour;
 
 const userBehaviourSchema: Schema = new Schema({
-  trackEdit: { type: Schema.ObjectId },
-  trackView: { type: Schema.ObjectId },
+  ...globalSchemaObj,
   user: { type: String, index: true },
   userCookieId: { type: String, required: [true, 'cannot be empty.'], index: true },
   recents: [],
@@ -26,16 +25,24 @@ const userBehaviourSchema: Schema = new Schema({
   compareList: [],
   searchTerms: [],
   expireAt: { type: String }
-}, { timestamps: true });
+}, { timestamps: true, collection: 'userbehaviours' });
 
 userBehaviourSchema.index(
   { expireAt: 1 },
   { expireAfterSeconds: 7.884e+6 }
 ); // expire After 3 months
 
+userBehaviourSchema.pre('updateOne', function(next) {
+  return preUpdateDocExpire(this, next);
+});
+
+userBehaviourSchema.pre('updateMany', function(next) {
+  return preUpdateDocExpire(this, next);
+});
+
+
 const userBehaviourselect = {
-  trackEdit: 1,
-  trackView: 1,
+  ...globalSelectObj,
   user: 1,
   userCookieId: 1,
   recents: 1,
@@ -66,6 +73,7 @@ export const userBehaviourSelect = userBehaviourselect;
  * @param lean Indicates whether to create the lean connection model.
  */
 export const createUserBehaviourModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
+  createExpireDocIndex(userBehaviourSchema);
   if (!isStockDbConnected) {
     await connectStockDatabase(dbUrl, dbOptions);
   }

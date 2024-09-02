@@ -1,14 +1,14 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
 
-import { requireActiveCompany, userLean } from '@open-stock/stock-auth-server';
+import { populateTrackEdit, populateTrackView, requireActiveCompany } from '@open-stock/stock-auth-server';
 import { Icustomrequest, IdataArrayResponse, IinvoiceRelated, Iuser } from '@open-stock/stock-universal';
-import { offsetLimitRelegator, requireAuth, roleAuthorisation, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { addParentToLocals, makeCompanyBasedQuery, offsetLimitRelegator, requireAuth, roleAuthorisation, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import * as fs from 'fs';
 import path from 'path';
 import * as tracer from 'tracer';
-import { receiptLean } from '../../../models/printables/receipt.model';
 import { invoiceRelatedLean } from '../../../models/printables/related/invoicerelated.model';
+import { populateBillingUser, populatePayments } from '../../../utils/query';
 import { makeInvoiceRelatedPdct, updateInvoiceRelated } from './invoicerelated';
 
 /** Logger for file storage */
@@ -48,21 +48,13 @@ export const invoiceRelateRoutes = express.Router();
  * @returns The retrieved invoice related product
  */
 invoiceRelateRoutes.get('/getone/:id/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'read'), async(req, res) => {
-  const { companyId } = (req as Icustomrequest).user;
-  const { companyIdParam } = req.params;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+  const { filter } = makeCompanyBasedQuery(req);
   const { id } = req.params;
-  const isValid = verifyObjectIds([id, queryId]);
-
-  if (!isValid) {
-    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-  }
 
   const related = await invoiceRelatedLean
-    .findOne({ _id: id, queryId })
+    .findOne({ _id: id, ...filter })
     .lean()
-    .populate({ path: 'billingUserId', model: userLean })
-    .populate({ path: 'payments', model: receiptLean });
+    .populate([populateBillingUser(), populatePayments(), populateTrackEdit(), populateTrackView()]);
   let returned;
 
   if (related) {
@@ -71,6 +63,8 @@ invoiceRelateRoutes.get('/getone/:id/:companyIdParam', requireAuth, requireActiv
         (related as unknown as IinvoiceRelated)
           .billingUserId as unknown as Iuser
     );
+
+    addParentToLocals(res, related._id, 'invoicerelateds', 'trackDataView');
   }
 
   return res.status(200).send(returned);
@@ -84,28 +78,20 @@ invoiceRelateRoutes.get('/getone/:id/:companyIdParam', requireAuth, requireActiv
  */
 invoiceRelateRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'read'), async(req, res) => {
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
-  const { companyId } = (req as Icustomrequest).user;
-  const { companyIdParam } = req.params;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const isValid = verifyObjectId(queryId);
-
-  if (!isValid) {
-    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-  }
+  const { filter } = makeCompanyBasedQuery(req);
   const all = await Promise.all([
     invoiceRelatedLean
-      .find({ companyId: queryId })
+      .find({ ...filter })
       .skip(offset)
       .limit(limit)
       .lean()
-      .populate({ path: 'billingUserId', model: userLean })
-      .populate({ path: 'payments', model: receiptLean })
+      .populate([populateBillingUser(), populatePayments(), populateTrackEdit(), populateTrackView()])
       .catch(err => {
         fileStorageLogger.error('getall - err: ', err);
 
         return null;
       }),
-    invoiceRelatedLean.countDocuments({ companyId: queryId })
+    invoiceRelatedLean.countDocuments({ ...filter })
   ]);
   const response: IdataArrayResponse = {
     count: all[1],
@@ -115,12 +101,16 @@ invoiceRelateRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, r
   if (all[0]) {
     const returned = all[0]
       .map(val => makeInvoiceRelatedPdct(
-val as Required<IinvoiceRelated>,
+        val as Required<IinvoiceRelated>,
         (val as IinvoiceRelated)
           .billingUserId as unknown as Iuser
       ));
 
     response.data = returned;
+
+    for (const val of all[0]) {
+      addParentToLocals(res, val._id, 'invoicerelateds', 'trackDataView');
+    }
 
     return res.status(200).send(response);
   } else {
@@ -139,28 +129,20 @@ val as Required<IinvoiceRelated>,
 invoiceRelateRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'read'), async(req, res) => {
   const { searchterm, searchKey } = req.body;
   const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
-  const { companyId } = (req as Icustomrequest).user;
-  const { companyIdParam } = req.params;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const isValid = verifyObjectId(queryId);
-
-  if (!isValid) {
-    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-  }
+  const { filter } = makeCompanyBasedQuery(req);
   const all = await Promise.all([
     invoiceRelatedLean
-      .find({ queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+      .find({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
       .skip(offset)
       .limit(limit)
       .lean()
-      .populate({ path: 'billingUserId', model: userLean })
-      .populate({ path: 'payments', model: receiptLean })
+      .populate([populateBillingUser(), populatePayments(), populateTrackEdit(), populateTrackView()])
       .catch(err => {
         fileStorageLogger.error('getall - err: ', err);
 
         return null;
       }),
-    invoiceRelatedLean.countDocuments({ queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+    invoiceRelatedLean.countDocuments({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
   ]);
   const response: IdataArrayResponse = {
     count: all[1],
@@ -170,7 +152,7 @@ invoiceRelateRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, 
   if (all[0]) {
     const returned = all[0]
       .map(val => makeInvoiceRelatedPdct(
-val as Required<IinvoiceRelated>,
+        val as Required<IinvoiceRelated>,
         (val as IinvoiceRelated)
           .billingUserId as unknown as Iuser
       ));
@@ -200,7 +182,7 @@ invoiceRelateRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCom
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
-  await updateInvoiceRelated(invoiceRelated, companyId);
+  await updateInvoiceRelated(res, invoiceRelated, companyId);
 
   return res.status(200).send({ success: true });
 });

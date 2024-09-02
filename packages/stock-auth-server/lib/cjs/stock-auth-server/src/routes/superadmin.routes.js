@@ -2,9 +2,9 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.requireSuperAdmin = exports.superAdminRoutes = void 0;
 const tslib_1 = require("tslib");
+const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
-const universial_controller_1 = require("../controllers/universial.controller");
-const stock_auth_local_1 = require("../stock-auth-local");
+const universial_1 = require("../utils/universial");
 // import { notifConfig } from '../../config/notif.config';
 // import { createNotifications, NotificationController } from '../controllers/notifications.controller';
 // const passport = require('passport');
@@ -20,7 +20,7 @@ exports.superAdminRoutes.post('/login', (req, res) => {
             companyAdminAccess: true
         };
         // delete user.password; //we do not want to send back password
-        const userInfo = (0, universial_controller_1.setUserInfo)('superAdmin', permissions, 'superAdmin', {
+        const userInfo = (0, universial_1.setUserInfo)('superAdmin', permissions, 'superAdmin', {
             active: false
         });
         const comapany = {
@@ -43,7 +43,7 @@ exports.superAdminRoutes.post('/login', (req, res) => {
         const user = {
             comapany
         };
-        const token = (0, universial_controller_1.generateToken)(userInfo, '1d', stock_auth_local_1.stockAuthConfig.authSecrets.jwtSecret);
+        const token = (0, universial_1.generateToken)(userInfo, '1d', stock_universal_server_1.stockUniversalConfig.authSecrets.jwtSecret);
         const nowResponse = {
             success: true,
             user,

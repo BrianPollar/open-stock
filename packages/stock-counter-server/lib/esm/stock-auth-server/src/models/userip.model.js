@@ -1,5 +1,5 @@
 import { Schema } from 'mongoose';
-import { connectAuthDatabase, isAuthDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
+import { connectAuthDatabase, isAuthDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 const useripSchema = new Schema({
     userOrCompanayId: { type: String },
@@ -7,7 +7,7 @@ const useripSchema = new Schema({
     redIps: [],
     unverifiedIps: [],
     blocked: {}
-}, { timestamps: true });
+}, { timestamps: true, collection: 'userips' });
 // Apply the uniqueValidator plugin to useripSchema.
 useripSchema.plugin(uniqueValidator);
 /**

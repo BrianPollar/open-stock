@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createStockCounter = exports.StockCounterClient = exports.stockCounterClient = void 0;
 const stock_universal_1 = require("@open-stock/stock-universal");
-const calculations_controller_1 = require("./controllers/calculations.controller");
+const calculations_1 = require("./utils/calculations");
 class StockCounterClient {
     /**
      * Creates an instance of the StockCounterClient class.
@@ -13,7 +13,7 @@ class StockCounterClient {
     }
 }
 exports.StockCounterClient = StockCounterClient;
-StockCounterClient.calcCtrl = new calculations_controller_1.CalculationsController();
+StockCounterClient.calcCtrl = new calculations_1.CalculationsController();
 StockCounterClient.logger = new stock_universal_1.LoggerController();
 /**
  * Creates a stock counter client.

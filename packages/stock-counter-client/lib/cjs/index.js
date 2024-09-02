@@ -15,10 +15,6 @@ tslib_1.__exportStar(require("./defines/invoice.define"), exports);
 tslib_1.__exportStar(require("./defines/order.define"), exports);
 tslib_1.__exportStar(require("./defines/payment.define"), exports);
 // export * from './defines/paymentinstalls.define';
-tslib_1.__exportStar(require("./constants/common.fns.constant"), exports);
-tslib_1.__exportStar(require("./controllers/calculations.controller"), exports);
-tslib_1.__exportStar(require("./controllers/inventory.controller"), exports);
-tslib_1.__exportStar(require("./controllers/payment.controller"), exports);
 tslib_1.__exportStar(require("./defines/cookies.define"), exports);
 tslib_1.__exportStar(require("./defines/faq.define"), exports);
 tslib_1.__exportStar(require("./defines/item.define"), exports);
@@ -37,4 +33,8 @@ tslib_1.__exportStar(require("./defines/user-related/customer.define"), exports)
 tslib_1.__exportStar(require("./defines/user-related/staff.define"), exports);
 tslib_1.__exportStar(require("./defines/user-related/userbase.define"), exports);
 tslib_1.__exportStar(require("./stock-counter-client"), exports);
+tslib_1.__exportStar(require("./utils/calculations"), exports);
+tslib_1.__exportStar(require("./utils/common-fns"), exports);
+tslib_1.__exportStar(require("./utils/inventory"), exports);
+tslib_1.__exportStar(require("./utils/payment"), exports);
 //# sourceMappingURL=index.js.map

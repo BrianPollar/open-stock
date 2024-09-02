@@ -1,10 +1,10 @@
-import { TcompanySubPayStatus, TexpoMode, TorderStatus, TpayType, TpaymentMethod, TpriceCurrenncy, TsubscriptionDurVal, TsubscriptionFeature, TuserDispNameFormat, TuserType } from '../types/union.types';
+import { TcompanySubPayStatus, TexpoMode, TorderStatus, TpayType, TpaymentMethod, TpriceCurrenncy, TsubscriptionDurVal, TsubscriptionFeature, TuserActionTrackState, TuserDispNameFormat, TuserType } from '../types/union.types';
 import { IinvoiceRelated, IurId } from './inventory.interface';
 import { Iitem } from './item.interface';
 /**
  * Represents an interface for a database auto-generated entity.
  */
-export interface IdatabaseAuto {
+export interface IdatabaseAuto extends ItrackStamp {
     _id?: string;
     createdAt?: Date;
     updatedAt?: Date;
@@ -392,6 +392,7 @@ export interface Iuserperm {
     expenses?: IpermProp | boolean;
     reports?: IpermProp | boolean;
     mails?: IpermProp | boolean;
+    deliveryCitys?: IpermProp | boolean;
     subscriptions?: IpermProp | boolean;
     companyProfile?: boolean;
     companyAdminAccess: boolean;
@@ -401,6 +402,11 @@ export interface Iuserperm {
  */
 export interface IcompanyPerm {
     active: boolean;
+}
+export interface IsuperAdimPerms {
+    byPassActiveCompany: boolean;
+    modifyDeleted: boolean;
+    modifyActive: boolean;
 }
 /**
  * Represents a delivery city.
@@ -568,25 +574,42 @@ export interface IecommerceRevenue extends IdatabaseAuto {
     amount: number;
     expireAt?: string;
 }
+export interface IuserActionTrack extends IuserOnlineAddrInfo {
+    _id: string | Iuser;
+    state?: TuserActionTrackState;
+    createdAt: string;
+    updatedAt?: string;
+}
 export interface ItrackView extends IdatabaseAuto {
     parent: string;
-    users: {
-        _id: string | Iuser;
-        createdAt: string;
-        updatedAt: string;
-    }[];
+    users: IuserActionTrack[];
+    collectionName: string;
+    expireDocAfter?: Date;
 }
 export interface ItrackEdit extends IdatabaseAuto {
     parent: string;
-    createdBy: string | Iuser;
-    users: {
-        _id: string | Iuser;
-        createdAt: string;
-        updatedAt: string;
-    }[];
-    deletedBy: string | Iuser;
+    createdBy?: string | Iuser;
+    users: IuserActionTrack[];
+    deletedBy?: string | Iuser;
+    collectionName: string;
 }
 export interface ItrackStamp {
-    trackEdit?: string | ItrackView;
-    trackView?: string | ItrackEdit;
+    trackEdit?: string | ItrackEdit;
+    trackView?: string | ItrackView;
+    isDeleted?: boolean;
+    trackDeleted?: string | ItrackDeleted;
+}
+export interface IuserOnlineAddrInfo {
+    ip?: string;
+    deviceInfo?: string;
+}
+export interface ItrackDeleted {
+    parent: string;
+    deletedAt?: string;
+    expireDocAfter?: Date;
+    collectionName: string;
+}
+export interface IcompanySetting extends ItrackStamp {
+    companyId: string;
+    trashPeriod: number;
 }

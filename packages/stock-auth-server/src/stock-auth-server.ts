@@ -1,5 +1,5 @@
 import { isNotificationsServerRunning } from '@open-stock/stock-notif-server';
-import { runPassport } from '@open-stock/stock-universal-server';
+import { runPassport, stockUniversalConfig } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { ConnectOptions } from 'mongoose';
 import { PesaPalController } from 'pesapal3';
@@ -30,13 +30,6 @@ export interface IaAuth {
   password: string;
 }
 
-/**
- * Represents the configuration options for the stock-auth-server.
- */
-export interface IlAuth {
-  jwtSecret: string;
-  cookieSecret: string;
-}
 
 /**
  * Represents the local environment configuration.
@@ -54,7 +47,6 @@ export interface IlocalEnv {
  */
 export interface IStockAuthServerConfig {
   adminAuth: IaAuth;
-  authSecrets: IlAuth;
   localSettings: IlocalEnv;
   databaseConfig: {
     url: string;
@@ -62,6 +54,7 @@ export interface IStockAuthServerConfig {
   };
   localPath: IlocalPath;
   useDummyRoutes?: boolean;
+  permanentlyDeleteAfter: number; // defaults to 0
 }
 
 /**
@@ -96,7 +89,7 @@ export const runStockAuthServer = async(
   createStockAuthServerLocals(config);
   // connect models
   await connectAuthDatabase(config.databaseConfig.url, config.databaseConfig.dbOptions);
-  runPassport(config.authSecrets.jwtSecret);
+  runPassport(stockUniversalConfig.authSecrets.jwtSecret);
   const stockAuthRouter = express.Router();
 
   if (!config.useDummyRoutes) {

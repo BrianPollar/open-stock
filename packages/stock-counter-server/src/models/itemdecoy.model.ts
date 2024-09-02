@@ -1,6 +1,7 @@
-import { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
 import { ItrackStamp } from '@open-stock/stock-universal';
+import { createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
+import { ConnectOptions, Document, Model, Schema } from 'mongoose';
+import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 
 /** model type for itemDecoy by */
@@ -8,6 +9,7 @@ const uniqueValidator = require('mongoose-unique-validator');
  * Represents an item decoy in the system.
  */
 export interface IitemDecoy extends Document, ItrackStamp {
+  expireDocAfterTime: Date;
 
   /**
    * The unique identifier of the user.
@@ -31,25 +33,28 @@ export interface IitemDecoy extends Document, ItrackStamp {
 }
 
 const itemDecoySchema: Schema<IitemDecoy> = new Schema({
-  trackEdit: { type: Schema.ObjectId },
-  trackView: { type: Schema.ObjectId },
-  urId: { type: String },
-  companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
+  ...withUrIdAndCompanySchemaObj,
   type: { type: String },
   items: []
-}, { timestamps: true });
+}, { timestamps: true, collection: 'itemdecoys' });
 
 // Apply the uniqueValidator plugin to userSchema.
 itemDecoySchema.plugin(uniqueValidator);
+
+itemDecoySchema.pre('updateOne', function(next) {
+  return preUpdateDocExpire(this, next);
+});
+
+itemDecoySchema.pre('updateMany', function(next) {
+  return preUpdateDocExpire(this, next);
+});
+
 
 /** primary selection object
  * for itemDecoy
  */
 const itemDecoyselect = {
-  trackEdit: 1,
-  trackView: 1,
-  urId: 1,
-  companyId: 1,
+  ...withUrIdAndCompanySelectObj,
   type: 1,
   items: 1
 };
@@ -77,6 +82,7 @@ export const itemDecoySelect = itemDecoyselect;
  * @param lean Whether to create the lean connection or not. Defaults to true.
  */
 export const createItemDecoyModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
+  createExpireDocIndex(itemDecoySchema);
   if (!isStockDbConnected) {
     await connectStockDatabase(dbUrl, dbOptions);
   }

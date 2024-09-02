@@ -2,7 +2,7 @@ import express from 'express';
 import * as fs from 'fs';
 import path from 'path';
 import * as tracer from 'tracer';
-import { sendMail } from '../controllers/notifications.controller';
+import { sendMail } from '../utils/notifications';
 
 /** Logger for mailPackage routes */
 const mailPackageRoutesLogger = tracer.colorConsole({
@@ -31,6 +31,14 @@ const mailPackageRoutesLogger = tracer.colorConsole({
 });
 
 
+/**
+ * Sends a verification email to the specified email with a token.
+ * @param emailFrom - The email address of the sender.
+ * @param emailTo - The email address of the recipient.
+ * @param subject - The subject of the email.
+ * @param message - The content of the email.
+ * @returns A Promise that resolves to a boolean indicating whether the email was successfully sent.
+ */
 export const sendRandomEmail = (
   emailFrom: string,
   emailTo: string,

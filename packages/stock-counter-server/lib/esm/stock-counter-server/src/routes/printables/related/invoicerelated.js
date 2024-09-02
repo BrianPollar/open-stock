@@ -1,6 +1,6 @@
 import { user } from '@open-stock/stock-auth-server';
 import { createNotifications, getCurrentNotificationSettings } from '@open-stock/stock-notif-server';
-import { stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { addParentToLocals, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import * as fs from 'fs';
 import path from 'path';
 import * as tracer from 'tracer';
@@ -100,13 +100,15 @@ export const updateInvoiceRelatedPayments = async (payment, queryId) => {
  * @param queryId - The query ID.
  * @returns A promise that resolves to an object containing the success status and the updated invoice related ID.
  */
-export const updateInvoiceRelated = async (invoiceRelated, queryId) => {
+export const updateInvoiceRelated = async (res, invoiceRelated, queryId) => {
     const isValid = verifyObjectId(invoiceRelated.invoiceRelated);
     if (!isValid) {
         return { success: false, status: 401, err: 'unauthourised' };
     }
+    // !!
     const related = await invoiceRelatedMain
-        .findByIdAndUpdate(invoiceRelated.invoiceRelated);
+        .findById(invoiceRelated.invoiceRelated)
+        .lean();
     if (!related) {
         return { success: false, err: 'invoice related not found' };
     }
@@ -117,23 +119,29 @@ export const updateInvoiceRelated = async (invoiceRelated, queryId) => {
     invoiceRelated = transFormInvoiceRelatedOnStatus(related, invoiceRelated);
     const oldTotal = related.total;
     const oldStatus = related.status;
-    related.creationType = invoiceRelated.creationType || related.creationType;
-    related.estimateId = invoiceRelated.estimateId || related.estimateId;
-    related.invoiceId = invoiceRelated.invoiceId || related.invoiceId;
-    related.billingUser = invoiceRelated.billingUser || related.billingUser;
-    related.items = invoiceRelated.items || related.items;
-    related.fromDate = invoiceRelated.fromDate || related.fromDate;
-    related.toDate = invoiceRelated.toDate || related.toDate;
-    related.status = invoiceRelated.status || related.status;
-    related.stage = invoiceRelated.stage || related.stage;
-    related.cost = invoiceRelated.cost || related.cost;
-    related.paymentMade = invoiceRelated.paymentMade || related.paymentMade;
-    related.tax = invoiceRelated.tax || related.tax;
-    related.balanceDue = invoiceRelated.balanceDue || related.balanceDue;
-    related.subTotal = invoiceRelated.subTotal || related.subTotal;
-    related.total = invoiceRelated.total || related.total;
     let errResponse;
-    const saved = await related.save()
+    const saved = await invoiceRelatedMain.updateOne({
+        _id: invoiceRelated.invoiceRelated
+    }, {
+        $set: {
+            creationType: invoiceRelated.creationType || related.creationType,
+            estimateId: invoiceRelated.estimateId || related.estimateId,
+            invoiceId: invoiceRelated.invoiceId || related.invoiceId,
+            billingUser: invoiceRelated.billingUser || related.billingUser,
+            items: invoiceRelated.items || related.items,
+            fromDate: invoiceRelated.fromDate || related.fromDate,
+            toDate: invoiceRelated.toDate || related.toDate,
+            status: invoiceRelated.status || related.status,
+            stage: invoiceRelated.stage || related.stage,
+            cost: invoiceRelated.cost || related.cost,
+            paymentMade: invoiceRelated.paymentMade || related.paymentMade,
+            tax: invoiceRelated.tax || related.tax,
+            balanceDue: invoiceRelated.balanceDue || related.balanceDue,
+            subTotal: invoiceRelated.subTotal || related.subTotal,
+            total: invoiceRelated.total || related.total,
+            isDeleted: invoiceRelated.isDeleted || related.isDeleted
+        }
+    })
         .catch(err => {
         invoiceRelatedLogger.error('updateInvoiceRelated - err: ', err);
         errResponse = {
@@ -161,6 +169,7 @@ export const updateInvoiceRelated = async (invoiceRelated, queryId) => {
             await updateCustomerDueAmount(saved.billingUserId, oldTotal, true);
             await updateCustomerDueAmount(saved.billingUserId, saved.total, false);
         }
+        addParentToLocals(res, related._id, 'invoicerelateds', 'makeTrackEdit');
         return { success: true, id: saved._id };
     }
 };
@@ -172,7 +181,7 @@ export const updateInvoiceRelated = async (invoiceRelated, queryId) => {
  * @param bypassNotif - Whether to bypass sending notifications.
  * @returns A promise that resolves with a success status and an optional ID.
  */
-export const relegateInvRelatedCreation = async (invoiceRelated, queryId, extraNotifDesc, bypassNotif = false) => {
+export const relegateInvRelatedCreation = async (res, invoiceRelated, queryId, extraNotifDesc, bypassNotif = false) => {
     invoiceRelatedLogger.debug('relegateInvRelatedCreation - invoiceRelated', invoiceRelated);
     invoiceRelated.companyId = queryId;
     const isValid = verifyObjectId(invoiceRelated.invoiceRelated);
@@ -196,8 +205,11 @@ export const relegateInvRelatedCreation = async (invoiceRelated, queryId, extraN
                 errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
             }
-            return errResponse;
+            return err;
         });
+        if (saved && saved._id) {
+            addParentToLocals(res, saved._id, 'invoicerelateds', 'makeTrackEdit');
+        }
         if (errResponse) {
             return errResponse;
         }
@@ -264,7 +276,7 @@ export const relegateInvRelatedCreation = async (invoiceRelated, queryId, extraN
         return { success: true, id: saved._id };
     }
     else {
-        await updateInvoiceRelated(invoiceRelated, queryId);
+        await updateInvoiceRelated(res, invoiceRelated, queryId);
         return { success: true, id: invoiceRelated.invoiceRelated };
     }
 };
@@ -293,6 +305,7 @@ export const makeInvoiceRelatedPdct = (invoiceRelated, user, createdAt, extras =
         }
     }
     return {
+        _id: invoiceRelated._id,
         companyId: invoiceRelated.companyId,
         invoiceRelated: invoiceRelated._id,
         creationType: invoiceRelated.creationType,
@@ -345,16 +358,34 @@ export const deleteManyInvoiceRelated = async (ids, queryId) => {
     if (!isValid) {
         return { success: false, statu: 401, err: 'unauthourised' };
     }
+    /* const deleted = await invoiceRelatedMain
+      .deleteMany({ _id: { $in: ids }, companyId: queryId })
+      .catch(err => {
+        invoiceRelatedLogger.debug('deleteManyInvoiceRelated - err: ', err);
+  
+        return null;
+      }); */
     const deleted = await invoiceRelatedMain
-        .deleteMany({ _id: { $in: ids }, companyId: queryId })
+        .updateMany({ _id: { $in: ids }, companyId: queryId }, {
+        $set: { isDeleted: true }
+    })
         .catch(err => {
         invoiceRelatedLogger.debug('deleteManyInvoiceRelated - err: ', err);
         return null;
     });
     let deleted2 = true;
     if (deleted) {
+        /* deleted2 = await receiptMain
+          .deleteMany({ invoiceRelated: { $in: ids } })
+          .catch(err => {
+            invoiceRelatedLogger.error('deletemany Pinstalls - err: ', err);
+    
+            return null;
+          }); */
         deleted2 = await receiptMain
-            .deleteMany({ invoiceRelated: { $in: ids } })
+            .updateMany({ invoiceRelated: { $in: ids } }, {
+            $set: { isDeleted: true }
+        })
             .catch(err => {
             invoiceRelatedLogger.error('deletemany Pinstalls - err: ', err);
             return null;
@@ -383,18 +414,30 @@ export const deleteAllLinked = async (invoiceRelated, creationType, stage, from,
     }
     let changedStage;
     if (from === 'estimate') {
-        await estimateMain.deleteOne({ invoiceRelated, companyId: queryId });
+        /* await estimateMain.deleteOne({ invoiceRelated, companyId: queryId }); */
+        await estimateMain.updateOne({ invoiceRelated, companyId: queryId }, {
+            $set: { isDeleted: true }
+        });
     }
     else if (from === 'invoice') {
         changedStage = 'estimate';
-        await invoiceMain.deleteOne({ invoiceRelated, companyId: queryId });
+        /* await invoiceMain.deleteOne({ invoiceRelated, companyId: queryId }); */
+        await invoiceMain.updateOne({ invoiceRelated, companyId: queryId }, {
+            $set: { isDeleted: true }
+        });
     }
     else if (from === 'deliverynote') {
-        await deliveryNoteMain.deleteOne({ invoiceRelated, companyId: queryId });
+        /* await deliveryNoteMain.deleteOne({ invoiceRelated, companyId: queryId }); */
+        await deliveryNoteMain.updateOne({ invoiceRelated, companyId: queryId }, {
+            $set: { isDeleted: true }
+        });
         changedStage = 'invoice';
     }
     else if (from === 'receipt') {
-        await receiptMain.deleteOne({ invoiceRelated, companyId: queryId });
+        /* await receiptMain.deleteOne({ invoiceRelated, companyId: queryId }); */
+        await receiptMain.updateOne({ invoiceRelated, companyId: queryId }, {
+            $set: { isDeleted: true }
+        });
         changedStage = 'deliverynote';
     }
     let response = {
@@ -446,12 +489,18 @@ export const deleteAllLinked = async (invoiceRelated, creationType, stage, from,
  */
 const updateRelatedStage = async (id, stage, queryId) => {
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    const related = await invoiceRelatedMain.findOneAndUpdate({ _id: id, companyId: queryId });
+    const related = await invoiceRelatedMain
+        .findOne({ _id: id, companyId: queryId })
+        .lean();
     if (!related) {
         return false;
     }
     related.stage = stage;
-    await related.save();
+    await invoiceRelatedMain.updateOne({
+        _id: id, companyId: queryId
+    }, {
+        $set: { stage }
+    });
     return true;
 };
 export const updateItemsInventory = async (related) => {

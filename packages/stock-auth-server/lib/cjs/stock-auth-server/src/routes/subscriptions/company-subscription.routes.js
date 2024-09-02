@@ -158,6 +158,9 @@ exports.companySubscriptionRoutes.post('/subscribe/:companyIdParam', stock_unive
         savedErr = err;
         return null;
     });
+    if (savedSub && savedSub._id) {
+        (0, stock_universal_server_1.addParentToLocals)(res, savedSub._id, company_subscription_model_1.companySubscriptionMain.collection.collectionName, 'makeTrackEdit');
+    }
     if (savedErr) {
         return res.status(500).send({ success: false });
     }
@@ -188,7 +191,7 @@ exports.companySubscriptionRoutes.get('/getall/:offset/:limit/:companyIdParam', 
         query = { companyId };
     }
     else {
-        query = { status: 'paid' };
+        query = { ...(0, stock_universal_server_1.makePredomFilter)(req) };
     }
     const all = await Promise.all([
         company_subscription_model_1.companySubscriptionLean
@@ -202,6 +205,9 @@ exports.companySubscriptionRoutes.get('/getall/:offset/:limit/:companyIdParam', 
         count: all[1],
         data: all[0]
     };
+    for (const val of all[0]) {
+        (0, stock_universal_server_1.addParentToLocals)(res, val._id, company_subscription_model_1.companySubscriptionMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
 exports.companySubscriptionRoutes.put('/deleteone/:companyIdParam', stock_universal_server_1.requireAuth, company_auth_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('subscriptions', 'delete'), async (req, res) => {
@@ -213,9 +219,10 @@ exports.companySubscriptionRoutes.put('/deleteone/:companyIdParam', stock_univer
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    const deleted = await company_subscription_model_1.companySubscriptionMain.findOneAndDelete({ _id: id, companyId: queryId });
+    // const deleted = await companySubscriptionMain.findOneAndDelete({ _id: id, companyId: queryId });
+    const deleted = await company_subscription_model_1.companySubscriptionMain.updateOne({ _id: id, companyId: queryId }, { $set: { isDeleted: true } });
     if (Boolean(deleted)) {
+        (0, stock_universal_server_1.addParentToLocals)(res, id, company_subscription_model_1.companySubscriptionMain.collection.collectionName, 'trackDataDelete');
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {

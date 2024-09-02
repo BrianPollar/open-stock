@@ -1,14 +1,14 @@
 /* eslint-disable @typescript-eslint/dot-notation */
 /* eslint-disable @typescript-eslint/no-misused-promises */
-import { companyLean, userLean } from '@open-stock/stock-auth-server';
+import { populateCompany, populatePhotos } from '@open-stock/stock-auth-server';
 import { makeRandomString } from '@open-stock/stock-universal';
-import { fileMetaLean, verifyObjectId } from '@open-stock/stock-universal-server';
+import { verifyObjectId } from '@open-stock/stock-universal-server';
 import express from 'express';
 import * as fs from 'fs';
 import path from 'path';
 import * as tracer from 'tracer';
-import { makeCartCookie, makeCompareListCookie, makeRecentCookie, makeSettingsCookie, makeWishListCookie } from '../controllers/cookies.service';
 import { itemLean } from '../models/item.model';
+import { makeCartCookie, makeCompareListCookie, makeRecentCookie, makeSettingsCookie, makeWishListCookie } from '../utils/cookies';
 
 /** Logger for the cookiesRoutes module */
 const cookiesRoutesLogger = tracer.colorConsole({
@@ -304,24 +304,7 @@ cookiesRoutes.get('/appendtocart', async(req, res) => {
 
   const items = await itemLean
     .find({ _id: { $in: modified } })
-    .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-    .populate({ path: 'companyId', model: companyLean,
-      populate: [{
-        path: 'owner', model: userLean,
-        populate: [{
-          path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-        }],
-        transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
-      }
-      ],
-      transform: (doc) => {
-        if (doc.blocked) {
-          return null;
-        } else {
-          return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
-        }
-      }
-    })
+    .populate([populatePhotos(), populateCompany()])
     .lean();
   const newProds = items
     .filter(item => item.companyId)
@@ -358,24 +341,7 @@ cookiesRoutes.get('/appendtorecent', async(req, res) => {
   }
   const items = await itemLean
     .find({ _id: { $in: recentCookie } })
-    .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-    .populate({ path: 'companyId', model: companyLean,
-      populate: [{
-        path: 'owner', model: userLean,
-        populate: [{
-          path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-        }],
-        transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
-      }
-      ],
-      transform: (doc) => {
-        if (doc.blocked) {
-          return null;
-        } else {
-          return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
-        }
-      }
-    })
+    .populate([populatePhotos(), populateCompany()])
     .lean();
 
   return res.status(200).send(items.filter(item => item.companyId));
@@ -401,24 +367,7 @@ cookiesRoutes.get('/appendtowishlist', async(req, res) => {
   }
   const items = await itemLean
     .find({ _id: { $in: wishListCookie } })
-    .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-    .populate({ path: 'companyId', model: companyLean,
-      populate: [{
-        path: 'owner', model: userLean,
-        populate: [{
-          path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-        }],
-        transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
-      }
-      ],
-      transform: (doc) => {
-        if (doc.blocked) {
-          return null;
-        } else {
-          return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
-        }
-      }
-    })
+    .populate([populatePhotos(), populateCompany()])
     .lean();
 
   return res.status(200).send(items.filter(item => item.companyId));
@@ -443,24 +392,7 @@ cookiesRoutes.get('/appendtocomparelist', async(req, res) => {
   }
   const items = await itemLean
     .find({ _id: { $in: compareListCookie } })
-    .populate({ path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-    .populate({ path: 'companyId', model: companyLean,
-      populate: [{
-        path: 'owner', model: userLean,
-        populate: [{
-          path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-        }],
-        transform: (doc) => ({ _id: doc._id, email: doc.email, phone: doc.phone, profilePic: doc.profilePic })
-      }
-      ],
-      transform: (doc) => {
-        if (doc.blocked) {
-          return null;
-        } else {
-          return { _id: doc._id, displayName: doc.displayName, owner: doc.owner };
-        }
-      }
-    })
+    .populate([populatePhotos(), populateCompany()])
     .lean();
 
   return res.status(200).send(items.filter(item => item.companyId));

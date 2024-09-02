@@ -45,7 +45,7 @@ export declare class Staff extends UserBase {
      * @param {string} id - The ID of the staff member to retrieve.
      * @returns {Promise<Staff>} - A promise that resolves to a Staff instance.
      */
-    static getOneStaff(filter: IgetOneFilter): Promise<Staff>;
+    static getOneStaff(companyId: string, filter: IgetOneFilter): Promise<Staff>;
     /**
      * Creates a new staff member.
      * @param companyId - The ID of the company

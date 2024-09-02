@@ -1,22 +1,22 @@
 import { Schema } from 'mongoose';
-import { isUniversalDbConnected, mainConnection, mainConnectionLean } from '../../controllers/database.controller';
-import { connectUniversalDatabase } from '../../stock-universal-local';
-const uniqueValidator = require('mongoose-unique-validator');
+import { connectUniversalDatabase, stockUniversalConfig } from '../../stock-universal-local';
+import { isUniversalDbConnected, mainConnection, mainConnectionLean } from '../../utils/database';
 /** subscription package schema */
 const trackEditSchema = new Schema({
     parent: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
-    createdBy: { type: String, required: [true, 'cannot be empty.'], index: true },
+    createdBy: { type: String, index: true },
     users: [],
-    deletedBy: { type: String, required: [true, 'cannot be empty.'], index: true }
-}, { timestamps: true });
-// Apply the uniqueValidator plugin to trackEditSchema.
-trackEditSchema.plugin(uniqueValidator);
+    deletedBy: { type: String, index: true },
+    collectionName: { type: String },
+    expireDocAfter: { type: Date, default: null }
+}, { timestamps: true, collection: 'trackedits' });
 /** Primary selection object for subscription package */
 const trackEditselect = {
     parent: 1,
     createdBy: 1,
     users: 1,
-    deletedBy: 1
+    deletedBy: 1,
+    collectionName: 1
 };
 /**
  * Represents the main subscription package model.
@@ -38,6 +38,7 @@ export const trackEditSelect = trackEditselect;
  * @param lean Whether to create a lean connection.
  */
 export const createTrackEditModel = async (dbUrl, dbOptions, main = true, lean = true) => {
+    trackEditSchema.index({ expireDocAfter: 1 }, { expireAfterSeconds: stockUniversalConfig.expireDocAfterSeconds });
     if (!isUniversalDbConnected) {
         await connectUniversalDatabase(dbUrl, dbOptions);
     }

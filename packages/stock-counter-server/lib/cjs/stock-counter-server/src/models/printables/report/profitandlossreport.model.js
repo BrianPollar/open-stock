@@ -1,29 +1,30 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createProfitandlossReportModel = exports.profitandlossReportSelect = exports.profitandlossReportLean = exports.profitandlossReportMain = void 0;
+const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const mongoose_1 = require("mongoose");
-const database_controller_1 = require("../../../controllers/database.controller");
+const database_1 = require("../../../utils/database");
 const uniqueValidator = require('mongoose-unique-validator');
 const profitandlossReportSchema = new mongoose_1.Schema({
-    trackEdit: { type: mongoose_1.Schema.ObjectId },
-    trackView: { type: mongoose_1.Schema.ObjectId },
-    urId: { type: String },
-    companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
+    ...stock_universal_server_1.withUrIdAndCompanySchemaObj,
     totalAmount: { type: Number },
     date: { type: Date },
     expenses: [],
     invoiceRelateds: []
-}, { timestamps: true });
+}, { timestamps: true, collection: 'profitandlossreports' });
 // Apply the uniqueValidator plugin to profitandlossReportSchema.
 profitandlossReportSchema.plugin(uniqueValidator);
+profitandlossReportSchema.pre('updateOne', function (next) {
+    return (0, stock_universal_server_1.preUpdateDocExpire)(this, next);
+});
+profitandlossReportSchema.pre('updateMany', function (next) {
+    return (0, stock_universal_server_1.preUpdateDocExpire)(this, next);
+});
 /** primary selection object
  * for profitandlossReport
  */
 const profitandlossReportselect = {
-    trackEdit: 1,
-    trackView: 1,
-    urId: 1,
-    companyId: 1,
+    ...stock_universal_server_1.withUrIdAndCompanySelectObj,
     totalAmount: 1,
     date: 1,
     expenses: 1,
@@ -40,14 +41,15 @@ exports.profitandlossReportSelect = profitandlossReportselect;
  * @param lean - Whether to create the lean connection model. Defaults to true.
  */
 const createProfitandlossReportModel = async (dbUrl, dbOptions, main = true, lean = true) => {
-    if (!database_controller_1.isStockDbConnected) {
-        await (0, database_controller_1.connectStockDatabase)(dbUrl, dbOptions);
+    (0, stock_universal_server_1.createExpireDocIndex)(profitandlossReportSchema);
+    if (!database_1.isStockDbConnected) {
+        await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.profitandlossReportMain = database_controller_1.mainConnection.model('profitandlossReport', profitandlossReportSchema);
+        exports.profitandlossReportMain = database_1.mainConnection.model('profitandlossReport', profitandlossReportSchema);
     }
     if (lean) {
-        exports.profitandlossReportLean = database_controller_1.mainConnectionLean.model('profitandlossReport', profitandlossReportSchema);
+        exports.profitandlossReportLean = database_1.mainConnectionLean.model('profitandlossReport', profitandlossReportSchema);
     }
 };
 exports.createProfitandlossReportModel = createProfitandlossReportModel;

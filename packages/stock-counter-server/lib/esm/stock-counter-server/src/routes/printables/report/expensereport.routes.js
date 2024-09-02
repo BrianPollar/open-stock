@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
 import { requireActiveCompany } from '@open-stock/stock-auth-server';
-import { makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { addParentToLocals, makeCompanyBasedQuery, makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr } from '@open-stock/stock-universal-server';
 import express from 'express';
 import * as fs from 'fs';
 import path from 'path';
@@ -48,20 +48,14 @@ export const expenseReportRoutes = express.Router();
  */
 expenseReportRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'create'), async (req, res) => {
     const expenseReport = req.body.expenseReport;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    expenseReport.companyId = queryId;
-    const isValid = verifyObjectId(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = makeCompanyBasedQuery(req);
+    expenseReport.companyId = filter.companyId;
     const count = await expenseReportMain
-        .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+        .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     expenseReport.urId = makeUrId(Number(count[0]?.urId || '0'));
     const newExpenseReport = new expenseReportMain(expenseReport);
     let errResponse;
-    await newExpenseReport.save().catch(err => {
+    const saved = await newExpenseReport.save().catch(err => {
         errResponse = {
             success: false,
             status: 403
@@ -73,8 +67,11 @@ expenseReportRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCo
             errResponse.err = `we are having problems connecting to our databases, 
       try again in a while`;
         }
-        return errResponse;
+        return err;
     });
+    if (saved && saved._id) {
+        addParentToLocals(res, saved._id, expenseReportLean.collection.collectionName, 'makeTrackEdit');
+    }
     if (errResponse) {
         return res.status(403).send(errResponse);
     }
@@ -93,17 +90,14 @@ expenseReportRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCo
  */
 expenseReportRoutes.get('/getone/:urId/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'read'), async (req, res) => {
     const { urId } = req.params;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = verifyObjectId(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = makeCompanyBasedQuery(req);
     const expenseReport = await expenseReportLean
-        .findOne({ urId, companyId: queryId })
+        .findOne({ urId, ...filter })
         .lean()
         .populate({ path: 'expenses', model: expenseLean });
+    if (expenseReport) {
+        addParentToLocals(res, expenseReport._id, expenseReportLean.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(expenseReport);
 });
 /**
@@ -119,30 +113,28 @@ expenseReportRoutes.get('/getone/:urId/:companyIdParam', requireAuth, requireAct
  */
 expenseReportRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'read'), async (req, res) => {
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = verifyObjectId(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = makeCompanyBasedQuery(req);
     const all = await Promise.all([
         expenseReportLean
-            .find({ companyId: queryId })
+            .find(filter)
             .skip(offset)
             .limit(limit)
             .lean()
-            .populate({ path: 'expenses', model: expenseLean, strictPopulate: false })
+            .populate({ path: 'expenses', model: expenseLean })
             .catch(() => {
             return [];
         }),
-        expenseReportLean.countDocuments({ companyId: queryId })
+        expenseReportLean.countDocuments(filter)
     ]);
     const response = {
         count: all[1],
         data: all[0]
     };
-    return res.status(200).send(response);
+    for (const val of all[0]) {
+        addParentToLocals(res, val._id, expenseReportLean.collection.collectionName, 'trackDataView');
+    }
+    res.status(200).send(response);
+    return res.end();
 });
 /**
  * Delete a single expense report by ID
@@ -157,16 +149,12 @@ expenseReportRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, r
  */
 expenseReportRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'delete'), async (req, res) => {
     const { id } = req.params;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = verifyObjectIds([id, queryId]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = makeCompanyBasedQuery(req);
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    const deleted = await expenseReportMain.findOneAndDelete({ _id: id, companyId: queryId });
+    // const deleted = await expenseReportMain.findOneAndDelete({ _id: id, ...filter });
+    const deleted = await expenseReportMain.updateOne({ _id: id, ...filter }, { $set: { isDeleted: true } });
     if (Boolean(deleted)) {
+        addParentToLocals(res, id, expenseReportLean.collection.collectionName, 'trackDataDelete');
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
@@ -186,27 +174,24 @@ expenseReportRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, requir
  */
 expenseReportRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'read'), async (req, res) => {
     const { searchterm, searchKey } = req.body;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = verifyObjectId(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = makeCompanyBasedQuery(req);
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     const all = await Promise.all([
         expenseReportLean
-            .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+            .find({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
             .lean()
             .skip(offset)
             .limit(limit)
             .populate({ path: 'expenses', model: expenseLean }),
-        expenseReportLean.countDocuments({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+        expenseReportLean.countDocuments({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
     ]);
     const response = {
         count: all[1],
         data: all[0]
     };
+    for (const val of all[0]) {
+        addParentToLocals(res, val._id, expenseReportLean.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
 /**
@@ -222,20 +207,26 @@ expenseReportRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, 
  */
 expenseReportRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'delete'), async (req, res) => {
     const { ids } = req.body;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = verifyObjectIds([...ids, ...[queryId]]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = makeCompanyBasedQuery(req);
+    /* const deleted = await expenseReportMain
+      .deleteMany({ ...filter, _id: { $in: ids } })
+      .catch(err => {
+        expenseReportRoutesLogger.error('deletemany - err: ', err);
+  
+        return null;
+      }); */
     const deleted = await expenseReportMain
-        .deleteMany({ companyId: queryId, _id: { $in: ids } })
+        .updateMany({ ...filter, _id: { $in: ids } }, {
+        $set: { isDeleted: true }
+    })
         .catch(err => {
         expenseReportRoutesLogger.error('deletemany - err: ', err);
         return null;
     });
     if (Boolean(deleted)) {
+        for (const val of ids) {
+            addParentToLocals(res, val, expenseReportLean.collection.collectionName, 'trackDataDelete');
+        }
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
