@@ -1,5 +1,4 @@
 import { IdataArrayResponse } from '@open-stock/stock-universal';
-import { appendBody, deleteFiles, saveMetaToDb, uploadFiles } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { createMockInvoiceSettings } from '../../../../../mocks/stock-counter-mocks';
 
@@ -21,7 +20,7 @@ invoiceSettingRoutesDummy.put('/update/:companyIdParam', (req, res) => {
 });
 
 
-invoiceSettingRoutesDummy.put('/updateimg/:companyIdParam', uploadFiles, appendBody, saveMetaToDb, deleteFiles, (req, res) => {
+invoiceSettingRoutesDummy.post('/updateimg/:companyIdParam', (req, res) => {
   res.status(200).send({ success: true });
 });
 
@@ -34,6 +33,7 @@ invoiceSettingRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, re
     count: req.params.limit,
     data: [createMockInvoiceSettings()]
   };
+
   res.status(200).send(response);
 });
 
@@ -46,6 +46,7 @@ invoiceSettingRoutesDummy.post('/search/:offset/:limit/:companyIdParam', (req, r
     count: req.params.limit,
     data: [createMockInvoiceSettings()]
   };
+
   res.status(200).send(response);
 });
 

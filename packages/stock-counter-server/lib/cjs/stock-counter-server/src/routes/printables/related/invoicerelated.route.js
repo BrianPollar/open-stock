@@ -9,8 +9,8 @@ const express_1 = tslib_1.__importDefault(require("express"));
 const fs = tslib_1.__importStar(require("fs"));
 const path_1 = tslib_1.__importDefault(require("path"));
 const tracer = tslib_1.__importStar(require("tracer"));
-const receipt_model_1 = require("../../../models/printables/receipt.model");
 const invoicerelated_model_1 = require("../../../models/printables/related/invoicerelated.model");
+const query_1 = require("../../../utils/query");
 const invoicerelated_1 = require("./invoicerelated");
 /** Logger for file storage */
 const fileStorageLogger = tracer.colorConsole({
@@ -46,24 +46,17 @@ exports.invoiceRelateRoutes = express_1.default.Router();
  * @returns The retrieved invoice related product
  */
 exports.invoiceRelateRoutes.get('/getone/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('invoices', 'read'), async (req, res) => {
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     const { id } = req.params;
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)([id, queryId]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
     const related = await invoicerelated_model_1.invoiceRelatedLean
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .findOne({ _id: id, queryId })
+        .findOne({ _id: id, ...filter })
         .lean()
-        .populate({ path: 'billingUserId', model: stock_auth_server_1.userLean })
-        .populate({ path: 'payments', model: receipt_model_1.receiptLean });
+        .populate([(0, query_1.populateBillingUser)(), (0, query_1.populatePayments)(), (0, stock_auth_server_1.populateTrackEdit)(), (0, stock_auth_server_1.populateTrackView)()]);
     let returned;
     if (related) {
         returned = (0, invoicerelated_1.makeInvoiceRelatedPdct)(related, related
             .billingUserId);
+        (0, stock_universal_server_1.addParentToLocals)(res, related._id, 'invoicerelateds', 'trackDataView');
     }
     return res.status(200).send(returned);
 });
@@ -75,26 +68,19 @@ exports.invoiceRelateRoutes.get('/getone/:id/:companyIdParam', stock_universal_s
  */
 exports.invoiceRelateRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('invoices', 'read'), async (req, res) => {
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     const all = await Promise.all([
         invoicerelated_model_1.invoiceRelatedLean
-            .find({ companyId: queryId })
+            .find({ ...filter })
             .skip(offset)
             .limit(limit)
             .lean()
-            .populate({ path: 'billingUserId', model: stock_auth_server_1.userLean })
-            .populate({ path: 'payments', model: receipt_model_1.receiptLean })
+            .populate([(0, query_1.populateBillingUser)(), (0, query_1.populatePayments)(), (0, stock_auth_server_1.populateTrackEdit)(), (0, stock_auth_server_1.populateTrackView)()])
             .catch(err => {
             fileStorageLogger.error('getall - err: ', err);
             return null;
         }),
-        invoicerelated_model_1.invoiceRelatedLean.countDocuments({ companyId: queryId })
+        invoicerelated_model_1.invoiceRelatedLean.countDocuments({ ...filter })
     ]);
     const response = {
         count: all[1],
@@ -105,6 +91,9 @@ exports.invoiceRelateRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_
             .map(val => (0, invoicerelated_1.makeInvoiceRelatedPdct)(val, val
             .billingUserId));
         response.data = returned;
+        for (const val of all[0]) {
+            (0, stock_universal_server_1.addParentToLocals)(res, val._id, 'invoicerelateds', 'trackDataView');
+        }
         return res.status(200).send(response);
     }
     else {
@@ -122,26 +111,19 @@ exports.invoiceRelateRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_
 exports.invoiceRelateRoutes.post('/search/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('invoices', 'read'), async (req, res) => {
     const { searchterm, searchKey } = req.body;
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     const all = await Promise.all([
         invoicerelated_model_1.invoiceRelatedLean
-            .find({ queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+            .find({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
             .skip(offset)
             .limit(limit)
             .lean()
-            .populate({ path: 'billingUserId', model: stock_auth_server_1.userLean })
-            .populate({ path: 'payments', model: receipt_model_1.receiptLean })
+            .populate([(0, query_1.populateBillingUser)(), (0, query_1.populatePayments)(), (0, stock_auth_server_1.populateTrackEdit)(), (0, stock_auth_server_1.populateTrackView)()])
             .catch(err => {
             fileStorageLogger.error('getall - err: ', err);
             return null;
         }),
-        invoicerelated_model_1.invoiceRelatedLean.countDocuments({ queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+        invoicerelated_model_1.invoiceRelatedLean.countDocuments({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
     ]);
     const response = {
         count: all[1],
@@ -173,7 +155,7 @@ exports.invoiceRelateRoutes.put('/update/:companyIdParam', stock_universal_serve
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
-    await (0, invoicerelated_1.updateInvoiceRelated)(invoiceRelated, companyId);
+    await (0, invoicerelated_1.updateInvoiceRelated)(res, invoiceRelated, companyId);
     return res.status(200).send({ success: true });
 });
 //# sourceMappingURL=invoicerelated.route.js.map

@@ -20,6 +20,7 @@ invoicesReportRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, re
     count: req.params.limit,
     data: createMockInvoiceReports(Number(req.params.limit))
   };
+
   res.status(200).send(response);
 });
 
@@ -32,6 +33,7 @@ invoicesReportRoutesDummy.post('/search/:offset/:limit/:companyIdParam', (req, r
     count: req.params.limit,
     data: createMockInvoiceReports(Number(req.params.limit))
   };
+
   res.status(200).send(response);
 });
 

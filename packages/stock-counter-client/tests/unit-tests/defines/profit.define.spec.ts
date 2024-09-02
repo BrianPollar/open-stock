@@ -1,9 +1,9 @@
-import { vi, expect, describe, beforeEach, it, expectTypeOf } from 'vitest';
+import { Iprofit } from '@open-stock/stock-universal';
+import Axios from 'axios-observable';
+import { of } from 'rxjs';
+import { beforeEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 import { Profit } from '../../../../stock-counter-client/src/defines/profit.define';
 import { StockCounterClient } from '../../../../stock-counter-client/src/stock-counter-client';
-import { of } from 'rxjs';
-import Axios from 'axios-observable';
-import { Iprofit } from '@open-stock/stock-universal';
 import { createMockProfit, createMockProfits } from '../../../../tests/stock-counter-mocks';
 
 describe('Profit', () => {
@@ -35,6 +35,7 @@ describe('Profit', () => {
   it('#getProfits static should get Profits array', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makeGet').mockImplementationOnce(() => of(createMockProfits(10)));
     const list = await Profit.getProfits(companyId, '/', 0, 0);
+
     expect(typeof list).toEqual('object');
     expectTypeOf(list).toEqualTypeOf<Profit[]>([]);
     expect(lSpy).toHaveBeenCalled();
@@ -43,6 +44,7 @@ describe('Profit', () => {
   it('#getOneProfit static should get one Profit', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makeGet').mockImplementationOnce(() => of(createMockProfit()));
     const one = await Profit.getOneProfit(companyId, 'urId');
+
     expect(typeof one).toEqual('object');
     expect(one).toBeInstanceOf(Profit);
     expect(lSpy).toHaveBeenCalled();
@@ -51,6 +53,7 @@ describe('Profit', () => {
   it('#addProfit static should add one Profit', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makePost').mockImplementationOnce(() => of({ success: true }));
     const added = await Profit.addProfit(companyId, createMockProfit() as Iprofit);
+
     expect(typeof added).toEqual('object');
     expect(added).toHaveProperty('success');
     expect(added.success).toEqual(true);
@@ -62,6 +65,7 @@ describe('Profit', () => {
   it('#deleteProfits static should delete many Profits', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makePut').mockImplementationOnce(() => of({ success: true }));
     const deleted = await Profit.deleteProfits(companyId, ['ids'], ['filesWithDir'], '/');
+
     expect(typeof deleted).toEqual('object');
     expect(deleted).toHaveProperty('success');
     expect(deleted.success).toEqual(true);
@@ -73,6 +77,7 @@ describe('Profit', () => {
   it('#updateProfit should update Profit', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makePut').mockImplementationOnce(() => of({ success: true }));
     const updated = await instance.updateProfit(companyId, createMockProfit());
+
     expect(typeof updated).toEqual('object');
     expect(updated).toHaveProperty('success');
     expect(updated.success).toEqual(true);

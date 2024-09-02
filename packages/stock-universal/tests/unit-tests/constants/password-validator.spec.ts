@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { validatePasswordMatch } from '../../../src/constants/password-validator';
 
 describe('validatePasswordMatch', () => {
@@ -6,6 +6,7 @@ describe('validatePasswordMatch', () => {
     const password = 'password123';
     const otherPassword = 'password123';
     const result = validatePasswordMatch(password, otherPassword);
+
     expect(result.valid).toBe(true);
     expect(result.message).toBe('passwords match');
   });
@@ -14,6 +15,7 @@ describe('validatePasswordMatch', () => {
     const password = 'password123';
     const otherPassword = 'password456';
     const result = validatePasswordMatch(password, otherPassword);
+
     expect(result.valid).toBe(false);
     expect(result.message).toBe('passwords did not match');
   });

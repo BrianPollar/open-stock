@@ -1,4 +1,3 @@
-import { appendBody, deleteFiles, saveMetaToDb, uploadFiles } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { createMockInvoiceSettings } from '../../../../../mocks/stock-counter-mocks';
 /**
@@ -14,7 +13,7 @@ invoiceSettingRoutesDummy.post('/createimg/:companyIdParam', (req, res) => {
 invoiceSettingRoutesDummy.put('/update/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });
 });
-invoiceSettingRoutesDummy.put('/updateimg/:companyIdParam', uploadFiles, appendBody, saveMetaToDb, deleteFiles, (req, res) => {
+invoiceSettingRoutesDummy.post('/updateimg/:companyIdParam', (req, res) => {
     res.status(200).send({ success: true });
 });
 invoiceSettingRoutesDummy.get('/getone/:id/:companyIdParam', (req, res) => {

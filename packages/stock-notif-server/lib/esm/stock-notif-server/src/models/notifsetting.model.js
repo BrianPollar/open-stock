@@ -3,7 +3,7 @@
  * @packageDocumentation
  */
 import { Schema } from 'mongoose';
-import { connectNotifDatabase, isNotifDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
+import { connectNotifDatabase, isNotifDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 /** Schema definition for notification settings */
 const notifSettingSchema = new Schema({
     companyId: { type: String },
@@ -12,7 +12,7 @@ const notifSettingSchema = new Schema({
     orders: { type: Boolean, default: true },
     jobCards: { type: Boolean, default: true },
     users: { type: Boolean, default: true }
-}, { timestamps: true });
+}, { timestamps: true, collection: 'notifsettings' });
 /** Primary selection object for notification settings */
 const notifSettingselect = {
     companyId: 1,

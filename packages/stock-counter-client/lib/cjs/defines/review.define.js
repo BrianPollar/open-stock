@@ -49,6 +49,12 @@ class Review extends stock_universal_1.DatabaseAuto {
             reviews: reviews.data.map(val => new Review(val))
         };
     }
+    static async getRatingCount(id, rating // 0 - 10
+    ) {
+        const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makeGet(`/review/getratingcount/${id}/${rating}`);
+        const count = await (0, rxjs_1.lastValueFrom)(observer$);
+        return count;
+    }
     /**
      * Gets a single review by ID.
      * @param companyId - The ID of the company

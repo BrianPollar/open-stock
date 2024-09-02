@@ -1,11 +1,11 @@
 import { Iaddress, Icompany, IcompanyPerm, IdeleteCredentialsLocalUser, IfileMeta, IpermProp, Iuser, Iuserperm } from '@open-stock/stock-universal';
 export declare const createPermProp: (state?: string) => IpermProp;
-/** createMockUserperm  function: This function takes a state parameter and returns an object representing user permissions. The permissions object is based on the state value, where each permission is set to  true  if the state is not equal to 'normal', and  false  otherwise*/
+/** createMockUserperm  function: This function takes a state parameter and returns an object representing user permissions. The permissions object is based on the state value, where each permission is set to  true  if the state is not equal to 'normal', and  false  otherwise */
 export declare const createMockUserperm: (state?: string) => Iuserperm;
 export declare const createMockCompanyPerm: (active?: boolean) => IcompanyPerm;
-/** createMockAddress  function: This function creates a mock address object with randomly generated values using the  faker  library*/
+/** createMockAddress  function: This function creates a mock address object with randomly generated values using the  faker  library */
 export declare const createMockAddress: () => Iaddress;
-/** createMockBilling  function: This function creates a mock billing object with randomly generated values using the  faker  library.*/
+/** createMockBilling  function: This function creates a mock billing object with randomly generated values using the  faker  library. */
 export declare const createMockBilling: () => {
     id: string;
     cardNumber: string;

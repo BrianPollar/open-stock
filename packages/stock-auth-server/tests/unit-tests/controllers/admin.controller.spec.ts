@@ -1,9 +1,10 @@
-import { defineAdmin, checkIfAdmin, login } from '../../../../stock-auth-server/src/controllers/admin.controller';
-import { expect, describe, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
+import { checkIfAdmin, defineAdmin, login } from '../../../../stock-auth-server/src/controllers/admin.controller';
 
 describe('checkIfAdmin', () => {
   it('should return success if the password is correct', async() => {
     const response = await checkIfAdmin('admin', 'cryptedPasswd', 'admin', 'cryptedPasswd');
+
     expect(typeof response).toBe('object');
     expect(response).toHaveProperty('success');
     expect(response.success).toBe(true);
@@ -11,6 +12,7 @@ describe('checkIfAdmin', () => {
 
   it('should return failure if the password is incorrect', async() => {
     const response = await checkIfAdmin('admin', 'wrongpassword', 'admin', 'admin');
+
     expect(typeof response).toBe('object');
     expect(response).toHaveProperty('success');
     expect(response.success).toBe(false);
@@ -18,6 +20,7 @@ describe('checkIfAdmin', () => {
 
   it('should return failure if the emailPhone does not match the processadminID', async() => {
     const response = await checkIfAdmin('notadmin', 'password', 'admin', 'admin');
+
     expect(typeof response).toBe('object');
     expect(response).toHaveProperty('success');
     expect(response.success).toBe(false);
@@ -25,6 +28,7 @@ describe('checkIfAdmin', () => {
 
   it('should return admin prop succsessfully', () => {
     const admin = defineAdmin();
+
     expect(admin).toHaveProperty('name');
     expect(admin).toHaveProperty('admin');
     expect(admin).toHaveProperty('permissions');
@@ -45,6 +49,7 @@ describe('checkIfAdmin', () => {
 
   it('should return success if the emailPhone matches the processadminID', async() => {
     const response = await checkIfAdmin('admin', 'cryptedPasswd', 'admin', 'cryptedPasswd');
+
     expect(typeof response).toBe('object');
     expect(response).toHaveProperty('success');
     expect(response.success).toBe(true);
@@ -52,6 +57,7 @@ describe('checkIfAdmin', () => {
 
   it('should return failure if the emailPhone does not match the processadminID', async() => {
     const response = await checkIfAdmin('notadmin', 'password', 'admin', 'adminPass');
+
     expect(typeof response).toBe('object');
     expect(response).toHaveProperty('success');
     expect(response.success).toBe(false);
@@ -59,6 +65,7 @@ describe('checkIfAdmin', () => {
 
   it('should return failure if the emailPhone matches the processadminID but login fails', async() => {
     const response = await checkIfAdmin('admin', 'wrongpassword', 'admin', 'adminPass');
+
     expect(typeof response).toBe('object');
     expect(response).toHaveProperty('success');
     expect(response.success).toBe(false);
@@ -74,6 +81,7 @@ describe('login', () => {
       password,
       adminServerPasswd
     );
+
     expect(typeof loginVal).toBe('object');
     expect(loginVal).toHaveProperty('success');
     expect(typeof loginVal.success).toBe('boolean');
@@ -87,6 +95,7 @@ describe('login', () => {
       password,
       adminServerPasswd
     );
+
     expect(typeof loginVal).toBe('object');
     expect(loginVal).toHaveProperty('success');
     expect(typeof loginVal.success).toBe('boolean');
@@ -100,6 +109,7 @@ describe('login', () => {
       password,
       adminServerPasswd
     );
+
     expect(typeof loginVal).toBe('object');
     expect(loginVal).toHaveProperty('success');
     expect(typeof loginVal.success).toBe('boolean');
@@ -113,6 +123,7 @@ describe('login', () => {
       password,
       adminServerPasswd
     );
+
     expect(typeof loginVal).toBe('object');
     expect(loginVal).toHaveProperty('success');
     expect(typeof loginVal.success).toBe('boolean');
@@ -132,6 +143,7 @@ describe('login extended', () => {
       processadminID,
       'cryptedPasswd'
     );
+
     expect(typeof checkVal).toBe('object');
     expect(checkVal).toHaveProperty('success');
     expect(typeof checkVal.success).toBe('boolean');
@@ -149,6 +161,7 @@ describe('login extended', () => {
       processadminID,
       adminServerPasswd
     );
+
     expect(typeof checkVal).toBe('object');
     expect(checkVal).toHaveProperty('success');
     expect(typeof checkVal.success).toBe('boolean');

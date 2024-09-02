@@ -1,24 +1,29 @@
+import { createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
 import { Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../controllers/database.controller';
+import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 const receiptSchema = new Schema({
-    urId: { type: String },
-    companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
+    ...withUrIdAndCompanySchemaObj,
     invoiceRelated: { type: String },
     ammountRcievd: { type: Number },
     paymentMode: { type: String },
     type: { type: String },
     amount: { type: Number },
     date: { type: Date }
-}, { timestamps: true });
+}, { timestamps: true, collection: 'receipts' });
+receiptSchema.pre('updateOne', function (next) {
+    return preUpdateDocExpire(this, next);
+});
+receiptSchema.pre('updateMany', function (next) {
+    return preUpdateDocExpire(this, next);
+});
 // Apply the uniqueValidator plugin to receiptSchema.
 receiptSchema.plugin(uniqueValidator);
 /** primary selection object
  * for receipt
  */
 const receiptselect = {
-    urId: 1,
-    companyId: 1,
+    ...withUrIdAndCompanySelectObj,
     invoiceRelated: 1,
     ammountRcievd: 1,
     paymentMode: 1,
@@ -46,6 +51,7 @@ export const receiptSelect = receiptselect;
  * @param lean Whether to create the lean connection model.
  */
 export const createReceiptModel = async (dbUrl, dbOptions, main = true, lean = true) => {
+    createExpireDocIndex(receiptSchema);
     if (!isStockDbConnected) {
         await connectStockDatabase(dbUrl, dbOptions);
     }

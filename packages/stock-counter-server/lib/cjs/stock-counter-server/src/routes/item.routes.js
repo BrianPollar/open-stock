@@ -40,6 +40,7 @@ const item_model_1 = require("../models/item.model");
 const itemdecoy_model_1 = require("../models/itemdecoy.model");
 const itemoffer_model_1 = require("../models/itemoffer.model");
 const review_model_1 = require("../models/review.model");
+const user_behavoiur_1 = require("../utils/user-behavoiur");
 /** The logger for the item routes */
 const itemRoutesLogger = tracer.colorConsole({
     format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
@@ -80,14 +81,12 @@ exports.itemRoutes = express_1.default.Router();
  * @returns {Promise<Response>} - The express response object with a success status and saved item data
  */
 const addReview = async (req, res) => {
-    const { userId } = req.user;
-    const itemId = req.body.review.itemId;
+    const { itemId, userId } = req.body.review;
     const isValid = (0, stock_universal_server_1.verifyObjectId)(itemId);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const item = await item_model_1.itemMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .findByIdAndUpdate(itemId);
     if (!item) {
         return res.status(404).send({ success: false });
@@ -95,7 +94,7 @@ const addReview = async (req, res) => {
     item.reviewedBy.push(userId || 'tourer');
     item.reviewCount++;
     item.reviewRatingsTotal += req.body.review.rating;
-    item.reviewWeight = item.reviewRatingsTotal / item.reviewedBy.length;
+    item.reviewWeight = item.reviewRatingsTotal / item.reviewedBy.length; // <= 10
     let errResponse;
     const saved = await item.save()
         .catch(err => {
@@ -132,17 +131,14 @@ exports.addReview = addReview;
  */
 const removeReview = async (req, res) => {
     const { userId } = req.user;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     const { itemId, rating } = req.params;
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)([itemId, queryId]);
+    const isValid = (0, stock_universal_server_1.verifyObjectIds)([itemId]);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const item = await item_model_1.itemMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .findOneAndUpdate({ _id: itemId, companyId: queryId });
+        .findOneAndUpdate({ _id: itemId, ...filter });
     if (!item) {
         return res.status(404).send({ success: false });
     }
@@ -190,18 +186,10 @@ exports.removeReview = removeReview;
  */
 exports.itemRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_auth_server_1.requireCanUseFeature)('item'), (0, stock_universal_server_1.roleAuthorisation)('items', 'create'), async (req, res, next) => {
     const item = req.body.item;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    item.companyId = queryId;
-    item.ecomerceCompat = false;
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
+    item.companyId = filter.companyId;
     const count = await item_model_1.itemMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+        .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     item.urId = (0, stock_universal_server_1.makeUrId)(Number(count[0]?.urId || '0'));
     const newProd = new item_model_1.itemMain(item);
     let errResponse;
@@ -219,10 +207,13 @@ exports.itemRoutes.post('/create/:companyIdParam', stock_universal_server_1.requ
             errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
         }
-        return errResponse;
+        return err;
     });
     if (errResponse) {
         return res.status(403).send(errResponse);
+    }
+    if (saved && saved._id) {
+        (0, stock_universal_server_1.addParentToLocals)(res, saved._id, item_model_1.itemMain.collection.collectionName, 'makeTrackEdit');
     }
     if (!Boolean(saved)) {
         return res.status(403).send('unknown error');
@@ -241,18 +232,11 @@ exports.itemRoutes.post('/create/:companyIdParam', stock_universal_server_1.requ
  */
 exports.itemRoutes.post('/createimg/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_auth_server_1.requireCanUseFeature)('item'), (0, stock_universal_server_1.roleAuthorisation)('items', 'create'), stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.saveMetaToDb, async (req, res, next) => {
     const item = req.body.item;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    item.companyId = queryId;
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
+    item.companyId = filter.companyId;
     item.ecomerceCompat = true;
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
     const count = await item_model_1.itemMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+        .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     item.urId = (0, stock_universal_server_1.makeUrId)(Number(count[0]?.urId || '0'));
     const parsed = req.body;
     if (parsed && parsed.newPhotos) {
@@ -277,10 +261,13 @@ exports.itemRoutes.post('/createimg/:companyIdParam', stock_universal_server_1.r
             errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
         }
-        return errResponse;
+        return err;
     });
     if (errResponse) {
         return res.status(403).send(errResponse);
+    }
+    if (saved && saved._id) {
+        (0, stock_universal_server_1.addParentToLocals)(res, saved._id, item_model_1.itemMain.collection.collectionName, 'makeTrackEdit');
     }
     if (!Boolean(saved)) {
         return res.status(403).send('unknown error');
@@ -299,19 +286,16 @@ exports.itemRoutes.post('/createimg/:companyIdParam', stock_universal_server_1.r
  */
 exports.itemRoutes.put('/update/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'update'), async (req, res) => {
     const updatedProduct = req.body.item;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    updatedProduct.companyId = queryId;
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
+    updatedProduct.companyId = filter.companyId;
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    const { _id } = updatedProduct;
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)([_id, queryId]);
+    // const { _id } = updatedProduct;
+    const isValid = (0, stock_universal_server_1.verifyObjectIds)([updatedProduct._id]);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const item = await item_model_1.itemMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .findOneAndUpdate({ _id, companyId: queryId });
+        .findOne({ _id: updatedProduct._id, ...filter });
     if (!item) {
         return res.status(404).send({ success: false });
     }
@@ -322,7 +306,7 @@ exports.itemRoutes.put('/update/:companyIdParam', stock_universal_server_1.requi
     delete updatedProduct._id;
     const keys = Object.keys(updatedProduct);
     keys.forEach(key => {
-        if (item[key]) {
+        if (item[key] && key !== '_id') {
             item[key] = updatedProduct[key] || item[key];
         }
     });
@@ -350,18 +334,15 @@ exports.itemRoutes.put('/update/:companyIdParam', stock_universal_server_1.requi
 });
 exports.itemRoutes.post('/updateimg/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'update'), stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.saveMetaToDb, async (req, res) => {
     const updatedProduct = req.body.item;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     // eslint-disable-next-line @typescript-eslint/naming-convention
     const { _id } = updatedProduct;
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)([_id, queryId]);
+    const isValid = (0, stock_universal_server_1.verifyObjectIds)([_id]);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const item = await item_model_1.itemMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .findOneAndUpdate({ _id, companyId: queryId });
+        .findOne({ _id, ...filter });
     if (!item) {
         return res.status(404).send({ success: false });
     }
@@ -377,7 +358,7 @@ exports.itemRoutes.post('/updateimg/:companyIdParam', stock_universal_server_1.r
     if (parsed && parsed.newVideos) {
         const meta = await stock_universal_server_1.fileMetaLean.findById(item.video);
         if (meta) {
-            await (0, stock_universal_server_1.deleteAllFiles)([meta]);
+            await (0, stock_universal_server_1.deleteAllFiles)([meta], true);
         }
         item.video = parsed.newVideos[0];
     }
@@ -411,18 +392,15 @@ exports.itemRoutes.post('/updateimg/:companyIdParam', stock_universal_server_1.r
     return res.status(200).send({ success: Boolean(updated) });
 });
 exports.itemRoutes.put('/like/:itemId/:companyIdParam', stock_universal_server_1.requireAuth, async (req, res) => {
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     const { userId } = req.user;
     const { itemId } = req.params;
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)([itemId, queryId]);
+    const isValid = (0, stock_universal_server_1.verifyObjectIds)([itemId]);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const item = await item_model_1.itemMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .findOneAndUpdate({ _id: itemId, companyId: queryId });
+        .findOneAndUpdate({ _id: itemId, ...filter });
     if (!item) {
         return res.status(404).send({ success: false });
     }
@@ -459,7 +437,6 @@ exports.itemRoutes.put('/unlike/:itemId/:companyIdParam', stock_universal_server
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const item = await item_model_1.itemMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .findOneAndUpdate({ _id: itemId, companyId: queryId });
     if (!item) {
         return res.status(404).send({ success: false });
@@ -486,7 +463,7 @@ exports.itemRoutes.put('/unlike/:itemId/:companyIdParam', stock_universal_server
     }
     return res.status(200).send({ success: true });
 });
-exports.itemRoutes.get('/getone/:urId/:companyIdParam', async (req, res) => {
+exports.itemRoutes.get('/getone/:urId/:companyIdParam', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
     const { companyIdParam, urId } = req.params;
     let filter = { urId };
     const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
@@ -494,17 +471,16 @@ exports.itemRoutes.get('/getone/:urId/:companyIdParam', async (req, res) => {
         filter = { urId, companyId: companyIdParam };
     }
     const item = await item_model_1.itemLean
-        .findOne(filter)
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-        .populate({ path: 'companyId', model: stock_auth_server_1.companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
+        .findOne({ ...filter })
+        .populate([(0, stock_auth_server_1.populatePhotos)(true), (0, stock_auth_server_1.populateCompany)()])
         .lean();
-    if (item && !item.companyId) {
+    if (!item || !item.companyId) {
         return res.status(200).send({});
     }
+    (0, stock_universal_server_1.addParentToLocals)(res, item._id, item_model_1.itemMain.collection.collectionName, 'trackDataView');
     return res.status(200).send(item);
 });
-exports.itemRoutes.get('/filtergeneral/:prop/:val/:offset/:limit/:companyIdParam/:ecomerceCompat', async (req, res) => {
+exports.itemRoutes.get('/filtergeneral/:prop/:val/:offset/:limit/:companyIdParam/:ecomerceCompat', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
     const { companyIdParam, prop, val, ecomerceCompat } = req.params;
     let filter = { [prop]: { $regex: val, $options: 'i' } };
     const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
@@ -519,12 +495,10 @@ exports.itemRoutes.get('/filtergeneral/:prop/:val/:offset/:limit/:companyIdParam
     }
     const all = await Promise.all([
         item_model_1.itemLean
-            .find(filter)
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-            .populate({ path: 'companyId', model: stock_auth_server_1.companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
+            .find({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
+            .populate([(0, stock_auth_server_1.populatePhotos)(true), (0, stock_auth_server_1.populateCompany)()])
             .lean(),
-        item_model_1.itemLean.countDocuments(filter)
+        item_model_1.itemLean.countDocuments({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
     ]);
     const newItems = all[0].filter(item => item.companyId);
     const response = {
@@ -533,7 +507,7 @@ exports.itemRoutes.get('/filtergeneral/:prop/:val/:offset/:limit/:companyIdParam
     };
     return res.status(200).send(response);
 });
-exports.itemRoutes.get('/filterrandom/:prop/:val/:offset/:limit/:companyIdParam/:ecomerceCompat', async (req, res) => {
+exports.itemRoutes.get('/filterrandom/:prop/:val/:offset/:limit/:companyIdParam/:ecomerceCompat', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
     const { companyIdParam, prop, val, ecomerceCompat } = req.params;
     let filter = { [prop]: { $regex: val, $options: 'i' } };
     const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
@@ -545,13 +519,11 @@ exports.itemRoutes.get('/filterrandom/:prop/:val/:offset/:limit/:companyIdParam/
     }
     const all = await Promise.all([
         item_model_1.itemLean
-            .find(filter)
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-            .populate({ path: 'companyId', model: stock_auth_server_1.companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
+            .find({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
+            .populate([(0, stock_auth_server_1.populatePhotos)(true), (0, stock_auth_server_1.populateCompany)()])
             .sort({ timesViewed: 1, likesCount: 1, reviewCount: 1 })
             .lean(),
-        item_model_1.itemLean.countDocuments(filter)
+        item_model_1.itemLean.countDocuments({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
     ]);
     const newItems = all[0].filter(item => item.companyId);
     const response = {
@@ -560,7 +532,37 @@ exports.itemRoutes.get('/filterrandom/:prop/:val/:offset/:limit/:companyIdParam/
     };
     return res.status(200).send(response);
 });
-exports.itemRoutes.get('/getall/:offset/:limit/:companyIdParam/:ecomerceCompat', async (req, res) => {
+exports.itemRoutes.get('/getall/:offset/:limit/:companyIdParam/:ecomerceCompat', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
+    const { companyIdParam, ecomerceCompat } = req.params;
+    let filter = {};
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
+    if (isValid) {
+        // filter = { companyId: companyIdParam }; //TODO
+    }
+    if (ecomerceCompat === 'true') {
+        filter = { ...filter, ecomerceCompat: true };
+    }
+    const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
+    const all = await Promise.all([
+        item_model_1.itemLean
+            .find({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
+            .skip(offset)
+            .limit(limit)
+            .populate([(0, stock_auth_server_1.populatePhotos)(true), (0, stock_auth_server_1.populateCompany)(), (0, stock_auth_server_1.populateTrackEdit)(), (0, stock_auth_server_1.populateTrackView)()])
+            .lean(),
+        item_model_1.itemLean.countDocuments({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
+    ]);
+    const newItems = all[0].filter(item => item.companyId);
+    const response = {
+        count: all[1],
+        data: newItems
+    };
+    for (const val of all[0]) {
+        (0, stock_universal_server_1.addParentToLocals)(res, val._id, item_model_1.itemMain.collection.collectionName, 'trackDataView');
+    }
+    return res.status(200).send(response);
+});
+exports.itemRoutes.get('/getbestsellers/:offset/:limit/:companyIdParam/:ecomerceCompat', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
     const { companyIdParam, ecomerceCompat } = req.params;
     let filter = {};
     const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
@@ -573,50 +575,53 @@ exports.itemRoutes.get('/getall/:offset/:limit/:companyIdParam/:ecomerceCompat',
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const all = await Promise.all([
         item_model_1.itemLean
-            .find(filter)
+            .find({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
             .skip(offset)
             .limit(limit)
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-            .populate({ path: 'companyId', model: stock_auth_server_1.companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
+            .sort({ soldCount: 1 })
+            .populate([(0, stock_auth_server_1.populatePhotos)(true), (0, stock_auth_server_1.populateCompany)()])
             .lean(),
-        item_model_1.itemLean.countDocuments(filter)
+        item_model_1.itemLean.countDocuments({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
     ]);
     const newItems = all[0].filter(item => item.companyId);
     const response = {
         count: all[1],
         data: newItems
     };
+    for (const val of newItems) {
+        (0, stock_universal_server_1.addParentToLocals)(res, val._id, item_model_1.itemMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
-exports.itemRoutes.get('/gettrending/:offset/:limit/:companyIdParam/:ecomerceCompat', async (req, res) => {
-    const { companyIdParam, ecomerceCompat } = req.params;
-    let filter = {};
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
-    if (isValid) {
-        filter = { companyId: companyIdParam };
-    }
-    if (ecomerceCompat === 'true') {
-        filter = { ...filter, ecomerceCompat: true };
+exports.itemRoutes.get('/gettodaysuggestions/:userId/:offset/:limit/:companyIdParam/:ecomerceCompat', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
+    const { userId, limit } = req.params;
+    const stnCookie = req.signedCookies['settings'];
+    const { ids, newOffset, newLimit } = await (0, user_behavoiur_1.todaysRecomendation)(limit, stnCookie?.userCookieId, userId);
+    let filter = { ecomerceCompat: true };
+    if (ids && ids.length > 0) {
+        filter = { ...filter, _id: { $in: ids } };
     }
     const all = await Promise.all([
         item_model_1.itemLean
-            .find(filter)
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+            .find({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
             .sort({ timesViewed: 1 })
-            .populate({ path: 'companyId', model: stock_auth_server_1.companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
+            .skip(newOffset)
+            .limit(newLimit)
+            .populate([(0, stock_auth_server_1.populatePhotos)(true), (0, stock_auth_server_1.populateCompany)()])
             .lean(),
-        item_model_1.itemLean.countDocuments(filter)
+        item_model_1.itemLean.countDocuments({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
     ]);
     const newItems = all[0].filter(item => item.companyId);
     const response = {
         count: all[1],
         data: newItems
     };
+    for (const val of newItems) {
+        (0, stock_universal_server_1.addParentToLocals)(res, val._id, item_model_1.itemMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
-exports.itemRoutes.get('/getfeatured/:offset/:limit/:companyIdParam/:ecomerceCompat', async (req, res) => {
+exports.itemRoutes.get('/gettrending/:offset/:limit/:companyIdParam/:ecomerceCompat', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
     const { companyIdParam, ecomerceCompat } = req.params;
     let filter = {};
     const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
@@ -628,23 +633,74 @@ exports.itemRoutes.get('/getfeatured/:offset/:limit/:companyIdParam/:ecomerceCom
     }
     const all = await Promise.all([
         item_model_1.itemLean
-            .find(filter)
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-            .sort({ timesViewed: 1, likesCount: 1, reviewCount: 1 })
-            .populate({ path: 'companyId', model: stock_auth_server_1.companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
+            .find({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
+            .sort({ timesViewed: 1 })
+            .populate([(0, stock_auth_server_1.populatePhotos)(true), (0, stock_auth_server_1.populateCompany)()])
             .lean(),
-        item_model_1.itemLean.countDocuments(filter)
+        item_model_1.itemLean.countDocuments({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
     ]);
     const newItems = all[0].filter(item => item.companyId);
     const response = {
         count: all[1],
         data: newItems
     };
+    for (const val of newItems) {
+        (0, stock_universal_server_1.addParentToLocals)(res, val._id, item_model_1.itemMain.collection.collectionName, 'trackDataView');
+    }
+    return res.status(200).send(response);
+});
+exports.itemRoutes.get('/getbehaviourdecoy/:userId/offset/limit/:companyIdParam/:ecomerceCompat', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
+    const { userId } = req.params;
+    const stnCookie = req.signedCookies['settings'];
+    const { ids } = await (0, user_behavoiur_1.getDecoyFromBehaviour)(stnCookie?.userCookieId, userId);
+    const all = await Promise.all([
+        item_model_1.itemLean
+            .find({ _id: { $in: ids }, ...(0, stock_universal_server_1.makePredomFilter)(req) })
+            .sort({ timesViewed: 1 })
+            .populate([(0, stock_auth_server_1.populatePhotos)(true), (0, stock_auth_server_1.populateCompany)()])
+            .lean(),
+        item_model_1.itemLean.countDocuments({ _id: { $in: ids }, ...(0, stock_universal_server_1.makePredomFilter)(req) })
+    ]);
+    const newItems = all[0].filter(item => item.companyId);
+    const response = {
+        count: all[1],
+        data: newItems
+    };
+    for (const val of newItems) {
+        (0, stock_universal_server_1.addParentToLocals)(res, val._id, item_model_1.itemMain.collection.collectionName, 'trackDataView');
+    }
+    return res.status(200).send(response);
+});
+exports.itemRoutes.get('/getfeatured/:offset/:limit/:companyIdParam/:ecomerceCompat', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
+    const { companyIdParam, ecomerceCompat } = req.params;
+    let filter = {};
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
+    if (isValid) {
+        filter = { companyId: companyIdParam };
+    }
+    if (ecomerceCompat === 'true') {
+        filter = { ...filter, ecomerceCompat: true };
+    }
+    const all = await Promise.all([
+        item_model_1.itemLean
+            .find({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
+            .sort({ timesViewed: 1, likesCount: 1, reviewCount: 1 })
+            .populate([(0, stock_auth_server_1.populatePhotos)(true), (0, stock_auth_server_1.populateCompany)()])
+            .lean(),
+        item_model_1.itemLean.countDocuments({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
+    ]);
+    const newItems = all[0].filter(item => item.companyId);
+    const response = {
+        count: all[1],
+        data: newItems
+    };
+    for (const val of newItems) {
+        (0, stock_universal_server_1.addParentToLocals)(res, val._id, item_model_1.itemMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
 // newly posted
-exports.itemRoutes.get('/getnew/:offset/:limit/:companyIdParam/:ecomerceCompat', async (req, res) => {
+exports.itemRoutes.get('/getnew/:offset/:limit/:companyIdParam/:ecomerceCompat', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
     const { companyIdParam, ecomerceCompat } = req.params;
     let filter = {};
     const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
@@ -656,23 +712,24 @@ exports.itemRoutes.get('/getnew/:offset/:limit/:companyIdParam/:ecomerceCompat',
     }
     const all = await Promise.all([
         item_model_1.itemLean
-            .find(filter)
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+            .find({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
             .sort({ createdAt: -1 })
-            .populate({ path: 'companyId', model: stock_auth_server_1.companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
+            .populate([(0, stock_auth_server_1.populatePhotos)(true), (0, stock_auth_server_1.populateCompany)()])
             .lean(),
-        item_model_1.itemLean.countDocuments(filter)
+        item_model_1.itemLean.countDocuments({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
     ]);
     const newItems = all[0].filter(item => item.companyId);
     const response = {
         count: all[1],
         data: newItems
     };
+    for (const val of newItems) {
+        (0, stock_universal_server_1.addParentToLocals)(res, val._id, item_model_1.itemMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
 // new not used
-exports.itemRoutes.get('/getbrandnew/:offset/:limit/:companyIdParam/:ecomerceCompat', async (req, res) => {
+exports.itemRoutes.get('/getbrandnew/:offset/:limit/:companyIdParam/:ecomerceCompat', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
     const { companyIdParam, ecomerceCompat } = req.params;
     let filter = { state: 'new' };
     const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
@@ -684,23 +741,24 @@ exports.itemRoutes.get('/getbrandnew/:offset/:limit/:companyIdParam/:ecomerceCom
     }
     const all = await Promise.all([
         item_model_1.itemLean
-            .find(filter)
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+            .find({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
             .sort({ createdAt: -1 })
-            .populate({ path: 'companyId', model: stock_auth_server_1.companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
+            .populate([(0, stock_auth_server_1.populatePhotos)(true), (0, stock_auth_server_1.populateCompany)()])
             .lean(),
-        item_model_1.itemLean.countDocuments(filter)
+        item_model_1.itemLean.countDocuments({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
     ]);
     const newItems = all[0].filter(item => item.companyId);
     const response = {
         count: all[1],
         data: newItems
     };
+    for (const val of newItems) {
+        (0, stock_universal_server_1.addParentToLocals)(res, val._id, item_model_1.itemMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
 // new not used
-exports.itemRoutes.get('/getused/:offset/:limit/:companyIdParam/:ecomerceCompat', async (req, res) => {
+exports.itemRoutes.get('/getused/:offset/:limit/:companyIdParam/:ecomerceCompat', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
     const { companyIdParam, ecomerceCompat } = req.params;
     let filter = { state: 'refurbished' };
     const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
@@ -712,23 +770,24 @@ exports.itemRoutes.get('/getused/:offset/:limit/:companyIdParam/:ecomerceCompat'
     }
     const all = await Promise.all([
         item_model_1.itemLean
-            .find(filter)
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+            .find({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
             .sort({ createdAt: -1 })
-            .populate({ path: 'companyId', model: stock_auth_server_1.companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
+            .populate([(0, stock_auth_server_1.populatePhotos)(true), (0, stock_auth_server_1.populateCompany)()])
             .lean(),
-        item_model_1.itemLean.countDocuments(filter)
+        item_model_1.itemLean.countDocuments({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
     ]);
     const newItems = all[0].filter(item => item.companyId);
     const response = {
         count: all[1],
         data: newItems
     };
+    for (const val of all[0]) {
+        (0, stock_universal_server_1.addParentToLocals)(res, val._id, item_model_1.itemMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
 // filterprice
-exports.itemRoutes.get('/filterprice/max/:priceFilterValue/:offset/:limit/:companyIdParam/:ecomerceCompat', async (req, res) => {
+exports.itemRoutes.get('/filterprice/max/:priceFilterValue/:offset/:limit/:companyIdParam/:ecomerceCompat', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
     const { companyIdParam, ecomerceCompat } = req.params;
     let filter = {};
     const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
@@ -741,23 +800,24 @@ exports.itemRoutes.get('/filterprice/max/:priceFilterValue/:offset/:limit/:compa
     const { priceFilterValue } = req.params;
     const all = await Promise.all([
         item_model_1.itemLean
-            .find(filter)
+            .find({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
             .gte('costMeta.sellingPrice', Number(priceFilterValue))
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
             .sort({ createdAt: -1 })
-            .populate({ path: 'companyId', model: stock_auth_server_1.companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
+            .populate([(0, stock_auth_server_1.populatePhotos)(true), (0, stock_auth_server_1.populateCompany)()])
             .lean(),
-        item_model_1.itemLean.countDocuments(filter)
+        item_model_1.itemLean.countDocuments({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
     ]);
     const newItems = all[0].filter(item => item.companyId);
     const response = {
         count: all[1],
         data: newItems
     };
+    for (const val of newItems) {
+        (0, stock_universal_server_1.addParentToLocals)(res, val._id, item_model_1.itemMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
-exports.itemRoutes.get('/filterprice/min/:priceFilterValue/:offset/:limit/:companyIdParam/:ecomerceCompat', async (req, res) => {
+exports.itemRoutes.get('/filterprice/min/:priceFilterValue/:offset/:limit/:companyIdParam/:ecomerceCompat', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
     const { companyIdParam, ecomerceCompat } = req.params;
     let filter = {};
     const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
@@ -770,23 +830,24 @@ exports.itemRoutes.get('/filterprice/min/:priceFilterValue/:offset/:limit/:compa
     const { priceFilterValue } = req.params;
     const all = await Promise.all([
         item_model_1.itemLean
-            .find(filter)
+            .find({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
             .lte('costMeta.sellingPrice', Number(priceFilterValue))
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
             .sort({ createdAt: -1 })
-            .populate({ path: 'companyId', model: stock_auth_server_1.companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
+            .populate([(0, stock_auth_server_1.populatePhotos)(true), (0, stock_auth_server_1.populateCompany)()])
             .lean(),
-        item_model_1.itemLean.countDocuments(filter)
+        item_model_1.itemLean.countDocuments({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
     ]);
     const newItems = all[0].filter(item => item.companyId);
     const response = {
         count: all[1],
         data: newItems
     };
+    for (const val of newItems) {
+        (0, stock_universal_server_1.addParentToLocals)(res, val._id, item_model_1.itemMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
-exports.itemRoutes.get('/filterprice/eq/:priceFilterMinValue/:priceFilterMaxValue/:offset/:limit/:companyIdParam/:ecomerceCompat', async (req, res) => {
+exports.itemRoutes.get('/filterprice/eq/:priceFilterMinValue/:priceFilterMaxValue/:offset/:limit/:companyIdParam/:ecomerceCompat', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
     const { companyIdParam, ecomerceCompat } = req.params;
     let filter = {};
     const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
@@ -799,24 +860,25 @@ exports.itemRoutes.get('/filterprice/eq/:priceFilterMinValue/:priceFilterMaxValu
     const { priceFilterMinValue, priceFilterMaxValue } = req.params;
     const all = await Promise.all([
         item_model_1.itemLean
-            .find(filter)
+            .find({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
             .gte('costMeta.sellingPrice', Number(priceFilterMaxValue))
             .lte('costMeta.sellingPrice', Number(priceFilterMinValue))
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
             .sort({ createdAt: -1 })
-            .populate({ path: 'companyId', model: stock_auth_server_1.companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
+            .populate([(0, stock_auth_server_1.populatePhotos)(true), (0, stock_auth_server_1.populateCompany)()])
             .lean(),
-        item_model_1.itemLean.countDocuments(filter)
+        item_model_1.itemLean.countDocuments({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
     ]);
     const newItems = all[0].filter(item => item.companyId);
     const response = {
         count: all[1],
         data: newItems
     };
+    for (const val of newItems) {
+        (0, stock_universal_server_1.addParentToLocals)(res, val._id, item_model_1.itemMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
-exports.itemRoutes.get('/filterstars/:starVal/:offset/:limit/:companyIdParam/:ecomerceCompat', async (req, res) => {
+exports.itemRoutes.get('/filterstars/:starVal/:offset/:limit/:companyIdParam/:ecomerceCompat', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
     const { companyIdParam, ecomerceCompat } = req.params;
     let filter = {};
     const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
@@ -829,26 +891,27 @@ exports.itemRoutes.get('/filterstars/:starVal/:offset/:limit/:companyIdParam/:ec
     const starVal = Number(req.params.starVal);
     const all = await Promise.all([
         review_model_1.reviewLean
-            .find(filter)
+            .find({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
             .where('rating') // rating
             .lte(starVal + 2)
             .gte(starVal)
             .select({ itemId: 1 })
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
             .lean()
-            .populate({ path: 'companyId', model: stock_auth_server_1.companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
+            .populate([(0, stock_auth_server_1.populatePhotos)(true), (0, stock_auth_server_1.populateCompany)()])
             .lean(),
-        review_model_1.reviewLean.countDocuments(filter)
+        review_model_1.reviewLean.countDocuments({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
     ]);
     const newItems = all[0].filter(val => val.companyId);
     const response = {
         count: all[1],
         data: newItems
     };
+    for (const val of newItems) {
+        (0, stock_universal_server_1.addParentToLocals)(res, val._id, item_model_1.itemMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
-exports.itemRoutes.get('/discount/:discountValue/:offset/:limit/:companyIdParam/:ecomerceCompat', async (req, res) => {
+exports.itemRoutes.get('/discount/:discountValue/:offset/:limit/:companyIdParam/:ecomerceCompat', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
     const { companyIdParam, ecomerceCompat } = req.params;
     let filter = {};
     const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
@@ -861,7 +924,7 @@ exports.itemRoutes.get('/discount/:discountValue/:offset/:limit/:companyIdParam/
     const { discountValue } = req.params;
     const all = await Promise.all([
         item_model_1.itemLean
-            .find(filter)
+            .find({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
             .or([
             {
                 // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -876,28 +939,28 @@ exports.itemRoutes.get('/discount/:discountValue/:offset/:limit/:companyIdParam/
                 'costMeta.discount': Number(discountValue)
             }
         ])
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
             .sort({ createdAt: -1 })
-            .populate({ path: 'companyId', model: stock_auth_server_1.companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
+            .populate([(0, stock_auth_server_1.populatePhotos)(true), (0, stock_auth_server_1.populateCompany)()])
             .lean(),
-        item_model_1.itemLean.countDocuments(filter)
+        item_model_1.itemLean.countDocuments({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
     ]);
     const newItems = all[0].filter(item => item.companyId);
     const response = {
         count: all[1],
         data: newItems
     };
+    for (const val of newItems) {
+        (0, stock_universal_server_1.addParentToLocals)(res, val._id, item_model_1.itemMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
-exports.itemRoutes.post('/getsponsored/:companyIdParam', async (req, res) => {
+exports.itemRoutes.post('/getsponsored/:companyIdParam', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
     const { companyIdParam } = req.params;
     const ids = req.body.sponsored;
     // eslint-disable-next-line @typescript-eslint/naming-convention
     let filter = { _id: { $in: ids } };
     const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
     if (isValid) {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         filter = { companyId: companyIdParam, _id: { $in: ids } };
     }
     if (ids && ids.length > 0) {
@@ -912,18 +975,18 @@ exports.itemRoutes.post('/getsponsored/:companyIdParam', async (req, res) => {
         return res.status(403).send({ success: false, status: 403, err: 'no sponsored items provided' });
     }
     const items = await item_model_1.itemLean
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .find(filter)
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+        .find({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
         .lean()
         .sort({ timesViewed: 1 })
-        .populate({ path: 'companyId', model: stock_auth_server_1.companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
+        .populate([(0, stock_auth_server_1.populatePhotos)(true), (0, stock_auth_server_1.populateCompany)()])
         .lean();
     const newItems = items.filter(item => item.companyId);
+    for (const val of newItems) {
+        (0, stock_universal_server_1.addParentToLocals)(res, val._id, item_model_1.itemMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(newItems);
 });
-exports.itemRoutes.get('/getoffered/:companyIdParam', async (req, res) => {
+exports.itemRoutes.get('/getoffered/:companyIdParam', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
     const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
@@ -933,32 +996,24 @@ exports.itemRoutes.get('/getoffered/:companyIdParam', async (req, res) => {
         filter = { companyId: queryId };
     }
     const items = await item_model_1.itemLean
-        .find(filter)
+        .find({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
         .populate({ path: 'sponsored', model: item_model_1.itemLean,
         populate: [{
                 path: 'photos', model: stock_universal_server_1.fileMetaLean
             }
         ]
     })
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
         .sort({ createdAt: -1 })
-        .populate({ path: 'companyId', model: stock_auth_server_1.companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
+        .populate([(0, stock_auth_server_1.populatePhotos)(true), (0, stock_auth_server_1.populateCompany)()])
         .lean();
     const newItems = items.filter(item => item.companyId);
     const filtered = newItems.filter(p => p.sponsored?.length && p.sponsored?.length > 0);
     return res.status(200).send(filtered);
 });
-exports.itemRoutes.put('/addsponsored/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'update'), stock_universal_server_1.deleteFiles, async (req, res) => {
+exports.itemRoutes.put('/addsponsored/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'update'), async (req, res) => {
     const { id } = req.params;
     const { sponsored } = req.body;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)([id, queryId]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     const item = await item_model_1.itemMain.findByIdAndUpdate(id);
     if (!item) {
         return res.status(404).send({ success: false });
@@ -984,18 +1039,12 @@ exports.itemRoutes.put('/addsponsored/:id/:companyIdParam', stock_universal_serv
     }
     return res.status(200).send({ success: true });
 });
-exports.itemRoutes.put('/updatesponsored/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'update'), stock_universal_server_1.deleteFiles, async (req, res) => {
+exports.itemRoutes.put('/updatesponsored/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'update'), async (req, res) => {
     const { id } = req.params;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
     const { sponsored } = req.body;
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)([id, queryId]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    const item = await item_model_1.itemMain.findOneAndUpdate({ _id: id, companyId: queryId });
+    const item = await item_model_1.itemMain.findOneAndUpdate({ _id: id, ...filter });
     if (!item) {
         return res.status(404).send({ success: false });
     }
@@ -1024,17 +1073,11 @@ exports.itemRoutes.put('/updatesponsored/:id/:companyIdParam', stock_universal_s
     }
     return res.status(200).send({ success: true });
 });
-exports.itemRoutes.delete('/deletesponsored/:id/:spnsdId/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'update'), stock_universal_server_1.deleteFiles, async (req, res) => {
+exports.itemRoutes.delete('/deletesponsored/:id/:spnsdId/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'update'), async (req, res) => {
     const { id, spnsdId } = req.params;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)([id, queryId]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    const item = await item_model_1.itemMain.findOneAndUpdate({ _id: id, companyId: queryId });
+    const item = await item_model_1.itemMain.findOneAndUpdate({ _id: id, ...filter });
     if (!item) {
         return res.status(404).send({ success: false });
     }
@@ -1063,42 +1106,50 @@ exports.itemRoutes.delete('/deletesponsored/:id/:spnsdId/:companyIdParam', stock
     }
     return res.status(200).send({ success: true });
 });
-exports.itemRoutes.put('/deleteone/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'delete'), stock_universal_server_1.deleteFiles, async (req, res) => {
+exports.itemRoutes.put('/deleteone/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'delete'), async (req, res) => {
     const { id } = req.params;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)([id, queryId]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
+    // start by removing offers
+    await itemoffer_model_1.itemOfferMain.deleteMany({ ...filter, items: { $elemMatch: { $in: [id] } } });
+    // also remove decoys
+    await itemdecoy_model_1.itemDecoyMain.deleteMany({ ...filter, items: { $elemMatch: { $in: [id] } } });
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    const found = await item_model_1.itemMain.findOne({ _id: id, ...filter })
+        .populate([(0, stock_auth_server_1.populatePhotos)(true)])
+        .populate({ path: 'video', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+        .lean();
+    if (found) {
+        let filesWithDir = found.photos.map(photo => ({
+            _id: photo._id,
+            url: photo.url
+        }));
+        if (found.video) {
+            filesWithDir = [...filesWithDir, ...[found.video]];
+        }
+        await (0, stock_universal_server_1.deleteAllFiles)(filesWithDir);
     }
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    const deleted = await item_model_1.itemMain.findOneAndDelete({ _id: id, companyId: queryId });
+    // const deleted = await itemMain.findOneAndDelete({ _id: id, ...filter });
+    const deleted = await item_model_1.itemMain.updateOne({ _id: id, ...filter }, { $set: { isDeleted: true } });
     if (Boolean(deleted)) {
+        (0, stock_universal_server_1.addParentToLocals)(res, id, item_model_1.itemMain.collection.collectionName, 'trackDataDelete');
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
         return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
-exports.itemRoutes.put('/deletefiles/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'delete'), stock_universal_server_1.deleteFiles, async (req, res) => {
+exports.itemRoutes.put('/deletefiles/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'delete'), (0, stock_universal_server_1.deleteFiles)(true), async (req, res) => {
     const filesWithDir = req.body.filesWithDir;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     if (filesWithDir && !filesWithDir.length) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const updatedProduct = req.body.item;
     // eslint-disable-next-line @typescript-eslint/naming-convention
     const { _id } = updatedProduct;
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)([_id, queryId]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
     const item = await item_model_1.itemMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .findOneAndUpdate({ _id, companyId: queryId });
+        .findOneAndUpdate({ _id, ...filter });
     if (!item) {
         return res.status(404).send({ success: false, err: 'item not found' });
     }
@@ -1129,9 +1180,11 @@ exports.itemRoutes.put('/deletefiles/:companyIdParam', stock_universal_server_1.
     }
     return res.status(200).send({ success: true });
 });
-exports.itemRoutes.post('/search/:offset/:limit/:companyIdParam', async (req, res) => {
+exports.itemRoutes.post('/search/:offset/:limit/:companyIdParam;userId', async (req, res) => {
     const { searchterm, searchKey, category, extraFilers, subCategory, ecomerceCompat } = req.body;
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
+    const stnCookie = req.signedCookies['settings'];
+    (0, user_behavoiur_1.registerSearchParams)(searchterm, '', stnCookie?.userCookieId, req.params.userId);
     const { companyIdParam } = req.params;
     if (companyIdParam !== 'undefined') {
         itemRoutesLogger.info('filter item with 999999 def');
@@ -1209,19 +1262,24 @@ exports.itemRoutes.post('/search/:offset/:limit/:companyIdParam', async (req, re
                 };
                 break;
             /* default:
-              return res.status(401).send({ success: false, err: 'unauthorised' });*/
+              return res.status(401).send({ success: false, err: 'unauthorised' }); */
         }
     }
+    /* TODO proper regex
+    const searchFields = ['name', 'description', 'category', 'subCategory', 'brand'];
+    const searchRegex = { $regex: searchterm, $options: 'i' };
+    const searchQuery = searchFields.reduce((acc, field) => {
+      acc[field] = searchRegex;
+      return acc;
+    }, {}); */
     const all = await Promise.all([
         item_model_1.itemLean
-            .find({ [searchKey]: { $regex: searchterm, $options: 'i' }, ...filter })
+            .find({ [searchKey]: { $regex: searchterm, $options: 'i' }, ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
             .skip(offset)
             .limit(limit)
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            .populate({ path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-            .populate({ path: 'companyId', model: stock_auth_server_1.companyLean, transform: (doc) => (doc.blocked ? null : doc._id) })
+            .populate([(0, stock_auth_server_1.populatePhotos)(true), (0, stock_auth_server_1.populateCompany)()])
             .lean(),
-        item_model_1.itemLean.countDocuments({ [searchKey]: { $regex: searchterm, $options: 'i' }, ...filter })
+        item_model_1.itemLean.countDocuments({ [searchKey]: { $regex: searchterm, $options: 'i' }, ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
     ]);
     const newItems = all[0].filter(item => item.companyId);
     const response = {
@@ -1230,27 +1288,55 @@ exports.itemRoutes.post('/search/:offset/:limit/:companyIdParam', async (req, re
     };
     return res.status(200).send(response);
 });
-exports.itemRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'delete'), stock_universal_server_1.deleteFiles, async (req, res) => {
+exports.itemRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'delete'), async (req, res) => {
     const { ids } = req.body;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)([...ids, ...[queryId]]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     // start by removing offers
-    await itemoffer_model_1.itemOfferMain.deleteMany({ companyId: queryId, items: { $elemMatch: { $in: ids } } });
+    /* await itemOfferMain.deleteMany({ companyId: queryId, items: { $elemMatch: { $in: ids } } }); */
+    // TODO tarack ehe
+    await itemoffer_model_1.itemOfferMain.updateOne({ ...filter, items: { $elemMatch: { $in: ids } } }, {
+        $set: { isDeleted: true }
+    });
     // also remove decoys
-    await itemdecoy_model_1.itemDecoyMain.deleteMany({ companyId: queryId, items: { $elemMatch: { $in: ids } } });
+    /* await itemDecoyMain.deleteMany({ companyId: queryId, items: { $elemMatch: { $in: ids } } }); */
+    // TODO TARC
+    await itemdecoy_model_1.itemDecoyMain.updateOne({ ...filter, items: { $elemMatch: { $in: ids } } }, {
+        $set: { isDeleted: true }
+    });
+    let filesWithDir;
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    const alltoDelete = await item_model_1.itemLean.find({ _id: { $in: ids } })
+        .populate([(0, stock_auth_server_1.populatePhotos)(true)])
+        .populate({ path: 'video', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+        .lean();
+    for (const user of alltoDelete) {
+        if (user.photos?.length > 0) {
+            filesWithDir = [...filesWithDir, ...user.photos];
+        }
+        if (user.video) {
+            filesWithDir = [...filesWithDir, ...[user.video]];
+        }
+    }
+    await (0, stock_universal_server_1.deleteAllFiles)(filesWithDir);
+    /* const deleted = await itemMain
+      .deleteMany({ _id: { $in: ids } })
+      .catch(err => {
+        itemRoutesLogger.error('deletemany - err: ', err);
+  
+        return null;
+      }); */
     const deleted = await item_model_1.itemMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .deleteMany({ _id: { $in: ids } })
+        .updateMany({ _id: { $in: ids } }, {
+        $set: { isDeleted: true }
+    })
         .catch(err => {
         itemRoutesLogger.error('deletemany - err: ', err);
         return null;
     });
     if (Boolean(deleted)) {
+        for (const val of ids) {
+            (0, stock_universal_server_1.addParentToLocals)(res, val, item_model_1.itemMain.collection.collectionName, 'trackDataDelete');
+        }
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {

@@ -1,5 +1,5 @@
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import { connectAuthDatabase, isAuthDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
+import { connectAuthDatabase, isAuthDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 
 const uniqueValidator = require('mongoose-unique-validator');
 
@@ -7,18 +7,22 @@ const uniqueValidator = require('mongoose-unique-validator');
  * Represents an email token.
  */
 export interface IEmailtoken extends Document {
+
   /**
    * The ID of the user associated with the token.
    */
   userId: string;
+
   /**
    * The token value.
    */
   token: string;
+
   /**
    * The date and time when the token was last updated.
    */
   updatedAt: string;
+
   /**
    * The date and time when the token was created.
    */
@@ -28,7 +32,7 @@ export interface IEmailtoken extends Document {
 const emailtokenSchema: Schema<IEmailtoken> = new Schema({
   userId: { type: String },
   token: { type: String, unique: true }
-}, { timestamps: true });
+}, { timestamps: true, collection: 'emailtokens' });
 
 // Apply the uniqueValidator plugin to emailtokenSchema.
 emailtokenSchema.plugin(uniqueValidator);

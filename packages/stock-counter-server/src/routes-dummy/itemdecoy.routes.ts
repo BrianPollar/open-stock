@@ -16,6 +16,7 @@ itemDecoyRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) =>
     count: req.params.limit,
     data: createMockItemDecoys(Number(req.params.limit))
   };
+
   res.status(200).send(response);
 });
 

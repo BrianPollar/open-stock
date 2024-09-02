@@ -1,8 +1,33 @@
+/// <reference types="mongoose/types/document" />
+/// <reference types="mongoose/types/models" />
+/// <reference types="mongoose/types/aggregate" />
+/// <reference types="mongoose/types/callback" />
+/// <reference types="mongoose/types/collection" />
+/// <reference types="mongoose/types/connection" />
+/// <reference types="mongoose/types/cursor" />
+/// <reference types="mongoose/types/error" />
+/// <reference types="mongoose/types/expressions" />
+/// <reference types="mongoose/types/helpers" />
+/// <reference types="mongoose/types/middlewares" />
+/// <reference types="mongoose/types/indexes" />
+/// <reference types="mongoose/types/mongooseoptions" />
+/// <reference types="mongoose/types/pipelinestage" />
+/// <reference types="mongoose/types/populate" />
+/// <reference types="mongoose/types/query" />
+/// <reference types="mongoose/types/schemaoptions" />
+/// <reference types="mongoose/types/schematypes" />
+/// <reference types="mongoose/types/session" />
+/// <reference types="mongoose/types/types" />
+/// <reference types="mongoose/types/utility" />
+/// <reference types="mongoose/types/validation" />
+/// <reference types="mongoose/types/virtuals" />
+/// <reference types="mongoose/types/inferschematype" />
+import { ItrackStamp } from '@open-stock/stock-universal';
 import { ConnectOptions, Document, Model } from 'mongoose';
 /**
  * Represents a promotional code.
  */
-export interface Ipromocode extends Document {
+export interface Ipromocode extends Document, ItrackStamp {
     /** The unique identifier of the user. */
     urId: string;
     /** The user's company ID. */
@@ -34,13 +59,17 @@ export declare let promocodeLean: Model<Ipromocode>;
  * @returns The selected promocode.
  */
 export declare const promocodeSelect: {
-    urId: number;
-    companyId: number;
     code: number;
     amount: number;
     items: number;
     roomId: number;
     used: number;
+    urId: number;
+    companyId: number;
+    trackEdit: number;
+    trackView: number;
+    isDeleted: number;
+    trackDeleted: number;
 };
 /**
  * Creates a promocode model with the specified database URL.

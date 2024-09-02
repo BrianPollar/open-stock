@@ -36,9 +36,18 @@ const companySubscriptionRoutesLogger = tracer.colorConsole({
         });
     }
 });
+/**
+ * Fires the Pesapal relegator to initiate a payment for a company subscription.
+ *
+ * @param subctn - The subscription package details.
+ * @param savedSub - The saved company subscription document.
+ * @param company - The company details.
+ * @param currUser - The current user details.
+ * @returns An object with the success status and the Pesapal order response, or an error object if the operation fails.
+ */
 const firePesapalRelegator = async (subctn, savedSub, company, currUser) => {
     const payDetails = {
-        id: savedSub._id,
+        id: savedSub._id.toString(),
         currency: 'USD',
         amount: subctn.ammount,
         description: 'Complete payments for subscription ,' + subctn.name,
@@ -65,9 +74,10 @@ const firePesapalRelegator = async (subctn, savedSub, company, currUser) => {
         return { success: false, err: response.err };
     }
     const companySub = await company_subscription_model_1.companySubscriptionMain.findByIdAndUpdate(savedSub._id);
-    companySub.pesaPalorderTrackingId = response.pesaPalOrderRes.order_tracking_id;
+    companySub.pesaPalorderTrackingId =
+        response.pesaPalOrderRes.order_tracking_id;
     let savedErr;
-    await companySub.save().catch(err => {
+    await companySub.save().catch((err) => {
         companySubscriptionRoutesLogger.error('save error', err);
         savedErr = err;
         return null;
@@ -82,6 +92,12 @@ const firePesapalRelegator = async (subctn, savedSub, company, currUser) => {
         }
     };
 };
+/**
+ * Calculates the number of days based on the provided duration.
+ *
+ * @param duration - The duration in months.
+ * @returns The number of days for the given duration.
+ */
 const getDays = (duration) => {
     let response;
     switch (duration) {
@@ -108,7 +124,7 @@ exports.getDays = getDays;
  * Router for handling companySubscription-related routes.
  */
 exports.companySubscriptionRoutes = express_1.default.Router();
-exports.companySubscriptionRoutes.post('/subscribe/:companyIdParam', stock_universal_server_1.requireAuth, company_auth_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('payments', 'create'), async (req, res) => {
+exports.companySubscriptionRoutes.post('/subscribe/:companyIdParam', stock_universal_server_1.requireAuth, company_auth_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('subscriptions', 'create'), async (req, res) => {
     companySubscriptionRoutesLogger.info('making companySubscriptionRoutes');
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -142,6 +158,9 @@ exports.companySubscriptionRoutes.post('/subscribe/:companyIdParam', stock_unive
         savedErr = err;
         return null;
     });
+    if (savedSub && savedSub._id) {
+        (0, stock_universal_server_1.addParentToLocals)(res, savedSub._id, company_subscription_model_1.companySubscriptionMain.collection.collectionName, 'makeTrackEdit');
+    }
     if (savedErr) {
         return res.status(500).send({ success: false });
     }
@@ -172,7 +191,7 @@ exports.companySubscriptionRoutes.get('/getall/:offset/:limit/:companyIdParam', 
         query = { companyId };
     }
     else {
-        query = { status: 'paid' };
+        query = { ...(0, stock_universal_server_1.makePredomFilter)(req) };
     }
     const all = await Promise.all([
         company_subscription_model_1.companySubscriptionLean
@@ -186,9 +205,12 @@ exports.companySubscriptionRoutes.get('/getall/:offset/:limit/:companyIdParam', 
         count: all[1],
         data: all[0]
     };
+    for (const val of all[0]) {
+        (0, stock_universal_server_1.addParentToLocals)(res, val._id, company_subscription_model_1.companySubscriptionMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
-exports.companySubscriptionRoutes.put('/deleteone/:companyIdParam', stock_universal_server_1.requireAuth, company_auth_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('payments', 'delete'), async (req, res) => {
+exports.companySubscriptionRoutes.put('/deleteone/:companyIdParam', stock_universal_server_1.requireAuth, company_auth_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('subscriptions', 'delete'), async (req, res) => {
     const { id } = req.body;
     const { companyId } = req.user;
     const { companyIdParam } = req.params;
@@ -197,9 +219,10 @@ exports.companySubscriptionRoutes.put('/deleteone/:companyIdParam', stock_univer
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    const deleted = await company_subscription_model_1.companySubscriptionMain.findOneAndDelete({ _id: id, companyId: queryId });
+    // const deleted = await companySubscriptionMain.findOneAndDelete({ _id: id, companyId: queryId });
+    const deleted = await company_subscription_model_1.companySubscriptionMain.updateOne({ _id: id, companyId: queryId }, { $set: { isDeleted: true } });
     if (Boolean(deleted)) {
+        (0, stock_universal_server_1.addParentToLocals)(res, id, company_subscription_model_1.companySubscriptionMain.collection.collectionName, 'trackDataDelete');
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {

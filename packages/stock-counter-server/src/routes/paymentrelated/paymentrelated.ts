@@ -1,17 +1,17 @@
-import { user } from '@open-stock/stock-auth-server';
-import { createNotifications, getCurrentNotificationSettings } from '@open-stock/stock-notif-server';
+import { user, userLean } from '@open-stock/stock-auth-server';
+import { createNotifications, getCurrentNotificationSettings, sendMail } from '@open-stock/stock-notif-server';
 import {
   Iactionwithall,
   IinvoiceRelated,
   Imainnotification,
   IpaymentRelated,
   Ireceipt,
-  Isuccess,
-  Iuser,
+  Isuccess, Iuser,
+  TinvoiceType,
   TnotifType,
   TpaymentRelatedType
 } from '@open-stock/stock-universal';
-import { makeUrId, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { addParentToLocals, makeUrId, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import * as fs from 'fs';
 import path from 'path';
 import * as tracer from 'tracer';
@@ -19,37 +19,39 @@ import { orderMain } from '../../models/order.model';
 import { paymentMain } from '../../models/payment.model';
 import { paymentRelatedLean, paymentRelatedMain } from '../../models/printables/paymentrelated/paymentrelated.model';
 import { receiptMain } from '../../models/printables/receipt.model';
+import { invoiceRelatedLean } from '../../models/printables/related/invoicerelated.model';
 import {
+  canMakeReceipt,
   deleteManyInvoiceRelated,
   makeInvoiceRelatedPdct,
   updateInvoiceRelatedPayments
 } from '../printables/related/invoicerelated';
 
 /** Logger for PaymentRelated routes */
-const paymentRelatedLogger = tracer.colorConsole(
-  {
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-      // eslint-disable-next-line no-console
-      console.log(data.output);
-      const logDir = path.join(process.cwd() + '/openstockLog/');
-      fs.mkdir(logDir, { recursive: true }, (err) => {
-        if (err) {
-          if (err) {
-            // eslint-disable-next-line no-console
-            console.log('data.output err ', err);
-          }
-        }
-      });
-      fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
+const paymentRelatedLogger = tracer.colorConsole({
+  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+  dateformat: 'HH:MM:ss.L',
+  transport(data) {
+    // eslint-disable-next-line no-console
+    console.log(data.output);
+    const logDir = path.join(process.cwd() + '/openstockLog/');
+
+    fs.mkdir(logDir, { recursive: true }, (err) => {
+      if (err) {
         if (err) {
           // eslint-disable-next-line no-console
-          console.log('raw.output err ', err);
+          console.log('data.output err ', err);
         }
-      });
-    }
-  });
+      }
+    });
+    fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
+      if (err) {
+        // eslint-disable-next-line no-console
+        console.log('raw.output err ', err);
+      }
+    });
+  }
+});
 
 /**
  * Updates the payment related information.
@@ -63,13 +65,14 @@ export const updatePaymentRelated = async(
 ): Promise<Isuccess & { id?: string }> => {
   paymentRelated.companyId = queryId;
   const isValid = verifyObjectId(paymentRelated.paymentRelated);
+
   if (!isValid) {
     return { success: false, err: 'unauthourised', status: 401 };
   }
 
   const related = await paymentRelatedMain
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .findByIdAndUpdate(paymentRelated.paymentRelated);
+
   if (!related) {
     return { success: true, status: 200 };
   }
@@ -102,13 +105,13 @@ export const updatePaymentRelated = async(
         errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
       }
+
       return errResponse;
     });
 
   if (errResponse) {
     return errResponse;
   } else {
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     return { success: true, status: 200, id: (saved as { _id: string })._id };
   }
 };
@@ -124,6 +127,7 @@ export const updatePaymentRelated = async(
  * @returns A promise that resolves to an object containing the success status and the ID of the created or updated entity.
  */
 export const relegatePaymentRelatedCreation = async(
+  res,
   paymentRelated: Required<IpaymentRelated>,
   invoiceRelated: Required<IinvoiceRelated>,
   type: 'payment' | 'order', // say payment or order
@@ -132,15 +136,15 @@ export const relegatePaymentRelatedCreation = async(
 ): Promise<Isuccess & {id?: string}> => {
   const isValid = verifyObjectId(paymentRelated.paymentRelated);
   let found;
+
   if (isValid) {
     found = await paymentRelatedLean
-      // eslint-disable-next-line @typescript-eslint/naming-convention
       .findOne({ _id: paymentRelated.paymentRelated }).lean().select({ urId: 1 });
   }
   if (!found || paymentRelated.creationType === 'solo') {
     const count = await paymentRelatedMain
-    // eslint-disable-next-line @typescript-eslint/naming-convention
       .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+
     paymentRelated.urId = makeUrId(Number(count[0]?.urId || '0'));
 
     let errResponse: Isuccess;
@@ -156,8 +160,13 @@ export const relegatePaymentRelatedCreation = async(
         errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
       }
-      return errResponse;
+
+      return err;
     });
+
+    if (saved && saved._id) {
+      addParentToLocals(res, saved._id, 'paymentrelateds', 'makeTrackEdit');
+    }
 
     if (errResponse) {
       return errResponse;
@@ -223,26 +232,29 @@ export const relegatePaymentRelatedCreation = async(
       }
 
       const notifFilters = { id: { $in: ids } };
+
       await createNotifications({
         notification,
         filters: notifFilters
       });
     }
-    // eslint-disable-next-line @typescript-eslint/naming-convention
+
     return { success: true, status: 200, id: (saved as {_id: string})._id };
+
     /** return {
       paymentRelated: saved._id as string
       // invoiceRelated: relatedId
-    };*/
+    }; */
   } else {
     await updatePaymentRelated(paymentRelated, queryId);
+
     // await updateInvoiceRelated(invoiceRelated);
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     return { success: true, status: 200, id: (paymentRelated.paymentRelated as unknown as { _id: string})._id };
+
     /** return {
       paymentRelated: paymentRelated.paymentRelated
       // invoiceRelated: invoiceRelated.invoiceRelated
-    };*/
+    }; */
   }
 };
 
@@ -294,13 +306,19 @@ export const makePaymentRelatedPdct = (
  */
 export const deleteManyPaymentRelated = async(ids: string[], queryId: string): Promise<Isuccess> => {
   const isValid = verifyObjectIds([...ids, ...[queryId]]);
+
   if (!isValid) {
     return { success: false, status: 402, err: 'unauthourised' };
   }
 
+  /* const deletedMany = await paymentRelatedMain
+    .deleteMany({ _id: { $in: ids }, companyId: queryId }); */
+
   const deletedMany = await paymentRelatedMain
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-    .deleteMany({ _id: { $in: ids }, companyId: queryId });
+    .updateMany({ _id: { $in: ids }, companyId: queryId }, {
+      $set: { isDeleted: true }
+    });
+
   if (Boolean(deletedMany)) {
     return { success: Boolean(deletedMany), status: 200 };
   } else {
@@ -326,12 +344,27 @@ export const deleteAllPayOrderLinked = async(
   await deleteManyPaymentRelated([paymentRelated], queryId);
   await deleteManyInvoiceRelated([invoiceRelated], queryId);
   if (creationType !== 'solo') {
-    await paymentMain.deleteOne({ paymentRelated });
-    await orderMain.deleteOne({ paymentRelated });
+    /* await paymentMain.deleteOne({ paymentRelated });
+    await orderMain.deleteOne({ paymentRelated }); */
+
+    await paymentMain.updateOne({ paymentRelated }, {
+      $set: { isDeleted: true }
+    });
+    await orderMain.updateOne({ paymentRelated }, {
+      $set: { isDeleted: true }
+    });
   } else if (where === 'payment') {
-    await paymentMain.deleteOne({ paymentRelated });
+    /* await paymentMain.deleteOne({ paymentRelated }); */
+
+    await paymentMain.updateOne({ paymentRelated }, {
+      $set: { isDeleted: true }
+    });
   } else if (where === 'order') {
-    await orderMain.deleteOne({ paymentRelated });
+    /* await orderMain.deleteOne({ paymentRelated }); */
+
+    await orderMain.updateOne({ paymentRelated }, {
+      $set: { isDeleted: true }
+    });
   }
 };
 
@@ -344,11 +377,19 @@ export const deleteAllPayOrderLinked = async(
  * @param queryId - The query ID.
  * @returns A promise that resolves to an object indicating the success of the operation.
  */
-export const makePaymentInstall = async(receipt: Ireceipt, relatedId: string, queryId: string) => {
+export const makePaymentInstall = async(res, receipt: Ireceipt, relatedId: string, queryId: string, creationType: TinvoiceType) => {
   // const pInstall = invoiceRelated.payments[0] as IpaymentInstall;
   if (receipt) {
+    if (creationType !== 'solo') {
+      const canMake = await canMakeReceipt(relatedId);
+
+      if (!canMake) {
+        return false;
+      }
+    }
     receipt.companyId = queryId;
     let errResponse: Isuccess;
+
     receipt.invoiceRelated = relatedId;
     const newInstal = new receiptMain(receipt);
     const savedPinstall = await newInstal.save().catch(err => {
@@ -362,14 +403,258 @@ export const makePaymentInstall = async(receipt: Ireceipt, relatedId: string, qu
         errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
       }
-      return errResponse;
+
+      return err;
     });
+
+    if (savedPinstall && savedPinstall._id) {
+      addParentToLocals(res, savedPinstall._id, 'receipts', 'makeTrackEdit');
+    }
 
     if (errResponse) {
       return errResponse;
     }
+
     await updateInvoiceRelatedPayments(savedPinstall as unknown as Ireceipt, queryId);
+
     return { success: true };
   }
+
   return { success: true };
 };
+
+
+/**
+   * Sends a notification to all users with a due date.
+   * @returns A promise that resolves to true if all notifications were sent successfully.
+   */
+export const notifyAllOnDueDate = async() => {
+  const now = new Date();
+  const withDueDate = await invoiceRelatedLean.find({})
+    .gte('toDate', now)
+    .lean();
+  const all = withDueDate.map(async(inv) => {
+    const stn = await getCurrentNotificationSettings(inv.companyId);
+
+    if (!stn.success) {
+      return false;
+    }
+    if (stn && stn['users']) {
+      const title = 'Invoice Due Date';
+      const actions: Iactionwithall[] = [{
+        operation: 'view',
+        // url: pesapalNotifRedirectUrl + route,
+        url: '/invoices',
+        action: '',
+        title
+      }];
+
+      const notification: Imainnotification = {
+        actions,
+        userId: inv.billingUserId,
+        title,
+        body: 'This is to remind you that, You are late on a product payment',
+        icon: '',
+        notifType: 'users',
+        // photo: string;
+        expireAt: '200000'
+      };
+
+      await createNotifications({
+        notification,
+        filters: null
+      });
+      const billingUser = await userLean.findOne({ _id: inv.billingUserId }).lean().select({ email: 1 });
+
+      if (!billingUser) {
+        return false;
+      }
+      const mailOptions = {
+        from: 'info@eagleinfosolutions.com',
+        to: billingUser.email,
+        subject: 'Product Due Date',
+        text: billingUser.fname + ' ' + billingUser.lname + ' Seems you are late on a payment, with',
+        html: `<!DOCTYPE html>
+        <html lang="en">
+        <head>
+<style>
+  body {
+    background: rgb(238, 238, 238);
+  }
+.main-div {
+  max-width: 400px;
+  margin: 0 auto;
+  background: #fff;
+  font-weight: normal;
+}
+  h2 {
+    text-align:center;
+    padding-top: 40px;
+  }
+
+  .body-div{
+    font-weight: lighter;
+    text-align: left;
+    width: 80%;
+    margin: 0 auto;
+    font-size: 0.8em;
+  }
+
+  .code-para{
+    font-size: 1.2em;
+  }
+
+  .last-divi {
+    padding-top: 30px;
+    text-align: center;
+    font-size: 0.7em;
+  }
+
+  .compny-divi {
+    padding-bottom: 40px;
+    text-align: center;
+    font-size: 0.7em;
+  }
+
+  .img-divi {
+    width: 75px;
+    height: 75px;
+    margin-left: calc(100% - 80px);
+  }
+
+  .img-divi-img {
+width: 100%;
+height: 100%;
+    }
+</style>
+</head>
+        <body>
+        <div class="main-div">
+          <div class="img-divi">
+            <img class="img-divi-img" src="https://eagleinfosolutions.com/dist/public/logo2.png" />
+          </div>
+        <h2>Confirm your email address<h2>
+          <div class="body-div">
+          Please review the following and to make, Oue systems have .
+
+          <p>Please enter this verification code to get started on Eagle Info Solutions:</p>
+          <p class="code-para"><b>Clearify and Eagle Info Solutions that all is okay</b> .</p>
+          <p>.</p>
+          
+          <div>Thanks,
+          Eagle Info Solutions
+          </div>
+
+          <div class="last-divi">
+            <a href="https://eagleinfosolutions.com/support">Help</a> | <a href="https://eagleinfosolutions.com/support">Contacts</a>
+          </div>
+
+          <div class="compny-divi"> Eagle Info Solutions Inc, Kampala Uganda</div>
+          </div>
+          </div>
+          </body>
+</html>`
+      };
+
+      // to user
+      await sendMail(mailOptions);
+      // to company
+      const mailOptions2 = {
+        from: 'info@eagleinfosolutions.com',
+        to: billingUser.email,
+        subject: 'Product Due Date',
+        text: billingUser.fname + ' ' + billingUser.lname + ' Seems you are late on a payment, with',
+        html: `<!DOCTYPE html>
+        <html lang="en">
+        <head>
+<style>
+  body {
+    background: rgb(238, 238, 238);
+  }
+.main-div {
+  max-width: 400px;
+  margin: 0 auto;
+  background: #fff;
+  font-weight: normal;
+}
+  h2 {
+    text-align:center;
+    padding-top: 40px;
+  }
+
+  .body-div{
+    font-weight: lighter;
+    text-align: left;
+    width: 80%;
+    margin: 0 auto;
+    font-size: 0.8em;
+  }
+
+  .code-para{
+    font-size: 1.2em;
+  }
+
+  .last-divi {
+    padding-top: 30px;
+    text-align: center;
+    font-size: 0.7em;
+  }
+
+  .compny-divi {
+    padding-bottom: 40px;
+    text-align: center;
+    font-size: 0.7em;
+  }
+
+  .img-divi {
+    width: 75px;
+    height: 75px;
+    margin-left: calc(100% - 80px);
+  }
+
+  .img-divi-img {
+width: 100%;
+height: 100%;
+    }
+</style>
+</head>
+        <body>
+        <div class="main-div">
+          <div class="img-divi">
+            <img class="img-divi-img" src="https://eagleinfosolutions.com/dist/public/logo2.png" />
+          </div>
+        <h2>Confirm your email address<h2>
+          <div class="body-div">
+          Please review the following and to make, Oue systems have .
+
+          <p>Please enter this verification code to get started on Eagle Info Solutions:</p>
+          <p class="code-para"><b>Clearify and Eagle Info Solutions that all is okay</b> .</p>
+          <p>.</p>
+          
+          <div>Thanks,
+          Eagle Info Solutions
+          </div>
+
+          <div class="last-divi">
+            <a href="https://eagleinfosolutions.com/support">Help</a> | <a href="https://eagleinfosolutions.com/support">Contacts</a>
+          </div>
+
+          <div class="compny-divi"> Eagle Info Solutions Inc, Kampala Uganda</div>
+          </div>
+          </div>
+          </body>
+</html>`
+      };
+
+      await sendMail(mailOptions2);
+    }
+
+    return true;
+  });
+
+  await Promise.all(all);
+
+  return true;
+};
+
+

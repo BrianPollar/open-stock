@@ -9,6 +9,7 @@ subscriptionPackageRoutesDummy.post('/create/:companyIdParam', (req, res) => {
 
 subscriptionPackageRoutesDummy.get('/getall', (req, res) => {
   const subscriptionPackages = createMockSubscriptionPackages(10);
+
   return res.status(200).send(subscriptionPackages);
 });
 

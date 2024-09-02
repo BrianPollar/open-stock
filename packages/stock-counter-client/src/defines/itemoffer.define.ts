@@ -1,4 +1,4 @@
-import { DatabaseAuto, IdataArrayResponse, Isuccess } from '@open-stock/stock-universal';
+import { DatabaseAuto, IdataArrayResponse, IsubscriptionFeatureState, Isuccess } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
 import { StockCounterClient } from '../stock-counter-client';
 import { Item } from './item.define';
@@ -9,6 +9,7 @@ import { Item } from './item.define';
 export class ItemOffer extends DatabaseAuto {
   /** The user ID. */
   urId: string;
+
   /** The user's company ID. */
   companyId: string;
 
@@ -62,10 +63,9 @@ export class ItemOffer extends DatabaseAuto {
     offset = 0,
     limit = 20
   ) {
-    const observer$ = StockCounterClient.ehttp.makeGet(
-      `/itemoffer/${url}/${type}/${offset}/${limit}/${companyId}`
-    );
+    const observer$ = StockCounterClient.ehttp.makeGet(`/itemoffer/${url}/${type}/${offset}/${limit}/${companyId}`);
     const offers = await lastValueFrom(observer$) as IdataArrayResponse;
+
     return {
       count: offers.count,
       offers: offers.data.map((val) => new ItemOffer(val)) };
@@ -78,10 +78,9 @@ export class ItemOffer extends DatabaseAuto {
    * @returns An instance of ItemOffer.
    */
   static async getOneItemOffer(companyId: string, id: string): Promise<ItemOffer> {
-    const observer$ = StockCounterClient.ehttp.makeGet(
-      `/itemoffer/getone/${id}`
-    );
+    const observer$ = StockCounterClient.ehttp.makeGet(`/itemoffer/getone/${id}`);
     const offer = await lastValueFrom(observer$) as ItemOffer;
+
     return new ItemOffer(offer);
   }
 
@@ -100,11 +99,12 @@ export class ItemOffer extends DatabaseAuto {
       subHeader: string;
       ammount: number;
     }
-  ): Promise<Isuccess> {
+  ): Promise<IsubscriptionFeatureState> {
     const observer$ = StockCounterClient.ehttp.makePost(`/itemoffer/create/${companyId}`, {
       itemoffer
     });
-    const added = await lastValueFrom(observer$) as Isuccess;
+    const added = await lastValueFrom(observer$) as IsubscriptionFeatureState;
+
     return added;
   }
 
@@ -118,6 +118,7 @@ export class ItemOffer extends DatabaseAuto {
     const observer$ = StockCounterClient.ehttp.makePut(`/itemoffer/deletemany/${companyId}`, {
       ids
     });
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 
@@ -133,10 +134,12 @@ export class ItemOffer extends DatabaseAuto {
       vals
     );
     const updated = await lastValueFrom(observer$) as Isuccess;
+
     if (updated.success) {
       this.items = vals.items || this.items;
       this.expireAt = vals.expireAt || this.expireAt;
     }
+
     return updated;
   }
 
@@ -146,9 +149,8 @@ export class ItemOffer extends DatabaseAuto {
    * @returns An instance of Isuccess.
    */
   async deleteItemOffer(companyId: string): Promise<Isuccess> {
-    const observer$ = StockCounterClient.ehttp.makeDelete(
-      `/itemoffer/deleteone/${this._id}/${companyId}`
-    );
+    const observer$ = StockCounterClient.ehttp.makeDelete(`/itemoffer/deleteone/${this._id}/${companyId}`);
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 }

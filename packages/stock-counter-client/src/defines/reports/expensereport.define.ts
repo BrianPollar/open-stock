@@ -5,11 +5,14 @@ import { StockCounterClient } from '../../stock-counter-client';
 import { Expense } from '../expense.define';
 
 /**
- * The `ExpenseReport` class represents an expense report object. It extends the `DatabaseAuto` class, which provides common properties like ID and timestamps. It has properties like `urId`, `totalAmount`, `date`, and `expenses`. The constructor takes in an object of type `IexpenseReport` and assigns the properties accordingly. It also converts the `expenses` array into an array of `Expense` objects. The class has several static methods for interacting with the expense report API. The `getExpenseReports` method retrieves a list of expense reports from the API. It takes optional parameters for the URL, offset, and limit of the API request. It returns an array of `ExpenseReport` objects.
+ * The `ExpenseReport` class represents an expense report object.
+ * It extends the `DatabaseAuto` class, which provides common properties
+ * like ID and timestamps. It has properties like `urId`, `totalAmount`, `date`, and `expenses`. The constructor takes in an object of type `IexpenseReport` and assigns the properties accordingly. It also converts the `expenses` array into an array of `Expense` objects. The class has several static methods for interacting with the expense report API. The `getExpenseReports` method retrieves a list of expense reports from the API. It takes optional parameters for the URL, offset, and limit of the API request. It returns an array of `ExpenseReport` objects.
  */
 export class ExpenseReport extends DatabaseAuto {
   /** The ID of the user who created the expense report. */
   urId: string;
+
   /** The user's company ID. */
   companyId: string;
 
@@ -53,6 +56,7 @@ export class ExpenseReport extends DatabaseAuto {
   ) {
     const observer$ = StockCounterClient.ehttp.makeGet(`/expensereport/${url}/${offset}/${limit}/${companyId}`);
     const expensereports = await lastValueFrom(observer$) as IdataArrayResponse;
+
     return {
       count: expensereports.count,
       expensereports: expensereports.data.map((val) => new ExpenseReport(val as IexpenseReport))
@@ -68,6 +72,7 @@ export class ExpenseReport extends DatabaseAuto {
   static async getOneExpenseReport(companyId: string, urId: string): Promise<ExpenseReport> {
     const observer$ = StockCounterClient.ehttp.makeGet(`/expensereport/getone/${urId}/${companyId}`);
     const expensereport = await lastValueFrom(observer$) as IexpenseReport;
+
     return new ExpenseReport(expensereport);
   }
 
@@ -79,6 +84,7 @@ export class ExpenseReport extends DatabaseAuto {
    */
   static async addExpenseReport(companyId: string, vals: IexpenseReport): Promise<Isuccess> {
     const observer$ = StockCounterClient.ehttp.makePost(`/expensereport/create/${companyId}`, vals);
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 
@@ -90,6 +96,7 @@ export class ExpenseReport extends DatabaseAuto {
    */
   static async deleteExpenseReports(companyId: string, ids: string[]): Promise<Isuccess> {
     const observer$ = StockCounterClient.ehttp.makePut(`/expensereport/deletemany/${companyId}`, { ids });
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 }

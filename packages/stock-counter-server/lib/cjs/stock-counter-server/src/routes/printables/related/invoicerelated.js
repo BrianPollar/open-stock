@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteAllLinked = exports.deleteManyInvoiceRelated = exports.makeInvoiceRelatedPdct = exports.relegateInvRelatedCreation = exports.updateInvoiceRelated = exports.updateInvoiceRelatedPayments = void 0;
+exports.transFormInvoiceRelatedOnStatus = exports.updateCustomerDueAmount = exports.getPaymentsTotal = exports.canMakeReceipt = exports.updateItemsInventory = exports.deleteAllLinked = exports.deleteManyInvoiceRelated = exports.makeInvoiceRelatedPdct = exports.relegateInvRelatedCreation = exports.updateInvoiceRelated = exports.updateInvoiceRelatedPayments = void 0;
 const tslib_1 = require("tslib");
 const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const stock_notif_server_1 = require("@open-stock/stock-notif-server");
@@ -8,6 +8,7 @@ const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const fs = tslib_1.__importStar(require("fs"));
 const path_1 = tslib_1.__importDefault(require("path"));
 const tracer = tslib_1.__importStar(require("tracer"));
+const item_model_1 = require("../../../models/item.model");
 const deliverynote_model_1 = require("../../../models/printables/deliverynote.model");
 const estimate_model_1 = require("../../../models/printables/estimate.model");
 const invoice_model_1 = require("../../../models/printables/invoice.model");
@@ -53,7 +54,6 @@ const updateInvoiceRelatedPayments = async (payment, queryId) => {
         return { success: false, status: 401, err: 'unauthourised' };
     }
     const related = await invoicerelated_model_1.invoiceRelatedMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .findByIdAndUpdate(payment.invoiceRelated);
     if (!related) {
         return { success: false, err: 'invoice related not found' };
@@ -61,6 +61,14 @@ const updateInvoiceRelatedPayments = async (payment, queryId) => {
     const payments = related.payments || [];
     payments.push(payment._id);
     related.payments = payments;
+    const total = await (0, exports.getPaymentsTotal)(related.payments);
+    // if is not yet paid update neccesary fields
+    if (related.status !== 'paid' && total >= related.total) {
+        await (0, exports.updateItemsInventory)(related);
+        await (0, exports.updateCustomerDueAmount)(related.billingUserId, related.total, true);
+        related.status = 'paid';
+        related.balanceDue = 0;
+    }
     let errResponse;
     const saved = await related.save()
         .catch(err => {
@@ -82,7 +90,6 @@ const updateInvoiceRelatedPayments = async (payment, queryId) => {
         return errResponse;
     }
     else {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         return { success: true, id: saved._id };
     }
 };
@@ -98,14 +105,15 @@ exports.updateInvoiceRelatedPayments = updateInvoiceRelatedPayments;
  * @param queryId - The query ID.
  * @returns A promise that resolves to an object containing the success status and the updated invoice related ID.
  */
-const updateInvoiceRelated = async (invoiceRelated, queryId) => {
+const updateInvoiceRelated = async (res, invoiceRelated, queryId) => {
     const isValid = (0, stock_universal_server_1.verifyObjectId)(invoiceRelated.invoiceRelated);
     if (!isValid) {
         return { success: false, status: 401, err: 'unauthourised' };
     }
+    // !!
     const related = await invoicerelated_model_1.invoiceRelatedMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .findByIdAndUpdate(invoiceRelated.invoiceRelated);
+        .findById(invoiceRelated.invoiceRelated)
+        .lean();
     if (!related) {
         return { success: false, err: 'invoice related not found' };
     }
@@ -113,23 +121,32 @@ const updateInvoiceRelated = async (invoiceRelated, queryId) => {
     if (typeof Number(related.billingUserId) !== 'number') {
         related.billingUserId = invoiceRelated.billingUserId || related.billingUserId;
     }
-    related.creationType = invoiceRelated.creationType || related.creationType;
-    related.estimateId = invoiceRelated.estimateId || related.estimateId;
-    related.invoiceId = invoiceRelated.invoiceId || related.invoiceId;
-    related.billingUser = invoiceRelated.billingUser || related.billingUser;
-    related.items = invoiceRelated.items || related.items;
-    related.fromDate = invoiceRelated.fromDate || related.fromDate;
-    related.toDate = invoiceRelated.toDate || related.toDate;
-    related.status = invoiceRelated.status || related.status;
-    related.stage = invoiceRelated.stage || related.stage;
-    related.cost = invoiceRelated.cost || related.cost;
-    related.paymentMade = invoiceRelated.paymentMade || related.paymentMade;
-    related.tax = invoiceRelated.tax || related.tax;
-    related.balanceDue = invoiceRelated.balanceDue || related.balanceDue;
-    related.subTotal = invoiceRelated.subTotal || related.subTotal;
-    related.total = invoiceRelated.total || related.total;
+    invoiceRelated = (0, exports.transFormInvoiceRelatedOnStatus)(related, invoiceRelated);
+    const oldTotal = related.total;
+    const oldStatus = related.status;
     let errResponse;
-    const saved = await related.save()
+    const saved = await invoicerelated_model_1.invoiceRelatedMain.updateOne({
+        _id: invoiceRelated.invoiceRelated
+    }, {
+        $set: {
+            creationType: invoiceRelated.creationType || related.creationType,
+            estimateId: invoiceRelated.estimateId || related.estimateId,
+            invoiceId: invoiceRelated.invoiceId || related.invoiceId,
+            billingUser: invoiceRelated.billingUser || related.billingUser,
+            items: invoiceRelated.items || related.items,
+            fromDate: invoiceRelated.fromDate || related.fromDate,
+            toDate: invoiceRelated.toDate || related.toDate,
+            status: invoiceRelated.status || related.status,
+            stage: invoiceRelated.stage || related.stage,
+            cost: invoiceRelated.cost || related.cost,
+            paymentMade: invoiceRelated.paymentMade || related.paymentMade,
+            tax: invoiceRelated.tax || related.tax,
+            balanceDue: invoiceRelated.balanceDue || related.balanceDue,
+            subTotal: invoiceRelated.subTotal || related.subTotal,
+            total: invoiceRelated.total || related.total,
+            isDeleted: invoiceRelated.isDeleted || related.isDeleted
+        }
+    })
         .catch(err => {
         invoiceRelatedLogger.error('updateInvoiceRelated - err: ', err);
         errResponse = {
@@ -149,7 +166,15 @@ const updateInvoiceRelated = async (invoiceRelated, queryId) => {
         return errResponse;
     }
     else {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
+        if (oldStatus !== saved.status && saved.status === 'paid') {
+            await (0, exports.updateCustomerDueAmount)(saved.billingUserId, oldTotal, true);
+            await (0, exports.updateItemsInventory)(saved);
+        }
+        else if (saved.status !== 'paid') {
+            await (0, exports.updateCustomerDueAmount)(saved.billingUserId, oldTotal, true);
+            await (0, exports.updateCustomerDueAmount)(saved.billingUserId, saved.total, false);
+        }
+        (0, stock_universal_server_1.addParentToLocals)(res, related._id, 'invoicerelateds', 'makeTrackEdit');
         return { success: true, id: saved._id };
     }
 };
@@ -162,7 +187,7 @@ exports.updateInvoiceRelated = updateInvoiceRelated;
  * @param bypassNotif - Whether to bypass sending notifications.
  * @returns A promise that resolves with a success status and an optional ID.
  */
-const relegateInvRelatedCreation = async (invoiceRelated, queryId, extraNotifDesc, bypassNotif = false) => {
+const relegateInvRelatedCreation = async (res, invoiceRelated, queryId, extraNotifDesc, bypassNotif = false) => {
     invoiceRelatedLogger.debug('relegateInvRelatedCreation - invoiceRelated', invoiceRelated);
     invoiceRelated.companyId = queryId;
     const isValid = (0, stock_universal_server_1.verifyObjectId)(invoiceRelated.invoiceRelated);
@@ -186,11 +211,15 @@ const relegateInvRelatedCreation = async (invoiceRelated, queryId, extraNotifDes
                 errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
             }
-            return errResponse;
+            return err;
         });
+        if (saved && saved._id) {
+            (0, stock_universal_server_1.addParentToLocals)(res, saved._id, 'invoicerelateds', 'makeTrackEdit');
+        }
         if (errResponse) {
             return errResponse;
         }
+        await (0, exports.updateCustomerDueAmount)(newInvRelated.billingUserId, newInvRelated.total, false);
         invoiceRelatedLogger.error('AFTER SAVE');
         let route;
         let title = '';
@@ -250,11 +279,10 @@ const relegateInvRelatedCreation = async (invoiceRelated, queryId, extraNotifDes
                 filters: notifFilters
             });
         }
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         return { success: true, id: saved._id };
     }
     else {
-        await (0, exports.updateInvoiceRelated)(invoiceRelated, queryId);
+        await (0, exports.updateInvoiceRelated)(res, invoiceRelated, queryId);
         return { success: true, id: invoiceRelated.invoiceRelated };
     }
 };
@@ -284,6 +312,7 @@ const makeInvoiceRelatedPdct = (invoiceRelated, user, createdAt, extras = {}) =>
         }
     }
     return {
+        _id: invoiceRelated._id,
         companyId: invoiceRelated.companyId,
         invoiceRelated: invoiceRelated._id,
         creationType: invoiceRelated.creationType,
@@ -319,6 +348,8 @@ const makeInvoiceRelatedPdct = (invoiceRelated, user, createdAt, extras = {}) =>
         billingUserPhoto: user.profilePic,
         createdAt: createdAt || invoiceRelated.createdAt,
         payments: invoiceRelated.payments,
+        ecommerceSale: invoiceRelated.ecommerceSale,
+        ecommerceSalePercentage: invoiceRelated.ecommerceSalePercentage,
         ...extras
     };
 };
@@ -335,18 +366,34 @@ const deleteManyInvoiceRelated = async (ids, queryId) => {
     if (!isValid) {
         return { success: false, statu: 401, err: 'unauthourised' };
     }
+    /* const deleted = await invoiceRelatedMain
+      .deleteMany({ _id: { $in: ids }, companyId: queryId })
+      .catch(err => {
+        invoiceRelatedLogger.debug('deleteManyInvoiceRelated - err: ', err);
+  
+        return null;
+      }); */
     const deleted = await invoicerelated_model_1.invoiceRelatedMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .deleteMany({ _id: { $in: ids }, companyId: queryId })
+        .updateMany({ _id: { $in: ids }, companyId: queryId }, {
+        $set: { isDeleted: true }
+    })
         .catch(err => {
         invoiceRelatedLogger.debug('deleteManyInvoiceRelated - err: ', err);
         return null;
     });
     let deleted2 = true;
     if (deleted) {
+        /* deleted2 = await receiptMain
+          .deleteMany({ invoiceRelated: { $in: ids } })
+          .catch(err => {
+            invoiceRelatedLogger.error('deletemany Pinstalls - err: ', err);
+    
+            return null;
+          }); */
         deleted2 = await receipt_model_1.receiptMain
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            .deleteMany({ invoiceRelated: { $in: ids } })
+            .updateMany({ invoiceRelated: { $in: ids } }, {
+            $set: { isDeleted: true }
+        })
             .catch(err => {
             invoiceRelatedLogger.error('deletemany Pinstalls - err: ', err);
             return null;
@@ -376,18 +423,30 @@ const deleteAllLinked = async (invoiceRelated, creationType, stage, from, queryI
     }
     let changedStage;
     if (from === 'estimate') {
-        await estimate_model_1.estimateMain.deleteOne({ invoiceRelated, companyId: queryId });
+        /* await estimateMain.deleteOne({ invoiceRelated, companyId: queryId }); */
+        await estimate_model_1.estimateMain.updateOne({ invoiceRelated, companyId: queryId }, {
+            $set: { isDeleted: true }
+        });
     }
     else if (from === 'invoice') {
         changedStage = 'estimate';
-        await invoice_model_1.invoiceMain.deleteOne({ invoiceRelated, companyId: queryId });
+        /* await invoiceMain.deleteOne({ invoiceRelated, companyId: queryId }); */
+        await invoice_model_1.invoiceMain.updateOne({ invoiceRelated, companyId: queryId }, {
+            $set: { isDeleted: true }
+        });
     }
     else if (from === 'deliverynote') {
-        await deliverynote_model_1.deliveryNoteMain.deleteOne({ invoiceRelated, companyId: queryId });
+        /* await deliveryNoteMain.deleteOne({ invoiceRelated, companyId: queryId }); */
+        await deliverynote_model_1.deliveryNoteMain.updateOne({ invoiceRelated, companyId: queryId }, {
+            $set: { isDeleted: true }
+        });
         changedStage = 'invoice';
     }
     else if (from === 'receipt') {
-        await receipt_model_1.receiptMain.deleteOne({ invoiceRelated, companyId: queryId });
+        /* await receiptMain.deleteOne({ invoiceRelated, companyId: queryId }); */
+        await receipt_model_1.receiptMain.updateOne({ invoiceRelated, companyId: queryId }, {
+            $set: { isDeleted: true }
+        });
         changedStage = 'deliverynote';
     }
     let response = {
@@ -428,7 +487,7 @@ const deleteAllLinked = async (invoiceRelated, creationType, stage, from, queryI
         deliveryNoteMain.deleteOne({ invoiceRelated }),
         receiptMain.deleteOne({ invoiceRelated })
       ]);
-    }*/
+    } */
 };
 exports.deleteAllLinked = deleteAllLinked;
 /**
@@ -440,12 +499,103 @@ exports.deleteAllLinked = deleteAllLinked;
  */
 const updateRelatedStage = async (id, stage, queryId) => {
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    const related = await invoicerelated_model_1.invoiceRelatedMain.findOneAndUpdate({ _id: id, companyId: queryId });
+    const related = await invoicerelated_model_1.invoiceRelatedMain
+        .findOne({ _id: id, companyId: queryId })
+        .lean();
     if (!related) {
         return false;
     }
     related.stage = stage;
-    await related.save();
+    await invoicerelated_model_1.invoiceRelatedMain.updateOne({
+        _id: id, companyId: queryId
+    }, {
+        $set: { stage }
+    });
     return true;
 };
+const updateItemsInventory = async (related) => {
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    let relatedObj;
+    if (typeof related === 'string') {
+        relatedObj = await invoicerelated_model_1.invoiceRelatedMain.findOne({ _id: related }).lean();
+        if (!relatedObj) {
+            return false;
+        }
+    }
+    else {
+        relatedObj = related;
+    }
+    const allPromises = relatedObj.items.map(async (item) => {
+        const product = await item_model_1.itemMain.findOne({ _id: item });
+        if (!product) {
+            return false;
+        }
+        if (product.numbersInstock > 0) {
+            product.numbersInstock--; // TODO if sales on e-commerce fail undo this
+            product.soldCount++; // TODO if sales on e-commerce fail undo this
+            await product.save();
+        }
+        return true;
+    });
+    await Promise.all(allPromises);
+    return true;
+};
+exports.updateItemsInventory = updateItemsInventory;
+const canMakeReceipt = async (relatedId) => {
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    const related = await invoicerelated_model_1.invoiceRelatedMain.findOne({ _id: relatedId });
+    if (!related) {
+        return false;
+    }
+    const total = await (0, exports.getPaymentsTotal)(related.payments);
+    return total >= related.total;
+};
+exports.canMakeReceipt = canMakeReceipt;
+const getPaymentsTotal = async (payments) => {
+    const paymentsPromises = payments.map(async (payment) => {
+        const paymentDoc = await receipt_model_1.receiptMain.findOne({ _id: payment }).lean().select({ ammountRcievd: 1 });
+        if (!paymentDoc) {
+            return null;
+        }
+        return paymentDoc;
+    });
+    const allPromises = await Promise.all(paymentsPromises);
+    return allPromises.reduce((total, payment) => total + payment.ammountRcievd, 0);
+};
+exports.getPaymentsTotal = getPaymentsTotal;
+const updateCustomerDueAmount = async (userId, amount, reduce) => {
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    const billingUser = await stock_auth_server_1.user.findOne({ _id: userId });
+    if (!billingUser) {
+        return false;
+    }
+    if (billingUser.amountDue > 0) {
+        if (reduce) {
+            if (billingUser.amountDue < amount) {
+                billingUser.amountDue = 0;
+            }
+            else {
+                billingUser.amountDue -= amount;
+            }
+        }
+        else {
+            billingUser.amountDue += amount;
+        }
+    }
+    await billingUser.save();
+    return false;
+};
+exports.updateCustomerDueAmount = updateCustomerDueAmount;
+const transFormInvoiceRelatedOnStatus = (oldRelated, newRelated) => {
+    /* if (newRelated.status === oldRelated.status) {
+      return newRelated;
+    } */
+    if (oldRelated.status === 'paid') {
+        // cant change fro paid
+        newRelated.status = 'paid';
+        newRelated.balanceDue = 0;
+    }
+    return newRelated;
+};
+exports.transFormInvoiceRelatedOnStatus = transFormInvoiceRelatedOnStatus;
 //# sourceMappingURL=invoicerelated.js.map

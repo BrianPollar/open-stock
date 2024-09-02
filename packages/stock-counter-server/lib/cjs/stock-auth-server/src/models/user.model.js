@@ -4,9 +4,10 @@ exports.createUserModel = exports.userAboutSelect = exports.userAuthSelect = exp
 const tslib_1 = require("tslib");
 /* eslint-disable @typescript-eslint/no-var-requires */
 const stock_notif_server_1 = require("@open-stock/stock-notif-server");
+const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const bcrypt_1 = tslib_1.__importDefault(require("bcrypt"));
 const mongoose_1 = require("mongoose");
-const database_controller_1 = require("../controllers/database.controller");
+const database_1 = require("../utils/database");
 // Create authenticated Authy and Twilio API clients
 // const authy = require('authy')(config.authyKey);
 // const twilioClient = require('twilio')(config.accountSid, config.authToken);
@@ -47,8 +48,7 @@ const uniqueValidator = require('mongoose-unique-validator');
  * @property {Date} updatedAt - User update date.
  */
 const userSchema = new mongoose_1.Schema({
-    urId: { type: String, required: [true, 'cannot be empty.'], index: true },
-    companyId: { type: String, index: true },
+    ...stock_universal_server_1.withUrIdAndCompanySchemaObj,
     fname: { type: String, index: true },
     lname: { type: String, index: true },
     companyName: { type: String, index: true },
@@ -77,33 +77,60 @@ const userSchema = new mongoose_1.Schema({
     amountDue: { type: Number, default: 0 },
     manuallyAdded: { type: Boolean, default: false },
     userType: { type: String, default: 'eUser' }
-}, { timestamps: true });
+}, { timestamps: true, collection: 'users' });
 userSchema.index({ expireAt: 1 }, { expireAfterSeconds: 2628003 });
 // Apply the uniqueValidator plugin to userSchema.
 userSchema.plugin(uniqueValidator);
 // dealing with hasing password
-userSchema.pre('save', function (next) {
+userSchema.pre('save', async function (next) {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const user = this;
     // only hash the password if it has been modified (or is new)
     if (!user.isModified('password')) {
         return next();
     }
+    const { hash, err } = await (0, stock_universal_server_1.preSavePassword)(this.get('password'));
+    if (err) {
+        return next(err);
+    }
+    user['password'] = hash;
+    /*
     // generate a salt
-    bcrypt_1.default.genSalt(10, function (err, salt) {
+    bcrypt.genSalt(10, function(err, salt) {
+      if (err) {
+        return next(err);
+      }
+  
+      // hash the password using our new salt
+      bcrypt.hash(user['password'], salt, function(err, hash) {
+        if (err) {
+          return next(err);
+        }
+        // override the cleartext password with the hashed one
+        user['password'] = hash;
+        next();
+      });
+    }); */
+});
+userSchema.pre('updateOne', async function (next) {
+    if (this.get('password')) {
+        const { hash, err } = await (0, stock_universal_server_1.preSavePassword)(this.get('password'));
         if (err) {
             return next(err);
         }
-        // hash the password using our new salt
-        bcrypt_1.default.hash(user['password'], salt, function (err, hash) {
-            if (err) {
-                return next(err);
-            }
-            // override the cleartext password with the hashed one
-            user['password'] = hash;
-            next();
-        });
-    });
+        this.set({ password: hash });
+    }
+    (0, stock_universal_server_1.preUpdateDocExpire)(this, next);
+});
+userSchema.pre('updateMany', async function (next) {
+    if (this.get('password')) {
+        const { hash, err } = await (0, stock_universal_server_1.preSavePassword)(this.get('password'));
+        if (err) {
+            return next(err);
+        }
+        this.set({ password: hash });
+    }
+    (0, stock_universal_server_1.preUpdateDocExpire)(this, next);
 });
 userSchema.methods['comparePassword'] = function (candidatePassword, cb) {
     bcrypt_1.default.compare(candidatePassword, this.password, function (err, isMatch) {
@@ -130,7 +157,7 @@ userSchema.methods['sendAuthyToken'] = function (cb) {
           sendToken(this.authyId).then((resp) => cb.call(this, null, resp)).catch(err => cb.call(this, err));
         });
       }).catch(err => cb.call(this, err));
-    } else {*/
+    } else { */
     // Otherwise send token to a known user
     (0, stock_notif_server_1.sendToken)(this.phone, this.countryCode, 'Your Verification Token Is').then((resp) => cb.call(this, null, resp)).catch(err => cb.call(this, err));
     // }
@@ -197,7 +224,7 @@ userSchema.methods['toJSONFor'] = function () {
     };
 };
 const userAuthselect = {
-    urId: 1,
+    ...stock_universal_server_1.withUrIdAndCompanySelectObj,
     fname: 1,
     lname: 1,
     companyName: 1,
@@ -229,7 +256,7 @@ const userAuthselect = {
     photos: 1
 };
 const useraboutSelect = {
-    urId: 1,
+    ...stock_universal_server_1.withUrIdAndCompanySelectObj,
     fname: 1,
     lname: 1,
     companyName: 1,
@@ -266,14 +293,15 @@ exports.userAboutSelect = useraboutSelect;
  * @param lean Indicates whether to create the lean user model.
  */
 const createUserModel = async (dbUrl, dbOptions, main = true, lean = true) => {
-    if (!database_controller_1.isAuthDbConnected) {
-        await (0, database_controller_1.connectAuthDatabase)(dbUrl, dbOptions);
+    (0, stock_universal_server_1.createExpireDocIndex)(userSchema);
+    if (!database_1.isAuthDbConnected) {
+        await (0, database_1.connectAuthDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.user = database_controller_1.mainConnection.model('User', userSchema);
+        exports.user = database_1.mainConnection.model('User', userSchema);
     }
     if (lean) {
-        exports.userLean = database_controller_1.mainConnectionLean.model('User', userSchema);
+        exports.userLean = database_1.mainConnectionLean.model('User', userSchema);
     }
 };
 exports.createUserModel = createUserModel;

@@ -1,16 +1,17 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 import { sendSms, sendToken, verifyAuthyToken } from '@open-stock/stock-notif-server';
 import { Iuser } from '@open-stock/stock-universal';
+import { createExpireDocIndex, preSavePassword, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
 import bcrypt from 'bcrypt';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import { connectAuthDatabase, isAuthDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
+import { connectAuthDatabase, isAuthDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 // Create authenticated Authy and Twilio API clients
 // const authy = require('authy')(config.authyKey);
 // const twilioClient = require('twilio')(config.accountSid, config.authToken);
 const uniqueValidator = require('mongoose-unique-validator');
 
 
-interface IschemaMethods {
+export interface IschemaMethods {
   comparePassword: (...args) => void;
   sendAuthyToken: (...args) => void;
   verifyAuthyToken: (...args) => void;
@@ -22,6 +23,7 @@ interface IschemaMethods {
 
 
 export type Tuser = Document & Iuser & IschemaMethods;
+
 /**
  * User schema definition.
  * @typedef {Object} Tuser
@@ -57,49 +59,51 @@ export type Tuser = Document & Iuser & IschemaMethods;
  * @property {Date} createdAt - User creation date.
  * @property {Date} updatedAt - User update date.
  */
-const userSchema: Schema<Tuser> = new Schema({
-  urId: { type: String, required: [true, 'cannot be empty.'], index: true },
-  companyId: { type: String, index: true },
-  fname: { type: String, index: true },
-  lname: { type: String, index: true },
-  companyName: { type: String, index: true },
-  salutation: { type: String },
-  extraCompanyDetails: { type: String },
-  userDispNameFormat: { type: String, default: 'firstLast' },
-  address: [],
-  billing: [],
-  profilePic: { type: String },
-  profileCoverPic: { type: String },
-  photos: [{ type: String }],
-  age: { type: String },
-  gender: { type: String },
-  admin: { type: Boolean, default: false },
-  permissions: {},
-  email: { type: String },
-  phone: { type: Number },
-  expireAt: { type: String },
-  verified: { type: Boolean, default: false },
-  // authyId: { type: String },
-  password: { type: String },
-  fromsocial: { type: Boolean },
-  socialframework: { type: String },
-  socialId: { type: String },
-  countryCode: { type: String, default: '+256' },
-  amountDue: { type: Number, default: 0 },
-  manuallyAdded: { type: Boolean, default: false },
-  userType: { type: String, default: 'eUser' }
-},
-{ timestamps: true }
+const userSchema: Schema<Tuser> = new Schema(
+  {
+    ...withUrIdAndCompanySchemaObj,
+    fname: { type: String, index: true },
+    lname: { type: String, index: true },
+    companyName: { type: String, index: true },
+    salutation: { type: String },
+    extraCompanyDetails: { type: String },
+    userDispNameFormat: { type: String, default: 'firstLast' },
+    address: [],
+    billing: [],
+    profilePic: { type: String },
+    profileCoverPic: { type: String },
+    photos: [{ type: String }],
+    age: { type: String },
+    gender: { type: String },
+    admin: { type: Boolean, default: false },
+    permissions: {},
+    email: { type: String },
+    phone: { type: Number },
+    expireAt: { type: String },
+    verified: { type: Boolean, default: false },
+    // authyId: { type: String },
+    password: { type: String },
+    fromsocial: { type: Boolean },
+    socialframework: { type: String },
+    socialId: { type: String },
+    countryCode: { type: String, default: '+256' },
+    amountDue: { type: Number, default: 0 },
+    manuallyAdded: { type: Boolean, default: false },
+    userType: { type: String, default: 'eUser' }
+  },
+  { timestamps: true, collection: 'users' }
 );
 
-userSchema.index({ expireAt: 1 },
-  { expireAfterSeconds: 2628003 });
+userSchema.index(
+  { expireAt: 1 },
+  { expireAfterSeconds: 2628003 }
+);
 
 // Apply the uniqueValidator plugin to userSchema.
 userSchema.plugin(uniqueValidator);
 
 // dealing with hasing password
-userSchema.pre('save', function(next) {
+userSchema.pre('save', async function(next) {
   // eslint-disable-next-line @typescript-eslint/no-this-alias
   const user = this;
 
@@ -108,6 +112,15 @@ userSchema.pre('save', function(next) {
     return next();
   }
 
+  const { hash, err } = await preSavePassword(this.get('password'));
+
+  if (err) {
+    return next(err);
+  }
+
+  user['password'] = hash;
+
+  /*
   // generate a salt
   bcrypt.genSalt(10, function(err, salt) {
     if (err) {
@@ -123,7 +136,35 @@ userSchema.pre('save', function(next) {
       user['password'] = hash;
       next();
     });
-  });
+  }); */
+});
+
+userSchema.pre('updateOne', async function(next) {
+  if (this.get('password')) {
+    const { hash, err } = await preSavePassword(this.get('password'));
+
+    if (err) {
+      return next(err);
+    }
+
+    this.set({ password: hash });
+  }
+
+  preUpdateDocExpire(this, next);
+});
+
+userSchema.pre('updateMany', async function(next) {
+  if (this.get('password')) {
+    const { hash, err } = await preSavePassword(this.get('password'));
+
+    if (err) {
+      return next(err);
+    }
+
+    this.set({ password: hash });
+  }
+
+  preUpdateDocExpire(this, next);
 });
 
 userSchema.methods['comparePassword'] = function(candidatePassword, cb) {
@@ -152,7 +193,7 @@ userSchema.methods['sendAuthyToken'] = function(cb) {
         sendToken(this.authyId).then((resp) => cb.call(this, null, resp)).catch(err => cb.call(this, err));
       });
     }).catch(err => cb.call(this, err));
-  } else {*/
+  } else { */
   // Otherwise send token to a known user
   sendToken(
     this.phone,
@@ -233,7 +274,7 @@ userSchema.methods['toJSONFor'] = function() {
 };
 
 const userAuthselect = {
-  urId: 1,
+  ...withUrIdAndCompanySelectObj,
   fname: 1,
   lname: 1,
   companyName: 1,
@@ -266,7 +307,7 @@ const userAuthselect = {
 };
 
 const useraboutSelect = {
-  urId: 1,
+  ...withUrIdAndCompanySelectObj,
   fname: 1,
   lname: 1,
   companyName: 1,
@@ -316,6 +357,7 @@ export const userAboutSelect = useraboutSelect;
  * @param lean Indicates whether to create the lean user model.
  */
 export const createUserModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
+  createExpireDocIndex(userSchema);
   if (!isAuthDbConnected) {
     await connectAuthDatabase(dbUrl, dbOptions);
   }

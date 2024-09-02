@@ -1,5 +1,5 @@
 
-/** The  connectAuthDatabase  function connects to the authentication database by creating the required models.*/
+/** The  connectAuthDatabase  function connects to the authentication database by creating the required models. */
 import { ConnectOptions } from 'mongoose';
 import { createCompanyModel } from './models/company.model';
 import { createEmailtokenModel } from './models/emailtoken.model';

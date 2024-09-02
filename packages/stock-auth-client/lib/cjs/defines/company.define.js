@@ -6,7 +6,9 @@ const rxjs_1 = require("rxjs");
 const stock_auth_client_1 = require("../stock-auth-client");
 const user_define_1 = require("./user.define");
 /**
- * Represents a company and extends the DatabaseAuto class. It has properties that correspond to the fields in the company object, and methods for updating, deleting, and managing the company's profile, addresses, and permissions.
+ * Represents a company and extends the DatabaseAuto class. It has properties that
+ * correspond to the fields in the company object, and methods for updating, deleting, a
+ * nd managing the company's profile, addresses, and permissions.
  */
 class Company extends stock_universal_1.DatabaseAuto {
     /**
@@ -127,7 +129,6 @@ class Company extends stock_universal_1.DatabaseAuto {
      */
     async deleteImages(companyId, filesWithDir) {
         const observer$ = stock_auth_client_1.StockAuthClient.ehttp
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             .makePut(`/company/deleteimages/${companyId}`, { filesWithDir, company: { _id: this._id } });
         const deleted = await (0, rxjs_1.lastValueFrom)(observer$);
         // eslint-disable-next-line @typescript-eslint/no-unsafe-return
@@ -143,7 +144,6 @@ class Company extends stock_universal_1.DatabaseAuto {
     async deleteCompany(companyId) {
         const observer$ = stock_auth_client_1.StockAuthClient.ehttp
             .makePut(`/company/deleteone/${companyId}`, {
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             _id: this._id,
             filesWithDir: [{
                     filename: this.profilePic
@@ -178,6 +178,7 @@ class Company extends stock_universal_1.DatabaseAuto {
             this.dateLeft = data.dateLeft || this.dateLeft;
             this.blocked = data.blocked || this.blocked;
             this.verified = data.verified || this.verified;
+            this.address = data.address || this.address;
             this.owner = typeof data.owner === 'object' ? new user_define_1.User(data.owner) : data.owner;
         }
     }

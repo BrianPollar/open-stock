@@ -1,24 +1,29 @@
+import { createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
 import { Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
+import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 const expenseSchema = new Schema({
-    urId: { type: String },
-    companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
+    ...withUrIdAndCompanySchemaObj,
     name: { type: String, required: [true, 'cannot be empty.'], index: true },
     person: { type: String },
     cost: { type: Number, required: [true, 'cannot be empty.'], index: true },
     category: { type: String },
     note: { type: String },
     items: []
-}, { timestamps: true });
+}, { timestamps: true, collection: 'expenses' });
+expenseSchema.pre('updateOne', function (next) {
+    return preUpdateDocExpire(this, next);
+});
+expenseSchema.pre('updateMany', function (next) {
+    return preUpdateDocExpire(this, next);
+});
 // Apply the uniqueValidator plugin to expenseSchema.
 expenseSchema.plugin(uniqueValidator);
 /** primary selection object
  * for expense
  */
 const expenseselect = {
-    urId: 1,
-    companyId: 1,
+    ...withUrIdAndCompanySelectObj,
     name: 1,
     person: 1,
     cost: 1,
@@ -46,6 +51,7 @@ export const expenseSelect = expenseselect;
  * @param lean Whether to create the model for the lean connection.
  */
 export const createExpenseModel = async (dbUrl, dbOptions, main = true, lean = true) => {
+    createExpireDocIndex(expenseSchema);
     if (!isStockDbConnected) {
         await connectStockDatabase(dbUrl, dbOptions);
     }

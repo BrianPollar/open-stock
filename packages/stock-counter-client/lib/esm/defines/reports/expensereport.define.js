@@ -3,7 +3,9 @@ import { lastValueFrom } from 'rxjs';
 import { StockCounterClient } from '../../stock-counter-client';
 import { Expense } from '../expense.define';
 /**
- * The `ExpenseReport` class represents an expense report object. It extends the `DatabaseAuto` class, which provides common properties like ID and timestamps. It has properties like `urId`, `totalAmount`, `date`, and `expenses`. The constructor takes in an object of type `IexpenseReport` and assigns the properties accordingly. It also converts the `expenses` array into an array of `Expense` objects. The class has several static methods for interacting with the expense report API. The `getExpenseReports` method retrieves a list of expense reports from the API. It takes optional parameters for the URL, offset, and limit of the API request. It returns an array of `ExpenseReport` objects.
+ * The `ExpenseReport` class represents an expense report object.
+ * It extends the `DatabaseAuto` class, which provides common properties
+ * like ID and timestamps. It has properties like `urId`, `totalAmount`, `date`, and `expenses`. The constructor takes in an object of type `IexpenseReport` and assigns the properties accordingly. It also converts the `expenses` array into an array of `Expense` objects. The class has several static methods for interacting with the expense report API. The `getExpenseReports` method retrieves a list of expense reports from the API. It takes optional parameters for the URL, offset, and limit of the API request. It returns an array of `ExpenseReport` objects.
  */
 export class ExpenseReport extends DatabaseAuto {
     /**

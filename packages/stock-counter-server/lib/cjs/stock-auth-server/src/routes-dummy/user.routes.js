@@ -28,7 +28,6 @@ exports.userAuthRoutesDummy.post('/signup', (req, res) => {
     const response = {
         status: 200,
         success: true,
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         _id: '_id',
         phone: '077477484999'
     };

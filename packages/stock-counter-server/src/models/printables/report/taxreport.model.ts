@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-type-arguments */
 import { ItaxReport } from '@open-stock/stock-universal';
+import { createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../../controllers/database.controller';
+import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 
 /**
@@ -10,23 +11,29 @@ const uniqueValidator = require('mongoose-unique-validator');
 export type TtaxReport = Document & ItaxReport;
 
 const taxReportSchema: Schema<TtaxReport> = new Schema({
-  urId: { type: String },
-  companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
+  ...withUrIdAndCompanySchemaObj,
   totalAmount: { type: Number },
   date: { type: Date },
   estimates: [],
   invoiceRelateds: []
-}, { timestamps: true });
+}, { timestamps: true, collection: 'taxreports' });
 
 // Apply the uniqueValidator plugin to taxReportSchema.
 taxReportSchema.plugin(uniqueValidator);
+
+taxReportSchema.pre('updateOne', function(next) {
+  return preUpdateDocExpire(this, next);
+});
+
+taxReportSchema.pre('updateMany', function(next) {
+  return preUpdateDocExpire(this, next);
+});
 
 /** primary selection object
  * for taxReport
  */
 const taxReportselect = {
-  urId: 1,
-  companyId: 1,
+  ...withUrIdAndCompanySelectObj,
   totalAmount: 1,
   date: 1,
   estimates: 1,
@@ -42,10 +49,10 @@ export let taxReportMain: Model<TtaxReport>;
  * Represents a lean tax report model.
  */
 export let taxReportLean: Model<TtaxReport>;
+
 /** primary selection object
  * for taxReport
  */
-
 export const taxReportSelect = taxReportselect;
 
 
@@ -57,6 +64,7 @@ export const taxReportSelect = taxReportselect;
  * @param lean Whether to create the lean connection or not. Defaults to true.
  */
 export const createTaxReportModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
+  createExpireDocIndex(taxReportSchema);
   if (!isStockDbConnected) {
     await connectStockDatabase(dbUrl, dbOptions);
   }

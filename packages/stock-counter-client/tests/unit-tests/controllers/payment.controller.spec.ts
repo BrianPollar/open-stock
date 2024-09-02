@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable no-undefined */
-import { vi, expect, describe, beforeEach, it } from 'vitest';
+import Axios from 'axios-observable';
+import { of } from 'rxjs';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PaymentController } from '../../../../stock-counter-client/src/controllers/payment.controller';
 import { StockCounterClient } from '../../../../stock-counter-client/src/stock-counter-client';
-import { of } from 'rxjs';
-import Axios from 'axios-observable';
-import { createMockCarts, createMockDeliveryCity, createMockDeliveryCitys } from '../../../../tests/stock-counter-mocks';
 import { createMockAddress } from '../../../../tests/stock-auth-mocks';
+import { createMockCarts, createMockDeliveryCity, createMockDeliveryCitys } from '../../../../tests/stock-counter-mocks';
 
 describe('PaymentController', () => {
   let instance: PaymentController;
@@ -28,6 +28,7 @@ describe('PaymentController', () => {
 
   it('#calculateTargetPriceOrShipping to return price without shipping', () => {
     const calculated = instance.calculateTargetPriceOrShipping(false, createMockCarts(10), createMockDeliveryCity(), null);
+
     expect(typeof calculated).toBe('object');
     expect(calculated).toHaveProperty('totalCost');
     expect(calculated).toHaveProperty('res');
@@ -38,6 +39,7 @@ describe('PaymentController', () => {
 
   it('#calculateTargetPriceOrShipping to return shipping only', () => {
     const calculated = instance.calculateTargetPriceOrShipping(true, createMockCarts(10), createMockDeliveryCity(), null);
+
     expect(typeof calculated).toBe('object');
     expect(calculated).toHaveProperty('totalCost');
     expect(calculated).toHaveProperty('res');
@@ -49,6 +51,7 @@ describe('PaymentController', () => {
 
   it('#calculateTargetPriceAndShipping to return price with shipping', () => {
     const calculated = instance.calculateTargetPriceAndShipping(createMockCarts(10), createMockDeliveryCity(), null);
+
     expect(typeof calculated).toBe('object');
     expect(calculated).toHaveProperty('res');
     expect(calculated).toHaveProperty('totalCostNshipping');
@@ -66,6 +69,7 @@ describe('PaymentController', () => {
     vi.spyOn(StockCounterClient.ehttp, 'makeGet').mockImplementationOnce(() => of(createMockDeliveryCitys(10)));
     const citysArg = createMockDeliveryCitys(10);
     const city = await instance.getDeliveryCitys(companyId, citysArg);
+
     expect(typeof city).toBe('object');
     expect(city.length).toBeDefined();
   });
@@ -74,9 +78,11 @@ describe('PaymentController', () => {
     vi.spyOn(StockCounterClient.ehttp, 'makeGet').mockImplementationOnce(() => of(createMockDeliveryCitys(10)));
     const citys = createMockDeliveryCitys(10);
     const addr = createMockAddress();
+
     // @ts-ignore
     addr.city = citys[0]._id;
     const expectedDate = new Date();
+
     expectedDate.setDate(expectedDate.getDate() + 10);
     // const actualDate = await instance.determineCity(citys, addr);
     expect(typeof expectedDate).toBe('object');

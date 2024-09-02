@@ -1,4 +1,4 @@
-import { IdeleteCredentialsInvRel, Iestimate, IinvoiceRelated, Isuccess } from '@open-stock/stock-universal';
+import { IdeleteCredentialsInvRel, Iestimate, IinvoiceRelated, IsubscriptionFeatureState, Isuccess } from '@open-stock/stock-universal';
 import { InvoiceRelatedWithReceipt } from './invoice.define';
 /** The  Estimate  class extends the  InvoiceRelated  class and adds two additional properties:  fromDate  and  toDate . It also has a constructor that initializes the class properties based on the provided data. */
 /**
@@ -40,7 +40,7 @@ export declare class Estimate extends InvoiceRelatedWithReceipt {
      * @param invoiceRelated - The invoice related data to add.
      * @returns A success message.
      */
-    static addEstimate(companyId: string, estimate: Iestimate, invoiceRelated: IinvoiceRelated): Promise<Isuccess>;
+    static addEstimate(companyId: string, estimate: Iestimate, invoiceRelated: IinvoiceRelated): Promise<IsubscriptionFeatureState>;
     /**
      * Deletes multiple estimates from the server by making a PUT request with an array of delete credentials.
      * @param companyId - The ID of the company

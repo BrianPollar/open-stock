@@ -56,6 +56,7 @@ describe('Item', () => {
   it('#getItems static should get Items array', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makeGet').mockImplementationOnce(() => of(createMockItems(10)));
     const list = await Item.getItems(companyId, '/', 0, 0);
+
     expect(typeof list).toEqual('object');
     expectTypeOf(list).toEqualTypeOf<Item[]>([]);
     expect(lSpy).toHaveBeenCalled();
@@ -64,6 +65,7 @@ describe('Item', () => {
   it('#getOneItem static should get one Item', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makeGet').mockImplementationOnce(() => of(createMockItem()));
     const one = await Item.getOneItem(companyId, 'urId');
+
     expect(typeof one).toEqual('object');
     expect(one).toBeInstanceOf(Item);
     expect(lSpy).toHaveBeenCalled();
@@ -73,6 +75,7 @@ describe('Item', () => {
     // const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makePost').mockImplementationOnce(() => of({ success: true }));
     const uploadSpy = vi.spyOn(StockCounterClient.ehttp, 'uploadFiles').mockImplementationOnce(() => of({ success: true }));
     const added = await Item.addItem(companyId, createMockItem() as unknown as Iitem, []);
+
     expect(typeof added).toEqual('object');
     expect(added).toHaveProperty('success');
     expect(added.success).toEqual(true);
@@ -84,6 +87,7 @@ describe('Item', () => {
   it('#deleteItems static should delete many Items', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makePut').mockImplementationOnce(() => of({ success: true }));
     const deleted = await Item.deleteItems(companyId, ['ids'], [], 'url');
+
     expect(typeof deleted).toEqual('object');
     expect(deleted).toHaveProperty('success');
     expect(deleted.success).toEqual(true);
@@ -95,6 +99,7 @@ describe('Item', () => {
   it('#updateItem should update Item', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makePut').mockImplementationOnce(() => of({ success: true }));
     const updated = await instance.updateItem(companyId, createMockItem(), 'all');
+
     expect(typeof updated).toEqual('object');
     expect(updated).toHaveProperty('success');
     expect(updated.success).toEqual(true);
@@ -106,6 +111,7 @@ describe('Item', () => {
   it('#deleteItem should delete Item', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makePut').mockImplementationOnce(() => of({ success: true }));
     const deleted = await instance.deleteItem(companyId);
+
     expect(typeof deleted).toEqual('object');
     expect(deleted).toHaveProperty('success');
     expect(deleted.success).toEqual(true);

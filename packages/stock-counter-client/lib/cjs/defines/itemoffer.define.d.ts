@@ -1,4 +1,4 @@
-import { DatabaseAuto, Isuccess } from '@open-stock/stock-universal';
+import { DatabaseAuto, IsubscriptionFeatureState, Isuccess } from '@open-stock/stock-universal';
 import { Item } from './item.define';
 /**
  * Represents an item offer.
@@ -57,7 +57,7 @@ export declare class ItemOffer extends DatabaseAuto {
         header: string;
         subHeader: string;
         ammount: number;
-    }): Promise<Isuccess>;
+    }): Promise<IsubscriptionFeatureState>;
     /**
      * Deletes multiple item offers.
      * @param companyId - The ID of the company

@@ -42,28 +42,34 @@ exports.subscriptionPackageRoutes.post('/create', stock_universal_server_1.requi
     const subscriptionPackages = req.body;
     const newPkg = new subscription_package_model_1.subscriptionPackageMain(subscriptionPackages);
     let savedErr;
-    await newPkg.save().catch(err => {
+    const saved = await newPkg.save().catch(err => {
         subscriptionPackageRoutesLogger.error('save error', err);
         savedErr = err;
-        return null;
+        return err;
     });
     if (savedErr) {
         return res.status(500).send({ success: false });
+    }
+    if (saved && saved._id) {
+        (0, stock_universal_server_1.addParentToLocals)(res, saved._id, subscription_package_model_1.subscriptionPackageMain.collection.collectionName, 'makeTrackEdit');
     }
     return res.status(200).send({ success: true, status: 200 });
 });
 exports.subscriptionPackageRoutes.put('/updateone', stock_universal_server_1.requireAuth, superadmin_routes_1.requireSuperAdmin, async (req, res) => {
     const subscriptionPackage = req.body;
-    const subPackage = await subscription_package_model_1.subscriptionPackageLean
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .findOneAndUpdate({ _id: subscriptionPackage._id });
-    subPackage.name = subscriptionPackage.name || subPackage.name;
-    subPackage.ammount = subscriptionPackage.ammount || subPackage.ammount;
-    subPackage.duration = subscriptionPackage.duration || subPackage.duration;
-    subPackage.active = subscriptionPackage.active || subPackage.active;
-    subPackage.features = subscriptionPackage.features || subPackage.features;
+    const subPackage = await subscription_package_model_1.subscriptionPackageMain
+        .findOne({ _id: subscriptionPackage._id })
+        .lean();
     let savedErr;
-    await subPackage.save().catch(err => {
+    await subscription_package_model_1.subscriptionPackageMain.updateOne({
+        _id: subscriptionPackage._id
+    }, {
+        name: subscriptionPackage.name || subPackage.name,
+        ammount: subscriptionPackage.ammount || subPackage.ammount,
+        duration: subscriptionPackage.duration || subPackage.duration,
+        active: subscriptionPackage.active || subPackage.active,
+        features: subscriptionPackage.features || subPackage.features
+    }).catch(err => {
         subscriptionPackageRoutesLogger.error('save error', err);
         savedErr = err;
         return null;
@@ -71,19 +77,24 @@ exports.subscriptionPackageRoutes.put('/updateone', stock_universal_server_1.req
     if (savedErr) {
         return res.status(500).send({ success: false });
     }
+    (0, stock_universal_server_1.addParentToLocals)(res, subscriptionPackage._id, subscription_package_model_1.subscriptionPackageMain.collection.collectionName, 'makeTrackEdit');
     return res.status(200).send({ success: true, status: 200 });
 });
 exports.subscriptionPackageRoutes.get('/getall', async (req, res) => {
     const subscriptionPackages = await subscription_package_model_1.subscriptionPackageLean
-        .find({})
+        .find({ ...(0, stock_universal_server_1.makePredomFilter)(req) })
         .lean();
+    for (const val of subscriptionPackages) {
+        (0, stock_universal_server_1.addParentToLocals)(res, val._id, subscription_package_model_1.subscriptionPackageMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(subscriptionPackages);
 });
-exports.subscriptionPackageRoutes.put('/deleteone/:id', stock_universal_server_1.requireAuth, superadmin_routes_1.requireSuperAdmin, async (req, res) => {
+exports.subscriptionPackageRoutes.put('/deleteone/:id', stock_universal_server_1.requireAuth, async (req, res) => {
     const { id } = req.params;
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    const deleted = await subscription_package_model_1.subscriptionPackageMain.findOneAndDelete({ _id: id });
+    // const deleted = await subscriptionPackageMain.findOneAndDelete({ _id: id });
+    const deleted = await subscription_package_model_1.subscriptionPackageMain.updateOne({ _id: id }, { $set: { isDeleted: true } });
     if (Boolean(deleted)) {
+        (0, stock_universal_server_1.addParentToLocals)(res, id, subscription_package_model_1.subscriptionPackageMain.collection.collectionName, 'trackDataDelete');
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {

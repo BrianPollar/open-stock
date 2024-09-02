@@ -51,8 +51,8 @@ export class Staff extends UserBase {
      * @param {string} id - The ID of the staff member to retrieve.
      * @returns {Promise<Staff>} - A promise that resolves to a Staff instance.
      */
-    static async getOneStaff(filter) {
-        const observer$ = StockCounterClient.ehttp.makePost('/staff/getone', filter);
+    static async getOneStaff(companyId, filter) {
+        const observer$ = StockCounterClient.ehttp.makePost(`/staff/getone}/${companyId}`, filter);
         const staff = await lastValueFrom(observer$);
         return new Staff(staff);
     }

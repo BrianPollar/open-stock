@@ -1,5 +1,5 @@
+import { describe, expect, it } from 'vitest';
 import { stringifyMongooseErr } from '../../../src/constants/mongooseerrors.constant';
-import { describe, it, expect } from 'vitest';
 
 describe('stringifyMongooseErr', () => {
   it('should return a string with concatenated error messages', () => {
@@ -10,6 +10,7 @@ describe('stringifyMongooseErr', () => {
     };
     const expectedErrorMessage = 'Name must be unique, age Age is required, Email must be unique';
     const result = stringifyMongooseErr(errors);
+
     expect(result).toEqual(expectedErrorMessage);
   });
 
@@ -17,6 +18,7 @@ describe('stringifyMongooseErr', () => {
     const errors = {};
     const expectedErrorMessage = '';
     const result = stringifyMongooseErr(errors);
+
     expect(result).toEqual(expectedErrorMessage);
   });
 });

@@ -1,25 +1,30 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createSalesReportModel = exports.salesReportSelect = exports.salesReportLean = exports.salesReportMain = void 0;
+const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const mongoose_1 = require("mongoose");
-const database_controller_1 = require("../../../controllers/database.controller");
+const database_1 = require("../../../utils/database");
 const uniqueValidator = require('mongoose-unique-validator');
 const salesReportSchema = new mongoose_1.Schema({
-    urId: { type: String },
-    companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
+    ...stock_universal_server_1.withUrIdAndCompanySchemaObj,
     totalAmount: { type: Number },
     date: { type: Date },
     estimates: [],
     invoiceRelateds: []
-}, { timestamps: true });
+}, { timestamps: true, collection: 'salesreports' });
 // Apply the uniqueValidator plugin to salesReportSchema.
 salesReportSchema.plugin(uniqueValidator);
+salesReportSchema.pre('updateOne', function (next) {
+    return (0, stock_universal_server_1.preUpdateDocExpire)(this, next);
+});
+salesReportSchema.pre('updateMany', function (next) {
+    return (0, stock_universal_server_1.preUpdateDocExpire)(this, next);
+});
 /** primary selection object
  * for salesReport
  */
 const salesReportselect = {
-    urId: 1,
-    companyId: 1,
+    ...stock_universal_server_1.withUrIdAndCompanySelectObj,
     totalAmount: 1,
     date: 1,
     estimates: 1,
@@ -37,14 +42,15 @@ exports.salesReportSelect = salesReportselect;
  * @param lean Whether to create a lean connection or not. Defaults to true.
  */
 const createSalesReportModel = async (dbUrl, dbOptions, main = true, lean = true) => {
-    if (!database_controller_1.isStockDbConnected) {
-        await (0, database_controller_1.connectStockDatabase)(dbUrl, dbOptions);
+    (0, stock_universal_server_1.createExpireDocIndex)(salesReportSchema);
+    if (!database_1.isStockDbConnected) {
+        await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.salesReportMain = database_controller_1.mainConnection.model('salesReport', salesReportSchema);
+        exports.salesReportMain = database_1.mainConnection.model('salesReport', salesReportSchema);
     }
     if (lean) {
-        exports.salesReportLean = database_controller_1.mainConnectionLean.model('salesReport', salesReportSchema);
+        exports.salesReportLean = database_1.mainConnectionLean.model('salesReport', salesReportSchema);
     }
 };
 exports.createSalesReportModel = createSalesReportModel;

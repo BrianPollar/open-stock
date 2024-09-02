@@ -46,6 +46,12 @@ export class Review extends DatabaseAuto {
             reviews: reviews.data.map(val => new Review(val))
         };
     }
+    static async getRatingCount(id, rating // 0 - 10
+    ) {
+        const observer$ = StockCounterClient.ehttp.makeGet(`/review/getratingcount/${id}/${rating}`);
+        const count = await lastValueFrom(observer$);
+        return count;
+    }
     /**
      * Gets a single review by ID.
      * @param companyId - The ID of the company

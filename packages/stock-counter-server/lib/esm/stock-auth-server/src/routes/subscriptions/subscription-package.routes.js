@@ -1,4 +1,4 @@
-import { requireAuth } from '@open-stock/stock-universal-server';
+import { addParentToLocals, makePredomFilter, requireAuth } from '@open-stock/stock-universal-server';
 import express from 'express';
 import * as fs from 'fs';
 import path from 'path';
@@ -38,28 +38,34 @@ subscriptionPackageRoutes.post('/create', requireAuth, requireSuperAdmin, async 
     const subscriptionPackages = req.body;
     const newPkg = new subscriptionPackageMain(subscriptionPackages);
     let savedErr;
-    await newPkg.save().catch(err => {
+    const saved = await newPkg.save().catch(err => {
         subscriptionPackageRoutesLogger.error('save error', err);
         savedErr = err;
-        return null;
+        return err;
     });
     if (savedErr) {
         return res.status(500).send({ success: false });
+    }
+    if (saved && saved._id) {
+        addParentToLocals(res, saved._id, subscriptionPackageMain.collection.collectionName, 'makeTrackEdit');
     }
     return res.status(200).send({ success: true, status: 200 });
 });
 subscriptionPackageRoutes.put('/updateone', requireAuth, requireSuperAdmin, async (req, res) => {
     const subscriptionPackage = req.body;
-    const subPackage = await subscriptionPackageLean
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .findOneAndUpdate({ _id: subscriptionPackage._id });
-    subPackage.name = subscriptionPackage.name || subPackage.name;
-    subPackage.ammount = subscriptionPackage.ammount || subPackage.ammount;
-    subPackage.duration = subscriptionPackage.duration || subPackage.duration;
-    subPackage.active = subscriptionPackage.active || subPackage.active;
-    subPackage.features = subscriptionPackage.features || subPackage.features;
+    const subPackage = await subscriptionPackageMain
+        .findOne({ _id: subscriptionPackage._id })
+        .lean();
     let savedErr;
-    await subPackage.save().catch(err => {
+    await subscriptionPackageMain.updateOne({
+        _id: subscriptionPackage._id
+    }, {
+        name: subscriptionPackage.name || subPackage.name,
+        ammount: subscriptionPackage.ammount || subPackage.ammount,
+        duration: subscriptionPackage.duration || subPackage.duration,
+        active: subscriptionPackage.active || subPackage.active,
+        features: subscriptionPackage.features || subPackage.features
+    }).catch(err => {
         subscriptionPackageRoutesLogger.error('save error', err);
         savedErr = err;
         return null;
@@ -67,19 +73,24 @@ subscriptionPackageRoutes.put('/updateone', requireAuth, requireSuperAdmin, asyn
     if (savedErr) {
         return res.status(500).send({ success: false });
     }
+    addParentToLocals(res, subscriptionPackage._id, subscriptionPackageMain.collection.collectionName, 'makeTrackEdit');
     return res.status(200).send({ success: true, status: 200 });
 });
 subscriptionPackageRoutes.get('/getall', async (req, res) => {
     const subscriptionPackages = await subscriptionPackageLean
-        .find({})
+        .find({ ...makePredomFilter(req) })
         .lean();
+    for (const val of subscriptionPackages) {
+        addParentToLocals(res, val._id, subscriptionPackageMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(subscriptionPackages);
 });
-subscriptionPackageRoutes.put('/deleteone/:id', requireAuth, requireSuperAdmin, async (req, res) => {
+subscriptionPackageRoutes.put('/deleteone/:id', requireAuth, async (req, res) => {
     const { id } = req.params;
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    const deleted = await subscriptionPackageMain.findOneAndDelete({ _id: id });
+    // const deleted = await subscriptionPackageMain.findOneAndDelete({ _id: id });
+    const deleted = await subscriptionPackageMain.updateOne({ _id: id }, { $set: { isDeleted: true } });
     if (Boolean(deleted)) {
+        addParentToLocals(res, id, subscriptionPackageMain.collection.collectionName, 'trackDataDelete');
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {

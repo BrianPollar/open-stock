@@ -7,17 +7,17 @@ import {
   Iitem,
   Imainnotification,
   Ireceipt,
-  Isuccess,
-  Iuser,
+  Isuccess, Iuser,
   TestimateStage,
   TinvoiceType,
   // TnotifType
   TnotifType
 } from '@open-stock/stock-universal';
-import { stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { addParentToLocals, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import * as fs from 'fs';
 import path from 'path';
 import * as tracer from 'tracer';
+import { itemMain } from '../../../models/item.model';
 import { deliveryNoteLean, deliveryNoteMain } from '../../../models/printables/deliverynote.model';
 import { estimateLean, estimateMain } from '../../../models/printables/estimate.model';
 import { invoiceLean, invoiceMain } from '../../../models/printables/invoice.model';
@@ -28,30 +28,30 @@ import { invoiceRelatedLean, invoiceRelatedMain } from '../../../models/printabl
 /**
  * Logger for the 'InvoiceRelated' routes.
  */
-const invoiceRelatedLogger = tracer.colorConsole(
-  {
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-      // eslint-disable-next-line no-console
-      console.log(data.output);
-      const logDir = path.join(process.cwd() + '/openstockLog/');
-      fs.mkdir(logDir, { recursive: true }, (err) => {
-        if (err) {
-          if (err) {
-            // eslint-disable-next-line no-console
-            console.log('data.output err ', err);
-          }
-        }
-      });
-      fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
+const invoiceRelatedLogger = tracer.colorConsole({
+  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+  dateformat: 'HH:MM:ss.L',
+  transport(data) {
+    // eslint-disable-next-line no-console
+    console.log(data.output);
+    const logDir = path.join(process.cwd() + '/openstockLog/');
+
+    fs.mkdir(logDir, { recursive: true }, (err) => {
+      if (err) {
         if (err) {
           // eslint-disable-next-line no-console
-          console.log('raw.output err ', err);
+          console.log('data.output err ', err);
         }
-      });
-    }
-  });
+      }
+    });
+    fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
+      if (err) {
+        // eslint-disable-next-line no-console
+        console.log('raw.output err ', err);
+      }
+    });
+  }
+});
 
 /**
  * Updates the payments related to an invoice.
@@ -62,20 +62,31 @@ const invoiceRelatedLogger = tracer.colorConsole(
  */
 export const updateInvoiceRelatedPayments = async(payment: Ireceipt, queryId: string): Promise<Isuccess & { id?: string }> => {
   const isValid = verifyObjectId(payment.invoiceRelated);
+
   if (!isValid) {
     return { success: false, status: 401, err: 'unauthourised' };
   }
 
   const related = await invoiceRelatedMain
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     .findByIdAndUpdate(payment.invoiceRelated);
+
   if (!related) {
     return { success: false, err: 'invoice related not found' };
   }
 
   const payments = related.payments || [];
+
   payments.push(payment._id as string & Ireceipt);
   related.payments = payments;
+  const total = await getPaymentsTotal(related.payments as string[]);
+
+  // if is not yet paid update neccesary fields
+  if (related.status !== 'paid' && total >= related.total) {
+    await updateItemsInventory(related);
+    await updateCustomerDueAmount(related.billingUserId, related.total, true);
+    related.status = 'paid';
+    related.balanceDue = 0;
+  }
   let errResponse: Isuccess;
   const saved = await related.save()
     .catch(err => {
@@ -90,12 +101,13 @@ export const updateInvoiceRelatedPayments = async(payment: Ireceipt, queryId: st
         errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
       }
+
       return errResponse;
     });
+
   if (errResponse) {
     return errResponse;
   } else {
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     return { success: true, id: (saved as { _id: string})._id };
   }
 };
@@ -111,15 +123,18 @@ export const updateInvoiceRelatedPayments = async(payment: Ireceipt, queryId: st
  * @param queryId - The query ID.
  * @returns A promise that resolves to an object containing the success status and the updated invoice related ID.
  */
-export const updateInvoiceRelated = async(invoiceRelated: Required<IinvoiceRelated>, queryId: string): Promise<Isuccess& { id?: string }> => {
+export const updateInvoiceRelated = async(res, invoiceRelated: Required<IinvoiceRelated>, queryId: string): Promise<Isuccess& { id?: string }> => {
   const isValid = verifyObjectId(invoiceRelated.invoiceRelated);
+
   if (!isValid) {
     return { success: false, status: 401, err: 'unauthourised' };
   }
 
+  // !!
   const related = await invoiceRelatedMain
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    .findByIdAndUpdate(invoiceRelated.invoiceRelated);
+    .findById(invoiceRelated.invoiceRelated)
+    .lean();
+
   if (!related) {
     return { success: false, err: 'invoice related not found' };
   }
@@ -129,24 +144,35 @@ export const updateInvoiceRelated = async(invoiceRelated: Required<IinvoiceRelat
     related.billingUserId = invoiceRelated.billingUserId || related.billingUserId;
   }
 
-  related.creationType = invoiceRelated.creationType || related.creationType;
-  related.estimateId = invoiceRelated.estimateId || related.estimateId;
-  related.invoiceId = invoiceRelated.invoiceId || related.invoiceId;
-  related.billingUser = invoiceRelated.billingUser || related.billingUser;
-  related.items = invoiceRelated.items || related.items;
-  related.fromDate = invoiceRelated.fromDate || related.fromDate;
-  related.toDate = invoiceRelated.toDate || related.toDate;
-  related.status = invoiceRelated.status || related.status;
-  related.stage = invoiceRelated.stage || related.stage;
-  related.cost = invoiceRelated.cost || related.cost;
-  related.paymentMade = invoiceRelated.paymentMade || related.paymentMade;
-  related.tax = invoiceRelated.tax || related.tax;
-  related.balanceDue = invoiceRelated.balanceDue || related.balanceDue;
-  related.subTotal = invoiceRelated.subTotal || related.subTotal;
-  related.total = invoiceRelated.total || related.total;
+  invoiceRelated = transFormInvoiceRelatedOnStatus(related, invoiceRelated);
+
+  const oldTotal = related.total;
+  const oldStatus = related.status;
 
   let errResponse: Isuccess;
-  const saved = await related.save()
+  const saved = await invoiceRelatedMain.updateOne({
+    _id: invoiceRelated.invoiceRelated
+  }, {
+    $set: {
+      creationType: invoiceRelated.creationType || related.creationType,
+      estimateId: invoiceRelated.estimateId || related.estimateId,
+      invoiceId: invoiceRelated.invoiceId || related.invoiceId,
+      billingUser: invoiceRelated.billingUser || related.billingUser,
+      items: invoiceRelated.items || related.items,
+      fromDate: invoiceRelated.fromDate || related.fromDate,
+      toDate: invoiceRelated.toDate || related.toDate,
+      status: invoiceRelated.status || related.status,
+      stage: invoiceRelated.stage || related.stage,
+      cost: invoiceRelated.cost || related.cost,
+      paymentMade: invoiceRelated.paymentMade || related.paymentMade,
+      tax: invoiceRelated.tax || related.tax,
+      balanceDue: invoiceRelated.balanceDue || related.balanceDue,
+      subTotal: invoiceRelated.subTotal || related.subTotal,
+      total: invoiceRelated.total || related.total,
+      isDeleted: invoiceRelated.isDeleted || related.isDeleted
+
+    }
+  })
     .catch(err => {
       invoiceRelatedLogger.error('updateInvoiceRelated - err: ', err);
       errResponse = {
@@ -159,13 +185,24 @@ export const updateInvoiceRelated = async(invoiceRelated: Required<IinvoiceRelat
         errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
       }
+
       return errResponse;
     });
 
   if (errResponse) {
     return errResponse;
   } else {
-    // eslint-disable-next-line @typescript-eslint/naming-convention
+    if (oldStatus !== (saved as IinvoiceRelated).status && (saved as IinvoiceRelated).status === 'paid') {
+      await updateCustomerDueAmount((saved as IinvoiceRelated).billingUserId, oldTotal, true);
+      await updateItemsInventory((saved as IinvoiceRelated));
+    } else if ((saved as IinvoiceRelated).status !== 'paid') {
+      await updateCustomerDueAmount((saved as IinvoiceRelated).billingUserId, oldTotal, true);
+      await updateCustomerDueAmount((saved as IinvoiceRelated).billingUserId, (saved as IinvoiceRelated).total, false);
+    }
+
+    addParentToLocals(res, related._id, 'invoicerelateds', 'makeTrackEdit');
+
+
     return { success: true, id: (saved as unknown as { _id: string})._id };
   }
 };
@@ -179,6 +216,7 @@ export const updateInvoiceRelated = async(invoiceRelated: Required<IinvoiceRelat
  * @returns A promise that resolves with a success status and an optional ID.
  */
 export const relegateInvRelatedCreation = async(
+  res,
   invoiceRelated: Required<IinvoiceRelated>,
   queryId: string,
   extraNotifDesc: string,
@@ -188,6 +226,7 @@ export const relegateInvRelatedCreation = async(
   invoiceRelated.companyId = queryId;
   const isValid = verifyObjectId(invoiceRelated.invoiceRelated);
   let found;
+
   if (isValid) {
     found = await invoiceRelatedLean
       .findById(invoiceRelated.invoiceRelated).lean().select({ urId: 1 });
@@ -207,12 +246,19 @@ export const relegateInvRelatedCreation = async(
         errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
       }
-      return errResponse;
+
+      return err;
     });
+
+    if (saved && saved._id) {
+      addParentToLocals(res, saved._id, 'invoicerelateds', 'makeTrackEdit');
+    }
 
     if (errResponse) {
       return errResponse;
     }
+
+    await updateCustomerDueAmount(newInvRelated.billingUserId, newInvRelated.total, false);
 
     invoiceRelatedLogger.error('AFTER SAVE');
 
@@ -274,16 +320,17 @@ export const relegateInvRelatedCreation = async(
       }
 
       const notifFilters = { id: { $in: ids } };
+
       await createNotifications({
         notification,
         filters: notifFilters
       });
     }
 
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     return { success: true, id: (saved as {_id: string})._id };
   } else {
-    await updateInvoiceRelated(invoiceRelated, queryId);
+    await updateInvoiceRelated(res, invoiceRelated, queryId);
+
     return { success: true, id: invoiceRelated.invoiceRelated };
   }
 };
@@ -300,6 +347,7 @@ export const relegateInvRelatedCreation = async(
  */
 export const makeInvoiceRelatedPdct = (invoiceRelated: Required<IinvoiceRelated>, user: Iuser, createdAt?: Date, extras = {}) => {
   let names = user.salutation ? user.salutation + ' ' + user.fname + ' ' + user.lname : user.fname + ' ' + user.lname;
+
   if (user.userDispNameFormat) {
     switch (user.userDispNameFormat) {
       case 'firstLast':
@@ -313,7 +361,9 @@ export const makeInvoiceRelatedPdct = (invoiceRelated: Required<IinvoiceRelated>
         break;
     }
   }
+
   return {
+    _id: invoiceRelated._id,
     companyId: invoiceRelated.companyId,
     invoiceRelated: invoiceRelated._id,
     creationType: invoiceRelated.creationType,
@@ -348,6 +398,8 @@ export const makeInvoiceRelatedPdct = (invoiceRelated: Required<IinvoiceRelated>
     billingUserPhoto: user.profilePic,
     createdAt: createdAt || invoiceRelated.createdAt,
     payments: invoiceRelated.payments,
+    ecommerceSale: invoiceRelated.ecommerceSale,
+    ecommerceSalePercentage: invoiceRelated.ecommerceSalePercentage,
     ...extras
   };
 };
@@ -362,25 +414,47 @@ export const makeInvoiceRelatedPdct = (invoiceRelated: Required<IinvoiceRelated>
  */
 export const deleteManyInvoiceRelated = async(ids: string[], queryId: string) => {
   const isValid = verifyObjectIds([...ids, ...[queryId]]);
+
   if (!isValid) {
     return { success: false, statu: 401, err: 'unauthourised' };
   }
 
-  const deleted = await invoiceRelatedMain
-  // eslint-disable-next-line @typescript-eslint/naming-convention
+  /* const deleted = await invoiceRelatedMain
     .deleteMany({ _id: { $in: ids }, companyId: queryId })
     .catch(err => {
       invoiceRelatedLogger.debug('deleteManyInvoiceRelated - err: ', err);
+
+      return null;
+    }); */
+
+  const deleted = await invoiceRelatedMain
+    .updateMany({ _id: { $in: ids }, companyId: queryId }, {
+      $set: { isDeleted: true }
+    })
+    .catch(err => {
+      invoiceRelatedLogger.debug('deleteManyInvoiceRelated - err: ', err);
+
       return null;
     });
 
   let deleted2 = true;
+
   if (deleted) {
-    deleted2 = await receiptMain
-    // eslint-disable-next-line @typescript-eslint/naming-convention
+    /* deleted2 = await receiptMain
       .deleteMany({ invoiceRelated: { $in: ids } })
       .catch(err => {
         invoiceRelatedLogger.error('deletemany Pinstalls - err: ', err);
+
+        return null;
+      }); */
+
+    deleted2 = await receiptMain
+      .updateMany({ invoiceRelated: { $in: ids } }, {
+        $set: { isDeleted: true }
+      })
+      .catch(err => {
+        invoiceRelatedLogger.error('deletemany Pinstalls - err: ', err);
+
         return null;
       });
   }
@@ -410,15 +484,30 @@ export const deleteAllLinked = async(invoiceRelated: string, creationType: Tinvo
   let changedStage: TestimateStage;
 
   if (from === 'estimate') {
-    await estimateMain.deleteOne({ invoiceRelated, companyId: queryId });
+    /* await estimateMain.deleteOne({ invoiceRelated, companyId: queryId }); */
+
+    await estimateMain.updateOne({ invoiceRelated, companyId: queryId }, {
+      $set: { isDeleted: true }
+    });
   } else if (from === 'invoice') {
     changedStage = 'estimate';
-    await invoiceMain.deleteOne({ invoiceRelated, companyId: queryId });
+
+    /* await invoiceMain.deleteOne({ invoiceRelated, companyId: queryId }); */
+
+    await invoiceMain.updateOne({ invoiceRelated, companyId: queryId }, {
+      $set: { isDeleted: true }
+    });
   } else if (from === 'deliverynote') {
-    await deliveryNoteMain.deleteOne({ invoiceRelated, companyId: queryId });
+    /* await deliveryNoteMain.deleteOne({ invoiceRelated, companyId: queryId }); */
+    await deliveryNoteMain.updateOne({ invoiceRelated, companyId: queryId }, {
+      $set: { isDeleted: true }
+    });
     changedStage = 'invoice';
   } else if (from === 'receipt') {
-    await receiptMain.deleteOne({ invoiceRelated, companyId: queryId });
+    /* await receiptMain.deleteOne({ invoiceRelated, companyId: queryId }); */
+    await receiptMain.updateOne({ invoiceRelated, companyId: queryId }, {
+      $set: { isDeleted: true }
+    });
     changedStage = 'deliverynote';
   }
 
@@ -434,17 +523,20 @@ export const deleteAllLinked = async(invoiceRelated: string, creationType: Tinvo
     if (creationType === 'halfChained') {
       if (stage === 'invoice') {
         const exist = await estimateLean.findOne({ invoiceRelated });
+
         if (!exist) {
           response = await deleteManyInvoiceRelated([invoiceRelated], queryId);
         }
       }
       if (stage === 'deliverynote') {
         const exist = await invoiceLean.findOne({ invoiceRelated });
+
         if (!exist) {
           response = await deleteManyInvoiceRelated([invoiceRelated], queryId);
         }
       } else if (stage === 'receipt') {
         const exist = await deliveryNoteLean.findOne({ invoiceRelated });
+
         if (!exist) {
           response = await deleteManyInvoiceRelated([invoiceRelated], queryId);
         }
@@ -461,7 +553,7 @@ export const deleteAllLinked = async(invoiceRelated: string, creationType: Tinvo
       deliveryNoteMain.deleteOne({ invoiceRelated }),
       receiptMain.deleteOne({ invoiceRelated })
     ]);
-  }*/
+  } */
 };
 
 /**
@@ -473,11 +565,121 @@ export const deleteAllLinked = async(invoiceRelated: string, creationType: Tinvo
  */
 const updateRelatedStage = async(id: string, stage: TestimateStage, queryId: string) => {
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  const related = await invoiceRelatedMain.findOneAndUpdate({ _id: id, companyId: queryId });
+  const related = await invoiceRelatedMain
+    .findOne({ _id: id, companyId: queryId })
+    .lean();
+
   if (!related) {
     return false;
   }
   related.stage = stage;
-  await related.save();
+  await invoiceRelatedMain.updateOne({
+    _id: id, companyId: queryId
+  }, {
+    $set: { stage }
+  });
+
   return true;
 };
+
+
+export const updateItemsInventory = async(related: string | IinvoiceRelated) => {
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  let relatedObj: IinvoiceRelated;
+
+  if (typeof related === 'string') {
+    relatedObj = await invoiceRelatedMain.findOne({ _id: related }).lean();
+    if (!relatedObj) {
+      return false;
+    }
+  } else {
+    relatedObj = related;
+  }
+
+  const allPromises = relatedObj.items.map(async(item) => {
+    const product = await itemMain.findOne({ _id: item });
+
+    if (!product) {
+      return false;
+    }
+    if (product.numbersInstock > 0) {
+      product.numbersInstock--; // TODO if sales on e-commerce fail undo this
+      product.soldCount++; // TODO if sales on e-commerce fail undo this
+      await product.save();
+    }
+
+    return true;
+  });
+
+  await Promise.all(allPromises);
+
+  return true;
+};
+
+
+export const canMakeReceipt = async(relatedId: string): Promise<boolean> => {
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  const related = await invoiceRelatedMain.findOne({ _id: relatedId });
+
+  if (!related) {
+    return false;
+  }
+
+  const total = await getPaymentsTotal(related.payments as string[]);
+
+  return total >= related.total;
+};
+
+
+export const getPaymentsTotal = async(payments: string[]) => {
+  const paymentsPromises = payments.map(async(payment) => {
+    const paymentDoc = await receiptMain.findOne({ _id: payment }).lean().select({ ammountRcievd: 1 });
+
+    if (!paymentDoc) {
+      return null;
+    }
+
+    return paymentDoc;
+  });
+
+  const allPromises = await Promise.all(paymentsPromises);
+
+  return allPromises.reduce((total, payment) => total + payment.ammountRcievd, 0);
+};
+
+export const updateCustomerDueAmount = async(userId: string, amount: number, reduce: boolean) => {
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  const billingUser = await user.findOne({ _id: userId });
+
+  if (!billingUser) {
+    return false;
+  }
+  if (billingUser.amountDue > 0) {
+    if (reduce) {
+      if (billingUser.amountDue < amount) {
+        billingUser.amountDue = 0;
+      } else {
+        billingUser.amountDue -= amount;
+      }
+    } else {
+      billingUser.amountDue += amount;
+    }
+  }
+  await billingUser.save();
+
+  return false;
+};
+
+export const transFormInvoiceRelatedOnStatus = (oldRelated: IinvoiceRelated, newRelated: IinvoiceRelated) => {
+  /* if (newRelated.status === oldRelated.status) {
+    return newRelated;
+  } */
+  if (oldRelated.status === 'paid') {
+    // cant change fro paid
+    newRelated.status = 'paid';
+    newRelated.balanceDue = 0;
+  }
+
+  return newRelated as Required<IinvoiceRelated>;
+};
+

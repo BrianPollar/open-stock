@@ -1,6 +1,6 @@
-import { checkDirectoryExists } from '../../../src/filemanager/filemanager.controller';
 import fse from 'fs-extra';
-import { vi, describe, it, expect, afterEach } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { checkDirectoryExists } from '../../../src/filemanager/filemanager.controller';
 
 describe('checkDirectoryExists', () => {
   afterEach(() => {
@@ -21,15 +21,16 @@ describe('checkDirectoryExists', () => {
     // Mock the access function to simulate directory not existing
     /* fse.access.mockImplementation((path, callback) => {
       callback(err);
-    });*/
+    }); */
     // Mock the mkdir function to simulate successful directory creation
     /* fse.mkdir.mockImplementation((path, callback) => {
       callback(null);
-    });*/
+    }); */
     const mkdirSpy = vi.spyOn(fse, 'mkdir').mockImplementation((path, callback) => {
       callback(null);
     });
     const result = await checkDirectoryExists(absolutepath, dir);
+
     expect(accessSpy).toHaveBeenCalledWith('/path/to/directory/mydir', expect.any(Function));
     expect(mkdirSpy).toHaveBeenCalledWith('/path/to/directory/mydir', expect.any(Function));
     expect(result).toBe('created');
@@ -44,6 +45,7 @@ describe('checkDirectoryExists', () => {
     });
     const mkdirSpy = vi.spyOn(fse, 'mkdir');
     const result = await checkDirectoryExists(absolutepath, dir);
+
     expect(accessSpy).toHaveBeenCalledWith('/path/to/directory/mydir', expect.any(Function));
     expect(mkdirSpy).not.toHaveBeenCalled();
     expect(result).toBe('exists');
@@ -58,6 +60,7 @@ describe('checkDirectoryExists', () => {
     });
     const mkdirSpy = vi.spyOn(fse, 'mkdir');
     const result = await checkDirectoryExists(absolutepath, dir);
+
     expect(accessSpy).toHaveBeenCalledWith('/path/to/directory/mydir', expect.any(Function));
     expect(mkdirSpy).not.toHaveBeenCalled();
     expect(result).toBeTruthy();
@@ -80,6 +83,7 @@ describe('checkDirectoryExists', () => {
       callback(new Error('Some error'));
     });
     const result = await checkDirectoryExists(absolutepath, dir);
+
     expect(accessSpy).toHaveBeenCalledWith('/path/to/directory/mydir', expect.any(Function));
     expect(mkdirSpy).toHaveBeenCalledWith('/path/to/directory/mydir', expect.any(Function));
     expect(result).toBe('created');

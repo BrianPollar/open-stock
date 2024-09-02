@@ -1,22 +1,27 @@
+import { createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
 import { Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../../controllers/database.controller';
+import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 const profitandlossReportSchema = new Schema({
-    urId: { type: String },
-    companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
+    ...withUrIdAndCompanySchemaObj,
     totalAmount: { type: Number },
     date: { type: Date },
     expenses: [],
     invoiceRelateds: []
-}, { timestamps: true });
+}, { timestamps: true, collection: 'profitandlossreports' });
 // Apply the uniqueValidator plugin to profitandlossReportSchema.
 profitandlossReportSchema.plugin(uniqueValidator);
+profitandlossReportSchema.pre('updateOne', function (next) {
+    return preUpdateDocExpire(this, next);
+});
+profitandlossReportSchema.pre('updateMany', function (next) {
+    return preUpdateDocExpire(this, next);
+});
 /** primary selection object
  * for profitandlossReport
  */
 const profitandlossReportselect = {
-    urId: 1,
-    companyId: 1,
+    ...withUrIdAndCompanySelectObj,
     totalAmount: 1,
     date: 1,
     expenses: 1,
@@ -41,6 +46,7 @@ export const profitandlossReportSelect = profitandlossReportselect;
  * @param lean - Whether to create the lean connection model. Defaults to true.
  */
 export const createProfitandlossReportModel = async (dbUrl, dbOptions, main = true, lean = true) => {
+    createExpireDocIndex(profitandlossReportSchema);
     if (!isStockDbConnected) {
         await connectStockDatabase(dbUrl, dbOptions);
     }

@@ -27,7 +27,7 @@ export declare const saveMetaToDb: (req: any, res: any, next: any) => Promise<an
  * @param next - The next middleware function.
  */
 export declare const updateFiles: (req: any, res: any, next: any) => void;
-export declare const deleteAllFiles: (filesWithDir: IfileMeta[]) => Promise<boolean>;
+export declare const deleteAllFiles: (filesWithDir: IfileMeta[], directlyRemove?: boolean) => Promise<boolean>;
 /**
  * Deletes files from the server.
  * @param req - The request object.
@@ -35,7 +35,7 @@ export declare const deleteAllFiles: (filesWithDir: IfileMeta[]) => Promise<bool
  * @param next - The next middleware function.
  * @returns A Promise that resolves when the files are deleted.
  */
-export declare const deleteFiles: (req: any, res: any, next: any) => Promise<any>;
+export declare const deleteFiles: (directlyRemove?: boolean) => (req: any, res: any, next: any) => Promise<any>;
 /**
  * Retrieves and downloads a single file.
  * @param req - The request object.
@@ -49,3 +49,4 @@ export declare const getOneFile: (req: any, res: any) => any;
  * @param res - The response object.
  */
 export declare const returnLazyFn: (req: any, res: any) => any;
+export declare const removeBg: (imageSrc: string) => Promise<unknown>;

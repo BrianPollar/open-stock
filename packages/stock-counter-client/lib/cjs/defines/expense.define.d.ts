@@ -1,4 +1,4 @@
-import { DatabaseAuto, Iexpense, Isuccess, TexpenseCategory } from '@open-stock/stock-universal';
+import { DatabaseAuto, Iexpense, IsubscriptionFeatureState, Isuccess, TexpenseCategory } from '@open-stock/stock-universal';
 import { Item } from './item.define';
 /**
  * Represents an expense.
@@ -55,9 +55,9 @@ export declare class Expense extends DatabaseAuto {
      * @async
      * @param companyId - The ID of the company
      * @param {Iexpense} vals - The values to create the expense with.
-     * @returns {Promise<Isuccess>} A success response.
+     * @returns {Promise<IsubscriptionFeatureState>} A success response.
      */
-    static addExpense(companyId: string, vals: Iexpense): Promise<Isuccess>;
+    static addExpense(companyId: string, vals: Iexpense): Promise<IsubscriptionFeatureState>;
     /**
      * Deletes multiple expenses from the server.
      * @static

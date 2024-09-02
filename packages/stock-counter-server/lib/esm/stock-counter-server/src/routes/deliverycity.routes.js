@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
-import { requireSuperAdmin } from '@open-stock/stock-auth-server';
-import { offsetLimitRelegator, requireAuth, stringifyMongooseErr, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { requireActiveCompany } from '@open-stock/stock-auth-server';
+import { addParentToLocals, appendUserToReqIfTokenExist, makePredomFilter, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import * as fs from 'fs';
 import path from 'path';
@@ -47,7 +47,7 @@ export const deliverycityRoutes = express.Router();
  * @param {Object} req.body.deliverycity - Delivery city object to create
  * @returns {Object} - Returns a success object with a boolean indicating if the city was saved successfully
  */
-deliverycityRoutes.post('/create/:companyIdParam', requireAuth, requireSuperAdmin, async (req, res) => {
+deliverycityRoutes.post('/create', requireAuth, requireActiveCompany, roleAuthorisation('deliveryCitys', 'create'), async (req, res) => {
     const deliverycity = req.body.deliverycity;
     const newDeliverycity = new deliverycityMain(deliverycity);
     let errResponse;
@@ -65,10 +65,13 @@ deliverycityRoutes.post('/create/:companyIdParam', requireAuth, requireSuperAdmi
             errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
         }
-        return errResponse;
+        return err;
     });
     if (errResponse) {
         return res.status(403).send(errResponse);
+    }
+    if (saved && saved._id) {
+        addParentToLocals(res, saved._id, deliverycityMain.collection.collectionName, 'makeTrackEdit');
     }
     return res.status(200).send({ success: Boolean(saved) });
 });
@@ -83,19 +86,14 @@ deliverycityRoutes.post('/create/:companyIdParam', requireAuth, requireSuperAdmi
  * @param {string} req.params.id - ID of the delivery city to retrieve
  * @returns {Object} - Returns the delivery city object
  */
-deliverycityRoutes.get('/getone/:id/:companyIdParam', async (req, res) => {
+deliverycityRoutes.get('/getone/:id', appendUserToReqIfTokenExist, async (req, res) => {
     const { id } = req.params;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = verifyObjectIds([id, queryId]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
     const deliverycity = await deliverycityLean
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .findOne({ _id: id, companyId: queryId })
+        .findOne({ _id: id })
         .lean();
+    if (deliverycity) {
+        addParentToLocals(res, deliverycity._id, deliverycityMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(deliverycity);
 });
 /**
@@ -110,11 +108,11 @@ deliverycityRoutes.get('/getone/:id/:companyIdParam', async (req, res) => {
  * @param {string} req.params.limit - Limit for pagination
  * @returns {Object[]} - Returns an array of delivery city objects
  */
-deliverycityRoutes.get('/getall/:offset/:limit/:companyIdParam', async (req, res) => {
+deliverycityRoutes.get('/getall/:offset/:limit/:companyIdParam', appendUserToReqIfTokenExist, async (req, res) => {
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     const all = await Promise.all([
         deliverycityLean
-            .find({})
+            .find({ isDeleted: false })
             .skip(offset)
             .limit(limit)
             .lean(),
@@ -124,6 +122,9 @@ deliverycityRoutes.get('/getall/:offset/:limit/:companyIdParam', async (req, res
         count: all[1],
         data: all[0]
     };
+    for (const val of all[0]) {
+        addParentToLocals(res, val._id, deliverycityMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
 /**
@@ -137,24 +138,30 @@ deliverycityRoutes.get('/getall/:offset/:limit/:companyIdParam', async (req, res
  * @param {Object} req.body - Updated delivery city object
  * @returns {Object} - Returns a success object with a boolean indicating if the city was updated successfully
  */
-deliverycityRoutes.put('/update/:companyIdParam', requireAuth, requireSuperAdmin, async (req, res) => {
+deliverycityRoutes.put('/update', requireAuth, requireActiveCompany, roleAuthorisation('deliveryCitys', 'update'), async (req, res) => {
     const updatedCity = req.body;
     const isValid = verifyObjectIds([updatedCity._id]);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const deliverycity = await deliverycityMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .findOneAndUpdate({ _id: updatedCity._id });
+        .findOne({ _id: updatedCity._id, ...makePredomFilter(req) })
+        .lean();
     if (!deliverycity) {
         return res.status(404).send({ success: false });
     }
-    deliverycity.name = updatedCity.name || deliverycity.name;
-    deliverycity.shippingCost = updatedCity.shippingCost || deliverycity.shippingCost;
-    deliverycity.currency = updatedCity.currency || deliverycity.currency;
-    deliverycity.deliversInDays = updatedCity.deliversInDays || deliverycity.deliversInDays;
     let errResponse;
-    const updated = await deliverycity.save()
+    const updated = await deliverycityMain.updateOne({
+        _id: updatedCity._id
+    }, {
+        $set: {
+            name: updatedCity.name || deliverycity.name,
+            shippingCost: updatedCity.shippingCost || deliverycity.shippingCost,
+            currency: updatedCity.currency || deliverycity.currency,
+            deliversInDays: updatedCity.deliversInDays || deliverycity.deliversInDays,
+            isDeleted: updatedCity.isDeleted || deliverycity.isDeleted
+        }
+    })
         .catch(err => {
         deliverycityRoutesLogger.error('update - err: ', err);
         errResponse = {
@@ -173,6 +180,7 @@ deliverycityRoutes.put('/update/:companyIdParam', requireAuth, requireSuperAdmin
     if (errResponse) {
         return res.status(403).send(errResponse);
     }
+    addParentToLocals(res, updatedCity._id, deliverycityMain.collection.collectionName, 'makeTrackEdit');
     return res.status(200).send({ success: Boolean(updated) });
 });
 /**
@@ -186,15 +194,17 @@ deliverycityRoutes.put('/update/:companyIdParam', requireAuth, requireSuperAdmin
  * @param {string} req.params.id - ID of the delivery city to delete
  * @returns {Object} - Returns a success object with a boolean indicating if the city was deleted successfully
  */
-deliverycityRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, requireSuperAdmin, async (req, res) => {
+deliverycityRoutes.delete('/deleteone/:id', requireAuth, requireActiveCompany, roleAuthorisation('deliveryCitys', 'delete'), async (req, res) => {
     const { id } = req.params;
     const isValid = verifyObjectIds([id]);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    const deleted = await deliverycityMain.findOneAndDelete({ _id: id });
+    // const deleted = await deliverycityMain.findOneAndDelete({ _id: id });
+    const deleted = await deliverycityMain.updateOne({ _id: id, ...makePredomFilter(req) }, { $set: { isDeleted: true } });
     if (Boolean(deleted)) {
+        addParentToLocals(res, id, deliverycityMain.collection.collectionName, 'trackDataDelete');
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
@@ -212,20 +222,31 @@ deliverycityRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, require
  * @param {string[]} req.body.ids - Array of IDs of the delivery cities to delete
  * @returns {Object} - Returns a success object with a boolean indicating if the cities were deleted successfully
  */
-deliverycityRoutes.put('/deletemany/:companyIdParam', requireAuth, requireSuperAdmin, async (req, res) => {
+deliverycityRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('deliveryCitys', 'delete'), async (req, res) => {
     const { ids } = req.body;
     const isValid = verifyObjectIds([...ids]);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
+    /* const deleted = await deliverycityMain
+      .deleteMany({ _id: { $in: ids } })
+      .catch(err => {
+        deliverycityRoutesLogger.error('deletemany - err: ', err);
+  
+        return null;
+      }); */
     const deleted = await deliverycityMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .deleteMany({ _id: { $in: ids } })
+        .updateMany({ _id: { $in: ids } }, {
+        $set: { isDeleted: true }
+    })
         .catch(err => {
         deliverycityRoutesLogger.error('deletemany - err: ', err);
         return null;
     });
     if (Boolean(deleted)) {
+        for (const val of ids) {
+            addParentToLocals(res, val, deliverycityMain.collection.collectionName, 'trackDataDelete');
+        }
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {

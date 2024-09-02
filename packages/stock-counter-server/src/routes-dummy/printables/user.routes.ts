@@ -72,6 +72,7 @@ authRoutesDummy.get('/getusers/:where/:offset/:limit/:companyIdParam', (req, res
     count: req.params.limit,
     data: []
   };
+
   res.status(200).send(response);
 });
 

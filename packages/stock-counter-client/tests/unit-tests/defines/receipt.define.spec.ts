@@ -1,11 +1,11 @@
 // //TODO LATER AT convienience
-import { vi, expect, describe, beforeEach, it, expectTypeOf } from 'vitest';
-import { Receipt } from '../../../../stock-counter-client/src/defines/receipt.define';
-import { } from '../../../../stock-counter-client/src/defines/invoice.define';
 import Axios from 'axios-observable';
-import { StockCounterClient } from '../../../../stock-counter-client/src/stock-counter-client';
 import { of } from 'rxjs';
-import { createMockReceipt, createMockReceipts, createMockInvoiceRelated } from '../../../../tests/stock-counter-mocks';
+import { beforeEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
+import { } from '../../../../stock-counter-client/src/defines/invoice.define';
+import { Receipt } from '../../../../stock-counter-client/src/defines/receipt.define';
+import { StockCounterClient } from '../../../../stock-counter-client/src/stock-counter-client';
+import { createMockInvoiceRelated, createMockReceipt, createMockReceipts } from '../../../../tests/stock-counter-mocks';
 
 vi.mock('../../../../stock-counter-client/src/defines/invoice.define');
 
@@ -39,6 +39,7 @@ describe('Receipt', () => {
   it('#getReceipts static should get Receipts array', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makeGet').mockImplementationOnce(() => of(createMockReceipts(10)));
     const list = await Receipt.getReceipts(companyId, '/', 0, 0);
+
     expect(typeof list).toEqual('object');
     expectTypeOf(list).toEqualTypeOf<Receipt[]>([]);
     expect(lSpy).toHaveBeenCalled();
@@ -47,6 +48,7 @@ describe('Receipt', () => {
   it('#getOneReceipt static should get one Receipt', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makeGet').mockImplementationOnce(() => of(createMockReceipt()));
     const one = await Receipt.getOneReceipt(companyId, 'urId');
+
     expect(typeof one).toEqual('object');
     expect(one).toBeInstanceOf(Receipt);
     expect(lSpy).toHaveBeenCalled();
@@ -57,7 +59,9 @@ describe('Receipt', () => {
     const added = await Receipt.addReceipt(
       companyId,
       createMockReceipt(),
-      createMockInvoiceRelated());
+      createMockInvoiceRelated()
+    );
+
     expect(typeof added).toEqual('object');
     expect(added).toHaveProperty('success');
     expect(added.success).toEqual(true);
@@ -69,6 +73,7 @@ describe('Receipt', () => {
   it('#deleteReceipts static should delete many Receipts', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makePut').mockImplementationOnce(() => of({ success: true }));
     const deleted = await Receipt.deleteReceipts(companyId, []);
+
     expect(typeof deleted).toEqual('object');
     expect(deleted).toHaveProperty('success');
     expect(deleted.success).toEqual(true);
@@ -82,7 +87,9 @@ describe('Receipt', () => {
     const updated = await instance.updateReciept(
       companyId,
       createMockReceipt(),
-      createMockInvoiceRelated());
+      createMockInvoiceRelated()
+    );
+
     expect(typeof updated).toEqual('object');
     expect(updated).toHaveProperty('success');
     expect(updated.success).toEqual(true);

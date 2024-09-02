@@ -1,12 +1,10 @@
 import { createPaymentRelatedModel } from './models/printables/paymentrelated/paymentrelated.model';
-// import { createPaymentInstallModel } from './models/printables/paymentrelated/paymentsinstalls.model';
 import { createDeliverycityModel } from './models/deliverycity.model';
 import { createExpenseModel } from './models/expense.model';
 import { createFaqModel } from './models/faq.model';
 import { createFaqanswerModel } from './models/faqanswer.model';
 import { createItemModel } from './models/item.model';
 import { createItemDecoyModel } from './models/itemdecoy.model';
-import { createItemLimittedModel } from './models/itemlimitted.model';
 import { createItemOfferModel } from './models/itemoffer.model';
 import { createOrderModel } from './models/order.model';
 import { createPaymentModel } from './models/payment.model';
@@ -23,10 +21,13 @@ import { createProfitandlossReportModel } from './models/printables/report/profi
 import { createSalesReportModel } from './models/printables/report/salesreport.model';
 import { createTaxReportModel } from './models/printables/report/taxreport.model';
 import { createInvoiceSettingModel } from './models/printables/settings/invoicesettings.model';
+import { createUserWalletHistoryModel } from './models/printables/wallet/user-wallet-history.model';
+import { createUserWalletModel } from './models/printables/wallet/user-wallet.model';
 import { createPromocodeModel } from './models/promocode.model';
 import { createReviewModel } from './models/review.model';
 import { createCustomerModel } from './models/user-related/customer.model';
 import { createStaffModel } from './models/user-related/staff.model';
+import { createUserBehaviourModel } from './models/user-related/user-behaviour.model';
 /**
  * Indicates whether the stock counter server is currently running.
  */
@@ -35,13 +36,15 @@ export let isStockCounterServerRunning = false;
  * The redirect URL for Pesapal notifications.
  */
 export let pesapalNotifRedirectUrl = '';
+export let ecommerceRevenuePercentage = 0;
 /**
  * Creates stock counter server locals.
  * @param notifRedirectUrl - The notification redirect URL.
  */
-export const createStockCounterServerLocals = (notifRedirectUrl) => {
+export const createStockCounterServerLocals = (notifRedirectUrl, ecommerceRevenuePerntge, trackUsersBool = true) => {
     isStockCounterServerRunning = true;
     pesapalNotifRedirectUrl = notifRedirectUrl;
+    ecommerceRevenuePercentage = ecommerceRevenuePerntge;
 };
 /**
  * Connects to the Stock Counter database.
@@ -79,7 +82,9 @@ export const connectStockCounterDatabase = (databaseUrl, dbOptions) => {
         createPaymentModel(databaseUrl, dbOptions),
         createPromocodeModel(databaseUrl, dbOptions),
         createReviewModel(databaseUrl, dbOptions),
-        createItemLimittedModel(databaseUrl, dbOptions)
+        createUserBehaviourModel(databaseUrl, dbOptions),
+        createUserWalletModel(databaseUrl, dbOptions),
+        createUserWalletHistoryModel(databaseUrl, dbOptions)
     ]);
 };
 //# sourceMappingURL=stock-counter-local.js.map

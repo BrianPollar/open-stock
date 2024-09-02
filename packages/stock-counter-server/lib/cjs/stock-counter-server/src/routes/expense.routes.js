@@ -1,8 +1,8 @@
 "use strict";
-/* eslint-disable @typescript-eslint/no-misused-promises */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.expenseRoutes = void 0;
 const tslib_1 = require("tslib");
+/* eslint-disable @typescript-eslint/no-misused-promises */
 const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
@@ -49,17 +49,10 @@ exports.expenseRoutes = express_1.default.Router();
  */
 exports.expenseRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_auth_server_1.requireCanUseFeature)('expense'), (0, stock_universal_server_1.roleAuthorisation)('expenses', 'create'), async (req, res, next) => {
     const expense = req.body;
-    const { companyId } = req.user;
-    if (companyId !== 'superAdmin') {
-        const isValid = (0, stock_universal_server_1.verifyObjectId)(companyId);
-        if (!isValid) {
-            return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-        }
-    }
-    expense.companyId = companyId;
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
+    expense.companyId = filter.companyId;
     const count = await expense_model_1.expenseMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .find({ companyId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+        .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     expense.urId = (0, stock_universal_server_1.makeUrId)(Number(count[0]?.urId || '0'));
     const newExpense = new expense_model_1.expenseMain(expense);
     let errResponse;
@@ -77,10 +70,13 @@ exports.expenseRoutes.post('/create/:companyIdParam', stock_universal_server_1.r
             errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
         }
-        return errResponse;
+        return err;
     });
     if (errResponse) {
         return res.status(403).send(errResponse);
+    }
+    if (saved && saved._id) {
+        (0, stock_universal_server_1.addParentToLocals)(res, saved._id, expense_model_1.expenseMain.collection.collectionName, 'makeTrackEdit');
     }
     if (!Boolean(saved)) {
         return res.status(403).send('unknown error occered');
@@ -98,33 +94,29 @@ exports.expenseRoutes.post('/create/:companyIdParam', stock_universal_server_1.r
  */
 exports.expenseRoutes.put('/update/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('expenses', 'update'), async (req, res) => {
     const updatedExpense = req.body;
-    const { companyId } = req.user;
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     let ids;
-    if (companyId !== 'superAdmin') {
-        ids = [updatedExpense._id, companyId];
-    }
-    else {
-        ids = [updatedExpense._id];
-    }
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)(ids);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
-    updatedExpense.companyId = companyId;
+    updatedExpense.companyId = filter.companyId;
     const expense = await expense_model_1.expenseMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .findOneAndUpdate({ _id: updatedExpense._id, companyId });
+        .findOne({ _id: updatedExpense._id, ...filter })
+        .lean();
     if (!expense) {
         return res.status(404).send({ success: false });
     }
-    expense.name = updatedExpense.name || expense.name;
-    expense.person = updatedExpense.person || expense.person;
-    expense.cost = updatedExpense.cost || expense.cost;
-    expense.category = updatedExpense.category || expense.category;
-    expense.items = updatedExpense.items || expense.items;
-    expense.note = updatedExpense.note || expense.note;
     let errResponse;
-    const updated = await expense.save()
+    const updated = await expense_model_1.expenseMain.updateOne({
+        _id: updatedExpense._id, ...filter
+    }, {
+        $set: {
+            name: updatedExpense.name || expense.name,
+            person: updatedExpense.person || expense.person,
+            cost: updatedExpense.cost || expense.cost,
+            category: updatedExpense.category || expense.category,
+            items: updatedExpense.items || expense.items,
+            note: updatedExpense.note || expense.note,
+            isDeleted: updatedExpense.isDeleted || expense.isDeleted
+        }
+    })
         .catch(err => {
         expenseRoutesLogger.error('update - err: ', err);
         errResponse = {
@@ -143,6 +135,7 @@ exports.expenseRoutes.put('/update/:companyIdParam', stock_universal_server_1.re
     if (errResponse) {
         return res.status(403).send(errResponse);
     }
+    (0, stock_universal_server_1.addParentToLocals)(res, updatedExpense._id, expense_model_1.expenseMain.collection.collectionName, 'makeTrackEdit');
     return res.status(200).send({ success: Boolean(updated) });
 });
 /**
@@ -156,11 +149,13 @@ exports.expenseRoutes.put('/update/:companyIdParam', stock_universal_server_1.re
  */
 exports.expenseRoutes.get('/getone/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('expenses', 'read'), async (req, res) => {
     const { id } = req.params;
-    const { companyId } = req.user;
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     const expense = await expense_model_1.expenseLean
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .findOne({ _id: id, companyId })
+        .findOne({ _id: id, ...filter })
         .lean();
+    if (expense) {
+        (0, stock_universal_server_1.addParentToLocals)(res, expense._id, expense_model_1.expenseMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(expense);
 });
 /**
@@ -174,19 +169,22 @@ exports.expenseRoutes.get('/getone/:id/:companyIdParam', stock_universal_server_
  */
 exports.expenseRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('expenses', 'read'), async (req, res) => {
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
-    const { companyId } = req.user;
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     const all = await Promise.all([
         expense_model_1.expenseLean
-            .find({ companyId })
+            .find(filter)
             .skip(offset)
             .limit(limit)
             .lean(),
-        expense_model_1.expenseLean.countDocuments({ companyId })
+        expense_model_1.expenseLean.countDocuments(filter)
     ]);
     const response = {
         count: all[1],
         data: all[0]
     };
+    for (const val of all[0]) {
+        (0, stock_universal_server_1.addParentToLocals)(res, val._id, expense_model_1.expenseMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
 /**
@@ -200,14 +198,12 @@ exports.expenseRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_univer
  */
 exports.expenseRoutes.delete('/deleteone/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('expenses', 'delete'), async (req, res) => {
     const { id } = req.params;
-    const { companyId } = req.user;
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)([id]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    const deleted = await expense_model_1.expenseMain.findOneAndDelete({ _id: id, companyId });
+    // const deleted = await expenseMain.findOneAndDelete({ _id: id, companyId });
+    const deleted = await expense_model_1.expenseMain.updateOne({ _id: id, ...filter }, { $set: { isDeleted: true } });
     if (Boolean(deleted)) {
+        (0, stock_universal_server_1.addParentToLocals)(res, id, expense_model_1.expenseMain.collection.collectionName, 'trackDataDelete');
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
@@ -225,20 +221,23 @@ exports.expenseRoutes.delete('/deleteone/:id/:companyIdParam', stock_universal_s
  */
 exports.expenseRoutes.post('/search/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('expenses', 'read'), async (req, res) => {
     const { searchterm, searchKey } = req.body;
-    const { companyId } = req.user;
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const all = await Promise.all([
         expense_model_1.expenseLean
-            .find({ companyId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+            .find({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
             .skip(offset)
             .limit(limit)
             .lean(),
-        expense_model_1.expenseLean.countDocuments({ companyId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+        expense_model_1.expenseLean.countDocuments({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
     ]);
     const response = {
         count: all[1],
         data: all[0]
     };
+    for (const val of all[0]) {
+        (0, stock_universal_server_1.addParentToLocals)(res, val._id, expense_model_1.expenseMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
 /**
@@ -252,19 +251,30 @@ exports.expenseRoutes.post('/search/:offset/:limit/:companyIdParam', stock_unive
  */
 exports.expenseRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('expenses', 'delete'), async (req, res) => {
     const { ids } = req.body;
-    const { companyId } = req.user;
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     const isValid = (0, stock_universal_server_1.verifyObjectIds)([...ids]);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
+    /* const deleted = await expenseMain
+      .deleteMany({ _id: { $in: ids }, companyId })
+      .catch(err => {
+        expenseRoutesLogger.error('deletemany - err: ', err);
+  
+        return null;
+      }); */
     const deleted = await expense_model_1.expenseMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .deleteMany({ _id: { $in: ids }, companyId })
+        .updateMany({ _id: { $in: ids }, ...filter }, {
+        $set: { isDeleted: true }
+    })
         .catch(err => {
         expenseRoutesLogger.error('deletemany - err: ', err);
         return null;
     });
     if (Boolean(deleted)) {
+        for (const val of ids) {
+            (0, stock_universal_server_1.addParentToLocals)(res, val, expense_model_1.expenseMain.collection.collectionName, 'trackDataDelete');
+        }
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {

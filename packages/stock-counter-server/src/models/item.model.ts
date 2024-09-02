@@ -1,6 +1,7 @@
 import { Iitem } from '@open-stock/stock-universal';
+import { createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
+import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 
 /**
@@ -11,8 +12,7 @@ export type TitemModel = Document & Iitem;
 
 /** Mongoose schema for the item model */
 const itemSchema: Schema = new Schema({
-  urId: { type: String },
-  companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
+  ...withUrIdAndCompanySchemaObj,
   numbersInstock: { type: Number, required: [true, 'cannot be empty.'], index: true },
   name: { type: String, required: [true, 'cannot be empty.'], index: true },
   category: { type: String },
@@ -36,23 +36,30 @@ const itemSchema: Schema = new Schema({
   likes: [],
   likesCount: { type: Number, default: 0, index: true },
   timesViewed: { type: Number, default: 0, index: true },
-
   inventoryMeta: [],
-
-  // computer
   brand: { type: String },
-  ecomerceCompat: { type: Boolean, default: false }
-}, { timestamps: true });
+  ecomerceCompat: { type: Boolean, default: false },
+  soldCount: { type: Number, default: 0, index: true } // TODO update fields related to this
+
+}, { timestamps: true, collection: 'items' });
 
 itemSchema.index({ createdAt: -1 });
 
 // Apply the uniqueValidator plugin to itemSchema.
 itemSchema.plugin(uniqueValidator);
 
+itemSchema.pre('updateOne', function(next) {
+  return preUpdateDocExpire(this, next);
+});
+
+itemSchema.pre('updateMany', function(next) {
+  return preUpdateDocExpire(this, next);
+});
+
+
 /** Primary selection object for item */
 const itemselect = {
-  urId: 1,
-  companyId: 1,
+  ...withUrIdAndCompanySelectObj,
   numbersInstock: 1,
   name: 1,
   purchase: 1,
@@ -81,7 +88,8 @@ const itemselect = {
   timesViewed: 1,
   brand: 1,
   inventoryMeta: 1,
-  ecomerceCompat: 1
+  ecomerceCompat: 1,
+  soldCount: 1
 };
 
 /**
@@ -106,6 +114,7 @@ export const itemSelect = itemselect;
  * @param lean - Whether to create the lean connection for item operations (default: true)
  */
 export const createItemModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
+  createExpireDocIndex(itemSchema);
   if (!isStockDbConnected) {
     await connectStockDatabase(dbUrl, dbOptions);
   }

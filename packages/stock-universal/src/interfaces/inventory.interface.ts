@@ -11,7 +11,7 @@ import {
   TpayType,
   TreceiptType
 } from '../types/union.types';
-import { IdatabaseAuto, IfileMeta } from './general.interface';
+import { IdatabaseAuto, IfileMeta, ItrackStamp } from './general.interface';
 import { Iitem } from './item.interface';
 
 /**
@@ -25,7 +25,8 @@ export interface Iinvoice extends IinvoiceRelated {
 /**
  * Represents an expense in the inventory.
  */
-export interface Iexpense extends IurId {
+export interface Iexpense
+extends IurId, ItrackStamp {
   name: string;
   person: string;
   cost: number;
@@ -46,7 +47,8 @@ export interface Iprofit {
 /**
  * Represents a quotation in the inventory.
  */
-export interface Iquotation extends IdatabaseAuto {
+export interface Iquotation
+extends IdatabaseAuto, ItrackStamp {
   fnames: string;
   date: Date;
   itemQty: number;
@@ -59,7 +61,8 @@ export interface Iquotation extends IdatabaseAuto {
 }
 
 /** Represents an invoice-related object. */
-export interface IinvoiceRelated extends IdatabaseAuto {
+export interface IinvoiceRelated
+extends IdatabaseAuto, ItrackStamp {
   payType?: TpayType;
   companyId?: string;
   invoiceRelated?: string;
@@ -82,6 +85,8 @@ export interface IinvoiceRelated extends IdatabaseAuto {
   subTotal?: number;
   total?: number;
   payments?: string[] | Ireceipt[];
+  ecommerceSale?: boolean;
+  ecommerceSalePercentage?: number; // less or equal 99;
 }
 
 /** Represents an invoice-related product. */
@@ -117,7 +122,8 @@ export interface IjobCardProblem {
 }
 
 /** Represents a job card. */
-export interface IjobCard extends IurId {
+export interface IjobCard
+extends IurId, ItrackStamp {
   client: IjobCardClient;
   machine: IjobCardMachine;
   problem: IjobCardProblem;
@@ -125,12 +131,14 @@ export interface IjobCard extends IurId {
 }
 
 /** Represents an estimate. */
-export interface Iestimate extends IinvoiceRelated {
+export interface Iestimate
+extends IinvoiceRelated {
   estimateId: number;
 }
 
 /** Represents a receipt. */
-export interface Ireceipt extends IurId, IinvoiceRelated {
+export interface Ireceipt
+extends IurId, IinvoiceRelated {
   estimateId: number;
   ammountRcievd: number;
   paymentMode: string;
@@ -140,7 +148,8 @@ export interface Ireceipt extends IurId, IinvoiceRelated {
 }
 
 /** Represents a pickup location. */
-export interface IpickupLocation extends IdatabaseAuto {
+export interface IpickupLocation
+extends IdatabaseAuto, ItrackStamp {
   companyId?: string;
   name: string;
   contact: IpickupLocationContact;
@@ -154,7 +163,8 @@ export interface IpickupLocationContact {
 }
 
 /** Represents an ID. */
-export interface IurId extends IdatabaseAuto {
+export interface IurId
+extends IdatabaseAuto {
   urId?: string;
   companyId?: string;
 }
@@ -166,14 +176,16 @@ export interface IexpenseInvoiceId {
 }
 
 /** Represents an invoice-related reference. */
-export interface IinvoiceRelatedRef {
+export interface IinvoiceRelatedRef
+extends ItrackStamp {
   payType?: TpayType;
   companyId?: string;
   invoiceRelated: string | IinvoiceRelated;
 }
 
 /** Represents a report-related object. */
-export interface IreportRelated extends IurId {
+export interface IreportRelated
+extends IurId, ItrackStamp {
   date: Date;
   totalAmount: number;
 }
@@ -207,30 +219,45 @@ export interface ItaxReport extends IreportRelated {
 }
 
 /** Represents invoice settings. */
-export interface IinvoiceSetting extends IdatabaseAuto {
+export interface IinvoiceSetting
+extends IdatabaseAuto, ItrackStamp {
   generalSettings: IinvoiceSettingsGeneral;
   taxSettings: IinvoiceSettingsTax;
   bankSettings: IinvoiceSettingsBank;
+  printDetails: IinvoicePrintDetails;
 }
 
 /** Represents general settings in invoice settings. */
 export interface IinvoiceSettingsGeneral {
-  status: TinvoiceStatus;
+  status?: TinvoiceStatus;
+  currency: string;
   amount: string;
   defaultDueTime: string;
   defaultDigitalSignature: IfileMeta | string;
   defaultDigitalStamp: IfileMeta | string;
-  defaultDigitalName: string;
+  // defaultDigitalName: string;
+}
+
+export interface IinvoicePrintDetails {
+  email: string;
+  phone: string;
+  upperHeading1?: string;
+  upperHeading2?: string;
+  upperDesc: string;
+  bottomHaeding1?: string;
+  bottomHaeding2?: string;
+  bottomDesc1: string;
+  bottomDesc2: string;
 }
 
 /** Represents tax settings in invoice settings. */
 export interface IinvoiceSettingsTax {
-  enabled: boolean;
-  defaultType: string;
-  vatPercentage: number;
-  incomePercentage: number;
-  itemsBulkPercentage: number;
-  gstinNo: string;
+  // enabled: boolean;
+  // defaultType: string;
+  // vatPercentage: number;
+  // incomePercentage: number;
+  // itemsBulkPercentage: number;
+  // gstinNo: string;
   taxes: ItaxVal[];
 }
 

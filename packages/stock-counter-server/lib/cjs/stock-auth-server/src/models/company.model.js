@@ -1,13 +1,16 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createCompanyModel = exports.companyAboutSelect = exports.companyAuthSelect = exports.companyLean = exports.companyMain = exports.companySchema = void 0;
+const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const mongoose_1 = require("mongoose");
-const database_controller_1 = require("../controllers/database.controller");
+const database_1 = require("../utils/database");
 // Create authenticated Authy and Twilio API clients
 // const authy = require('authy')(config.authyKey);
 // const twilioClient = require('twilio')(config.accountSid, config.authToken);
 const uniqueValidator = require('mongoose-unique-validator');
 exports.companySchema = new mongoose_1.Schema({
+    ...stock_universal_server_1.globalSchemaObj,
+    trackDeleted: { type: mongoose_1.Schema.ObjectId },
     urId: { type: String, required: [true, 'cannot be empty.'], index: true },
     name: { type: String, required: [true, 'cannot be empty.'], index: true },
     displayName: { type: String, required: [true, 'cannot be empty.'], index: true },
@@ -27,9 +30,15 @@ exports.companySchema = new mongoose_1.Schema({
     expireAt: { type: String },
     blockedReasons: {},
     owner: { type: String } // user
-}, { timestamps: true });
+}, { timestamps: true, collection: 'companies' });
 exports.companySchema.index({ createdAt: -1 });
 exports.companySchema.index({ expireAt: 1 }, { expireAfterSeconds: 2628003 });
+exports.companySchema.pre('updateOne', function (next) {
+    return (0, stock_universal_server_1.preUpdateDocExpire)(this, next);
+});
+exports.companySchema.pre('updateMany', function (next) {
+    return (0, stock_universal_server_1.preUpdateDocExpire)(this, next);
+});
 // Apply the uniqueValidator plugin to companySchema.
 exports.companySchema.plugin(uniqueValidator);
 exports.companySchema.methods['toAuthJSON'] = function () {
@@ -64,7 +73,7 @@ exports.companySchema.methods['toProfileJSONFor'] = function () {
     };
 };
 const companyAuthselect = {
-    urId: 1,
+    ...stock_universal_server_1.globalSelectObj,
     name: 1,
     displayName: 1,
     dateOfEst: 1,
@@ -85,7 +94,7 @@ const companyAuthselect = {
     dateLeft: 1
 };
 const companyaboutSelect = {
-    urId: 1,
+    ...stock_universal_server_1.globalSelectObj,
     name: 1,
     displayName: 1,
     dateOfEst: 1,
@@ -120,14 +129,15 @@ exports.companyAboutSelect = companyaboutSelect;
  * @param lean Optional parameter indicating whether to create the lean company model. Default is true.
  */
 const createCompanyModel = async (dbUrl, dbOptions, main = true, lean = true) => {
-    if (!database_controller_1.isAuthDbConnected) {
-        await (0, database_controller_1.connectAuthDatabase)(dbUrl, dbOptions);
+    (0, stock_universal_server_1.createExpireDocIndex)(exports.companySchema);
+    if (!database_1.isAuthDbConnected) {
+        await (0, database_1.connectAuthDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.companyMain = database_controller_1.mainConnection.model('Company', exports.companySchema);
+        exports.companyMain = database_1.mainConnection.model('Company', exports.companySchema);
     }
     if (lean) {
-        exports.companyLean = database_controller_1.mainConnectionLean.model('Company', exports.companySchema);
+        exports.companyLean = database_1.mainConnectionLean.model('Company', exports.companySchema);
     }
 };
 exports.createCompanyModel = createCompanyModel;

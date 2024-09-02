@@ -1,10 +1,10 @@
-import { vi, expect, describe, beforeEach, it, expectTypeOf } from 'vitest';
-import { Cookies } from '../../../../stock-counter-client/src/defines/cookies.define';
-import { StockCounterClient } from '../../../../stock-counter-client/src/stock-counter-client';
-import { of } from 'rxjs';
-import { IcartInterface } from '../../../../stock-universal';
-import { Item } from '../../../../stock-counter-client/src/defines/item.define';
 import Axios from 'axios-observable';
+import { of } from 'rxjs';
+import { beforeEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
+import { Cookies } from '../../../../stock-counter-client/src/defines/cookies.define';
+import { Item } from '../../../../stock-counter-client/src/defines/item.define';
+import { StockCounterClient } from '../../../../stock-counter-client/src/stock-counter-client';
+import { IcartInterface } from '../../../../stock-universal';
 import { createMockItem, createMockItems } from '../../../../tests/stock-counter-mocks';
 
 describe('Cookies', () => {
@@ -31,6 +31,7 @@ describe('Cookies', () => {
   it('#getSettings should get Cookies setting', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makeGet').mockImplementationOnce(() => of({ body: { cartEnabled: true, recentEnabled: true } }));
     const stn = await instance.getSettings();
+
     expect(stn).toBeUndefined();
     expect(lSpy).toHaveBeenCalled();
   });
@@ -38,6 +39,7 @@ describe('Cookies', () => {
   it('#updateSettings should update Cookies setting', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makePut').mockImplementationOnce(() => of({ body: { success: true } }));
     const updated = await instance.updateSettings({ cartEnabled: true, recentEnabled: true });
+
     expect(typeof updated).toEqual('object');
     expect(updated).toHaveProperty('success');
     expect(updated.success).toEqual(true);
@@ -48,8 +50,10 @@ describe('Cookies', () => {
 
   it('#addCartItem should add cart item to Cookies', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makePut').mockImplementationOnce(() => of({ body: { success: true } }));
+
     instance.cartEnabled = true;
     const cartAdded = await instance.addCartItem('id', 1000);
+
     expect(typeof cartAdded).toEqual('object');
     expect(cartAdded).toHaveProperty('success');
     expect(cartAdded.success).toEqual(true);
@@ -60,8 +64,10 @@ describe('Cookies', () => {
 
   it('#addRecent should add recent item to Cookies', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makePut').mockImplementationOnce(() => of({ body: { success: true } }));
+
     instance.recentEnabled = true;
     const recentAdded = await instance.addRecent('id');
+
     expect(typeof recentAdded).toEqual('object');
     expect(recentAdded).toHaveProperty('success');
     expect(recentAdded.success).toEqual(true);
@@ -72,8 +78,10 @@ describe('Cookies', () => {
 
   it('#deleteCartItem should delete cart item from Cookies', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makePut').mockImplementationOnce(() => of({ body: { success: true } }));
+
     instance.cartEnabled = true;
     const deleted = await instance.deleteCartItem('id');
+
     expect(typeof deleted).toBe('object');
     expect(deleted).toHaveProperty('success');
     expect(deleted.success).toEqual(true);
@@ -84,8 +92,10 @@ describe('Cookies', () => {
 
   it('#clearCart should clear cart from the Cookies', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makePut').mockImplementationOnce(() => of({ body: { success: true } }));
+
     instance.cartEnabled = true;
     const cartCleard = await instance.clearCart();
+
     expect(typeof cartCleard).toEqual('object');
     expect(cartCleard).toHaveProperty('success');
     expect(cartCleard.success).toEqual(true);
@@ -99,8 +109,10 @@ describe('Cookies', () => {
       item: createMockItem(),
       totalCostwithNoShipping: 1000
     } }));
+
     instance.cartEnabled = true;
     const cartAppended = await instance.appendToCart() as unknown as IcartInterface;
+
     expect(typeof cartAppended).toEqual('object');
     expect(cartAppended).toHaveProperty('item');
     expect(typeof cartAppended.item).toBe('object');
@@ -111,8 +123,10 @@ describe('Cookies', () => {
 
   it('#appendToRecent should get recent items from Cookies return real items object from it', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makeGet').mockImplementationOnce(() => of({ body: createMockItems(10) }));
+
     instance.recentEnabled = true;
     const recentAppended = await instance.appendToRecent() as unknown as Item[];
+
     expect(typeof recentAppended).toBe('object');
     expect(recentAppended.length).toBeGreaterThan(1);
     expect(lSpy).toHaveBeenCalled();

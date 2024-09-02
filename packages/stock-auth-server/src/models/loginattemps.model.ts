@@ -1,26 +1,31 @@
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import { connectAuthDatabase, isAuthDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
+import { connectAuthDatabase, isAuthDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 
 /**
  * Represents a login attempt.
  */
 export interface IloginAttempts extends Document {
+
   /**
    * The ID of the user attempting to login.
    */
   userId: string;
+
   /**
    * The IP address from which the login attempt was made.
    */
   ip: string;
+
   /**
    * Indicates whether the login attempt was successful or not.
    */
   successful: boolean;
+
   /**
    * The date and time when the login attempt was last updated.
    */
   updatedAt: string;
+
   /**
    * The date and time when the login attempt was created.
    */
@@ -31,7 +36,7 @@ const loginAtempsSchema: Schema<IloginAttempts> = new Schema({
   userId: { type: String, index: true },
   ip: { type: String, index: true },
   successful: { type: Boolean, default: true }
-}, { timestamps: true });
+}, { timestamps: true, collection: 'loginatempts' });
 
 
 /**

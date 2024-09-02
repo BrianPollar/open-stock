@@ -1,8 +1,8 @@
-import { StockCounterClient } from '../../src/stock-counter-client';
-import { describe, beforeEach, it, expect } from 'vitest';
-import { CalculationsController } from '../../src/controllers/calculations.controller';
 import { EhttpController, LoggerController } from '@open-stock/stock-universal';
 import Axios from 'axios-observable';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { CalculationsController } from '../../src/controllers/calculations.controller';
+import { StockCounterClient } from '../../src/stock-counter-client';
 
 describe('StockCounterClient', () => {
   let axiosInstance: Axios;

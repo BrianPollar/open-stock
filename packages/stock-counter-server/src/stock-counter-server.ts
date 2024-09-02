@@ -20,8 +20,8 @@ import { invoiceSettingRoutes } from './routes/printables/settings/invoicesettin
 import { promocodeRoutes } from './routes/promo.routes';
 import { reviewRoutes } from './routes/review.routes';
 // import { paymentInstallsRoutes } from './routes/paymentrelated/paymentinstalls.routes';
-import { IlAuth, isAuthServerRunning } from '@open-stock/stock-auth-server';
-import { runPassport } from '@open-stock/stock-universal-server';
+import { isAuthServerRunning } from '@open-stock/stock-auth-server';
+import { runPassport, stockUniversalConfig } from '@open-stock/stock-universal-server';
 import { ConnectOptions } from 'mongoose';
 import { PesaPalController } from 'pesapal3';
 import { cookiesRoutesDummy } from './routes-dummy/cookies.routes';
@@ -52,20 +52,24 @@ import { localUserRoutesDummy } from './routes-dummy/user-related/locluser.route
 import { staffRoutesDummy } from './routes-dummy/user-related/staff.routes';
 import { itemDecoyRoutes } from './routes/itemdecoy.routes';
 import { itemOfferRoutes } from './routes/itemoffer.routes';
+import { notifyAllOnDueDate } from './routes/paymentrelated/paymentrelated';
 import { invoiceRelateRoutes } from './routes/printables/related/invoicerelated.route';
 import { customerRoutes } from './routes/user-related/customer.routes';
 import { localUserRoutes } from './routes/user-related/locluser.routes';
 import { staffRoutes } from './routes/user-related/staff.routes';
+import { walletRoutes } from './routes/user-related/wallet.routes';
 import { connectStockCounterDatabase, createStockCounterServerLocals, isStockCounterServerRunning } from './stock-counter-local';
 
 /**
  * Represents the configuration object for the StockCounterServer.
  */
 export interface IstockcounterServerConfig {
+
   /**
    * The authentication secrets for the server.
    */
-  authSecrets: IlAuth;
+  // authSecrets: IlAuth;
+
   /**
   * The database configuration.
   */
@@ -73,29 +77,36 @@ export interface IstockcounterServerConfig {
     url: string;
     dbOptions?: ConnectOptions;
   };
+
   /**
   * The URL for the notification redirect.
   */
   pesapalNotificationRedirectUrl: string;
+
   /**
   * The path configuration for the local server.
   */
   localPath: IlocalPath;
   useDummyRoutes?: boolean;
+  ecommerceRevenuePercentage: number; // leas than 100
+
 }
 
 /**
  * Represents the local path configuration for the server.
  */
 export interface IlocalPath {
+
   /**
   * The absolute path for the server.
   */
   absolutepath: string;
+
   /**
   * The photo directory for the server.
   */
   photoDirectory: string;
+
   /**
   * The video directory for the server.
   */
@@ -121,9 +132,11 @@ export let notifRedirectUrl: string;
  */
 export const runStockCounterServer = async(
   config: IstockcounterServerConfig,
-  paymentInstance: PesaPalController) => {
+  paymentInstance: PesaPalController
+) => {
   if (!isAuthServerRunning()) {
     const error = new Error('Auth server is not running, please start by firing up that server');
+
     throw error;
   }
   // connect models
@@ -131,7 +144,7 @@ export const runStockCounterServer = async(
 
   pesapalPaymentInstance = paymentInstance;
 
-  runPassport(config.authSecrets.jwtSecret);
+  runPassport(stockUniversalConfig.authSecrets.jwtSecret);
   const stockCounterRouter = express.Router();
 
   if (!config.useDummyRoutes) {
@@ -176,6 +189,8 @@ export const runStockCounterServer = async(
     stockCounterRouter.use('/customer', customerRoutes);
     stockCounterRouter.use('/staff', staffRoutes);
     stockCounterRouter.use('/localuser', localUserRoutes);
+    // TODO make a dummy route for this
+    stockCounterRouter.use('/wallet', walletRoutes);
   } else {
     stockCounterRouter.use('/review', reviewRoutesDummy);
     stockCounterRouter.use('/item', itemRoutesDummy);
@@ -219,7 +234,12 @@ export const runStockCounterServer = async(
     stockCounterRouter.use('/staff', staffRoutesDummy);
     stockCounterRouter.use('/localuser', localUserRoutesDummy);
   }
-  createStockCounterServerLocals(config.pesapalNotificationRedirectUrl);
+  createStockCounterServerLocals(
+    config.pesapalNotificationRedirectUrl,
+    config.ecommerceRevenuePercentage
+  );
+  runAutoIntervaller();
+
   return Promise.resolve({ stockCounterRouter });
 };
 
@@ -228,3 +248,11 @@ export const runStockCounterServer = async(
  * @returns {boolean} True if the stock counter server is running, false otherwise.
  */
 export const isCounterServerRunning = () => isStockCounterServerRunning;
+
+export const runAutoIntervaller = () => {
+  setTimeout(() => {
+    setInterval(() => {
+      notifyAllOnDueDate();
+    }, 24 * 60 * 60 * 1000); // 24 hour interval
+  }, 5 * 60 * 1000); // 5 minute delay
+};

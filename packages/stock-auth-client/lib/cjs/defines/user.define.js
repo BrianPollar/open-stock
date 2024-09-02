@@ -6,7 +6,9 @@ const rxjs_1 = require("rxjs");
 const stock_auth_client_1 = require("../stock-auth-client");
 const company_define_1 = require("./company.define");
 /**
- * Represents a user and extends the DatabaseAuto class. It has properties that correspond to the fields in the user object, and methods for updating, deleting, and managing the user's profile, addresses, and permissions.
+ * Represents a user and extends the DatabaseAuto class.
+ * It has properties that correspond to the fields in the user object, and methods for updating, deleting,
+ *  and managing the user's profile, addresses, and permissions.
  */
 class User extends stock_universal_1.DatabaseAuto {
     /**
@@ -34,6 +36,16 @@ class User extends stock_universal_1.DatabaseAuto {
         /** The format for displaying the user's name. */
         this.userDispNameFormat = 'firstLast';
         this.appendUpdate(data);
+    }
+    /**
+     * Checks if a user with the given email or phone number exists.
+     * @param emailPhone The email or phone number to check.
+     * @returns A boolean indicating whether the user exists.
+     */
+    static async existsEmailOrPhone(emailPhone) {
+        const observer$ = stock_auth_client_1.StockAuthClient.ehttp.makeGet(`/user/existsemailphone/${emailPhone}`);
+        const response = await (0, rxjs_1.lastValueFrom)(observer$);
+        return response.exists;
     }
     /**
      * Retrieves multiple users from a specified URL, with optional offset and limit parameters.
@@ -106,7 +118,6 @@ class User extends stock_universal_1.DatabaseAuto {
         const details = {
             user: {
                 ...vals,
-                // eslint-disable-next-line @typescript-eslint/naming-convention
                 _id: this._id
             }
         };
@@ -150,7 +161,7 @@ class User extends stock_universal_1.DatabaseAuto {
         // this.lname = this.lname || 'admin';
         // this.email = this.email || 'admin';
       }
-    }*/
+    } */
     /**
      * Updates a user's profile information.
      * @param companyId - The ID of the company.
@@ -239,7 +250,6 @@ class User extends stock_universal_1.DatabaseAuto {
     async deleteUser(companyId) {
         const observer$ = stock_auth_client_1.StockAuthClient.ehttp
             .makePut(`/user/deleteone/${companyId}`, {
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             _id: this._id,
             filesWithDir: [{
                     filename: this.profilePic
@@ -256,7 +266,6 @@ class User extends stock_universal_1.DatabaseAuto {
      */
     async deleteImages(companyId, filesWithDir) {
         const observer$ = stock_auth_client_1.StockAuthClient.ehttp
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             .makePut(`/user/deleteimages/${companyId}`, { filesWithDir, user: { _id: this._id } });
         const deleted = await (0, rxjs_1.lastValueFrom)(observer$);
         // eslint-disable-next-line @typescript-eslint/no-unsafe-return
@@ -298,6 +307,7 @@ class User extends stock_universal_1.DatabaseAuto {
             this.extraCompanyDetails = data.extraCompanyDetails || this.extraCompanyDetails;
             this.userDispNameFormat = data.userDispNameFormat || this.userDispNameFormat;
             this.userType = data.userType || this.userType;
+            this.verified = data.verified || this.verified;
         }
         // this.makeAdmin();
     }

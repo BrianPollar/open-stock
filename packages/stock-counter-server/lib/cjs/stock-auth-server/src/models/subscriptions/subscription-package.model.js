@@ -1,21 +1,24 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createSubscriptionPackageModel = exports.subscriptionPackageSelect = exports.subscriptionPackageLean = exports.subscriptionPackageMain = void 0;
+const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const mongoose_1 = require("mongoose");
-const database_controller_1 = require("../../controllers/database.controller");
+const database_1 = require("../../utils/database");
 const uniqueValidator = require('mongoose-unique-validator');
 /** subscription package schema */
 const subscriptionPackageSchema = new mongoose_1.Schema({
+    ...stock_universal_server_1.globalSchemaObj,
     name: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
     ammount: { type: Number, unique: true, required: [true, 'cannot be empty.'], index: true },
-    duration: { type: Number, required: [true, 'cannot be empty.'], index: true },
+    duration: { type: Number, required: [true, 'cannot be empty.'], index: true }, // in days
     active: { type: Boolean, required: [true, 'cannot be empty.'], index: true },
     features: []
-}, { timestamps: true });
+}, { timestamps: true, collection: 'companysubscriptions' });
 // Apply the uniqueValidator plugin to subscriptionPackageSchema.
 subscriptionPackageSchema.plugin(uniqueValidator);
 /** Primary selection object for subscription package */
 const subscriptionPackageselect = {
+    ...stock_universal_server_1.globalSelectObj,
     name: 1,
     ammount: 1,
     duration: 1,
@@ -34,14 +37,15 @@ exports.subscriptionPackageSelect = subscriptionPackageselect;
  * @param lean Whether to create a lean connection.
  */
 const createSubscriptionPackageModel = async (dbUrl, dbOptions, main = true, lean = true) => {
-    if (!database_controller_1.isAuthDbConnected) {
-        await (0, database_controller_1.connectAuthDatabase)(dbUrl, dbOptions);
+    (0, stock_universal_server_1.createExpireDocIndex)(subscriptionPackageSchema);
+    if (!database_1.isAuthDbConnected) {
+        await (0, database_1.connectAuthDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.subscriptionPackageMain = database_controller_1.mainConnection.model('SubscriptionPackage', subscriptionPackageSchema);
+        exports.subscriptionPackageMain = database_1.mainConnection.model('SubscriptionPackage', subscriptionPackageSchema);
     }
     if (lean) {
-        exports.subscriptionPackageLean = database_controller_1.mainConnectionLean.model('SubscriptionPackage', subscriptionPackageSchema);
+        exports.subscriptionPackageLean = database_1.mainConnectionLean.model('SubscriptionPackage', subscriptionPackageSchema);
     }
 };
 exports.createSubscriptionPackageModel = createSubscriptionPackageModel;

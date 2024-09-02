@@ -11,7 +11,7 @@ export const createPermProp = (state = 'normal'): IpermProp => {
   };
 };
 
-/** createMockUserperm  function: This function takes a state parameter and returns an object representing user permissions. The permissions object is based on the state value, where each permission is set to  true  if the state is not equal to 'normal', and  false  otherwise*/
+/** createMockUserperm  function: This function takes a state parameter and returns an object representing user permissions. The permissions object is based on the state value, where each permission is set to  true  if the state is not equal to 'normal', and  false  otherwise */
 export const createMockUserperm = (state = 'normal'): Iuserperm => {
   return {
     orders: createPermProp(state),
@@ -41,7 +41,7 @@ export const createMockCompanyPerm = (active = true): IcompanyPerm => {
   };
 };
 
-/** createMockAddress  function: This function creates a mock address object with randomly generated values using the  faker  library*/
+/** createMockAddress  function: This function creates a mock address object with randomly generated values using the  faker  library */
 export const createMockAddress = () => {
   return {
     id: faker.string.sample(),
@@ -58,7 +58,7 @@ export const createMockAddress = () => {
   } as Iaddress;
 };
 
-/** createMockBilling  function: This function creates a mock billing object with randomly generated values using the  faker  library.*/
+/** createMockBilling  function: This function creates a mock billing object with randomly generated values using the  faker  library. */
 export const createMockBilling = () => {
   return {
     id: faker.string.sample(),
@@ -98,6 +98,7 @@ export const createMockUser = (incrementor = 0) => {
     redIps: [],
     unverifiedIps: []
   } as Iuser;
+
   return user;
 };
 
@@ -131,6 +132,7 @@ export const createMockCompany = (incrementor = 0) => {
     dateLeft: new Date(),
     owner: faker.string.uuid()
   };
+
   return companyDetails;
 };
 
@@ -147,6 +149,7 @@ export const createMockFileMeta = (allowOptionals = false): IfileMeta => {
     size: '400mb',
     storageDir: 'images'
   };
+
   if (!allowOptionals) {
     return compulObjs;
   } else {

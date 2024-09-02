@@ -1,4 +1,5 @@
-import { Iaddress, IdatabaseAuto, Iuser } from './general.interface';
+import { Iaddress, IdatabaseAuto, ItrackStamp, Iuser } from './general.interface';
+import { Iitem } from './item.interface';
 
 /**
  * Represents the salary of a user.
@@ -12,7 +13,7 @@ export interface Isalary {
  * Represents the base properties of a user.
  */
 export interface IuserBase
-extends IdatabaseAuto {
+extends IdatabaseAuto, ItrackStamp {
   companyId?: string;
   user: string | Iuser;
   startDate: Date;
@@ -24,7 +25,7 @@ extends IdatabaseAuto {
  * Represents a staff member.
  */
 export interface Istaff
-extends IuserBase {
+extends IuserBase, ItrackStamp {
   employmentType: string;
   salary: Isalary;
 }
@@ -35,4 +36,17 @@ extends IuserBase {
 export interface Icustomer
 extends IuserBase {
   otherAddresses: Iaddress[];
+}
+
+// part of our big data effort
+export interface IuserBehaviour
+extends IdatabaseAuto {
+  user?: Iuser | string;
+  userCookieId: string;
+  recents: Iitem[] | string[];
+  cart: Iitem[] | string[];
+  wishList: Iitem[] | string[];
+  compareList: Iitem[] | string[];
+  searchTerms: {term: string; filter: string}[];
+  expireAt?: string;
 }

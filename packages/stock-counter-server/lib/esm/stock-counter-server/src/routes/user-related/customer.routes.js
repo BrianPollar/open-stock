@@ -1,11 +1,12 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
-import { addUser, requireActiveCompany, requireCanUseFeature, requireUpdateSubscriptionRecord, updateUserBulk, userLean } from '@open-stock/stock-auth-server';
-import { appendBody, deleteFiles, fileMetaLean, offsetLimitRelegator, requireAuth, roleAuthorisation, saveMetaToDb, stringifyMongooseErr, uploadFiles, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { addUser, populateTrackEdit, populateTrackView, requireActiveCompany, requireCanUseFeature, requireUpdateSubscriptionRecord, updateUserBulk } from '@open-stock/stock-auth-server';
+import { addParentToLocals, appendBody, makeCompanyBasedQuery, makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, saveMetaToDb, stringifyMongooseErr, uploadFiles, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import * as fs from 'fs';
 import path from 'path';
 import * as tracer from 'tracer';
 import { customerLean, customerMain } from '../../models/user-related/customer.model';
+import { populateUser } from '../../utils/query';
 import { removeManyUsers, removeOneUser } from './locluser.routes';
 /** Logger for customer routes */
 const customerRoutesLogger = tracer.colorConsole({
@@ -31,18 +32,25 @@ const customerRoutesLogger = tracer.colorConsole({
         });
     }
 });
+/**
+   * Adds a new customer to the database.
+   * @function
+   * @memberof module:customerRoutes
+   * @inner
+   * @param {Request} req - The express request object.
+   * @param {Response} res - The express response object.
+   * @param {NextFunction} next - The express next function.
+   * @returns {Promise} - Promise representing the saved customer
+   */
 export const addCustomer = async (req, res, next) => {
-    const { companyIdParam } = req.params;
-    const { companyId } = req.user;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = verifyObjectId(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = makeCompanyBasedQuery(req);
     const customer = req.body.customer;
     const savedUser = req.body.savedUser;
     customer.user = savedUser._id;
-    customer.companyId = queryId;
+    customer.companyId = filter.companyId;
+    const count = await customerMain
+        .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+    customer.urId = makeUrId(Number(count[0]?.urId || '0'));
     const newCustomer = new customerMain(customer);
     let errResponse;
     /**
@@ -53,7 +61,7 @@ export const addCustomer = async (req, res, next) => {
      * @param {Customer} newCustomer - The new customer to be saved.
      * @returns {Promise} - Promise representing the saved customer
      */
-    await newCustomer.save()
+    const saved = await newCustomer.save()
         .catch(err => {
         customerRoutesLogger.error('create - err: ', err);
         errResponse = {
@@ -67,35 +75,48 @@ export const addCustomer = async (req, res, next) => {
             errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
         }
-        return errResponse;
+        return err;
     });
     if (errResponse) {
         return res.status(403).send(errResponse);
     }
+    if (saved && saved._id) {
+        addParentToLocals(res, saved._id, customerMain.collection.collectionName, 'makeTrackEdit');
+    }
     return next();
 };
+/**
+   * Updates a customer by ID.
+   * @name PUT /updateone/:companyIdParam
+   * @function
+   * @memberof module:customerRoutes
+   * @inner
+   * @param {string} path - Express path
+   * @param {callback} middleware - Express middleware
+   * @returns {Promise} - Promise representing the update result
+   */
 export const updateCustomer = async (req, res) => {
     const updatedCustomer = req.body.customer;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    updatedCustomer.companyId = queryId;
-    const isValid = verifyObjectIds([updatedCustomer._id, queryId]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = makeCompanyBasedQuery(req);
+    updatedCustomer.companyId = filter.companyId;
     const customer = await customerMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .findOneAndUpdate({ _id: updatedCustomer._id, companyId: queryId });
+        .findOne({ _id: updatedCustomer._id, ...filter })
+        .lean();
     if (!customer) {
         return res.status(404).send({ success: false });
     }
-    customer.startDate = updatedCustomer.startDate || customer.startDate;
-    customer.endDate = updatedCustomer.endDate || customer.endDate;
-    customer.occupation = updatedCustomer.occupation || customer.occupation;
-    customer.otherAddresses = updatedCustomer.otherAddresses || customer.otherAddresses;
     let errResponse;
-    const updated = await customer.save()
+    const updated = await customerMain.updateOne({
+        _id: updatedCustomer._id, ...filter
+    }, {
+        $set: {
+            startDate: updatedCustomer.startDate || customer.startDate,
+            endDate: updatedCustomer.endDate || customer.endDate,
+            occupation: updatedCustomer.occupation || customer.occupation,
+            otherAddresses: updatedCustomer.otherAddresses || customer.otherAddresses,
+            isDeleted: updatedCustomer.isDeleted || customer.isDeleted
+        }
+    })
         .catch(err => {
         customerRoutesLogger.error('update - err: ', err);
         errResponse = {
@@ -114,6 +135,7 @@ export const updateCustomer = async (req, res) => {
     if (errResponse) {
         return res.status(403).send(errResponse);
     }
+    addParentToLocals(res, customer._id, customerMain.collection.collectionName, 'makeTrackEdit');
     return res.status(200).send({ success: Boolean(updated) });
 };
 /**
@@ -154,49 +176,34 @@ customerRoutes.post('/createimg/:companyIdParam', requireAuth, requireActiveComp
  * @param {callback} middleware - Express middleware
  * @returns {Promise} - Promise representing the HTTP response
  */
-customerRoutes.post('/getone', requireAuth, requireActiveCompany, roleAuthorisation('customers', 'read'), async (req, res) => {
+customerRoutes.post('/getone/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('customers', 'read'), async (req, res) => {
     const { id, userId } = req.body;
-    const companyIdParam = req.body.companyId;
-    const { companyId } = req.user;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = verifyObjectIds([queryId]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
-    let filter = {};
+    const { filter } = makeCompanyBasedQuery(req);
+    let filter2 = {};
     if (id) {
         const isValid = verifyObjectIds([id]);
         if (!isValid) {
             return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
         }
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        filter = { ...filter, _id: id };
+        filter2 = { ...filter2, _id: id };
     }
-    if (queryId) {
-        filter = { ...filter, companyId: queryId };
-    }
+    /* if (queryId) {
+      filter = { ...filter, ...filter };
+    } */
     if (userId) {
         const isValid = verifyObjectIds([userId]);
         if (!isValid) {
             return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
         }
-        filter = { ...filter, user: userId };
+        filter2 = { ...filter2, user: userId };
     }
     const customer = await customerLean
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .findOne(filter)
-        .populate({ path: 'user', model: userLean,
-        populate: [{
-                // eslint-disable-next-line @typescript-eslint/naming-convention
-                path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-            }, {
-                // eslint-disable-next-line @typescript-eslint/naming-convention
-                path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-            }, {
-                // eslint-disable-next-line @typescript-eslint/naming-convention
-                path: 'profileCoverPic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-            }] })
+        .findOne({ ...filter2, ...filter })
+        .populate([populateUser(), populateTrackEdit(), populateTrackView()])
         .lean();
+    if (customer) {
+        addParentToLocals(res, customer._id, customerMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(customer);
 });
 /**
@@ -211,37 +218,23 @@ customerRoutes.post('/getone', requireAuth, requireActiveCompany, roleAuthorisat
  */
 customerRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('customers', 'read'), async (req, res) => {
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = verifyObjectId(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = makeCompanyBasedQuery(req);
     const all = await Promise.all([
         customerLean
-            .find({ companyId: queryId })
-            .populate({ path: 'user', model: userLean,
-            populate: [{
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
-                    path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-                }, {
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
-                    path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-                }, {
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
-                    path: 'profileCoverPic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-                }]
-        })
+            .find({ ...filter })
+            .populate([populateUser(), populateTrackEdit(), populateTrackView()])
             .skip(offset)
             .limit(limit)
             .lean(),
-        customerLean.countDocuments({ companyId: queryId })
+        customerLean.countDocuments({ ...filter })
     ]);
     const response = {
         count: all[1],
         data: all[0]
     };
+    for (const val of all[0]) {
+        addParentToLocals(res, val._id, customerMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
 /**
@@ -256,7 +249,7 @@ customerRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requir
  * @returns {Promise} - Promise representing the HTTP response
  */
 customerRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('customers', 'update'), updateUserBulk, updateCustomer);
-customerRoutes.put('/updateimg/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('customers', 'update'), uploadFiles, appendBody, saveMetaToDb, updateUserBulk, updateCustomer);
+customerRoutes.post('/updateimg/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('customers', 'update'), uploadFiles, appendBody, saveMetaToDb, updateUserBulk, updateCustomer);
 /**
  * Route for deleting a single customer.
  * @name PUT /deleteone
@@ -269,18 +262,14 @@ customerRoutes.put('/updateimg/:companyIdParam', requireAuth, requireActiveCompa
  * @param {callback} middleware - Express middleware
  * @returns {Promise} - Promise representing the HTTP response
  */
-customerRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('customers', 'delete'), removeOneUser, deleteFiles, async (req, res) => {
+customerRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('customers', 'delete'), removeOneUser('customer'), async (req, res) => {
     const { id } = req.body;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = verifyObjectIds([id, queryId]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = makeCompanyBasedQuery(req);
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    const deleted = await customerMain.findOneAndDelete({ _id: id, companyId: queryId });
+    // const deleted = await customerMain.findOneAndDelete({ _id: id, ...filter });
+    const deleted = await customerMain.updateOne({ _id: id, ...filter }, { $set: { isDeleted: true } }, { $set: { isDeleted: true } });
     if (Boolean(deleted)) {
+        addParentToLocals(res, id, customerMain.collection.collectionName, 'trackDataDelete');
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
@@ -299,23 +288,28 @@ customerRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompa
  * @param {callback} middleware - Express middleware
  * @returns {Promise} - Promise representing the HTTP response
  */
-customerRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('customers', 'delete'), removeManyUsers, deleteFiles, async (req, res) => {
+customerRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('customers', 'delete'), removeManyUsers('staff'), async (req, res) => {
     const { ids } = req.body;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = verifyObjectId(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = makeCompanyBasedQuery(req);
+    /* const deleted = await customerMain
+      .deleteMany({ ...filter, _id: { $in: ids } })
+      .catch(err => {
+        customerRoutesLogger.error('deletemany - err: ', err);
+  
+        return null;
+      }); */
     const deleted = await customerMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .deleteMany({ companyId: queryId, _id: { $in: ids } })
+        .updateMany({ ...filter, _id: { $in: ids } }, {
+        $set: { isDeleted: true }
+    })
         .catch(err => {
         customerRoutesLogger.error('deletemany - err: ', err);
         return null;
     });
     if (Boolean(deleted)) {
+        for (const val of ids) {
+            addParentToLocals(res, val, customerMain.collection.collectionName, 'trackDataDelete');
+        }
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {

@@ -1,4 +1,14 @@
-import { IdataArrayResponse, IdeleteCredentialsLocalUser, Ifile, IfileMeta, Isalary, Istaff, Isuccess, Iuser } from '@open-stock/stock-universal';
+import {
+  IdataArrayResponse,
+  IdeleteCredentialsLocalUser,
+  Ifile,
+  IfileMeta,
+  Isalary,
+  Istaff,
+  IsubscriptionFeatureState,
+  Isuccess,
+  Iuser
+} from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
 import { StockCounterClient } from '../../stock-counter-client';
 import { UserBase } from './userbase.define';
@@ -37,6 +47,7 @@ export class Staff extends UserBase {
   static async getStaffs(companyId: string, offset = 0, limit = 20) {
     const observer$ = StockCounterClient.ehttp.makeGet(`/staff/getall/${offset}/${limit}/${companyId}`);
     const staffs = await lastValueFrom(observer$) as IdataArrayResponse;
+
     return {
       count: staffs.count,
       staffs: staffs.data.map(val => new Staff(val as Istaff))
@@ -53,6 +64,7 @@ export class Staff extends UserBase {
   static async getStaffByRole(companyId: string, role: string, offset = 0, limit = 20) {
     const observer$ = StockCounterClient.ehttp.makeGet(`/staff/getbyrole/${offset}/${limit}/${role}/${companyId}`);
     const staffs = await lastValueFrom(observer$) as IdataArrayResponse;
+
     return {
       count: staffs.count,
       staffs: staffs.data.map(val => new Staff(val as Istaff))
@@ -65,9 +77,10 @@ export class Staff extends UserBase {
    * @param {string} id - The ID of the staff member to retrieve.
    * @returns {Promise<Staff>} - A promise that resolves to a Staff instance.
    */
-  static async getOneStaff(filter: IgetOneFilter) {
-    const observer$ = StockCounterClient.ehttp.makePost('/staff/getone', filter);
+  static async getOneStaff(companyId: string, filter: IgetOneFilter) {
+    const observer$ = StockCounterClient.ehttp.makePost(`/staff/getone}/${companyId}`, filter);
     const staff = await lastValueFrom(observer$) as Istaff;
+
     return new Staff(staff);
   }
 
@@ -78,15 +91,19 @@ export class Staff extends UserBase {
    * @returns {Promise<Isuccess>} - A promise that resolves to a success message.
    */
   static async createStaff(companyId: string, vals: { staff: Istaff; user: Partial<Iuser>}, files?: Ifile[]) {
-    let added: Isuccess;
+    let added: IsubscriptionFeatureState;
+
     vals.user.userType = 'staff';
     if (files && files[0]) {
       const observer$ = StockCounterClient.ehttp.uploadFiles(files, `/staff/createimg/${companyId}`, vals);
-      added = await lastValueFrom(observer$) as Isuccess;
+
+      added = await lastValueFrom(observer$) as IsubscriptionFeatureState;
     } else {
       const observer$ = StockCounterClient.ehttp.makePost(`/staff/create/${companyId}`, vals);
-      added = await lastValueFrom(observer$) as Isuccess;
+
+      added = await lastValueFrom(observer$) as IsubscriptionFeatureState;
     }
+
     return added;
   }
 
@@ -100,6 +117,7 @@ export class Staff extends UserBase {
    */
   static async deleteStaffs(companyId: string, credentials: IdeleteCredentialsLocalUser[], filesWithDir: IfileMeta[]) {
     const observer$ = StockCounterClient.ehttp.makePut(`/staff/deletemany/${companyId}`, { credentials, filesWithDir });
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 
@@ -112,13 +130,16 @@ export class Staff extends UserBase {
    */
   async updateStaff(companyId: string, vals: { staff: Istaff; user: Partial<Iuser>}, files?: Ifile[]) {
     let updated: Isuccess;
+
     vals.staff._id = this._id;
     vals.user._id = typeof this.user === 'string' ? this.user : this.user._id;
     if (files && files[0]) {
       const observer$ = StockCounterClient.ehttp.uploadFiles(files, `/staff/updateimg/${companyId}`, vals);
+
       updated = await lastValueFrom(observer$) as Isuccess;
     } else {
       const observer$ = StockCounterClient.ehttp.makePut(`/staff/update/${companyId}`, vals);
+
       updated = await lastValueFrom(observer$) as Isuccess;
     }
 
@@ -126,6 +147,7 @@ export class Staff extends UserBase {
       this.employmentType = vals.staff.employmentType || this.employmentType;
       this.salary = vals.staff.salary || this.salary;
     }
+
     return updated;
   }
 
@@ -138,6 +160,7 @@ export class Staff extends UserBase {
    */
   async deleteStaff(companyId: string, credential: IdeleteCredentialsLocalUser, filesWithDir: IfileMeta[]) {
     const observer$ = StockCounterClient.ehttp.makePut(`/staff/deleteone/${companyId}`, { credential, filesWithDir });
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 }

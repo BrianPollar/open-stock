@@ -5,6 +5,7 @@ import {
   Ifile,
   IfileMeta,
   IinventoryMeta, Iitem, Isponsored,
+  IsubscriptionFeatureState,
   Isuccess,
   TitemColor,
   TitemState
@@ -20,6 +21,7 @@ import { StockCounterClient } from '../stock-counter-client';
 export class Item extends DatabaseAuto {
   /** Unique identifier for the user who created the item. */
   urId: string;
+
   /** The user's company ID. */
   companyId: string;
 
@@ -104,6 +106,8 @@ export class Item extends DatabaseAuto {
    */
   ecomerceCompat: boolean;
 
+  soldCount = 0;
+
   /**
    * Represents the constructor of the Item class.
    * @param data - The data used to initialize the Item instance.
@@ -136,6 +140,7 @@ export class Item extends DatabaseAuto {
     const observer$ = StockCounterClient.ehttp
       .makePost(`/item/search/${offset}/${limit}/${companyId}`, { searchterm, searchKey, category, extraFilters, subCategory, ecomerceCompat });
     const items = await lastValueFrom(observer$) as IdataArrayResponse;
+
     return {
       count: items.count,
       items: items.data
@@ -160,6 +165,7 @@ export class Item extends DatabaseAuto {
     const observer$ = StockCounterClient.ehttp
       .makeGet(`${url}/${offset}/${limit}/${companyId}/${ecomerceCompat}`);
     const items = await lastValueFrom(observer$) as IdataArrayResponse;
+
     return {
       count: items.count,
       items: items.data
@@ -179,6 +185,7 @@ export class Item extends DatabaseAuto {
     const observer$ = StockCounterClient.ehttp
       .makeGet(`${url}/${companyId}`);
     const item = await lastValueFrom(observer$);
+
     return new Item(item);
   }
 
@@ -196,21 +203,27 @@ export class Item extends DatabaseAuto {
     files: Ifile[],
     ecomerceCompat = false
   ) {
-    let added: Isuccess;
+    let added: IsubscriptionFeatureState;
     const details = {
       item: vals
     };
+
     if (ecomerceCompat) {
       const observer$ = StockCounterClient.ehttp
-        .uploadFiles(files,
+        .uploadFiles(
+          files,
           `/item/createimg/${companyId}`,
-          details);
-      added = await lastValueFrom(observer$) as Isuccess;
+          details
+        );
+
+      added = await lastValueFrom(observer$) as IsubscriptionFeatureState;
     } else {
       const observer$ = StockCounterClient.ehttp
         .makePost(`/item/create/${companyId}`, details);
-      added = await lastValueFrom(observer$) as Isuccess;
+
+      added = await lastValueFrom(observer$) as IsubscriptionFeatureState;
     }
+
     return added;
   }
 
@@ -230,6 +243,7 @@ export class Item extends DatabaseAuto {
   ) {
     const observer$ = StockCounterClient.ehttp
       .makePut(`${url}/${companyId}`, { ids, filesWithDir });
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 
@@ -250,22 +264,27 @@ export class Item extends DatabaseAuto {
     let updated: Isuccess;
     const details = {
       item: {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         _id: this._id,
         ...vals
       }
     };
+
     if (files && files.length > 0) {
       const observer$ = StockCounterClient.ehttp
-        .uploadFiles(files,
+        .uploadFiles(
+          files,
           `/item/updateimg/${companyId}`,
-          details);
+          details
+        );
+
       updated = await lastValueFrom(observer$) as Isuccess;
     } else {
       const observer$ = StockCounterClient.ehttp
         .makePut(`${url}/${companyId}`, details);
+
       updated = await lastValueFrom(observer$) as Isuccess;
     }
+
     return updated;
   }
 
@@ -279,7 +298,8 @@ export class Item extends DatabaseAuto {
   async makeSponsored(
     companyId: string,
     sponsored: Isponsored,
-    item: Item) {
+    item: Item
+  ) {
     const observer$ = StockCounterClient.ehttp
       .makePut(`/item/addsponsored/${this._id}/${companyId}`, { sponsored });
     const added = await lastValueFrom(observer$) as Isuccess;
@@ -290,6 +310,7 @@ export class Item extends DatabaseAuto {
       }
       this.sponsored.push({ item, discount: sponsored.discount } as unknown as Isponsored);
     }
+
     return added;
   }
 
@@ -307,6 +328,7 @@ export class Item extends DatabaseAuto {
     if (updated.success) {
       const found = this.sponsored
         .find(val => val.item === sponsored.item);
+
       if (found) {
         found.discount = sponsored.discount;
       }
@@ -328,11 +350,14 @@ export class Item extends DatabaseAuto {
 
     if (deleted.success) {
       const found = this.sponsored.find(sponsd => (sponsd.item as unknown as Item)._id === itemId);
+
       if (found) {
         const indexOf = this.sponsored.indexOf(found);
+
         this.sponsored.splice(indexOf, 1);
       }
     }
+
     return deleted;
   }
 
@@ -346,10 +371,10 @@ export class Item extends DatabaseAuto {
     const observer$ = StockCounterClient.ehttp
       .makePost(`/item/getsponsored/${companyId}`, { sponsored: mappedIds || [] });
     const items = await lastValueFrom(observer$) as IdataArrayResponse;
+
     return this.sponsored
       .map(sponsrd => {
-        sponsrd.item = new Item(
-          items.data.find(val => (val as Item)._id === (sponsrd.item as unknown as Item)._id || sponsrd.item)) as unknown as Iitem;
+        sponsrd.item = new Item(items.data.find(val => (val as Item)._id === (sponsrd.item as unknown as Item)._id || sponsrd.item)) as unknown as Iitem;
       });
   }
 
@@ -363,8 +388,10 @@ export class Item extends DatabaseAuto {
     const observer$ = StockCounterClient.ehttp
       .makePut(`/item/like/${this._id}/${companyId}`, {});
     const updated = await lastValueFrom(observer$) as Isuccess;
+
     this.likes.push(userId);
     this.likesCount++;
+
     return updated;
   }
 
@@ -378,8 +405,10 @@ export class Item extends DatabaseAuto {
     const observer$ = StockCounterClient.ehttp
       .makePut(`/item/unlike/${this._id}/${companyId}`, {});
     const updated = await lastValueFrom(observer$) as Isuccess;
+
     this.likes = this.likes.filter(val => val !== userId);
     this.likesCount--;
+
     return updated;
   }
 
@@ -394,6 +423,7 @@ export class Item extends DatabaseAuto {
 
     const observer$ = StockCounterClient.ehttp
       .makePut(`/item/deleteone/${this._id}/${companyId}`, { filesWithDir });
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 
@@ -405,15 +435,16 @@ export class Item extends DatabaseAuto {
    */
   async deleteFiles(companyId: string, filesWithDir: IfileMeta[]) {
     const observer$ = StockCounterClient.ehttp
-    // eslint-disable-next-line @typescript-eslint/naming-convention
       .makePut(`/item/deletefiles/${companyId}`, { filesWithDir, item: { _id: this._id } });
     const deleted = await lastValueFrom(observer$) as Isuccess;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     const toStrings = filesWithDir.map(val => val._id);
+
     this.photos = this.photos.filter(val => !toStrings.includes(val._id));
     if (this.video && toStrings.includes(this.video._id)) {
       this.video = null;
     }
+
     return deleted;
   }
 
@@ -474,8 +505,10 @@ export class Item extends DatabaseAuto {
         if (typeof val.quantity === typeof 'string') {
           val.quantity = Number(val.quantity);
         }
+
         return val;
       });
-    this.ecomerceCompat = data.ecomerceCompat || this.ecomerceCompat;
+    this.ecomerceCompat = data.ecomerceCompat;
+    this.soldCount = data.soldCount || this.soldCount;
   }
 }

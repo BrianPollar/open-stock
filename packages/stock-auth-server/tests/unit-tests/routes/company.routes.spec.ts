@@ -1,5 +1,5 @@
-import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { Request, Response } from 'express';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('companyLoginRelegator', () => {
   let req: Request;
@@ -17,7 +17,7 @@ describe('companyLoginRelegator', () => {
     vi.clearAllMocks();
   });
 
-  it('should return a success response with token', async() => {
+  it('should return a success response with token', () => {
     expect(req).toBeDefined();
   });
 });

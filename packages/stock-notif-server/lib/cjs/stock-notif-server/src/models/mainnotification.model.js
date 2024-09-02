@@ -5,10 +5,12 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createNotificationsModel = exports.mainnotificationLean = exports.mainnotificationMain = void 0;
+const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const mongoose_1 = require("mongoose");
-const database_controller_1 = require("../controllers/database.controller");
+const database_1 = require("../utils/database");
 /** Mongoose schema for the main notification object. */
 const mainnotificationSchema = new mongoose_1.Schema({
+    ...stock_universal_server_1.globalSchemaObj,
     actions: [{
             action: { type: String },
             title: { type: String },
@@ -24,10 +26,11 @@ const mainnotificationSchema = new mongoose_1.Schema({
     notifInvokerId: { type: String },
     active: { type: Boolean, default: true },
     viewed: [] // strings of ObjectId
-}, { timestamps: true });
+}, { timestamps: true, collection: 'mainnotifications' });
 mainnotificationSchema.index({ createdAt: -1 });
 /** Index for the expiration time of the notification. */
-mainnotificationSchema.index({ expireAt: 1 }, { expireAfterSeconds: 2628003 });
+mainnotificationSchema
+    .index({ expireAt: 1 }, { expireAfterSeconds: 2628003 });
 /** Primary selection object for the main notification object. */
 const mainNotifselect = {
     actions: 1,
@@ -49,14 +52,15 @@ const mainNotifselect = {
  * @param lean Whether to create the lean Mongoose model or not.
  */
 const createNotificationsModel = async (dbUrl, dbOptions, main = true, lean = true) => {
-    if (!database_controller_1.isNotifDbConnected) {
-        await (0, database_controller_1.connectNotifDatabase)(dbUrl, dbOptions);
+    (0, stock_universal_server_1.createExpireDocIndex)(mainnotificationSchema);
+    if (!database_1.isNotifDbConnected) {
+        await (0, database_1.connectNotifDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.mainnotificationMain = database_controller_1.mainConnection.model('Mainnotification', mainnotificationSchema);
+        exports.mainnotificationMain = database_1.mainConnection.model('Mainnotification', mainnotificationSchema);
     }
     if (lean) {
-        exports.mainnotificationLean = database_controller_1.mainConnectionLean.model('Mainnotification', mainnotificationSchema);
+        exports.mainnotificationLean = database_1.mainConnectionLean.model('Mainnotification', mainnotificationSchema);
     }
 };
 exports.createNotificationsModel = createNotificationsModel;

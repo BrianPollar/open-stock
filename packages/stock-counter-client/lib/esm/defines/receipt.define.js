@@ -12,6 +12,8 @@ export class InvoiceRelated extends DatabaseAuto {
      */
     constructor(data) {
         super(data);
+        this.ecommerceSale = false;
+        this.ecommerceSalePercentage = 0;
         this.invoiceRelated = data.invoiceRelated;
         this.creationType = data.creationType;
         this.invoiceId = data.invoiceId;
@@ -30,6 +32,8 @@ export class InvoiceRelated extends DatabaseAuto {
         this.total = data.total;
         this.fromDate = data.fromDate;
         this.toDate = data.toDate;
+        this.ecommerceSale = data.ecommerceSale || false;
+        this.ecommerceSalePercentage = data.ecommerceSalePercentage || 0;
     }
     /**
      * Gets all invoice payments.

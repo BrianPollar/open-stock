@@ -1,3 +1,5 @@
+import Axios from 'axios-observable';
+import { EhttpController } from './utils/ehttp';
 /**
  * Represents the configuration for the database.
  */
@@ -42,9 +44,10 @@ export declare class StockUniversal {
      * The environment configuration.
      */
     static environment: IenvironmentConfig;
+    static ehttp: EhttpController;
     /**
      * Creates an instance of StockUniversal.
      * @param environment - The environment configuration object.
      */
-    constructor(environment: IenvironmentConfig);
+    constructor(environment: IenvironmentConfig, axiosInstance: Axios);
 }

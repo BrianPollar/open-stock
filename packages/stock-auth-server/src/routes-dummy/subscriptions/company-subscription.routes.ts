@@ -17,6 +17,7 @@ companySubscriptionRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (re
     count: req.params.limit,
     data: companySubscriptions
   };
+
   return res.status(200).send(response);
 });
 

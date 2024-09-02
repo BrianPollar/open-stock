@@ -7,6 +7,6 @@ import { TestimateStage } from '@open-stock/stock-universal';
  * @param invoiceId - The invoice ID to set for the estimate (optional).
  * @returns A boolean indicating whether the estimate was successfully updated.
  */
-export declare const updateEstimateUniv: (estimateId: number, stage: TestimateStage, queryId: string, invoiceId?: number) => Promise<boolean>;
+export declare const updateEstimateUniv: (res: any, estimateId: number, stage: TestimateStage, queryId: string, invoiceId?: number) => Promise<boolean>;
 /** Router for estimate routes */
 export declare const estimateRoutes: any;

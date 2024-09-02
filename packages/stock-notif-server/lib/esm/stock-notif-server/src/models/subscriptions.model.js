@@ -5,7 +5,7 @@
  * @requires mongoose-unique-validator
  */
 import { Schema } from 'mongoose';
-import { connectNotifDatabase, isNotifDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
+import { connectNotifDatabase, isNotifDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 /**
  * Mongoose schema for the subscription collection.
@@ -13,7 +13,7 @@ const uniqueValidator = require('mongoose-unique-validator');
 const subscriptionSchema = new Schema({
     subscription: {},
     userId: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true }
-}, { timestamps: true });
+}, { timestamps: true, collection: 'subscriptions' });
 // Apply the uniqueValidator plugin to subscriptionSchema.
 subscriptionSchema.plugin(uniqueValidator);
 /**

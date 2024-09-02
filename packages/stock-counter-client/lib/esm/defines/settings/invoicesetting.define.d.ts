@@ -1,4 +1,4 @@
-import { DatabaseAuto, Ifile, IfileMeta, IinvoiceSetting, IinvoiceSettingsBank, IinvoiceSettingsGeneral, IinvoiceSettingsTax, Isuccess } from '@open-stock/stock-universal';
+import { DatabaseAuto, Ifile, IfileMeta, IinvoicePrintDetails, IinvoiceSetting, IinvoiceSettingsBank, IinvoiceSettingsGeneral, IinvoiceSettingsTax, Isuccess } from '@open-stock/stock-universal';
 /** The  InvoiceSettings  class extends the  DatabaseAuto  class and represents a set of invoice settings. It has properties for general settings, tax settings, and bank settings, and a constructor that initializes these properties. */
 /**
  * Represents the settings for an invoice.
@@ -7,6 +7,7 @@ export declare class InvoiceSettings extends DatabaseAuto {
     generalSettings: IinvoiceSettingsGeneral;
     taxSettings: IinvoiceSettingsTax;
     bankSettings: IinvoiceSettingsBank;
+    printDetails: IinvoicePrintDetails;
     /**
      * Creates an instance of InvoiceSettings.
      * @param {IinvoiceSetting} data - The data to initialize the instance with.

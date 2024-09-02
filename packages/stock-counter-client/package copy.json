@@ -1,0 +1,40 @@
+{
+  "name": "@open-stock/stock-counter-client",
+  "version": "4.2.101",
+  "description": "> TODO: description clientell",
+  "main": "lib/cjs/index.js",
+  "module": "lib/esm/index.js",
+  "types": "lib/types/index.d.ts",
+  "scripts": {
+    "compileLib": "rm -rf ./lib && tsc -b ./tsconfig.cjs.json ./tsconfig.esm.json ./tsconfig.types.json",
+    "publishLib": "npm publish --access public lib",
+    "test:vite": "vitest",
+    "lint": "eslint . --ext .ts",
+    "versionLib": "npm version"
+  },
+  "author": "BrianPollar <pollarbrian@hotmail.com>",
+  "license": "ISC",
+  "dependencies": {},
+  "homepage": "",
+  "directories": {
+    "lib": "lib",
+    "test": "tests"
+  },
+  "files": [
+    "lib"
+  ],
+  "devDependencies": {
+    "@faker-js/faker": "^8.0.2",
+    "axios-mock-adapter": "^1.21.5",
+    "vite": "^4.3.9",
+    "vitest": "^0.32.2"
+  },
+  "peerDependencies": {
+    "axios": "^1.4.0",
+    "axios-observable": "^2.0.0",
+    "rxjs": "^7.8.0",
+    "@open-stock/stock-universal": "*",
+    "@open-stock/stock-notif-client": "*",
+    "@open-stock/stock-auth-client": "*"
+  }
+}

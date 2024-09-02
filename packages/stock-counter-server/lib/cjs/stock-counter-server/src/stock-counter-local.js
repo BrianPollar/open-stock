@@ -1,15 +1,13 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.connectStockCounterDatabase = exports.createStockCounterServerLocals = exports.pesapalNotifRedirectUrl = exports.isStockCounterServerRunning = void 0;
+exports.connectStockCounterDatabase = exports.createStockCounterServerLocals = exports.ecommerceRevenuePercentage = exports.pesapalNotifRedirectUrl = exports.isStockCounterServerRunning = void 0;
 const paymentrelated_model_1 = require("./models/printables/paymentrelated/paymentrelated.model");
-// import { createPaymentInstallModel } from './models/printables/paymentrelated/paymentsinstalls.model';
 const deliverycity_model_1 = require("./models/deliverycity.model");
 const expense_model_1 = require("./models/expense.model");
 const faq_model_1 = require("./models/faq.model");
 const faqanswer_model_1 = require("./models/faqanswer.model");
 const item_model_1 = require("./models/item.model");
 const itemdecoy_model_1 = require("./models/itemdecoy.model");
-const itemlimitted_model_1 = require("./models/itemlimitted.model");
 const itemoffer_model_1 = require("./models/itemoffer.model");
 const order_model_1 = require("./models/order.model");
 const payment_model_1 = require("./models/payment.model");
@@ -26,10 +24,13 @@ const profitandlossreport_model_1 = require("./models/printables/report/profitan
 const salesreport_model_1 = require("./models/printables/report/salesreport.model");
 const taxreport_model_1 = require("./models/printables/report/taxreport.model");
 const invoicesettings_model_1 = require("./models/printables/settings/invoicesettings.model");
+const user_wallet_history_model_1 = require("./models/printables/wallet/user-wallet-history.model");
+const user_wallet_model_1 = require("./models/printables/wallet/user-wallet.model");
 const promocode_model_1 = require("./models/promocode.model");
 const review_model_1 = require("./models/review.model");
 const customer_model_1 = require("./models/user-related/customer.model");
 const staff_model_1 = require("./models/user-related/staff.model");
+const user_behaviour_model_1 = require("./models/user-related/user-behaviour.model");
 /**
  * Indicates whether the stock counter server is currently running.
  */
@@ -38,13 +39,15 @@ exports.isStockCounterServerRunning = false;
  * The redirect URL for Pesapal notifications.
  */
 exports.pesapalNotifRedirectUrl = '';
+exports.ecommerceRevenuePercentage = 0;
 /**
  * Creates stock counter server locals.
  * @param notifRedirectUrl - The notification redirect URL.
  */
-const createStockCounterServerLocals = (notifRedirectUrl) => {
+const createStockCounterServerLocals = (notifRedirectUrl, ecommerceRevenuePerntge, trackUsersBool = true) => {
     exports.isStockCounterServerRunning = true;
     exports.pesapalNotifRedirectUrl = notifRedirectUrl;
+    exports.ecommerceRevenuePercentage = ecommerceRevenuePerntge;
 };
 exports.createStockCounterServerLocals = createStockCounterServerLocals;
 /**
@@ -83,7 +86,9 @@ const connectStockCounterDatabase = (databaseUrl, dbOptions) => {
         (0, payment_model_1.createPaymentModel)(databaseUrl, dbOptions),
         (0, promocode_model_1.createPromocodeModel)(databaseUrl, dbOptions),
         (0, review_model_1.createReviewModel)(databaseUrl, dbOptions),
-        (0, itemlimitted_model_1.createItemLimittedModel)(databaseUrl, dbOptions)
+        (0, user_behaviour_model_1.createUserBehaviourModel)(databaseUrl, dbOptions),
+        (0, user_wallet_model_1.createUserWalletModel)(databaseUrl, dbOptions),
+        (0, user_wallet_history_model_1.createUserWalletHistoryModel)(databaseUrl, dbOptions)
     ]);
 };
 exports.connectStockCounterDatabase = connectStockCounterDatabase;

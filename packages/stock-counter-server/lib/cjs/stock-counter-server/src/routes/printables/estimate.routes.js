@@ -7,10 +7,11 @@ const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
 const fs = tslib_1.__importStar(require("fs"));
 const path_1 = tslib_1.__importDefault(require("path"));
+const rxjs_1 = require("rxjs");
 const tracer = tslib_1.__importStar(require("tracer"));
 const estimate_model_1 = require("../../models/printables/estimate.model");
-const receipt_model_1 = require("../../models/printables/receipt.model");
 const invoicerelated_model_1 = require("../../models/printables/related/invoicerelated.model");
+const query_1 = require("../../utils/query");
 const invoicerelated_1 = require("./related/invoicerelated");
 /** Logger for estimate routes */
 const estimateRoutesogger = tracer.colorConsole({
@@ -47,8 +48,7 @@ const estimateRoutesogger = tracer.colorConsole({
  */
 const makeEstimateId = async (queryId) => {
     const count = await invoicerelated_model_1.invoiceRelatedMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .find({ companyId: queryId, estimateId: { $exists: true, $ne: null } }).sort({ _id: -1 }).limit(1).lean().select({ estimateId: 1 });
+        .find({ ...rxjs_1.filter, estimateId: { $exists: true, $ne: null } }).sort({ _id: -1 }).limit(1).lean().select({ estimateId: 1 });
     let incCount = count[0]?.estimateId || 0;
     return ++incCount;
 };
@@ -60,18 +60,22 @@ const makeEstimateId = async (queryId) => {
  * @param invoiceId - The invoice ID to set for the estimate (optional).
  * @returns A boolean indicating whether the estimate was successfully updated.
  */
-const updateEstimateUniv = async (estimateId, stage, queryId, invoiceId) => {
+const updateEstimateUniv = async (res, estimateId, stage, queryId, invoiceId) => {
     const estimate = await estimate_model_1.estimateMain
-        .findOneAndUpdate({ estimateId, companyId: queryId });
+        .findOne({ estimateId, ...rxjs_1.filter })
+        .lean();
     if (!estimate) {
         return false;
     }
-    if (invoiceId) {
-        estimate.invoiceId = invoiceId;
-    }
-    estimate.stage = stage;
     let savedErr;
-    await estimate.save().catch(err => {
+    await estimate_model_1.estimateMain.updateOne({
+        estimateId, ...rxjs_1.filter
+    }, {
+        $set: {
+            stage,
+            invoiceId: invoiceId || estimate.invoiceId
+        }
+    }).catch(err => {
         estimateRoutesogger.error('save error', err);
         savedErr = err;
         return null;
@@ -79,6 +83,7 @@ const updateEstimateUniv = async (estimateId, stage, queryId, invoiceId) => {
     if (savedErr) {
         return false;
     }
+    (0, stock_universal_server_1.addParentToLocals)(res, estimate._id, estimate_model_1.estimateLean.collection.collectionName, 'makeTrackEdit');
     return true;
 };
 exports.updateEstimateUniv = updateEstimateUniv;
@@ -92,18 +97,12 @@ exports.estimateRoutes = express_1.default.Router();
  */
 exports.estimateRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_auth_server_1.requireCanUseFeature)('quotation'), (0, stock_universal_server_1.roleAuthorisation)('estimates', 'create'), async (req, res, next) => {
     const { estimate, invoiceRelated } = req.body;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
-    estimate.companyId = queryId;
-    invoiceRelated.companyId = queryId;
-    invoiceRelated.estimateId = await makeEstimateId(companyId);
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
+    estimate.companyId = filter.companyId;
+    invoiceRelated.companyId = filter.companyId;
+    invoiceRelated.estimateId = await makeEstimateId(filter.companyId);
     const extraNotifDesc = 'Newly created estimate';
-    const invoiceRelatedRes = await (0, invoicerelated_1.relegateInvRelatedCreation)(invoiceRelated, queryId, extraNotifDesc);
+    const invoiceRelatedRes = await (0, invoicerelated_1.relegateInvRelatedCreation)(res, invoiceRelated, filter.companyId, extraNotifDesc);
     if (!invoiceRelatedRes.success) {
         return res.status(invoiceRelatedRes.status).send(invoiceRelatedRes);
     }
@@ -115,7 +114,7 @@ exports.estimateRoutes.post('/create/:companyIdParam', stock_universal_server_1.
      * @param {Estimate} newEstimate - The new estimate to be saved.
      * @returns {Promise<{success: boolean, status: number, err?: string}>} - A promise that resolves to an object with success, status, and err properties.
      */
-    await newEstimate.save()
+    const saved = await newEstimate.save()
         .catch(err => {
         estimateRoutesogger.error('create - err: ', err);
         errResponse = {
@@ -129,10 +128,13 @@ exports.estimateRoutes.post('/create/:companyIdParam', stock_universal_server_1.
             errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
         }
-        return errResponse;
+        return err;
     });
     if (errResponse) {
         return res.status(403).send(errResponse);
+    }
+    if (saved && saved._id) {
+        (0, stock_universal_server_1.addParentToLocals)(res, saved._id, estimate_model_1.estimateLean.collection.collectionName, 'makeTrackEdit');
     }
     return next();
 }, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('quotation'));
@@ -144,22 +146,16 @@ exports.estimateRoutes.post('/create/:companyIdParam', stock_universal_server_1.
  */
 exports.estimateRoutes.get('/getone/:estimateId/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('estimates', 'read'), async (req, res) => {
     const { estimateId } = req.params;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     const invoiceRelated = await invoicerelated_model_1.invoiceRelatedLean
-        .findOne({ estimateId, companyId: queryId })
+        .findOne({ estimateId, ...filter })
         .lean()
-        .populate({ path: 'billingUserId', model: stock_auth_server_1.userLean })
-        .populate({ path: 'payments', model: receipt_model_1.receiptLean });
+        .populate([(0, query_1.populatePayments)(), (0, query_1.populateBillingUser)(), (0, stock_auth_server_1.populateTrackEdit)(), (0, stock_auth_server_1.populateTrackView)()]);
     let returned;
     if (invoiceRelated) {
         returned = (0, invoicerelated_1.makeInvoiceRelatedPdct)(invoiceRelated, invoiceRelated
             .billingUserId);
+        // addParentToLocals(res, invoiceRelated._id, estimateLean.collection.collectionName, 'trackDataView'); // TODO
     }
     return res.status(200).send(returned);
 });
@@ -171,37 +167,28 @@ exports.estimateRoutes.get('/getone/:estimateId/:companyIdParam', stock_universa
  */
 exports.estimateRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('estimates', 'read'), async (req, res) => {
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     const all = await Promise.all([
         estimate_model_1.estimateLean
-            .find({ companyId: queryId })
+            .find(filter)
             .skip(offset)
             .limit(limit)
             .lean()
-            .populate({
-            path: 'invoiceRelated', model: invoicerelated_model_1.invoiceRelatedLean,
-            populate: [{
-                    path: 'billingUserId', model: stock_auth_server_1.userLean
-                },
-                {
-                    path: 'payments', model: receipt_model_1.receiptLean
-                }]
-        }),
-        estimate_model_1.estimateLean.countDocuments({ companyId: queryId })
+            .populate([(0, query_1.populateInvoiceRelated)(), (0, stock_auth_server_1.populateTrackEdit)(), (0, stock_auth_server_1.populateTrackView)()]),
+        estimate_model_1.estimateLean.countDocuments(filter)
     ]);
     const returned = all[0]
         .map(val => (0, invoicerelated_1.makeInvoiceRelatedPdct)(val.invoiceRelated, val.invoiceRelated
-        .billingUserId));
+        .billingUserId, null, {
+        _id: val._id
+    }));
     const response = {
         count: all[1],
         data: returned
     };
+    for (const val of all[0]) {
+        (0, stock_universal_server_1.addParentToLocals)(res, val._id, estimate_model_1.estimateLean.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
 /**
@@ -212,15 +199,10 @@ exports.estimateRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_unive
  */
 exports.estimateRoutes.put('/deleteone/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('estimates', 'delete'), async (req, res) => {
     const { id, invoiceRelated, creationType, stage } = req.body;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)([id, queryId]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
-    const deleted = await (0, invoicerelated_1.deleteAllLinked)(invoiceRelated, creationType, stage, 'estimate', companyId);
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
+    const deleted = await (0, invoicerelated_1.deleteAllLinked)(invoiceRelated, creationType, stage, 'estimate', filter.companyId);
     if (Boolean(deleted)) {
+        (0, stock_universal_server_1.addParentToLocals)(res, id, estimate_model_1.estimateLean.collection.collectionName, 'trackDataDelete');
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
@@ -235,30 +217,16 @@ exports.estimateRoutes.put('/deleteone/:companyIdParam', stock_universal_server_
  */
 exports.estimateRoutes.post('/search/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('estimates', 'read'), async (req, res) => {
     const { searchterm, searchKey } = req.body;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const all = await Promise.all([
         estimate_model_1.estimateLean
-            .find({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+            .find({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
             .skip(offset)
             .limit(limit)
             .lean()
-            .populate({
-            path: 'invoiceRelated', model: invoicerelated_model_1.invoiceRelatedLean,
-            populate: [{
-                    path: 'billingUserId', model: stock_auth_server_1.userLean
-                },
-                {
-                    path: 'payments', model: receipt_model_1.receiptLean
-                }]
-        }),
-        estimate_model_1.estimateLean.countDocuments({ companyId: queryId, [searchKey]: { $regex: searchterm, $options: 'i' } })
+            .populate([(0, query_1.populateInvoiceRelated)(), (0, stock_auth_server_1.populateTrackEdit)(), (0, stock_auth_server_1.populateTrackView)()]),
+        estimate_model_1.estimateLean.countDocuments({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
     ]);
     const returned = all[0]
         .map(val => (0, invoicerelated_1.makeInvoiceRelatedPdct)(val.invoiceRelated, val.invoiceRelated
@@ -267,29 +235,28 @@ exports.estimateRoutes.post('/search/:offset/:limit/:companyIdParam', stock_univ
         count: all[1],
         data: returned
     };
+    for (const val of all[0]) {
+        (0, stock_universal_server_1.addParentToLocals)(res, val._id, estimate_model_1.estimateLean.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
 exports.estimateRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('estimates', 'delete'), async (req, res) => {
     const { credentials } = req.body;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     if (!credentials || credentials?.length < 1) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     /** await estimateMain
-      // eslint-disable-next-line @typescript-eslint/naming-convention
       .deleteMany({ _id: { $in: ids } });**/
     const promises = credentials
         .map(async (val) => {
-        await (0, invoicerelated_1.deleteAllLinked)(val.invoiceRelated, val.creationType, val.stage, 'estimate', queryId);
+        await (0, invoicerelated_1.deleteAllLinked)(val.invoiceRelated, val.creationType, val.stage, 'estimate', filter.companyId);
         return new Promise(resolve => resolve(true));
     });
     await Promise.all(promises);
+    for (const val of credentials) {
+        (0, stock_universal_server_1.addParentToLocals)(res, val.id, estimate_model_1.estimateLean.collection.collectionName, 'trackDataDelete');
+    }
     return res.status(200).send({ success: true });
 });
 //# sourceMappingURL=estimate.routes.js.map

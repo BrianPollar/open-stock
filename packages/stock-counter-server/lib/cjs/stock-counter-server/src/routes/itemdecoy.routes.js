@@ -10,6 +10,7 @@ const path_1 = tslib_1.__importDefault(require("path"));
 const tracer = tslib_1.__importStar(require("tracer"));
 const item_model_1 = require("../models/item.model");
 const itemdecoy_model_1 = require("../models/itemdecoy.model");
+const query_1 = require("../utils/query");
 /** Logger for item decoy routes */
 const itemDecoyRoutesLogger = tracer.colorConsole({
     format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
@@ -46,19 +47,12 @@ exports.itemDecoyRoutes = express_1.default.Router();
  */
 exports.itemDecoyRoutes.post('/create/:how/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_auth_server_1.requireCanUseFeature)('decoy'), (0, stock_universal_server_1.roleAuthorisation)('decoys', 'create'), async (req, res, next) => {
     const { how } = req.params;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     const { itemdecoy } = req.body;
-    itemdecoy.companyId = queryId;
+    itemdecoy.companyId = filter.companyId;
     // Get the count of existing decoys and generate a new urId
     const count = await itemdecoy_model_1.itemDecoyMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+        .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     const urId = (0, stock_universal_server_1.makeUrId)(Number(count[0]?.urId || '0'));
     let decoy;
     if (how === 'automatic') {
@@ -117,10 +111,13 @@ exports.itemDecoyRoutes.post('/create/:how/:companyIdParam', stock_universal_ser
             errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
         }
-        return errResponse;
+        return err;
     });
     if (errResponse) {
         return res.status(403).send(errResponse);
+    }
+    if (saved && saved._id) {
+        (0, stock_universal_server_1.addParentToLocals)(res, saved._id, itemdecoy_model_1.itemDecoyMain.collection.collectionName, 'makeTrackEdit');
     }
     if (!Boolean(saved)) {
         return res.status(403).send('unknown error');
@@ -133,7 +130,7 @@ exports.itemDecoyRoutes.post('/create/:how/:companyIdParam', stock_universal_ser
  * @param {string} limit - The maximum number of items to return.
  * @returns {Promise<Object[]>} A promise that resolves to an array of item decoys.
  */
-exports.itemDecoyRoutes.get('/getall/:offset/:limit/:companyIdParam', async (req, res) => {
+exports.itemDecoyRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const { companyIdParam } = req.params;
     let filter = {};
@@ -147,24 +144,20 @@ exports.itemDecoyRoutes.get('/getall/:offset/:limit/:companyIdParam', async (req
     }
     const all = await Promise.all([
         itemdecoy_model_1.itemDecoyLean
-            .find(filter)
+            .find({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
             .skip(offset)
             .limit(limit)
-            .populate({
-            path: 'items', model: item_model_1.itemLean,
-            populate: [{
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
-                    path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-                }
-            ]
-        })
+            .populate([(0, query_1.populateItems)(), (0, stock_auth_server_1.populateTrackEdit)(), (0, stock_auth_server_1.populateTrackView)()])
             .lean(),
-        itemdecoy_model_1.itemDecoyLean.countDocuments(filter)
+        itemdecoy_model_1.itemDecoyLean.countDocuments({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
     ]);
     const response = {
         count: all[1],
         data: all[0]
     };
+    for (const val of all[0]) {
+        (0, stock_universal_server_1.addParentToLocals)(res, val._id, itemdecoy_model_1.itemDecoyMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
 /**
@@ -172,7 +165,7 @@ exports.itemDecoyRoutes.get('/getall/:offset/:limit/:companyIdParam', async (req
  * @param {string} id - The ID of the item decoy to retrieve.
  * @returns {Promise<Object>} A promise that resolves to the requested item decoy.
  */
-exports.itemDecoyRoutes.get('/getone/:id/:companyIdParam', async (req, res) => {
+exports.itemDecoyRoutes.get('/getone/:id/:companyIdParam', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
     const { id } = req.params;
     const { companyIdParam } = req.params;
     let ids;
@@ -186,19 +179,14 @@ exports.itemDecoyRoutes.get('/getone/:id/:companyIdParam', async (req, res) => {
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
-    const items = await itemdecoy_model_1.itemDecoyLean
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .findOne({ _id: id })
-        .populate({
-        path: 'items', model: item_model_1.itemLean,
-        populate: [{
-                // eslint-disable-next-line @typescript-eslint/naming-convention
-                path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-            }
-        ]
-    })
+    const item = await itemdecoy_model_1.itemDecoyLean
+        .findOne({ _id: id, ...(0, stock_universal_server_1.makePredomFilter)(req) })
+        .populate([(0, query_1.populateItems)(), (0, stock_auth_server_1.populateTrackEdit)(), (0, stock_auth_server_1.populateTrackView)()])
         .lean();
-    return res.status(200).send(items);
+    if (item) {
+        (0, stock_universal_server_1.addParentToLocals)(res, item._id, itemdecoy_model_1.itemDecoyMain.collection.collectionName, 'trackDataView');
+    }
+    return res.status(200).send(item);
 });
 /**
  * Delete a single item decoy by ID.
@@ -207,16 +195,12 @@ exports.itemDecoyRoutes.get('/getone/:id/:companyIdParam', async (req, res) => {
  */
 exports.itemDecoyRoutes.delete('/deleteone/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('decoys', 'delete'), async (req, res) => {
     const { id } = req.params;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)([id, queryId]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    const deleted = await itemdecoy_model_1.itemDecoyMain.findOneAndDelete({ _id: id, companyId: queryId });
+    // const deleted = await itemDecoyMain.findOneAndDelete({ _id: id, companyId: queryId });
+    const deleted = await itemdecoy_model_1.itemDecoyMain.updateOne({ _id: id, ...filter }, { $set: { isDeleted: true } });
     if (Boolean(deleted)) {
+        (0, stock_universal_server_1.addParentToLocals)(res, id, itemdecoy_model_1.itemDecoyMain.collection.collectionName, 'trackDataDelete');
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
@@ -230,21 +214,26 @@ exports.itemDecoyRoutes.delete('/deleteone/:id/:companyIdParam', stock_universal
  */
 exports.itemDecoyRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('decoys', 'delete'), async (req, res) => {
     const { ids } = req.body;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)([...ids, ...[queryId]]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
+    /* const deleted = await itemDecoyMain
+      .deleteMany({ _id: { $in: ids }, companyId: queryId })
+      .catch(err => {
+        itemDecoyRoutesLogger.error('deletemany - err: ', err);
+  
+        return null;
+      }); */
     const deleted = await itemdecoy_model_1.itemDecoyMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .deleteMany({ _id: { $in: ids }, companyId: queryId })
+        .updateMany({ _id: { $in: ids }, ...filter }, {
+        $set: { isDeleted: true }
+    })
         .catch(err => {
         itemDecoyRoutesLogger.error('deletemany - err: ', err);
         return null;
     });
     if (Boolean(deleted)) {
+        for (const val of ids) {
+            (0, stock_universal_server_1.addParentToLocals)(res, val, itemdecoy_model_1.itemDecoyMain.collection.collectionName, 'trackDataDelete');
+        }
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {

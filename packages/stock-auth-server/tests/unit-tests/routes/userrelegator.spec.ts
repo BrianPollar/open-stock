@@ -1,10 +1,10 @@
-import { beforeAll, beforeEach, afterAll, vi, expect, describe, it } from 'vitest';
+import { disconnectMongoose } from '@open-stock/stock-universal-server';
 import { Application, Request, Response } from 'express';
 import * as http from 'http';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createExpressServer } from '../../../../tests/helpers';
-import { disconnectMongoose } from '@open-stock/stock-universal-server';
-import { connectAuthDatabase } from '../../../src/stock-auth-local';
 import { userLoginRelegator } from '../../../src/routes/user.routes';
+import { connectAuthDatabase } from '../../../src/stock-auth-local';
 
 describe('userLoginRelegator', () => {
   const dbUrl = 'mongodb://localhost:27017/node_testyyyyy';
@@ -47,6 +47,7 @@ describe('userLoginRelegator', () => {
 
   it('should return error if account does not exist', async() => {
     const spy = vi.spyOn(response, 'status');
+
     await userLoginRelegator(request, response);
     expect(spy).toHaveBeenCalledWith(404);
   });

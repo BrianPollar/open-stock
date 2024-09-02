@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
-import { vi, expect, describe, beforeEach, it } from 'vitest';
-import { of } from 'rxjs';
-import Axios from 'axios-observable';
 import { faker } from '@faker-js/faker/locale/en_US';
 import { Iauthresponse } from '@open-stock/stock-universal';
-import { AuthController } from '../../../src/controllers/auth.controller';
+import Axios from 'axios-observable';
+import { of } from 'rxjs';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createMockUser } from '../../../../tests/stock-auth-mocks';
+import { AuthController } from '../../../src/controllers/auth.controller';
 import { StockAuthClient } from '../../../src/stock-auth-client';
 
 describe('AuthController', () => {
@@ -14,7 +14,6 @@ describe('AuthController', () => {
     success: true,
     user: createMockUser(),
     token: faker.string.uuid(),
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     _id: faker.string.uuid()
   } as unknown as Iauthresponse;
   const userInfo = {
@@ -70,36 +69,42 @@ describe('AuthController', () => {
 
   it('should auto authenticate user with token user', async() => {
     const ehttpGetSpy = vi.spyOn(StockAuthClient.ehttp, 'makeGet').mockImplementationOnce(() => of(mockValue));
+
     expect(await instance.authenticateJwt()).toStrictEqual(mockValue);
     expect(ehttpGetSpy).toHaveBeenCalled();
   });
 
   it('should login user', async() => {
     const ehttpPostSpy = vi.spyOn(StockAuthClient.ehttp, 'makePost').mockImplementationOnce(() => of(mockValue));
+
     expect(await instance.login(userInfo)).toStrictEqual(mockValue);
     expect(ehttpPostSpy).toHaveBeenCalled();
   });
 
   it('should signup user', async() => {
     const ehttpPostSpy = vi.spyOn(StockAuthClient.ehttp, 'makePost').mockImplementationOnce(() => of(mockValue));
+
     expect(await instance.signup(userInfo)).toStrictEqual(mockValue);
     expect(ehttpPostSpy).toHaveBeenCalled();
   });
 
   it('should recover user', async() => {
     const ehttpPostSpy = vi.spyOn(StockAuthClient.ehttp, 'makePost').mockImplementationOnce(() => of(mockValue));
+
     expect(await instance.recover(userInfo)).toStrictEqual(mockValue);
     expect(ehttpPostSpy).toHaveBeenCalled();
   });
 
   it('should confirm user', async() => {
     const ehttpPostSpy = vi.spyOn(StockAuthClient.ehttp, 'makePost').mockImplementationOnce(() => of(mockValue));
+
     expect(await instance.confirm(userInfo, '/')).toStrictEqual(mockValue);
     expect(ehttpPostSpy).toHaveBeenCalled();
   });
 
   it('should make socialLogin', async() => {
     const ehttpPostSpy = vi.spyOn(StockAuthClient.ehttp, 'makePost').mockImplementationOnce(() => of(mockValue));
+
     expect(await instance.socialLogin(userInfo)).toStrictEqual(mockValue);
     expect(ehttpPostSpy).toHaveBeenCalled();
   });

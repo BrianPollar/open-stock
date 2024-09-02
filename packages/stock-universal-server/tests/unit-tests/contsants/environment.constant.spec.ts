@@ -19,6 +19,7 @@ describe('getEnvVar', () => {
       }
     };
     const next = vi.fn();
+
     getEnvVar('APP_NAME')(req, {}, next);
     expect(req.localEnv).toStrictEqual(req.env);
     console.log('modified', req.localEnv);
@@ -35,6 +36,7 @@ describe('getEnvVar', () => {
       }
     };
     const next = vi.fn();
+
     getEnvVar(['APP_NAME', 'PORT'])(req, {}, next);
     expect(req.env.APP_NAME).toBe('My App');
     expect(req.env.PORT).toBe('8080');
@@ -50,6 +52,7 @@ describe('getExpressLocals', () => {
       }
     };
     const result = getExpressLocals(app, 'APP_NAME');
+
     expect(result).toBe('My App');
   });
 });

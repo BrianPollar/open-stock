@@ -1,9 +1,9 @@
-import { vi, expect, describe, beforeEach, it, expectTypeOf } from 'vitest';
+import { IinvoicesReport } from '@open-stock/stock-universal';
+import Axios from 'axios-observable';
+import { of } from 'rxjs';
+import { beforeEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 import { InvoiceReport } from '../../../../../stock-counter-client/src/defines/reports/invoicereport.define';
 import { StockCounterClient } from '../../../../../stock-counter-client/src/stock-counter-client';
-import { of } from 'rxjs';
-import Axios from 'axios-observable';
-import { IinvoicesReport } from '@open-stock/stock-universal';
 import { createMockInvoiceReport, createMockInvoiceReports } from '../../../../../tests/stock-counter-mocks';
 
 describe('InvoiceReport', () => {
@@ -36,6 +36,7 @@ describe('InvoiceReport', () => {
   it('#getInvoiceReports static should get InvoiceReports array', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makeGet').mockImplementationOnce(() => of(createMockInvoiceReports(10)));
     const list = await InvoiceReport.getInvoiceReports(companyId, '/', 0, 0);
+
     expect(typeof list).toEqual('object');
     expectTypeOf(list).toEqualTypeOf<InvoiceReport[]>([]);
     expect(lSpy).toHaveBeenCalled();
@@ -44,6 +45,7 @@ describe('InvoiceReport', () => {
   it('#getOneInvoiceReport should get one InvoiceReport', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makeGet').mockImplementationOnce(() => of(createMockInvoiceReport()));
     const one = await InvoiceReport.getOneInvoiceReport(companyId, 'urId');
+
     expect(typeof one).toEqual('object');
     expect(one).toBeInstanceOf(InvoiceReport);
     expect(lSpy).toHaveBeenCalled();
@@ -52,6 +54,7 @@ describe('InvoiceReport', () => {
   it('#addInvoiceReport should add one InvoiceReport', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makePost').mockImplementationOnce(() => of({ success: true }));
     const added = await InvoiceReport.addInvoiceReport(companyId, createMockInvoiceReport() as IinvoicesReport);
+
     expect(typeof added).toEqual('object');
     expect(added).toHaveProperty('success');
     expect(added.success).toEqual(true);
@@ -63,6 +66,7 @@ describe('InvoiceReport', () => {
   it('#deleteInvoiceReports should delete many InvoiceReports', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makePut').mockImplementationOnce(() => of({ success: true }));
     const deleted = await InvoiceReport.deleteInvoiceReports(companyId, ['ids']);
+
     expect(typeof deleted).toEqual('object');
     expect(deleted).toHaveProperty('success');
     expect(deleted.success).toEqual(true);

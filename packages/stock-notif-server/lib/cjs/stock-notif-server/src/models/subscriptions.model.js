@@ -8,7 +8,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createSubscriptionModel = exports.subscriptionSelect = exports.subscriptionLean = exports.subscriptionMain = void 0;
 const mongoose_1 = require("mongoose");
-const database_controller_1 = require("../controllers/database.controller");
+const database_1 = require("../utils/database");
 const uniqueValidator = require('mongoose-unique-validator');
 /**
  * Mongoose schema for the subscription collection.
@@ -16,7 +16,7 @@ const uniqueValidator = require('mongoose-unique-validator');
 const subscriptionSchema = new mongoose_1.Schema({
     subscription: {},
     userId: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true }
-}, { timestamps: true });
+}, { timestamps: true, collection: 'subscriptions' });
 // Apply the uniqueValidator plugin to subscriptionSchema.
 subscriptionSchema.plugin(uniqueValidator);
 /**
@@ -37,14 +37,14 @@ exports.subscriptionSelect = subscriptionselect;
  * @param lean - Whether to create the lean connection.
  */
 const createSubscriptionModel = async (dbUrl, dbOptions, main = true, lean = true) => {
-    if (!database_controller_1.isNotifDbConnected) {
-        await (0, database_controller_1.connectNotifDatabase)(dbUrl, dbOptions);
+    if (!database_1.isNotifDbConnected) {
+        await (0, database_1.connectNotifDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.subscriptionMain = database_controller_1.mainConnection.model('Subscription', subscriptionSchema);
+        exports.subscriptionMain = database_1.mainConnection.model('Subscription', subscriptionSchema);
     }
     if (lean) {
-        exports.subscriptionLean = database_controller_1.mainConnectionLean.model('Subscription', subscriptionSchema);
+        exports.subscriptionLean = database_1.mainConnectionLean.model('Subscription', subscriptionSchema);
     }
 };
 exports.createSubscriptionModel = createSubscriptionModel;

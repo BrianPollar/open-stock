@@ -4,6 +4,7 @@ import {
   IdataArrayResponse,
   Ifile,
   IfileMeta,
+  IinvoicePrintDetails,
   IinvoiceSetting,
   IinvoiceSettingsBank,
   IinvoiceSettingsGeneral,
@@ -22,6 +23,7 @@ export class InvoiceSettings extends DatabaseAuto {
   generalSettings: IinvoiceSettingsGeneral;
   taxSettings: IinvoiceSettingsTax;
   bankSettings: IinvoiceSettingsBank;
+  printDetails: IinvoicePrintDetails;
 
   /**
    * Creates an instance of InvoiceSettings.
@@ -32,6 +34,7 @@ export class InvoiceSettings extends DatabaseAuto {
     this.generalSettings = data.generalSettings;
     this.taxSettings = data.taxSettings;
     this.bankSettings = data.bankSettings;
+    this.printDetails = data.printDetails;
   }
 
   /**
@@ -51,6 +54,7 @@ export class InvoiceSettings extends DatabaseAuto {
     const observer$ = StockCounterClient.ehttp
       .makeGet(`/invoicesettings/${url}/${offset}/${limit}/${companyId}`);
     const { count, data } = await lastValueFrom(observer$) as IdataArrayResponse;
+
     return {
       count,
       invoiceSettings: data
@@ -71,6 +75,7 @@ export class InvoiceSettings extends DatabaseAuto {
     const observer$ = StockCounterClient.ehttp
       .makeGet(`/invoicesettings/getone/${id}/${companyId}`);
     const invoiceSetting = await lastValueFrom(observer$) as IinvoiceSetting;
+
     return new InvoiceSettings(invoiceSetting);
   }
 
@@ -90,18 +95,24 @@ export class InvoiceSettings extends DatabaseAuto {
     const details = {
       invoicesettings: vals
     };
+
     if (files && files[0]) {
       console.log('CREATING IMAFE');
       const observer$ = StockCounterClient.ehttp
-        .uploadFiles(files,
+        .uploadFiles(
+          files,
           `/invoicesettings/createimg/${companyId}`,
-          details);
+          details
+        );
+
       added = await lastValueFrom(observer$) as Isuccess;
     } else {
       const observer$ = StockCounterClient.ehttp
         .makePost(`/invoicesettings/create/${companyId}`, details);
+
       added = await lastValueFrom(observer$) as Isuccess;
     }
+
     return added;
   }
 
@@ -117,6 +128,7 @@ export class InvoiceSettings extends DatabaseAuto {
   ): Promise<Isuccess> {
     const observer$ = StockCounterClient.ehttp
       .makePut(`/invoicesettings/deletemany/${companyId}`, { ids });
+
     return lastValueFrom(observer$) as Promise<Isuccess>;
   }
 
@@ -135,7 +147,6 @@ export class InvoiceSettings extends DatabaseAuto {
     const details = {
       invoicesettings: {
         ...vals,
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         _id: this._id
       },
       filesWithDir: [{
@@ -147,17 +158,23 @@ export class InvoiceSettings extends DatabaseAuto {
       ]
     };
     let added: Isuccess;
+
     if (files && files[0]) {
       const observer$ = StockCounterClient.ehttp
-        .uploadFiles(files,
+        .uploadFiles(
+          files,
           `/invoicesettings/updateimg/${companyId}`,
-          details);
+          details
+        );
+
       added = await lastValueFrom(observer$) as Isuccess;
     } else {
       const observer$ = StockCounterClient.ehttp
         .makePut(`/invoicesettings/update/${companyId}`, details);
+
       added = await lastValueFrom(observer$) as Isuccess;
     }
+
     return added;
   }
 
@@ -170,9 +187,9 @@ export class InvoiceSettings extends DatabaseAuto {
    */
   async deleteImages(companyId: string, where: 'signature' | 'stamp', filesWithDir: IfileMeta[]) {
     const observer$ = StockCounterClient.ehttp
-    // eslint-disable-next-line @typescript-eslint/naming-convention
       .makePut(`/invoicesettings/deleteimages/${companyId}`, { filesWithDir, item: { _id: this._id } });
     const deleted = await lastValueFrom(observer$) as Isuccess;
+
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     if (deleted.success) {
       if (where === 'signature') {
@@ -181,6 +198,7 @@ export class InvoiceSettings extends DatabaseAuto {
         this.generalSettings.defaultDigitalStamp = null;
       }
     }
+
     return deleted;
   }
 }

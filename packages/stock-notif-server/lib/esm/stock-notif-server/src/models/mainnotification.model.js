@@ -2,10 +2,12 @@
  * @fileoverview This file contains the Mongoose schema and model for the main notification object.
  * @packageDocumentation
  */
+import { createExpireDocIndex, globalSchemaObj } from '@open-stock/stock-universal-server';
 import { Schema } from 'mongoose';
-import { connectNotifDatabase, isNotifDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
+import { connectNotifDatabase, isNotifDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 /** Mongoose schema for the main notification object. */
 const mainnotificationSchema = new Schema({
+    ...globalSchemaObj,
     actions: [{
             action: { type: String },
             title: { type: String },
@@ -21,10 +23,11 @@ const mainnotificationSchema = new Schema({
     notifInvokerId: { type: String },
     active: { type: Boolean, default: true },
     viewed: [] // strings of ObjectId
-}, { timestamps: true });
+}, { timestamps: true, collection: 'mainnotifications' });
 mainnotificationSchema.index({ createdAt: -1 });
 /** Index for the expiration time of the notification. */
-mainnotificationSchema.index({ expireAt: 1 }, { expireAfterSeconds: 2628003 });
+mainnotificationSchema
+    .index({ expireAt: 1 }, { expireAfterSeconds: 2628003 });
 /** Primary selection object for the main notification object. */
 const mainNotifselect = {
     actions: 1,
@@ -54,6 +57,7 @@ export let mainnotificationLean;
  * @param lean Whether to create the lean Mongoose model or not.
  */
 export const createNotificationsModel = async (dbUrl, dbOptions, main = true, lean = true) => {
+    createExpireDocIndex(mainnotificationSchema);
     if (!isNotifDbConnected) {
         await connectNotifDatabase(dbUrl, dbOptions);
     }

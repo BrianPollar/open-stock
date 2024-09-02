@@ -1,6 +1,6 @@
 {
   "name": "@open-stock/stock-universal-server",
-  "version": "3.6.5",
+  "version": "4.2.152",
   "description": "> TODO: description",
   "main": "lib/cjs/index.js",
   "module": "lib/esm/index.js",
@@ -16,10 +16,12 @@
   "author": "BrianPollar <pollarbrian@hotmail.com>",
   "license": "ISC",
   "dependencies": {
+    "@imgly/background-removal-node": "^1.4.5",
     "debug": "^4.3.4",
     "fs-extra": "^11.2.0",
     "log4js": "^6.9.1",
     "multer": "^1.4.5-lts.1",
+    "node-cron": "^3.0.3",
     "passport": "^0.6.0",
     "passport-google-oauth": "^2.0.0",
     "passport-jwt": "^4.0.1",

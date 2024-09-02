@@ -1,5 +1,5 @@
 import { isNotificationsServerRunning } from '@open-stock/stock-notif-server';
-import { runPassport } from '@open-stock/stock-universal-server';
+import { runPassport, stockUniversalConfig } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { ConnectOptions } from 'mongoose';
 import { PesaPalController } from 'pesapal3';
@@ -30,13 +30,6 @@ export interface IaAuth {
   password: string;
 }
 
-/**
- * Represents the configuration options for the stock-auth-server.
- */
-export interface IlAuth {
-  jwtSecret: string;
-  cookieSecret: string;
-}
 
 /**
  * Represents the local environment configuration.
@@ -54,7 +47,6 @@ export interface IlocalEnv {
  */
 export interface IStockAuthServerConfig {
   adminAuth: IaAuth;
-  authSecrets: IlAuth;
   localSettings: IlocalEnv;
   databaseConfig: {
     url: string;
@@ -62,12 +54,14 @@ export interface IStockAuthServerConfig {
   };
   localPath: IlocalPath;
   useDummyRoutes?: boolean;
+  permanentlyDeleteAfter: number; // defaults to 0
 }
 
 /**
  * The PesaPal payment instance for the server.
  */
 export let pesapalPaymentInstance: PesaPalController;
+
 /**
  * The URL to redirect to when a notification is received.
  */
@@ -87,6 +81,7 @@ export const runStockAuthServer = async(
 ) => {
   if (!isNotificationsServerRunning()) {
     const error = new Error('Notifications server is not running, please start by firing up that server');
+
     throw error;
   }
 
@@ -94,7 +89,7 @@ export const runStockAuthServer = async(
   createStockAuthServerLocals(config);
   // connect models
   await connectAuthDatabase(config.databaseConfig.url, config.databaseConfig.dbOptions);
-  runPassport(config.authSecrets.jwtSecret);
+  runPassport(stockUniversalConfig.authSecrets.jwtSecret);
   const stockAuthRouter = express.Router();
 
   if (!config.useDummyRoutes) {
@@ -112,6 +107,7 @@ export const runStockAuthServer = async(
     stockAuthRouter.use('/companysubscription', companySubscriptionRoutesDummy);
     stockAuthRouter.use('/admin', superAdminRoutesDummy);
   }
+
   return Promise.resolve({ stockAuthRouter });
 };
 

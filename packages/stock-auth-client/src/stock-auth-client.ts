@@ -5,6 +5,7 @@ import Axios from 'axios-observable';
  * StockAuthClient is a class that provides methods for authenticating with the stock service.
  */
 export class StockAuthClient {
+  //
   /**
    * ehttp: A static property of type EhttpController.
    * It is used for making HTTP requests to the stock service.
@@ -21,9 +22,7 @@ export class StockAuthClient {
    * Creates an instance of StockAuthClient.
    * @param axiosInstance An instance of Axios used for making HTTP requests.
    */
-  constructor(
-    axiosInstance: Axios
-  ) {
+  constructor(axiosInstance: Axios) {
     StockAuthClient.ehttp = new EhttpController(axiosInstance);
   }
 }

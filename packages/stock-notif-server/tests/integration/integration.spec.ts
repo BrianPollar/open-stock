@@ -1,8 +1,8 @@
-import { Application } from 'express';
-import { IstockNotifServerConfig, runStockNotificationServer } from '../../src/stock-notif-server';
-import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { apiRouter } from '@open-stock/stock-universal-server';
+import { Application } from 'express';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createExpressServer } from '../../../tests/helpers';
+import { IstockNotifServerConfig, runStockNotificationServer } from '../../src/stock-notif-server';
 
 const mocks = vi.hoisted(() => {
   return {
@@ -27,6 +27,7 @@ const jwtSecret = 'aegwegshhweh';
 
 vi.mock('@open-stock/stock-universal-server', async() => {
   const actual: object = await vi.importActual('@open-stock/stock-universal-server');
+
   return {
     ...actual,
     isUniversalServerRunning: vi.fn().mockReturnValue(true)
@@ -53,6 +54,7 @@ describe('status integration tests', () => {
       }
     };
     const { stockNotifRouter } = await runStockNotificationServer(config);
+
     apiRouter.use('notif', stockNotifRouter);
     app.use('/api', apiRouter);
   });

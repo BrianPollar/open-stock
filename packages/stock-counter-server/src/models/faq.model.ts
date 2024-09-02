@@ -1,6 +1,7 @@
 import { Ifaq } from '@open-stock/stock-universal';
+import { createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
+import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 
 /**
@@ -10,21 +11,28 @@ export type Tfaq = Document & Ifaq;
 
 /** FAQ schema */
 const faqSchema: Schema<Tfaq> = new Schema({
-  urId: { type: String },
-  companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
+  ...withUrIdAndCompanySchemaObj,
   posterName: { type: String },
   posterEmail: { type: String, required: [true, 'cannot be empty.'], index: true },
   userId: { type: String },
   qn: { type: String, required: [true, 'cannot be empty.'], index: true }
-}, { timestamps: true });
+}, { timestamps: true, collection: 'faqs' });
+
+faqSchema.pre('updateOne', function(next) {
+  return preUpdateDocExpire(this, next);
+});
+
+faqSchema.pre('updateMany', function(next) {
+  return preUpdateDocExpire(this, next);
+});
+
 
 // Apply the uniqueValidator plugin to faqSchema.
 faqSchema.plugin(uniqueValidator);
 
 /** Primary selection object for FAQ */
 const faqselect = {
-  urId: 1,
-  companyId: 1,
+  ...withUrIdAndCompanySelectObj,
   posterName: 1,
   posterEmail: 1,
   userId: 1,
@@ -54,6 +62,7 @@ export const faqSelect = faqselect;
  * @param lean Whether to create a lean connection.
  */
 export const createFaqModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
+  createExpireDocIndex(faqSchema);
   if (!isStockDbConnected) {
     await connectStockDatabase(dbUrl, dbOptions);
   }

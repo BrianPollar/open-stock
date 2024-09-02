@@ -1,14 +1,21 @@
+import { createExpireDocIndex, preUpdateDocExpire, withCompanySchemaObj, withCompanySelectObj } from '@open-stock/stock-universal-server';
 import { Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../controllers/database.controller';
+import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../utils/database';
 const estimateSchema = new Schema({
-    companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
+    ...withCompanySchemaObj,
     invoiceRelated: { type: String }
-}, { timestamps: true });
+}, { timestamps: true, collection: 'estimates' });
+estimateSchema.pre('updateOne', function (next) {
+    return preUpdateDocExpire(this, next);
+});
+estimateSchema.pre('updateMany', function (next) {
+    return preUpdateDocExpire(this, next);
+});
 /** primary selection object
  * for estimate
  */
 const estimateselect = {
-    companyId: 1,
+    ...withCompanySelectObj,
     invoiceRelated: 1
 };
 /**
@@ -30,6 +37,7 @@ export const estimateSelect = estimateselect;
  * @param lean - A flag indicating whether to create the lean connection model.
  */
 export const createEstimateModel = async (dbUrl, dbOptions, main = true, lean = true) => {
+    createExpireDocIndex(estimateSchema);
     if (!isStockDbConnected) {
         await connectStockDatabase(dbUrl, dbOptions);
     }

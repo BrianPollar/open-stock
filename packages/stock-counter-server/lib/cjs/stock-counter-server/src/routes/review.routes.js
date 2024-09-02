@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.reviewRoutes = void 0;
 const tslib_1 = require("tslib");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
+const stock_universal_server_2 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
 const fs = tslib_1.__importStar(require("fs"));
 const path_1 = tslib_1.__importDefault(require("path"));
@@ -56,12 +57,11 @@ exports.reviewRoutes.post('/create/:companyIdParam', async (req, res, next) => {
     const review = req.body.review;
     review.companyId = 'superAdmin';
     const count = (await review_model_1.reviewMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 })[0]?.urId) || 0;
-    review.urId = (0, stock_universal_server_1.makeUrId)(count);
-    const newFaq = new review_model_1.reviewMain(review);
+    review.urId = (0, stock_universal_server_2.makeUrId)(count);
+    const newReview = new review_model_1.reviewMain(review);
     let errResponse;
-    await newFaq.save()
+    const saved = await newReview.save()
         .catch(err => {
         reviewRoutesLogger.error('create - err: ', err);
         errResponse = {
@@ -69,16 +69,19 @@ exports.reviewRoutes.post('/create/:companyIdParam', async (req, res, next) => {
             status: 403
         };
         if (err && err.errors) {
-            errResponse.err = (0, stock_universal_server_1.stringifyMongooseErr)(err.errors);
+            errResponse.err = (0, stock_universal_server_2.stringifyMongooseErr)(err.errors);
         }
         else {
             errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
         }
-        return errResponse;
+        return err;
     });
     if (errResponse) {
         return res.status(403).send(errResponse);
+    }
+    if (saved && saved._id) {
+        (0, stock_universal_server_2.addParentToLocals)(res, saved._id, review_model_1.reviewMain.collection.collectionName, 'makeTrackEdit');
     }
     return next();
 }, item_routes_1.addReview);
@@ -97,9 +100,11 @@ exports.reviewRoutes.post('/create/:companyIdParam', async (req, res, next) => {
 exports.reviewRoutes.get('/getone/:id/:companyIdParam', async (req, res) => {
     const { id } = req.params;
     const review = await review_model_1.reviewLean
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .findOne({ _id: id })
+        .findOne({ _id: id, ...(0, stock_universal_server_1.makePredomFilter)(req) })
         .lean();
+    if (review) {
+        (0, stock_universal_server_2.addParentToLocals)(res, review._id, review_model_1.reviewMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(review);
 });
 /**
@@ -115,10 +120,10 @@ exports.reviewRoutes.get('/getone/:id/:companyIdParam', async (req, res) => {
  * @returns {Array} Array of review objects
  */
 exports.reviewRoutes.get('/getall/:id/:offset/:limit/:companyIdParam', async (req, res) => {
-    const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
+    const { offset, limit } = (0, stock_universal_server_2.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const all = await Promise.all([
         review_model_1.reviewLean
-            .find({ itemId: req.params.id })
+            .find({ itemId: req.params.id, ...(0, stock_universal_server_1.makePredomFilter)(req) })
             .skip(offset)
             .limit(limit)
             .lean(),
@@ -128,7 +133,17 @@ exports.reviewRoutes.get('/getall/:id/:offset/:limit/:companyIdParam', async (re
         count: all[1],
         data: all[0]
     };
+    for (const val of all[0]) {
+        (0, stock_universal_server_2.addParentToLocals)(res, val._id, review_model_1.reviewMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
+});
+exports.reviewRoutes.get('/getratingcount/:id/:rating', async (req, res) => {
+    const { id, rating } = req.params;
+    const review = await review_model_1.reviewLean
+        .find({ itemId: id, rating })
+        .lean();
+    return res.status(200).send({ count: review.length });
 });
 /**
  * Route for deleting a single review by ID
@@ -148,8 +163,10 @@ exports.reviewRoutes.get('/getall/:id/:offset/:limit/:companyIdParam', async (re
 exports.reviewRoutes.delete('/deleteone/:id/:itemId/:rating/:companyIdParam', async (req, res, next) => {
     const { id } = req.params;
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    const deleted = await review_model_1.reviewMain.findOneAndDelete({ _id: id });
+    // const deleted = await reviewMain.findOneAndDelete({ _id: id });
+    const deleted = await review_model_1.reviewMain.updateOne({ _id: id }, { $set: { isDeleted: true } });
     if (Boolean(deleted)) {
+        (0, stock_universal_server_2.addParentToLocals)(res, id, review_model_1.reviewMain.collection.collectionName, 'trackDataDelete');
         return next();
     }
     else {

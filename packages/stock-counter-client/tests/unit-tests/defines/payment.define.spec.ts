@@ -1,9 +1,9 @@
-import { vi, expect, describe, beforeEach, it, expectTypeOf } from 'vitest';
+import Axios from 'axios-observable';
+import { of } from 'rxjs';
+import { beforeEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 import { Payment } from '../../../../stock-counter-client/src/defines/payment.define';
 import { StockCounterClient } from '../../../../stock-counter-client/src/stock-counter-client';
-import { of } from 'rxjs';
-import Axios from 'axios-observable';
-import { createMockPayment, createMockPaymentRelated, createMockPayments, createMockInvoiceRelated, createMockOrder } from '../../../../tests/stock-counter-mocks';
+import { createMockInvoiceRelated, createMockOrder, createMockPayment, createMockPaymentRelated, createMockPayments } from '../../../../tests/stock-counter-mocks';
 
 describe('Payment', () => {
   let instance: Payment;
@@ -33,6 +33,7 @@ describe('Payment', () => {
   it('#getPayments static should get Payments array', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makeGet').mockImplementationOnce(() => of(createMockPayments(10)));
     const list = await Payment.getPayments(companyId, '/', 0, 0);
+
     expect(typeof list).toEqual('object');
     expectTypeOf(list).toEqualTypeOf<Payment[]>([]);
     expect(lSpy).toHaveBeenCalled();
@@ -41,6 +42,7 @@ describe('Payment', () => {
   it('#searchPayments static should search Payments and return matching items array', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makePost').mockImplementationOnce(() => of(createMockPayments(10)));
     const list = await Payment.searchPayments(companyId, '/', '/');
+
     expect(typeof list).toEqual('object');
     expectTypeOf(list).toEqualTypeOf<Payment[]>([]);
     expect(lSpy).toHaveBeenCalled();
@@ -49,6 +51,7 @@ describe('Payment', () => {
   it('#getOnePayment static should get one Payment', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makeGet').mockImplementationOnce(() => of(createMockPayment()));
     const one = await Payment.getOnePayment(companyId, 'urId');
+
     expect(typeof one).toEqual('object');
     expect(one).toBeInstanceOf(Payment);
     expect(lSpy).toHaveBeenCalled();
@@ -62,7 +65,9 @@ describe('Payment', () => {
       createMockInvoiceRelated(),
       createMockOrder(),
       createMockPayment(),
-      null);
+      null
+    );
+
     expect(typeof added).toEqual('object');
     expect(added).toHaveProperty('success');
     expect(added.success).toEqual(true);
@@ -74,6 +79,7 @@ describe('Payment', () => {
   it('#deletePayments static should delete many Payments', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makePut').mockImplementationOnce(() => of({ success: true }));
     const deleted = await Payment.deletePayments(companyId, []);
+
     expect(typeof deleted).toEqual('object');
     expect(deleted).toHaveProperty('success');
     expect(deleted.success).toEqual(true);
@@ -88,7 +94,9 @@ describe('Payment', () => {
       companyId,
       createMockPayment(),
       createMockPaymentRelated(),
-      createMockInvoiceRelated());
+      createMockInvoiceRelated()
+    );
+
     expect(typeof updated).toEqual('object');
     expect(updated).toHaveProperty('success');
     expect(updated.success).toEqual(true);
@@ -100,6 +108,7 @@ describe('Payment', () => {
   it('#deletePayment should delete Payment', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makeDelete').mockImplementationOnce(() => of({ success: true }));
     const deleted = await instance.deletePayment(companyId);
+
     expect(typeof deleted).toEqual('object');
     expect(deleted).toHaveProperty('success');
     expect(deleted.success).toEqual(true);

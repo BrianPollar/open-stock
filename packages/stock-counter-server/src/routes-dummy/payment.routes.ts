@@ -24,6 +24,7 @@ paymentRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) => {
     count: req.params.limit,
     data: createMockPayments(Number(req.params.limit))
   };
+
   res.status(200).send(response);
 });
 
@@ -32,6 +33,7 @@ paymentRoutesDummy.get('/getmypayments/:offset/:limit/:companyIdParam', (req, re
     count: req.params.limit,
     data: createMockPayments(Number(req.params.limit))
   };
+
   res.status(200).send(response);
 });
 
@@ -44,6 +46,7 @@ paymentRoutesDummy.post('/search/:offset/:limit/:companyIdParam', (req, res) => 
     count: req.params.limit,
     data: []
   };
+
   res.status(200).send(response);
 });
 

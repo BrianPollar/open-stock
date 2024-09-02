@@ -56,6 +56,7 @@ export class DeliveryCity extends DatabaseAuto {
     const observer$ = StockCounterClient.ehttp
       .makeGet(`/deliverycity/${url}/${offset}/${limit}/${companyId}`);
     const citys = await lastValueFrom(observer$) as IdataArrayResponse;
+
     return {
       count: citys.count,
       citys: citys.data.map(val => new DeliveryCity(val as Ideliverycity))
@@ -74,6 +75,7 @@ export class DeliveryCity extends DatabaseAuto {
   ): Promise<DeliveryCity> {
     const observer$ = StockCounterClient.ehttp.makeGet(`/deliverycity/getone/${id}/${companyId}`);
     const city = await lastValueFrom(observer$) as Ideliverycity;
+
     return new DeliveryCity(city);
   }
 
@@ -91,6 +93,7 @@ export class DeliveryCity extends DatabaseAuto {
       .makePost(`/deliverycity/create/${companyId}`, {
         deliverycity
       });
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 
@@ -106,6 +109,7 @@ export class DeliveryCity extends DatabaseAuto {
   ): Promise<Isuccess> {
     const observer$ = StockCounterClient.ehttp
       .makePut(`/deliverycity/deletemany/${companyId}`, { ids });
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 
@@ -119,12 +123,14 @@ export class DeliveryCity extends DatabaseAuto {
     const observer$ = StockCounterClient.ehttp
       .makePut(`/deliverycity/update/${companyId}`, vals);
     const updated = await lastValueFrom(observer$) as Isuccess;
+
     if (updated.success) {
       this.name = vals.name || this.name;
       this.shippingCost = vals.shippingCost || this.shippingCost;
       this.currency = vals.currency || this.currency;
       this.deliversInDays = vals.deliversInDays || this.deliversInDays;
     }
+
     return updated;
   }
 
@@ -136,6 +142,7 @@ export class DeliveryCity extends DatabaseAuto {
   async deleteDeliveryCity(companyId: string): Promise<Isuccess> {
     const observer$ = StockCounterClient.ehttp
       .makeDelete(`/deliverycity/deleteone/${this._id}/${companyId}`);
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 }

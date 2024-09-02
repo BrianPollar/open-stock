@@ -18,6 +18,7 @@ estimateRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) => 
     count: req.params.limit,
     data: createMockEstimates(Number(req.params.limit))
   };
+
   res.status(200).send(response);
 });
 
@@ -30,6 +31,7 @@ estimateRoutesDummy.post('/search/:offset/:limit/:companyIdParam', (req, res) =>
     count: req.params.limit,
     data: createMockEstimates(Number(req.params.limit))
   };
+
   res.status(200).send(response);
 });
 

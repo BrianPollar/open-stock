@@ -1,23 +1,28 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createItemDecoyModel = exports.itemDecoySelect = exports.itemDecoyLean = exports.itemDecoyMain = void 0;
+const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const mongoose_1 = require("mongoose");
-const database_controller_1 = require("../controllers/database.controller");
+const database_1 = require("../utils/database");
 const uniqueValidator = require('mongoose-unique-validator');
 const itemDecoySchema = new mongoose_1.Schema({
-    urId: { type: String },
-    companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
+    ...stock_universal_server_1.withUrIdAndCompanySchemaObj,
     type: { type: String },
     items: []
-}, { timestamps: true });
+}, { timestamps: true, collection: 'itemdecoys' });
 // Apply the uniqueValidator plugin to userSchema.
 itemDecoySchema.plugin(uniqueValidator);
+itemDecoySchema.pre('updateOne', function (next) {
+    return (0, stock_universal_server_1.preUpdateDocExpire)(this, next);
+});
+itemDecoySchema.pre('updateMany', function (next) {
+    return (0, stock_universal_server_1.preUpdateDocExpire)(this, next);
+});
 /** primary selection object
  * for itemDecoy
  */
 const itemDecoyselect = {
-    urId: 1,
-    companyId: 1,
+    ...stock_universal_server_1.withUrIdAndCompanySelectObj,
     type: 1,
     items: 1
 };
@@ -33,14 +38,15 @@ exports.itemDecoySelect = itemDecoyselect;
  * @param lean Whether to create the lean connection or not. Defaults to true.
  */
 const createItemDecoyModel = async (dbUrl, dbOptions, main = true, lean = true) => {
-    if (!database_controller_1.isStockDbConnected) {
-        await (0, database_controller_1.connectStockDatabase)(dbUrl, dbOptions);
+    (0, stock_universal_server_1.createExpireDocIndex)(itemDecoySchema);
+    if (!database_1.isStockDbConnected) {
+        await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.itemDecoyMain = database_controller_1.mainConnection.model('ItemDecoy', itemDecoySchema);
+        exports.itemDecoyMain = database_1.mainConnection.model('ItemDecoy', itemDecoySchema);
     }
     if (lean) {
-        exports.itemDecoyLean = database_controller_1.mainConnectionLean.model('ItemDecoy', itemDecoySchema);
+        exports.itemDecoyLean = database_1.mainConnectionLean.model('ItemDecoy', itemDecoySchema);
     }
 };
 exports.createItemDecoyModel = createItemDecoyModel;

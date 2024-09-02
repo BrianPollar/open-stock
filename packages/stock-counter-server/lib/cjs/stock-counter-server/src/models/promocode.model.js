@@ -1,8 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createPromocodeModel = exports.promocodeSelect = exports.promocodeLean = exports.promocodeMain = void 0;
+const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const mongoose_1 = require("mongoose");
-const database_controller_1 = require("../controllers/database.controller");
+const database_1 = require("../utils/database");
 const uniqueValidator = require('mongoose-unique-validator');
 /**
  * Defines the schema for the promocode model.
@@ -16,24 +17,28 @@ const uniqueValidator = require('mongoose-unique-validator');
  * @param {boolean} timestamps - The timestamps for the promocode.
  */
 const promocodeSchema = new mongoose_1.Schema({
-    urId: { type: String },
-    companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
+    ...stock_universal_server_1.withUrIdAndCompanySchemaObj,
     code: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
     items: [{ type: String, required: [true, 'cannot be empty.'] }],
     amount: { type: Number, required: [true, 'cannot be empty.'] },
     roomId: { type: String, required: [true, 'cannot be empty.'] },
     state: { type: String, default: 'virgin' },
     expireAt: { type: String }
-}, { timestamps: true });
+}, { timestamps: true, collection: 'promocodes' });
 promocodeSchema.index({ expireAt: 1 }, { expireAfterSeconds: 3600 }); // after 1 hour
 // Apply the uniqueValidator plugin to promocodeSchema.
 promocodeSchema.plugin(uniqueValidator);
+promocodeSchema.pre('updateOne', function (next) {
+    return (0, stock_universal_server_1.preUpdateDocExpire)(this, next);
+});
+promocodeSchema.pre('updateMany', function (next) {
+    return (0, stock_universal_server_1.preUpdateDocExpire)(this, next);
+});
 /** primary selection object
  * for promocode
  */
 const promocodeselect = {
-    urId: 1,
-    companyId: 1,
+    ...stock_universal_server_1.withUrIdAndCompanySelectObj,
     code: 1,
     amount: 1,
     items: 1,
@@ -53,14 +58,15 @@ exports.promocodeSelect = promocodeselect;
  * @param lean Optional parameter indicating whether to create the lean promocode model. Default is true.
  */
 const createPromocodeModel = async (dbUrl, dbOptions, main = true, lean = true) => {
-    if (!database_controller_1.isStockDbConnected) {
-        await (0, database_controller_1.connectStockDatabase)(dbUrl, dbOptions);
+    (0, stock_universal_server_1.createExpireDocIndex)(promocodeSchema);
+    if (!database_1.isStockDbConnected) {
+        await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.promocodeMain = database_controller_1.mainConnection.model('promocode', promocodeSchema);
+        exports.promocodeMain = database_1.mainConnection.model('promocode', promocodeSchema);
     }
     if (lean) {
-        exports.promocodeLean = database_controller_1.mainConnectionLean.model('promocode', promocodeSchema);
+        exports.promocodeLean = database_1.mainConnectionLean.model('promocode', promocodeSchema);
     }
 };
 exports.createPromocodeModel = createPromocodeModel;

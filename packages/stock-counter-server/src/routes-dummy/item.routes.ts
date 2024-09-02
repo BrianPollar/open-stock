@@ -41,6 +41,7 @@ itemRoutesDummy.get('/filtergeneral/:prop/:val/:offset/:limit/:companyIdParam', 
     count: req.params.limit,
     data: createMockItems(Number(req.params.limit))
   };
+
   res.status(200).send(response);
 });
 
@@ -49,6 +50,7 @@ itemRoutesDummy.get('/filterrandom/:prop/:val/:offset/:limit/:companyIdParam', (
     count: req.params.limit,
     data: createMockItems(Number(req.params.limit))
   };
+
   res.status(200).send(response);
 });
 
@@ -57,6 +59,7 @@ itemRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) => {
     count: req.params.limit,
     data: createMockItems(Number(req.params.limit))
   };
+
   res.status(200).send(response);
 });
 
@@ -65,6 +68,7 @@ itemRoutesDummy.get('/gettrending/:offset/:limit/:companyIdParam', (req, res) =>
     count: req.params.limit,
     data: createMockItems(Number(req.params.limit))
   };
+
   res.status(200).send(response);
 });
 
@@ -74,6 +78,7 @@ itemRoutesDummy.get('/getnew/:offset/:limit/:companyIdParam', (req, res) => {
     count: req.params.limit,
     data: createMockItems(Number(req.params.limit))
   };
+
   res.status(200).send(response);
 });
 
@@ -83,6 +88,7 @@ itemRoutesDummy.get('/getbrandnew/:offset/:limit/:companyIdParam', (req, res) =>
     count: req.params.limit,
     data: createMockItems(Number(req.params.limit))
   };
+
   res.status(200).send(response);
 });
 
@@ -92,6 +98,7 @@ itemRoutesDummy.get('/getused/:offset/:limit/:companyIdParam', (req, res) => {
     count: req.params.limit,
     data: createMockItems(Number(req.params.limit))
   };
+
   res.status(200).send(response);
 });
 
@@ -101,6 +108,7 @@ itemRoutesDummy.get('/filterprice/max/:priceFilterValue/:offset/:limit/:companyI
     count: req.params.limit,
     data: createMockItems(Number(req.params.limit))
   };
+
   res.status(200).send(response);
 });
 
@@ -109,6 +117,7 @@ itemRoutesDummy.get('/filterprice/min/:priceFilterValue/:offset/:limit/:companyI
     count: req.params.limit,
     data: createMockItems(Number(req.params.limit))
   };
+
   res.status(200).send(response);
 });
 
@@ -118,6 +127,7 @@ itemRoutesDummy.get('/filterprice/eq/:priceFilterMinValue/:priceFilterMaxValue/:
     count: req.params.limit,
     data: createMockItems(Number(req.params.limit))
   };
+
   res.status(200).send(response);
 });
 
@@ -126,6 +136,7 @@ itemRoutesDummy.get('/filterstars/:starVal/:offset/:limit/:companyIdParam', (req
     count: req.params.limit,
     data: createMockItems(Number(req.params.limit))
   };
+
   res.status(200).send(response);
 });
 
@@ -134,6 +145,7 @@ itemRoutesDummy.get('/discount/:discountValue/:offset/:limit/:companyIdParam', (
     count: req.params.limit,
     data: createMockItems(Number(req.params.limit))
   };
+
   res.status(200).send(response);
 });
 
@@ -170,6 +182,7 @@ itemRoutesDummy.post('/search/:offset/:limit/:companyIdParam', (req, res) => {
     count: req.params.limit,
     data: createMockItems(Number(req.params.limit))
   };
+
   res.status(200).send(response);
 });
 

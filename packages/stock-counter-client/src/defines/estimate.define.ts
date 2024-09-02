@@ -1,4 +1,10 @@
-import { IdataArrayResponse, IdeleteCredentialsInvRel, Iestimate, IinvoiceRelated, Isuccess } from '@open-stock/stock-universal';
+import {
+  IdataArrayResponse,
+  IdeleteCredentialsInvRel,
+  Iestimate, IinvoiceRelated,
+  IsubscriptionFeatureState,
+  Isuccess
+} from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
 import { StockCounterClient } from '../stock-counter-client';
 import { InvoiceRelatedWithReceipt } from './invoice.define';
@@ -10,6 +16,7 @@ import { InvoiceRelatedWithReceipt } from './invoice.define';
 export class Estimate extends InvoiceRelatedWithReceipt {
   /** The start date of the estimate. */
   override fromDate: Date;
+
   /** The end date of the estimate. */
   override toDate: Date;
 
@@ -41,6 +48,7 @@ export class Estimate extends InvoiceRelatedWithReceipt {
     const observer$ = StockCounterClient.ehttp
       .makeGet(`/estimate/${url}/${offset}/${limit}/${companyId}`);
     const estimates = await lastValueFrom(observer$) as IdataArrayResponse;
+
     return {
       count: estimates.count,
       estimates: estimates.data
@@ -61,6 +69,7 @@ export class Estimate extends InvoiceRelatedWithReceipt {
     const observer$ = StockCounterClient.ehttp
       .makeGet(`/estimate/getone/${estimateId}/${companyId}`);
     const estimate = await lastValueFrom(observer$) as Required<Iestimate>;
+
     return new Estimate(estimate);
   }
 
@@ -75,10 +84,11 @@ export class Estimate extends InvoiceRelatedWithReceipt {
     companyId: string,
     estimate: Iestimate,
     invoiceRelated: IinvoiceRelated
-  ): Promise<Isuccess> {
+  ): Promise<IsubscriptionFeatureState> {
     const observer$ = StockCounterClient.ehttp
       .makePost(`/estimate/create/${companyId}`, { estimate, invoiceRelated });
-    return await lastValueFrom(observer$) as Isuccess;
+
+    return await lastValueFrom(observer$) as IsubscriptionFeatureState;
   }
 
   /**
@@ -93,6 +103,7 @@ export class Estimate extends InvoiceRelatedWithReceipt {
   ): Promise<Isuccess> {
     const observer$ = StockCounterClient.ehttp
       .makePut(`/estimate/deletemany/${companyId}`, { credentials });
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 
@@ -107,8 +118,11 @@ export class Estimate extends InvoiceRelatedWithReceipt {
     vals: IinvoiceRelated
   ): Promise<Isuccess> {
     const observer$ = StockCounterClient.ehttp
-      .makePut(`/estimate/updatepdt/${companyId}`,
-        { items: vals, id: this._id });
+      .makePut(
+        `/estimate/updatepdt/${companyId}`,
+        { items: vals, id: this._id }
+      );
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 }

@@ -2,12 +2,9 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.requireSuperAdmin = exports.superAdminRoutes = void 0;
 const tslib_1 = require("tslib");
+const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
-const fs = tslib_1.__importStar(require("fs"));
-const path_1 = tslib_1.__importDefault(require("path"));
-const tracer = tslib_1.__importStar(require("tracer"));
-const universial_controller_1 = require("../controllers/universial.controller");
-const stock_auth_local_1 = require("../stock-auth-local");
+const universial_1 = require("../utils/universial");
 // import { notifConfig } from '../../config/notif.config';
 // import { createNotifications, NotificationController } from '../controllers/notifications.controller';
 // const passport = require('passport');
@@ -15,32 +12,6 @@ const stock_auth_local_1 = require("../stock-auth-local");
  * Router for super admin routes.
  */
 exports.superAdminRoutes = express_1.default.Router();
-/**
- * Logger for authentication routes.
- */
-const authLogger = tracer.colorConsole({
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-        // eslint-disable-next-line no-console
-        console.log(data.output);
-        const logDir = path_1.default.join(process.cwd() + '/openstockLog/');
-        fs.mkdir(logDir, { recursive: true }, (err) => {
-            if (err) {
-                if (err) {
-                    // eslint-disable-next-line no-console
-                    console.log('data.output err ', err);
-                }
-            }
-        });
-        fs.appendFile(logDir + '/auth-server.log', data.rawoutput + '\n', err => {
-            if (err) {
-                // eslint-disable-next-line no-console
-                console.log('raw.output err ', err);
-            }
-        });
-    }
-});
 exports.superAdminRoutes.post('/login', (req, res) => {
     const secret = process.env['accessKey'];
     const password = req.body.password;
@@ -49,7 +20,7 @@ exports.superAdminRoutes.post('/login', (req, res) => {
             companyAdminAccess: true
         };
         // delete user.password; //we do not want to send back password
-        const userInfo = (0, universial_controller_1.setUserInfo)('superAdmin', permissions, 'superAdmin', {
+        const userInfo = (0, universial_1.setUserInfo)('superAdmin', permissions, 'superAdmin', {
             active: false
         });
         const comapany = {
@@ -72,7 +43,7 @@ exports.superAdminRoutes.post('/login', (req, res) => {
         const user = {
             comapany
         };
-        const token = (0, universial_controller_1.generateToken)(userInfo, '1d', stock_auth_local_1.stockAuthConfig.authSecrets.jwtSecret);
+        const token = (0, universial_1.generateToken)(userInfo, '1d', stock_universal_server_1.stockUniversalConfig.authSecrets.jwtSecret);
         const nowResponse = {
             success: true,
             user,
@@ -84,6 +55,16 @@ exports.superAdminRoutes.post('/login', (req, res) => {
         return res.status(401).send({ success: false, err: 'unauthourized' });
     }
 });
+/**
+ * Middleware function to check if the current user is a super admin.
+ * If the user is not a super admin, it returns a 401 Unauthorized response.
+ * Otherwise, it calls the next middleware function.
+ *
+ * @param {Object} req - The Express request object.
+ * @param {Object} res - The Express response object.
+ * @param {Function} next - The next middleware function to be called.
+ * @returns {void}
+ */
 const requireSuperAdmin = (req, res, next) => {
     const { userId } = req.user;
     if (userId !== 'superAdmin') {

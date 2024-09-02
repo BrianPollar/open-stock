@@ -1,15 +1,15 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/ban-ts-comment */
-import { beforeAll, afterAll, vi, expect, describe, it } from 'vitest';
-import { Application } from 'express';
-import { disconnectMongoose } from '@open-stock/stock-universal-server';
-import { createExpressServer } from '../../../../tests/helpers';
-import request from 'supertest';
-import * as http from 'http';
 import { Iadminloginres, Iauthresponse, IpermProp, Iuser } from '@open-stock/stock-universal';
-import { connectAuthDatabase } from '../../../src/stock-auth-local';
-import { authRoutes } from '../../../src/routes/user.routes';
+import { disconnectMongoose } from '@open-stock/stock-universal-server';
+import { Application } from 'express';
+import * as http from 'http';
+import request from 'supertest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { createExpressServer } from '../../../../tests/helpers';
 import { createMockUser, createMockUserperm } from '../../../../tests/stock-auth-mocks';
+import { authRoutes } from '../../../src/routes/user.routes';
+import { connectAuthDatabase } from '../../../src/stock-auth-local';
 // const request = require('supertest');
 
 // hoist check if admin
@@ -20,6 +20,7 @@ const checkIfAdminHoisted = vi.hoisted(() => {
       const nowResponse: Iadminloginres = {
         success: false
       };
+
       return nowResponse;
     })
   };
@@ -77,6 +78,7 @@ const authRoutesHoisted = vi.hoisted(() => {
         user: createMockUser() as unknown as Iuser,
         token: 'rwherhertj'
       };
+
       return res.status(200).send(nowResponse);
     }),
     userLoginRelegatorFail: vi.fn((req, res, next) => {
@@ -116,6 +118,7 @@ const stockUniversalServer = vi.hoisted(() => {
 
 vi.mock('@open-stock/stock-universal-server', async() => {
   const actual: object = await vi.importActual('@open-stock/stock-universal-server');
+
   return {
     ...actual,
     requireAuth: stockUniversalServer.requireAuth
@@ -124,6 +127,7 @@ vi.mock('@open-stock/stock-universal-server', async() => {
 
 vi.mock('../../../src/routes/auth.routes', async() => {
   const actual: object = await vi.importActual('../../../src/routes/auth.routes');
+
   return {
     ...actual,
     userLoginRelegator: authRoutesHoisted.userLoginRelegator
@@ -132,6 +136,7 @@ vi.mock('../../../src/routes/auth.routes', async() => {
 
 vi.mock('../../../src/controllers/universial.controller', async() => {
   const actual: object = await vi.importActual('../../../src/controllers/universial.controller');
+
   return {
     ...actual,
     generateToken: universialControllerHoisted.generateToken,
@@ -145,6 +150,7 @@ vi.mock('../../../src/controllers/universial.controller', async() => {
 
 vi.mock('../../../src/controllers/admin.controller', async() => {
   const actual: object = await vi.importActual('../../../src/controllers/admin.controller');
+
   return {
     ...actual,
     checkIfAdmin: checkIfAdminHoisted.checkIfAdmin
@@ -153,6 +159,7 @@ vi.mock('../../../src/controllers/admin.controller', async() => {
 
 vi.mock('../../../src/controllers/auth.controller', async() => {
   const actual: object = await vi.importActual('../../../src/controllers/auth.controller');
+
   return {
     ...actual,
     checkIpAndAttempt: authControllerHoisted.checkIpAndAttempt
@@ -195,7 +202,6 @@ describe('AuthRoutes', () => {
 
   it('should successfully reset pasword', async() => {
     const body = {
-      // eslint-disable-next-line @typescript-eslint/naming-convention
       _id: 'req.body._id',
       verifycode: 'req.body.verifycode',
       how: 'phone',
@@ -204,6 +210,7 @@ describe('AuthRoutes', () => {
     const res = await request(app)
       .post(apiUrl + '/resetpaswd')
       .send(body);
+
     expect(res.status).toBe(404);
     expect(typeof res.body).toBe('object');
   });
@@ -221,6 +228,7 @@ describe('AuthRoutes', () => {
     const res = await request(app)
       .post(apiUrl + '/sociallogin')
       .send(loginCredentials);
+
     expect(res.status).toBe(403);
     expect(res.body.success).toBe(false);
   });
@@ -228,6 +236,7 @@ describe('AuthRoutes', () => {
   it('should fail to updateprofile for user', async() => {
     const res = await request(app).post(apiUrl + '/updateprofile/' + 'all')
       .send({ age: 24 });
+
     expect(res.status).toBe(404);
   });
 });

@@ -1,4 +1,4 @@
-import { DatabaseAuto, Isuccess } from '@open-stock/stock-universal';
+import { DatabaseAuto, IsubscriptionFeatureState, Isuccess } from '@open-stock/stock-universal';
 import { Item } from './item.define';
 /**
  * ItemDecoy class: This class extends the DatabaseAuto class and represents
@@ -55,7 +55,7 @@ export declare class ItemDecoy extends DatabaseAuto {
         itemId: string;
     } | {
         items: string[];
-    }): Promise<Isuccess>;
+    }): Promise<IsubscriptionFeatureState>;
     /**
      * Static method that deletes multiple item decoys from the server based on the provided IDs.
      * It returns a success response.

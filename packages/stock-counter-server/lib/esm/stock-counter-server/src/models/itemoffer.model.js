@@ -1,25 +1,30 @@
+import { createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
 import { Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
+import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 const itemOfferSchema = new Schema({
-    urId: { type: String },
-    companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
+    ...withUrIdAndCompanySchemaObj,
     items: [],
     expireAt: { type: Date },
     type: { type: String },
     header: { type: String },
     subHeader: { type: String },
     ammount: { type: Number }
-}, { timestamps: true });
+}, { timestamps: true, collection: 'itemoffers' });
 itemOfferSchema.index({ expireAt: 1 }, { expireAfterSeconds: 2628003 });
 // Apply the uniqueValidator plugin to itemOfferSchema.
 itemOfferSchema.plugin(uniqueValidator);
+itemOfferSchema.pre('updateOne', function (next) {
+    return preUpdateDocExpire(this, next);
+});
+itemOfferSchema.pre('updateMany', function (next) {
+    return preUpdateDocExpire(this, next);
+});
 /** primary selection object
  * for itemOffer
  */
 const itemOfferselect = {
-    urId: 1,
-    companyId: 1,
+    ...withUrIdAndCompanySelectObj,
     items: 1,
     expireAt: 1,
     type: 1,
@@ -47,6 +52,7 @@ export const itemOfferSelect = itemOfferselect;
  * @returns {Promise<void>} - A promise that resolves when the models have been created.
  */
 export const createItemOfferModel = async (dbUrl, dbOptions, main = true, lean = true) => {
+    createExpireDocIndex(itemOfferSchema);
     if (!isStockDbConnected) {
         await connectStockDatabase(dbUrl, dbOptions);
     }

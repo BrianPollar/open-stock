@@ -1,4 +1,4 @@
-import { DatabaseAuto, IcostMeta, Ifile, IfileMeta, IinventoryMeta, Isponsored, Isuccess, TitemColor, TitemState } from '@open-stock/stock-universal';
+import { DatabaseAuto, IcostMeta, Ifile, IfileMeta, IinventoryMeta, Isponsored, IsubscriptionFeatureState, Isuccess, TitemColor, TitemState } from '@open-stock/stock-universal';
 /**
  * Item class: This class represents an item object with properties and methods for manipulating item data.
  * It includes methods for searching items, getting items, adding items, updating items, deleting items,
@@ -64,6 +64,7 @@ export declare class Item extends DatabaseAuto {
      * @param data The data to initialize the item with.
      */
     ecomerceCompat: boolean;
+    soldCount: number;
     /**
      * Represents the constructor of the Item class.
      * @param data - The data used to initialize the Item instance.
@@ -109,7 +110,7 @@ export declare class Item extends DatabaseAuto {
      * @param inventoryStock Whether the item is in inventory stock.
      * @returns The success status of adding the item.
      */
-    static addItem(companyId: string, vals: object, files: Ifile[], ecomerceCompat?: boolean): Promise<Isuccess>;
+    static addItem(companyId: string, vals: object, files: Ifile[], ecomerceCompat?: boolean): Promise<IsubscriptionFeatureState>;
     /**
      * Deletes items.
      * @param companyId - The ID of the company

@@ -1,4 +1,4 @@
-import { IcompanySubscription, Iuser } from './general.interface';
+import { Icompany, IcompanySubscription, IsubscriptionFeature, Iuser } from './general.interface';
 /**
  * Represents the response object for a successful operation.
  */
@@ -36,6 +36,7 @@ export interface Iauthresponse {
      * Can be either an `Iuser` or `Icompany` object.
      */
     user?: Iuser;
+    company?: Icompany;
     /**
      * The user's authentication token, if any.
      */
@@ -72,4 +73,7 @@ export interface Iauthresponse {
 export interface IdataArrayResponse {
     count: number;
     data: unknown[];
+}
+export interface IsubscriptionFeatureState extends Isuccess {
+    features?: IsubscriptionFeature[];
 }

@@ -1,6 +1,7 @@
 import { IpaymentRelated } from '@open-stock/stock-universal';
+import { createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../../controllers/database.controller';
+import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 
 /** model type for paymentRelated by */
@@ -24,9 +25,8 @@ export type TpaymentRelated = Document & IpaymentRelated & { pesaPalorderTrackin
  * @property {Date} updatedAt - Timestamp of last update
  */
 const paymentRelatedSchema: Schema = new Schema({
-  pesaPalorderTrackingId: { type: String, required: [true, 'cannot be empty.'] },
-  urId: { type: String, required: [true, 'cannot be empty.'] },
-  companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
+  ...withUrIdAndCompanySchemaObj,
+  pesaPalorderTrackingId: { type: String },
   // creationType: { type: String, required: [true, 'cannot be empty.'] },
   // items: [{ type: String }],
   orderDate: { type: Date, index: true },
@@ -35,26 +35,33 @@ const paymentRelatedSchema: Schema = new Schema({
   billingAddress: { },
   shippingAddress: { },
   // tax: { type: Number },
-  currency: { type: String, required: [true, 'cannot be empty.'] },
+  currency: { type: String },
   // user: { type: String },
   isBurgain: { type: Boolean, default: false },
   shipping: { type: Number },
   manuallyAdded: { type: Boolean, default: false },
   // status: { type: String, default: 'pending' },
   paymentMethod: { type: String },
-  payType: { type: String, index: true }
-}, { timestamps: true });
+  payType: { type: String, index: true },
+  orderStatus: { type: String, index: true, default: 'pending' }
+}, { timestamps: true, collection: 'paymentrelateds' });
 
 // Apply the uniqueValidator plugin to paymentRelatedSchema.
 paymentRelatedSchema.plugin(uniqueValidator);
+
+paymentRelatedSchema.pre('updateOne', function(next) {
+  return preUpdateDocExpire(this, next);
+});
+
+paymentRelatedSchema.pre('updateMany', function(next) {
+  return preUpdateDocExpire(this, next);
+});
 
 /** primary selection object
  * for paymentRelated
  */
 const paymentRelatedselect = {
-  pesaPalorderTrackingId: 1,
-  urId: 1,
-  companyId: 1,
+  ...withUrIdAndCompanySelectObj,
   // items: 1,
   orderDate: 1,
   paymentDate: 1,
@@ -69,7 +76,8 @@ const paymentRelatedselect = {
   manuallyAdded: 1,
   // status: 1,
   paymentMethod: 1,
-  payType: 1
+  payType: 1,
+  orderStatus: 1
 };
 
 /**
@@ -94,6 +102,7 @@ export const paymentRelatedSelect = paymentRelatedselect;
  * @param lean - Indicates whether to create the lean connection model. Default is true.
  */
 export const createPaymentRelatedModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
+  createExpireDocIndex(paymentRelatedSchema);
   if (!isStockDbConnected) {
     await connectStockDatabase(dbUrl, dbOptions);
   }

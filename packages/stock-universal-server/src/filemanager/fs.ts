@@ -1,38 +1,39 @@
 /* eslint-disable @typescript-eslint/dot-notation */
 /* eslint-disable @typescript-eslint/prefer-for-of */
+import { Config, removeBackground } from '@imgly/background-removal-node';
 import { Icustomrequest, IfileMeta } from '@open-stock/stock-universal';
 import * as fs from 'fs';
 import multer from 'multer';
 import * as path from 'path';
 import * as tracer from 'tracer';
 import { fileMeta } from '../models/filemeta.model';
-import { envConfig } from '../stock-universal-local';
+import { stockUniversalConfig } from '../stock-universal-local';
 import { IMulterRequest, multerFileds, upload } from './filestorage';
 
-const fsControllerLogger = tracer.colorConsole(
-  {
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-      // eslint-disable-next-line no-console
-      console.log(data.output);
-      const logDir = path.join(process.cwd() + '/openstockLog/');
-      fs.mkdir(logDir, { recursive: true }, (err) => {
-        if (err) {
-          if (err) {
-            // eslint-disable-next-line no-console
-            console.log('data.output err ', err);
-          }
-        }
-      });
-      fs.appendFile(logDir + '/universal-server.log', data.rawoutput + '\n', err => {
+const fsControllerLogger = tracer.colorConsole({
+  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
+  dateformat: 'HH:MM:ss.L',
+  transport(data) {
+    // eslint-disable-next-line no-console
+    console.log(data.output);
+    const logDir = path.join(process.cwd() + '/openstockLog/');
+
+    fs.mkdir(logDir, { recursive: true }, (err) => {
+      if (err) {
         if (err) {
           // eslint-disable-next-line no-console
-          console.log('raw.output err ', err);
+          console.log('data.output err ', err);
         }
-      });
-    }
-  });
+      }
+    });
+    fs.appendFile(logDir + '/universal-server.log', data.rawoutput + '\n', err => {
+      if (err) {
+        // eslint-disable-next-line no-console
+        console.log('raw.output err ', err);
+      }
+    });
+  }
+});
 
 /**
  * Uploads files from the request to the server.
@@ -46,15 +47,19 @@ export const uploadFiles = (
   next
 ) => {
   const makeupload = upload.fields(multerFileds);
+
   makeupload(req, res, function(err) {
     if (err instanceof multer.MulterError) {
       fsControllerLogger.error('Multer UPLOAD ERROR', err);
+
       return res.status(500).send({ success: false });
     } else if (err) {
       // An unknown error occurred when uploading.
       fsControllerLogger.error('UNKWON UPLOAD ERROR', err);
+
       return res.status(500).send({ success: false });
     }
+
     return next();
   });
 };
@@ -76,8 +81,8 @@ export const appendBody = (
   const { companyId } = (req as Icustomrequest).user;
   const { companyIdParam } = req.params;
   const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const videoDirectory = path.join(envConfig.videoDirectory + '/' + queryId + '/');
-  const photoDirectory = path.join(envConfig.photoDirectory + '/' + queryId + '/');
+  const videoDirectory = path.join(stockUniversalConfig.envCfig.videoDirectory + '/' + queryId + '/');
+  const photoDirectory = path.join(stockUniversalConfig.envCfig.photoDirectory + '/' + queryId + '/');
   const { userId } = (req as Icustomrequest).user;
   const parsed = JSON.parse(req.body.data);
   const newPhotos: IfileMeta[] = [];
@@ -156,10 +161,10 @@ export const appendBody = (
     };
     parsed.thumbnail = thumbnail;
   }
-
   parsed.newPhotos = newPhotos;
   parsed.newVideos = newVideos;
   req.body = parsed;
+
   return next();
 };
 
@@ -175,6 +180,7 @@ export const saveMetaToDb = async(
   next
 ) => {
   const parsed = req.body;
+
   if (!parsed) {
     return next();
   }
@@ -184,20 +190,24 @@ export const saveMetaToDb = async(
       .map((value: IfileMeta) => new Promise(async(resolve) => {
         const newFileMeta = new fileMeta(value);
         let savedErr: string;
+        // await removeBg(value.url);
         const newSaved = await newFileMeta.save().catch(err => {
           fsControllerLogger.error('save error', err);
           savedErr = err;
+
           return null;
         });
+
         if (savedErr) {
           return res.status(500).send({ success: false });
         }
         resolve(newSaved);
       }));
+
     parsed.newPhotos = await Promise.all(promises);
   }
 
-  if (parsed.profilePic) {
+  /* if (parsed.profilePic) {
     const newFileMeta = new fileMeta(parsed.profilePic);
     let savedErr: string;
     const newSaved = await newFileMeta.save().catch(err => {
@@ -210,9 +220,9 @@ export const saveMetaToDb = async(
     }
     parsed.profilePic = newSaved._id;
     parsed.newPhotos.push(newSaved);
-  }
+  } */
 
-  if (parsed.coverPic) {
+  /* if (parsed.coverPic) {
     const newFileMeta = new fileMeta(parsed.profilePic);
     let savedErr: string;
     const newSaved = await newFileMeta.save().catch(err => {
@@ -225,7 +235,7 @@ export const saveMetaToDb = async(
     }
     parsed.coverPic = newSaved._id;
     parsed.newPhotos.push(newSaved);
-  }
+  } */
 
   if (parsed.thumbnail) {
     const newFileMeta = new fileMeta(parsed.thumbnail);
@@ -233,8 +243,10 @@ export const saveMetaToDb = async(
     const newSaved = await newFileMeta.save().catch(err => {
       fsControllerLogger.error('save error', err);
       savedErr = err;
+
       return null;
     });
+
     if (savedErr) {
       return res.status(500).send({ success: false });
     }
@@ -243,10 +255,12 @@ export const saveMetaToDb = async(
   }
 
   if (parsed.newPhotos) {
-    const mappedParsedFiles = parsed.newPhotos.map((value: IfileMeta) => value._id);
+    const mappedParsedFiles = parsed.newPhotos.map((value: IfileMeta) => value._id.toString());
+
     parsed.newPhotos = mappedParsedFiles;
   }
   req.body = parsed; // newPhotos are strings of ids
+
   return next();
 };
 
@@ -262,46 +276,62 @@ export const updateFiles = (
   next
 ) => {
   const makeupload = upload.fields(multerFileds);
+
   makeupload(req, res, function(err) {
     if (err instanceof multer.MulterError) {
       fsControllerLogger.error('Multer UPLOAD ERROR', err);
+
       return res.status(404).send({ success: false });
     } else if (err) {
       // An unknown error occurred when uploading.
       fsControllerLogger.error('UNKWON UPLOAD ERROR', err);
+
       return res.status(404).send({ success: false });
     }
+
     return next();
   });
 };
 
-export const deleteAllFiles = async(filesWithDir: IfileMeta[]) => {
+// TODO batch file delete after doc expires
+export const deleteAllFiles = async(filesWithDir: IfileMeta[], directlyRemove = false) => {
   if (filesWithDir && !filesWithDir.length) {
     // return res.status(401).send({ error: 'unauthorised' }); // TODO better catch
   }
-  const ids = filesWithDir.map((value/** : Ifilewithdir*/) => value._id);
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  await fileMeta.deleteMany({ _id: { $in: ids } });
+  const ids = filesWithDir.map((value/** : Ifilewithdir */) => value._id);
 
-  if (filesWithDir && filesWithDir.length) {
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  // await fileMeta.deleteMany({ _id: { $in: ids } });
+  if (!directlyRemove) {
+    await fileMeta.updateMany({ _id: { $in: ids } }, { $set: { isDeleted: true } });
+  } else {
+    await fileMeta.deleteMany({ _id: { $in: ids } });
+  }
+
+  if (filesWithDir && filesWithDir.length && directlyRemove) {
     const promises = filesWithDir
-      .map((value/** : Ifilewithdir*/) => new Promise(resolve => {
+      .map((value/** : Ifilewithdir */) => new Promise(resolve => {
         fsControllerLogger.debug('deleting file', value.url);
-        const absolutepath = envConfig.absolutepath;
+        const absolutepath = stockUniversalConfig.envCfig.absolutepath;
         const nowpath = path
           .join(`${absolutepath}${value.url}`);
+
         fs.unlink(nowpath, (err) => {
           if (err) {
-            fsControllerLogger.error('error while deleting file',
-              err);
+            fsControllerLogger.error(
+              'error while deleting file',
+              err
+            );
             resolve(false);
           } else {
             resolve(true);
           }
         });
       }));
+
     await Promise.all(promises);
   }
+
   return true;
 };
 
@@ -312,13 +342,18 @@ export const deleteAllFiles = async(filesWithDir: IfileMeta[]) => {
  * @param next - The next middleware function.
  * @returns A Promise that resolves when the files are deleted.
  */
-export const deleteFiles = async(
-  req,
-  res,
-  next) => {
-  const { filesWithDir } = req.body;
-  await deleteAllFiles(filesWithDir);
-  return next();
+export const deleteFiles = (directlyRemove = false) => {
+  return async(
+    req,
+    res,
+    next
+  ) => {
+    const { filesWithDir } = req.body;
+
+    await deleteAllFiles(filesWithDir, directlyRemove);
+
+    return next();
+  };
 };
 
 /**
@@ -332,9 +367,11 @@ export const getOneFile = (
   res
 ) => {
   const { filename } = req.params;
+
   fsControllerLogger.debug(`download, file: ${filename}`);
-  const absolutepath = envConfig.absolutepath;
+  const absolutepath = stockUniversalConfig.envCfig.absolutepath;
   const fileLocation = path.join(`${absolutepath}${filename}`, filename);
+
   return res.download(fileLocation, filename);
 };
 
@@ -344,3 +381,33 @@ export const getOneFile = (
  * @param res - The response object.
  */
 export const returnLazyFn = (req, res) => res.status(200).send({ success: true });
+
+
+export const removeBg = (imageSrc: string) => {
+  return new Promise((resolve, reject) => {
+    const absolutepath = stockUniversalConfig.envCfig.absolutepath;
+    const fileLocation = path.join(`${absolutepath}${imageSrc}`);
+    const config: Config = {
+      output: {
+        type: 'mask'
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any
+    };
+
+    removeBackground(fileLocation, config).then(async(blob: Blob) => {
+      const arrayBuffer = await blob.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+
+      fs.writeFile(fileLocation, buffer, {}, (err) => {
+        if (err) {
+          console.error(err);
+          reject(err);
+
+          return;
+        }
+        fsControllerLogger.debug('files saved');
+        resolve(imageSrc);
+      });
+    });
+  });
+};

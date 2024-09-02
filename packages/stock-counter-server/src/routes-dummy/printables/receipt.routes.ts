@@ -21,6 +21,7 @@ receiptRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) => {
     count: req.params.limit,
     data: createMockReceipts(Number(req.params.limit))
   };
+
   res.status(200).send(response);
 });
 
@@ -33,6 +34,7 @@ receiptRoutesDummy.post('/search/:offset/:limit/:companyIdParam', (req, res) => 
     count: req.params.limit,
     data: createMockReceipts(Number(req.params.limit))
   };
+
   res.status(200).send(response);
 });
 

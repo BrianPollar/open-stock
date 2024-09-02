@@ -61,6 +61,7 @@ vi.mock('../../src/controllers/twilio.controller', () => {
 
 vi.mock('../../../../stock-notif-server/src/controllers/notifications.controller', async() => {
   const actual: object = await vi.importActual('../../../../stock-notif-server/src/controllers/notifications.controller');
+
   return {
     ...actual,
     updateNotifnViewed: vi.fn()
@@ -69,6 +70,7 @@ vi.mock('../../../../stock-notif-server/src/controllers/notifications.controller
 
 vi.mock('../../../src/controllers/universial.controller', async() => {
   const actual: object = await vi.importActual('../../../src/controllers/universial.controller');
+
   return {
     ...actual,
     generateToken: universialControllerHoisted.generateToken,
@@ -113,6 +115,7 @@ describe('universial', () => {
     };
     const dateStr = '1d';
     const madeToken = generateToken(config, dateStr, new Date().toString());
+
     expect(madeToken).toBeDefined();
     expect(typeof madeToken).toBe('string');
   });
@@ -123,6 +126,7 @@ describe('universial', () => {
     const companyId = faker.string.uuid();
     const companyPerm = createMockCompanyPerm();
     const info = setUserInfo(id, perms, companyId, companyPerm);
+
     expect(info).toBeDefined();
     expect(typeof info).toBe('object');
     expect(info).toHaveProperty('userId');
@@ -137,6 +141,7 @@ describe('universial', () => {
     const verifycode = 'code';
     const passwd = 'passwd';
     const validateRes = await validatePhone(userId, nowCase, verifycode, passwd);
+
     expect(validateRes).toBeDefined();
     expect(typeof validateRes).toBe('object');
     expect(validateRes).toHaveProperty('status');
@@ -152,6 +157,7 @@ describe('universial', () => {
     const verifycode = 'code';
     const password = 'password';
     const validateRes = await validateEmail(userId, type, nowCase, verifycode, password);
+
     expect(validateRes).toBeDefined();
     expect(typeof validateRes).toBe('object');
     expect(validateRes).toHaveProperty('status');
@@ -164,6 +170,7 @@ describe('universial', () => {
 
     };
     const sent = await sendTokenPhone(foundUserMock);
+
     expect(sent).toBeDefined();
     expect(typeof sent).toBe('object');
     expect(sent).toHaveProperty('success');
@@ -176,6 +183,7 @@ describe('universial', () => {
     const type = 'token';
     const appOfficialName = 'name';
     const sent = await sendTokenEmail(foundUserMock, type, appOfficialName);
+
     expect(sent).toBeDefined();
     expect(typeof sent).toBe('object');
     expect(sent).toHaveProperty('success');
@@ -190,6 +198,7 @@ describe('sendTokenEmail', () => {
 
   it('should send a verification email with token', async() => {
     const response = await sendTokenEmail(foundUserMock, type, appOfficialName);
+
     expect(response).toBeDefined();
     expect(response.success).toBe(true);
     // expect(response.status).toBe(200);
@@ -198,6 +207,7 @@ describe('sendTokenEmail', () => {
 
   it('should send a verification email with link', async() => {
     const response = await sendTokenEmail(foundUserMock, '_link', appOfficialName);
+
     expect(response).toBeDefined();
     expect(response.success).toBe(true);
     // expect(response.status).toBe(200);

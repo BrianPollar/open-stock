@@ -1,14 +1,19 @@
 import { isUniversalServerRunning, runPassport, verifyObjectId } from '@open-stock/stock-universal-server';
 import express from 'express';
-import { constructMailService } from './controllers/notifications.controller';
-import { createTwilioService, makeAuthyTwilio } from './controllers/twilio.controller';
 import { notifSettingMain } from './models/notifsetting.model';
 import { mailSenderRoutesDummy } from './routes-dummy/mail.routes';
 import { notifnRoutesDummy } from './routes-dummy/notification.routes';
 import { mailSenderRoutes } from './routes/mail.routes';
 import { notifnRoutes } from './routes/notification.routes';
 import { createNotificationsDatabase, createStockNotifServerLocals, isStockNotifServerRunning, notificationSettings } from './stock-notif-local';
+import { constructMailService } from './utils/notifications';
+import { createTwilioService, makeAuthyTwilio } from './utils/twilio';
 export const createService = () => createTwilioService();
+/**
+   * Runs the stock notification server by setting up the necessary configurations, connecting to the database, initializing passport authentication, and returning the notification routes.
+   * @param {IstockNotifServerConfig} config - The server configuration.
+   * @returns {Promise<{stockNotifRouter, notificationSettings}>}
+   */
 export const runStockNotificationServer = async (config) => {
     if (!isUniversalServerRunning()) {
         const error = new Error('File loacations must be handled properly, please start by firing up that server');
@@ -41,10 +46,10 @@ export const runStockNotificationServer = async (config) => {
 export const getCurrentNotificationSettings = async (companyId) => {
     const isValid = verifyObjectId(companyId);
     if (!isValid) {
-        return {};
+        return { success: false };
     }
     const stn = await notifSettingMain.findOne({ companyId }).lean();
-    return stn;
+    return { success: true, stn };
 };
 /**
  * Checks if the notifications server is running.

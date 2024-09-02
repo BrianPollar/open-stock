@@ -12,6 +12,7 @@ notifnRoutesDummy.get('/getmynotifn/:offset/:limit/:companyIdParam', (req, res) 
     count: 10,
     data: createMockNotifs(10)
   };
+
   res.status(200).send(response);
 });
 
@@ -20,6 +21,7 @@ notifnRoutesDummy.get('/getmyavailnotifn/:offset/:limit/:companyIdParam', (req, 
     count: 10,
     data: createMockNotifs(10)
   };
+
   res.status(200).send(response);
 });
 

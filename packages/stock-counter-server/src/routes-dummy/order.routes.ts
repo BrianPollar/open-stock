@@ -32,6 +32,7 @@ orderRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) => {
     count: req.params.limit,
     data: createMockOrders(Number(req.params.limit))
   };
+
   res.status(200).send(response);
 });
 
@@ -40,6 +41,7 @@ orderRoutesDummy.get('/getmyorders/:offset/:limit/:companyIdParam', (req, res) =
     count: req.params.limit,
     data: createMockOrders(10)
   };
+
   res.status(200).send(response);
 });
 
@@ -56,6 +58,7 @@ orderRoutesDummy.post('/search/:offset/:limit/:companyIdParam', (req, res) => {
     count: req.params.limit,
     data: createMockOrders(Number(req.params.limit))
   };
+
   res.status(200).send(response);
 });
 

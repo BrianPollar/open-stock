@@ -8,6 +8,7 @@ export class PaymentRelated
   extends InvoiceRelatedWithReceipt {
   paymentRelated: string;
   urId: string;
+
   /** The user's company ID. */
   companyId: string;
   orderDate: Date;
@@ -25,9 +26,7 @@ export class PaymentRelated
    * Constructs a new instance of the Payment class.
    * @param data The required data for the Payment object.
    */
-  constructor(
-    data: Required<IpaymentRelated>
-  ) {
+  constructor(data: Required<IpaymentRelated>) {
     super(data);
     this.urId = data.urId;
     this.companyId = data.companyId;
@@ -93,6 +92,7 @@ export class Payment extends PaymentRelated {
       bagainCred,
       nonce
     });
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 
@@ -110,6 +110,7 @@ export class Payment extends PaymentRelated {
   ) {
     const observer$ = StockCounterClient.ehttp.makePost(`/payment/search/${companyId}`, { searchterm, searchKey });
     const payments = await lastValueFrom(observer$) as IdataArrayResponse;
+
     return {
       count: payments.count,
       payments: payments.data.map(val => new Payment(val as Required<Ipayment>)) };
@@ -131,6 +132,7 @@ export class Payment extends PaymentRelated {
   ) {
     const observer$ = StockCounterClient.ehttp.makeGet(`/payment/${url}/${offset}/${limit}/${companyId}`);
     const payments = await lastValueFrom(observer$) as IdataArrayResponse;
+
     return {
       count: payments.count,
       payments: payments.data.map(val => new Payment(val as Required<Ipayment>))
@@ -149,6 +151,7 @@ export class Payment extends PaymentRelated {
   ) {
     const observer$ = StockCounterClient.ehttp.makeGet(`/payment/getone/${id}/${companyId}`);
     const payment = await lastValueFrom(observer$) as Required<Ipayment>;
+
     return new Payment(payment);
   }
 
@@ -163,6 +166,7 @@ export class Payment extends PaymentRelated {
     credentials: IdeleteCredentialsPayRel[]
   ) {
     const observer$ = StockCounterClient.ehttp.makePut(`/payment/deletemany/${companyId}`, { credentials });
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 
@@ -181,6 +185,7 @@ export class Payment extends PaymentRelated {
     invoiceRelated: IinvoiceRelated
   ) {
     const observer$ = StockCounterClient.ehttp.makePut(`/payment/update/${companyId}`, { updatedPayment, paymentRelated, invoiceRelated });
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 
@@ -191,6 +196,7 @@ export class Payment extends PaymentRelated {
    */
   async deletePayment(companyId: string) {
     const observer$ = StockCounterClient.ehttp.makeDelete(`/payment/deleteone/${this._id}/${companyId}`);
+
     return await lastValueFrom(observer$) as Isuccess;
   }
 }

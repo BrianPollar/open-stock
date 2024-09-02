@@ -9,8 +9,8 @@ const express_1 = tslib_1.__importDefault(require("express"));
 const fs = tslib_1.__importStar(require("fs"));
 const path_1 = tslib_1.__importDefault(require("path"));
 const tracer = tslib_1.__importStar(require("tracer"));
-const item_model_1 = require("../models/item.model");
 const itemoffer_model_1 = require("../models/itemoffer.model");
+const query_1 = require("../utils/query");
 /** Logger for item offer routes */
 const itemOfferRoutesLogger = tracer.colorConsole({
     format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
@@ -52,17 +52,10 @@ exports.itemOfferRoutes = express_1.default.Router();
  */
 exports.itemOfferRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_auth_server_1.requireCanUseFeature)('offer'), (0, stock_universal_server_1.roleAuthorisation)('offers', 'create'), async (req, res, next) => {
     const { itemoffer } = req.body;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
-    itemoffer.companyId = queryId;
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
+    itemoffer.companyId = filter.companyId;
     const count = await itemoffer_model_1.itemOfferMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+        .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
     itemoffer.urId = (0, stock_universal_server_1.makeUrId)(Number(count[0]?.urId || '0'));
     const newDecoy = new itemoffer_model_1.itemOfferMain(itemoffer);
     let errResponse;
@@ -80,10 +73,13 @@ exports.itemOfferRoutes.post('/create/:companyIdParam', stock_universal_server_1
             errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
         }
-        return errResponse;
+        return err;
     });
     if (errResponse) {
         return res.status(403).send(errResponse);
+    }
+    if (saved && saved._id) {
+        (0, stock_universal_server_1.addParentToLocals)(res, saved._id, itemoffer_model_1.itemOfferMain.collection.collectionName, 'makeTrackEdit');
     }
     if (Boolean(saved)) {
         return res.status(403).send('unknown error');
@@ -100,7 +96,7 @@ exports.itemOfferRoutes.post('/create/:companyIdParam', stock_universal_server_1
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>} - Promise representing the result of the HTTP request
  */
-exports.itemOfferRoutes.get('/getall/:type/:offset/:limit/:companyIdParam', async (req, res) => {
+exports.itemOfferRoutes.get('/getall/:type/:offset/:limit/:companyIdParam', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
     const { type } = req.params;
     const { companyIdParam } = req.params;
     let query = {};
@@ -118,24 +114,20 @@ exports.itemOfferRoutes.get('/getall/:type/:offset/:limit/:companyIdParam', asyn
     }
     const all = await Promise.all([
         itemoffer_model_1.itemOfferLean
-            .find(filter)
+            .find({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
             .skip(offset)
             .limit(limit)
-            .populate({
-            path: 'items', model: item_model_1.itemLean,
-            populate: [{
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
-                    path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-                }
-            ]
-        })
+            .populate([(0, query_1.populateItems)(), (0, stock_auth_server_1.populateTrackEdit)(), (0, stock_auth_server_1.populateTrackView)()])
             .lean(),
-        itemoffer_model_1.itemOfferLean.countDocuments(filter)
+        itemoffer_model_1.itemOfferLean.countDocuments({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
     ]);
     const response = {
         count: all[1],
         data: all[0]
     };
+    for (const val of all[0]) {
+        (0, stock_universal_server_1.addParentToLocals)(res, val._id, itemoffer_model_1.itemOfferMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
 /**
@@ -148,7 +140,7 @@ exports.itemOfferRoutes.get('/getall/:type/:offset/:limit/:companyIdParam', asyn
  * @param {callback} middleware - Express middleware
  * @returns {Promise<void>} - Promise representing the result of the HTTP request
  */
-exports.itemOfferRoutes.get('/getone/:id/:companyIdParam', async (req, res) => {
+exports.itemOfferRoutes.get('/getone/:id/:companyIdParam', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
     const { id } = req.params;
     const { companyIdParam } = req.params;
     let ids;
@@ -162,19 +154,14 @@ exports.itemOfferRoutes.get('/getone/:id/:companyIdParam', async (req, res) => {
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
-    const items = await itemoffer_model_1.itemOfferLean
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .findOne({ _id: id })
-        .populate({
-        path: 'items', model: item_model_1.itemLean,
-        populate: [{
-                // eslint-disable-next-line @typescript-eslint/naming-convention
-                path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
-            }
-        ]
-    })
+    const item = await itemoffer_model_1.itemOfferLean
+        .findOne({ _id: id, ...(0, stock_universal_server_1.makePredomFilter)(req) })
+        .populate([(0, query_1.populateItems)(), (0, stock_auth_server_1.populateTrackEdit)(), (0, stock_auth_server_1.populateTrackView)()])
         .lean();
-    return res.status(200).send(items);
+    if (item) {
+        (0, stock_universal_server_1.addParentToLocals)(res, item._id, itemoffer_model_1.itemOfferMain.collection.collectionName, 'trackDataView');
+    }
+    return res.status(200).send(item);
 });
 /**
  * Route for deleting a single item offer by ID
@@ -189,16 +176,11 @@ exports.itemOfferRoutes.get('/getone/:id/:companyIdParam', async (req, res) => {
  */
 exports.itemOfferRoutes.delete('/deleteone/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('offers', 'delete'), async (req, res) => {
     const { id } = req.params;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)([id, queryId]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    const deleted = await itemoffer_model_1.itemOfferMain.findOneAndDelete({ _id: id, companyId: queryId });
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
+    // const deleted = await itemOfferMain.findOneAndDelete({ _id: id, companyId: queryId });
+    const deleted = await itemoffer_model_1.itemOfferMain.updateOne({ _id: id, ...filter }, { $set: { isDeleted: true } });
     if (Boolean(deleted)) {
+        (0, stock_universal_server_1.addParentToLocals)(res, id, itemoffer_model_1.itemOfferMain.collection.collectionName, 'trackDataDelete');
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
@@ -218,21 +200,26 @@ exports.itemOfferRoutes.delete('/deleteone/:id/:companyIdParam', stock_universal
  */
 exports.itemOfferRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('offers', 'delete'), async (req, res) => {
     const { ids } = req.body;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)([...ids, ...[queryId]]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
+    /* const deleted = await itemOfferMain
+      .deleteMany({ _id: { $in: ids }, companyId: queryId })
+      .catch(err => {
+        itemOfferRoutesLogger.error('deletemany - err: ', err);
+  
+        return null;
+      }); */
     const deleted = await itemoffer_model_1.itemOfferMain
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        .deleteMany({ _id: { $in: ids }, companyId: queryId })
+        .updateMany({ _id: { $in: ids }, ...filter }, {
+        $set: { isDeleted: true }
+    })
         .catch(err => {
         itemOfferRoutesLogger.error('deletemany - err: ', err);
         return null;
     });
     if (Boolean(deleted)) {
+        for (const val of ids) {
+            (0, stock_universal_server_1.addParentToLocals)(res, val._id, itemoffer_model_1.itemOfferMain.collection.collectionName, 'trackDataDelete');
+        }
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {

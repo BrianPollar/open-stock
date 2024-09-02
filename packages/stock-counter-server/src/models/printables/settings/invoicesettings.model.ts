@@ -1,31 +1,44 @@
 import { IinvoiceSetting } from '@open-stock/stock-universal';
+import { createExpireDocIndex, preUpdateDocExpire, withCompanySchemaObj, withCompanySelectObj } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../../controllers/database.controller';
+import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../../utils/database';
 
 /** model type for invoiceSetting by */
 export type TinvoiceSetting = Document & IinvoiceSetting;
 
 const invoiceSettingSchema: Schema = new Schema({
-  companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
+  ...withCompanySchemaObj,
   generalSettings: { },
   taxSettings: { },
-  bankSettings: { }
-}, { timestamps: true });
+  bankSettings: { },
+  printDetails: { }
+}, { timestamps: true, collection: 'invoicesettings' });
+
+invoiceSettingSchema.pre('updateOne', function(next) {
+  return preUpdateDocExpire(this, next);
+});
+
+invoiceSettingSchema.pre('updateMany', function(next) {
+  return preUpdateDocExpire(this, next);
+});
 
 /** primary selection object
  * for invoiceSetting
  */
 const invoiceSettingselect = {
-  companyId: 1,
+  ...withCompanySelectObj,
   generalSettings: 1,
   taxSettings: 1,
-  bankSettings: 1
+  bankSettings: 1,
+  printDetails: 1
 };
 
-/** main connection for invoices Operations*/
+/** main connection for invoices Operations */
 export let invoiceSettingMain: Model<TinvoiceSetting>;
-/** lean connection for invoices Operations*/
+
+/** lean connection for invoices Operations */
 export let invoiceSettingLean: Model<TinvoiceSetting>;
+
 /** primary selection object
  * for invoice
  */
@@ -41,6 +54,7 @@ export const invoiceSettingSelect = invoiceSettingselect;
  * @returns {Promise<void>} - A promise that resolves when the model is created.
  */
 export const createInvoiceSettingModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
+  createExpireDocIndex(invoiceSettingSchema);
   if (!isStockDbConnected) {
     await connectStockDatabase(dbUrl, dbOptions);
   }

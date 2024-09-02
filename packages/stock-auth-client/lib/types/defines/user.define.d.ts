@@ -1,7 +1,9 @@
 import { DatabaseAuto, Iaddress, Ibilling, Ifile, IfileMeta, Isuccess, Iuser, Iuserperm, TuserDispNameFormat, TuserType } from '@open-stock/stock-universal';
 import { Company } from './company.define';
 /**
- * Represents a user and extends the DatabaseAuto class. It has properties that correspond to the fields in the user object, and methods for updating, deleting, and managing the user's profile, addresses, and permissions.
+ * Represents a user and extends the DatabaseAuto class.
+ * It has properties that correspond to the fields in the user object, and methods for updating, deleting,
+ *  and managing the user's profile, addresses, and permissions.
  */
 export declare class User extends DatabaseAuto {
     /** The user's ID. */
@@ -51,11 +53,18 @@ export declare class User extends DatabaseAuto {
     /** The format for displaying the user's name. */
     userDispNameFormat: TuserDispNameFormat;
     userType?: TuserType;
+    verified: boolean;
     /**
      * Creates a new User instance.
      * @param data The data to initialize the User instance with.
      */
     constructor(data: Iuser);
+    /**
+     * Checks if a user with the given email or phone number exists.
+     * @param emailPhone The email or phone number to check.
+     * @returns A boolean indicating whether the user exists.
+     */
+    static existsEmailOrPhone(emailPhone: string): Promise<boolean>;
     /**
      * Retrieves multiple users from a specified URL, with optional offset and limit parameters.
      * @param companyId - The ID of the company

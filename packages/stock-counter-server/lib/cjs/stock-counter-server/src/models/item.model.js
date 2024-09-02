@@ -1,13 +1,13 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createItemModel = exports.itemSelect = exports.itemLean = exports.itemMain = void 0;
+const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const mongoose_1 = require("mongoose");
-const database_controller_1 = require("../controllers/database.controller");
+const database_1 = require("../utils/database");
 const uniqueValidator = require('mongoose-unique-validator');
 /** Mongoose schema for the item model */
 const itemSchema = new mongoose_1.Schema({
-    urId: { type: String },
-    companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
+    ...stock_universal_server_1.withUrIdAndCompanySchemaObj,
     numbersInstock: { type: Number, required: [true, 'cannot be empty.'], index: true },
     name: { type: String, required: [true, 'cannot be empty.'], index: true },
     category: { type: String },
@@ -32,17 +32,22 @@ const itemSchema = new mongoose_1.Schema({
     likesCount: { type: Number, default: 0, index: true },
     timesViewed: { type: Number, default: 0, index: true },
     inventoryMeta: [],
-    // computer
     brand: { type: String },
-    ecomerceCompat: { type: Boolean, default: false }
-}, { timestamps: true });
+    ecomerceCompat: { type: Boolean, default: false },
+    soldCount: { type: Number, default: 0, index: true } // TODO update fields related to this
+}, { timestamps: true, collection: 'items' });
 itemSchema.index({ createdAt: -1 });
 // Apply the uniqueValidator plugin to itemSchema.
 itemSchema.plugin(uniqueValidator);
+itemSchema.pre('updateOne', function (next) {
+    return (0, stock_universal_server_1.preUpdateDocExpire)(this, next);
+});
+itemSchema.pre('updateMany', function (next) {
+    return (0, stock_universal_server_1.preUpdateDocExpire)(this, next);
+});
 /** Primary selection object for item */
 const itemselect = {
-    urId: 1,
-    companyId: 1,
+    ...stock_universal_server_1.withUrIdAndCompanySelectObj,
     numbersInstock: 1,
     name: 1,
     purchase: 1,
@@ -71,7 +76,8 @@ const itemselect = {
     timesViewed: 1,
     brand: 1,
     inventoryMeta: 1,
-    ecomerceCompat: 1
+    ecomerceCompat: 1,
+    soldCount: 1
 };
 /**
  * Represents the item select function.
@@ -84,14 +90,15 @@ exports.itemSelect = itemselect;
  * @param lean - Whether to create the lean connection for item operations (default: true)
  */
 const createItemModel = async (dbUrl, dbOptions, main = true, lean = true) => {
-    if (!database_controller_1.isStockDbConnected) {
-        await (0, database_controller_1.connectStockDatabase)(dbUrl, dbOptions);
+    (0, stock_universal_server_1.createExpireDocIndex)(itemSchema);
+    if (!database_1.isStockDbConnected) {
+        await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.itemMain = database_controller_1.mainConnection.model('Item', itemSchema);
+        exports.itemMain = database_1.mainConnection.model('Item', itemSchema);
     }
     if (lean) {
-        exports.itemLean = database_controller_1.mainConnectionLean.model('Item', itemSchema);
+        exports.itemLean = database_1.mainConnectionLean.model('Item', itemSchema);
     }
 };
 exports.createItemModel = createItemModel;

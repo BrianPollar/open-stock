@@ -9,7 +9,7 @@
   "scripts": {
     "compile:auth:client": "cd packages/stock-auth-client && npm run compileLib",
     "compile:auth:server": "cd packages/stock-auth-server && npm run compileLib",
-    "compile:auth:all": "npm run compile:auth:client && npm run compile:auth:server",
+    "compile:auth:all": "npm run compile:auth:client & npm run compile:auth:server",
     "publish:auth:client": "cd packages/stock-auth-client && npm run publishLib",
     "publish:auth:server": "cd packages/stock-auth-server && npm run publishLib",
     "publish:auth:all": "npm run publish:auth:client && npm run publish:auth:server",
@@ -21,7 +21,7 @@
     "lint:auth:all": "npm run lint:auth:client && npm run lint:auth:server",
     "compile:counter:client": "cd packages/stock-counter-client && npm run compileLib",
     "compile:counter:server": "cd packages/stock-counter-server && npm run compileLib",
-    "compile:counter:all": "npm run compile:counter:client && npm run compile:counter:server",
+    "compile:counter:all": "npm run compile:counter:client & npm run compile:counter:server",
     "publish:counter:client": "cd packages/stock-counter-client && npm run publishLib",
     "publish:counter:server": "cd packages/stock-counter-server && npm run publishLib",
     "publish:counter:all": "npm run publish:counter:client && npm run publish:counter:server",
@@ -33,7 +33,7 @@
     "lint:counter:all": "npm run lint:counter:client && npm run lint:counter:server",
     "compile:notif:client": "cd packages/stock-notif-client && npm run compileLib",
     "compile:notif:server": "cd packages/stock-notif-server && npm run compileLib",
-    "compile:notif:all": "npm run compile:notif:client && npm run compile:notif:server",
+    "compile:notif:all": "npm run compile:notif:client & npm run compile:notif:server",
     "publish:notif:client": "cd packages/stock-notif-client && npm run publishLib",
     "publish:notif:server": "cd packages/stock-notif-server && npm run publishLib",
     "publish:notif:all": "npm run publish:notif:client && npm run publish:notif:server",
@@ -56,9 +56,10 @@
     "lint:universal:server": "cd packages/stock-universal-server && npm run lint",
     "lint:universal:all": "npm run lint:universal && npm run lint:universal:server",
     "compile:all": "npm run compile:universal:all && npm run compile:notif:all && npm run compile:auth:all && npm run compile:counter:all",
-    "publish:all": "npm run publish:auth:all && npm run publish:counter:all && npm run publish:notif:all && npm run publish:universal:all",
+    "publish:all": "npm run publish:auth:all & npm run publish:counter:all & npm run publish:notif:all & npm run publish:universal:all",
     "test:all": "npm run test:auth:all && npm run test:counter:all && npm run test:notif:all && npm run test:universal:all",
-    "lint:all": "npm run lint:auth:all && npm run lint:counter:all && npm run lint:notif:all && npm run lint:universal:all"
+    "lint:all": "npm run lint:auth:all && npm run lint:counter:all && npm run lint:notif:all && npm run lint:universal:all",
+    "runComp": "npm run compile:all && npm run publish:all"
   },
   "devDependencies": {
     "@faker-js/faker": "^8.3.1",
@@ -76,7 +77,7 @@
     "axios-observable": "^2.0.0",
     "express": "^4.18.2",
     "mongoose": "^7.5.0",
-    "pesapal3": "^1.1.2",
+    "pesapal3": "^2.0.3",
     "rxjs": "^7.8.0"
   }
 }

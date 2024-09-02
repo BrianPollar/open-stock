@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-type-arguments */
 import { IinvoiceRelatedRef, IurId } from '@open-stock/stock-universal';
+import { createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../controllers/database.controller';
+import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 
 /**
@@ -11,20 +12,27 @@ const uniqueValidator = require('mongoose-unique-validator');
 export type TdeliveryNote = Document & IurId & IinvoiceRelatedRef;
 
 const deliveryNoteSchema: Schema<TdeliveryNote> = new Schema({
-  urId: { type: String },
-  companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
+  ...withUrIdAndCompanySchemaObj,
   invoiceRelated: { type: String, unique: true }
-}, { timestamps: true });
+}, { timestamps: true, collection: 'deliverynotes' });
 
 // Apply the uniqueValidator plugin to deliveryNoteSchema.
 deliveryNoteSchema.plugin(uniqueValidator);
+
+deliveryNoteSchema.pre('updateOne', function(next) {
+  return preUpdateDocExpire(this, next);
+});
+
+deliveryNoteSchema.pre('updateMany', function(next) {
+  return preUpdateDocExpire(this, next);
+});
+
 
 /** primary selection object
  * for deliveryNote
  */
 const deliveryNoteselect = {
-  urId: 1,
-  companyId: 1,
+  ...withUrIdAndCompanySelectObj,
   invoiceRelated: 1
 };
 
@@ -52,6 +60,7 @@ export const deliveryNoteSelect = deliveryNoteselect;
  * @param lean Whether to create the lean connection or not. Defaults to true.
  */
 export const createDeliveryNoteModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
+  createExpireDocIndex(deliveryNoteSchema);
   if (!isStockDbConnected) {
     await connectStockDatabase(dbUrl, dbOptions);
   }

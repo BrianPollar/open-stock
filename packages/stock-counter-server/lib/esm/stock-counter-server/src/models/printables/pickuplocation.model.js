@@ -1,18 +1,25 @@
+import { createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
 import { Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../controllers/database.controller';
+import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 const pickupLocationSchema = new Schema({
-    companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
+    ...withUrIdAndCompanySchemaObj,
     name: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
     contact: {}
-}, { timestamps: true });
+}, { timestamps: true, collection: 'pickuplocations' });
+pickupLocationSchema.pre('updateOne', function (next) {
+    return preUpdateDocExpire(this, next);
+});
+pickupLocationSchema.pre('updateMany', function (next) {
+    return preUpdateDocExpire(this, next);
+});
 // Apply the uniqueValidator plugin to pickupLocationSchema.
 pickupLocationSchema.plugin(uniqueValidator);
 /** primary selection object
  * for pickupLocation
  */
 const pickupLocationselect = {
-    companyId: 1,
+    ...withUrIdAndCompanySelectObj,
     name: 1,
     contact: 1
 };
@@ -35,6 +42,7 @@ export const pickupLocationSelect = pickupLocationselect;
  * @param lean Whether to create the model for the lean connection.
  */
 export const createPickupLocationModel = async (dbUrl, dbOptions, main = true, lean = true) => {
+    createExpireDocIndex(pickupLocationSchema);
     if (!isStockDbConnected) {
         await connectStockDatabase(dbUrl, dbOptions);
     }

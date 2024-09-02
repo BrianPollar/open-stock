@@ -23,6 +23,7 @@ pickupLocationRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, re
     count: req.params.limit,
     data: []
   };
+
   res.status(200).send(response);
 });
 
@@ -35,6 +36,7 @@ pickupLocationRoutesDummy.post('/search/:offset/:limit/:companyIdParam', (req, r
     count: 0,
     data: []
   };
+
   res.status(200).send(response);
 });
 

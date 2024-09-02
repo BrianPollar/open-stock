@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 // import { EmailHandler } from '../../../stock-notif-server/src/index';
-import express from 'express';
-import { runStockAuthServer, IStockAuthServerConfig, IaAuth, IlocalEnv, IlAuth, IlocalPath } from '../../src/stock-auth-server';
-import { vi, beforeAll, afterAll, it, describe, expect, expectTypeOf } from 'vitest';
 import { apiRouter, disconnectMongoose, runPassport } from '@open-stock/stock-universal-server';
+import express from 'express';
 import * as http from 'http';
+import { afterAll, beforeAll, describe, expect, expectTypeOf, it, vi } from 'vitest';
 import { createExpressServer } from '../../../tests/helpers';
+import { IStockAuthServerConfig, IaAuth, IlAuth, IlocalEnv, IlocalPath, runStockAuthServer } from '../../src/stock-auth-server';
 
 const openStockAuthServerHoisted = vi.hoisted(() => {
   return {
@@ -15,6 +15,7 @@ const openStockAuthServerHoisted = vi.hoisted(() => {
 
 vi.mock('@open-stock/stock-universal-server', async() => {
   const actual: object = await vi.importActual('@open-stock/stock-universal-server');
+
   return {
     ...actual,
     runPassport: openStockAuthServerHoisted.runPassport
@@ -52,6 +53,7 @@ const config: IStockAuthServerConfig = {
 
 vi.mock('@open-stock/stock-notif-server', async() => {
   const actual: object = await vi.importActual('@open-stock/stock-notif-server');
+
   return {
     ...actual,
     isNotificationsServerRunning: vi.fn().mockReturnValue(true)

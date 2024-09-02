@@ -1,20 +1,25 @@
+import { createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
 import { Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../controllers/database.controller';
+import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 const itemDecoySchema = new Schema({
-    urId: { type: String },
-    companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
+    ...withUrIdAndCompanySchemaObj,
     type: { type: String },
     items: []
-}, { timestamps: true });
+}, { timestamps: true, collection: 'itemdecoys' });
 // Apply the uniqueValidator plugin to userSchema.
 itemDecoySchema.plugin(uniqueValidator);
+itemDecoySchema.pre('updateOne', function (next) {
+    return preUpdateDocExpire(this, next);
+});
+itemDecoySchema.pre('updateMany', function (next) {
+    return preUpdateDocExpire(this, next);
+});
 /** primary selection object
  * for itemDecoy
  */
 const itemDecoyselect = {
-    urId: 1,
-    companyId: 1,
+    ...withUrIdAndCompanySelectObj,
     type: 1,
     items: 1
 };
@@ -38,6 +43,7 @@ export const itemDecoySelect = itemDecoyselect;
  * @param lean Whether to create the lean connection or not. Defaults to true.
  */
 export const createItemDecoyModel = async (dbUrl, dbOptions, main = true, lean = true) => {
+    createExpireDocIndex(itemDecoySchema);
     if (!isStockDbConnected) {
         await connectStockDatabase(dbUrl, dbOptions);
     }

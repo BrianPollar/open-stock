@@ -20,6 +20,7 @@ faqRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) => {
     count: req.params.limit,
     data: createMockFaqs(Number(req.params.limit))
   };
+
   res.status(200).send(response);
 });
 

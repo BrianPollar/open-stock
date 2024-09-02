@@ -20,6 +20,7 @@ staffRoutesDummy.get('/getall/:offset/:limit/:companyIdParam', (req, res) => {
     count: req.params.limit,
     data: createMockStaffs(Number(req.params.limit))
   };
+
   res.status(200).send(response);
 });
 
@@ -28,6 +29,7 @@ staffRoutesDummy.get('/getbyrole/:offset/:limit/:role/:companyIdParam', (req, re
     count: req.params.limit,
     data: createMockStaffs(Number(req.params.limit))
   };
+
   res.status(200).send(response);
 });
 
@@ -36,6 +38,7 @@ staffRoutesDummy.post('/search/:offset/:limit/:companyIdParam', (req, res) => {
     count: req.params.limit,
     data: createMockStaffs(Number(req.params.limit))
   };
+
   res.status(200).send(response);
 });
 

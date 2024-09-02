@@ -1,6 +1,6 @@
+import { User } from '@open-stock/stock-auth-client';
 import { IbagainCredential, IdeleteCredentialsPayRel, IinvoiceRelated, Iorder, Ipayment, IpaymentRelated, Isuccess, Iuser, TorderStatus } from '@open-stock/stock-universal';
 import { PaymentRelated } from './payment.define';
-import { User } from '@open-stock/stock-auth-client';
 /**
  * Represents an order with payment and delivery information.
  * @extends PaymentRelated

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.isCounterServerRunning = exports.runStockCounterServer = exports.notifRedirectUrl = exports.pesapalPaymentInstance = void 0;
+exports.runAutoIntervaller = exports.isCounterServerRunning = exports.runStockCounterServer = exports.notifRedirectUrl = exports.pesapalPaymentInstance = void 0;
 const tslib_1 = require("tslib");
 const express_1 = tslib_1.__importDefault(require("express"));
 const cookies_routes_1 = require("./routes/cookies.routes");
@@ -54,10 +54,12 @@ const locluser_routes_1 = require("./routes-dummy/user-related/locluser.routes")
 const staff_routes_1 = require("./routes-dummy/user-related/staff.routes");
 const itemdecoy_routes_2 = require("./routes/itemdecoy.routes");
 const itemoffer_routes_2 = require("./routes/itemoffer.routes");
+const paymentrelated_1 = require("./routes/paymentrelated/paymentrelated");
 const invoicerelated_route_2 = require("./routes/printables/related/invoicerelated.route");
 const customer_routes_2 = require("./routes/user-related/customer.routes");
 const locluser_routes_2 = require("./routes/user-related/locluser.routes");
 const staff_routes_2 = require("./routes/user-related/staff.routes");
+const wallet_routes_1 = require("./routes/user-related/wallet.routes");
 const stock_counter_local_1 = require("./stock-counter-local");
 /**
  * Runs the Stock Counter server with the provided configuration and payment instance.
@@ -74,7 +76,7 @@ const runStockCounterServer = async (config, paymentInstance) => {
     // connect models
     await (0, stock_counter_local_1.connectStockCounterDatabase)(config.databaseConfig.url, config.databaseConfig.dbOptions);
     exports.pesapalPaymentInstance = paymentInstance;
-    (0, stock_universal_server_1.runPassport)(config.authSecrets.jwtSecret);
+    (0, stock_universal_server_1.runPassport)(stock_universal_server_1.stockUniversalConfig.authSecrets.jwtSecret);
     const stockCounterRouter = express_1.default.Router();
     if (!config.useDummyRoutes) {
         stockCounterRouter.use('/review', review_routes_1.reviewRoutes);
@@ -110,6 +112,8 @@ const runStockCounterServer = async (config, paymentInstance) => {
         stockCounterRouter.use('/customer', customer_routes_2.customerRoutes);
         stockCounterRouter.use('/staff', staff_routes_2.staffRoutes);
         stockCounterRouter.use('/localuser', locluser_routes_2.localUserRoutes);
+        // TODO make a dummy route for this
+        stockCounterRouter.use('/wallet', wallet_routes_1.walletRoutes);
     }
     else {
         stockCounterRouter.use('/review', review_routes_2.reviewRoutesDummy);
@@ -146,7 +150,8 @@ const runStockCounterServer = async (config, paymentInstance) => {
         stockCounterRouter.use('/staff', staff_routes_1.staffRoutesDummy);
         stockCounterRouter.use('/localuser', locluser_routes_1.localUserRoutesDummy);
     }
-    (0, stock_counter_local_1.createStockCounterServerLocals)(config.pesapalNotificationRedirectUrl);
+    (0, stock_counter_local_1.createStockCounterServerLocals)(config.pesapalNotificationRedirectUrl, config.ecommerceRevenuePercentage);
+    (0, exports.runAutoIntervaller)();
     return Promise.resolve({ stockCounterRouter });
 };
 exports.runStockCounterServer = runStockCounterServer;
@@ -156,4 +161,12 @@ exports.runStockCounterServer = runStockCounterServer;
  */
 const isCounterServerRunning = () => stock_counter_local_1.isStockCounterServerRunning;
 exports.isCounterServerRunning = isCounterServerRunning;
+const runAutoIntervaller = () => {
+    setTimeout(() => {
+        setInterval(() => {
+            (0, paymentrelated_1.notifyAllOnDueDate)();
+        }, 24 * 60 * 60 * 1000); // 24 hour interval
+    }, 5 * 60 * 1000); // 5 minute delay
+};
+exports.runAutoIntervaller = runAutoIntervaller;
 //# sourceMappingURL=stock-counter-server.js.map

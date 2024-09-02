@@ -1,5 +1,5 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { roleAuthorisation } from '../../../src/controllers/passport.service';
-import { vi, describe, beforeEach, it, expect } from 'vitest';
 
 describe('roleAuthorisation', () => {
   const mockRequest = {
@@ -34,6 +34,7 @@ describe('roleAuthorisation', () => {
       }
     };
     const middleware = roleAuthorisation('orders', 'create');
+
     middleware(mockRequest, mockResponse, mockNext);
     expect(mockNext).toHaveBeenCalled();
     expect(mockResponse.status).not.toHaveBeenCalled();
@@ -42,6 +43,7 @@ describe('roleAuthorisation', () => {
 
   it('should return 401 Unauthorized error if user does not have required permission', () => {
     const middleware = roleAuthorisation('orders', 'create');
+
     middleware(mockRequest, mockResponse, mockNext);
     expect(mockNext).not.toHaveBeenCalled();
     expect(mockResponse.status).toHaveBeenCalledWith(401);

@@ -1,12 +1,4 @@
-/**
- * Represents the configuration for the database.
- */
-// export interface IdatabaseConfig {
-/**
-   * The URL of the database.
-   */
-// url: string;
-// }
+import { EhttpController } from './utils/ehttp';
 /**
  * Represents the configuration options for the app.
  */
@@ -28,8 +20,9 @@ export class StockUniversal {
      * Creates an instance of StockUniversal.
      * @param environment - The environment configuration object.
      */
-    constructor(environment) {
+    constructor(environment, axiosInstance) {
         StockUniversal.environment = environment;
+        StockUniversal.ehttp = new EhttpController(axiosInstance);
     }
 }
 //# sourceMappingURL=stock-universal.js.map
