@@ -23,6 +23,7 @@ export class Expense extends DatabaseAuto {
         if (data.items) {
             this.items = data.items.map((val) => new Item(val));
         }
+        this.currency = data.currency;
     }
     /**
      * Retrieves a list of expenses from the server.

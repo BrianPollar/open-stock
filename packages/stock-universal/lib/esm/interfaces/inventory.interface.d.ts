@@ -3,7 +3,7 @@
  * @packageDocumentation
  */
 import { TestimateStage, TexpenseCategory, TinvoiceStatus, TinvoiceType, TpayType, TreceiptType } from '../types/union.types';
-import { IdatabaseAuto, IfileMeta, ItrackStamp } from './general.interface';
+import { IcurrencyProp, IdatabaseAuto, IfileMeta, ItrackStamp } from './general.interface';
 import { Iitem } from './item.interface';
 /**
  * Represents an invoice.
@@ -15,7 +15,7 @@ export interface Iinvoice extends IinvoiceRelated {
 /**
  * Represents an expense in the inventory.
  */
-export interface Iexpense extends IurId, ItrackStamp {
+export interface Iexpense extends IurId, ItrackStamp, IcurrencyProp {
     name: string;
     person: string;
     cost: number;
@@ -34,7 +34,7 @@ export interface Iprofit {
 /**
  * Represents a quotation in the inventory.
  */
-export interface Iquotation extends IdatabaseAuto, ItrackStamp {
+export interface Iquotation extends IdatabaseAuto, ItrackStamp, IcurrencyProp {
     fnames: string;
     date: Date;
     itemQty: number;
@@ -46,7 +46,7 @@ export interface Iquotation extends IdatabaseAuto, ItrackStamp {
     total: number;
 }
 /** Represents an invoice-related object. */
-export interface IinvoiceRelated extends IdatabaseAuto, ItrackStamp {
+export interface IinvoiceRelated extends IdatabaseAuto, ItrackStamp, IcurrencyProp {
     payType?: TpayType;
     companyId?: string;
     invoiceRelated?: string;
@@ -73,7 +73,7 @@ export interface IinvoiceRelated extends IdatabaseAuto, ItrackStamp {
     ecommerceSalePercentage?: number;
 }
 /** Represents an invoice-related product. */
-export interface IinvoiceRelatedPdct {
+export interface IinvoiceRelatedPdct extends IcurrencyProp {
     item: string;
     itemName?: string;
     itemPhoto?: string;
@@ -149,7 +149,7 @@ export interface IinvoiceRelatedRef extends ItrackStamp {
     invoiceRelated: string | IinvoiceRelated;
 }
 /** Represents a report-related object. */
-export interface IreportRelated extends IurId, ItrackStamp {
+export interface IreportRelated extends IurId, ItrackStamp, IcurrencyProp {
     date: Date;
     totalAmount: number;
 }

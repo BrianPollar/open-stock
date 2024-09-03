@@ -38,7 +38,13 @@ export declare const makePaymentRelatedPdct: (paymentRelated: Required<IpaymentR
     estimateId: number;
     billingUser: string;
     extraCompanyDetails: string;
-    items: import("@open-stock/stock-universal").IinvoiceRelatedPdct[];
+    items: (import("@open-stock/stock-universal").IinvoiceRelatedPdct | {
+        amount: number;
+        quantity: number;
+        rate: number;
+        itemName: string;
+        item: string;
+    })[];
     billingUserId: string;
     stage: import("@open-stock/stock-universal").TestimateStage;
     fromDate: Date;
@@ -54,6 +60,7 @@ export declare const makePaymentRelatedPdct: (paymentRelated: Required<IpaymentR
     payments: string[] | Ireceipt[];
     ecommerceSale: boolean;
     ecommerceSalePercentage: number;
+    currency: string;
     updatedAt: any;
     paymentRelated: string;
     urId: string;
@@ -61,7 +68,6 @@ export declare const makePaymentRelatedPdct: (paymentRelated: Required<IpaymentR
     paymentDate: Date;
     billingAddress: import("@open-stock/stock-universal").Ibilling;
     shippingAddress: import("@open-stock/stock-universal").Iaddress;
-    currency: string;
     isBurgain: boolean;
     shipping: number;
     manuallyAdded: boolean;

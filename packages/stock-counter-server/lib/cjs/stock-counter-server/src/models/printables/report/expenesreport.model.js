@@ -10,7 +10,8 @@ const expenseReportSchema = new mongoose_1.Schema({
     ...stock_universal_server_1.withUrIdAndCompanySchemaObj,
     totalAmount: { type: Number },
     date: { type: Date },
-    expenses: []
+    expenses: [],
+    currency: { type: String, default: 'USD' }
 }, { timestamps: true, collection: 'expensereports' });
 // Apply the uniqueValidator plugin to expenseReportSchema.
 expenseReportSchema.plugin(uniqueValidator);
@@ -25,7 +26,8 @@ const expenseReportselect = {
     ...stock_universal_server_1.withUrIdAndCompanySelectObj,
     totalAmount: 1,
     date: 1,
-    expenses: 1
+    expenses: 1,
+    currency: 1
 };
 /**
  * Represents the select statement for the expense report.

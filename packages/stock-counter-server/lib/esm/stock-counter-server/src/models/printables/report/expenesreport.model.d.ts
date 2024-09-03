@@ -44,6 +44,7 @@ export declare const expenseReportSelect: {
     totalAmount: number;
     date: number;
     expenses: number;
+    currency: number;
     urId: number;
     companyId: number;
     trackEdit: number;

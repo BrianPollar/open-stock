@@ -41,7 +41,8 @@ const invoiceRelatedSchema = new Schema({
     payments: [],
     payType: { type: String, index: true },
     ecommerceSale: { type: Boolean, index: true, default: false },
-    ecommerceSalePercentage: { type: Number, index: true, default: 0 }
+    ecommerceSalePercentage: { type: Number, index: true, default: 0 },
+    currency: { type: String, default: 'USD' }
 }, { timestamps: true, collection: 'invoicerelateds' });
 invoiceRelatedSchema.pre('updateOne', function (next) {
     return preUpdateDocExpire(this, next);
@@ -74,7 +75,8 @@ const invoiceRelatedselect = {
     payments: 1,
     payType: 1,
     ecommerceSale: 1,
-    ecommerceSalePercentage: 1
+    ecommerceSalePercentage: 1,
+    currency: 1
 };
 /**
  * Represents the main invoice related model.

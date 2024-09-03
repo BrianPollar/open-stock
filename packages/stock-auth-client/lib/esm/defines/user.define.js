@@ -33,6 +33,7 @@ export class User extends DatabaseAuto {
         /** The format for displaying the user's name. */
         this.userDispNameFormat = 'firstLast';
         this.appendUpdate(data);
+        this.currency = data.currency;
     }
     /**
      * Checks if a user with the given email or phone number exists.

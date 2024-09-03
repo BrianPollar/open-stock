@@ -46,6 +46,7 @@ export declare const expenseSelect: {
     category: number;
     note: number;
     items: number;
+    currency: number;
     urId: number;
     companyId: number;
     trackEdit: number;

@@ -24,6 +24,7 @@ export class TaxReport extends DatabaseAuto {
         if (data.invoiceRelateds) {
             this.invoiceRelateds = data.invoiceRelateds.map((val) => new InvoiceRelatedWithReceipt(val));
         }
+        this.currency = data.currency;
     }
     /**
      * Retrieves multiple tax reports from the server.

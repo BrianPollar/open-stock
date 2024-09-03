@@ -9,7 +9,8 @@ const itemOfferSchema = new Schema({
     type: { type: String },
     header: { type: String },
     subHeader: { type: String },
-    ammount: { type: Number }
+    ammount: { type: Number },
+    currency: { type: String, default: 'USD' }
 }, { timestamps: true, collection: 'itemoffers' });
 itemOfferSchema.index({ expireAt: 1 }, { expireAfterSeconds: 2628003 });
 // Apply the uniqueValidator plugin to itemOfferSchema.
@@ -30,7 +31,8 @@ const itemOfferselect = {
     type: 1,
     header: 1,
     subHeader: 1,
-    ammount: 1
+    ammount: 1,
+    currency: 1
 };
 /**
  * Represents the main item offer model.

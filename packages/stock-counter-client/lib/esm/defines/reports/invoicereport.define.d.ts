@@ -16,6 +16,7 @@ export declare class InvoiceReport extends DatabaseAuto {
     date: Date;
     /** The list of invoices included in the invoice report */
     invoices: Invoice[];
+    readonly currency: string;
     /**
      * Creates an instance of InvoiceReport.
      * @param {IinvoicesReport} data - The data used to initialize the properties of the invoice report

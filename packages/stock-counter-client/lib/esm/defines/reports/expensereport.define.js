@@ -21,6 +21,7 @@ export class ExpenseReport extends DatabaseAuto {
         if (data.expenses) {
             this.expenses = data.expenses.map((val) => new Expense(val));
         }
+        this.currency = data.currency;
     }
     /**
      * Retrieves a list of expense reports from the API.

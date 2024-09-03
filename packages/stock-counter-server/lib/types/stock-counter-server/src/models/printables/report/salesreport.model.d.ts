@@ -45,6 +45,7 @@ export declare const salesReportSelect: {
     date: number;
     estimates: number;
     invoiceRelateds: number;
+    currency: number;
     urId: number;
     companyId: number;
     trackEdit: number;

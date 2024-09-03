@@ -171,7 +171,8 @@ export const mockExpense = (incrementor = 0) => {
         cost: faker.number.int({ min: 4, max: 8 }),
         category: 'advertising',
         note: faker.string.alphanumeric(),
-        items: incrementor % 2 ? [] : createMockItems(10)
+        items: incrementor % 2 ? [] : createMockItems(10),
+        currency: 'UGX'
     };
 };
 /** The  createMockExpense  function creates a  Expense  instance by passing the generated mock expense object to its constructor. */
@@ -226,7 +227,8 @@ export const createMockInvoiceRelatedPdct = () => {
         }),
         quantity: faker.number.int(3),
         rate: faker.number.int(3),
-        amount: faker.number.int(3)
+        amount: faker.number.int(3),
+        currency: 'UGX'
     };
 };
 /** The  createMockInvoiceRelatedPdcts  function creates an array of mock invoice-related product objects of a specified length by calling the  createMockInvoiceRelatedPdct  function. */
@@ -255,7 +257,8 @@ export const createMockInvoiceRelatedSolo = () => {
         total: faker.number.int({ min: 4, max: 8 }),
         fromDate: faker.date.past(),
         toDate: faker.date.future(),
-        payments: createMockReceipts(10)
+        payments: createMockReceipts(10),
+        currency: 'UGX'
     };
     return relateds;
 };

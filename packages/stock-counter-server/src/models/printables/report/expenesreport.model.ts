@@ -15,7 +15,8 @@ const expenseReportSchema: Schema<TexpenseReport> = new Schema({
   ...withUrIdAndCompanySchemaObj,
   totalAmount: { type: Number },
   date: { type: Date },
-  expenses: []
+  expenses: [],
+  currency: { type: String, default: 'USD' }
 }, { timestamps: true, collection: 'expensereports' });
 
 // Apply the uniqueValidator plugin to expenseReportSchema.
@@ -34,7 +35,8 @@ const expenseReportselect = {
   ...withUrIdAndCompanySelectObj,
   totalAmount: 1,
   date: 1,
-  expenses: 1
+  expenses: 1,
+  currency: 1
 };
 
 /**

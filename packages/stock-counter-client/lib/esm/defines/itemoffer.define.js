@@ -20,6 +20,7 @@ export class ItemOffer extends DatabaseAuto {
         this.header = data.header;
         this.subHeader = data.subHeader;
         this.ammount = data.ammount;
+        this.currency = data.currency;
     }
     /**
      * Gets all item offers.

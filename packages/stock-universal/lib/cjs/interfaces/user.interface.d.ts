@@ -16,6 +16,7 @@ export interface IuserBase extends IdatabaseAuto, ItrackStamp {
     startDate: Date;
     endDate: Date;
     occupation: string;
+    currency?: string;
 }
 /**
  * Represents a staff member.

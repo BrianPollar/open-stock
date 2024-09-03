@@ -23,6 +23,7 @@ class UserBase extends stock_universal_1.DatabaseAuto {
         this.startDate = new Date(data.startDate);
         this.endDate = new Date(data.endDate);
         this.occupation = data.occupation;
+        this.currency = data.currency;
     }
 }
 exports.UserBase = UserBase;

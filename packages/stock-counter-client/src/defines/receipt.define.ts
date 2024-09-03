@@ -77,6 +77,8 @@ export class InvoiceRelated extends DatabaseAuto {
 
   ecommerceSalePercentage = 0;
 
+  readonly currency: string;
+
   /**
    * Creates a new instance of the InvoiceRelated class.
    * @param data The data to initialize the instance with.
@@ -103,6 +105,7 @@ export class InvoiceRelated extends DatabaseAuto {
     this.toDate = data.toDate;
     this.ecommerceSale = data.ecommerceSale || false;
     this.ecommerceSalePercentage = data.ecommerceSalePercentage || 0;
+    this.currency = data.currency;
   }
 
   /**

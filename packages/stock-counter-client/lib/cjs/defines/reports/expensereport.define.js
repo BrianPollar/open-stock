@@ -24,6 +24,7 @@ class ExpenseReport extends stock_universal_1.DatabaseAuto {
         if (data.expenses) {
             this.expenses = data.expenses.map((val) => new expense_define_1.Expense(val));
         }
+        this.currency = data.currency;
     }
     /**
      * Retrieves a list of expense reports from the API.

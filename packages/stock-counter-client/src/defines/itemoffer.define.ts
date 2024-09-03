@@ -31,6 +31,8 @@ export class ItemOffer extends DatabaseAuto {
   /** The amount of the offer. */
   ammount: number;
 
+  readonly currency: string;
+
   /**
    * Creates a new instance of ItemOffer.
    * @param data The data to initialize the instance with.
@@ -45,6 +47,7 @@ export class ItemOffer extends DatabaseAuto {
     this.header = data.header;
     this.subHeader = data.subHeader;
     this.ammount = data.ammount;
+    this.currency = data.currency;
   }
 
   /**

@@ -96,7 +96,7 @@ export interface IblockedReasons {
 /**
  * Represents a user in the system.
  */
-export interface Iuser extends IdatabaseAuto, ItrackStamp {
+export interface Iuser extends IdatabaseAuto, ItrackStamp, Partial<IcurrencyProp> {
     /**
      * The unique identifier of the user.
      */
@@ -460,7 +460,7 @@ export interface IpaymentRelated extends IinvoiceRelated, IurId, ItrackStamp {
     paymentDate?: Date;
     billingAddress?: Ibilling;
     shippingAddress?: Iaddress;
-    currency?: string;
+    currency: string;
     isBurgain?: boolean;
     shipping?: number;
     manuallyAdded?: boolean;
@@ -495,7 +495,7 @@ export interface Icity {
 /**
  * Represents a promotional code.
  */
-export interface IpromoCode {
+export interface IpromoCode extends IcurrencyProp {
     urId: string;
     /** The user's company ID. */
     companyId?: string;
@@ -564,7 +564,7 @@ export interface IuserWallet extends IdatabaseAuto {
     accountBalance: number;
     currency: string;
 }
-export interface IwalletHistory extends IdatabaseAuto {
+export interface IwalletHistory extends IdatabaseAuto, IcurrencyProp {
     wallet: string | IuserWallet;
     amount: number;
     type: 'withdrawal' | 'deposit';
@@ -612,4 +612,7 @@ export interface ItrackDeleted {
 export interface IcompanySetting extends ItrackStamp {
     companyId: string;
     trashPeriod: number;
+}
+export interface IcurrencyProp {
+    currency: string;
 }

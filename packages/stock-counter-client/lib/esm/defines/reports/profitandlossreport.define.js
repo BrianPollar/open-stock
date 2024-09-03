@@ -27,6 +27,7 @@ export class ProfitAndLossReport extends DatabaseAuto {
         if (data.invoiceRelateds) {
             this.invoiceRelateds = data.invoiceRelateds.map(val => new InvoiceRelatedWithReceipt(val));
         }
+        this.currency = data.currency;
     }
     /**
      * Retrieves profit and loss reports from the server.

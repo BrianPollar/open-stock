@@ -22,12 +22,12 @@
 /// <reference types="mongoose/types/validation" />
 /// <reference types="mongoose/types/virtuals" />
 /// <reference types="mongoose/types/inferschematype" />
-import { ItrackStamp } from '@open-stock/stock-universal';
+import { IcurrencyProp, ItrackStamp } from '@open-stock/stock-universal';
 import { ConnectOptions, Document, Model } from 'mongoose';
 /**
  * Represents a promotional code.
  */
-export interface Ipromocode extends Document, ItrackStamp {
+export interface Ipromocode extends Document, ItrackStamp, IcurrencyProp {
     /** The unique identifier of the user. */
     urId: string;
     /** The user's company ID. */
@@ -64,6 +64,7 @@ export declare const promocodeSelect: {
     items: number;
     roomId: number;
     used: number;
+    currency: number;
     urId: number;
     companyId: number;
     trackEdit: number;

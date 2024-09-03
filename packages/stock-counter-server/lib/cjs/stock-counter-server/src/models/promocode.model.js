@@ -23,7 +23,8 @@ const promocodeSchema = new mongoose_1.Schema({
     amount: { type: Number, required: [true, 'cannot be empty.'] },
     roomId: { type: String, required: [true, 'cannot be empty.'] },
     state: { type: String, default: 'virgin' },
-    expireAt: { type: String }
+    expireAt: { type: String },
+    currency: { type: String, default: 'USD' }
 }, { timestamps: true, collection: 'promocodes' });
 promocodeSchema.index({ expireAt: 1 }, { expireAfterSeconds: 3600 }); // after 1 hour
 // Apply the uniqueValidator plugin to promocodeSchema.
@@ -43,7 +44,8 @@ const promocodeselect = {
     amount: 1,
     items: 1,
     roomId: 1,
-    used: 1
+    used: 1,
+    currency: 1
 };
 /**
  * Selects the promocode from the database.

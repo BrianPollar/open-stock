@@ -24,6 +24,8 @@ export class InvoiceReport extends DatabaseAuto {
   /** The list of invoices included in the invoice report */
   invoices: Invoice[];
 
+  readonly currency: string;
+
   /**
    * Creates an instance of InvoiceReport.
    * @param {IinvoicesReport} data - The data used to initialize the properties of the invoice report
@@ -37,6 +39,8 @@ export class InvoiceReport extends DatabaseAuto {
     if (data.invoices) {
       this.invoices = data.invoices.map(val => new Invoice(val));
     }
+
+    this.currency = data.currency;
   }
 
   /**

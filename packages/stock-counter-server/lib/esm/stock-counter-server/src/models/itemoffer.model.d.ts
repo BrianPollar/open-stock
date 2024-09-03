@@ -22,12 +22,12 @@
 /// <reference types="mongoose/types/validation" />
 /// <reference types="mongoose/types/virtuals" />
 /// <reference types="mongoose/types/inferschematype" />
-import { ItrackStamp } from '@open-stock/stock-universal';
+import { IcurrencyProp, ItrackStamp } from '@open-stock/stock-universal';
 import { ConnectOptions, Document, Model } from 'mongoose';
 /**
  * Represents an item offer.
  */
-export interface IitemOffer extends Document, ItrackStamp {
+export interface IitemOffer extends Document, ItrackStamp, IcurrencyProp {
     /** The user's ID. */
     urId: string;
     /** The user's company ID. */
@@ -63,6 +63,7 @@ export declare const itemOfferSelect: {
     header: number;
     subHeader: number;
     ammount: number;
+    currency: number;
     urId: number;
     companyId: number;
     trackEdit: number;

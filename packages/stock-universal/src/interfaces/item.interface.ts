@@ -1,7 +1,7 @@
 import {
   TitemColor, TitemState
 } from '../types/union.types';
-import { IfileMeta } from './general.interface';
+import { IcurrencyProp, IfileMeta } from './general.interface';
 import { IurId } from './inventory.interface';
 
 // This file imports the `TcombinedProductClass`, `TpriceCurrenncy`, `TitemColor`, and `TitemState` types from the `union.types` file.
@@ -94,7 +94,8 @@ export interface Ioffer {
 } */
 
 
-export interface IcostMeta {
+export interface IcostMeta
+extends IcurrencyProp {
   // The `sellingPrice` property is the price that the item is sold for.
   sellingPrice: number;
   // The `costPrice` property is the price that the item was purchased for.
@@ -130,7 +131,8 @@ export interface Isponsored {
 }
 
 // This interface defines the sponsored information for an item.
-export interface IinventoryMeta {
+export interface IinventoryMeta
+extends IcurrencyProp {
   // The `date` property is the date of the inventory snapshot.
   date: Date;
   // The `quantity` property is the number of items in stock.

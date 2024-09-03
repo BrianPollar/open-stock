@@ -20,6 +20,7 @@ export declare class ItemOffer extends DatabaseAuto {
     subHeader: string;
     /** The amount of the offer. */
     ammount: number;
+    readonly currency: string;
     /**
      * Creates a new instance of ItemOffer.
      * @param data The data to initialize the instance with.

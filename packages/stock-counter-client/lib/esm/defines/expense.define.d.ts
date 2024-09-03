@@ -21,6 +21,7 @@ export declare class Expense extends DatabaseAuto {
     note: string;
     /** The items of the expense. */
     items: Item[];
+    readonly currency: string;
     /**
      * Creates an instance of Expense.
      * @param {Iexpense} data - The data to initialize the expense.

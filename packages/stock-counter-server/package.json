@@ -1,6 +1,6 @@
 {
   "name": "@open-stock/stock-counter-server",
-  "version": "4.2.152",
+  "version": "4.2.154",
   "description": "> TODO: description",
   "main": "lib/cjs/stock-counter-server/src/index.js",
   "module": "lib/esm/stock-counter-server/src/index.js",

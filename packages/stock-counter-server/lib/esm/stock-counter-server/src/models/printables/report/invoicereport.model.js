@@ -7,7 +7,8 @@ const invoicesReportSchema = new Schema({
     ...withUrIdAndCompanySchemaObj,
     totalAmount: { type: Number },
     date: { type: Date },
-    invoices: []
+    invoices: [],
+    currency: { type: String, default: 'USD' }
 }, { timestamps: true, collection: 'invoicesreports' });
 invoicesReportSchema.pre('updateOne', function (next) {
     return preUpdateDocExpire(this, next);
@@ -22,7 +23,8 @@ const invoicesReportselect = {
     ...withUrIdAndCompanySelectObj,
     totalAmount: 1,
     date: 1,
-    invoices: 1
+    invoices: 1,
+    currency: 1
 };
 /**
  * Represents the main invoice report.

@@ -1,4 +1,4 @@
-import { ItrackStamp } from '@open-stock/stock-universal';
+import { IcurrencyProp, ItrackStamp } from '@open-stock/stock-universal';
 import { createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
@@ -8,7 +8,7 @@ const uniqueValidator = require('mongoose-unique-validator');
  * Represents a promotional code.
  */
 export interface Ipromocode
-extends Document, ItrackStamp {
+extends Document, ItrackStamp, IcurrencyProp {
 
   /** The unique identifier of the user. */
   urId: string;
@@ -53,7 +53,8 @@ const promocodeSchema: Schema<Ipromocode> = new Schema({
   amount: { type: Number, required: [true, 'cannot be empty.'] },
   roomId: { type: String, required: [true, 'cannot be empty.'] },
   state: { type: String, default: 'virgin' },
-  expireAt: { type: String }
+  expireAt: { type: String },
+  currency: { type: String, default: 'USD' }
 }, { timestamps: true, collection: 'promocodes' });
 
 promocodeSchema.index(
@@ -82,7 +83,8 @@ const promocodeselect = {
   amount: 1,
   items: 1,
   roomId: 1,
-  used: 1
+  used: 1,
+  currency: 1
 };
 
 /**

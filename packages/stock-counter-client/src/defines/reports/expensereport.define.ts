@@ -25,6 +25,8 @@ export class ExpenseReport extends DatabaseAuto {
   /** An array of `Expense` objects associated with the expense report. */
   expenses: Expense[];
 
+  readonly currency: string;
+
   /**
    * Creates an instance of `ExpenseReport`.
    * @param data An object of type `IexpenseReport` containing the data for the expense report.
@@ -38,6 +40,8 @@ export class ExpenseReport extends DatabaseAuto {
     if (data.expenses) {
       this.expenses = data.expenses.map((val) => new Expense(val));
     }
+
+    this.currency = data.currency;
   }
 
   /**

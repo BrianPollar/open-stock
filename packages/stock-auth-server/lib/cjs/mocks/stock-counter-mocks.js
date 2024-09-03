@@ -195,7 +195,8 @@ const mockExpense = (incrementor = 0) => {
         cost: en_US_1.faker.number.int({ min: 4, max: 8 }),
         category: 'advertising',
         note: en_US_1.faker.string.alphanumeric(),
-        items: incrementor % 2 ? [] : (0, exports.createMockItems)(10)
+        items: incrementor % 2 ? [] : (0, exports.createMockItems)(10),
+        currency: 'UGX'
     };
 };
 exports.mockExpense = mockExpense;
@@ -257,7 +258,8 @@ const createMockInvoiceRelatedPdct = () => {
         }),
         quantity: en_US_1.faker.number.int(3),
         rate: en_US_1.faker.number.int(3),
-        amount: en_US_1.faker.number.int(3)
+        amount: en_US_1.faker.number.int(3),
+        currency: 'UGX'
     };
 };
 exports.createMockInvoiceRelatedPdct = createMockInvoiceRelatedPdct;
@@ -288,7 +290,8 @@ const createMockInvoiceRelatedSolo = () => {
         total: en_US_1.faker.number.int({ min: 4, max: 8 }),
         fromDate: en_US_1.faker.date.past(),
         toDate: en_US_1.faker.date.future(),
-        payments: (0, exports.createMockReceipts)(10)
+        payments: (0, exports.createMockReceipts)(10),
+        currency: 'UGX'
     };
     return relateds;
 };

@@ -1,4 +1,4 @@
-import { ItrackStamp } from '@open-stock/stock-universal';
+import { IcurrencyProp, ItrackStamp } from '@open-stock/stock-universal';
 import { createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
@@ -8,7 +8,7 @@ const uniqueValidator = require('mongoose-unique-validator');
  * Represents an item offer.
  */
 export interface IitemOffer
-extends Document, ItrackStamp {
+extends Document, ItrackStamp, IcurrencyProp {
 
   /** The user's ID. */
   urId: string;
@@ -42,7 +42,8 @@ const itemOfferSchema: Schema<IitemOffer> = new Schema({
   type: { type: String },
   header: { type: String },
   subHeader: { type: String },
-  ammount: { type: Number }
+  ammount: { type: Number },
+  currency: { type: String, default: 'USD' }
 }, { timestamps: true, collection: 'itemoffers' });
 
 itemOfferSchema.index(
@@ -72,7 +73,8 @@ const itemOfferselect = {
   type: 1,
   header: 1,
   subHeader: 1,
-  ammount: 1
+  ammount: 1,
+  currency: 1
 };
 
 /**

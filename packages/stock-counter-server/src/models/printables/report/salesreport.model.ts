@@ -16,7 +16,8 @@ const salesReportSchema: Schema<TsalesReport> = new Schema({
   totalAmount: { type: Number },
   date: { type: Date },
   estimates: [],
-  invoiceRelateds: []
+  invoiceRelateds: [],
+  currency: { type: String, default: 'USD' }
 }, { timestamps: true, collection: 'salesreports' });
 
 // Apply the uniqueValidator plugin to salesReportSchema.
@@ -38,7 +39,8 @@ const salesReportselect = {
   totalAmount: 1,
   date: 1,
   estimates: 1,
-  invoiceRelateds: 1
+  invoiceRelateds: 1,
+  currency: 1
 };
 
 /**

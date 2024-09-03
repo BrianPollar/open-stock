@@ -68,8 +68,8 @@ export const updateEstimateUniv = async (res, estimateId, stage, queryId, invoic
         estimateId, ...filter
     }, {
         $set: {
-            stage,
-            invoiceId: invoiceId || estimate.invoiceId
+            stage
+            // invoiceId: invoiceId || (estimate as IinvoiceRelated).invoiceId // TODO
         }
     }).catch(err => {
         estimateRoutesogger.error('save error', err);
