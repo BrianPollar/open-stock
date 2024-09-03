@@ -72,8 +72,8 @@ const updateEstimateUniv = async (res, estimateId, stage, queryId, invoiceId) =>
         estimateId, ...rxjs_1.filter
     }, {
         $set: {
-            stage,
-            invoiceId: invoiceId || estimate.invoiceId
+            stage
+            // invoiceId: invoiceId || (estimate as IinvoiceRelated).invoiceId // TODO
         }
     }).catch(err => {
         estimateRoutesogger.error('save error', err);

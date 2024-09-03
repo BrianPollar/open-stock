@@ -114,6 +114,7 @@ export declare const createMockDeliverynote: () => {
         quantity: number;
         rate: number;
         amount: number;
+        currency: string;
     }[];
     billingUserId: string;
     billingUserPhoto: string;
@@ -128,6 +129,7 @@ export declare const createMockDeliverynote: () => {
     fromDate: Date;
     toDate: Date;
     payments: Required<Ireceipt>[];
+    currency: string;
     _id: string;
     createdAt: Date;
     updatedAt: Date;
@@ -147,6 +149,7 @@ export declare const createMockDeliverynotes: (length: number) => {
         quantity: number;
         rate: number;
         amount: number;
+        currency: string;
     }[];
     billingUserId: string;
     billingUserPhoto: string;
@@ -161,6 +164,7 @@ export declare const createMockDeliverynotes: (length: number) => {
     fromDate: Date;
     toDate: Date;
     payments: Required<Ireceipt>[];
+    currency: string;
     _id: string;
     createdAt: Date;
     updatedAt: Date;
@@ -191,6 +195,7 @@ export declare const createMockInvoiceRelatedPdct: () => {
     quantity: number;
     rate: number;
     amount: number;
+    currency: string;
 };
 /** The  createMockInvoiceRelatedPdcts  function creates an array of mock invoice-related product objects of a specified length by calling the  createMockInvoiceRelatedPdct  function. */
 export declare const createMockInvoiceRelatedPdcts: (length: number) => {
@@ -200,6 +205,7 @@ export declare const createMockInvoiceRelatedPdcts: (length: number) => {
     quantity: number;
     rate: number;
     amount: number;
+    currency: string;
 }[];
 /** The  createMockInvoiceRelatedSolo  function generates a mock invoice-related object with randomly generated values for properties such as invoice related ID, creation type, estimate ID, invoice ID, billing user, items (an array of mock invoice-related product objects), billing user ID, billing user photo, stage, status, cost, payment made, tax, balance due, sub total, total, from date, to date, and payments (an array of mock payment install objects). */
 export declare const createMockInvoiceRelatedSolo: () => {
@@ -215,6 +221,7 @@ export declare const createMockInvoiceRelatedSolo: () => {
         quantity: number;
         rate: number;
         amount: number;
+        currency: string;
     }[];
     billingUserId: string;
     billingUserPhoto: string;
@@ -229,6 +236,7 @@ export declare const createMockInvoiceRelatedSolo: () => {
     fromDate: Date;
     toDate: Date;
     payments: Required<Ireceipt>[];
+    currency: string;
     _id: string;
     createdAt: Date;
     updatedAt: Date;
@@ -253,6 +261,7 @@ export declare const createMockInvoiceRelatedsSolo: (length: number) => {
         quantity: number;
         rate: number;
         amount: number;
+        currency: string;
     }[];
     billingUserId: string;
     billingUserPhoto: string;
@@ -267,6 +276,7 @@ export declare const createMockInvoiceRelatedsSolo: (length: number) => {
     fromDate: Date;
     toDate: Date;
     payments: Required<Ireceipt>[];
+    currency: string;
     _id: string;
     createdAt: Date;
     updatedAt: Date;

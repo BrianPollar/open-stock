@@ -170,7 +170,8 @@ const makeInvoiceRelated = (data) => {
         tax: data.tax,
         balanceDue: data.balanceDue,
         subTotal: data.subTotal,
-        total: data.total
+        total: data.total,
+        currency: data.currency
     };
     return (data instanceof receipt_define_1.Receipt) ? related : { ...related, payments: data.payments };
 };

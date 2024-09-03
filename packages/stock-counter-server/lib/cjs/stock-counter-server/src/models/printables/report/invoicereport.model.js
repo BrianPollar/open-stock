@@ -10,7 +10,8 @@ const invoicesReportSchema = new mongoose_1.Schema({
     ...stock_universal_server_1.withUrIdAndCompanySchemaObj,
     totalAmount: { type: Number },
     date: { type: Date },
-    invoices: []
+    invoices: [],
+    currency: { type: String, default: 'USD' }
 }, { timestamps: true, collection: 'invoicesreports' });
 invoicesReportSchema.pre('updateOne', function (next) {
     return (0, stock_universal_server_1.preUpdateDocExpire)(this, next);
@@ -25,7 +26,8 @@ const invoicesReportselect = {
     ...stock_universal_server_1.withUrIdAndCompanySelectObj,
     totalAmount: 1,
     date: 1,
-    invoices: 1
+    invoices: 1,
+    currency: 1
 };
 /**
  * Select statement for generating invoices report.

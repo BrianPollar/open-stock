@@ -7,7 +7,8 @@ const profitandlossReportSchema = new Schema({
     totalAmount: { type: Number },
     date: { type: Date },
     expenses: [],
-    invoiceRelateds: []
+    invoiceRelateds: [],
+    currency: { type: String, default: 'USD' }
 }, { timestamps: true, collection: 'profitandlossreports' });
 // Apply the uniqueValidator plugin to profitandlossReportSchema.
 profitandlossReportSchema.plugin(uniqueValidator);
@@ -25,7 +26,8 @@ const profitandlossReportselect = {
     totalAmount: 1,
     date: 1,
     expenses: 1,
-    invoiceRelateds: 1
+    invoiceRelateds: 1,
+    currency: 1
 };
 /**
  * Represents the main profit and loss report model.

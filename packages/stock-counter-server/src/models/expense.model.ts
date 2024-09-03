@@ -16,7 +16,8 @@ const expenseSchema: Schema<Texpense> = new Schema({
   cost: { type: Number, required: [true, 'cannot be empty.'], index: true },
   category: { type: String },
   note: { type: String },
-  items: []
+  items: [],
+  currency: { type: String, default: 'USD' }
 }, { timestamps: true, collection: 'expenses' });
 
 expenseSchema.pre('updateOne', function(next) {
@@ -41,7 +42,8 @@ const expenseselect = {
   cost: 1,
   category: 1,
   note: 1,
-  items: 1
+  items: 1,
+  currency: 1
 };
 
 /**

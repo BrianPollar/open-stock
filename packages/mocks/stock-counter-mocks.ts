@@ -19,8 +19,7 @@ import {
   Ireceipt,
   IreviewMain,
   Istaff,
-  Iuser,
-  makeRandomString
+  Iuser, makeRandomString
 } from '@open-stock/stock-universal';
 import { createMockDatabaseAuto } from './mocks';
 import { createMockAddress, createMockBilling, createMockFileMeta, createMockUser } from './stock-auth-mocks';
@@ -228,7 +227,8 @@ export const mockExpense = (incrementor = 0): Iexpense => {
     cost: faker.number.int({ min: 4, max: 8 }),
     category: 'advertising',
     note: faker.string.alphanumeric(),
-    items: incrementor % 2 ? [] : createMockItems(10) as unknown as Iitem[]
+    items: incrementor % 2 ? [] : createMockItems(10) as unknown as Iitem[],
+    currency: 'UGX'
   };
 };
 
@@ -294,7 +294,8 @@ export const createMockInvoiceRelatedPdct = () => {
     }),
     quantity: faker.number.int(3),
     rate: faker.number.int(3),
-    amount: faker.number.int(3)
+    amount: faker.number.int(3),
+    currency: 'UGX'
   };
 };
 
@@ -325,7 +326,8 @@ export const createMockInvoiceRelatedSolo = () => {
     total: faker.number.int({ min: 4, max: 8 }),
     fromDate: faker.date.past(),
     toDate: faker.date.future(),
-    payments: createMockReceipts(10)
+    payments: createMockReceipts(10),
+    currency: 'UGX'
   };
 
   return relateds;

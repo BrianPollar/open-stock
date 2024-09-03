@@ -44,6 +44,7 @@ export declare class InvoiceRelated extends DatabaseAuto {
     toDate: Date;
     ecommerceSale: boolean;
     ecommerceSalePercentage: number;
+    readonly currency: string;
     /**
      * Creates a new instance of the InvoiceRelated class.
      * @param data The data to initialize the instance with.

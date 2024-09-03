@@ -43,6 +43,7 @@ export declare const invoicesReportSelect: {
     totalAmount: number;
     date: number;
     invoices: number;
+    currency: number;
     urId: number;
     companyId: number;
     trackEdit: number;

@@ -135,7 +135,7 @@ deliveryNoteRoutes.get('/getone/:urId/:companyIdParam', requireAuth, requireActi
       deliveryNote.invoiceRelated as Required<IinvoiceRelated>,
       (deliveryNote.invoiceRelated as IinvoiceRelated)
         .billingUserId as unknown as Iuser,
-      (deliveryNote as IinvoiceRelated).createdAt,
+      deliveryNote.createdAt,
       {
         _id: deliveryNote._id,
         urId: deliveryNote.urId

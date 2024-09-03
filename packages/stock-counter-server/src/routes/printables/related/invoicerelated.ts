@@ -186,18 +186,22 @@ export const updateInvoiceRelated = async(res, invoiceRelated: Required<Iinvoice
         try again in a while`;
       }
 
-      return errResponse;
+      return err;
     });
 
   if (errResponse) {
     return errResponse;
   } else {
-    if (oldStatus !== (saved as IinvoiceRelated).status && (saved as IinvoiceRelated).status === 'paid') {
-      await updateCustomerDueAmount((saved as IinvoiceRelated).billingUserId, oldTotal, true);
-      await updateItemsInventory((saved as IinvoiceRelated));
-    } else if ((saved as IinvoiceRelated).status !== 'paid') {
-      await updateCustomerDueAmount((saved as IinvoiceRelated).billingUserId, oldTotal, true);
-      await updateCustomerDueAmount((saved as IinvoiceRelated).billingUserId, (saved as IinvoiceRelated).total, false);
+    const foundRelated = await invoiceRelatedMain
+      .findById(invoiceRelated.invoiceRelated)
+      .lean();
+
+    if (oldStatus !== (foundRelated as IinvoiceRelated).status && (foundRelated as IinvoiceRelated).status === 'paid') {
+      await updateCustomerDueAmount((foundRelated as IinvoiceRelated).billingUserId, oldTotal, true);
+      await updateItemsInventory((foundRelated as IinvoiceRelated));
+    } else if ((foundRelated as IinvoiceRelated).status !== 'paid') {
+      await updateCustomerDueAmount((foundRelated as IinvoiceRelated).billingUserId, oldTotal, true);
+      await updateCustomerDueAmount((foundRelated as IinvoiceRelated).billingUserId, (foundRelated as IinvoiceRelated).total, false);
     }
 
     addParentToLocals(res, related._id, 'invoicerelateds', 'makeTrackEdit');
@@ -400,6 +404,7 @@ export const makeInvoiceRelatedPdct = (invoiceRelated: Required<IinvoiceRelated>
     payments: invoiceRelated.payments,
     ecommerceSale: invoiceRelated.ecommerceSale,
     ecommerceSalePercentage: invoiceRelated.ecommerceSalePercentage,
+    currency: invoiceRelated.currency,
     ...extras
   };
 };
@@ -583,6 +588,15 @@ const updateRelatedStage = async(id: string, stage: TestimateStage, queryId: str
 };
 
 
+/**
+   * Updates the inventory of items in the invoice related document.
+   * If the invoice related document is not found, or if any of the items
+   * in the document do not have enough stock, the function returns false.
+   * Otherwise it returns true.
+   * @param related - The ID of the invoice related document to update,
+   *                  or the document itself.
+   * @returns A boolean indicating whether the update was successful.
+   */
 export const updateItemsInventory = async(related: string | IinvoiceRelated) => {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   let relatedObj: IinvoiceRelated;

@@ -34,6 +34,7 @@ export class InvoiceRelated extends DatabaseAuto {
         this.toDate = data.toDate;
         this.ecommerceSale = data.ecommerceSale || false;
         this.ecommerceSalePercentage = data.ecommerceSalePercentage || 0;
+        this.currency = data.currency;
     }
     /**
      * Gets all invoice payments.

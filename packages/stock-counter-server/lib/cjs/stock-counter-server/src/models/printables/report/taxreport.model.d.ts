@@ -44,6 +44,7 @@ export declare const taxReportSelect: {
     date: number;
     estimates: number;
     invoiceRelateds: number;
+    currency: number;
     urId: number;
     companyId: number;
     trackEdit: number;

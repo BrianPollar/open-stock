@@ -34,7 +34,8 @@ export const creteWallet = async (wallet) => {
     const wallHist = {
         wallet: saved._id,
         amount: saved.accountBalance,
-        type: 'deposit'
+        type: 'deposit',
+        currency: 'UGX' // TODO
     };
     await createWalletHistory(wallHist);
     return { success: true };
@@ -51,7 +52,8 @@ export const updateWallet = async (wallet) => {
     const wallHist = {
         wallet: wallet._id,
         amount: wallet.accountBalance,
-        type: 'deposit'
+        type: 'deposit',
+        currency: 'UGX' // TODO
     };
     await createWalletHistory(wallHist);
     return { success: true };

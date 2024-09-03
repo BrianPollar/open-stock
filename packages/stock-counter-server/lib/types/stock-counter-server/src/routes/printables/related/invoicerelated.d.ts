@@ -51,7 +51,13 @@ export declare const makeInvoiceRelatedPdct: (invoiceRelated: Required<IinvoiceR
     estimateId: number;
     billingUser: string;
     extraCompanyDetails: string;
-    items: import("@open-stock/stock-universal").IinvoiceRelatedPdct[];
+    items: (import("@open-stock/stock-universal").IinvoiceRelatedPdct | {
+        amount: number;
+        quantity: number;
+        rate: number;
+        itemName: string;
+        item: string;
+    })[];
     billingUserId: string;
     stage: TestimateStage;
     fromDate: Date;
@@ -67,6 +73,7 @@ export declare const makeInvoiceRelatedPdct: (invoiceRelated: Required<IinvoiceR
     payments: string[] | Ireceipt[];
     ecommerceSale: boolean;
     ecommerceSalePercentage: number;
+    currency: string;
 };
 /**
  * Deletes multiple invoice-related documents.
@@ -102,6 +109,15 @@ export declare const deleteManyInvoiceRelated: (ids: string[], queryId: string) 
  * @returns A promise that resolves to an object indicating the success of the deletion operation.
  */
 export declare const deleteAllLinked: (invoiceRelated: string, creationType: TinvoiceType, stage: TestimateStage, from: TestimateStage, queryId: string) => Promise<Isuccess>;
+/**
+   * Updates the inventory of items in the invoice related document.
+   * If the invoice related document is not found, or if any of the items
+   * in the document do not have enough stock, the function returns false.
+   * Otherwise it returns true.
+   * @param related - The ID of the invoice related document to update,
+   *                  or the document itself.
+   * @returns A boolean indicating whether the update was successful.
+   */
 export declare const updateItemsInventory: (related: string | IinvoiceRelated) => Promise<boolean>;
 export declare const canMakeReceipt: (relatedId: string) => Promise<boolean>;
 export declare const getPaymentsTotal: (payments: string[]) => Promise<number>;

@@ -1,5 +1,5 @@
 import { TitemColor, TitemState } from '../types/union.types';
-import { IfileMeta } from './general.interface';
+import { IcurrencyProp, IfileMeta } from './general.interface';
 import { IurId } from './inventory.interface';
 export interface Iitem extends IurId {
     numbersInstock: number;
@@ -33,7 +33,7 @@ export interface Iitem extends IurId {
     ecomerceCompat: boolean;
     soldCount: number;
 }
-export interface IcostMeta {
+export interface IcostMeta extends IcurrencyProp {
     sellingPrice: number;
     costPrice: number;
     discount: number;
@@ -48,7 +48,7 @@ export interface Isponsored {
     item: string | Iitem;
     discount: number;
 }
-export interface IinventoryMeta {
+export interface IinventoryMeta extends IcurrencyProp {
     date: Date;
     quantity: number;
     cost: number;

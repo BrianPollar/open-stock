@@ -10,7 +10,8 @@ const salesReportSchema = new mongoose_1.Schema({
     totalAmount: { type: Number },
     date: { type: Date },
     estimates: [],
-    invoiceRelateds: []
+    invoiceRelateds: [],
+    currency: { type: String, default: 'USD' }
 }, { timestamps: true, collection: 'salesreports' });
 // Apply the uniqueValidator plugin to salesReportSchema.
 salesReportSchema.plugin(uniqueValidator);
@@ -28,7 +29,8 @@ const salesReportselect = {
     totalAmount: 1,
     date: 1,
     estimates: 1,
-    invoiceRelateds: 1
+    invoiceRelateds: 1,
+    currency: 1
 };
 /**
  * Represents the sales report select statement.

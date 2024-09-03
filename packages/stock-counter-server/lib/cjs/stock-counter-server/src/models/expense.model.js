@@ -12,7 +12,8 @@ const expenseSchema = new mongoose_1.Schema({
     cost: { type: Number, required: [true, 'cannot be empty.'], index: true },
     category: { type: String },
     note: { type: String },
-    items: []
+    items: [],
+    currency: { type: String, default: 'USD' }
 }, { timestamps: true, collection: 'expenses' });
 expenseSchema.pre('updateOne', function (next) {
     return (0, stock_universal_server_1.preUpdateDocExpire)(this, next);
@@ -32,7 +33,8 @@ const expenseselect = {
     cost: 1,
     category: 1,
     note: 1,
-    items: 1
+    items: 1,
+    currency: 1
 };
 /**
  * Represents the expense select function.

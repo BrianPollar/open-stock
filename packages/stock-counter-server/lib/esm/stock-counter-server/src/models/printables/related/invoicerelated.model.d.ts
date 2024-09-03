@@ -57,11 +57,17 @@ export declare const invoiceRelatedSelect: {
     payType: number;
     ecommerceSale: number;
     ecommerceSalePercentage: number;
+    currency: number;
     companyId: number;
     trackEdit: number;
     trackView: number;
     isDeleted: number;
-    trackDeleted: number;
+    trackDeleted: number; /**
+     * Creates the InvoiceRelated model.
+     * @param dbUrl - The URL of the database.
+     * @param main - Indicates whether to create the main connection model. Default is true.
+     * @param lean - Indicates whether to create the lean connection model. Default is true.
+     */
 };
 /**
  * Creates the InvoiceRelated model.
