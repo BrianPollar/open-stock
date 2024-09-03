@@ -14,6 +14,7 @@ export declare abstract class UserBase extends DatabaseAuto {
     endDate: Date;
     /** The occupation of the user. */
     occupation: string;
+    readonly currency: string;
     /**
      * Creates an instance of UserBase.
      * @param {Object} data - The data to initialize the instance with.
@@ -27,5 +28,6 @@ export declare abstract class UserBase extends DatabaseAuto {
         startDate: string;
         endDate: string;
         occupation: string;
+        currency?: string;
     } | Icustomer | Istaff);
 }

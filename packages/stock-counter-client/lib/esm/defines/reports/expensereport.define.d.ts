@@ -16,6 +16,7 @@ export declare class ExpenseReport extends DatabaseAuto {
     date: Date;
     /** An array of `Expense` objects associated with the expense report. */
     expenses: Expense[];
+    readonly currency: string;
     /**
      * Creates an instance of `ExpenseReport`.
      * @param data An object of type `IexpenseReport` containing the data for the expense report.

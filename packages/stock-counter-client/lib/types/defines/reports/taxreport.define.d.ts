@@ -17,6 +17,7 @@ export declare class TaxReport extends DatabaseAuto {
     estimates: Estimate[];
     /** An array of InvoiceRelatedWithReceipt objects representing the invoice-related information of the tax report. */
     invoiceRelateds: InvoiceRelatedWithReceipt[];
+    readonly currency: string;
     /**
      * TaxReport constructor: The constructor accepts an object (data) that implements the ItaxReport interface.
      * It initializes the properties of the TaxReport instance based on the provided data.

@@ -21,6 +21,7 @@ export class SalesReport extends DatabaseAuto {
         if (data.invoiceRelateds) {
             this.invoiceRelateds = data.invoiceRelateds.map((val) => new InvoiceRelatedWithReceipt(val));
         }
+        this.currency = data.currency;
     }
     /**
      * Retrieves multiple sales reports from the server.

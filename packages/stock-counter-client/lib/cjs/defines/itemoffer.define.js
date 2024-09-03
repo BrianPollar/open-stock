@@ -23,6 +23,7 @@ class ItemOffer extends stock_universal_1.DatabaseAuto {
         this.header = data.header;
         this.subHeader = data.subHeader;
         this.ammount = data.ammount;
+        this.currency = data.currency;
     }
     /**
      * Gets all item offers.

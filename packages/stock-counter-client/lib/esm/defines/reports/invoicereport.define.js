@@ -21,6 +21,7 @@ export class InvoiceReport extends DatabaseAuto {
         if (data.invoices) {
             this.invoices = data.invoices.map(val => new Invoice(val));
         }
+        this.currency = data.currency;
     }
     /**
      * Retrieves multiple invoice reports from a server using an HTTP GET request.

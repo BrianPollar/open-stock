@@ -26,6 +26,7 @@ class Expense extends stock_universal_1.DatabaseAuto {
         if (data.items) {
             this.items = data.items.map((val) => new item_define_1.Item(val));
         }
+        this.currency = data.currency;
     }
     /**
      * Retrieves a list of expenses from the server.

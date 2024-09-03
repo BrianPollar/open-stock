@@ -15,7 +15,7 @@ export class PaymentRelated
   paymentDate: Date;
   billingAddress: Ibilling;
   shippingAddress: Iaddress;
-  override currency: string;
+  override readonly currency: string;
   user;
   isBurgain: boolean;
   shipping: number;

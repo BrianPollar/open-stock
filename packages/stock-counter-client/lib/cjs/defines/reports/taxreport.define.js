@@ -27,6 +27,7 @@ class TaxReport extends stock_universal_1.DatabaseAuto {
         if (data.invoiceRelateds) {
             this.invoiceRelateds = data.invoiceRelateds.map((val) => new invoice_define_1.InvoiceRelatedWithReceipt(val));
         }
+        this.currency = data.currency;
     }
     /**
      * Retrieves multiple tax reports from the server.

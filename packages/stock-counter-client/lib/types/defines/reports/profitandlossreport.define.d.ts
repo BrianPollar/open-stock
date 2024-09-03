@@ -16,6 +16,7 @@ export declare class ProfitAndLossReport extends DatabaseAuto {
     date: Date;
     expenses: Expense[];
     invoiceRelateds: InvoiceRelatedWithReceipt[];
+    readonly currency: string;
     /**
      * Creates a new instance of ProfitAndLossReport.
      * @param data - The data to initialize the report with.

@@ -32,6 +32,8 @@ export class Expense extends DatabaseAuto {
   /** The items of the expense. */
   items: Item[];
 
+  readonly currency: string;
+
   /**
    * Creates an instance of Expense.
    * @param {Iexpense} data - The data to initialize the expense.
@@ -48,6 +50,8 @@ export class Expense extends DatabaseAuto {
     if (data.items) {
       this.items = data.items.map((val) => new Item(val));
     }
+
+    this.currency = data.currency;
   }
 
   /**

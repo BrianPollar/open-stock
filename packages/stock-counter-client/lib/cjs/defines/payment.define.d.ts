@@ -9,7 +9,7 @@ export declare class PaymentRelated extends InvoiceRelatedWithReceipt {
     paymentDate: Date;
     billingAddress: Ibilling;
     shippingAddress: Iaddress;
-    currency: string;
+    readonly currency: string;
     user: any;
     isBurgain: boolean;
     shipping: number;

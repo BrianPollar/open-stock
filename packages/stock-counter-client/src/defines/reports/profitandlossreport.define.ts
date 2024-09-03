@@ -20,6 +20,7 @@ export class ProfitAndLossReport extends DatabaseAuto {
   date: Date;
   expenses: Expense[];
   invoiceRelateds: InvoiceRelatedWithReceipt[];
+  readonly currency: string;
 
   /**
    * Creates a new instance of ProfitAndLossReport.
@@ -37,6 +38,8 @@ export class ProfitAndLossReport extends DatabaseAuto {
     if (data.invoiceRelateds) {
       this.invoiceRelateds = data.invoiceRelateds.map(val => new InvoiceRelatedWithReceipt(val));
     }
+
+    this.currency = data.currency;
   }
 
   /**

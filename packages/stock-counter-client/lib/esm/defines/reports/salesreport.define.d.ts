@@ -14,6 +14,7 @@ export declare class SalesReport extends DatabaseAuto {
     date: Date;
     estimates: Estimate[];
     invoiceRelateds: InvoiceRelatedWithReceipt[];
+    readonly currency: string;
     constructor(data: IsalesReport);
     /**
      * Retrieves multiple sales reports from the server.

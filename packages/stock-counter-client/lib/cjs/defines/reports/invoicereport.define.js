@@ -24,6 +24,7 @@ class InvoiceReport extends stock_universal_1.DatabaseAuto {
         if (data.invoices) {
             this.invoices = data.invoices.map(val => new invoice_define_1.Invoice(val));
         }
+        this.currency = data.currency;
     }
     /**
      * Retrieves multiple invoice reports from a server using an HTTP GET request.

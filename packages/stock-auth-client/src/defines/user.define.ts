@@ -68,6 +68,8 @@ export class User extends DatabaseAuto {
   /** The amount due from the user. */
   amountDue = 0;
 
+  readonly currency: string;
+
   /** Whether the user was manually added. */
   manuallyAdded: boolean;
 
@@ -92,6 +94,7 @@ export class User extends DatabaseAuto {
   constructor(data: Iuser) {
     super(data);
     this.appendUpdate(data);
+    this.currency = data.currency;
   }
 
   /**

@@ -19,6 +19,8 @@ export abstract class UserBase extends DatabaseAuto {
   /** The occupation of the user. */
   occupation: string;
 
+  readonly currency: string;
+
   /**
    * Creates an instance of UserBase.
    * @param {Object} data - The data to initialize the instance with.
@@ -32,11 +34,13 @@ export abstract class UserBase extends DatabaseAuto {
     startDate: string;
     endDate: string;
     occupation: string;
+    currency?: string;
   } | Icustomer | Istaff) {
     super(data);
     this.user = typeof data.user === 'string' ? data.user : new User(data.user);
     this.startDate = new Date(data.startDate);
     this.endDate = new Date(data.endDate);
     this.occupation = data.occupation;
+    this.currency = data.currency;
   }
 }

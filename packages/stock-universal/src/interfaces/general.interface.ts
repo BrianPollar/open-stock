@@ -380,6 +380,7 @@ export interface IcartTotal {
   totalCost: number;
   totalShipping: number;
   totalCostNshipping: number;
+  currency: string;
 }
 
 /**

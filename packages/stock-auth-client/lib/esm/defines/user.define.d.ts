@@ -42,6 +42,7 @@ export declare class User extends DatabaseAuto {
     phone: number;
     /** The amount due from the user. */
     amountDue: number;
+    readonly currency: string;
     /** Whether the user was manually added. */
     manuallyAdded: boolean;
     /** Whether the user is currently online. */

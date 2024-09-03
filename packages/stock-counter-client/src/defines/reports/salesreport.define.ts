@@ -18,6 +18,7 @@ export class SalesReport extends DatabaseAuto {
   date: Date;
   estimates: Estimate[];
   invoiceRelateds: InvoiceRelatedWithReceipt[];
+  readonly currency: string;
 
   constructor(data: IsalesReport) {
     super(data);
@@ -31,6 +32,8 @@ export class SalesReport extends DatabaseAuto {
     if (data.invoiceRelateds) {
       this.invoiceRelateds = data.invoiceRelateds.map((val) => new InvoiceRelatedWithReceipt(val));
     }
+
+    this.currency = data.currency;
   }
 
   /**
