@@ -48,6 +48,7 @@ const verifyObjectId = (val) => {
     // Log the `val` parameter.
     verifyLogger.info('val for verifyObjectId', val);
     if (!val) {
+        verifyLogger.info('no val');
         return false;
     }
     // Check if the `val` parameter is a valid ObjectID.

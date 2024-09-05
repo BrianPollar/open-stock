@@ -7,7 +7,7 @@ import { appendUserToReqIfTokenExist, makePredomFilter } from '@open-stock/stock
  * The payment routes include creating a payment, updating a payment, and getting a payment by ID.
  * @packageDocumentation
  */
-/* eslint-disable @typescript-eslint/no-misused-promises */
+
 import express from 'express';
 import { paymentLean, paymentMain } from '../models/payment.model';
 import { paymentRelatedLean } from '../models/printables/paymentrelated/paymentrelated.model';

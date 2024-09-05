@@ -5,7 +5,6 @@
  * @packageDocumentation
  */
 /* eslint-disable @typescript-eslint/no-var-requires */
-/* eslint-disable @typescript-eslint/no-misused-promises */
 import { createNotifStn } from '@open-stock/stock-notif-server';
 import { Iauthresponse, Icustomrequest, IdataArrayResponse, IfileMeta, Isuccess } from '@open-stock/stock-universal';
 import {

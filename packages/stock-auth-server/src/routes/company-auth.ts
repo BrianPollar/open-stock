@@ -86,10 +86,12 @@ export const requireActiveCompany = (req, res, next) => {
   const { userId } = (req as Icustomrequest).user;
 
   if (userId === 'superAdmin') {
-    const isValid = verifyObjectId(req.params.companyIdParam);
+    if (req.params.companyIdParam && req.params.companyIdParam !== 'undefined' && req.params.companyIdParam !== 'all') {
+      const isValid = verifyObjectId(req.params.companyIdParam);
 
-    if (!isValid) {
-      return res.status(401).send({ success: false, err: 'unauthorised' });
+      if (!isValid) {
+        return res.status(401).send({ success: false, err: 'unauthorised' });
+      }
     }
 
     return next();
@@ -97,10 +99,12 @@ export const requireActiveCompany = (req, res, next) => {
   const { companyPermissions, superAdimPerms } = (req as Icustomrequest).user;
 
   if (superAdimPerms && superAdimPerms.byPassActiveCompany) {
-    const isValid = verifyObjectId(req.params.companyIdParam);
+    if (req.params.companyIdParam && req.params.companyIdParam !== 'undefined' && req.params.companyIdParam !== 'all') {
+      const isValid = verifyObjectId(req.params.companyIdParam);
 
-    if (!isValid) {
-      return res.status(401).send({ success: false, err: 'unauthorised' });
+      if (!isValid) {
+        return res.status(401).send({ success: false, err: 'unauthorised' });
+      }
     }
 
     return next();

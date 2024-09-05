@@ -1,5 +1,4 @@
 "use strict";
-/* eslint-disable @typescript-eslint/no-misused-promises */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.invoiceRelateRoutes = void 0;
 const tslib_1 = require("tslib");

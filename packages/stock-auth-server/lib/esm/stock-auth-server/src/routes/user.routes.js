@@ -254,12 +254,19 @@ export const signupFactorRelgator = async (req, res, next) => {
  * @returns The response with the user information and token.
  */
 export const userLoginRelegator = async (req, res, next) => {
-    const { emailPhone } = req.body;
+    const { emailPhone, userType } = req.body;
     const { query } = determineIfIsPhoneAndMakeFilterObj(emailPhone);
     let { foundUser } = req.body;
+    let filter2 = {};
+    if (userType) {
+        filter2 = { userType };
+    }
+    else {
+        filter2 = { userType: { $ne: 'customer' } };
+    }
     if (!foundUser) {
         foundUser = await userLean
-            .findOne({ ...query, ...{ userType: { $ne: 'customer' } } })
+            .findOne({ ...query, ...filter2 })
             .populate([populateProfilePic(), populateProfileCoverPic(), populatePhotos(), populateTrackEdit(), populateTrackView()])
             .lean()
             // .select(userAuthSelect)
@@ -316,15 +323,10 @@ const reoveUploadedFiles = async (parsed, directlyRemove) => {
    * @returns {Promise<void>}
    */
 export const addUser = async (req, res, next) => {
+    authLogger.info('adding user');
     const userData = req.body.user;
     const parsed = req.body;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = verifyObjectId(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = makeCompanyBasedQuery(req);
     const foundEmail = await userLean.findOne({ email: userData.email }).select({ email: 1 }).lean();
     if (foundEmail) {
         await reoveUploadedFiles(parsed, true);
@@ -335,7 +337,9 @@ export const addUser = async (req, res, next) => {
         await reoveUploadedFiles(parsed, true);
         return res.status(401).send({ success: false, err: 'Phone Number already exist found' });
     }
-    userData.companyId = queryId;
+    if (req.params?.companyIdParam && req.params?.companyIdParam !== 'undefined' && req.params?.companyIdParam !== 'all') {
+        userData.companyId = filter.companyId;
+    }
     if (parsed.profilePic) {
         userData.profilePic = parsed.profilePic || userData.profilePic;
     }
@@ -390,30 +394,25 @@ export const addUser = async (req, res, next) => {
    */
 export const updateUserBulk = async (req, res, next) => {
     const updatedUser = req.body.user;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
+    const { filter } = makeCompanyBasedQuery(req);
     // eslint-disable-next-line @typescript-eslint/naming-convention
     const { _id } = updatedUser;
     if (!_id) {
         return res.status(401).send({ success: false, err: 'unauthourised' });
     }
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    if (!queryId) {
-        return res.status(401).send({ success: false, err: 'unauthourised' });
-    }
-    const isValid = verifyObjectIds([_id, queryId]);
+    const isValid = verifyObjectIds([_id]);
     if (!isValid) {
         return res.status(401).send({ success: false, err: 'unauthourised' });
     }
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    let filter = { _id, companyId: queryId };
+    let filter2 = { _id };
     if (req.body.profileOnly === 'true') {
         const { userId } = req.user;
-        filter = { user: userId };
+        filter2 = { user: userId };
     }
     const parsed = req.body;
     const foundUser = await user
-        .findOne(filter);
+        .findOne({ ...filter, ...filter2 });
     if (!foundUser) {
         if (parsed.newPhotos) {
             await deleteAllFiles(parsed.newPhotos, true);
@@ -440,7 +439,7 @@ export const updateUserBulk = async (req, res, next) => {
     delete updatedUser._id;
     const keys = Object.keys(updatedUser);
     keys.forEach(key => {
-        if (companyId === 'superAdmin' && key !== 'companyId' && key !== 'userType') {
+        if (filter.companyId === 'superAdmin' && key !== 'companyId' && key !== 'userType' && key !== '_id') {
             foundUser[key] = updatedUser[key] || foundUser[key];
         }
         else if (foundUser[key] && key !== 'password' && key !== 'email' && key !== 'phone' && key !== 'companyId' && key !== 'userType') {
@@ -518,7 +517,7 @@ userAuthRoutes.post('/login', async (req, res, next) => {
         filter2 = { userType: { $ne: 'customer' } };
     }
     authLogger.debug(`login attempt,
-    emailPhone: ${emailPhone}`);
+    emailPhone: ${emailPhone}, userType: ${userType}`);
     const { query, isPhone } = determineIfIsPhoneAndMakeFilterObj(emailPhone);
     const foundUser = await user.findOne({ ...query, ...filter2 })
         .populate([populateProfilePic(), populateProfileCoverPic(), populatePhotos(), populateTrackEdit(), populateTrackView()]);
@@ -1034,9 +1033,16 @@ userAuthRoutes.get('/getoneuser/:urId/:companyIdParam', requireAuth, roleAuthori
     const oneUser = await userLean
         .findOne({ urId, ...filter })
         .populate([populateProfilePic(), populateProfileCoverPic(), populatePhotos(), populateTrackEdit(), populateTrackView()])
-        .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc) })
+        .populate({ path: 'companyId', model: companyLean })
         .lean();
-    if (!oneUser || !oneUser.companyId) {
+    if (oneUser && oneUser.blocked) {
+        return res.status(200).send({});
+    }
+    if (filter.companyId &&
+        filter.companyId !== 'all' &&
+        filter.companyId !== 'undefined' &&
+        oneUser.companyId &&
+        oneUser.companyId.blocked) {
         return res.status(200).send({});
     }
     addParentToLocals(res, oneUser._id, user.collection.collectionName, 'trackDataView');
@@ -1106,7 +1112,12 @@ userAuthRoutes.get('/getusers/:where/:offset/:limit/:companyIdParam', requireAut
             .lean(),
         userLean.countDocuments({ ...filter2, ...filter })
     ]);
-    const filteredFaqs = all[0].filter(data => !data.companyId.blocked);
+    const filteredFaqs = all[0].filter(data => {
+        if (filter.companyId && filter.companyId !== 'all' && filter.companyId !== 'undefined') {
+            return !data.companyId.blocked;
+        }
+        return true;
+    });
     const response = {
         count: all[1],
         data: filteredFaqs

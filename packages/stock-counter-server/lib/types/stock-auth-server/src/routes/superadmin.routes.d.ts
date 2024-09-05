@@ -1,4 +1,10 @@
 /**
+ * This file contains the authentication routes for the stock-auth-server package.
+ * It exports the superAdminRoutes router and userLoginRelegator function.
+ * It also imports various controllers and models from the same package and other packages.
+ * @packageDocumentation
+ */
+/**
  * Router for super admin routes.
  */
 export declare const superAdminRoutes: any;

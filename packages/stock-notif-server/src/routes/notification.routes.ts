@@ -19,7 +19,7 @@
  * @requires @open-stock/stock-universal
  * @requires @open-stock/stock-universal-server
  */
-/* eslint-disable @typescript-eslint/no-misused-promises */
+
 import { Icustomrequest, IdataArrayResponse, Isuccess } from '@open-stock/stock-universal';
 import { offsetLimitRelegator, requireAuth, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';

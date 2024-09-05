@@ -1,5 +1,5 @@
 import { appendUserToReqIfTokenExist, makePredomFilter } from '@open-stock/stock-universal-server';
-/* eslint-disable @typescript-eslint/no-misused-promises */
+
 
 import { Tuser, populateTrackEdit, populateTrackView, requireActiveCompany, user, userLean } from '@open-stock/stock-auth-server';
 import {

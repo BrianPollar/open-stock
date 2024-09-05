@@ -10,7 +10,6 @@ const stock_universal_server_1 = require("@open-stock/stock-universal-server");
  * The payment routes include creating a payment, updating a payment, and getting a payment by ID.
  * @packageDocumentation
  */
-/* eslint-disable @typescript-eslint/no-misused-promises */
 const express_1 = tslib_1.__importDefault(require("express"));
 const payment_model_1 = require("../models/payment.model");
 const paymentrelated_model_1 = require("../models/printables/paymentrelated/paymentrelated.model");

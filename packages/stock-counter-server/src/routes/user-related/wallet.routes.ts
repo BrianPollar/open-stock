@@ -1,4 +1,5 @@
-/* eslint-disable @typescript-eslint/no-misused-promises */
+
+import { populateTrackEdit, populateTrackView } from '@open-stock/stock-auth-server';
 import { Icustomrequest, IdataArrayResponse } from '@open-stock/stock-universal';
 import {
   makeCompanyBasedQuery, offsetLimitRelegator,
@@ -10,7 +11,6 @@ import path from 'path';
 import * as tracer from 'tracer';
 import { userWalletLean, userWalletMain } from '../../models/printables/wallet/user-wallet.model';
 import { populateUser } from '../../utils/query';
-import { populateTrackEdit, populateTrackView } from '@open-stock/stock-auth-server';
 
 const walletRoutesLogger = tracer.colorConsole({
   format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',

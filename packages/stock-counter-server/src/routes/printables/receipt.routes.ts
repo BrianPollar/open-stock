@@ -8,7 +8,7 @@
  * - PUT /deleteone - deletes a single receipt and its related documents
  * - POST /search/:offset/:limit - searches for receipts based on a search term and key
  */
-/* eslint-disable @typescript-eslint/no-misused-promises */
+
 import { IdataArrayResponse, IinvoiceRelated, Iuser } from '@open-stock/stock-universal';
 import {
   addParentToLocals,

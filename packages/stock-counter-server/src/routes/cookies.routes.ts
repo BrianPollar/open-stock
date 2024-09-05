@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/dot-notation */
-/* eslint-disable @typescript-eslint/no-misused-promises */
+
 import { populateCompany, populatePhotos } from '@open-stock/stock-auth-server';
 import { makeRandomString } from '@open-stock/stock-universal';
 import { verifyObjectId } from '@open-stock/stock-universal-server';

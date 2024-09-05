@@ -49,6 +49,8 @@ export const verifyObjectId = (val: string | Types.ObjectId) => {
   verifyLogger.info('val for verifyObjectId', val);
 
   if (!val) {
+    verifyLogger.info('no val');
+
     return false;
   }
 

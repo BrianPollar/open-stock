@@ -1,4 +1,5 @@
 "use strict";
+/* eslint-disable @typescript-eslint/naming-convention */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.companySubscriptionRoutes = exports.getDays = void 0;
 const tslib_1 = require("tslib");
@@ -46,6 +47,7 @@ const companySubscriptionRoutesLogger = tracer.colorConsole({
  * @returns An object with the success status and the Pesapal order response, or an error object if the operation fails.
  */
 const firePesapalRelegator = async (subctn, savedSub, company, currUser) => {
+    companySubscriptionRoutesLogger.info('Firing Pesapal payment for subscription');
     const payDetails = {
         id: savedSub._id.toString(),
         currency: 'USD',
@@ -71,6 +73,7 @@ const firePesapalRelegator = async (subctn, savedSub, company, currUser) => {
     };
     const response = await stock_auth_server_1.pesapalPaymentInstance.submitOrder(payDetails, subctn._id, 'Complete product payment');
     if (!response.success) {
+        companySubscriptionRoutesLogger.error('Pesapal payment failed', response);
         return { success: false, err: response.err };
     }
     const companySub = await company_subscription_model_1.companySubscriptionMain.findByIdAndUpdate(savedSub._id);

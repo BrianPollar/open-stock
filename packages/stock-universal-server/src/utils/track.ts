@@ -506,6 +506,11 @@ export const trackUser = (req, res, next) => {
       return;
     }
 
+    // if is admin bypass
+    if (user.userId === 'superAdmin') { // TODO find away to add admin to track without affecting populate
+      return;
+    }
+
     if (!res.locals?.parentsWithCollections) {
       trackerLogger.debug('trackUser, no parents');
 

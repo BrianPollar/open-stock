@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import { addParentToLocals, makePredomFilter, offsetLimitRelegator, requireAuth, roleAuthorisation, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import * as fs from 'fs';
@@ -42,6 +43,7 @@ const companySubscriptionRoutesLogger = tracer.colorConsole({
  * @returns An object with the success status and the Pesapal order response, or an error object if the operation fails.
  */
 const firePesapalRelegator = async (subctn, savedSub, company, currUser) => {
+    companySubscriptionRoutesLogger.info('Firing Pesapal payment for subscription');
     const payDetails = {
         id: savedSub._id.toString(),
         currency: 'USD',
@@ -67,6 +69,7 @@ const firePesapalRelegator = async (subctn, savedSub, company, currUser) => {
     };
     const response = await pesapalPaymentInstance.submitOrder(payDetails, subctn._id, 'Complete product payment');
     if (!response.success) {
+        companySubscriptionRoutesLogger.error('Pesapal payment failed', response);
         return { success: false, err: response.err };
     }
     const companySub = await companySubscriptionMain.findByIdAndUpdate(savedSub._id);

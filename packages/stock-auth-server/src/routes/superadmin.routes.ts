@@ -5,7 +5,7 @@
  * @packageDocumentation
  */
 /* eslint-disable @typescript-eslint/no-var-requires */
-/* eslint-disable @typescript-eslint/no-misused-promises */
+
 import { Iauthresponse, Iauthtoken, Icustomrequest } from '@open-stock/stock-universal';
 import { stockUniversalConfig } from '@open-stock/stock-universal-server';
 import express from 'express';

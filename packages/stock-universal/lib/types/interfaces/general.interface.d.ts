@@ -299,6 +299,7 @@ export interface IcartTotal {
     totalCost: number;
     totalShipping: number;
     totalCostNshipping: number;
+    currency: string;
 }
 /**
  * Represents a notification card.

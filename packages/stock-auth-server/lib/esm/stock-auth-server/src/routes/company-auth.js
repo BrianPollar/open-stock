@@ -74,17 +74,21 @@ export const requireActiveCompany = (req, res, next) => {
     companyAuthLogger.info('requireActiveCompany');
     const { userId } = req.user;
     if (userId === 'superAdmin') {
-        const isValid = verifyObjectId(req.params.companyIdParam);
-        if (!isValid) {
-            return res.status(401).send({ success: false, err: 'unauthorised' });
+        if (req.params.companyIdParam && req.params.companyIdParam !== 'undefined' && req.params.companyIdParam !== 'all') {
+            const isValid = verifyObjectId(req.params.companyIdParam);
+            if (!isValid) {
+                return res.status(401).send({ success: false, err: 'unauthorised' });
+            }
         }
         return next();
     }
     const { companyPermissions, superAdimPerms } = req.user;
     if (superAdimPerms && superAdimPerms.byPassActiveCompany) {
-        const isValid = verifyObjectId(req.params.companyIdParam);
-        if (!isValid) {
-            return res.status(401).send({ success: false, err: 'unauthorised' });
+        if (req.params.companyIdParam && req.params.companyIdParam !== 'undefined' && req.params.companyIdParam !== 'all') {
+            const isValid = verifyObjectId(req.params.companyIdParam);
+            if (!isValid) {
+                return res.status(401).send({ success: false, err: 'unauthorised' });
+            }
         }
         return next();
     }

@@ -259,12 +259,19 @@ exports.signupFactorRelgator = signupFactorRelgator;
  * @returns The response with the user information and token.
  */
 const userLoginRelegator = async (req, res, next) => {
-    const { emailPhone } = req.body;
+    const { emailPhone, userType } = req.body;
     const { query } = (0, auth_1.determineIfIsPhoneAndMakeFilterObj)(emailPhone);
     let { foundUser } = req.body;
+    let filter2 = {};
+    if (userType) {
+        filter2 = { userType };
+    }
+    else {
+        filter2 = { userType: { $ne: 'customer' } };
+    }
     if (!foundUser) {
         foundUser = await user_model_1.userLean
-            .findOne({ ...query, ...{ userType: { $ne: 'customer' } } })
+            .findOne({ ...query, ...filter2 })
             .populate([(0, query_1.populateProfilePic)(), (0, query_1.populateProfileCoverPic)(), (0, query_1.populatePhotos)(), (0, query_1.populateTrackEdit)(), (0, query_1.populateTrackView)()])
             .lean()
             // .select(userAuthSelect)
@@ -322,15 +329,10 @@ const reoveUploadedFiles = async (parsed, directlyRemove) => {
    * @returns {Promise<void>}
    */
 const addUser = async (req, res, next) => {
+    authLogger.info('adding user');
     const userData = req.body.user;
     const parsed = req.body;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     const foundEmail = await user_model_1.userLean.findOne({ email: userData.email }).select({ email: 1 }).lean();
     if (foundEmail) {
         await reoveUploadedFiles(parsed, true);
@@ -341,7 +343,9 @@ const addUser = async (req, res, next) => {
         await reoveUploadedFiles(parsed, true);
         return res.status(401).send({ success: false, err: 'Phone Number already exist found' });
     }
-    userData.companyId = queryId;
+    if (req.params?.companyIdParam && req.params?.companyIdParam !== 'undefined' && req.params?.companyIdParam !== 'all') {
+        userData.companyId = filter.companyId;
+    }
     if (parsed.profilePic) {
         userData.profilePic = parsed.profilePic || userData.profilePic;
     }
@@ -397,30 +401,25 @@ exports.addUser = addUser;
    */
 const updateUserBulk = async (req, res, next) => {
     const updatedUser = req.body.user;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
+    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     // eslint-disable-next-line @typescript-eslint/naming-convention
     const { _id } = updatedUser;
     if (!_id) {
         return res.status(401).send({ success: false, err: 'unauthourised' });
     }
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    if (!queryId) {
-        return res.status(401).send({ success: false, err: 'unauthourised' });
-    }
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)([_id, queryId]);
+    const isValid = (0, stock_universal_server_1.verifyObjectIds)([_id]);
     if (!isValid) {
         return res.status(401).send({ success: false, err: 'unauthourised' });
     }
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    let filter = { _id, companyId: queryId };
+    let filter2 = { _id };
     if (req.body.profileOnly === 'true') {
         const { userId } = req.user;
-        filter = { user: userId };
+        filter2 = { user: userId };
     }
     const parsed = req.body;
     const foundUser = await user_model_1.user
-        .findOne(filter);
+        .findOne({ ...filter, ...filter2 });
     if (!foundUser) {
         if (parsed.newPhotos) {
             await (0, stock_universal_server_1.deleteAllFiles)(parsed.newPhotos, true);
@@ -447,7 +446,7 @@ const updateUserBulk = async (req, res, next) => {
     delete updatedUser._id;
     const keys = Object.keys(updatedUser);
     keys.forEach(key => {
-        if (companyId === 'superAdmin' && key !== 'companyId' && key !== 'userType') {
+        if (filter.companyId === 'superAdmin' && key !== 'companyId' && key !== 'userType' && key !== '_id') {
             foundUser[key] = updatedUser[key] || foundUser[key];
         }
         else if (foundUser[key] && key !== 'password' && key !== 'email' && key !== 'phone' && key !== 'companyId' && key !== 'userType') {
@@ -526,7 +525,7 @@ exports.userAuthRoutes.post('/login', async (req, res, next) => {
         filter2 = { userType: { $ne: 'customer' } };
     }
     authLogger.debug(`login attempt,
-    emailPhone: ${emailPhone}`);
+    emailPhone: ${emailPhone}, userType: ${userType}`);
     const { query, isPhone } = (0, auth_1.determineIfIsPhoneAndMakeFilterObj)(emailPhone);
     const foundUser = await user_model_1.user.findOne({ ...query, ...filter2 })
         .populate([(0, query_1.populateProfilePic)(), (0, query_1.populateProfileCoverPic)(), (0, query_1.populatePhotos)(), (0, query_1.populateTrackEdit)(), (0, query_1.populateTrackView)()]);
@@ -1042,9 +1041,16 @@ exports.userAuthRoutes.get('/getoneuser/:urId/:companyIdParam', stock_universal_
     const oneUser = await user_model_1.userLean
         .findOne({ urId, ...filter })
         .populate([(0, query_1.populateProfilePic)(), (0, query_1.populateProfileCoverPic)(), (0, query_1.populatePhotos)(), (0, query_1.populateTrackEdit)(), (0, query_1.populateTrackView)()])
-        .populate({ path: 'companyId', model: company_model_1.companyLean, transform: (doc) => (doc.blocked ? null : doc) })
+        .populate({ path: 'companyId', model: company_model_1.companyLean })
         .lean();
-    if (!oneUser || !oneUser.companyId) {
+    if (oneUser && oneUser.blocked) {
+        return res.status(200).send({});
+    }
+    if (filter.companyId &&
+        filter.companyId !== 'all' &&
+        filter.companyId !== 'undefined' &&
+        oneUser.companyId &&
+        oneUser.companyId.blocked) {
         return res.status(200).send({});
     }
     (0, stock_universal_server_1.addParentToLocals)(res, oneUser._id, user_model_1.user.collection.collectionName, 'trackDataView');
@@ -1114,7 +1120,12 @@ exports.userAuthRoutes.get('/getusers/:where/:offset/:limit/:companyIdParam', st
             .lean(),
         user_model_1.userLean.countDocuments({ ...filter2, ...filter })
     ]);
-    const filteredFaqs = all[0].filter(data => !data.companyId.blocked);
+    const filteredFaqs = all[0].filter(data => {
+        if (filter.companyId && filter.companyId !== 'all' && filter.companyId !== 'undefined') {
+            return !data.companyId.blocked;
+        }
+        return true;
+    });
     const response = {
         count: all[1],
         data: filteredFaqs

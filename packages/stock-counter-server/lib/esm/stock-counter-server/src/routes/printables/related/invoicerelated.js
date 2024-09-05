@@ -139,7 +139,8 @@ export const updateInvoiceRelated = async (res, invoiceRelated, queryId) => {
             balanceDue: invoiceRelated.balanceDue || related.balanceDue,
             subTotal: invoiceRelated.subTotal || related.subTotal,
             total: invoiceRelated.total || related.total,
-            isDeleted: invoiceRelated.isDeleted || related.isDeleted
+            isDeleted: invoiceRelated.isDeleted || related.isDeleted,
+            currency: invoiceRelated.currency || related.currency
         }
     })
         .catch(err => {
@@ -543,6 +544,12 @@ export const updateItemsInventory = async (related) => {
     await Promise.all(allPromises);
     return true;
 };
+/**
+   * Checks if the invoice related with the given ID has received enough payments to
+   * be marked as paid.
+   * @param relatedId - The ID of the invoice related document to check.
+   * @returns A boolean indicating whether the invoice related has enough payments.
+   */
 export const canMakeReceipt = async (relatedId) => {
     // eslint-disable-next-line @typescript-eslint/naming-convention
     const related = await invoiceRelatedMain.findOne({ _id: relatedId });
@@ -552,6 +559,12 @@ export const canMakeReceipt = async (relatedId) => {
     const total = await getPaymentsTotal(related.payments);
     return total >= related.total;
 };
+/**
+   * Calculates the total amount of all payments in a given array of payment IDs.
+   *
+   * @param payments - An array of payment IDs.
+   * @returns A promise that resolves to the total amount of all payments.
+   */
 export const getPaymentsTotal = async (payments) => {
     const paymentsPromises = payments.map(async (payment) => {
         const paymentDoc = await receiptMain.findOne({ _id: payment }).lean().select({ ammountRcievd: 1 });
@@ -563,6 +576,13 @@ export const getPaymentsTotal = async (payments) => {
     const allPromises = await Promise.all(paymentsPromises);
     return allPromises.reduce((total, payment) => total + payment.ammountRcievd, 0);
 };
+/**
+   * Updates the amountDue of a user by the given amount
+   * @param userId - The ID of the user to update
+   * @param amount - The amount to update the user's amountDue by
+   * @param reduce - If true then the amountDue is reduced by the given amount, else it is increased
+   * @returns A promise that resolves to a boolean indicating the success of the operation
+   */
 export const updateCustomerDueAmount = async (userId, amount, reduce) => {
     // eslint-disable-next-line @typescript-eslint/naming-convention
     const billingUser = await user.findOne({ _id: userId });
@@ -585,6 +605,13 @@ export const updateCustomerDueAmount = async (userId, amount, reduce) => {
     await billingUser.save();
     return false;
 };
+/**
+   * Transforms an invoice related object on status change.
+   *
+   * @param oldRelated - The old invoice related object.
+   * @param newRelated - The new invoice related object.
+   * @returns The transformed new invoice related object.
+   */
 export const transFormInvoiceRelatedOnStatus = (oldRelated, newRelated) => {
     /* if (newRelated.status === oldRelated.status) {
       return newRelated;

@@ -1,3 +1,10 @@
+/**
+ * This file contains the authentication routes for the stock-auth-server package.
+ * It exports the superAdminRoutes router and userLoginRelegator function.
+ * It also imports various controllers and models from the same package and other packages.
+ * @packageDocumentation
+ */
+/* eslint-disable @typescript-eslint/no-var-requires */
 import { stockUniversalConfig } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { generateToken, setUserInfo } from '../utils/universial';

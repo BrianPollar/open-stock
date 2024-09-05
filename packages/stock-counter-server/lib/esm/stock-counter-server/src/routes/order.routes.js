@@ -1,5 +1,4 @@
 import { appendUserToReqIfTokenExist, makePredomFilter } from '@open-stock/stock-universal-server';
-/* eslint-disable @typescript-eslint/no-misused-promises */
 import { populateTrackEdit, populateTrackView, requireActiveCompany, user, userLean } from '@open-stock/stock-auth-server';
 import { addParentToLocals, makeCompanyBasedQuery, makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';

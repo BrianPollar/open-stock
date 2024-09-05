@@ -1,4 +1,11 @@
 "use strict";
+/**
+ * This file contains the authentication routes for the stock-auth-server package.
+ * It exports the superAdminRoutes router and userLoginRelegator function.
+ * It also imports various controllers and models from the same package and other packages.
+ * @packageDocumentation
+ */
+/* eslint-disable @typescript-eslint/no-var-requires */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.requireSuperAdmin = exports.superAdminRoutes = void 0;
 const tslib_1 = require("tslib");

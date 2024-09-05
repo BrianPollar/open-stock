@@ -76,7 +76,7 @@ export class AuthController {
     }): Promise<Iauthresponse> {
     StockAuthClient.logger.debug('AuthService:login:: - loginUrl : %s', userInfo.url);
     const observer$ = StockAuthClient.ehttp
-      .makePost(userInfo.url, { emailPhone: userInfo.emailPhone, passwd: userInfo.password });
+      .makePost(userInfo.url, { emailPhone: userInfo.emailPhone, passwd: userInfo.password, userType: userInfo.userType });
 
     return lastValueFrom(observer$) as Promise<Iauthresponse>;
   }

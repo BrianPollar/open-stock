@@ -1,5 +1,5 @@
 import { makePredomFilter } from '@open-stock/stock-universal-server';
-/* eslint-disable @typescript-eslint/no-misused-promises */
+
 import { IdataArrayResponse, Isuccess } from '@open-stock/stock-universal';
 import { addParentToLocals, makeUrId, offsetLimitRelegator, stringifyMongooseErr } from '@open-stock/stock-universal-server';
 import express from 'express';

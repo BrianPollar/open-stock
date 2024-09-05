@@ -60,7 +60,7 @@ class AuthController {
     async login(userInfo) {
         stock_auth_client_1.StockAuthClient.logger.debug('AuthService:login:: - loginUrl : %s', userInfo.url);
         const observer$ = stock_auth_client_1.StockAuthClient.ehttp
-            .makePost(userInfo.url, { emailPhone: userInfo.emailPhone, passwd: userInfo.password });
+            .makePost(userInfo.url, { emailPhone: userInfo.emailPhone, passwd: userInfo.password, userType: userInfo.userType });
         return (0, rxjs_1.lastValueFrom)(observer$);
     }
     /**

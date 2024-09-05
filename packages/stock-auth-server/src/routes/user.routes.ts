@@ -322,13 +322,21 @@ export const signupFactorRelgator = async(req, res, next) => {
  * @returns The response with the user information and token.
  */
 export const userLoginRelegator = async(req: Request, res: Response, next) => {
-  const { emailPhone } = req.body;
+  const { emailPhone, userType } = req.body;
   const { query } = determineIfIsPhoneAndMakeFilterObj(emailPhone);
   let { foundUser } = req.body;
 
+  let filter2: object = {};
+
+  if (userType) {
+    filter2 = { userType };
+  } else {
+    filter2 = { userType: { $ne: 'customer' } };
+  }
+
   if (!foundUser) {
     foundUser = await userLean
-      .findOne({ ...query, ...{ userType: { $ne: 'customer' } } })
+      .findOne({ ...query, ...filter2 })
       .populate([populateProfilePic(), populateProfileCoverPic(), populatePhotos(), populateTrackEdit(), populateTrackView()])
       .lean()
     // .select(userAuthSelect)
@@ -402,16 +410,11 @@ const reoveUploadedFiles = async(parsed, directlyRemove: boolean) => {
    * @returns {Promise<void>}
    */
 export const addUser = async(req, res, next) => {
+  authLogger.info('adding user');
   const userData = req.body.user;
   const parsed = req.body;
-  const { companyId } = (req as Icustomrequest).user;
-  const { companyIdParam } = req.params;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const isValid = verifyObjectId(queryId);
 
-  if (!isValid) {
-    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-  }
+  const { filter } = makeCompanyBasedQuery(req);
 
   const foundEmail = await userLean.findOne({ email: userData.email }).select({ email: 1 }).lean();
 
@@ -427,7 +430,9 @@ export const addUser = async(req, res, next) => {
 
     return res.status(401).send({ success: false, err: 'Phone Number already exist found' });
   }
-  userData.companyId = queryId;
+  if (req.params?.companyIdParam && req.params?.companyIdParam !== 'undefined' && req.params?.companyIdParam !== 'all') {
+    userData.companyId = filter.companyId;
+  }
 
   if (parsed.profilePic) {
     userData.profilePic = parsed.profilePic || userData.profilePic;
@@ -492,40 +497,34 @@ export const addUser = async(req, res, next) => {
    */
 export const updateUserBulk = async(req, res, next) => {
   const updatedUser = req.body.user;
-  const { companyId } = (req as Icustomrequest).user;
-  const { companyIdParam } = req.params;
+  const { filter } = makeCompanyBasedQuery(req);
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const { _id } = updatedUser;
 
   if (!_id) {
     return res.status(401).send({ success: false, err: 'unauthourised' });
   }
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
 
-  if (!queryId) {
-    return res.status(401).send({ success: false, err: 'unauthourised' });
-  }
-
-  const isValid = verifyObjectIds([_id, queryId]);
+  const isValid = verifyObjectIds([_id]);
 
   if (!isValid) {
     return res.status(401).send({ success: false, err: 'unauthourised' });
   }
 
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  let filter = { _id, companyId: queryId } as unknown;
+  let filter2 = { _id } as object;
 
 
   if (req.body.profileOnly === 'true') {
     const { userId } = (req as Icustomrequest).user;
 
-    filter = { user: userId };
+    filter2 = { user: userId };
   }
 
   const parsed = req.body;
 
   const foundUser = await user
-    .findOne(filter);
+    .findOne({ ...filter, ...filter2 });
 
   if (!foundUser) {
     if (parsed.newPhotos) {
@@ -562,7 +561,7 @@ export const updateUserBulk = async(req, res, next) => {
   const keys = Object.keys(updatedUser);
 
   keys.forEach(key => {
-    if (companyId === 'superAdmin' && key !== 'companyId' && key !== 'userType') {
+    if (filter.companyId === 'superAdmin' && key !== 'companyId' && key !== 'userType' && key !== '_id') {
       foundUser[key] = updatedUser[key] || foundUser[key];
     } else if (foundUser[key] && key !== 'password' && key !== 'email' && key !== 'phone' && key !== 'companyId' && key !== 'userType') {
       foundUser[key] = updatedUser[key] || foundUser[key];
@@ -664,7 +663,7 @@ userAuthRoutes.post('/login', async(req, res, next) => {
   }
 
   authLogger.debug(`login attempt,
-    emailPhone: ${emailPhone}`);
+    emailPhone: ${emailPhone}, userType: ${userType}`);
   const { query, isPhone } = determineIfIsPhoneAndMakeFilterObj(emailPhone);
   const foundUser = await user.findOne({ ...query, ...filter2 })
     .populate([populateProfilePic(), populateProfileCoverPic(), populatePhotos(), populateTrackEdit(), populateTrackView() ]);
@@ -1262,10 +1261,18 @@ userAuthRoutes.get('/getoneuser/:urId/:companyIdParam', requireAuth, roleAuthori
   const oneUser = await userLean
     .findOne({ urId, ...filter })
     .populate([populateProfilePic(), populateProfileCoverPic(), populatePhotos(), populateTrackEdit(), populateTrackView() ])
-    .populate({ path: 'companyId', model: companyLean, transform: (doc) => (doc.blocked ? null : doc) })
+    .populate({ path: 'companyId', model: companyLean })
     .lean();
 
-  if (!oneUser || !oneUser.companyId) {
+  if (oneUser && oneUser.blocked) {
+    return res.status(200).send({});
+  }
+
+  if (filter.companyId &&
+    filter.companyId !== 'all' &&
+    filter.companyId !== 'undefined' &&
+    oneUser.companyId &&
+    (oneUser.companyId as Icompany).blocked) {
     return res.status(200).send({});
   }
 
@@ -1343,7 +1350,13 @@ userAuthRoutes.get('/getusers/:where/:offset/:limit/:companyIdParam', requireAut
     userLean.countDocuments({ ...filter2, ...filter })
 
   ]);
-  const filteredFaqs = all[0].filter(data => !(data.companyId as Icompany).blocked);
+  const filteredFaqs = all[0].filter(data => {
+    if (filter.companyId && filter.companyId !== 'all' && filter.companyId !== 'undefined') {
+      return !(data.companyId as Icompany).blocked;
+    }
+
+    return true;
+  });
   const response: IdataArrayResponse = {
     count: all[1],
     data: filteredFaqs
