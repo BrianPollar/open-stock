@@ -65,7 +65,7 @@ describe('ExpenseReport', () => {
 
   it('#deleteExpenseReports static should delete many ExpenseReports', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makePut').mockImplementationOnce(() => of({ success: true }));
-    const deleted = await ExpenseReport.deleteExpenseReports(companyId, ['ids']);
+    const deleted = await ExpenseReport.deleteExpenseReports(companyId, ['_ids']);
 
     expect(typeof deleted).toEqual('object');
     expect(deleted).toHaveProperty('success');

@@ -39,10 +39,12 @@ export const createTrackDeletedModel = async (dbUrl, dbOptions, main = true, lea
         await connectUniversalDatabase(dbUrl, dbOptions);
     }
     if (main) {
-        trackDeletedMain = mainConnection.model('TrackDeleted', trackDeletedSchema);
+        trackDeletedMain = mainConnection
+            .model('TrackDeleted', trackDeletedSchema);
     }
     if (lean) {
-        trackDeletedLean = mainConnectionLean.model('TrackDeleted', trackDeletedSchema);
+        trackDeletedLean = mainConnectionLean
+            .model('TrackDeleted', trackDeletedSchema);
     }
 };
 //# sourceMappingURL=track-deleted.model.js.map

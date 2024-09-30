@@ -59,10 +59,12 @@ export const createItemOfferModel = async (dbUrl, dbOptions, main = true, lean =
         await connectStockDatabase(dbUrl, dbOptions);
     }
     if (main) {
-        itemOfferMain = mainConnection.model('ItemOffer', itemOfferSchema);
+        itemOfferMain = mainConnection
+            .model('ItemOffer', itemOfferSchema);
     }
     if (lean) {
-        itemOfferLean = mainConnectionLean.model('ItemOffer', itemOfferSchema);
+        itemOfferLean = mainConnectionLean
+            .model('ItemOffer', itemOfferSchema);
     }
 };
 //# sourceMappingURL=itemoffer.model.js.map

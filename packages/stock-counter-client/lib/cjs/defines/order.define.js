@@ -21,38 +21,37 @@ class Order extends payment_define_1.PaymentRelated {
         this.status = data.status;
     }
     /**
-     * Searches for orders based on a search term and key.
-     * @param companyId - The ID of the company
-     * @param searchterm - The search term to use.
-     * @param searchKey - The search key to use.
-     * @returns An array of orders that match the search criteria.
-     */
-    static async searchOrders(companyId, searchterm, searchKey) {
-        const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makePost(`/order/search/${companyId}`, { searchterm, searchKey });
-        const orders = await (0, rxjs_1.lastValueFrom)(observer$);
-        return orders.data.map(val => new Order(val));
-    }
-    /**
      * Deletes multiple orders.
-     * @param companyId - The ID of the company
+  
      * @param credentials - The credentials to use for authentication.
      * @returns An object indicating whether the deletion was successful.
      */
-    static async deleteOrders(companyId, credentials) {
-        const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makePut(`/order/deletemany/${companyId}`, { credentials });
+    static async removeMany(credentials) {
+        const observer$ = stock_counter_client_1.StockCounterClient.ehttp
+            .makePut('/order/delete/many', { credentials });
         const deleted = await (0, rxjs_1.lastValueFrom)(observer$);
         return deleted;
     }
     /**
      * Gets a list of orders.
-     * @param companyId - The ID of the company
+  
      * @param url - The URL to use for the request.
      * @param offset - The offset to use for pagination.
      * @param limit - The limit to use for pagination.
      * @returns An array of orders.
      */
-    static async getOrders(companyId, url = 'getall', offset = 0, limit = 20) {
-        const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makeGet(`/order/${url}/${offset}/${limit}/${companyId}`);
+    static async getAll(offset = 0, limit = 20) {
+        const observer$ = stock_counter_client_1.StockCounterClient.ehttp
+            .makeGet(`/order/all/${offset}/${limit}`);
+        const orders = await (0, rxjs_1.lastValueFrom)(observer$);
+        return {
+            count: orders.count,
+            orders: orders.data.map(val => new Order(val))
+        };
+    }
+    static async filterAll(filter) {
+        const observer$ = stock_counter_client_1.StockCounterClient.ehttp
+            .makePost('/order/filter', filter);
         const orders = await (0, rxjs_1.lastValueFrom)(observer$);
         return {
             count: orders.count,
@@ -61,18 +60,19 @@ class Order extends payment_define_1.PaymentRelated {
     }
     /**
      * Gets a single order by ID.
-     * @param companyId - The ID of the company
-     * @param id - The ID of the order to get.
+  
+     * @param _id - The ID of the order to get.
      * @returns The order with the specified ID.
      */
-    static async getOneOrder(companyId, id) {
-        const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makeGet(`/order/getone/${id}`);
+    static async getOne(_id) {
+        const observer$ = stock_counter_client_1.StockCounterClient.ehttp
+            .makeGet(`/order/one/${_id}`);
         const order = await (0, rxjs_1.lastValueFrom)(observer$);
         return new Order(order);
     }
     /**
      * Creates a new order.
-     * @param companyId - The ID of the company
+  
      * @param paymentRelated - The payment related information for the order.
      * @param invoiceRelated - The invoice related information for the order.
      * @param order - The order information.
@@ -81,22 +81,14 @@ class Order extends payment_define_1.PaymentRelated {
      * @param nonce - The nonce to use for the request.
      * @returns An object indicating whether the creation was successful.
      */
-    static async makeOrder(companyId, paymentRelated, invoiceRelated, order, payment, user, bagainCred, nonce) {
+    static directOrder(vals) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makePost(`/order/makeorder/${companyId}`, {
-            paymentRelated,
-            invoiceRelated,
-            order,
-            payment,
-            userObj: user,
-            bagainCred,
-            nonce
-        });
-        return await (0, rxjs_1.lastValueFrom)(observer$);
+            .makePost('/order/makeorder', vals);
+        return (0, rxjs_1.lastValueFrom)(observer$);
     }
     /**
      * Creates a new order.
-     * @param companyId - The ID of the company
+  
      * @param paymentRelated - The payment related information for the order.
      * @param invoiceRelated - The invoice related information for the order.
      * @param order - The order information.
@@ -105,41 +97,34 @@ class Order extends payment_define_1.PaymentRelated {
      * @param nonce - The nonce to use for the request.
      * @returns An object indicating whether the creation was successful.
      */
-    static async createOrder(companyId, paymentRelated, invoiceRelated, order, payment, bagainCred, nonce) {
+    static add(vals) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makePost(`/order/create/${companyId}`, {
-            paymentRelated,
-            invoiceRelated,
-            order,
-            payment,
-            bagainCred,
-            nonce
-        });
-        return await (0, rxjs_1.lastValueFrom)(observer$);
+            .makePost('/order/add', vals);
+        return (0, rxjs_1.lastValueFrom)(observer$);
     }
     /**
      * Updates the order with new information.
-     * @param companyId - The ID of the company
+  
      * @param updatedOrder - The updated order information.
      * @param paymentRelated - The updated payment related information.
      * @param invoiceRelated - The updated invoice related information.
      * @returns An object indicating whether the update was successful.
      */
-    async updateOrder(companyId, updatedOrder, paymentRelated, invoiceRelated) {
+    update(vals) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makePut(`/order/update/${companyId}`, { updatedOrder, paymentRelated, invoiceRelated });
-        return await (0, rxjs_1.lastValueFrom)(observer$);
+            .makePut('/order/update', vals);
+        return (0, rxjs_1.lastValueFrom)(observer$);
     }
     /**
      * Appends delivery information to the order.
-     * @param companyId - The ID of the company
+  
      * @param status - The status to append.
      * @returns An object indicating whether the operation was successful.
      */
-    async appendDelivery(companyId, status) {
+    updateDeliveryStatus(status) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
             .makePut(`/appendDelivery/${this._id}/${status}`, {});
-        return await (0, rxjs_1.lastValueFrom)(observer$);
+        return (0, rxjs_1.lastValueFrom)(observer$);
     }
 }
 exports.Order = Order;

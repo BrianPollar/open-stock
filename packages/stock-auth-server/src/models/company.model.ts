@@ -1,8 +1,12 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 import { Icompany } from '@open-stock/stock-universal';
-import { createExpireDocIndex, globalSchemaObj, globalSelectObj, preUpdateDocExpire } from '@open-stock/stock-universal-server';
+import {
+  createExpireDocIndex, globalSchemaObj, globalSelectObj, preUpdateDocExpire
+} from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import { connectAuthDatabase, isAuthDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
+import {
+  connectAuthDatabase, isAuthDbConnected, mainConnection, mainConnectionLean
+} from '../utils/database';
 // Create authenticated Authy and Twilio API clients
 // const authy = require('authy')(config.authyKey);
 // const twilioClient = require('twilio')(config.accountSid, config.authToken);
@@ -13,7 +17,7 @@ const uniqueValidator = require('mongoose-unique-validator');
  */
 export type Tcompany = Document & Icompany;
 
-export const companySchema: Schema<Tcompany> = new Schema({
+export const companySchema: Schema<Tcompany> = new Schema<Tcompany>({
   ...globalSchemaObj,
   trackDeleted: { type: Schema.ObjectId },
   urId: { type: String, required: [true, 'cannot be empty.'], index: true },
@@ -26,9 +30,6 @@ export const companySchema: Schema<Tcompany> = new Schema({
   address: { type: String },
   companyDispNameFormat: { type: String },
   businessType: { type: String },
-  profilePic: { type: String },
-  profileCoverPic: { type: String },
-  photos: [],
   websiteAddress: { type: String },
   blocked: { type: Boolean, default: false },
   verified: { type: Boolean, default: false },
@@ -97,11 +98,8 @@ const companyAuthselect = {
   details: 1,
   companyDispNameFormat: 1,
   businessType: 1,
-  profilepic: 1,
-  profileCoverPic: 1,
   createdAt: 1,
   websiteAddress: 1,
-  photos: 1,
   blocked: 1,
   verified: 1,
   expireAt: 1,
@@ -119,8 +117,6 @@ const companyaboutSelect = {
   details: 1,
   companyDispNameFormat: 1,
   businessType: 1,
-  profilepic: 1,
-  profileCoverPic: 1,
   createdAt: 1,
   websiteAddress: 1,
   photos: 1,
@@ -165,10 +161,12 @@ export const createCompanyModel = async(dbUrl: string, dbOptions?: ConnectOption
   }
 
   if (main) {
-    companyMain = mainConnection.model<Tcompany>('Company', companySchema);
+    companyMain = mainConnection
+      .model<Tcompany>('Company', companySchema);
   }
 
   if (lean) {
-    companyLean = mainConnectionLean.model<Tcompany>('Company', companySchema);
+    companyLean = mainConnectionLean
+      .model<Tcompany>('Company', companySchema);
   }
 };

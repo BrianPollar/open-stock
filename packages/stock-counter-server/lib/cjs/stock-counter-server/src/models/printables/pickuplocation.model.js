@@ -42,10 +42,12 @@ const createPickupLocationModel = async (dbUrl, dbOptions, main = true, lean = t
         await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.pickupLocationMain = database_1.mainConnection.model('PickupLocation', pickupLocationSchema);
+        exports.pickupLocationMain = database_1.mainConnection
+            .model('PickupLocation', pickupLocationSchema);
     }
     if (lean) {
-        exports.pickupLocationLean = database_1.mainConnectionLean.model('PickupLocation', pickupLocationSchema);
+        exports.pickupLocationLean = database_1.mainConnectionLean
+            .model('PickupLocation', pickupLocationSchema);
     }
 };
 exports.createPickupLocationModel = createPickupLocationModel;

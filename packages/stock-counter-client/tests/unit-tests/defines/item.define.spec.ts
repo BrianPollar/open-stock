@@ -86,7 +86,7 @@ describe('Item', () => {
 
   it('#deleteItems static should delete many Items', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makePut').mockImplementationOnce(() => of({ success: true }));
-    const deleted = await Item.deleteItems(companyId, ['ids'], [], 'url');
+    const deleted = await Item.deleteItems(companyId, ['_ids'], [], 'url');
 
     expect(typeof deleted).toEqual('object');
     expect(deleted).toHaveProperty('success');

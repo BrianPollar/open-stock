@@ -8,9 +8,9 @@ const express_1 = tslib_1.__importDefault(require("express"));
 const fs = tslib_1.__importStar(require("fs"));
 const path_1 = tslib_1.__importDefault(require("path"));
 const tracer = tslib_1.__importStar(require("tracer"));
+const invoicerelated_model_1 = require("../../models/printables/related/invoicerelated.model");
 const customer_model_1 = require("../../models/user-related/customer.model");
 const query_1 = require("../../utils/query");
-const locluser_routes_1 = require("./locluser.routes");
 /** Logger for customer routes */
 const customerRoutesLogger = tracer.colorConsole({
     format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
@@ -47,13 +47,10 @@ const customerRoutesLogger = tracer.colorConsole({
    */
 const addCustomer = async (req, res, next) => {
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
-    const customer = req.body.customer;
-    const savedUser = req.body.savedUser;
-    customer.user = savedUser._id;
+    const { customer, user } = req.body;
+    customer.user = user._id;
     customer.companyId = filter.companyId;
-    const count = await customer_model_1.customerMain
-        .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
-    customer.urId = (0, stock_universal_server_1.makeUrId)(Number(count[0]?.urId || '0'));
+    customer.urId = await (0, stock_universal_server_1.generateUrId)(customer_model_1.customerMain);
     const newCustomer = new customer_model_1.customerMain(customer);
     let errResponse;
     /**
@@ -91,7 +88,7 @@ const addCustomer = async (req, res, next) => {
 exports.addCustomer = addCustomer;
 /**
    * Updates a customer by ID.
-   * @name PUT /updateone/:companyIdParam
+   * @name PUT /updateone
    * @function
    * @memberof module:customerRoutes
    * @inner
@@ -147,54 +144,22 @@ exports.updateCustomer = updateCustomer;
  * Router for handling customer-related routes.
  */
 exports.customerRoutes = express_1.default.Router();
-/**
- * Route for creating a new customer.
- * @name POST /create
- * @function
- * @memberof module:customerRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- * @param {callback} middleware - Express middleware
- * @returns {Promise} - Promise representing the HTTP response
- */
-exports.customerRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_auth_server_1.requireCanUseFeature)('customer'), (0, stock_universal_server_1.roleAuthorisation)('users', 'create'), stock_auth_server_1.addUser, exports.addCustomer, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('customer'));
-/**
- * Route for creating a new customer.
- * @name POST /create
- * @function
- * @memberof module:customerRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- * @param {callback} middleware - Express middleware
- * @returns {Promise} - Promise representing the HTTP response
- */
-exports.customerRoutes.post('/createimg/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_auth_server_1.requireCanUseFeature)('customer'), (0, stock_universal_server_1.roleAuthorisation)('users', 'create'), stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.saveMetaToDb, stock_auth_server_1.addUser, exports.addCustomer, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('customer'));
-/**
- * Route for getting a single customer by ID.
- * @name GET /getone/:id
- * @function
- * @memberof module:customerRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- * @returns {Promise} - Promise representing the HTTP response
- */
-exports.customerRoutes.post('/getone/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('customers', 'read'), async (req, res) => {
-    const { id, userId } = req.body;
+exports.customerRoutes.post('/add', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_auth_server_1.requireCanUseFeature)('customer'), (0, stock_universal_server_1.roleAuthorisation)('users', 'create'), stock_auth_server_1.addUser, exports.addCustomer, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('customer'));
+exports.customerRoutes.post('/add/img', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_auth_server_1.requireCanUseFeature)('customer'), (0, stock_universal_server_1.roleAuthorisation)('users', 'create'), stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.saveMetaToDb, stock_auth_server_1.addUser, exports.addCustomer, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('customer'));
+exports.customerRoutes.post('/one', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('customers', 'read'), async (req, res) => {
+    const { _id, userId } = req.body;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     let filter2 = {};
-    if (id) {
-        const isValid = (0, stock_universal_server_1.verifyObjectIds)([id]);
+    if (_id) {
+        const isValid = (0, stock_universal_server_1.verifyObjectIds)([_id]);
         if (!isValid) {
             return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
         }
-        filter2 = { ...filter2, _id: id };
+        filter2 = { ...filter2, _id };
     }
-    /* if (queryId) {
-      filter = { ...filter, ...filter };
-    } */
+    /* if (companyId) {
+    filter = { ...filter, ...filter };
+  } */
     if (userId) {
         const isValid = (0, stock_universal_server_1.verifyObjectIds)([userId]);
         if (!isValid) {
@@ -206,22 +171,13 @@ exports.customerRoutes.post('/getone/:companyIdParam', stock_universal_server_1.
         .findOne({ ...filter2, ...filter })
         .populate([(0, query_1.populateUser)(), (0, stock_auth_server_1.populateTrackEdit)(), (0, stock_auth_server_1.populateTrackView)()])
         .lean();
-    if (customer) {
-        (0, stock_universal_server_1.addParentToLocals)(res, customer._id, customer_model_1.customerMain.collection.collectionName, 'trackDataView');
+    if (!customer) {
+        return res.status(404).send({ success: false, err: 'not found' });
     }
+    (0, stock_universal_server_1.addParentToLocals)(res, customer._id, customer_model_1.customerMain.collection.collectionName, 'trackDataView');
     return res.status(200).send(customer);
 });
-/**
- * Route for getting all customers with pagination.
- * @name GET /getall/:offset/:limit
- * @function
- * @memberof module:customerRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- * @returns {Promise} - Promise representing the HTTP response
- */
-exports.customerRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('customers', 'read'), async (req, res) => {
+exports.customerRoutes.get('/all/:offset/:limit', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('customers', 'read'), async (req, res) => {
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     const all = await Promise.all([
@@ -242,69 +198,65 @@ exports.customerRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_unive
     }
     return res.status(200).send(response);
 });
-/**
- * Route for updating a customer.
- * @name PUT /update
- * @function
- * @memberof module:customerRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- * @param {callback} middleware - Express middleware
- * @returns {Promise} - Promise representing the HTTP response
- */
-exports.customerRoutes.put('/update/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('customers', 'update'), stock_auth_server_1.updateUserBulk, exports.updateCustomer);
-exports.customerRoutes.post('/updateimg/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('customers', 'update'), stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.saveMetaToDb, stock_auth_server_1.updateUserBulk, exports.updateCustomer);
-/**
- * Route for deleting a single customer.
- * @name PUT /deleteone
- * @function
- * @memberof module:customerRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- * @param {callback} middleware - Express middleware
- * @param {callback} middleware - Express middleware
- * @returns {Promise} - Promise representing the HTTP response
- */
-exports.customerRoutes.put('/deleteone/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('customers', 'delete'), (0, locluser_routes_1.removeOneUser)('customer'), async (req, res) => {
-    const { id } = req.body;
+exports.customerRoutes.post('/filter', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('customers', 'read'), async (req, res) => {
+    const { propSort } = req.body;
+    const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.body.offset, req.body.limit);
+    const aggCursor = customer_model_1.customerLean
+        .aggregate([
+        ...(0, stock_universal_server_1.lookupSubFieldUserFilter)((0, stock_universal_server_1.constructFiltersFromBody)(req), propSort, offset, limit)
+    ]);
+    const dataArr = [];
+    for await (const data of aggCursor) {
+        dataArr.push(data);
+    }
+    const all = dataArr[0]?.data || [];
+    const count = dataArr[0]?.total?.count || 0;
+    const staffsToReturn = all.filter(val => val.user);
+    const response = {
+        count,
+        data: staffsToReturn
+    };
+    for (const val of staffsToReturn) {
+        (0, stock_universal_server_1.addParentToLocals)(res, val._id, customer_model_1.customerMain.collection.collectionName, 'trackDataView');
+    }
+    return res.status(200).send(response);
+});
+exports.customerRoutes.put('/update', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('customers', 'update'), stock_auth_server_1.updateUserBulk, exports.updateCustomer);
+exports.customerRoutes.post('/update/img', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('customers', 'update'), stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.saveMetaToDb, stock_auth_server_1.updateUserBulk, exports.updateCustomer);
+exports.customerRoutes.put('/delete/one', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('customers', 'delete'), (0, stock_auth_server_1.determineUserToRemove)(customer_model_1.customerLean, [{
+        model: invoicerelated_model_1.invoiceRelatedLean,
+        field: 'billingUserId',
+        errMsg: 'user has an invoice an could not be removed, consider removing invoice first'
+    }]), stock_auth_server_1.removeOneUser, async (req, res) => {
+    const { _id } = req.body;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    // const deleted = await customerMain.findOneAndDelete({ _id: id, ...filter });
-    const deleted = await customer_model_1.customerMain.updateOne({ _id: id, ...filter }, { $set: { isDeleted: true } }, { $set: { isDeleted: true } });
+    // const deleted = await customerMain.findOneAndDelete({ _id, ...filter });
+    const deleted = await customer_model_1.customerMain
+        .updateOne({ _id, ...filter }, { $set: { isDeleted: true } }, { $set: { isDeleted: true } });
     if (Boolean(deleted)) {
-        (0, stock_universal_server_1.addParentToLocals)(res, id, customer_model_1.customerMain.collection.collectionName, 'trackDataDelete');
+        (0, stock_universal_server_1.addParentToLocals)(res, _id, customer_model_1.customerMain.collection.collectionName, 'trackDataDelete');
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
-        return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
+        return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
-/**
- * Route for deleting multiple customers.
- * @name PUT /deletemany
- * @function
- * @memberof module:customerRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- * @param {callback} middleware - Express middleware
- * @param {callback} middleware - Express middleware
- * @returns {Promise} - Promise representing the HTTP response
- */
-exports.customerRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('customers', 'delete'), (0, locluser_routes_1.removeManyUsers)('staff'), async (req, res) => {
-    const { ids } = req.body;
+exports.customerRoutes.put('/delete/many', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('customers', 'delete'), (0, stock_auth_server_1.determineUsersToRemove)(customer_model_1.customerLean, [{
+        model: invoicerelated_model_1.invoiceRelatedLean,
+        field: 'billingUserId',
+        errMsg: 'user has an invoice an could not be removed, consider removing invoice first'
+    }]), stock_auth_server_1.removeManyUsers, async (req, res) => {
+    const { _ids } = req.body;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     /* const deleted = await customerMain
-      .deleteMany({ ...filter, _id: { $in: ids } })
-      .catch(err => {
-        customerRoutesLogger.error('deletemany - err: ', err);
-  
-        return null;
-      }); */
+    .deleteMany({ ...filter, _id: { $in: _ids } })
+    .catch(err => {
+      customerRoutesLogger.error('deletemany - err: ', err);
+
+      return null;
+    }); */
     const deleted = await customer_model_1.customerMain
-        .updateMany({ ...filter, _id: { $in: ids } }, {
+        .updateMany({ ...filter, _id: { $in: _ids } }, {
         $set: { isDeleted: true }
     })
         .catch(err => {
@@ -312,13 +264,15 @@ exports.customerRoutes.put('/deletemany/:companyIdParam', stock_universal_server
         return null;
     });
     if (Boolean(deleted)) {
-        for (const val of ids) {
+        for (const val of _ids) {
             (0, stock_universal_server_1.addParentToLocals)(res, val, customer_model_1.customerMain.collection.collectionName, 'trackDataDelete');
         }
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
-        return res.status(404).send({ success: Boolean(deleted), err: 'could not delete selected items, try again in a while' });
+        return res.status(404).send({
+            success: Boolean(deleted), err: 'could not delete selected items, try again in a while'
+        });
     }
 });
 //# sourceMappingURL=customer.routes.js.map

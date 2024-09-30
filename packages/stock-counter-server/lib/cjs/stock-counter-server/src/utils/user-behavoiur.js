@@ -14,7 +14,7 @@ const user_behaviour_model_1 = require("../models/user-related/user-behaviour.mo
    */
 const todaysRecomendation = async (length, userCookieId, userId) => {
     let behaviourFilter;
-    let filter = { ids: [], newOffset: 0, newLimit: 10 };
+    let filter = { _ids: [], newOffset: 0, newLimit: 10 };
     if (userId) {
         behaviourFilter = { user: userId };
     }
@@ -24,18 +24,18 @@ const todaysRecomendation = async (length, userCookieId, userId) => {
     const behaviour = await user_behaviour_model_1.userBehaviourLean.findOne(behaviourFilter).lean();
     if (!behaviour) {
         const randomOffset = 0; // Number(makeRandomString(2, 'numbers'));
-        filter = { ids: [], newOffset: randomOffset, newLimit: 10 };
+        filter = { _ids: [], newOffset: randomOffset, newLimit: 10 };
     }
     else {
         const { recents, wishList, cart } = behaviour;
         if (recents && recents.length > 0) {
-            filter.ids = { ...filter.ids, ...recents };
+            filter._ids = { ...filter._ids, ...recents };
         }
         if (wishList && wishList.length > 0) {
-            filter.ids = { ...filter.ids, ...wishList };
+            filter._ids = { ...filter._ids, ...wishList };
         }
         if (cart && cart.length > 0) {
-            filter.ids = { ...filter.ids, ...cart };
+            filter._ids = { ...filter._ids, ...cart };
         }
     }
     return filter;
@@ -52,7 +52,7 @@ exports.todaysRecomendation = todaysRecomendation;
    */
 const onTheFlyRecomendation = async (length, userCookieId, userId) => {
     let behaviourFilter;
-    let filter = { ids: [], newOffset: 0, newLimit: 10 };
+    let filter = { _ids: [], newOffset: 0, newLimit: 10 };
     if (userId) {
         behaviourFilter = { user: userId };
     }
@@ -62,18 +62,18 @@ const onTheFlyRecomendation = async (length, userCookieId, userId) => {
     const behaviour = await user_behaviour_model_1.userBehaviourLean.findOne(behaviourFilter).lean();
     if (!behaviour) {
         const randomOffset = 0; // Number(makeRandomString(2, 'numbers'));
-        filter = { ids: [], newOffset: randomOffset, newLimit: 10 };
+        filter = { _ids: [], newOffset: randomOffset, newLimit: 10 };
     }
     else {
         const { recents, wishList, cart } = behaviour;
         if (recents && recents.length > 0) {
-            filter.ids = { ...filter.ids, ...recents };
+            filter._ids = { ...filter._ids, ...recents };
         }
         if (wishList && wishList.length > 0) {
-            filter.ids = { ...filter.ids, ...wishList };
+            filter._ids = { ...filter._ids, ...wishList };
         }
         if (cart && cart.length > 0) {
-            filter.ids = { ...filter.ids, ...cart };
+            filter._ids = { ...filter._ids, ...cart };
         }
     }
     return filter;
@@ -90,7 +90,7 @@ exports.onTheFlyRecomendation = onTheFlyRecomendation;
    */
 const fromRecentRecoendation = async (length, userCookieId, userId) => {
     let behaviourFilter;
-    let filter = { ids: [], newOffset: 0, newLimit: 10 };
+    let filter = { _ids: [], newOffset: 0, newLimit: 10 };
     if (userId) {
         behaviourFilter = { user: userId };
     }
@@ -100,18 +100,18 @@ const fromRecentRecoendation = async (length, userCookieId, userId) => {
     const behaviour = await user_behaviour_model_1.userBehaviourLean.findOne(behaviourFilter).lean();
     if (!behaviour) {
         const randomOffset = 0; // Number(makeRandomString(2, 'numbers'));
-        filter = { ids: [], newOffset: randomOffset, newLimit: 10 };
+        filter = { _ids: [], newOffset: randomOffset, newLimit: 10 };
     }
     else {
         const { recents, wishList, cart } = behaviour;
         if (recents && recents.length > 0) {
-            filter.ids = { ...filter.ids, ...recents };
+            filter._ids = { ...filter._ids, ...recents };
         }
         if (wishList && wishList.length > 0) {
-            filter.ids = { ...filter.ids, ...wishList };
+            filter._ids = { ...filter._ids, ...wishList };
         }
         if (cart && cart.length > 0) {
-            filter.ids = { ...filter.ids, ...cart };
+            filter._ids = { ...filter._ids, ...cart };
         }
     }
     return filter;
@@ -127,7 +127,7 @@ exports.fromRecentRecoendation = fromRecentRecoendation;
    */
 const getDecoyFromBehaviour = async (userCookieId, userId) => {
     let behaviourFilter;
-    let filter = { ids: [], newOffset: 0, newLimit: 10 };
+    let filter = { _ids: [], newOffset: 0, newLimit: 10 };
     if (userId) {
         behaviourFilter = { user: userId };
     }
@@ -137,18 +137,18 @@ const getDecoyFromBehaviour = async (userCookieId, userId) => {
     const behaviour = await user_behaviour_model_1.userBehaviourLean.findOne(behaviourFilter).lean();
     if (!behaviour) {
         const randomOffset = 0; // Number(makeRandomString(2, 'numbers'));
-        filter = { ids: [], newOffset: randomOffset, newLimit: 10 };
+        filter = { _ids: [], newOffset: randomOffset, newLimit: 10 };
     }
     else {
         const { recents, wishList, cart } = behaviour;
         if (recents && recents.length > 0) {
-            filter.ids = { ...filter.ids, ...recents };
+            filter._ids = { ...filter._ids, ...recents };
         }
         if (wishList && wishList.length > 0) {
-            filter.ids = { ...filter.ids, ...wishList };
+            filter._ids = { ...filter._ids, ...wishList };
         }
         if (cart && cart.length > 0) {
-            filter.ids = { ...filter.ids, ...cart };
+            filter._ids = { ...filter._ids, ...cart };
         }
     }
     return filter;
@@ -165,7 +165,7 @@ exports.getDecoyFromBehaviour = getDecoyFromBehaviour;
    */
 const ignoreUserDoesNotBuy = async (length, userCookieId, userId) => {
     let behaviourFilter;
-    let filter = { ids: [], newOffset: 0, newLimit: 10 };
+    let filter = { _ids: [], newOffset: 0, newLimit: 10 };
     if (userId) {
         behaviourFilter = { user: userId };
     }
@@ -175,18 +175,18 @@ const ignoreUserDoesNotBuy = async (length, userCookieId, userId) => {
     const behaviour = await user_behaviour_model_1.userBehaviourLean.findOne(behaviourFilter).lean();
     if (!behaviour) {
         const randomOffset = 0; // Number(makeRandomString(2, 'numbers'));
-        filter = { ids: [], newOffset: randomOffset, newLimit: 10 };
+        filter = { _ids: [], newOffset: randomOffset, newLimit: 10 };
     }
     else {
         const { recents, wishList, cart } = behaviour;
         if (recents && recents.length > 0) {
-            filter.ids = { ...filter.ids, ...recents };
+            filter._ids = { ...filter._ids, ...recents };
         }
         if (wishList && wishList.length > 0) {
-            filter.ids = { ...filter.ids, ...wishList };
+            filter._ids = { ...filter._ids, ...wishList };
         }
         if (cart && cart.length > 0) {
-            filter.ids = { ...filter.ids, ...cart };
+            filter._ids = { ...filter._ids, ...cart };
         }
     }
     return filter;
@@ -203,7 +203,7 @@ exports.ignoreUserDoesNotBuy = ignoreUserDoesNotBuy;
    */
 const isPoorUser = async (length, userCookieId, userId) => {
     let behaviourFilter;
-    let filter = { ids: [], newOffset: 0, newLimit: 10 };
+    let filter = { _ids: [], newOffset: 0, newLimit: 10 };
     if (userId) {
         behaviourFilter = { user: userId };
     }
@@ -213,18 +213,18 @@ const isPoorUser = async (length, userCookieId, userId) => {
     const behaviour = await user_behaviour_model_1.userBehaviourLean.findOne(behaviourFilter).lean();
     if (!behaviour) {
         const randomOffset = 0; // Number(makeRandomString(2, 'numbers'));
-        filter = { ids: [], newOffset: randomOffset, newLimit: 10 };
+        filter = { _ids: [], newOffset: randomOffset, newLimit: 10 };
     }
     else {
         const { recents, wishList, cart } = behaviour;
         if (recents && recents.length > 0) {
-            filter.ids = { ...filter.ids, ...recents };
+            filter._ids = { ...filter._ids, ...recents };
         }
         if (wishList && wishList.length > 0) {
-            filter.ids = { ...filter.ids, ...wishList };
+            filter._ids = { ...filter._ids, ...wishList };
         }
         if (cart && cart.length > 0) {
-            filter.ids = { ...filter.ids, ...cart };
+            filter._ids = { ...filter._ids, ...cart };
         }
     }
     return filter;
@@ -241,7 +241,7 @@ exports.isPoorUser = isPoorUser;
    */
 const isGoodUser = async (length, userCookieId, userId) => {
     let behaviourFilter;
-    let filter = { ids: [], newOffset: 0, newLimit: 10 };
+    let filter = { _ids: [], newOffset: 0, newLimit: 10 };
     if (userId) {
         behaviourFilter = { user: userId };
     }
@@ -251,18 +251,18 @@ const isGoodUser = async (length, userCookieId, userId) => {
     const behaviour = await user_behaviour_model_1.userBehaviourLean.findOne(behaviourFilter).lean();
     if (!behaviour) {
         const randomOffset = 0; // Number(makeRandomString(2, 'numbers'));
-        filter = { ids: [], newOffset: randomOffset, newLimit: 10 };
+        filter = { _ids: [], newOffset: randomOffset, newLimit: 10 };
     }
     else {
         const { recents, wishList, cart } = behaviour;
         if (recents && recents.length > 0) {
-            filter.ids = { ...filter.ids, ...recents };
+            filter._ids = { ...filter._ids, ...recents };
         }
         if (wishList && wishList.length > 0) {
-            filter.ids = { ...filter.ids, ...wishList };
+            filter._ids = { ...filter._ids, ...wishList };
         }
         if (cart && cart.length > 0) {
-            filter.ids = { ...filter.ids, ...cart };
+            filter._ids = { ...filter._ids, ...cart };
         }
     }
     return filter;
@@ -279,7 +279,7 @@ exports.isGoodUser = isGoodUser;
    */
 const isExcellentUser = async (length, userCookieId, userId) => {
     let behaviourFilter;
-    let filter = { ids: [], newOffset: 0, newLimit: 10 };
+    let filter = { _ids: [], newOffset: 0, newLimit: 10 };
     if (userId) {
         behaviourFilter = { user: userId };
     }
@@ -289,18 +289,18 @@ const isExcellentUser = async (length, userCookieId, userId) => {
     const behaviour = await user_behaviour_model_1.userBehaviourLean.findOne(behaviourFilter).lean();
     if (!behaviour) {
         const randomOffset = 0; // Number(makeRandomString(2, 'numbers'));
-        filter = { ids: [], newOffset: randomOffset, newLimit: 10 };
+        filter = { _ids: [], newOffset: randomOffset, newLimit: 10 };
     }
     else {
         const { recents, wishList, cart } = behaviour;
         if (recents && recents.length > 0) {
-            filter.ids = { ...filter.ids, ...recents };
+            filter._ids = { ...filter._ids, ...recents };
         }
         if (wishList && wishList.length > 0) {
-            filter.ids = { ...filter.ids, ...wishList };
+            filter._ids = { ...filter._ids, ...wishList };
         }
         if (cart && cart.length > 0) {
-            filter.ids = { ...filter.ids, ...cart };
+            filter._ids = { ...filter._ids, ...cart };
         }
     }
     return filter;
@@ -317,7 +317,7 @@ exports.isExcellentUser = isExcellentUser;
    */
 const isUserHasNoOrders = async (length, userCookieId, userId) => {
     let behaviourFilter;
-    let filter = { ids: [], newOffset: 0, newLimit: 10 };
+    let filter = { _ids: [], newOffset: 0, newLimit: 10 };
     if (userId) {
         behaviourFilter = { user: userId };
     }
@@ -327,18 +327,18 @@ const isUserHasNoOrders = async (length, userCookieId, userId) => {
     const behaviour = await user_behaviour_model_1.userBehaviourLean.findOne(behaviourFilter).lean();
     if (!behaviour) {
         const randomOffset = 0; // Number(makeRandomString(2, 'numbers'));
-        filter = { ids: [], newOffset: randomOffset, newLimit: 10 };
+        filter = { _ids: [], newOffset: randomOffset, newLimit: 10 };
     }
     else {
         const { recents, wishList, cart } = behaviour;
         if (recents && recents.length > 0) {
-            filter.ids = { ...filter.ids, ...recents };
+            filter._ids = { ...filter._ids, ...recents };
         }
         if (wishList && wishList.length > 0) {
-            filter.ids = { ...filter.ids, ...wishList };
+            filter._ids = { ...filter._ids, ...wishList };
         }
         if (cart && cart.length > 0) {
-            filter.ids = { ...filter.ids, ...cart };
+            filter._ids = { ...filter._ids, ...cart };
         }
     }
     return filter;
@@ -353,7 +353,7 @@ exports.isUserHasNoOrders = isUserHasNoOrders;
    */
 const remindFromWishList = async (length, userCookieId, userId) => {
     let behaviourFilter;
-    let filter = { ids: [], newOffset: 0, newLimit: 10 };
+    let filter = { _ids: [], newOffset: 0, newLimit: 10 };
     if (userId) {
         behaviourFilter = { user: userId };
     }
@@ -363,25 +363,26 @@ const remindFromWishList = async (length, userCookieId, userId) => {
     const behaviour = await user_behaviour_model_1.userBehaviourLean.findOne(behaviourFilter).lean();
     if (!behaviour) {
         const randomOffset = 0; // Number(makeRandomString(2, 'numbers'));
-        filter = { ids: [], newOffset: randomOffset, newLimit: 10 };
+        filter = { _ids: [], newOffset: randomOffset, newLimit: 10 };
     }
     else {
         const { recents, wishList, cart } = behaviour;
         if (recents && recents.length > 0) {
-            filter.ids = { ...filter.ids, ...recents };
+            filter._ids = { ...filter._ids, ...recents };
         }
         if (wishList && wishList.length > 0) {
-            filter.ids = { ...filter.ids, ...wishList };
+            filter._ids = { ...filter._ids, ...wishList };
         }
         if (cart && cart.length > 0) {
-            filter.ids = { ...filter.ids, ...cart };
+            filter._ids = { ...filter._ids, ...cart };
         }
     }
     return filter;
 };
 exports.remindFromWishList = remindFromWishList;
 /**
-   * Retrieves a filter object based on the user's cart and returns it. If the user has no items in their cart, it will return an empty filter with a random offset.
+   * Retrieves a filter object based on the user's cart and returns it.
+   * If the user has no items in their cart, it will return an empty filter with a random offset.
    * @param {number} length - The number of items to retrieve.
    * @param {string} userCookieId - The user's cookie ID.
    * @param {string} [userId] - The user's ID.
@@ -389,7 +390,7 @@ exports.remindFromWishList = remindFromWishList;
    */
 const remindFromCart = async (length, userCookieId, userId) => {
     let behaviourFilter;
-    let filter = { ids: [], newOffset: 0, newLimit: 10 };
+    let filter = { _ids: [], newOffset: 0, newLimit: 10 };
     if (userId) {
         behaviourFilter = { user: userId };
     }
@@ -399,18 +400,18 @@ const remindFromCart = async (length, userCookieId, userId) => {
     const behaviour = await user_behaviour_model_1.userBehaviourLean.findOne(behaviourFilter).lean();
     if (!behaviour) {
         const randomOffset = 0; // Number(makeRandomString(2, 'numbers'));
-        filter = { ids: [], newOffset: randomOffset, newLimit: 10 };
+        filter = { _ids: [], newOffset: randomOffset, newLimit: 10 };
     }
     else {
         const { recents, wishList, cart } = behaviour;
         if (recents && recents.length > 0) {
-            filter.ids = { ...filter.ids, ...recents };
+            filter._ids = { ...filter._ids, ...recents };
         }
         if (wishList && wishList.length > 0) {
-            filter.ids = { ...filter.ids, ...wishList };
+            filter._ids = { ...filter._ids, ...wishList };
         }
         if (cart && cart.length > 0) {
-            filter.ids = { ...filter.ids, ...cart };
+            filter._ids = { ...filter._ids, ...cart };
         }
     }
     return filter;
@@ -525,7 +526,6 @@ const registerRecents = async (item, userCookieId, userId) => {
     recents.push(item);
     found.recents = recents;
     await found.save();
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     const foundItem = await item_model_1.itemMain.findOne({ _id: item });
     if (foundItem) {
         foundItem.timesViewed += 1;
@@ -543,7 +543,8 @@ exports.registerRecents = registerRecents;
    * @param item The id of the item to add to the wishlist.
    * @param userCookieId The cookie id of the user.
    * @param userId The id of the user.
-   * @returns A promise resolving to an object with a `success` property, which is `true` if the operation was successful.
+   * @returns A promise resolving to an object with a `success`
+   * property, which is `true` if the operation was successful.
    */
 const registerWishList = async (item, userCookieId, userId) => {
     let filter;

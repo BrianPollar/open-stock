@@ -94,10 +94,12 @@ export const createPaymentRelatedModel = async (dbUrl, dbOptions, main = true, l
         await connectStockDatabase(dbUrl, dbOptions);
     }
     if (main) {
-        paymentRelatedMain = mainConnection.model('paymentRelated', paymentRelatedSchema);
+        paymentRelatedMain = mainConnection
+            .model('paymentRelated', paymentRelatedSchema);
     }
     if (lean) {
-        paymentRelatedLean = mainConnectionLean.model('paymentRelated', paymentRelatedSchema);
+        paymentRelatedLean = mainConnectionLean
+            .model('paymentRelated', paymentRelatedSchema);
     }
 };
 //# sourceMappingURL=paymentrelated.model.js.map

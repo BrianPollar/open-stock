@@ -5,10 +5,6 @@ const stock_auth_client_1 = require("@open-stock/stock-auth-client");
 const stock_universal_1 = require("@open-stock/stock-universal");
 const rxjs_1 = require("rxjs");
 const stock_counter_client_1 = require("../stock-counter-client");
-/** The  Faq  class represents a FAQ object. It extends the  DatabaseAuto  class and includes properties such as  urId ,  posterName ,  posterEmail ,  userId ,  qn ,  ans , and  approved . It also includes methods for retrieving FAQs, creating a new FAQ, deleting FAQs, changing the approval status of a FAQ, and deleting a FAQ. */
-/**
- * Represents a frequently asked question (FAQ) in the system.
- */
 class Faq extends stock_universal_1.DatabaseAuto {
     /**
      * Creates a new instance of the Faq class.
@@ -32,15 +28,24 @@ class Faq extends stock_universal_1.DatabaseAuto {
     }
     /**
      * Retrieves all FAQs from the server.
-     * @param companyId - The ID of the company
+  
      * @param url The URL to retrieve the FAQs from.
      * @param offset The offset to start retrieving FAQs from.
      * @param limit The maximum number of FAQs to retrieve.
      * @returns An array of Faq instances.
      */
-    static async getFaqs(companyId, url = 'getall', offset = 0, limit = 20) {
+    static async getAll(offset = 0, limit = 20) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makeGet(`/faq/${url}/${offset}/${limit}/${companyId}`);
+            .makeGet(`/faq/all/${offset}/${limit}`);
+        const faqs = await (0, rxjs_1.lastValueFrom)(observer$);
+        return {
+            count: faqs.count,
+            faqs: faqs.data.map(val => new Faq(val))
+        };
+    }
+    static async filterAll(filter) {
+        const observer$ = stock_counter_client_1.StockCounterClient.ehttp
+            .makePost('/faq/filter', filter);
         const faqs = await (0, rxjs_1.lastValueFrom)(observer$);
         return {
             count: faqs.count,
@@ -49,48 +54,47 @@ class Faq extends stock_universal_1.DatabaseAuto {
     }
     /**
      * Retrieves a single FAQ from the server.
-     * @param companyId - The ID of the company
-     * @param id The unique identifier of the FAQ to retrieve.
+  
+     * @param _id The unique identifier of the FAQ to retrieve.
      * @returns A Faq instance.
      */
-    static async getOnefaq(companyId, id) {
-        const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makeGet(`/faq/getone/${id}`);
+    static async getOne(_id) {
+        const observer$ = stock_counter_client_1.StockCounterClient.ehttp
+            .makeGet(`/faq/one/${_id}`);
         const faq = await (0, rxjs_1.lastValueFrom)(observer$);
         return new Faq(faq);
     }
     /**
      * Creates a new FAQ on the server.
-     * @param companyId - The ID of the company
+  
      * @param faq The FAQ to create.
      * @returns An object indicating whether the operation was successful or not.
      */
-    static async createfaq(companyId, faq) {
+    static add(faq) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makePost(`/faq/create/${companyId}`, {
-            faq
-        });
-        return await (0, rxjs_1.lastValueFrom)(observer$);
+            .makePost('/faq/add', faq);
+        return (0, rxjs_1.lastValueFrom)(observer$);
     }
     /**
      * Deletes multiple FAQs from the server.
-     * @param companyId - The ID of the company
-     * @param ids The unique identifiers of the FAQs to delete.
+  
+     * @param _ids The unique identifiers of the FAQs to delete.
      * @returns An object indicating whether the operation was successful or not.
      */
-    static async deleteFaqs(companyId, ids) {
+    static removeMany(vals) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makePut(`/faq/deletemany/${companyId}`, { ids });
-        return await (0, rxjs_1.lastValueFrom)(observer$);
+            .makePut('/faq/delete/many', vals);
+        return (0, rxjs_1.lastValueFrom)(observer$);
     }
     /**
      * Changes the approval status of the FAQ on the server.
-     * @param companyId - The ID of the company
+  
      * @param approved The new approval status of the FAQ.
      * @returns An object indicating whether the operation was successful or not.
      */
-    async changeApproved(companyId, approved) {
+    async changeApproved(approved) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makePost(`/faq/changeapproved/${this._id}/${companyId}`, {
+            .makePost(`/faq/changeapproved/${this._id}`, {
             approved
         });
         const added = await (0, rxjs_1.lastValueFrom)(observer$);
@@ -101,13 +105,13 @@ class Faq extends stock_universal_1.DatabaseAuto {
     }
     /**
      * Deletes the FAQ from the server.
-     * @param companyId - The ID of the company
+  
      * @returns An object indicating whether the operation was successful or not.
      */
-    async deleteFaq(companyId) {
+    remove() {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makeDelete(`/faq/deleteone/${this._id}/${companyId}`);
-        return await (0, rxjs_1.lastValueFrom)(observer$);
+            .makeDelete(`/faq/delete/one/${this._id}`);
+        return (0, rxjs_1.lastValueFrom)(observer$);
     }
 }
 exports.Faq = Faq;
@@ -135,8 +139,9 @@ class FaqAnswer extends stock_universal_1.DatabaseAuto {
      * @param faq The FAQ identifier.
      * @returns An array of FAQ answers.
      */
-    static async getFaqAns(companyId, faq) {
-        const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makeGet(`/faq/getallans/${faq}/${companyId}`);
+    static async getAll(faq) {
+        const observer$ = stock_counter_client_1.StockCounterClient.ehttp
+            .makeGet(`/faq/getallans/${faq}`);
         const faqans = await (0, rxjs_1.lastValueFrom)(observer$);
         return {
             count: faqans.count,
@@ -145,12 +150,13 @@ class FaqAnswer extends stock_universal_1.DatabaseAuto {
     }
     /**
      * Retrieves a single FAQ answer by its ID.
-     * @param companyId - The ID of the company.
-     * @param id - The ID of the FAQ answer.
+     .
+     * @param _id - The ID of the FAQ answer.
      * @returns A Promise that resolves to a new instance of FaqAnswer.
      */
-    static async getOnefaqAns(companyId, id) {
-        const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makeGet(`/faq/getone/${id}/${companyId}`);
+    static async getOne(_id) {
+        const observer$ = stock_counter_client_1.StockCounterClient.ehttp
+            .makeGet(`/faq/one/${_id}`);
         const faqans = await (0, rxjs_1.lastValueFrom)(observer$);
         return new FaqAnswer(faqans);
     }
@@ -160,9 +166,9 @@ class FaqAnswer extends stock_universal_1.DatabaseAuto {
      * @param faq The FAQ answer to be created.
      * @returns A promise that resolves to the added FAQ answer.
      */
-    static async createfaqAns(companyId, faq) {
+    static async add(faq) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makePost(`/faq/createans/${companyId}`, {
+            .makePost('/faq/createans', {
             faq
         });
         const added = await (0, rxjs_1.lastValueFrom)(observer$);
@@ -170,13 +176,13 @@ class FaqAnswer extends stock_universal_1.DatabaseAuto {
     }
     /**
      * Deletes a FAQ answer for a specific company.
-     * @param companyId - The ID of the company.
+     .
      * @returns A promise that resolves to an Isuccess object.
      */
-    async deleteFaqAns(companyId) {
+    remove() {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makeDelete(`/faq/deleteoneans/${this._id}/${companyId}`);
-        return await (0, rxjs_1.lastValueFrom)(observer$);
+            .makeDelete(`/faq/deleteoneans/${this._id}`);
+        return (0, rxjs_1.lastValueFrom)(observer$);
     }
 }
 exports.FaqAnswer = FaqAnswer;

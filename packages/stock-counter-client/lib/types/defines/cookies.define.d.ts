@@ -1,14 +1,13 @@
 import { IcartInterface, Isuccess } from '@open-stock/stock-universal';
 import { Item } from './item.define';
-/**
- * This is a class called "Cookies" that handles the management of cookies for a website.
- * It has properties for "cartEnabled" and "recentEnabled" which determine whether the cart and recent items functionalities are enabled or not.
- * The class has a constructor that initializes these properties.
- */
-export declare class Cookies {
-    /** Determines whether the cart functionality is enabled or not. */
+interface Icookie {
     cartEnabled: boolean;
-    /** Determines whether the recent items functionality is enabled or not. */
+    recentEnabled: boolean;
+    wishListEnabled: boolean;
+    compareListEnabled: boolean;
+}
+export declare class Cookies {
+    cartEnabled: boolean;
     recentEnabled: boolean;
     wishListEnabled: boolean;
     compareListEnabled: boolean;
@@ -25,15 +24,11 @@ export declare class Cookies {
      * @param settings - The new settings for the cookies.
      * @returns An object containing a "success" property indicating whether the update was successful or not.
      */
-    updateSettings(settings: {
-        cartEnabled: boolean;
-        recentEnabled: boolean;
-        wishListEnabled: boolean;
-        compareListEnabled: boolean;
-    }, userId?: string): Promise<Isuccess>;
+    updateSettings(settings: Icookie, userId?: string): Promise<Icookie>;
     /**
      * Adds a cart item to the cookies.
-     * It takes the "cartItemId" and "totalCostwithNoShipping" as parameters and makes a PUT request to add the item to the cart.
+     * It takes the "cartItemId" and "totalCostwithNoShipping"
+     *  as parameters and makes a PUT request to add the item to the cart.
      * If the "cartEnabled" property is false, it returns a success response.
      * @param cartItemId - The ID of the cart item to add.
      * @param totalCostwithNoShipping - The total cost of the cart item without shipping.
@@ -119,3 +114,4 @@ export declare class Cookies {
      */
     appendToCompareList(): Promise<Item[]>;
 }
+export {};

@@ -1,5 +1,5 @@
 import { makeRandomString, subscriptionPackages } from '@open-stock/stock-universal';
-import { addParentToLocals, appendBody, deleteAllFiles, deleteFiles, fileMetaLean, makeCompanyBasedQuery, makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, saveMetaToDb, stringifyMongooseErr, uploadFiles, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { addParentToLocals, appendBody, constructFiltersFromBody, deleteAllFiles, deleteFiles, fileMetaLean, generateUrId, lookupLimit, lookupOffset, lookupSort, lookupTrackEdit, lookupTrackView, makeCompanyBasedQuery, offsetLimitRelegator, requireAuth, roleAuthorisation, saveMetaToDb, stringifyMongooseErr, uploadFiles, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import * as fs from 'fs';
 import path from 'path';
@@ -13,7 +13,6 @@ import { populatePhotos, populateProfileCoverPic, populateProfilePic, populateTr
 import { makeUserReturnObject, sendTokenEmail, sendTokenPhone } from '../utils/universial';
 import { requireActiveCompany } from './company-auth';
 import { getDays } from './subscriptions/company-subscription.routes';
-import { requireSuperAdmin } from './superadmin.routes';
 // import { notifConfig } from '../../config/notif.config';
 // import { createNotifications, NotificationController } from '../controllers/notifications.controller';
 const passport = require('passport');
@@ -47,15 +46,80 @@ const authLogger = tracer.colorConsole({
         });
     }
 });
-/**
- * Handles the login and registration process for superadmin users.
- * @param req - The request object.
- * @param res - The response object.
- * @param next - The next function.
- * @returns A Promise that resolves to void.
- */
-// eslint-disable-next-line max-statements
+export const determineUserToRemove = (
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+model, linkedModels) => {
+    return async (req, res, next) => {
+        const { _id } = req.body;
+        const isValid = verifyObjectId(_id);
+        if (!isValid) {
+            return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+        }
+        const found = await model.findOne({ _id });
+        if (!found || !found.user) {
+            return res.status(404).send({ msg: 'User not found', status: 404 });
+        }
+        const canRemove = await canRemoveOneUser(found.user, linkedModels);
+        if (!canRemove.success) {
+            return res.status(401).send({ ...canRemove, status: 401 });
+        }
+        req.body.userId = found.user;
+        next();
+    };
+};
+export const determineUsersToRemove = (
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+model, linkedModels) => {
+    return async (req, res, next) => {
+        const { _ids } = req.body;
+        const isValid = verifyObjectIds(_ids);
+        if (!isValid) {
+            return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+        }
+        const manay = await model.find({ _id: { $in: _ids } });
+        const promises = manay.map(async (val) => {
+            const canRemove = await canRemoveOneUser(val.user, linkedModels);
+            return Promise.resolve({ ...canRemove, ...val });
+        });
+        const all = await Promise.all(promises);
+        const newIds = all.filter(val => val.success && val.user).map(val => val._id.toString());
+        const newUserIds = all.filter(val => val.success).map(val => val.user);
+        if (newIds.length <= 0) {
+            return res.status(401).send({ success: false, status: 401, err: 'sorry all users selected are linked' });
+        }
+        req.body._ids = newIds;
+        req.body.userIds = newUserIds;
+        next();
+    };
+};
+export const canRemoveOneUser = async (id, modelsCred) => {
+    const promises = modelsCred.map(async (val) => {
+        const found = await val.model.findOne({ [val.field]: id });
+        let toReturnMsg;
+        if (found) {
+            toReturnMsg = val.errMsg;
+        }
+        else {
+            toReturnMsg = null;
+        }
+        return new Promise(resolve => resolve(toReturnMsg));
+    });
+    const all = await Promise.all(promises);
+    for (const val of all) {
+        if (val) {
+            return {
+                success: false,
+                msg: val
+            };
+        }
+    }
+    return {
+        success: true,
+        msg: 'user is not linked to anything'
+    };
+};
 export const signupFactorRelgator = async (req, res, next) => {
+    authLogger.info('signupFactorRelgator');
     const { emailPhone } = req.body;
     const userType = req.body.userType || 'eUser';
     const passwd = req.body.passwd;
@@ -65,7 +129,7 @@ export const signupFactorRelgator = async (req, res, next) => {
     let isPhone;
     authLogger.debug(`signup, 
     emailPhone: ${emailPhone}`);
-    if (isNaN(emailPhone)) {
+    if (isNaN(Number(emailPhone))) {
         query = {
             email: emailPhone
         };
@@ -103,9 +167,7 @@ export const signupFactorRelgator = async (req, res, next) => {
     let company;
     let savedSub;
     if (userType === 'company') {
-        const companyCount = await companyMain
-            .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
-        const companyUrId = makeUrId(Number(companyCount[0]?.urId || '0'));
+        const companyUrId = await generateUrId(companyMain);
         const name = 'company ' + makeRandomString(11, 'letters');
         permissions = {
             companyAdminAccess: true
@@ -159,9 +221,7 @@ export const signupFactorRelgator = async (req, res, next) => {
             companyAdminAccess: false
         };
     }
-    const count = await user
-        .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
-    const urId = makeUrId(Number(count[0]?.urId || '0'));
+    const urId = await generateUrId(user);
     const name = 'user ' + makeRandomString(11, 'letters');
     const newUser = new user({
         companyId: company._id || null,
@@ -214,7 +274,8 @@ export const signupFactorRelgator = async (req, res, next) => {
             return res.status(500).send({ success: false });
         }
     }
-    const type = 'token'; // note now is only token but build a counter later to make sur that the token and link methods are shared
+    // note now is only token but build a counter later to make sure that the token and link methods are shared
+    const type = 'token';
     if (isPhone) {
         response = await sendTokenPhone(saved);
     }
@@ -222,7 +283,6 @@ export const signupFactorRelgator = async (req, res, next) => {
         response = await sendTokenEmail(saved, type, stockAuthConfig.localSettings.appOfficialName);
     }
     if (!response.success) {
-        // eslint-disable-next-line @typescript-eslint/naming-convention, @typescript-eslint/no-explicit-any
         await user.deleteOne({ _id: (saved)._id });
         if (company) {
             await companyMain.deleteOne({ _id: company._id });
@@ -236,7 +296,6 @@ export const signupFactorRelgator = async (req, res, next) => {
         const toReturn = {
             success: true,
             msg: response.msg,
-            // eslint-disable-next-line @typescript-eslint/naming-convention, @typescript-eslint/no-explicit-any
             _id: (saved)._id
         };
         return res.status(200).send(toReturn);
@@ -247,13 +306,8 @@ export const signupFactorRelgator = async (req, res, next) => {
     };
     return res.status(500).send(toSend);
 };
-/**
- * Handles the user login request.
- * @param req - The request object.
- * @param res - The response object.
- * @returns The response with the user information and token.
- */
 export const userLoginRelegator = async (req, res, next) => {
+    authLogger.info('userLoginRelegator');
     const { emailPhone, userType } = req.body;
     const { query } = determineIfIsPhoneAndMakeFilterObj(emailPhone);
     let { foundUser } = req.body;
@@ -267,7 +321,9 @@ export const userLoginRelegator = async (req, res, next) => {
     if (!foundUser) {
         foundUser = await userLean
             .findOne({ ...query, ...filter2 })
-            .populate([populateProfilePic(), populateProfileCoverPic(), populatePhotos(), populateTrackEdit(), populateTrackView()])
+            .populate([
+            populateProfilePic(), populateProfileCoverPic(), populatePhotos(), populateTrackEdit(), populateTrackView()
+        ])
             .lean()
             // .select(userAuthSelect)
             .catch(err => {
@@ -288,40 +344,27 @@ export const userLoginRelegator = async (req, res, next) => {
     };
     return res.status(200).send(nowResponse);
 };
-/**
-   * Remove all the uploaded files from the parsed object.
-   * @param {object} parsed - Object that contains the fields to remove.
-   * @param {boolean} directlyRemove - If true, remove the files directly.
-   * @returns {Promise<boolean>} - True if all the files were removed.
-   */
 const reoveUploadedFiles = async (parsed, directlyRemove) => {
-    let ids = [];
+    authLogger.info('reoveUploadedFiles');
+    let _ids = [];
     if (parsed.profilePic) {
-        ids.push(parsed.profilePic);
+        _ids.push(parsed.profilePic);
     }
     if (parsed.coverPic) {
-        ids.push(parsed.coverPic);
+        _ids.push(parsed.coverPic);
     }
     if (parsed.newPhotos) {
-        ids = [...ids, ...parsed.newPhotos];
+        _ids = [..._ids, ...parsed.newPhotos];
     }
-    if (ids.length === 0) {
+    if (_ids.length === 0) {
         return true;
     }
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    const filesWithDir = await fileMetaLean.find({ _id: { $in: ids } }).lean().select({ _id: 1, url: 1 });
+    const filesWithDir = await fileMetaLean.find({ _id: { $in: _ids } }).lean().select({ _id: 1, url: 1 });
     if (filesWithDir && filesWithDir.length > 0) {
         await deleteAllFiles(filesWithDir, directlyRemove);
     }
     return true;
 };
-/**
-   * Adds a new user with the provided values and optional files.
-   * @param {object} req - Express Request object.
-   * @param {object} res - Express Response object.
-   * @param {function} next - Express NextFunction object.
-   * @returns {Promise<void>}
-   */
 export const addUser = async (req, res, next) => {
     authLogger.info('adding user');
     const userData = req.body.user;
@@ -337,9 +380,7 @@ export const addUser = async (req, res, next) => {
         await reoveUploadedFiles(parsed, true);
         return res.status(401).send({ success: false, err: 'Phone Number already exist found' });
     }
-    if (req.params?.companyIdParam && req.params?.companyIdParam !== 'undefined' && req.params?.companyIdParam !== 'all') {
-        userData.companyId = filter.companyId;
-    }
+    userData.companyId = userData.companyId || filter.companyId;
     if (parsed.profilePic) {
         userData.profilePic = parsed.profilePic || userData.profilePic;
     }
@@ -352,9 +393,7 @@ export const addUser = async (req, res, next) => {
             userData.profilePic = parsed.newPhotos[0];
         }
     }
-    const count = await user
-        .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
-    userData.urId = makeUrId(Number(count[0]?.urId || '0'));
+    userData.urId = await generateUrId(user);
     const newUser = new user(userData);
     let status = 200;
     let response = { success: true };
@@ -380,22 +419,14 @@ export const addUser = async (req, res, next) => {
             success: true,
             _id: savedUser._id
         };
-        req.body.savedUser = savedUser;
+        req.body.user = savedUser;
         return next();
     }
     return res.status(status).send(response);
 };
-/**
-   * Updates the user's profile with the provided values and optional files.
-   * @param companyId - The ID of the company
-   * @param vals The values to update the user's profile with.
-   * @param files Optional files to upload with the user.
-   * @returns A success object indicating whether the user was updated successfully.
-   */
 export const updateUserBulk = async (req, res, next) => {
     const updatedUser = req.body.user;
     const { filter } = makeCompanyBasedQuery(req);
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     const { _id } = updatedUser;
     if (!_id) {
         return res.status(401).send({ success: false, err: 'unauthourised' });
@@ -404,7 +435,6 @@ export const updateUserBulk = async (req, res, next) => {
     if (!isValid) {
         return res.status(401).send({ success: false, err: 'unauthourised' });
     }
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     let filter2 = { _id };
     if (req.body.profileOnly === 'true') {
         const { userId } = req.user;
@@ -420,9 +450,7 @@ export const updateUserBulk = async (req, res, next) => {
         return res.status(404).send({ success: false });
     }
     if (!foundUser.urId) {
-        const count = await user
-            .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
-        foundUser.urId = makeUrId(Number(count[0]?.urId || '0'));
+        foundUser.urId = await generateUrId(user);
     }
     if (parsed) {
         if (parsed.profilePic) {
@@ -442,13 +470,18 @@ export const updateUserBulk = async (req, res, next) => {
         if (filter.companyId === 'superAdmin' && key !== 'companyId' && key !== 'userType' && key !== '_id') {
             foundUser[key] = updatedUser[key] || foundUser[key];
         }
-        else if (foundUser[key] && key !== 'password' && key !== 'email' && key !== 'phone' && key !== 'companyId' && key !== 'userType') {
+        else if (foundUser[key] &&
+            key !== 'password' &&
+            key !== 'email' &&
+            key !== 'phone' &&
+            key !== 'companyId' &&
+            key !== 'userType') {
             foundUser[key] = updatedUser[key] || foundUser[key];
         }
     });
     const status = 200;
     let response = { success: true };
-    await foundUser.save().catch((err) => {
+    const savedUser = await foundUser.save().catch((err) => {
         const errResponse = {
             success: false
         };
@@ -460,13 +493,178 @@ export const updateUserBulk = async (req, res, next) => {
       try again in a while`;
         }
         response = errResponse;
+        return err;
     });
     if (response.success) {
+        req.body.user = savedUser;
         return next();
     }
     return res.status(status).send(response);
 };
-userAuthRoutes.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+export const removeOneUser = async (req, res, next) => {
+    const _id = req.body.userId || req.body._id;
+    const isValid = verifyObjectIds([_id]);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
+    const found = await user.findOne({ _id })
+        .populate([populatePhotos()])
+        .lean();
+    if (found) {
+        if (found.userType === 'eUser') {
+            return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+        }
+        const filesWithDir = found.photos.map(photo => ({
+            _id: photo._id,
+            url: photo.url
+        }));
+        await deleteAllFiles(filesWithDir);
+    }
+    /* const deleted = await user
+      .findOneAndDelete({ _id, }); */
+    const deleted = await user
+        .updateOne({ _id }, { $set: { isDeleted: true } });
+    if (Boolean(deleted)) {
+        addParentToLocals(res, _id, user.collection.collectionName, 'makeTrackEdit');
+        return next();
+    }
+    else {
+        return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
+    }
+};
+export const removeManyUsers = async (req, res, next) => {
+    const ids = req.body?.userIds.length ? req.body.userIds : req.body._ids;
+    const isValid = verifyObjectIds([...ids]);
+    if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
+    let filesWithDir;
+    const alltoDelete = await user.find({ _id: { $in: ids } })
+        .populate([
+        populateProfilePic(true),
+        populateProfileCoverPic(true), populatePhotos(true), populateTrackEdit(), populateTrackView()
+    ])
+        .lean();
+    for (const user of alltoDelete) {
+        if (user.photos?.length > 0) {
+            filesWithDir = [...filesWithDir, ...user.photos];
+        }
+    }
+    await deleteAllFiles(filesWithDir);
+    /* const deleted = await user
+        .deleteMany({  _id: { $in: newUserIds } })
+        .catch(err => {
+          localUserRoutesLogger.error('deletemany - err: ', err);
+  
+          return null;
+        }); */
+    const deleted = await user
+        .updateMany({ _id: { $in: ids } }, {
+        $set: { isDeleted: true }
+    })
+        .catch(err => {
+        authLogger.error('deletemany - err: ', err);
+        return null;
+    });
+    if (!Boolean(deleted)) {
+        return res.status(405).send({
+            success: Boolean(deleted), err: 'could not delete selected items, try again in a while'
+        });
+    }
+    next();
+};
+export const socialLogin = (provider) => {
+    return async (req, res) => {
+        const userProp = req.user;
+        authLogger.debug(`sociallogin, 
+    provider: ${provider}`);
+        const foundUser = await user.findOne({ email: userProp.email });
+        if (!foundUser) {
+            const urId = await generateUrId(user);
+            const newUser = new user({
+                urId,
+                fname: userProp.username || userProp.name,
+                lname: userProp.name || userProp.username,
+                phone: userProp.phone,
+                email: userProp.email,
+                admin: false,
+                expireAt: '',
+                verified: true,
+                socialAuthFrameworks: [{ providerName: provider, id: userProp.id }],
+                profilepic: {
+                    url: userProp.photo
+                },
+                countryCode: +256
+            });
+            let errResponse;
+            const nUser = await newUser.save().catch(err => {
+                errResponse = {
+                    success: false,
+                    status: 403
+                };
+                if (err && err.errors) {
+                    errResponse.err = stringifyMongooseErr(err.errors);
+                }
+                else {
+                    errResponse.err = `we are having problems connecting to our databases, 
+          try again in a while`;
+                }
+                return err;
+            });
+            if (nUser && nUser._id) {
+                addParentToLocals(res, nUser._id, user.collection.collectionName, 'makeTrackEdit');
+            }
+            if (errResponse) {
+                return res.status(403).send(errResponse);
+            }
+            else {
+                return res.status(200).send({
+                    success: true,
+                    user: nUser.toAuthJSON()
+                });
+            }
+        }
+        else {
+            const file = {
+                url: userProp.photo
+            };
+            foundUser.profilePic = file;
+            const socialAuthFrameworks = foundUser.socialAuthFrameworks;
+            const found = socialAuthFrameworks.find(saf => saf.providerName === 'google');
+            if (!found) {
+                socialAuthFrameworks.push({ providerName: 'google', id: userProp.id });
+            }
+            foundUser.socialAuthFrameworks = socialAuthFrameworks;
+            let status = 200;
+            let response = { success: true };
+            await foundUser.save().catch(err => {
+                status = 403;
+                const errResponse = {
+                    success: false
+                };
+                if (err && err.errors) {
+                    errResponse.err = stringifyMongooseErr(err.errors);
+                }
+                else {
+                    errResponse.err = `we are having problems connecting to our databases, 
+          try again in a while`;
+                }
+                response = errResponse;
+                return err;
+            });
+            if (status === 200) {
+                response = {
+                    success: true,
+                    user: foundUser.toAuthJSON()
+                };
+                return res.status(200).send(response);
+            }
+            else {
+                return res.status(403).send(response);
+            }
+        }
+    };
+};
 userAuthRoutes.get('/authexpress2', requireAuth, async (req, res) => {
     const { userId } = req.user;
     const isValid = verifyObjectId(userId);
@@ -475,7 +673,9 @@ userAuthRoutes.get('/authexpress2', requireAuth, async (req, res) => {
     }
     const foundUser = await userLean
         .findById(userId)
-        .populate([populateProfilePic(), populateProfileCoverPic(), populatePhotos(), populateTrackEdit(), populateTrackView()])
+        .populate([
+        populateProfilePic(), populateProfileCoverPic(), populatePhotos(), populateTrackEdit(), populateTrackView()
+    ])
         // .populate({ path: 'companyId', model: companyLean })
         .lean()
         .select(userAuthSelect)
@@ -507,7 +707,7 @@ userAuthRoutes.get('/authexpress2', requireAuth, async (req, res) => {
     return res.status(200).send(nowResponse);
 });
 userAuthRoutes.post('/login', async (req, res, next) => {
-    req.body.from = 'user';
+    // req.body.from = 'user'; // TODO remove this
     const { emailPhone, userType } = req.body;
     let filter2 = {};
     if (userType) {
@@ -520,7 +720,9 @@ userAuthRoutes.post('/login', async (req, res, next) => {
     emailPhone: ${emailPhone}, userType: ${userType}`);
     const { query, isPhone } = determineIfIsPhoneAndMakeFilterObj(emailPhone);
     const foundUser = await user.findOne({ ...query, ...filter2 })
-        .populate([populateProfilePic(), populateProfileCoverPic(), populatePhotos(), populateTrackEdit(), populateTrackView()]);
+        .populate([
+        populateProfilePic(), populateProfileCoverPic(), populatePhotos(), populateTrackEdit(), populateTrackView()
+    ]);
     if (!foundUser) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
@@ -529,12 +731,13 @@ userAuthRoutes.post('/login', async (req, res, next) => {
     return next();
 }, checkIpAndAttempt, userLoginRelegator, recoverAccountFactory);
 userAuthRoutes.get('/authexpress', requireAuth, async (req, res, next) => {
-    req.body.from = 'user';
+    // req.body.from = 'user' // TODO;
     authLogger.debug('authexpress');
     const { userId } = req.user;
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     const foundUser = await user.findOne({ _id: userId, ...{ userType: { $ne: 'customer' }, verified: true } })
-        .populate([populateProfilePic(), populateProfileCoverPic(), populatePhotos(), populateTrackEdit(), populateTrackView()]);
+        .populate([
+        populateProfilePic(), populateProfileCoverPic(), populatePhotos(), populateTrackEdit(), populateTrackView()
+    ]);
     if (!foundUser) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
@@ -546,20 +749,22 @@ userAuthRoutes.post('/signup', (req, res, next) => {
 }, isTooCommonPhrase, isInAdictionaryOnline, signupFactorRelgator, recoverAccountFactory, (req, res) => {
     return res.status(401).send({ success: false, msg: 'unauthourised' });
 });
-userAuthRoutes.post('/recover', async (req, res, next) => {
+userAuthRoutes
+    .post('/recover', async (req, res, next) => {
     const emailPhone = req.body.emailPhone;
     authLogger.debug(`recover, 
     emailphone: ${emailPhone}`);
     const { query } = determineIfIsPhoneAndMakeFilterObj(emailPhone);
     const foundUser = await user.findOne({ ...query, ...{ userType: { $ne: 'customer' } } })
-        .populate([populateProfilePic(), populateProfileCoverPic(), populatePhotos(), populateTrackEdit(), populateTrackView()]);
+        .populate([
+        populateProfilePic(), populateProfileCoverPic(), populatePhotos(), populateTrackEdit(), populateTrackView()
+    ]);
     req.body.foundUser = foundUser;
     return next();
 }, recoverAccountFactory);
 userAuthRoutes.post('/confirm', async (req, res, next) => {
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    const { _id, verifycode, nowHow } = req.body;
-    authLogger.debug(`verify, verifycode: ${verifycode}, how: ${nowHow}`);
+    const { _id, verifycode, useField } = req.body;
+    authLogger.debug(`verify, verifycode: ${verifycode}, useField: ${useField}`);
     const isValid = verifyObjectIds([_id]);
     if (!isValid) {
         return {
@@ -571,12 +776,13 @@ userAuthRoutes.post('/confirm', async (req, res, next) => {
         };
     }
     const foundUser = await user.findById(_id)
-        .populate([populateProfilePic(), populateProfileCoverPic(), populatePhotos(), populateTrackEdit(), populateTrackView()]);
+        .populate([
+        populateProfilePic(), populateProfileCoverPic(), populatePhotos(), populateTrackEdit(), populateTrackView()
+    ]);
     req.body.foundUser = foundUser;
     return next();
 }, confirmAccountFactory);
 userAuthRoutes.put('/resetpaswd', async (req, res, next) => {
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     const { _id, verifycode } = req.body;
     authLogger.debug(`resetpassword, 
     verifycode: ${verifycode}`);
@@ -591,15 +797,16 @@ userAuthRoutes.put('/resetpaswd', async (req, res, next) => {
         };
     }
     const foundUser = await user.findById(_id)
-        .populate([populateProfilePic(), populateProfileCoverPic(), populatePhotos(), populateTrackEdit(), populateTrackView()]);
+        .populate([
+        populateProfilePic(), populateProfileCoverPic(), populatePhotos(), populateTrackEdit(), populateTrackView()
+    ]);
     req.body.foundUser = foundUser;
     return next();
 }, resetAccountFactory);
-userAuthRoutes.post('/manuallyverify/:userId/:companyIdParam', requireAuth, roleAuthorisation('users', 'update'), async (req, res) => {
-    const { userId, companyIdParam } = req.params;
+userAuthRoutes.post('/manuallyverify/:userId', requireAuth, roleAuthorisation('users', 'update'), async (req, res) => {
+    const { userId } = req.params;
     const { companyId } = req.user;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = verifyObjectIds([userId, queryId]);
+    const isValid = verifyObjectIds([userId, companyId]);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
@@ -607,7 +814,7 @@ userAuthRoutes.post('/manuallyverify/:userId/:companyIdParam', requireAuth, role
         return res.status(401).send({ success: false, er: 'unauthourized' });
     }
     const foundUser = await user
-        .findOneAndUpdate({ _id: userId, companyId: queryId });
+        .findOneAndUpdate({ _id: userId });
     if (!foundUser) {
         return res.status(401).send({
             success: false,
@@ -617,288 +824,26 @@ userAuthRoutes.post('/manuallyverify/:userId/:companyIdParam', requireAuth, role
     foundUser.verified = true;
     return res.status(200).send({ success: true });
 });
-userAuthRoutes.post('/sociallogin', async (req, res) => {
-    const credentials = req.body;
-    authLogger.debug(`sociallogin, 
-    socialId: ${credentials.socialId}`);
-    const foundUser = await user.findOne({
-        fromsocial: true,
-        socialframework: credentials.type,
-        socialId: credentials.socialId
-    });
-    if (!foundUser) {
-        const count = await user
-            .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
-        const urId = makeUrId(Number(count[0]?.urId || '0'));
-        const newUser = new user({
-            urId,
-            fname: credentials.fname,
-            lname: credentials.lname,
-            phone: '',
-            email: credentials.email,
-            admin: false,
-            expireAt: '',
-            verified: true,
-            fromsocial: true,
-            socialframework: credentials.type,
-            socialId: credentials.socialId,
-            profilepic: credentials.profilepic,
-            countryCode: +256
-        });
-        let errResponse;
-        const nUser = await newUser.save().catch(err => {
-            errResponse = {
-                success: false,
-                status: 403
-            };
-            if (err && err.errors) {
-                errResponse.err = stringifyMongooseErr(err.errors);
-            }
-            else {
-                errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-            }
-            return err;
-        });
-        if (nUser && nUser._id) {
-            addParentToLocals(res, nUser._id, user.collection.collectionName, 'makeTrackEdit');
-        }
-        if (errResponse) {
-            return res.status(403).send(errResponse);
-        }
-        else {
-            return res.status(200).send({
-                success: true,
-                user: nUser.toAuthJSON()
-            });
-        }
-    }
-    else {
-        foundUser.fname = credentials.name;
-        const file = {
-            url: credentials.profilepic
-        };
-        foundUser.profilePic = file;
-        let status = 200;
-        let response = { success: true };
-        await foundUser.save().catch(err => {
-            status = 403;
-            const errResponse = {
-                success: false
-            };
-            if (err && err.errors) {
-                errResponse.err = stringifyMongooseErr(err.errors);
-            }
-            else {
-                errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-            }
-            response = errResponse;
-            return err;
-        });
-        if (status === 200) {
-            response = {
-                success: true,
-                user: foundUser.toAuthJSON()
-            };
-            return res.status(200).send(response);
-        }
-        else {
-            return res.status(403).send(response);
-        }
-    }
-});
-userAuthRoutes.put('/updateprofile/:formtype/:companyIdParam', requireAuth, async (req, res) => {
-    const { userId } = req.user;
-    const { userdetails } = req.body;
-    const { formtype } = req.params;
-    let users;
-    let success = true;
-    let error;
-    let status = 200;
-    authLogger.debug(`updateprofile, 
-    formtype: ${formtype}`);
-    const isValid = verifyObjectId(userId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
-    const foundUser = await user
-        .findById(userId);
-    if (!foundUser) {
-        return res.status(401).send({
-            success: false,
-            err: 'Account does not exist'
-        });
-    }
-    switch (formtype) {
-        case 'name':
-            foundUser.fname = userdetails.fname;
-            foundUser.lname = userdetails.lname;
-            break;
-        case 'gender':
-            foundUser.gender = userdetails.gender;
-            break;
-        case 'age':
-            foundUser.age = userdetails.age;
-            break;
-        case 'phone':
-            // compare password
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            foundUser['comparePassword'](userdetails.passwd, function (err, isMatch) {
-                if (err) {
-                    status = 401;
-                    success = false;
-                    error = 'invalid password';
-                    // throw err;
-                }
-            });
-            /* if (foundUser.password !== userdetails.passwd) {
-              status = 401;
-              success = false;
-              error = 'invalid password';
-            } */
-            users = await user
-                .find({ phone: foundUser.phone });
-            if (users) {
-                status = 401;
-                success = false;
-                error = `phone number is in use
-          by another Account`;
-            }
-            else {
-                foundUser.phone = userdetails.phone;
-            }
-            break;
-        case 'email':
-            // compare password
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            foundUser['comparePassword'](userdetails.passwd, function (err, isMatch) {
-                if (err) {
-                    status = 200;
-                    success = false;
-                    error = 'invalid password';
-                }
-            });
-            /* if (foundUser.password !== userdetails.passwd) {
-              status = 200;
-              success = false;
-              error = 'invalid password';
-            } */
-            users = await user
-                .find({ email: foundUser.email });
-            if (users) {
-                status = 200;
-                success = false;
-                error = `email address is in use by
-          another Account`;
-            }
-            else {
-                foundUser.email = userdetails.email;
-            }
-            break;
-        case 'password':
-            // compare password
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            foundUser['comparePassword'](userdetails.oldPassword, function (err, isMatch) {
-                if (err) {
-                    status = 200;
-                    success = false;
-                    error = 'invalid password';
-                }
-            });
-            /* if (userdetails.oldPassword === foundUser.password) {
-              foundUser.password = userdetails.password;
-            } else {
-              status = 200;
-              success = false;
-              error = 'invalid password';
-            } */
-            break;
-    }
-    let response = { success: true, err: error };
-    if (success === true) {
-        await foundUser.save().catch((err) => {
-            status = 403;
-            const errResponse = {
-                success: false
-            };
-            if (err && err.errors) {
-                errResponse.err = stringifyMongooseErr(err.errors);
-            }
-            else {
-                errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-            }
-            response = errResponse;
-        });
-    }
-    return res.status(status).send(response);
-});
-userAuthRoutes.post('/updateprofileimg/:companyIdParam', requireAuth, uploadFiles, appendBody, saveMetaToDb, async (req, res) => {
-    let userId = req.body.user?._id;
-    if (!userId) {
-        userId = req.user.userId;
-    }
-    const isValid = verifyObjectId(userId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
-    authLogger.debug('updateprofileimg');
-    const foundUser = await user
-        .findById(userId);
-    if (!foundUser) {
-        return res.status(401).send({
-            success: false,
-            err: 'Account does not exist'
-        });
-    }
-    const parsed = req.body.parsed;
-    if (parsed) {
-        if (parsed.profilePic) {
-            foundUser.profilePic = parsed.profilePic || foundUser.profilePic;
-        }
-        if (parsed.coverPic) {
-            foundUser.profileCoverPic = parsed.coverPic || foundUser.profileCoverPic;
-        }
-        if (parsed.newPhotos) {
-            const oldPhotos = foundUser.photos || [];
-            foundUser.photos = [...oldPhotos, ...parsed.newPhotos];
-        }
-    }
-    let status = 200;
-    let response = { success: true };
-    await foundUser.save().catch((err) => {
-        status = 403;
-        const errResponse = {
-            success: false
-        };
-        if (err && err.errors) {
-            errResponse.err = stringifyMongooseErr(err.errors);
-        }
-        else {
-            errResponse.err = `we are having problems connecting to our databases, 
-      try again in a while`;
-        }
-        response = errResponse;
-    });
-    return res.status(status).send(response);
-});
-userAuthRoutes.put('/updatepermissions/:userId/:companyIdParam', requireAuth, roleAuthorisation('users', 'update'), async (req, res) => {
-    const { userId } = req.params;
-    const isValid = verifyObjectId(userId);
+userAuthRoutes.get('/login/facebook', passport.authenticate('facebook'));
+userAuthRoutes.get('/login/google', passport.authenticate('google'));
+userAuthRoutes.get('/oauth2/redirect/facebook', passport.authenticate('facebook'), socialLogin('facebook'), checkIpAndAttempt, userLoginRelegator);
+userAuthRoutes.get('/oauth2/redirect/google', passport.authenticate('google'), socialLogin('google'), checkIpAndAttempt, userLoginRelegator);
+userAuthRoutes.put('/updatepermissions/:_id', requireAuth, roleAuthorisation('users', 'update'), async (req, res) => {
+    const { _id } = req.params;
+    const isValid = verifyObjectId(_id);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     authLogger.debug('updatepermissions');
     const foundUser = await user
-        .findById(userId);
+        .findById(_id);
     if (!foundUser) {
         return res.status(401).send({
             success: false,
             err: 'Account does not exist'
         });
     }
-    foundUser.permissions = req.body.permissions || foundUser.permissions;
+    foundUser.permissions = req.body || foundUser.permissions;
     let status = 200;
     let response = { success: true };
     await foundUser.save().catch(err => {
@@ -917,202 +862,62 @@ userAuthRoutes.put('/updatepermissions/:userId/:companyIdParam', requireAuth, ro
     });
     return res.status(status).send(response);
 });
-userAuthRoutes.put('/blockunblock/:userId', requireAuth, requireSuperAdmin, async (req, res) => {
-    const { userId } = req.paras;
-    authLogger.debug('blockunblock');
-    const isValid = verifyObjectId(userId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
-    const foundUser = await user
-        .findById(userId);
-    if (!foundUser) {
-        return res.status(401).send({
-            success: false,
-            err: 'Account does not exist'
-        });
-    }
-    foundUser.blocked = req.body.blocked;
-    let status = 200;
-    let response = { success: true };
-    await foundUser.save().catch(err => {
-        status = 403;
-        const errResponse = {
-            success: false
-        };
-        if (err && err.errors) {
-            errResponse.err = stringifyMongooseErr(err.errors);
-        }
-        else {
-            errResponse.err = `we are having problems connecting to our databases, 
-      try again in a while`;
-        }
-        response = errResponse;
-    });
-    return res.status(status).send(response);
-});
-userAuthRoutes.put('/addupdateaddr/:userId/:companyIdParam', requireAuth, async (req, res) => {
-    const { userId } = req.params;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    authLogger.debug('updatepermissions');
-    const isValid = verifyObjectIds([userId, queryId]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
-    const foundUser = await user
-        .findOneAndUpdate({ _id: userId, companyId: queryId });
-    if (!foundUser) {
-        return res.status(401).send({
-            success: false,
-            err: 'Account does not exist'
-        });
-    }
-    const { address, how, type } = req.body;
-    if (how === 'create') {
-        if (type === 'billing') {
-            foundUser.billing.push(address);
-        }
-        else {
-            foundUser.address.push(address);
-        }
-    }
-    else if (how === 'update') {
-        let found;
-        if (type === 'billing') {
-            found = foundUser.billing.find(val => val.id === address.id);
-        }
-        else {
-            found = foundUser.address.find(val => val.id === address.id);
-        }
-        if (found) {
-            found = address;
-        }
-    }
-    else if (type === 'billing') {
-        foundUser.billing = foundUser.billing.filter(val => val.id !== address.id);
-    }
-    else {
-        foundUser.address = foundUser.address.filter(val => val.id !== address.id);
-    }
-    let status = 200;
-    let response = { success: true };
-    await foundUser.save().catch(err => {
-        status = 403;
-        const errResponse = {
-            success: false
-        };
-        if (err && err.errors) {
-            errResponse.err = stringifyMongooseErr(err.errors);
-        }
-        else {
-            errResponse.err = `we are having problems connecting to our databases, 
-      try again in a while`;
-        }
-        response = errResponse;
-    });
-    return res.status(status).send(response);
-});
-userAuthRoutes.get('/getoneuser/:urId/:companyIdParam', requireAuth, roleAuthorisation('users', 'read'), async (req, res) => {
+userAuthRoutes.get('/one/:urId', requireAuth, roleAuthorisation('users', 'read'), async (req, res) => {
     const { urId } = req.params;
     const { filter } = makeCompanyBasedQuery(req);
-    // let queryId: string;
+    // let companyId: string;
     /* if (companyId === 'superAdmin' && companyIdParam !== 'undefined') {
-      queryId = companyIdParam;
-    } else {
-      queryId = companyId;
-    } */
-    /* if (queryId || companyId !== 'superAdmin') {
-      const isValid = verifyObjectId(queryId);
-  
-      if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-      }
-    } */
+    companyId = companyIdParam;
+  } else {
+    companyId = companyId;
+  } */
+    /* if (companyId || companyId !== 'superAdmin') {
+    const isValid = verifyObjectId(companyId);
+
+    if (!isValid) {
+      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
+  } */
     const oneUser = await userLean
         .findOne({ urId, ...filter })
-        .populate([populateProfilePic(), populateProfileCoverPic(), populatePhotos(), populateTrackEdit(), populateTrackView()])
+        .populate([
+        populateProfilePic(), populateProfileCoverPic(), populatePhotos(), populateTrackEdit(), populateTrackView()
+    ])
         .populate({ path: 'companyId', model: companyLean })
         .lean();
-    if (oneUser && oneUser.blocked) {
-        return res.status(200).send({});
+    if (!oneUser || (oneUser && oneUser.blocked)) {
+        return res.status(404).send({ success: false, err: 'not found' });
     }
     if (filter.companyId &&
         filter.companyId !== 'all' &&
         filter.companyId !== 'undefined' &&
         oneUser.companyId &&
         oneUser.companyId.blocked) {
-        return res.status(200).send({});
+        return res.status(404).send({ success: false, err: 'not found' });
     }
     addParentToLocals(res, oneUser._id, user.collection.collectionName, 'trackDataView');
     return res.status(200).send(oneUser);
 });
-userAuthRoutes.get('/getusers/:where/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('users', 'read'), async (req, res) => {
+userAuthRoutes.get('/all/:offset/:limit', requireAuth, requireActiveCompany, roleAuthorisation('users', 'read'), async (req, res) => {
     const { filter } = makeCompanyBasedQuery(req);
-    /* let queryId: string;
-  
-    if (companyId === 'superAdmin' && companyIdParam !== 'undefined') {
-      queryId = companyIdParam;
-    } else {
-      queryId = companyId;
-    }
-    if (queryId || companyId !== 'superAdmin') {
-      const isValid = verifyObjectId(queryId);
-  
-      if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-      }
-    } */
-    const { where } = req.params;
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     const currOffset = offset === 0 ? 0 : offset;
     const currLimit = limit === 0 ? 1000 : limit;
-    let filter2;
-    authLogger.info('where is ', where);
-    switch (where) {
-        /* case 'manual':
-          filter = {
-            manuallyAdded: true,
-            companyId: queryId
-          };
-          break;
-        case 'auto':
-          filter = {
-            manuallyAdded: false,
-            companyId: queryId
-          };
-          break; */
-        case 'customer':
-            filter2 = {
-                userType: 'customer'
-            };
-            break;
-        case 'staff':
-            filter2 = {
-                userType: 'staff'
-            };
-            break;
-        case 'registered':
-            filter2 = { userType: { $ne: 'company' }, verified: true };
-            break;
-        default:
-            filter2 = { userType: { $ne: 'company' } };
-            break;
-    }
     authLogger.info('filter is ', filter);
     const all = await Promise.all([
         userLean
-            .find({ ...filter2, ...filter })
+            .find({ verified: true, userType: { $ne: 'company' }, ...filter })
             .sort({ fname: 1 })
             .limit(Number(currLimit))
             .skip(Number(currOffset))
-            .populate([populateProfilePic(), populateProfileCoverPic(), populatePhotos(), populateTrackEdit(), populateTrackView()])
+            .populate([
+            populateProfilePic(), populateProfileCoverPic(), populatePhotos(), populateTrackEdit(), populateTrackView()
+        ])
             .populate({ path: 'companyId', model: companyLean, select: { name: 1, blocked: 1 } })
             .lean(),
-        userLean.countDocuments({ ...filter2, ...filter })
+        userLean.countDocuments({ verified: true, userType: { $ne: 'company' }, ...filter })
     ]);
-    const filteredFaqs = all[0].filter(data => {
+    const filteredUsers = all[0].filter(data => {
         if (filter.companyId && filter.companyId !== 'all' && filter.companyId !== 'undefined') {
             return !data.companyId.blocked;
         }
@@ -1120,125 +925,88 @@ userAuthRoutes.get('/getusers/:where/:offset/:limit/:companyIdParam', requireAut
     });
     const response = {
         count: all[1],
-        data: filteredFaqs
+        data: filteredUsers
     };
     for (const val of all[0]) {
         addParentToLocals(res, val._id, user.collection.collectionName, 'trackDataView');
     }
     return res.status(200).send(response);
 });
-userAuthRoutes.post('/adduser/:companyIdParam', requireAuth, roleAuthorisation('users', 'create'), addUser, (req, res) => {
-    return res.status(200).send({ success: true });
-});
-userAuthRoutes.post('/adduserimg/:companyIdParam', requireAuth, roleAuthorisation('users', 'create'), uploadFiles, appendBody, saveMetaToDb, addUser, (req, res) => {
-    return res.status(200).send({ success: true });
-});
-userAuthRoutes.put('/updateuserbulk/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('users', 'update'), updateUserBulk, (req, res) => {
-    return res.status(200).send({ success: true });
-});
-userAuthRoutes.post('/updateuserbulkimg/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('users', 'update'), uploadFiles, appendBody, saveMetaToDb, updateUserBulk, (req, res) => {
-    return res.status(200).send({ success: true });
-});
-userAuthRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('users', 'delete'), async (req, res) => {
-    const { ids } = req.body;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = verifyObjectIds([...ids, ...[queryId]]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
-    let filesWithDir;
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    const alltoDelete = await user.find({ _id: { $in: ids }, companyId: queryId })
-        .populate([populateProfilePic(), populateProfileCoverPic(), populatePhotos()])
-        .lean();
-    let toDelIds = [];
-    for (const user of alltoDelete) {
-        if (user.userType === 'eUser') {
-            toDelIds = [...toDelIds, user._id];
-            if (user.photos?.length > 0) {
-                filesWithDir = [...filesWithDir, ...user.photos];
+userAuthRoutes.post('/filter', requireAuth, requireActiveCompany, roleAuthorisation('users', 'read'), async (req, res) => {
+    const { propSort } = req.body;
+    const { offset, limit } = offsetLimitRelegator(req.body.offset, req.body.limit);
+    const filter = constructFiltersFromBody(req);
+    const aggCursor = userLean.aggregate([
+        {
+            $match: {
+                $and: [
+                    // { status: 'pending' },
+                    ...filter
+                ]
+            }
+        },
+        ...lookupTrackEdit(),
+        ...lookupTrackView(),
+        {
+            $facet: {
+                data: [...lookupSort(propSort), ...lookupOffset(offset), ...lookupLimit(limit)],
+                total: [{ $count: 'count' }]
+            }
+        },
+        {
+            $unwind: {
+                path: '$total',
+                preserveNullAndEmptyArrays: true
             }
         }
+    ]);
+    const dataArr = [];
+    for await (const data of aggCursor) {
+        dataArr.push(data);
     }
-    await deleteAllFiles(filesWithDir);
-    /* const deleted = await user
-      .deleteMany({ _id: { $in: toDelIds }, companyId: queryId }).catch(err => {
-        authLogger.error('deletemany users failed with error: ' + err.message);
-  
-        return null;
-      }); */
-    const deleted = await user
-        .updateMany({ _id: { $in: toDelIds }, companyId: queryId }, {
-        $set: { isDeleted: true }
-    }).catch(err => {
-        authLogger.error('deletemany users failed with error: ' + err.message);
-        return null;
-    });
-    if (Boolean(deleted)) {
-        for (const val of toDelIds) {
-            addParentToLocals(res, val, user.collection.collectionName, 'trackDataDelete');
-        }
-        return res.status(200).send({ success: Boolean(deleted) });
+    const all = dataArr[0]?.data || [];
+    const count = dataArr[0]?.total?.count || 0;
+    const response = {
+        count,
+        data: all
+    };
+    for (const val of all) {
+        addParentToLocals(res, val._id, user.collection.collectionName, 'trackDataView');
     }
-    else {
-        return res.status(404).send({ success: Boolean(deleted), err: 'could not delete selected items, try again in a while' });
-    }
+    return res.status(200).send(response);
 });
-userAuthRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('users', 'delete'), async (req, res) => {
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    const { _id } = req.body;
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = verifyObjectIds([_id, queryId]);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    const found = await user.findOne({ _id, companyId: queryId })
-        .populate([populatePhotos()])
-        .lean();
-    if (found) {
-        if (found.userType === 'eUser') {
-            return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-        }
-        const filesWithDir = found.photos.map(photo => ({
-            _id: photo._id,
-            url: photo.url
-        }));
-        await deleteAllFiles(filesWithDir);
-    }
-    /* const deleted = await user
-      .findOneAndDelete({ _id, companyId: queryId }); */
-    const deleted = await user
-        .updateOne({ _id, companyId: queryId }, { $set: { isDeleted: true } });
-    if (Boolean(deleted)) {
-        addParentToLocals(res, _id, user.collection.collectionName, 'makeTrackEdit');
-        return res.status(200).send({ success: Boolean(deleted) });
-    }
-    else {
-        return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
-    }
+userAuthRoutes.post('/add', requireAuth, roleAuthorisation('users', 'create'), addUser, (req, res) => {
+    return res.status(200).send({ success: true });
 });
-userAuthRoutes.put('/deleteimages/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('users', 'delete'), deleteFiles(true), async (req, res) => {
+userAuthRoutes.post('/add/img', requireAuth, roleAuthorisation('users', 'create'), uploadFiles, appendBody, saveMetaToDb, addUser, (req, res) => {
+    return res.status(200).send({ success: true });
+});
+userAuthRoutes.put('/update', requireAuth, requireActiveCompany, roleAuthorisation('users', 'update'), updateUserBulk, (req, res) => {
+    return res.status(200).send({ success: true });
+});
+userAuthRoutes.post('/update/img', requireAuth, requireActiveCompany, roleAuthorisation('users', 'update'), uploadFiles, appendBody, saveMetaToDb, updateUserBulk, (req, res) => {
+    return res.status(200).send({ success: true });
+});
+userAuthRoutes.put('/delete/many', requireAuth, requireActiveCompany, roleAuthorisation('users', 'delete'), removeManyUsers, (req, res) => {
+    return res.status(200).send({ success: true });
+});
+userAuthRoutes.put('/delete/one', requireAuth, requireActiveCompany, roleAuthorisation('users', 'delete'), removeOneUser, (req, res) => {
+    return res.status(200).send({ success: true });
+});
+userAuthRoutes.put('/delete/images', requireAuth, requireActiveCompany, roleAuthorisation('users', 'delete'), deleteFiles(true), async (req, res) => {
     const filesWithDir = req.body.filesWithDir;
     const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
     if (filesWithDir && !filesWithDir.length) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const updatedUser = req.body.user;
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     const { _id } = updatedUser;
-    const isValid = verifyObjectIds([_id, queryId]);
+    const isValid = verifyObjectIds([_id, companyId]);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const foundUser = await user
-        .findOneAndUpdate({ _id, companyId: queryId });
+        .findOneAndUpdate({ _id });
     if (!foundUser) {
         return res.status(404).send({ success: false, err: 'item not found' });
     }

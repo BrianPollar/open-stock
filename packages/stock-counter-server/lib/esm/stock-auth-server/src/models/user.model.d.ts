@@ -65,9 +65,7 @@ export declare const userAuthSelect: {
     verified: number;
     authyId: number;
     password: number;
-    fromsocial: number;
-    socialframework: number;
-    socialId: number;
+    socialAuthFrameworks: number;
     countryCode: number;
     amountDue: number;
     manuallyAdded: number;
@@ -97,9 +95,7 @@ export declare const userAboutSelect: {
     profilepic: number;
     profilecoverpic: number;
     description: number;
-    fromsocial: number;
-    socialframework: number;
-    socialId: number;
+    socialAuthFrameworks: number;
     updatedAt: number;
     createdAt: number;
     userType: number;

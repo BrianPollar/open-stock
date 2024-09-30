@@ -9,9 +9,9 @@ describe('status integration tests', () => {
     baseURL: 'https://yourapi.com',
     timeout: 1000,
     headers: {
-      // eslint-disable-next-line @typescript-eslint/naming-convention
+
       'X-Custom-Header': 'foobar',
-      // eslint-disable-next-line @typescript-eslint/naming-convention
+
       Authorization: 'auth-token'
     }
   });

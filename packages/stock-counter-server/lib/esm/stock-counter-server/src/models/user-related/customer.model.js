@@ -1,11 +1,11 @@
 import { createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
-import mongoose, { Schema } from 'mongoose';
+import { Schema, Types } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 /** Defines the schema for the customer model. */
 const customerSchema = new Schema({
     ...withUrIdAndCompanySchemaObj,
-    user: { type: mongoose.Types.ObjectId, unique: true, required: [true, 'cannot be empty.'], index: true },
+    user: { type: Types.ObjectId, unique: true, required: [true, 'cannot be empty.'], index: true },
     startDate: { type: Date },
     endDate: { type: Date },
     occupation: { type: String },
@@ -53,10 +53,12 @@ export const createCustomerModel = async (dbUrl, dbOptions, main = true, lean = 
         await connectStockDatabase(dbUrl, dbOptions);
     }
     if (main) {
-        customerMain = mainConnection.model('Customer', customerSchema);
+        customerMain = mainConnection
+            .model('Customer', customerSchema);
     }
     if (lean) {
-        customerLean = mainConnectionLean.model('Customer', customerSchema);
+        customerLean = mainConnectionLean
+            .model('Customer', customerSchema);
     }
 };
 //# sourceMappingURL=customer.model.js.map

@@ -80,7 +80,7 @@ describe('appendBody', () => {
   });
 
   it('should append files to the request body', () => {
-    appendBody(req, res, next);
+    appendBody(req: IcustomRequest<never, unknown>, res, next);
 
     expect(req.body.parsed).toBeDefined();
     expect(req.body.parsed.profilePic).toEqual({
@@ -152,7 +152,7 @@ describe('appendBody', () => {
 
   it('should return 404 if no files are present', () => {
     req.files = null;
-    appendBody(req, res, next);
+    appendBody(req: IcustomRequest<never, unknown>, res, next);
     expect(res.status).toHaveBeenCalledWith(404);
     expect(res.send).toHaveBeenCalledWith({ success: false });
     expect(next).not.toHaveBeenCalled();

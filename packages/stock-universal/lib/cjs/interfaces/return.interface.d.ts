@@ -70,9 +70,9 @@ export interface Iauthresponse {
     /** */
     navRoute?: string;
 }
-export interface IdataArrayResponse {
+export interface IdataArrayResponse<T> {
     count: number;
-    data: unknown[];
+    data: T[];
 }
 export interface IsubscriptionFeatureState extends Isuccess {
     features?: IsubscriptionFeature[];

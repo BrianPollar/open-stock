@@ -82,7 +82,10 @@ export const populateEstimates = () => {
  * @returns A mongoose populate object.
  */
 export const populateSignature = () => {
-    return { path: 'generalSettings.defaultDigitalSignature', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) };
+    return {
+        path: 'generalSettings.defaultDigitalSignature',
+        model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+    };
 };
 /**
  * Populates the default digital stamp on a given document with the associated
@@ -91,7 +94,10 @@ export const populateSignature = () => {
  * @returns A mongoose populate object.
  */
 export const populateStamp = () => {
-    return { path: 'generalSettings.defaultDigitalStamp', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) };
+    return {
+        path: 'generalSettings.defaultDigitalStamp',
+        model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+    };
 };
 /**
    * Populates the user field on a given document with the associated user, including

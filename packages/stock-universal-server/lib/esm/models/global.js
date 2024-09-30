@@ -9,15 +9,19 @@ export const globalSchemaObj = {
 };
 export const withCompanySchemaObj = {
     ...globalSchemaObj,
-    companyId: { type: String, index: true }
+    companyId: { type: Schema.ObjectId, index: true }
 };
 export const withUrIdAndCompanySchemaObj = {
     ...withCompanySchemaObj,
-    urId: { type: String, required: [true, 'cannot be empty.'], index: true }
+    urId: {
+        type: String, required: [true, 'cannot be empty.'], index: true
+    }
 };
 export const withUrIdSchemaObj = {
     ...globalSchemaObj,
-    urId: { type: String, required: [true, 'cannot be empty.'], index: true }
+    urId: {
+        type: String, required: [true, 'cannot be empty.'], index: true
+    }
 };
 export const globalSelectObj = {
     trackEdit: 1,

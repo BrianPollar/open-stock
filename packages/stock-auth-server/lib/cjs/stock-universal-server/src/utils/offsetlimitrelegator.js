@@ -13,18 +13,22 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.offsetLimitRelegator = void 0;
 /**
  * Creates an offset-limit object with default values.
- * If the offset is 0, it is set to 10000.
+ * If the offset is 0, it is set to 0.
  * If the limit is 0, it is set to 10000.
  * @param offset - The offset value.
  * @param limit - The limit value.
  * @returns An object with offset and limit properties.
  */
-const offsetLimitRelegator = (offset, limit) => ({
-    // If the offset is 0, then set it to 10000.
-    offset: offset === 0 ? 10000 : offset,
-    // If the limit is 0, then set it to 10000.
-    limit: limit === 0 ? 10000 : limit
-});
+const offsetLimitRelegator = (offset, limit) => {
+    const numOffset = Number(offset);
+    const numLimit = Number(limit);
+    return {
+        // If the offset is 0, then set it to 0.
+        offset: (!numOffset || numOffset === 0) ? 0 : numOffset,
+        // If the limit is 0, then set it to 10000.
+        limit: (!numLimit || numLimit === 0) ? 10000 : numLimit
+    };
+};
 exports.offsetLimitRelegator = offsetLimitRelegator;
 // **Comments:**
 //

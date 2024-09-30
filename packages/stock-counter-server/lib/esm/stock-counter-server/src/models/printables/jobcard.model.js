@@ -52,10 +52,12 @@ export const createJobCardModel = async (dbUrl, dbOptions, main = true, lean = t
         await connectStockDatabase(dbUrl, dbOptions);
     }
     if (main) {
-        jobCardMain = mainConnection.model('JobCard', jobCardSchema);
+        jobCardMain = mainConnection
+            .model('JobCard', jobCardSchema);
     }
     if (lean) {
-        jobCardLean = mainConnectionLean.model('JobCard', jobCardSchema);
+        jobCardLean = mainConnectionLean
+            .model('JobCard', jobCardSchema);
     }
 };
 //# sourceMappingURL=jobcard.model.js.map

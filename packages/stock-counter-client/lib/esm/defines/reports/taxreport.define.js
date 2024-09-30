@@ -3,9 +3,6 @@ import { lastValueFrom } from 'rxjs';
 import { StockCounterClient } from '../../stock-counter-client';
 import { Estimate } from '../estimate.define';
 import { InvoiceRelatedWithReceipt } from '../invoice.define';
-/**
- * TaxReport class: This class represents a tax report object. It extends the DatabaseAuto class.
- */
 export class TaxReport extends DatabaseAuto {
     /**
      * TaxReport constructor: The constructor accepts an object (data) that implements the ItaxReport interface.
@@ -28,14 +25,24 @@ export class TaxReport extends DatabaseAuto {
     }
     /**
      * Retrieves multiple tax reports from the server.
-     * @param companyId - The ID of the company
+  
      * @param url Optional parameter for the URL of the request.
      * @param offset Optional parameter for the offset of the request.
      * @param limit Optional parameter for the limit of the request.
      * @returns An array of TaxReport instances.
      */
-    static async getTaxReports(companyId, url = 'getall', offset = 0, limit = 20) {
-        const observer$ = StockCounterClient.ehttp.makeGet(`/taxreport/${url}/${offset}/${limit}/${companyId}`);
+    static async getAll(offset = 0, limit = 20) {
+        const observer$ = StockCounterClient.ehttp
+            .makeGet(`/taxreport/all/${offset}/${limit}`);
+        const taxreports = await lastValueFrom(observer$);
+        return {
+            count: taxreports.count,
+            taxreports: taxreports.data.map((val) => new TaxReport(val))
+        };
+    }
+    static async filterAll(filter) {
+        const observer$ = StockCounterClient.ehttp
+            .makePost('/taxreport/filter', filter);
         const taxreports = await lastValueFrom(observer$);
         return {
             count: taxreports.count,
@@ -44,34 +51,42 @@ export class TaxReport extends DatabaseAuto {
     }
     /**
      * Retrieves a single tax report from the server based on the provided unique identifier (urId).
-     * @param companyId - The ID of the company
+  
      * @param urId A string representing the unique identifier of the tax report.
      * @returns A TaxReport instance.
      */
-    static async getOneTaxReport(companyId, urId) {
-        const observer$ = StockCounterClient.ehttp.makeGet(`/taxreport/getone/${urId}/${companyId}`);
+    static async getOne(urId) {
+        const observer$ = StockCounterClient.ehttp
+            .makeGet(`/taxreport/one/${urId}`);
         const taxreport = await lastValueFrom(observer$);
         return new TaxReport(taxreport);
     }
     /**
      * Adds a new tax report to the server.
-     * @param companyId - The ID of the company
+  
      * @param vals An object that implements the ItaxReport interface.
      * @returns A success response.
      */
-    static async addTaxReport(companyId, vals) {
-        const observer$ = StockCounterClient.ehttp.makePost(`/taxreport/create/${companyId}`, vals);
-        return await lastValueFrom(observer$);
+    static add(vals) {
+        const observer$ = StockCounterClient.ehttp
+            .makePost('/taxreport/add', vals);
+        return lastValueFrom(observer$);
     }
     /**
-     * Deletes multiple tax reports from the server based on the provided array of unique identifiers (ids).
-     * @param companyId - The ID of the company
-     * @param ids An array of strings representing the unique identifiers of the tax reports to be deleted.
+     * Deletes multiple tax reports from the server based on the provided array of unique identifiers (_ids).
+  
+     * @param _ids An array of strings representing the unique identifiers of the tax reports to be deleted.
      * @returns A success response.
      */
-    static async deleteTaxReports(companyId, ids) {
-        const observer$ = StockCounterClient.ehttp.makePut(`/taxreport/deletemany/${companyId}`, { ids });
-        return await lastValueFrom(observer$);
+    static removeMany(vals) {
+        const observer$ = StockCounterClient.ehttp
+            .makePut('/taxreport/delete/many', vals);
+        return lastValueFrom(observer$);
+    }
+    remove() {
+        const observer$ = StockCounterClient.ehttp
+            .makeDelete('/taxreport/delete/one');
+        return lastValueFrom(observer$);
     }
 }
 //# sourceMappingURL=taxreport.define.js.map

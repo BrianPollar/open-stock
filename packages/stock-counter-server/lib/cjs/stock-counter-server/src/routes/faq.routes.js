@@ -38,23 +38,9 @@ const faqRoutesLogger = tracer.colorConsole({
  * Router for FAQ routes.
  */
 exports.faqRoutes = express_1.default.Router();
-/**
- * Create a new FAQ
- * @name POST /create
- * @function
- * @memberof module:routes/faqRoutes
- * @inner
- * @param {Object} req - Express request object
- * @param {Object} req.body - Request body
- * @param {Object} req.body.faq - FAQ object to create
- * @param {Object} res - Express response object
- * @returns {Object} Success status and saved FAQ object
- */
-exports.faqRoutes.post('/create/:companyIdParam', async (req, res) => {
-    const faq = req.body.faq;
-    const count = await faq_model_1.faqMain
-        .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
-    faq.urId = (0, stock_universal_server_1.makeUrId)(Number(count[0]?.urId || '0'));
+exports.faqRoutes.post('/add', async (req, res) => {
+    const faq = req.body;
+    faq.urId = await (0, stock_universal_server_1.generateUrId)(faq_model_1.faqMain);
     const newFaq = new faq_model_1.faqMain(faq);
     let errResponse;
     const saved = await newFaq.save()
@@ -81,55 +67,25 @@ exports.faqRoutes.post('/create/:companyIdParam', async (req, res) => {
     }
     return res.status(200).send({ success: Boolean(saved) });
 });
-/**
- * Get a single FAQ by ID
- * @name GET /getone/:id
- * @function
- * @memberof module:routes/faqRoutes
- * @inner
- * @param {Object} req - Express request object
- * @param {string} req.params.id - ID of the FAQ to retrieve
- * @param {Object} res - Express response object
- * @returns {Object} The requested FAQ object
- */
-exports.faqRoutes.get('/getone/:id/:companyIdParam', async (req, res) => {
-    const { id, companyIdParam } = req.params;
-    // const { companyId } = (req as Icustomrequest).user;
-    let ids;
-    let filter;
-    if (companyIdParam !== 'undefined') {
-        ids = [id, companyIdParam];
-        filter = { _id: id, companyId: companyIdParam };
-    }
-    else {
-        ids = [id];
-        filter = { _id: id };
-    }
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)(ids);
+exports.faqRoutes.get('/one/:_id', async (req, res) => {
+    const { _id } = req.params;
+    // const { companyId } = req.user;
+    const _ids = [_id];
+    const filter = { _id };
+    const isValid = (0, stock_universal_server_1.verifyObjectIds)(_ids);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const faq = await faq_model_1.faqLean
         .findOne({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
         .lean();
-    if (faq) {
-        (0, stock_universal_server_1.addParentToLocals)(res, faq._id, faq_model_1.faqMain.collection.collectionName, 'trackDataView');
+    if (!faq) {
+        return res.status(404).send({ success: false, err: 'not found' });
     }
+    (0, stock_universal_server_1.addParentToLocals)(res, faq._id, faq_model_1.faqMain.collection.collectionName, 'trackDataView');
     return res.status(200).send(faq);
 });
-/**
- * Get all FAQs with pagination
- * @name GET /getall/:offset/:limit
- * @function
- * @memberof module:routes/faqRoutes
- * @inner
- * @param {Object} req - Express request object
- * @param {string} req.params.offset - Offset for pagination
- * @param {string} req.params.limit - Limit for pagination
- * @param {Object} res - Express response object
- * @returns {Object[]} Array of FAQ objects
- */
-exports.faqRoutes.get('/getall/:offset/:limit/:companyIdParam', async (req, res) => {
+exports.faqRoutes.get('/all/:offset/:limit', async (req, res) => {
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const all = await Promise.all([
         faq_model_1.faqLean
@@ -148,71 +104,53 @@ exports.faqRoutes.get('/getall/:offset/:limit/:companyIdParam', async (req, res)
     }
     return res.status(200).send(response);
 });
-/**
- * Delete a single FAQ by ID
- * @name DELETE /deleteone/:id
- * @function
- * @memberof module:routes/faqRoutes
- * @inner
- * @param {Object} req - Express request object
- * @param {string} req.params.id - ID of the FAQ to delete
- * @param {Object} res - Express response object
- * @returns {Object} Success status and deleted FAQ object
- */
-exports.faqRoutes.delete('/deleteone/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, async (req, res) => {
-    const { id } = req.params;
+exports.faqRoutes.post('/filter', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('receipts', 'read'), async (req, res) => {
+    const { propSort } = req.body;
+    const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.body.offset, req.body.limit);
+    const aggCursor = faq_model_1.faqLean
+        .aggregate([
+        ...(0, stock_universal_server_1.lookupSubFieldInvoiceRelatedFilter)((0, stock_universal_server_1.constructFiltersFromBody)(req), propSort, offset, limit)
+    ]);
+    const dataArr = [];
+    for await (const data of aggCursor) {
+        dataArr.push(data);
+    }
+    const all = dataArr[0]?.data || [];
+    const count = dataArr[0]?.total?.count || 0;
+    const staffsToReturn = all.filter(val => val.userId);
+    const response = {
+        count,
+        data: staffsToReturn
+    };
+    for (const val of all) {
+        (0, stock_universal_server_1.addParentToLocals)(res, val._id, faq_model_1.faqMain.collection.collectionName, 'trackDataView');
+    }
+    return res.status(200).send(response);
+});
+exports.faqRoutes.delete('/delete/one/:_id', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, async (req, res) => {
+    const { _id } = req.params;
     const { companyId } = req.user;
-    // const { companyId } = (req as Icustomrequest).user;
-    const { companyIdParam } = req.params;
-    let filter;
-    let ids;
-    if (companyIdParam !== 'undefined') {
-        ids = [id, companyIdParam];
-        filter = { _id: id, companyId: companyIdParam };
-    }
-    else {
-        ids = [id];
-        filter = { _id: id, companyId };
-    }
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)(ids);
+    // const { companyId } = req.user;
+    const _ids = [_id];
+    const filter = { _id, companyId };
+    const isValid = (0, stock_universal_server_1.verifyObjectIds)(_ids);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     const deleted = await faq_model_1.faqMain.findOneAndDelete(filter);
     if (Boolean(deleted)) {
-        (0, stock_universal_server_1.addParentToLocals)(res, id, faq_model_1.faqMain.collection.collectionName, 'trackDataDelete');
+        (0, stock_universal_server_1.addParentToLocals)(res, _id, faq_model_1.faqMain.collection.collectionName, 'trackDataDelete');
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
-        return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
+        return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
-/**
- * Create a new FAQ answer
- * @name POST /createans
- * @function
- * @memberof module:routes/faqRoutes
- * @inner
- * @param {Object} req - Express request object
- * @param {Object} req.body - Request body
- * @param {Object} req.body.faq - FAQ answer object to create
- * @param {Object} res - Express response object
- * @returns {Object} Success status and saved FAQ answer object
- */
-exports.faqRoutes.post('/createans/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('faqs', 'create'), async (req, res) => {
+exports.faqRoutes.post('/createans', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('faqs', 'create'), async (req, res) => {
     const faq = req.body.faq;
     const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    if (companyIdParam !== 'undefined') {
-        const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
-        if (!isValid) {
-            return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-        }
-    }
     faq.companyId = companyId;
-    const count = await faqanswer_model_1.faqanswerMain.countDocuments();
-    faq.urId = (0, stock_universal_server_1.makeUrId)(count);
+    faq.urId = await (0, stock_universal_server_1.generateUrId)(faqanswer_model_1.faqanswerMain);
     const newFaqAns = new faqanswer_model_1.faqanswerMain(faq);
     let errResponse;
     const saved = await newFaqAns.save()
@@ -236,43 +174,19 @@ exports.faqRoutes.post('/createans/:companyIdParam', stock_universal_server_1.re
     }
     return res.status(200).send({ success: Boolean(saved) });
 });
-/**
- * Get all FAQ answers for a given FAQ ID
- * @name GET /getallans/:faqId
- * @function
- * @memberof module:routes/faqRoutes
- * @inner
- * @param {Object} req - Express request object
- * @param {string} req.params.faqId - ID of the FAQ to retrieve answers for
- * @param {Object} res - Express response object
- * @returns {Object[]} Array of FAQ answer objects
- */
-exports.faqRoutes.get('/getallans/:faqId/:companyIdParam', async (req, res) => {
+exports.faqRoutes.get('/getallans/:faqId', async (req, res) => {
     const faqsAns = await faqanswer_model_1.faqanswerLean
         .find({ faq: req.params.faqId, ...(0, stock_universal_server_1.makePredomFilter)(req) })
         .lean();
     return res.status(200).send(faqsAns);
 });
-/**
- * Delete a single FAQ answer by ID
- * @name DELETE /deleteoneans/:id
- * @function
- * @memberof module:routes/faqRoutes
- * @inner
- * @param {Object} req - Express request object
- * @param {string} req.params.id - ID of the FAQ answer to delete
- * @param {Object} res - Express response object
- * @returns {Object} Success status and deleted FAQ answer object
- */
-exports.faqRoutes.delete('/deleteoneans/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('faqs', 'delete'), async (req, res) => {
-    const { id } = req.params;
-    const { companyIdParam } = req.params;
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)([id, companyIdParam]);
+exports.faqRoutes.delete('/deleteoneans/:_id', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('faqs', 'delete'), async (req, res) => {
+    const { _id } = req.params;
+    const isValid = (0, stock_universal_server_1.verifyObjectIds)([_id]);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    const deleted = await faqanswer_model_1.faqanswerMain.findOneAndDelete({ _id: id, companyId: companyIdParam })
+    const deleted = await faqanswer_model_1.faqanswerMain.findOneAndDelete({ _id })
         .catch(err => {
         faqRoutesLogger.error('deleteoneans - err: ', err);
         return null;

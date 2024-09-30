@@ -1,4 +1,4 @@
-import { createExpireDocIndex, preUpdateDocExpire, withCompanySchemaObj, withCompanySelectObj } from '@open-stock/stock-universal-server';
+import { createExpireDocIndex, preUpdateDocExpire, withCompanySelectObj, withUrIdAndCompanySchemaObj } from '@open-stock/stock-universal-server';
 import { Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../../utils/database';
 /**
@@ -22,7 +22,7 @@ import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectio
  * @property {Array} payments - The payments made on the invoice.
  */
 const invoiceRelatedSchema = new Schema({
-    ...withCompanySchemaObj,
+    ...withUrIdAndCompanySchemaObj,
     creationType: { type: String },
     estimateId: { type: Number },
     invoiceId: { type: Number },
@@ -102,10 +102,12 @@ export const createInvoiceRelatedModel = async (dbUrl, dbOptions, main = true, l
         await connectStockDatabase(dbUrl, dbOptions);
     }
     if (main) {
-        invoiceRelatedMain = mainConnection.model('invoiceRelated', invoiceRelatedSchema);
+        invoiceRelatedMain = mainConnection
+            .model('invoiceRelated', invoiceRelatedSchema);
     }
     if (lean) {
-        invoiceRelatedLean = mainConnectionLean.model('invoiceRelated', invoiceRelatedSchema);
+        invoiceRelatedLean = mainConnectionLean
+            .model('invoiceRelated', invoiceRelatedSchema);
     }
 };
 //# sourceMappingURL=invoicerelated.model.js.map

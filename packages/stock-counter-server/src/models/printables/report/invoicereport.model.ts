@@ -1,7 +1,11 @@
 import { IinvoicesReport } from '@open-stock/stock-universal';
-import { createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
+import {
+  createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj
+} from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../../utils/database';
+import {
+  connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean
+} from '../../../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 
 /**
@@ -67,11 +71,13 @@ export const createInvoicesReportModel = async(dbUrl: string, dbOptions?: Connec
   }
 
   if (main) {
-    invoicesReportMain = mainConnection.model<TinvoicesReport>('invoicesReport', invoicesReportSchema);
+    invoicesReportMain = mainConnection
+      .model<TinvoicesReport>('invoicesReport', invoicesReportSchema);
   }
 
   if (lean) {
-    invoicesReportLean = mainConnectionLean.model<TinvoicesReport>('invoicesReport', invoicesReportSchema);
+    invoicesReportLean = mainConnectionLean
+      .model<TinvoicesReport>('invoicesReport', invoicesReportSchema);
   }
 };
 

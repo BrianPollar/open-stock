@@ -1,4 +1,4 @@
-import { Icustomrequest } from '@open-stock/stock-universal';
+import { IcustomRequest } from '@open-stock/stock-universal';
 import { verifyObjectId } from '../utils/verify';
 
 /**
@@ -10,10 +10,13 @@ import { verifyObjectId } from '../utils/verify';
    * @returns {object} The filter to use in the query.
    */
 export const makePredomFilter = (req) => {
-  const { superAdimPerms, companyId } = (req as Icustomrequest).user || {};
+  const { superAdimPerms, companyId } = req.user || {};
 
   return {
-    $or: [{ isDeleted: Boolean(superAdimPerms?.modifyDeleted) || companyId === 'superAdmin' }, { isDeleted: false }, { isDeleted: null }]
+    $or: [
+      { isDeleted: Boolean(superAdimPerms?.modifyDeleted) || companyId === 'superAdmin' },
+      { isDeleted: false }, { isDeleted: null }
+    ]
   };
 };
 
@@ -25,18 +28,18 @@ export const makePredomFilter = (req) => {
    * Otherwise, the filter is { isDeleted: false }.
    * If the user is a superadmin and the companyIdParam is 'all' or 'undefined',
    * then the filter is { companyId: 'superAdmin', ...makePredomFilter(req) }.
-   * Otherwise, the filter is { companyId: queryId, ...makePredomFilter(req) }.
+   * Otherwise, the filter is {  ...makePredomFilter(req) }.
    * @param {Icustomrequest} req The request to use.
    * @param {boolean} [usePramaId] (optional) Whether to use the companyIdParam as the queryId.
    * @returns {object} The filter to use in the query and whether the queryId is valid.
    */
-export const makeCompanyBasedQuery = (req, usePramaId = false) => {
-  const { companyIdParam } = req.params || {};
+export const makeCompanyBasedQuery = (req: IcustomRequest<any, unknown>, usePramaId = false) => {
+  const { companyIdParam } = req.body as { companyIdParam?: string } || {};
   let queryId = companyIdParam;
   let filter;
 
   if (!usePramaId) {
-    const { companyId, superAdimPerms } = (req as Icustomrequest).user || {};
+    const { companyId, superAdimPerms } = req.user || {};
 
     queryId = Boolean(superAdimPerms?.byPassActiveCompany) ? companyIdParam : companyId;
 
@@ -51,13 +54,13 @@ export const makeCompanyBasedQuery = (req, usePramaId = false) => {
       };
     } else {
       filter = {
-        companyId: queryId,
+
         ...makePredomFilter(req)
       };
     }
   } else {
     filter = {
-      companyId: queryId,
+
       ...makePredomFilter(req)
     };
   }

@@ -1,5 +1,7 @@
 import { IexpenseReport } from '@open-stock/stock-universal';
-import { createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
+import {
+  createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj
+} from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
@@ -67,10 +69,12 @@ export const createExpenseReportModel = async(dbUrl: string, dbOptions?: Connect
   }
 
   if (main) {
-    expenseReportMain = mainConnection.model<TexpenseReport>('expenseReport', expenseReportSchema);
+    expenseReportMain = mainConnection
+      .model<TexpenseReport>('expenseReport', expenseReportSchema);
   }
 
   if (lean) {
-    expenseReportLean = mainConnectionLean.model<TexpenseReport>('expenseReport', expenseReportSchema);
+    expenseReportLean = mainConnectionLean
+      .model<TexpenseReport>('expenseReport', expenseReportSchema);
   }
 };

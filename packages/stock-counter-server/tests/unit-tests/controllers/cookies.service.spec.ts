@@ -19,7 +19,7 @@ describe('makeRecentCookie', () => {
   });
 
   it('should set the recent cookie with the provided value', () => {
-    makeRecentCookie(req, res);
+    makeRecentCookie(req: IcustomRequest<never, unknown>, res);
 
     expect(res.cookie).toHaveBeenCalledWith('recent', req.body.recentCookie, {
       expires: expect.any(Date),
@@ -31,7 +31,7 @@ describe('makeRecentCookie', () => {
   });
 
   it('should return a success response', () => {
-    makeRecentCookie(req, res);
+    makeRecentCookie(req: IcustomRequest<never, unknown>, res);
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.send).toHaveBeenCalledWith({ success: true });
   });

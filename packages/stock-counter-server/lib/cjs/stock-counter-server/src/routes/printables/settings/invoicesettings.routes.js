@@ -47,7 +47,7 @@ exports.invoiceSettingRoutes = express_1.default.Router();
  * @param {string} path - Express path
  * @param {callback} middleware - Express middleware
  */
-exports.invoiceSettingRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('invoices', 'create'), async (req, res) => {
+exports.invoiceSettingRoutes.post('/add', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('invoices', 'create'), async (req, res) => {
     const invoiceSetting = req.body.invoicesettings;
     // remove signature and stamp if there
     if (invoiceSetting.generalSettings.defaultDigitalSignature) {
@@ -84,16 +84,7 @@ exports.invoiceSettingRoutes.post('/create/:companyIdParam', stock_universal_ser
     }
     return res.status(200).send({ success: true });
 });
-/**
- * Route for creating a new invoice setting with image
- * @name POST /createimg
- * @function
- * @memberof module:routes/invoiceSettingRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- */
-exports.invoiceSettingRoutes.post('/createimg/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('invoices', 'create'), stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.saveMetaToDb, async (req, res) => {
+exports.invoiceSettingRoutes.post('/add/img', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('invoices', 'create'), stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.saveMetaToDb, async (req, res) => {
     const invoiceSetting = req.body.invoicesettings;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     invoiceSetting.companyId = filter.companyId;
@@ -112,7 +103,7 @@ exports.invoiceSettingRoutes.post('/createimg/:companyIdParam', stock_universal_
             invoiceSetting.generalSettings.defaultDigitalStamp = req.body.newPhotos[0];
         }
     }
-    // remove signature and stamp are not valid object ids
+    // remove signature and stamp are not valid object _ids
     if (!(0, stock_universal_server_1.verifyObjectId)(invoiceSetting.generalSettings.defaultDigitalSignature)) {
         delete invoiceSetting.generalSettings.defaultDigitalSignature;
     }
@@ -145,21 +136,11 @@ exports.invoiceSettingRoutes.post('/createimg/:companyIdParam', stock_universal_
     }
     return res.status(200).send({ success: Boolean(saved) });
 });
-/**
- * Route for updating an existing invoice setting
- * @name PUT /update
- * @function
- * @memberof module:routes/invoiceSettingRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- */
-exports.invoiceSettingRoutes.put('/update/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('invoices', 'update'), async (req, res) => {
-    const updatedInvoiceSetting = req.body.invoicesettings;
+exports.invoiceSettingRoutes.put('/update', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('invoices', 'update'), async (req, res) => {
+    const updatedInvoiceSetting = req.body;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     invoiceSettingRoutesLogger.debug('updatedInvoiceSetting ', updatedInvoiceSetting);
     updatedInvoiceSetting.companyId = filter.companyId;
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     const { _id } = updatedInvoiceSetting;
     const invoiceSetting = await invoicesettings_model_1.invoiceSettingMain
         .findOne({ _id, ...filter }).lean();
@@ -183,7 +164,6 @@ exports.invoiceSettingRoutes.put('/update/:companyIdParam', stock_universal_serv
     invoiceSetting.isDeleted = updatedInvoiceSetting.isDeleted || invoiceSetting.isDeleted;
     invoiceSettingRoutesLogger.debug('generalSettings', generalSettings);
     let errResponse;
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     const updated = await invoicesettings_model_1.invoiceSettingMain.updateOne({ _id }, { $set: {
             generalSettings, taxSettings: invoiceSetting.taxSettings,
             bankSettings: invoiceSetting.bankSettings,
@@ -211,27 +191,17 @@ exports.invoiceSettingRoutes.put('/update/:companyIdParam', stock_universal_serv
     (0, stock_universal_server_1.addParentToLocals)(res, invoiceSetting._id, invoicesettings_model_1.invoiceSettingLean.collection.collectionName, 'makeTrackEdit');
     return res.status(200).send({ success: Boolean(updated) });
 });
-/**
- * Route for updating an existing invoice setting with image
- * @name PUT /updateimg
- * @function
- * @memberof module:routes/invoiceSettingRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- */
-exports.invoiceSettingRoutes.post('/updateimg/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.saveMetaToDb, async (req, res) => {
+exports.invoiceSettingRoutes.post('/update/img', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.saveMetaToDb, async (req, res) => {
     const updatedInvoiceSetting = req.body.invoicesettings;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     updatedInvoiceSetting.companyId = filter.companyId;
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     const { _id } = updatedInvoiceSetting;
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     const found = await invoicesettings_model_1.invoiceSettingMain.findOne({ _id, ...filter })
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        //  .populate({ path: 'generalSettings.defaultDigitalSignature', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        //  .populate({ path: 'generalSettings.defaultDigitalStamp', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+        /* .populate({ path: 'generalSettings.defaultDigitalSignature',
+        model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+          .populate({ path: 'generalSettings.defaultDigitalStamp',
+          model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
+        */
         .lean();
     const invoiceSetting = await invoicesettings_model_1.invoiceSettingMain
         .findOne({ _id, ...filter })
@@ -282,11 +252,13 @@ exports.invoiceSettingRoutes.post('/updateimg/:companyIdParam', stock_universal_
     if (updatedInvoiceSetting?.generalSettings?.defaultDueTime) {
         generalSettings.defaultDueTime = updatedInvoiceSetting.generalSettings.defaultDueTime;
     }
-    // add signature and stamp if are valid object ids
+    // add signature and stamp if are valid object _ids
     invoiceSettingRoutesLogger.info('b4 verify updatedInvoiceSetting', updatedInvoiceSetting.generalSettings);
-    invoiceSettingRoutesLogger.info('ALLL IN verify', (0, stock_universal_server_1.verifyObjectId)(updatedInvoiceSetting.generalSettings.defaultDigitalSignature));
+    invoiceSettingRoutesLogger
+        .info('ALLL IN verify', (0, stock_universal_server_1.verifyObjectId)(updatedInvoiceSetting.generalSettings.defaultDigitalSignature));
     if ((0, stock_universal_server_1.verifyObjectId)(updatedInvoiceSetting.generalSettings.defaultDigitalSignature)) {
-        invoiceSettingRoutesLogger.info('passed signature', updatedInvoiceSetting.generalSettings.defaultDigitalSignature);
+        invoiceSettingRoutesLogger
+            .info('passed signature', updatedInvoiceSetting.generalSettings.defaultDigitalSignature);
         generalSettings.defaultDigitalSignature = updatedInvoiceSetting.generalSettings.defaultDigitalSignature;
     }
     if ((0, stock_universal_server_1.verifyObjectId)(updatedInvoiceSetting.generalSettings.defaultDigitalStamp)) {
@@ -300,7 +272,6 @@ exports.invoiceSettingRoutes.post('/updateimg/:companyIdParam', stock_universal_
     invoiceSettingRoutesLogger.debug('generalSettings b4 update', generalSettings);
     invoiceSettingRoutesLogger.info('get the repeat ', invoiceSetting.generalSettings);
     let errResponse;
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     const updated = await invoicesettings_model_1.invoiceSettingMain.updateOne({ _id }, { $set: {
             generalSettings, taxSettings: invoiceSetting.taxSettings,
             bankSettings: invoiceSetting.bankSettings,
@@ -328,19 +299,20 @@ exports.invoiceSettingRoutes.post('/updateimg/:companyIdParam', stock_universal_
     invoiceSettingRoutesLogger.debug('updated', updated);
     return res.status(200).send({ success: Boolean(updated) });
 });
-exports.invoiceSettingRoutes.get('/getone/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('invoices', 'read'), async (req, res) => {
-    const { id } = req.params;
+exports.invoiceSettingRoutes.get('/one/:_id', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('invoices', 'read'), async (req, res) => {
+    const { _id } = req.params;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     const invoiceSetting = await invoicesettings_model_1.invoiceSettingLean
-        .findOne({ _id: id, ...filter })
+        .findOne({ _id, ...filter })
         .populate([(0, query_1.populateSignature)(), (0, query_1.populateStamp)(), (0, stock_auth_server_1.populateTrackEdit)(), (0, stock_auth_server_1.populateTrackView)()])
         .lean();
-    if (invoiceSetting) {
-        (0, stock_universal_server_1.addParentToLocals)(res, invoiceSetting._id, invoicesettings_model_1.invoiceSettingLean.collection.collectionName, 'trackDataView');
+    if (!invoiceSetting) {
+        return res.status(404).send({ success: false, err: 'not found' });
     }
+    (0, stock_universal_server_1.addParentToLocals)(res, invoiceSetting._id, invoicesettings_model_1.invoiceSettingLean.collection.collectionName, 'trackDataView');
     return res.status(200).send(invoiceSetting);
 });
-exports.invoiceSettingRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('invoices', 'read'), async (req, res) => {
+exports.invoiceSettingRoutes.get('/all/:offset/:limit', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('invoices', 'read'), async (req, res) => {
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     const all = await Promise.all([
@@ -361,50 +333,74 @@ exports.invoiceSettingRoutes.get('/getall/:offset/:limit/:companyIdParam', stock
     }
     return res.status(200).send(response);
 });
-exports.invoiceSettingRoutes.delete('/deleteone/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('invoices', 'delete'), async (req, res) => {
-    const { id } = req.params;
+exports.invoiceSettingRoutes.delete('/delete/one/:_id', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('invoices', 'delete'), async (req, res) => {
+    const { _id } = req.params;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    // const deleted = await invoiceSettingMain.findOneAndDelete({ _id: id, ...filter });
-    const deleted = await invoicesettings_model_1.invoiceSettingMain.updateOne({ _id: id, ...filter }, { $set: { isDeleted: true } });
+    // const deleted = await invoiceSettingMain.findOneAndDelete({ _id, ...filter });
+    const deleted = await invoicesettings_model_1.invoiceSettingMain.updateOne({ _id, ...filter }, { $set: { isDeleted: true } });
     if (Boolean(deleted)) {
-        (0, stock_universal_server_1.addParentToLocals)(res, id, invoicesettings_model_1.invoiceSettingLean.collection.collectionName, 'trackDataDelete');
+        (0, stock_universal_server_1.addParentToLocals)(res, _id, invoicesettings_model_1.invoiceSettingLean.collection.collectionName, 'trackDataDelete');
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
-        return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
+        return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
-exports.invoiceSettingRoutes.post('/search/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('invoices', 'read'), async (req, res) => {
-    const { searchterm, searchKey } = req.body;
-    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
-    const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
-    const all = await Promise.all([
-        invoicesettings_model_1.invoiceSettingLean
-            .find({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
-            .skip(offset)
-            .limit(limit)
-            .lean(),
-        invoicesettings_model_1.invoiceSettingLean.countDocuments({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
+exports.invoiceSettingRoutes.post('/filter', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('invoices', 'read'), async (req, res) => {
+    const { propSort } = req.body;
+    const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.body.offset, req.body.limit);
+    const filter = (0, stock_universal_server_1.constructFiltersFromBody)(req);
+    const aggCursor = invoicesettings_model_1.invoiceSettingLean.aggregate([
+        {
+            $match: {
+                $and: [
+                    // { status: 'pending' },
+                    ...filter
+                ]
+            }
+        },
+        ...(0, stock_universal_server_1.lookupTrackEdit)(),
+        ...(0, stock_universal_server_1.lookupTrackView)(),
+        {
+            $facet: {
+                data: [...(0, stock_universal_server_1.lookupSort)(propSort), ...(0, stock_universal_server_1.lookupOffset)(offset), ...(0, stock_universal_server_1.lookupLimit)(limit)],
+                total: [{ $count: 'count' }]
+            }
+        },
+        {
+            $unwind: {
+                path: '$total',
+                preserveNullAndEmptyArrays: true
+            }
+        }
     ]);
+    const dataArr = [];
+    for await (const data of aggCursor) {
+        dataArr.push(data);
+    }
+    const all = dataArr[0]?.data || [];
+    const count = dataArr[0]?.total?.count || 0;
     const response = {
-        count: all[1],
-        data: all[0]
+        count,
+        data: all
     };
+    for (const val of all) {
+        (0, stock_universal_server_1.addParentToLocals)(res, val._id, invoicesettings_model_1.invoiceSettingLean.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
-exports.invoiceSettingRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('invoices', 'delete'), async (req, res) => {
-    const { ids } = req.body;
+exports.invoiceSettingRoutes.put('/delete/many', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('invoices', 'delete'), async (req, res) => {
+    const { _ids } = req.body;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     /* const deleted = await invoiceSettingMain
-      .deleteMany({ ...filter, _id: { $in: ids } })
-      .catch(err => {
-        invoiceSettingRoutesLogger.error('deletemany - err: ', err);
-  
-        return null;
-      }); */
+    .deleteMany({ ...filter, _id: { $in: _ids } })
+    .catch(err => {
+      invoiceSettingRoutesLogger.error('deletemany - err: ', err);
+
+      return null;
+    }); */
     const deleted = await invoicesettings_model_1.invoiceSettingMain
-        .updateMany({ ...filter, _id: { $in: ids } }, {
+        .updateMany({ ...filter, _id: { $in: _ids } }, {
         $set: { isDeleted: true }
     })
         .catch(err => {
@@ -412,23 +408,24 @@ exports.invoiceSettingRoutes.put('/deletemany/:companyIdParam', stock_universal_
         return null;
     });
     if (Boolean(deleted)) {
-        for (const val of ids) {
+        for (const val of _ids) {
             (0, stock_universal_server_1.addParentToLocals)(res, val, invoicesettings_model_1.invoiceSettingLean.collection.collectionName, 'trackDataDelete');
         }
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
-        return res.status(404).send({ success: Boolean(deleted), err: 'could not delete selected items, try again in a while' });
+        return res.status(404).send({
+            success: Boolean(deleted), err: 'could not delete selected items, try again in a while'
+        });
     }
 });
-exports.invoiceSettingRoutes.put('/deleteimages/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('invoices', 'delete'), (0, stock_universal_server_1.deleteFiles)(true), async (req, res) => {
+exports.invoiceSettingRoutes.put('/delete/images', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('invoices', 'delete'), (0, stock_universal_server_1.deleteFiles)(true), async (req, res) => {
     const filesWithDir = req.body.filesWithDir;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     if (filesWithDir && !filesWithDir.length) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const updatedProduct = req.body.item;
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     const { _id } = updatedProduct;
     const invoiceSetting = await invoicesettings_model_1.invoiceSettingMain
         .findOne({ _id, ...filter })

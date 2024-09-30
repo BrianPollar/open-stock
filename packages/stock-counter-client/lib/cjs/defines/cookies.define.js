@@ -3,11 +3,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Cookies = void 0;
 const rxjs_1 = require("rxjs");
 const stock_counter_client_1 = require("../stock-counter-client");
-/**
- * This is a class called "Cookies" that handles the management of cookies for a website.
- * It has properties for "cartEnabled" and "recentEnabled" which determine whether the cart and recent items functionalities are enabled or not.
- * The class has a constructor that initializes these properties.
- */
 class Cookies {
     constructor() { }
     /**
@@ -15,9 +10,9 @@ class Cookies {
      * It updates the "cartEnabled" and "recentEnabled" properties based on the response.
      */
     async getSettings(userId) {
-        const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makeGet('/cookies/getsettings/' + userId);
-        const response = await (0, rxjs_1.lastValueFrom)(observer$);
-        const settings = response;
+        const observer$ = stock_counter_client_1.StockCounterClient.ehttp
+            .makeGet('/cookies/getsettings/' + userId);
+        const settings = await (0, rxjs_1.lastValueFrom)(observer$);
         this.cartEnabled = settings?.cartEnabled;
         this.recentEnabled = settings?.recentEnabled;
         this.wishListEnabled = settings?.wishListEnabled;
@@ -34,18 +29,18 @@ class Cookies {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
             .makePut('/cookies/updatesettings/' + userId, { settings });
         const response = await (0, rxjs_1.lastValueFrom)(observer$);
-        const updated = response;
-        if (updated.success) {
+        if (response.cartEnabled) {
             this.cartEnabled = settings.cartEnabled;
             this.recentEnabled = settings.recentEnabled;
             this.wishListEnabled = settings.wishListEnabled;
             this.compareListEnabled = settings.compareListEnabled;
         }
-        return updated;
+        return response;
     }
     /**
      * Adds a cart item to the cookies.
-     * It takes the "cartItemId" and "totalCostwithNoShipping" as parameters and makes a PUT request to add the item to the cart.
+     * It takes the "cartItemId" and "totalCostwithNoShipping"
+     *  as parameters and makes a PUT request to add the item to the cart.
      * If the "cartEnabled" property is false, it returns a success response.
      * @param cartItemId - The ID of the cart item to add.
      * @param totalCostwithNoShipping - The total cost of the cart item without shipping.
@@ -120,7 +115,8 @@ class Cookies {
         if (!this.wishListEnabled) {
             return { success: true };
         }
-        const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makePut(`/cookies/deletewishlistitem/${wishListItemId}`, {});
+        const observer$ = stock_counter_client_1.StockCounterClient.ehttp
+            .makePut(`/cookies/deletewishlistitem/${wishListItemId}`, {});
         const response = await (0, rxjs_1.lastValueFrom)(observer$);
         return response;
     }
@@ -134,7 +130,8 @@ class Cookies {
         if (!this.compareListEnabled) {
             return { success: true };
         }
-        const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makePut('/cookies/deletecomparelistitem', { compareLisItemId });
+        const observer$ = stock_counter_client_1.StockCounterClient.ehttp
+            .makePut('/cookies/deletecomparelistitem', { compareLisItemId });
         const response = await (0, rxjs_1.lastValueFrom)(observer$);
         return response;
     }
@@ -161,7 +158,8 @@ class Cookies {
         if (!this.wishListEnabled) {
             return { success: true };
         }
-        const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makePut('/cookies/clearwishlist', {});
+        const observer$ = stock_counter_client_1.StockCounterClient.ehttp
+            .makePut('/cookies/clearwishlist', {});
         const response = await (0, rxjs_1.lastValueFrom)(observer$);
         return response;
     }
@@ -174,7 +172,8 @@ class Cookies {
         if (!this.compareListEnabled) {
             return { success: true };
         }
-        const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makePut('/cookies/clearcomparelist', {});
+        const observer$ = stock_counter_client_1.StockCounterClient.ehttp
+            .makePut('/cookies/clearcomparelist', {});
         const response = await (0, rxjs_1.lastValueFrom)(observer$);
         return response;
     }
@@ -218,7 +217,8 @@ class Cookies {
         if (!this.wishListEnabled) {
             return [];
         }
-        const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makeGet('/cookies/appendtowishlist');
+        const observer$ = stock_counter_client_1.StockCounterClient.ehttp
+            .makeGet('/cookies/appendtowishlist');
         const response = await (0, rxjs_1.lastValueFrom)(observer$);
         return response;
     }
@@ -232,7 +232,8 @@ class Cookies {
         if (!this.compareListEnabled) {
             return [];
         }
-        const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makeGet('/cookies/appendtorecent');
+        const observer$ = stock_counter_client_1.StockCounterClient.ehttp
+            .makeGet('/cookies/appendtorecent');
         const response = await (0, rxjs_1.lastValueFrom)(observer$);
         return response;
     }

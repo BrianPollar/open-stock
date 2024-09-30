@@ -8,9 +8,9 @@ const express_1 = tslib_1.__importDefault(require("express"));
 const fs = tslib_1.__importStar(require("fs"));
 const path_1 = tslib_1.__importDefault(require("path"));
 const tracer = tslib_1.__importStar(require("tracer"));
+const invoicerelated_model_1 = require("../../models/printables/related/invoicerelated.model");
 const staff_model_1 = require("../../models/user-related/staff.model");
 const query_1 = require("../../utils/query");
-const locluser_routes_1 = require("./locluser.routes");
 const staffRoutesLogger = tracer.colorConsole({
     format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
     dateformat: 'HH:MM:ss.L',
@@ -43,20 +43,12 @@ const staffRoutesLogger = tracer.colorConsole({
    */
 const addStaff = async (req, res, next) => {
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
-    const staff = req.body.staff;
-    const savedUser = req.body.savedUser;
-    staff.user = savedUser._id;
+    const { staff, user } = req.body;
+    staff.user = user._id;
     staff.companyId = filter.companyId;
-    const count = await staff_model_1.staffMain
-        .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
-    staff.urId = (0, stock_universal_server_1.makeUrId)(Number(count[0]?.urId || '0'));
+    staff.urId = await (0, stock_universal_server_1.generateUrId)(staff_model_1.staffMain);
     const newStaff = new staff_model_1.staffMain(staff);
     let errResponse;
-    /**
-     * Saves a new staff member to the database.
-     * @param {Staff} newStaff - The new staff member to be saved.
-     * @returns {Promise<Staff | ErrorResponse>} - A promise that resolves with the saved staff member or an error response.
-     */
     const saved = await newStaff.save()
         .catch(err => {
         staffRoutesLogger.error('create - err: ', err);
@@ -92,7 +84,6 @@ const updateStaff = async (req, res) => {
     const updatedStaff = req.body.staff;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     updatedStaff.companyId = filter.companyId;
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     let filter2 = { _id: updatedStaff._id };
     if (req.body.profileOnly === 'true') {
         const { userId } = req.user;
@@ -138,22 +129,22 @@ exports.updateStaff = updateStaff;
  * Router for staff related routes.
  */
 exports.staffRoutes = express_1.default.Router();
-exports.staffRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_auth_server_1.requireCanUseFeature)('staff'), (0, stock_universal_server_1.roleAuthorisation)('staffs', 'create'), stock_auth_server_1.addUser, exports.addStaff, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('staff'));
-exports.staffRoutes.post('/createimg/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_auth_server_1.requireCanUseFeature)('staff'), (0, stock_universal_server_1.roleAuthorisation)('staffs', 'create'), stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.saveMetaToDb, stock_auth_server_1.addUser, exports.addStaff, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('staff'));
-exports.staffRoutes.post('/getone/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('staffs', 'read', true), async (req, res) => {
-    const { id, userId } = req.body;
+exports.staffRoutes.post('/add', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_auth_server_1.requireCanUseFeature)('staff'), (0, stock_universal_server_1.roleAuthorisation)('staffs', 'create'), stock_auth_server_1.addUser, exports.addStaff, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('staff'));
+exports.staffRoutes.post('/add/img', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_auth_server_1.requireCanUseFeature)('staff'), (0, stock_universal_server_1.roleAuthorisation)('staffs', 'create'), stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.saveMetaToDb, stock_auth_server_1.addUser, exports.addStaff, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('staff'));
+exports.staffRoutes.post('/one', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('staffs', 'read', true), async (req, res) => {
+    const { _id, userId } = req.body;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     let filter2 = {};
-    if (id) {
-        const isValid = (0, stock_universal_server_1.verifyObjectIds)([id]);
+    if (_id) {
+        const isValid = (0, stock_universal_server_1.verifyObjectIds)([_id]);
         if (!isValid) {
             return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
         }
-        filter2 = { ...filter2, _id: id };
+        filter2 = { ...filter2, _id };
     }
-    /* if (queryId) {
-      filter = { ...filter, ...filter };
-    } */
+    /* if (companyId) {
+    filter = { ...filter, ...filter };
+  } */
     if (userId) {
         const isValid = (0, stock_universal_server_1.verifyObjectIds)([userId]);
         if (!isValid) {
@@ -169,12 +160,13 @@ exports.staffRoutes.post('/getone/:companyIdParam', stock_universal_server_1.req
         .findOne({ ...filter2, ...filter })
         .populate([(0, query_1.populateUser)(), (0, stock_auth_server_1.populateTrackEdit)(), (0, stock_auth_server_1.populateTrackView)()])
         .lean();
-    if (staff) {
-        (0, stock_universal_server_1.addParentToLocals)(res, staff._id, staff_model_1.staffMain.collection.collectionName, 'trackDataView');
+    if (!staff) {
+        return res.status(404).send({ success: false, err: 'not found' });
     }
+    (0, stock_universal_server_1.addParentToLocals)(res, staff._id, staff_model_1.staffMain.collection.collectionName, 'trackDataView');
     return res.status(200).send(staff);
 });
-exports.staffRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('staffs', 'read'), async (req, res) => {
+exports.staffRoutes.get('/all/:offset/:limit', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('staffs', 'read'), async (req, res) => {
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     const all = await Promise.all([
@@ -195,7 +187,7 @@ exports.staffRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universa
     }
     return res.status(200).send(response);
 });
-exports.staffRoutes.get('/getbyrole/:offset/:limit/:role/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('staffs', 'read'), async (req, res) => {
+exports.staffRoutes.get('/getbyrole/:offset/:limit/:role', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('staffs', 'read'), async (req, res) => {
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     const all = await Promise.all([
@@ -217,70 +209,63 @@ exports.staffRoutes.get('/getbyrole/:offset/:limit/:role/:companyIdParam', stock
     }
     return res.status(200).send(response);
 });
-exports.staffRoutes.post('/search/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('staffs', 'read'), async (req, res) => {
-    const { searchterm, searchKey, extraDetails } = req.body;
-    const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
-    const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
-    let filters;
-    switch (searchKey) {
-        case 'startDate':
-        case 'endDate':
-        case 'occupation':
-        case 'employmentType':
-        case 'salary':
-            filters = { [searchKey]: { $regex: searchterm, $options: 'i' } };
-            break;
-        default:
-            filters = {};
-            break;
-    }
-    let matchFilter;
-    if (!extraDetails) {
-        matchFilter = {};
-    }
-    const all = await Promise.all([
-        staff_model_1.staffLean
-            .find({ ...filter, ...filters })
-            .populate([(0, query_1.populateUser)(), (0, stock_auth_server_1.populateTrackEdit)(), (0, stock_auth_server_1.populateTrackView)()])
-            .skip(offset)
-            .limit(limit)
-            .lean(),
-        staff_model_1.staffLean.countDocuments({ ...filter, ...filters })
+exports.staffRoutes.post('/filter', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('staffs', 'read'), async (req, res) => {
+    const { propSort } = req.body;
+    const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.body.offset, req.body.limit);
+    const aggCursor = staff_model_1.staffLean
+        .aggregate([
+        ...(0, stock_universal_server_1.lookupSubFieldUserFilter)((0, stock_universal_server_1.constructFiltersFromBody)(req), propSort, offset, limit)
     ]);
-    const staffsToReturn = all[0].filter(val => val.user);
+    const dataArr = [];
+    for await (const data of aggCursor) {
+        dataArr.push(data);
+    }
+    const all = dataArr[0]?.data || [];
+    const count = dataArr[0]?.total?.count || 0;
+    const staffsToReturn = all.filter(val => val.user);
     const response = {
-        count: all[1],
+        count,
         data: staffsToReturn
     };
+    for (const val of staffsToReturn) {
+        (0, stock_universal_server_1.addParentToLocals)(res, val._id, staff_model_1.staffMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
-exports.staffRoutes.put('/update/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('staffs', 'update', true), stock_auth_server_1.updateUserBulk, exports.updateStaff);
-exports.staffRoutes.post('/updateimg/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('staffs', 'update', true), stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.saveMetaToDb, stock_auth_server_1.updateUserBulk, exports.updateStaff);
-exports.staffRoutes.put('/deleteone/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('staffs', 'delete'), (0, locluser_routes_1.removeOneUser)('staff'), async (req, res) => {
-    const { id } = req.body;
+exports.staffRoutes.put('/update', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('staffs', 'update', true), stock_auth_server_1.updateUserBulk, exports.updateStaff);
+exports.staffRoutes.post('/update/img', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('staffs', 'update', true), stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.saveMetaToDb, stock_auth_server_1.updateUserBulk, exports.updateStaff);
+exports.staffRoutes.put('/delete/one', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('staffs', 'delete'), (0, stock_auth_server_1.determineUserToRemove)(staff_model_1.staffLean, [{
+        model: invoicerelated_model_1.invoiceRelatedLean,
+        field: 'billingUserId',
+        errMsg: 'user has an invoice an could not be removed, consider removing invoice first'
+    }]), stock_auth_server_1.removeOneUser, async (req, res) => {
+    const { _id } = req.body;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    const deleted = await staff_model_1.staffMain.updateOne({ _id: id, ...filter }, { $set: { isDeleted: true } });
+    const deleted = await staff_model_1.staffMain.updateOne({ _id, ...filter }, { $set: { isDeleted: true } });
     if (Boolean(deleted)) {
-        (0, stock_universal_server_1.addParentToLocals)(res, id, staff_model_1.staffMain.collection.collectionName, 'trackDataDelete');
+        (0, stock_universal_server_1.addParentToLocals)(res, _id, staff_model_1.staffMain.collection.collectionName, 'trackDataDelete');
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
-        return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
+        return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
-exports.staffRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('staffs', 'delete'), (0, locluser_routes_1.removeManyUsers)('staff'), async (req, res) => {
-    const { ids } = req.body;
+exports.staffRoutes.put('/delete/many', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('staffs', 'delete'), (0, stock_auth_server_1.determineUsersToRemove)(staff_model_1.staffLean, [{
+        model: invoicerelated_model_1.invoiceRelatedLean,
+        field: 'billingUserId',
+        errMsg: 'user has an invoice an could not be removed, consider removing invoice first'
+    }]), stock_auth_server_1.removeManyUsers, async (req, res) => {
+    const { _ids } = req.body;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     /* const deleted = await staffMain
-      .deleteMany({ _id: { $in: ids }, ...filter })
-      .catch(err => {
-        staffRoutesLogger.error('deletemany - err: ', err);
-  
-        return null;
-      }); */
+    .deleteMany({ _id: { $in: _ids }, ...filter })
+    .catch(err => {
+      staffRoutesLogger.error('deletemany - err: ', err);
+
+      return null;
+    }); */
     const deleted = await staff_model_1.staffMain
-        .updateMany({ _id: { $in: ids }, ...filter }, {
+        .updateMany({ _id: { $in: _ids }, ...filter }, {
         $set: { isDeleted: true }
     })
         .catch(err => {
@@ -288,13 +273,15 @@ exports.staffRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.
         return null;
     });
     if (Boolean(deleted)) {
-        for (const val of ids) {
+        for (const val of _ids) {
             (0, stock_universal_server_1.addParentToLocals)(res, val, staff_model_1.staffMain.collection.collectionName, 'trackDataDelete');
         }
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
-        return res.status(404).send({ success: Boolean(deleted), err: 'could not delete selected items, try again in a while' });
+        return res.status(404).send({
+            success: Boolean(deleted), err: 'could not delete selected items, try again in a while'
+        });
     }
 });
 //# sourceMappingURL=staff.routes.js.map

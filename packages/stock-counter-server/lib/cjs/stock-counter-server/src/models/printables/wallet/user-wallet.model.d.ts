@@ -36,7 +36,8 @@ export type TuserWallet = Document & IuserWallet;
 export declare let userWalletMain: Model<TuserWallet>;
 /**
  * Represents a lean Mongoose model for the user wallet.
- * This model is used for the main database connection and provides a lightweight, read-optimized version of the user wallet data.
+ * This model is used for the main database connection and
+ * provides a lightweight, read-optimized version of the user wallet data.
  */
 export declare let userWalletLean: Model<TuserWallet>;
 export declare const userWalletSelect: {

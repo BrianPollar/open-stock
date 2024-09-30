@@ -45,10 +45,12 @@ export const createInvoiceSettingModel = async (dbUrl, dbOptions, main = true, l
         await connectStockDatabase(dbUrl, dbOptions);
     }
     if (main) {
-        invoiceSettingMain = mainConnection.model('InvoiceSetting', invoiceSettingSchema);
+        invoiceSettingMain = mainConnection
+            .model('InvoiceSetting', invoiceSettingSchema);
     }
     if (lean) {
-        invoiceSettingLean = mainConnectionLean.model('invoiceSetting', invoiceSettingSchema);
+        invoiceSettingLean = mainConnectionLean
+            .model('invoiceSetting', invoiceSettingSchema);
     }
 };
 //# sourceMappingURL=invoicesettings.model.js.map

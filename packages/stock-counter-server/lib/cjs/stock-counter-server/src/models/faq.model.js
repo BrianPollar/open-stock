@@ -46,10 +46,12 @@ const createFaqModel = async (dbUrl, dbOptions, main = true, lean = true) => {
         await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.faqMain = database_1.mainConnection.model('Faq', faqSchema);
+        exports.faqMain = database_1.mainConnection
+            .model('Faq', faqSchema);
     }
     if (lean) {
-        exports.faqLean = database_1.mainConnectionLean.model('Faq', faqSchema);
+        exports.faqLean = database_1.mainConnectionLean
+            .model('Faq', faqSchema);
     }
 };
 exports.createFaqModel = createFaqModel;

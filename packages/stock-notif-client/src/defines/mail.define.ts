@@ -12,8 +12,8 @@ export class MailSender {
     message: string
   ) {
     const observer$ = StockNotifClient.ehttp
-      .makePost('/mailsender/sendmail/', { emailFrom, emailTo, subject, message });
-    const res = await lastValueFrom(observer$) as Isuccess;
+      .makePost<Isuccess>('/mailsender/sendmail/', { emailFrom, emailTo, subject, message });
+    const res = await lastValueFrom(observer$);
 
     return res;
   }

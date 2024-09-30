@@ -1,5 +1,7 @@
 import { IcurrencyProp, ItrackStamp } from '@open-stock/stock-universal';
-import { createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
+import {
+  createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj
+} from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
@@ -117,11 +119,13 @@ export const createPromocodeModel = async(dbUrl: string, dbOptions?: ConnectOpti
   }
 
   if (main) {
-    promocodeMain = mainConnection.model<Ipromocode>('promocode', promocodeSchema);
+    promocodeMain = mainConnection
+      .model<Ipromocode>('promocode', promocodeSchema);
   }
 
   if (lean) {
-    promocodeLean = mainConnectionLean.model<Ipromocode>('promocode', promocodeSchema);
+    promocodeLean = mainConnectionLean
+      .model<Ipromocode>('promocode', promocodeSchema);
   }
 };
 

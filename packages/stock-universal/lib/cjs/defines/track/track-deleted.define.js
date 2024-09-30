@@ -18,7 +18,8 @@ class TrackDeleted extends base_define_1.DatabaseAuto {
      * @returns An object containing the total count of trackDeleteds and an array of the trackDeleteds.
      */
     static async getAll(offset = 0, limit = 20) {
-        const observer$ = stock_universal_1.StockUniversal.ehttp.makeGet(`/track/gettrackdelete/${offset}/${limit}`);
+        const observer$ = stock_universal_1.StockUniversal
+            .ehttp.makeGet(`/track/gettrackdelete/${offset}/${limit}`);
         const edits = await (0, rxjs_1.lastValueFrom)(observer$);
         return {
             count: edits.count,
@@ -28,11 +29,11 @@ class TrackDeleted extends base_define_1.DatabaseAuto {
     /**
      * Deletes a trackDeleted by id.
      *
-     * @param id - The id of the trackDeleted to delete.
+     * @param _id - The id of the trackDeleted to delete.
      * @returns A boolean indicating whether the trackDeleted was successfully deleted.
      */
-    static async deleteOne(id) {
-        const observer$ = stock_universal_1.StockUniversal.ehttp.makeDelete(`/track/deletetrackdelete/${id}`);
+    static async deleteOne(_id) {
+        const observer$ = stock_universal_1.StockUniversal.ehttp.makeDelete(`/track/deletetrackdelete/${_id}`);
         const deleted = await (0, rxjs_1.lastValueFrom)(observer$);
         return deleted;
     }

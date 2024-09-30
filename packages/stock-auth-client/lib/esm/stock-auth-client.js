@@ -11,9 +11,5 @@ export class StockAuthClient {
         StockAuthClient.ehttp = new EhttpController(axiosInstance);
     }
 }
-/**
- * logger: A static property of type LoggerController.
- * It is used for logging messages related to the stock authentication client.
- */
 StockAuthClient.logger = new LoggerController();
 //# sourceMappingURL=stock-auth-client.js.map

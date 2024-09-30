@@ -4,11 +4,6 @@ exports.Item = void 0;
 const stock_universal_1 = require("@open-stock/stock-universal");
 const rxjs_1 = require("rxjs");
 const stock_counter_client_1 = require("../stock-counter-client");
-/**
- * Item class: This class represents an item object with properties and methods for manipulating item data.
- * It includes methods for searching items, getting items, adding items, updating items, deleting items,
- * adding and updating sponsored items, liking and unliking items, deleting images, and others.
- */
 class Item extends stock_universal_1.DatabaseAuto {
     /**
      * Represents the constructor of the Item class.
@@ -25,16 +20,16 @@ class Item extends stock_universal_1.DatabaseAuto {
     }
     /**
      * Searches for items.
-     * @param companyId - The ID of the company
+  
      * @param type The type of the item.
      * @param searchterm The search term.
      * @param searchKey The search key.
      * @param extraFilters Additional filters.
      * @returns An array of items that match the search criteria.
      */
-    static async searchItems(companyId, searchterm, searchKey, extraFilters, category = 'all', subCategory, offset = 0, limit = 20, ecomerceCompat = 'false') {
+    static async filterAll(filter) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makePost(`/item/search/${offset}/${limit}/${companyId}`, { searchterm, searchKey, category, extraFilters, subCategory, ecomerceCompat });
+            .makePost('/item/filter', filter);
         const items = await (0, rxjs_1.lastValueFrom)(observer$);
         return {
             count: items.count,
@@ -44,15 +39,14 @@ class Item extends stock_universal_1.DatabaseAuto {
     }
     /**
      * Gets items.
-     * @param companyId - The ID of the company
-     * @param url The URL to get the items from.
+  
      * @param offset The offset to start getting items from.
      * @param limit The maximum number of items to get.
      * @returns An array of items.
      */
-    static async getItems(companyId, url, offset = 0, limit = 20, ecomerceCompat = 'false') {
+    static async getAll(route, offset = 0, limit = 20, ecomerceCompat = 'false') {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makeGet(`${url}/${offset}/${limit}/${companyId}/${ecomerceCompat}`);
+            .makeGet(`/item/${route}/${offset}/${limit}/${ecomerceCompat}`);
         const items = await (0, rxjs_1.lastValueFrom)(observer$);
         return {
             count: items.count,
@@ -62,65 +56,65 @@ class Item extends stock_universal_1.DatabaseAuto {
     }
     /**
      * Gets a single item.
-     * @param companyId - The ID of the company
+  
      * @param url The URL to get the item from.
      * @returns The item.
      */
-    static async getOneItem(companyId, url) {
+    static async getOne(urId) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makeGet(`${url}/${companyId}`);
+            .makeGet(`/item/one/${urId}`);
         const item = await (0, rxjs_1.lastValueFrom)(observer$);
         return new Item(item);
     }
     /**
      * Adds an item.
-     * @param companyId - The ID of the company
+  
      * @param vals The values to add the item with.
      * @param files The files to add to the item.
      * @param inventoryStock Whether the item is in inventory stock.
      * @returns The success status of adding the item.
      */
-    static async addItem(companyId, vals, files, ecomerceCompat = false) {
+    static async add(vals, files, ecomerceCompat = false) {
         let added;
-        const details = {
+        const body = {
             item: vals
         };
         if (ecomerceCompat) {
             const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-                .uploadFiles(files, `/item/createimg/${companyId}`, details);
+                .uploadFiles(files, '/item/add/img', body);
             added = await (0, rxjs_1.lastValueFrom)(observer$);
         }
         else {
             const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-                .makePost(`/item/create/${companyId}`, details);
+                .makePost('/item/add', body);
             added = await (0, rxjs_1.lastValueFrom)(observer$);
         }
         return added;
     }
     /**
      * Deletes items.
-     * @param companyId - The ID of the company
-     * @param ids The IDs of the items to delete.
+  
+     * @param _ids The IDs of the items to delete.
      * @param filesWithDir The files to delete with their directories.
      * @param url The URL to delete the items from.
      * @returns The success status of deleting the items.
      */
-    static async deleteItems(companyId, ids, filesWithDir, url) {
+    static removeMany(url, vals) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makePut(`${url}/${companyId}`, { ids, filesWithDir });
-        return await (0, rxjs_1.lastValueFrom)(observer$);
+            .makePut(`${url}`, vals);
+        return (0, rxjs_1.lastValueFrom)(observer$);
     }
     /**
      * Updates an item.
-     * @param companyId - The ID of the company
+  
      * @param vals The values to update the item with.
      * @param url The URL to update the item from.
      * @param files The files to update the item with.
      * @returns The success status of updating the item.
      */
-    async updateItem(companyId, vals, url, files) {
+    async update(vals, files) {
         let updated;
-        const details = {
+        const body = {
             item: {
                 _id: this._id,
                 ...vals
@@ -128,26 +122,26 @@ class Item extends stock_universal_1.DatabaseAuto {
         };
         if (files && files.length > 0) {
             const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-                .uploadFiles(files, `/item/updateimg/${companyId}`, details);
+                .uploadFiles(files, '/item/update/img', body);
             updated = await (0, rxjs_1.lastValueFrom)(observer$);
         }
         else {
             const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-                .makePut(`${url}/${companyId}`, details);
+                .makePut('/item/update', body);
             updated = await (0, rxjs_1.lastValueFrom)(observer$);
         }
         return updated;
     }
     /**
      * Makes an item sponsored.
-     * @param companyId - The ID of the company
+  
      * @param sponsored The sponsored item.
      * @param item The item to make sponsored.
      * @returns The success status of making the item sponsored.
      */
-    async makeSponsored(companyId, sponsored, item) {
+    async addSponsored(sponsored, item) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makePut(`/item/addsponsored/${this._id}/${companyId}`, { sponsored });
+            .makePut(`/item/sponsored/add/${this._id}`, sponsored);
         const added = await (0, rxjs_1.lastValueFrom)(observer$);
         if (added.success) {
             if (!this.sponsored) {
@@ -159,13 +153,13 @@ class Item extends stock_universal_1.DatabaseAuto {
     }
     /**
      * Updates a sponsored item.
-     * @param companyId - The ID of the company
+  
      * @param sponsored The sponsored item to update.
      * @returns The success status of updating the sponsored item.
      */
-    async updateSponsored(companyId, sponsored) {
+    async updateSponsored(sponsored) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makePut(`/item/updatesponsored/${this._id}/${companyId}`, { sponsored });
+            .makePut(`/item/sponsored/update/${this._id}`, sponsored);
         const updated = await (0, rxjs_1.lastValueFrom)(observer$);
         if (updated.success) {
             const found = this.sponsored
@@ -178,13 +172,13 @@ class Item extends stock_universal_1.DatabaseAuto {
     }
     /**
      * Deletes a sponsored item.
-     * @param companyId - The ID of the company
+  
      * @param itemId The ID of the item to delete.
      * @returns The success status of deleting the sponsored item.
      */
-    async deleteSponsored(companyId, itemId) {
+    async removeSponsored(itemId) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makeDelete(`/item/deletesponsored/${this._id}/${itemId}/${companyId}`);
+            .makeDelete(`/item/sponsored/delete/${this._id}/${itemId}`);
         const deleted = await (0, rxjs_1.lastValueFrom)(observer$);
         if (deleted.success) {
             const found = this.sponsored.find(sponsd => sponsd.item._id === itemId);
@@ -197,28 +191,32 @@ class Item extends stock_universal_1.DatabaseAuto {
     }
     /**
      * Retrieves sponsored items for a given company.
-     * @param companyId - The ID of the company.
+     .
      * @returns A Promise that resolves to an array of sponsored items.
      */
-    async getSponsored(companyId) {
+    async getSponsored() {
         const mappedIds = this.sponsored.map(val => val.item._id || val.item);
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makePost(`/item/getsponsored/${companyId}`, { sponsored: mappedIds || [] });
+            .makePost('/item/sponsored/get', { _ids: mappedIds || [] });
         const items = await (0, rxjs_1.lastValueFrom)(observer$);
         return this.sponsored
             .map(sponsrd => {
-            sponsrd.item = new Item(items.data.find(val => val._id === sponsrd.item._id || sponsrd.item));
+            sponsrd.item = new Item(items
+                .data
+                .find(val => {
+                return val._id === sponsrd.item._id || sponsrd.item;
+            }));
         });
     }
     /**
      * Likes an item.
-     * @param companyId - The ID of the company.
+     .
      * @param userId - The ID of the user.
      * @returns A promise that resolves to the updated item.
      */
-    async likeItem(companyId, userId) {
+    async like(userId) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makePut(`/item/like/${this._id}/${companyId}`, {});
+            .makePut(`/item/like/${this._id}`, {});
         const updated = await (0, rxjs_1.lastValueFrom)(observer$);
         this.likes.push(userId);
         this.likesCount++;
@@ -226,13 +224,13 @@ class Item extends stock_universal_1.DatabaseAuto {
     }
     /**
      * Unlikes an item by removing the user's like from the item's likes array.
-     * @param companyId - The ID of the company associated with the item.
+      associated with the item.
      * @param userId - The ID of the user who unliked the item.
      * @returns A promise that resolves to the updated item.
      */
-    async unLikeItem(companyId, userId) {
+    async unLike(userId) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makePut(`/item/unlike/${this._id}/${companyId}`, {});
+            .makePut(`/item/unlike/${this._id}`, {});
         const updated = await (0, rxjs_1.lastValueFrom)(observer$);
         this.likes = this.likes.filter(val => val !== userId);
         this.likesCount--;
@@ -240,25 +238,24 @@ class Item extends stock_universal_1.DatabaseAuto {
     }
     /**
      * Deletes an item associated with a company.
-     * @param companyId - The ID of the company.
+     .
      * @returns A promise that resolves to the success response.
      */
-    async deleteItem(companyId) {
+    remove() {
         const filesWithDir = this.photos
             .map(val => ({ filename: val }));
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makePut(`/item/deleteone/${this._id}/${companyId}`, { filesWithDir });
-        return await (0, rxjs_1.lastValueFrom)(observer$);
+            .makePut(`/item/delete/one/${this._id}`, { filesWithDir });
+        return (0, rxjs_1.lastValueFrom)(observer$);
     }
     /**
      * Deletes images associated with an item.
-     * @param companyId - The ID of the company.
      * @param filesWithDir - An array of file metadata objects.
      * @returns A promise that resolves to the success status of the deletion.
      */
-    async deleteFiles(companyId, filesWithDir) {
+    async removeFiles(filesWithDir) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makePut(`/item/deletefiles/${companyId}`, { filesWithDir, item: { _id: this._id } });
+            .makePut('/item/deletefiles', { filesWithDir, item: { _id: this._id } });
         const deleted = await (0, rxjs_1.lastValueFrom)(observer$);
         // eslint-disable-next-line @typescript-eslint/no-unsafe-return
         const toStrings = filesWithDir.map(val => val._id);

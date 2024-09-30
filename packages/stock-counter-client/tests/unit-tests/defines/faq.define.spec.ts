@@ -72,7 +72,7 @@ describe('Faq', () => {
 
   it('#deleteFaqs static should delete many Faqs', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makePut').mockImplementationOnce(() => of({ success: true }));
-    const deleted = await Faq.deleteFaqs(companyId, ['ids']);
+    const deleted = await Faq.deleteFaqs(companyId, ['_ids']);
 
     expect(typeof deleted).toEqual('object');
     expect(deleted).toHaveProperty('success');

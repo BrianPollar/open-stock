@@ -25,7 +25,7 @@ const database_1 = require("../../../utils/database");
  * @property {Array} payments - The payments made on the invoice.
  */
 const invoiceRelatedSchema = new mongoose_1.Schema({
-    ...stock_universal_server_1.withCompanySchemaObj,
+    ...stock_universal_server_1.withUrIdAndCompanySchemaObj,
     creationType: { type: String },
     estimateId: { type: Number },
     invoiceId: { type: Number },
@@ -97,10 +97,12 @@ const createInvoiceRelatedModel = async (dbUrl, dbOptions, main = true, lean = t
         await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.invoiceRelatedMain = database_1.mainConnection.model('invoiceRelated', invoiceRelatedSchema);
+        exports.invoiceRelatedMain = database_1.mainConnection
+            .model('invoiceRelated', invoiceRelatedSchema);
     }
     if (lean) {
-        exports.invoiceRelatedLean = database_1.mainConnectionLean.model('invoiceRelated', invoiceRelatedSchema);
+        exports.invoiceRelatedLean = database_1.mainConnectionLean
+            .model('invoiceRelated', invoiceRelatedSchema);
     }
 };
 exports.createInvoiceRelatedModel = createInvoiceRelatedModel;

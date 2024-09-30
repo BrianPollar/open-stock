@@ -17,7 +17,9 @@ import {
   Iuserperm,
   makeRandomString
 } from '@open-stock/stock-universal';
-import { fileMetaLean, stockUniversalConfig, stringifyMongooseErr, verifyObjectId } from '@open-stock/stock-universal-server';
+import {
+  fileMetaLean, stockUniversalConfig, stringifyMongooseErr, verifyObjectId
+} from '@open-stock/stock-universal-server';
 import * as jwt from 'jsonwebtoken';
 import { Document } from 'mongoose';
 import path from 'path';
@@ -72,7 +74,7 @@ export const generateToken = (
  * Sets the user information.
  * @param userId - The ID of the user.
  * @param permissions - The user's permissions.
- * @param companyId - The ID of the company.
+ .
  * @param companyPermissions - The company's permissions.
  * @returns The user information.
  */
@@ -109,9 +111,9 @@ export const makeUserReturnObject = async(foundUser): Promise<Iauthresponse> => 
     })
     .lean();
 
-  if (company && (company.owner as any).photos[0]) {
+  /* if (company && (company.owner as any).photos[0]) {
     company.profilePic = (company.owner as any).photos[0];
-  }
+  } */
 
   universialControllerLogger.debug('found company: ', company);
   let permissions: Iuserperm;
@@ -128,7 +130,7 @@ export const makeUserReturnObject = async(foundUser): Promise<Iauthresponse> => 
     foundUser._id.toString(),
     permissions,
     foundUser.companyId,
-    { active: !company.blocked }
+    { active: company ? !company.blocked : true }
   );
   const token = generateToken(
     userInfo,
@@ -167,19 +169,19 @@ export const makeUserReturnObject = async(foundUser): Promise<Iauthresponse> => 
  * @param newPassword - The new password to set (only applicable for 'password' case).
  * @returns A promise that resolves to an authentication response object.
  */
-export const validatePhone = async(
+export const validatePhone = (
   foundUser: Iuser & Document,
   verifycode: string,
   newPassword: string
 ): Promise<IauthresponseObj> => {
   if (!foundUser) {
-    return {
+    return Promise.resolve({
       status: 404,
       response: {
         success: false,
         err: 'user account not found'
       }
-    };
+    });
   }
 
   return new Promise(resolve => {
@@ -314,11 +316,11 @@ export const validatePhone = async(
  */
 export const validateEmail = async(
   foundUser: Iuser & Document,
-  type: string,
+  verificationMean: 'link' | 'code',
   verifycode: string,
   newPassword: string
 ): Promise<IauthresponseObj> => {
-  universialControllerLogger.info('validateEmail - %type: ', type);
+  universialControllerLogger.info('validateEmail - %type: ', verificationMean);
   let msg: string;
 
   if (!foundUser) {
@@ -335,7 +337,7 @@ export const validateEmail = async(
   const token = await emailtoken.findOne({ token: verifycode });
 
   if (!token) {
-    if (type === '_link') {
+    if (verificationMean === 'link') {
       msg = `the verification
 				link has already expired`;
     } else {
@@ -405,18 +407,18 @@ export const validateEmail = async(
 /**
  * Sends a token to the user's phone for authentication.
  * @param foundUser - The user object.
- * @param enableValidationSMS - Flag indicating whether to enable SMS validation. Default is '1'.
+ * @param enableValidationSms - Flag indicating whether to enable SMS validation. Default is '1'.
  * @returns A promise that resolves to an authentication response object.
  */
 export const sendTokenPhone = (
   foundUser,
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  enableValidationSMS = '1' // twilio enable sms validation
+
+  enableValidationSms = '1' // twilio enable sms validation
 ): Promise<Iauthresponse> => new Promise(resolve => {
   universialControllerLogger.info('sendTokenPhone');
   let response: Iauthresponse;
 
-  if (enableValidationSMS === '1') {
+  if (enableValidationSms === '1') {
     foundUser.sendAuthyToken(function(err) {
       if (err) {
         universialControllerLogger.error('sendTokenPhone - err: ', err);
@@ -555,7 +557,9 @@ height: 100%;
           </div>
 
           <div class="last-divi">
-            <a href="https://eagleinfosolutions.com/support">Help</a> | <a href="https://eagleinfosolutions.com/support">Contacts</a>
+            <a href="https://eagleinfosolutions.com/support">
+            Help
+            </a> | <a href="https://eagleinfosolutions.com/support">Contacts</a>
           </div>
 
           <div class="compny-divi"> Eagle Info Solutions Inc, Kampala Uganda</div>
@@ -650,7 +654,9 @@ height: 100%;
           </div>
 
           <div class="last-divi">
-            <a href="https://eagleinfosolutions.com/support">Help</a> | <a href="https://eagleinfosolutions.com/support">Contacts</a>
+            <a href="https://eagleinfosolutions.com/support">
+            Help
+            </a> | <a href="https://eagleinfosolutions.com/support">Contacts</a>
           </div>
 
           <div class="compny-divi"> Eagle Info Solutions Inc, Kampala Uganda</div>

@@ -39,10 +39,12 @@ export const createTrackViewModel = async (dbUrl, dbOptions, main = true, lean =
         await connectUniversalDatabase(dbUrl, dbOptions);
     }
     if (main) {
-        trackViewMain = mainConnection.model('TrackView', trackViewSchema);
+        trackViewMain = mainConnection
+            .model('TrackView', trackViewSchema);
     }
     if (lean) {
-        trackViewLean = mainConnectionLean.model('TrackView', trackViewSchema);
+        trackViewLean = mainConnectionLean
+            .model('TrackView', trackViewSchema);
     }
 };
 //# sourceMappingURL=track-view.model.js.map

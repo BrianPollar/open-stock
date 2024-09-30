@@ -51,10 +51,12 @@ export const createDeliverycityModel = async (dbUrl, dbOptions, main = true, lea
         await connectStockDatabase(dbUrl, dbOptions);
     }
     if (main) {
-        deliverycityMain = mainConnection.model('Deliverycity', deliverycitySchema);
+        deliverycityMain = mainConnection
+            .model('Deliverycity', deliverycitySchema);
     }
     if (lean) {
-        deliverycityLean = mainConnectionLean.model('Deliverycity', deliverycitySchema);
+        deliverycityLean = mainConnectionLean
+            .model('Deliverycity', deliverycitySchema);
     }
 };
 //# sourceMappingURL=deliverycity.model.js.map

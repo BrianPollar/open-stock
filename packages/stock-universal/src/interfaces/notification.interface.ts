@@ -22,7 +22,7 @@ export interface Iactionwithall
 
 export interface Imainnotification {
   // The `_id` property is the ID of the notification.
-  // eslint-disable-next-line @typescript-eslint/naming-convention
+
   _id?: string;
   // The `actions` property is an array of actions.
   actions: Iactionwithall[];

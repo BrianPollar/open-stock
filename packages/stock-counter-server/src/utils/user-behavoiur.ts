@@ -3,7 +3,7 @@ import { itemMain } from '../models/item.model';
 import { userBehaviourLean, userBehaviourMain } from '../models/user-related/user-behaviour.model';
 
 interface Ifilter {
-  ids: string[];
+  _ids: string[];
   newOffset: number;
   newLimit: number;
 }
@@ -23,7 +23,7 @@ export const todaysRecomendation = async(
   userId?: string
 ) => {
   let behaviourFilter;
-  let filter: Ifilter = { ids: [], newOffset: 0, newLimit: 10 };
+  let filter: Ifilter = { _ids: [], newOffset: 0, newLimit: 10 };
 
   if (userId) {
     behaviourFilter = { user: userId };
@@ -35,20 +35,20 @@ export const todaysRecomendation = async(
   if (!behaviour) {
     const randomOffset = 0;// Number(makeRandomString(2, 'numbers'));
 
-    filter = { ids: [], newOffset: randomOffset, newLimit: 10 };
+    filter = { _ids: [], newOffset: randomOffset, newLimit: 10 };
   } else {
     const { recents, wishList, cart } = behaviour;
 
     if (recents && recents.length > 0) {
-      filter.ids = { ...filter.ids, ...recents as string[] };
+      filter._ids = { ...filter._ids, ...recents as string[] };
     }
 
     if (wishList && wishList.length > 0) {
-      filter.ids = { ...filter.ids, ...wishList as string[] };
+      filter._ids = { ...filter._ids, ...wishList as string[] };
     }
 
     if (cart && cart.length > 0) {
-      filter.ids = { ...filter.ids, ...cart as string[] };
+      filter._ids = { ...filter._ids, ...cart as string[] };
     }
   }
 
@@ -70,7 +70,7 @@ export const onTheFlyRecomendation = async(
   userId?: string
 ) => {
   let behaviourFilter;
-  let filter: Ifilter = { ids: [], newOffset: 0, newLimit: 10 };
+  let filter: Ifilter = { _ids: [], newOffset: 0, newLimit: 10 };
 
   if (userId) {
     behaviourFilter = { user: userId };
@@ -82,20 +82,20 @@ export const onTheFlyRecomendation = async(
   if (!behaviour) {
     const randomOffset = 0;// Number(makeRandomString(2, 'numbers'));
 
-    filter = { ids: [], newOffset: randomOffset, newLimit: 10 };
+    filter = { _ids: [], newOffset: randomOffset, newLimit: 10 };
   } else {
     const { recents, wishList, cart } = behaviour;
 
     if (recents && recents.length > 0) {
-      filter.ids = { ...filter.ids, ...recents as string[] };
+      filter._ids = { ...filter._ids, ...recents as string[] };
     }
 
     if (wishList && wishList.length > 0) {
-      filter.ids = { ...filter.ids, ...wishList as string[] };
+      filter._ids = { ...filter._ids, ...wishList as string[] };
     }
 
     if (cart && cart.length > 0) {
-      filter.ids = { ...filter.ids, ...cart as string[] };
+      filter._ids = { ...filter._ids, ...cart as string[] };
     }
   }
 
@@ -117,7 +117,7 @@ export const fromRecentRecoendation = async(
   userId?: string
 ) => {
   let behaviourFilter;
-  let filter: Ifilter = { ids: [], newOffset: 0, newLimit: 10 };
+  let filter: Ifilter = { _ids: [], newOffset: 0, newLimit: 10 };
 
   if (userId) {
     behaviourFilter = { user: userId };
@@ -129,20 +129,20 @@ export const fromRecentRecoendation = async(
   if (!behaviour) {
     const randomOffset = 0; // Number(makeRandomString(2, 'numbers'));
 
-    filter = { ids: [], newOffset: randomOffset, newLimit: 10 };
+    filter = { _ids: [], newOffset: randomOffset, newLimit: 10 };
   } else {
     const { recents, wishList, cart } = behaviour;
 
     if (recents && recents.length > 0) {
-      filter.ids = { ...filter.ids, ...recents as string[] };
+      filter._ids = { ...filter._ids, ...recents as string[] };
     }
 
     if (wishList && wishList.length > 0) {
-      filter.ids = { ...filter.ids, ...wishList as string[] };
+      filter._ids = { ...filter._ids, ...wishList as string[] };
     }
 
     if (cart && cart.length > 0) {
-      filter.ids = { ...filter.ids, ...cart as string[] };
+      filter._ids = { ...filter._ids, ...cart as string[] };
     }
   }
 
@@ -163,7 +163,7 @@ export const getDecoyFromBehaviour = async(
   userId?: string
 ) => {
   let behaviourFilter;
-  let filter: Ifilter = { ids: [], newOffset: 0, newLimit: 10 };
+  let filter: Ifilter = { _ids: [], newOffset: 0, newLimit: 10 };
 
   if (userId) {
     behaviourFilter = { user: userId };
@@ -175,20 +175,20 @@ export const getDecoyFromBehaviour = async(
   if (!behaviour) {
     const randomOffset = 0; // Number(makeRandomString(2, 'numbers'));
 
-    filter = { ids: [], newOffset: randomOffset, newLimit: 10 };
+    filter = { _ids: [], newOffset: randomOffset, newLimit: 10 };
   } else {
     const { recents, wishList, cart } = behaviour;
 
     if (recents && recents.length > 0) {
-      filter.ids = { ...filter.ids, ...recents as string[] };
+      filter._ids = { ...filter._ids, ...recents as string[] };
     }
 
     if (wishList && wishList.length > 0) {
-      filter.ids = { ...filter.ids, ...wishList as string[] };
+      filter._ids = { ...filter._ids, ...wishList as string[] };
     }
 
     if (cart && cart.length > 0) {
-      filter.ids = { ...filter.ids, ...cart as string[] };
+      filter._ids = { ...filter._ids, ...cart as string[] };
     }
   }
 
@@ -210,7 +210,7 @@ export const ignoreUserDoesNotBuy = async(
   userId?: string
 ) => {
   let behaviourFilter;
-  let filter: Ifilter = { ids: [], newOffset: 0, newLimit: 10 };
+  let filter: Ifilter = { _ids: [], newOffset: 0, newLimit: 10 };
 
   if (userId) {
     behaviourFilter = { user: userId };
@@ -222,20 +222,20 @@ export const ignoreUserDoesNotBuy = async(
   if (!behaviour) {
     const randomOffset = 0; // Number(makeRandomString(2, 'numbers'));
 
-    filter = { ids: [], newOffset: randomOffset, newLimit: 10 };
+    filter = { _ids: [], newOffset: randomOffset, newLimit: 10 };
   } else {
     const { recents, wishList, cart } = behaviour;
 
     if (recents && recents.length > 0) {
-      filter.ids = { ...filter.ids, ...recents as string[] };
+      filter._ids = { ...filter._ids, ...recents as string[] };
     }
 
     if (wishList && wishList.length > 0) {
-      filter.ids = { ...filter.ids, ...wishList as string[] };
+      filter._ids = { ...filter._ids, ...wishList as string[] };
     }
 
     if (cart && cart.length > 0) {
-      filter.ids = { ...filter.ids, ...cart as string[] };
+      filter._ids = { ...filter._ids, ...cart as string[] };
     }
   }
 
@@ -257,7 +257,7 @@ export const isPoorUser = async(
   userId?: string
 ) => {
   let behaviourFilter;
-  let filter: Ifilter = { ids: [], newOffset: 0, newLimit: 10 };
+  let filter: Ifilter = { _ids: [], newOffset: 0, newLimit: 10 };
 
   if (userId) {
     behaviourFilter = { user: userId };
@@ -269,20 +269,20 @@ export const isPoorUser = async(
   if (!behaviour) {
     const randomOffset = 0; // Number(makeRandomString(2, 'numbers'));
 
-    filter = { ids: [], newOffset: randomOffset, newLimit: 10 };
+    filter = { _ids: [], newOffset: randomOffset, newLimit: 10 };
   } else {
     const { recents, wishList, cart } = behaviour;
 
     if (recents && recents.length > 0) {
-      filter.ids = { ...filter.ids, ...recents as string[] };
+      filter._ids = { ...filter._ids, ...recents as string[] };
     }
 
     if (wishList && wishList.length > 0) {
-      filter.ids = { ...filter.ids, ...wishList as string[] };
+      filter._ids = { ...filter._ids, ...wishList as string[] };
     }
 
     if (cart && cart.length > 0) {
-      filter.ids = { ...filter.ids, ...cart as string[] };
+      filter._ids = { ...filter._ids, ...cart as string[] };
     }
   }
 
@@ -304,7 +304,7 @@ export const isGoodUser = async(
   userId?: string
 ) => {
   let behaviourFilter;
-  let filter: Ifilter = { ids: [], newOffset: 0, newLimit: 10 };
+  let filter: Ifilter = { _ids: [], newOffset: 0, newLimit: 10 };
 
   if (userId) {
     behaviourFilter = { user: userId };
@@ -316,20 +316,20 @@ export const isGoodUser = async(
   if (!behaviour) {
     const randomOffset = 0;// Number(makeRandomString(2, 'numbers'));
 
-    filter = { ids: [], newOffset: randomOffset, newLimit: 10 };
+    filter = { _ids: [], newOffset: randomOffset, newLimit: 10 };
   } else {
     const { recents, wishList, cart } = behaviour;
 
     if (recents && recents.length > 0) {
-      filter.ids = { ...filter.ids, ...recents as string[] };
+      filter._ids = { ...filter._ids, ...recents as string[] };
     }
 
     if (wishList && wishList.length > 0) {
-      filter.ids = { ...filter.ids, ...wishList as string[] };
+      filter._ids = { ...filter._ids, ...wishList as string[] };
     }
 
     if (cart && cart.length > 0) {
-      filter.ids = { ...filter.ids, ...cart as string[] };
+      filter._ids = { ...filter._ids, ...cart as string[] };
     }
   }
 
@@ -351,7 +351,7 @@ export const isExcellentUser = async(
   userId?: string
 ) => {
   let behaviourFilter;
-  let filter: Ifilter = { ids: [], newOffset: 0, newLimit: 10 };
+  let filter: Ifilter = { _ids: [], newOffset: 0, newLimit: 10 };
 
   if (userId) {
     behaviourFilter = { user: userId };
@@ -363,20 +363,20 @@ export const isExcellentUser = async(
   if (!behaviour) {
     const randomOffset = 0; // Number(makeRandomString(2, 'numbers'));
 
-    filter = { ids: [], newOffset: randomOffset, newLimit: 10 };
+    filter = { _ids: [], newOffset: randomOffset, newLimit: 10 };
   } else {
     const { recents, wishList, cart } = behaviour;
 
     if (recents && recents.length > 0) {
-      filter.ids = { ...filter.ids, ...recents as string[] };
+      filter._ids = { ...filter._ids, ...recents as string[] };
     }
 
     if (wishList && wishList.length > 0) {
-      filter.ids = { ...filter.ids, ...wishList as string[] };
+      filter._ids = { ...filter._ids, ...wishList as string[] };
     }
 
     if (cart && cart.length > 0) {
-      filter.ids = { ...filter.ids, ...cart as string[] };
+      filter._ids = { ...filter._ids, ...cart as string[] };
     }
   }
 
@@ -398,7 +398,7 @@ export const isUserHasNoOrders = async(
   userId?: string
 ) => {
   let behaviourFilter;
-  let filter: Ifilter = { ids: [], newOffset: 0, newLimit: 10 };
+  let filter: Ifilter = { _ids: [], newOffset: 0, newLimit: 10 };
 
   if (userId) {
     behaviourFilter = { user: userId };
@@ -410,20 +410,20 @@ export const isUserHasNoOrders = async(
   if (!behaviour) {
     const randomOffset = 0; // Number(makeRandomString(2, 'numbers'));
 
-    filter = { ids: [], newOffset: randomOffset, newLimit: 10 };
+    filter = { _ids: [], newOffset: randomOffset, newLimit: 10 };
   } else {
     const { recents, wishList, cart } = behaviour;
 
     if (recents && recents.length > 0) {
-      filter.ids = { ...filter.ids, ...recents as string[] };
+      filter._ids = { ...filter._ids, ...recents as string[] };
     }
 
     if (wishList && wishList.length > 0) {
-      filter.ids = { ...filter.ids, ...wishList as string[] };
+      filter._ids = { ...filter._ids, ...wishList as string[] };
     }
 
     if (cart && cart.length > 0) {
-      filter.ids = { ...filter.ids, ...cart as string[] };
+      filter._ids = { ...filter._ids, ...cart as string[] };
     }
   }
 
@@ -443,7 +443,7 @@ export const remindFromWishList = async(
   userId?: string
 ) => {
   let behaviourFilter;
-  let filter: Ifilter = { ids: [], newOffset: 0, newLimit: 10 };
+  let filter: Ifilter = { _ids: [], newOffset: 0, newLimit: 10 };
 
   if (userId) {
     behaviourFilter = { user: userId };
@@ -455,20 +455,20 @@ export const remindFromWishList = async(
   if (!behaviour) {
     const randomOffset = 0; // Number(makeRandomString(2, 'numbers'));
 
-    filter = { ids: [], newOffset: randomOffset, newLimit: 10 };
+    filter = { _ids: [], newOffset: randomOffset, newLimit: 10 };
   } else {
     const { recents, wishList, cart } = behaviour;
 
     if (recents && recents.length > 0) {
-      filter.ids = { ...filter.ids, ...recents as string[] };
+      filter._ids = { ...filter._ids, ...recents as string[] };
     }
 
     if (wishList && wishList.length > 0) {
-      filter.ids = { ...filter.ids, ...wishList as string[] };
+      filter._ids = { ...filter._ids, ...wishList as string[] };
     }
 
     if (cart && cart.length > 0) {
-      filter.ids = { ...filter.ids, ...cart as string[] };
+      filter._ids = { ...filter._ids, ...cart as string[] };
     }
   }
 
@@ -476,7 +476,8 @@ export const remindFromWishList = async(
 };
 
 /**
-   * Retrieves a filter object based on the user's cart and returns it. If the user has no items in their cart, it will return an empty filter with a random offset.
+   * Retrieves a filter object based on the user's cart and returns it.
+   * If the user has no items in their cart, it will return an empty filter with a random offset.
    * @param {number} length - The number of items to retrieve.
    * @param {string} userCookieId - The user's cookie ID.
    * @param {string} [userId] - The user's ID.
@@ -488,7 +489,7 @@ export const remindFromCart = async(
   userId?: string
 ) => {
   let behaviourFilter;
-  let filter: Ifilter = { ids: [], newOffset: 0, newLimit: 10 };
+  let filter: Ifilter = { _ids: [], newOffset: 0, newLimit: 10 };
 
   if (userId) {
     behaviourFilter = { user: userId };
@@ -500,20 +501,20 @@ export const remindFromCart = async(
   if (!behaviour) {
     const randomOffset = 0; // Number(makeRandomString(2, 'numbers'));
 
-    filter = { ids: [], newOffset: randomOffset, newLimit: 10 };
+    filter = { _ids: [], newOffset: randomOffset, newLimit: 10 };
   } else {
     const { recents, wishList, cart } = behaviour;
 
     if (recents && recents.length > 0) {
-      filter.ids = { ...filter.ids, ...recents as string[] };
+      filter._ids = { ...filter._ids, ...recents as string[] };
     }
 
     if (wishList && wishList.length > 0) {
-      filter.ids = { ...filter.ids, ...wishList as string[] };
+      filter._ids = { ...filter._ids, ...wishList as string[] };
     }
 
     if (cart && cart.length > 0) {
-      filter.ids = { ...filter.ids, ...cart as string[] };
+      filter._ids = { ...filter._ids, ...cart as string[] };
     }
   }
 
@@ -648,7 +649,7 @@ export const registerRecents = async(item: string, userCookieId: string, userId?
   recents.push(item);
   found.recents = recents;
   await found.save();
-  // eslint-disable-next-line @typescript-eslint/naming-convention
+
   const foundItem = await itemMain.findOne({ _id: item });
 
   if (foundItem) {
@@ -668,7 +669,8 @@ export const registerRecents = async(item: string, userCookieId: string, userId?
    * @param item The id of the item to add to the wishlist.
    * @param userCookieId The cookie id of the user.
    * @param userId The id of the user.
-   * @returns A promise resolving to an object with a `success` property, which is `true` if the operation was successful.
+   * @returns A promise resolving to an object with a `success`
+   * property, which is `true` if the operation was successful.
    */
 export const registerWishList = async(item: string, userCookieId: string, userId?: string) => {
   let filter;

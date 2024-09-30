@@ -1,4 +1,9 @@
-import { TcompanySubPayStatus, TexpoMode, TorderStatus, TpayType, TpaymentMethod, TpriceCurrenncy, TsubscriptionDurVal, TsubscriptionFeature, TuserActionTrackState, TuserDispNameFormat, TuserType } from '../types/union.types';
+import {
+  TcompanySubPayStatus,
+  TexpoMode, TorderStatus, TpayType,
+  TpaymentMethod, TpriceCurrenncy, TsubscriptionDurVal,
+  TsubscriptionFeature, TuserActionTrackState, TuserDispNameFormat, TuserType
+} from '../types/union.types';
 import {
   IinvoiceRelated,
   // IpaymentInstall,
@@ -12,7 +17,7 @@ import { Iitem } from './item.interface';
  */
 export interface IdatabaseAuto
 extends ItrackStamp {
-  // eslint-disable-next-line @typescript-eslint/naming-convention
+
   _id?: string;
   createdAt?: Date;
   updatedAt?: Date;
@@ -80,12 +85,6 @@ extends IurId, ItrackStamp {
   /** The business type of the company. */
   businessType: string;
 
-  /** The profile picture of the company. */
-  profilePic: string | IfileMeta;
-
-  /** The profile cover picture of the company. */
-  profileCoverPic: string | IfileMeta;
-
   /** The password of the company. */
   password: string;
 
@@ -136,7 +135,7 @@ extends IdatabaseAuto, ItrackStamp, Partial<IcurrencyProp> {
   /**
    * The unique identifier of the user.
    */
-  // eslint-disable-next-line @typescript-eslint/naming-convention
+
   _id: string;
 
   /**
@@ -255,19 +254,9 @@ extends IdatabaseAuto, ItrackStamp, Partial<IcurrencyProp> {
   password?: string;
 
   /**
-   * Indicates if the user is from a social framework.
-   */
-  fromsocial?: boolean;
-
-  /**
    * The social framework used by the user.
    */
-  socialframework?: string;
-
-  /**
-   * The social ID of the user.
-   */
-  socialId?: string;
+  socialAuthFrameworks?: { providerName: string; id: string }[];
 
   /**
    * The blocked status of the user.
@@ -632,14 +621,6 @@ extends IcurrencyProp {
 }
 
 /**
- * Represents the interface for deleting credentials of a local user.
- */
-export interface IdeleteCredentialsLocalUser {
-  userId: string;
-  id?: string;
-}
-
-/**
  * Represents the metadata of a file.
  */
 export interface IfileMeta
@@ -678,7 +659,7 @@ extends IdatabaseAuto, ItrackStamp {
   ammount: number;
   duration: TsubscriptionDurVal;
   active: boolean;
-  sunscriprionId: string;
+  subscriprionId: string;
   features: IsubscriptionFeature[];
   startDate: Date;
   endDate: Date;
@@ -770,4 +751,36 @@ extends ItrackStamp {
 
 export interface IcurrencyProp {
   currency: string; // currency code defaults to USD
+}
+
+
+export interface IcomparisonFilter {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  name: string;
+  value: number | Date | string;
+  direction: 'eq' | 'gt' | 'gte' | 'lt' | 'lte';
+}
+
+export interface IpropFilter {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any;
+}
+
+export interface IpropSort {
+  [key: string]: 'asc' | 'desc';
+}
+
+export interface IfilterProps {
+  searchterm?: string;
+  searchKey?: string;
+  offset?: number;
+  limit?: number;
+  propFilter?: IpropFilter[];
+  comparisonFilter?: IcomparisonFilter[];
+  propSort?: IpropSort[];
+}
+
+export interface IfilterAggResponse<T> {
+  data: T[];
+  total: { count: number};
 }

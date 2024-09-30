@@ -1,13 +1,23 @@
 
 import { requireActiveCompany } from '@open-stock/stock-auth-server';
-import { IdataArrayResponse, Isuccess } from '@open-stock/stock-universal';
-import { addParentToLocals, makeCompanyBasedQuery, makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr } from '@open-stock/stock-universal-server';
+import {
+  IcustomRequest, IdataArrayResponse, IdeleteMany, IexpenseReport, IfilterProps, Isuccess
+} from '@open-stock/stock-universal';
+import {
+  addParentToLocals, generateUrId,
+  makeCompanyBasedQuery, offsetLimitRelegator,
+  requireAuth, roleAuthorisation,
+  stringifyMongooseErr
+} from '@open-stock/stock-universal-server';
 import express from 'express';
 import * as fs from 'fs';
 import path from 'path';
 import * as tracer from 'tracer';
 import { expenseLean } from '../../../models/expense.model';
-import { expenseReportLean, expenseReportMain } from '../../../models/printables/report/expenesreport.model';
+import {
+  TexpenseReport, expenseReportLean,
+  expenseReportMain
+} from '../../../models/printables/report/expenesreport.model';
 
 /** Logger for expense report routes */
 const expenseReportRoutesLogger = tracer.colorConsole({
@@ -40,228 +50,214 @@ const expenseReportRoutesLogger = tracer.colorConsole({
  */
 export const expenseReportRoutes = express.Router();
 
-/**
- * Create a new expense report
- * @name POST /create
- * @function
- * @memberof module:routes/expenseReportRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- * @param {callback} middleware - Express middleware
- * @returns {Promise<void>} Promise representing the result of the operation
- */
-expenseReportRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'create'), async(req, res) => {
-  const expenseReport = req.body.expenseReport;
-  const { filter } = makeCompanyBasedQuery(req);
+expenseReportRoutes.post(
+  '/add',
+  requireAuth,
+  requireActiveCompany,
+  roleAuthorisation('reports', 'create'),
+  async(req: IcustomRequest<never, IexpenseReport>, res) => {
+    const expenseReport = req.body;
+    const { filter } = makeCompanyBasedQuery(req);
 
-  expenseReport.companyId = filter.companyId;
+    expenseReport.companyId = filter.companyId;
 
-  const count = await expenseReportMain
-    .find({ }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
+    expenseReport.urId = await generateUrId(expenseReportMain);
+    const newExpenseReport = new expenseReportMain(expenseReport);
+    let errResponse: Isuccess;
 
-  expenseReport.urId = makeUrId(Number(count[0]?.urId || '0'));
-  const newExpenseReport = new expenseReportMain(expenseReport);
-  let errResponse: Isuccess;
-
-  const saved = await newExpenseReport.save().catch(err => {
-    errResponse = {
-      success: false,
-      status: 403
-    };
-    if (err && err.errors) {
-      errResponse.err = stringifyMongooseErr(err.errors);
-    } else {
-      errResponse.err = `we are having problems connecting to our databases, 
+    const saved = await newExpenseReport.save().catch(err => {
+      errResponse = {
+        success: false,
+        status: 403
+      };
+      if (err && err.errors) {
+        errResponse.err = stringifyMongooseErr(err.errors);
+      } else {
+        errResponse.err = `we are having problems connecting to our databases, 
       try again in a while`;
+      }
+
+      return err;
+    });
+
+
+    if (saved && saved._id) {
+      addParentToLocals(res, saved._id, expenseReportLean.collection.collectionName, 'makeTrackEdit');
     }
 
-    return err;
-  });
+    if (errResponse) {
+      return res.status(403).send(errResponse);
+    }
 
-
-  if (saved && saved._id) {
-    addParentToLocals(res, saved._id, expenseReportLean.collection.collectionName, 'makeTrackEdit');
+    return res.status(200).send({ success: true });
   }
+);
 
-  if (errResponse) {
-    return res.status(403).send(errResponse);
-  }
+expenseReportRoutes.get(
+  '/one/:urId',
+  requireAuth,
+  requireActiveCompany,
+  roleAuthorisation('reports', 'read'),
+  async(req: IcustomRequest<{ urId: string }, null>, res) => {
+    const { urId } = req.params;
+    const { filter } = makeCompanyBasedQuery(req);
+    const expenseReport = await expenseReportLean
+      .findOne({ urId, ...filter })
+      .lean()
+      .populate({ path: 'expenses', model: expenseLean });
 
-  return res.status(200).send({ success: true });
-});
+    if (!expenseReport) {
+      return res.status(404).send({ success: false, err: 'not found' });
+    }
 
-/**
- * Get a single expense report by UR ID
- * @name GET /getone/:urId
- * @function
- * @memberof module:routes/expenseReportRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- * @param {callback} middleware - Express middleware
- * @returns {Promise<void>} Promise representing the result of the operation
- */
-expenseReportRoutes.get('/getone/:urId/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'read'), async(req, res) => {
-  const { urId } = req.params;
-  const { filter } = makeCompanyBasedQuery(req);
-  const expenseReport = await expenseReportLean
-    .findOne({ urId, ...filter })
-    .lean()
-    .populate({ path: 'expenses', model: expenseLean });
-
-  if (expenseReport) {
     addParentToLocals(res, expenseReport._id, expenseReportLean.collection.collectionName, 'trackDataView');
+
+    return res.status(200).send(expenseReport);
   }
+);
 
-  return res.status(200).send(expenseReport);
-});
+expenseReportRoutes.get(
+  '/all/:offset/:limit',
+  requireAuth,
+  requireActiveCompany,
+  roleAuthorisation('reports', 'read'),
+  async(req: IcustomRequest<{ offset: string; limit: string }, null>, res) => {
+    const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
+    const { filter } = makeCompanyBasedQuery(req);
+    const all = await Promise.all([
+      expenseReportLean
+        .find(filter)
+        .skip(offset)
+        .limit(limit)
+        .lean()
+        .populate({ path: 'expenses', model: expenseLean })
+        .catch(() => {
+          return [];
+        }),
+      expenseReportLean.countDocuments(filter)
+    ]);
 
-/**
- * Get all expense reports with pagination
- * @name GET /getall/:offset/:limit
- * @function
- * @memberof module:routes/expenseReportRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- * @param {callback} middleware - Express middleware
- * @returns {Promise<void>} Promise representing the result of the operation
- */
-expenseReportRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'read'), async(req, res) => {
-  const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
-  const { filter } = makeCompanyBasedQuery(req);
-  const all = await Promise.all([
-    expenseReportLean
-      .find(filter)
-      .skip(offset)
-      .limit(limit)
-      .lean()
-      .populate({ path: 'expenses', model: expenseLean })
-      .catch(() => {
-        return [];
-      }),
-    expenseReportLean.countDocuments(filter)
+
+    const response: IdataArrayResponse<TexpenseReport> = {
+      count: all[1],
+      data: all[0]
+    };
+
+    for (const val of all[0]) {
+      addParentToLocals(res, val._id, expenseReportLean.collection.collectionName, 'trackDataView');
+    }
+
+    res.status(200).send(response);
+
+    return res.end();
+  }
+);
+
+expenseReportRoutes.delete(
+  '/delete/one/:_id',
+  requireAuth,
+  requireActiveCompany,
+  roleAuthorisation('reports', 'delete'),
+  async(req: IcustomRequest<never, unknown>, res) => {
+    const { _id } = req.params;
+    const { filter } = makeCompanyBasedQuery(req);
+
+    // const deleted = await expenseReportMain.findOneAndDelete({ _id, ...filter });
+    const deleted = await expenseReportMain.updateOne({ _id, ...filter }, { $set: { isDeleted: true } });
+
+    if (Boolean(deleted)) {
+      addParentToLocals(res, _id, expenseReportLean.collection.collectionName, 'trackDataDelete');
+
+      return res.status(200).send({ success: Boolean(deleted) });
+    } else {
+      return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
+    }
+  }
+);
+
+expenseReportRoutes.post(
+  '/filter',
+  requireAuth,
+  requireActiveCompany,
+  roleAuthorisation('reports', 'read'),
+  async(req: IcustomRequest<never, IfilterProps>, res) => {
+    const { searchterm, searchKey } = req.body;
+    const { filter } = makeCompanyBasedQuery(req);
+    const { offset, limit } = offsetLimitRelegator(req.body.offset, req.body.limit);
+
+    /* TODO const aggCursor = invoiceLean
+  .aggregate<IfilterAggResponse<soth>>([
+    ...lookupSubFieldInvoiceRelatedFilter(constructFiltersFromBody(req), propSort, offset, limit)
   ]);
+  const dataArr: IfilterAggResponse<soth>[] = [];
 
-
-  const response: IdataArrayResponse = {
-    count: all[1],
-    data: all[0]
-  };
-
-  for (const val of all[0]) {
-    addParentToLocals(res, val._id, expenseReportLean.collection.collectionName, 'trackDataView');
+  for await (const data of aggCursor) {
+    dataArr.push(data);
   }
 
-  res.status(200).send(response);
+  const all = dataArr[0]?.data || [];
+  const count = dataArr[0]?.total?.count || 0;
+  */
 
-  return res.end();
-});
+    const all = await Promise.all([
+      expenseReportLean
+        .find({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
+        .lean()
+        .skip(offset)
+        .limit(limit)
+        .populate({ path: 'expenses', model: expenseLean }),
+      expenseReportLean.countDocuments({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
+    ]);
+    const response: IdataArrayResponse<TexpenseReport> = {
+      count: all[1],
+      data: all[0]
+    };
 
-/**
- * Delete a single expense report by ID
- * @name DELETE /deleteone/:id
- * @function
- * @memberof module:routes/expenseReportRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- * @param {callback} middleware - Express middleware
- * @returns {Promise<void>} Promise representing the result of the operation
- */
-expenseReportRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'delete'), async(req, res) => {
-  const { id } = req.params;
-  const { filter } = makeCompanyBasedQuery(req);
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  // const deleted = await expenseReportMain.findOneAndDelete({ _id: id, ...filter });
-  const deleted = await expenseReportMain.updateOne({ _id: id, ...filter }, { $set: { isDeleted: true } });
+    for (const val of all[0]) {
+      addParentToLocals(res, val._id, expenseReportLean.collection.collectionName, 'trackDataView');
+    }
 
-  if (Boolean(deleted)) {
-    addParentToLocals(res, id, expenseReportLean.collection.collectionName, 'trackDataDelete');
-
-    return res.status(200).send({ success: Boolean(deleted) });
-  } else {
-    return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
+    return res.status(200).send(response);
   }
-});
+);
 
-/**
- * Search for expense reports by search term and search key with pagination
- * @name POST /search/:offset/:limit
- * @function
- * @memberof module:routes/expenseReportRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- * @param {callback} middleware - Express middleware
- * @returns {Promise<void>} Promise representing the result of the operation
- */
-expenseReportRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'read'), async(req, res) => {
-  const { searchterm, searchKey } = req.body;
-  const { filter } = makeCompanyBasedQuery(req);
-  const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
-  const all = await Promise.all([
-    expenseReportLean
-      .find({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
-      .lean()
-      .skip(offset)
-      .limit(limit)
-      .populate({ path: 'expenses', model: expenseLean }),
-    expenseReportLean.countDocuments({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
-  ]);
-  const response: IdataArrayResponse = {
-    count: all[1],
-    data: all[0]
-  };
+expenseReportRoutes.put(
+  '/delete/many',
+  requireAuth,
+  requireActiveCompany,
+  roleAuthorisation('reports', 'delete'),
+  async(req: IcustomRequest<never, IdeleteMany>, res) => {
+    const { _ids } = req.body;
+    const { filter } = makeCompanyBasedQuery(req);
 
-  for (const val of all[0]) {
-    addParentToLocals(res, val._id, expenseReportLean.collection.collectionName, 'trackDataView');
-  }
-
-  return res.status(200).send(response);
-});
-
-/**
- * Delete multiple expense reports by ID
- * @name PUT /deletemany
- * @function
- * @memberof module:routes/expenseReportRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- * @param {callback} middleware - Express middleware
- * @returns {Promise<void>} Promise representing the result of the operation
- */
-expenseReportRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'delete'), async(req, res) => {
-  const { ids } = req.body;
-  const { filter } = makeCompanyBasedQuery(req);
-
-  /* const deleted = await expenseReportMain
-    .deleteMany({ ...filter, _id: { $in: ids } })
+    /* const deleted = await expenseReportMain
+    .deleteMany({ ...filter, _id: { $in: _ids } })
     .catch(err => {
       expenseReportRoutesLogger.error('deletemany - err: ', err);
 
       return null;
     }); */
 
-  const deleted = await expenseReportMain
-    .updateMany({ ...filter, _id: { $in: ids } }, {
-      $set: { isDeleted: true }
-    })
-    .catch(err => {
-      expenseReportRoutesLogger.error('deletemany - err: ', err);
+    const deleted = await expenseReportMain
+      .updateMany({ ...filter, _id: { $in: _ids } }, {
+        $set: { isDeleted: true }
+      })
+      .catch(err => {
+        expenseReportRoutesLogger.error('deletemany - err: ', err);
 
-      return null;
-    });
+        return null;
+      });
 
-  if (Boolean(deleted)) {
-    for (const val of ids) {
-      addParentToLocals(res, val, expenseReportLean.collection.collectionName, 'trackDataDelete');
+    if (Boolean(deleted)) {
+      for (const val of _ids) {
+        addParentToLocals(res, val, expenseReportLean.collection.collectionName, 'trackDataDelete');
+      }
+
+      return res.status(200).send({ success: Boolean(deleted) });
+    } else {
+      return res.status(404).send({
+        success: Boolean(deleted),
+        err: 'could not delete selected items, try again in a while' });
     }
-
-    return res.status(200).send({ success: Boolean(deleted) });
-  } else {
-    return res.status(404).send({ success: Boolean(deleted), err: 'could not delete selected items, try again in a while' });
   }
-});
+);

@@ -2,7 +2,6 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import { Iadminloginres, Iauthresponse, IpermProp, Iuser } from '@open-stock/stock-universal';
 import { disconnectMongoose } from '@open-stock/stock-universal-server';
-import { Application } from 'express';
 import * as http from 'http';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -16,7 +15,7 @@ import { connectAuthDatabase } from '../../../src/stock-auth-local';
 const checkIfAdminHoisted = vi.hoisted(() => {
   return {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    checkIfAdmin: vi.fn().mockImplementation((req, res, next) => {
+    checkIfAdmin: vi.fn().mockImplementation((req: IcustomRequest<never, unknown>, res, next) => {
       const nowResponse: Iadminloginres = {
         success: false
       };
@@ -62,7 +61,7 @@ const universialControllerHoisted = vi.hoisted(() => {
 
 const authControllerHoisted = vi.hoisted(() => {
   return {
-    checkIpAndAttempt: vi.fn().mockImplementation((req, res, next) => {
+    checkIpAndAttempt: vi.fn().mockImplementation((req: IcustomRequest<never, unknown>, res, next) => {
       return next();
     })
   };
@@ -72,7 +71,7 @@ const authControllerHoisted = vi.hoisted(() => {
 const authRoutesHoisted = vi.hoisted(() => {
   return {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    userLoginRelegator: vi.fn().mockImplementation((req, res, next) => {
+    userLoginRelegator: vi.fn().mockImplementation((req: IcustomRequest<never, unknown>, res, next) => {
       const nowResponse: Iauthresponse = {
         success: true,
         user: createMockUser() as unknown as Iuser,
@@ -81,7 +80,7 @@ const authRoutesHoisted = vi.hoisted(() => {
 
       return res.status(200).send(nowResponse);
     }),
-    userLoginRelegatorFail: vi.fn((req, res, next) => {
+    userLoginRelegatorFail: vi.fn((req: IcustomRequest<never, unknown>, res, next) => {
       return res.status(401).send('unauthorised');
     })
   };
@@ -97,7 +96,7 @@ const permObj: IpermProp = {
 // userAuthSelect
 const stockUniversalServer = vi.hoisted(() => {
   return {
-    requireAuth: vi.fn((req, res, next) => {
+    requireAuth: vi.fn((req: IcustomRequest<never, unknown>, res, next) => {
       req.user = {
         userId: '507f1f77bcf86cd799439011',
         permissions: {
@@ -234,7 +233,7 @@ describe('AuthRoutes', () => {
   });
 
   it('should fail to updateprofile for user', async() => {
-    const res = await request(app).post(apiUrl + '/updateprofile/' + 'all')
+    const res = await request(app).post(apiUrl + '/update/profile/' + 'all')
       .send({ age: 24 });
 
     expect(res.status).toBe(404);

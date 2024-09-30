@@ -51,10 +51,12 @@ export const createFaqModel = async (dbUrl, dbOptions, main = true, lean = true)
         await connectStockDatabase(dbUrl, dbOptions);
     }
     if (main) {
-        faqMain = mainConnection.model('Faq', faqSchema);
+        faqMain = mainConnection
+            .model('Faq', faqSchema);
     }
     if (lean) {
-        faqLean = mainConnectionLean.model('Faq', faqSchema);
+        faqLean = mainConnectionLean
+            .model('Faq', faqSchema);
     }
 };
 //# sourceMappingURL=faq.model.js.map

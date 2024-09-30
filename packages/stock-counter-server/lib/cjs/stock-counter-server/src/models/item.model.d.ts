@@ -24,10 +24,6 @@
 /// <reference types="mongoose/types/inferschematype" />
 import { Iitem } from '@open-stock/stock-universal';
 import { ConnectOptions, Document, Model } from 'mongoose';
-/**
- * Represents the type of the item model.
- * Extends the Document type and allows any additional properties.
- */
 export type TitemModel = Document & Iitem;
 /**
  * Represents the main item model.

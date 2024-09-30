@@ -50,10 +50,12 @@ export const createFaqanswerModel = async (dbUrl, dbOptions, main = true, lean =
         await connectStockDatabase(dbUrl, dbOptions);
     }
     if (main) {
-        faqanswerMain = mainConnection.model('Faqanswer', faqanswerSchema);
+        faqanswerMain = mainConnection
+            .model('Faqanswer', faqanswerSchema);
     }
     if (lean) {
-        faqanswerLean = mainConnectionLean.model('Faqanswer', faqanswerSchema);
+        faqanswerLean = mainConnectionLean
+            .model('Faqanswer', faqanswerSchema);
     }
 };
 //# sourceMappingURL=faqanswer.model.js.map

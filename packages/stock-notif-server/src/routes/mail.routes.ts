@@ -1,3 +1,4 @@
+import { IcustomRequest } from '@open-stock/stock-universal';
 import express from 'express';
 import * as fs from 'fs';
 import path from 'path';
@@ -117,7 +118,9 @@ height: 100%;
       ${message}
 
       <div class="last-divi">
-        <a href="https://eagleinfosolutions.com/support">Help</a> | <a href="https://eagleinfosolutions.com/support">Contacts</a>
+        <a href="https://eagleinfosolutions.com/support">
+        Help
+        </a> | <a href="https://eagleinfosolutions.com/support">Contacts</a>
       </div>
 
       <div class="compny-divi"> Eagle Info Solutions Inc, Kampala Uganda</div>
@@ -149,15 +152,21 @@ height: 100%;
  */
 export const mailSenderRoutes = express.Router();
 
-mailSenderRoutes.post('/sendmail', async(req, res) => {
-  const { emailFrom, emailTo, subject, message } = req.body;
-  const sent = await sendRandomEmail(emailFrom, emailTo, subject, message);
+mailSenderRoutes.post(
+  '/sendmail',
+  async(
+    req: IcustomRequest<never, { emailFrom: string; emailTo: string; subject: string; message: string }>,
+    res
+  ) => {
+    const { emailFrom, emailTo, subject, message } = req.body;
+    const sent = await sendRandomEmail(emailFrom, emailTo, subject, message);
 
-  if (!sent) {
-    return res.status(500).send({ success: false, status: 500 });
+    if (!sent) {
+      return res.status(500).send({ success: false, status: 500 });
+    }
+
+    return res.status(200).send({ success: true, status: 200 });
   }
-
-  return res.status(200).send({ success: true, status: 200 });
-});
+);
 
 

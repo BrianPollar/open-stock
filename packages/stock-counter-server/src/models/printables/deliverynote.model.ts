@@ -1,6 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-type-arguments */
-import { IinvoiceRelatedRef, IurId } from '@open-stock/stock-universal';
-import { createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
+import { IinvoiceRelatedRef } from '@open-stock/stock-universal';
+import {
+  createExpireDocIndex, preUpdateDocExpire,
+  withUrIdAndCompanySchemaObj,
+  withUrIdAndCompanySelectObj
+} from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
@@ -9,7 +13,7 @@ const uniqueValidator = require('mongoose-unique-validator');
  * Represents a delivery note.
  * @typedef {Document & IurId & IinvoiceRelatedRef} TdeliveryNote
  */
-export type TdeliveryNote = Document & IurId & IinvoiceRelatedRef;
+export type TdeliveryNote = Document & IinvoiceRelatedRef;
 
 const deliveryNoteSchema: Schema<TdeliveryNote> = new Schema({
   ...withUrIdAndCompanySchemaObj,
@@ -66,10 +70,12 @@ export const createDeliveryNoteModel = async(dbUrl: string, dbOptions?: ConnectO
   }
 
   if (main) {
-    deliveryNoteMain = mainConnection.model<TdeliveryNote>('DeliveryNote', deliveryNoteSchema);
+    deliveryNoteMain = mainConnection
+      .model<TdeliveryNote>('DeliveryNote', deliveryNoteSchema);
   }
 
   if (lean) {
-    deliveryNoteLean = mainConnectionLean.model<TdeliveryNote>('DeliveryNote', deliveryNoteSchema);
+    deliveryNoteLean = mainConnectionLean
+      .model<TdeliveryNote>('DeliveryNote', deliveryNoteSchema);
   }
 };

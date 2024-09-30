@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-type-arguments */
 import { IprofitAndLossReport } from '@open-stock/stock-universal';
-import { createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
+import {
+  createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj
+} from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
@@ -64,18 +66,25 @@ export const profitandlossReportSelect = profitandlossReportselect;
  * @param main - Whether to create the main connection model. Defaults to true.
  * @param lean - Whether to create the lean connection model. Defaults to true.
  */
-export const createProfitandlossReportModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
+export const createProfitandlossReportModel = async(
+  dbUrl: string,
+  dbOptions?: ConnectOptions,
+  main = true,
+  lean = true
+) => {
   createExpireDocIndex(profitandlossReportSchema);
   if (!isStockDbConnected) {
     await connectStockDatabase(dbUrl, dbOptions);
   }
 
   if (main) {
-    profitandlossReportMain = mainConnection.model<TprofitandlossReport>('profitandlossReport', profitandlossReportSchema);
+    profitandlossReportMain = mainConnection
+      .model<TprofitandlossReport>('profitandlossReport', profitandlossReportSchema);
   }
 
   if (lean) {
-    profitandlossReportLean = mainConnectionLean.model<TprofitandlossReport>('profitandlossReport', profitandlossReportSchema);
+    profitandlossReportLean = mainConnectionLean
+      .model<TprofitandlossReport>('profitandlossReport', profitandlossReportSchema);
   }
 };
 

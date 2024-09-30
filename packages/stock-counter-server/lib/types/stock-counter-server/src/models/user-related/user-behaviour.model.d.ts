@@ -23,9 +23,11 @@
 /// <reference types="mongoose/types/virtuals" />
 /// <reference types="mongoose/types/inferschematype" />
 /**
- * Defines the schema and models for the user behaviour data, including recent activity, cart, wishlist, compare list, and search terms.
+ * Defines the schema and models for the user behaviour data, including
+ * recent activity, cart, wishlist, compare list, and search terms.
  * The schema is defined with Mongoose and includes a unique validator plugin.
- * The `createReviewModel` function can be used to create the main and lean connection models for the user behaviour data.
+ * The `createReviewModel` function can be used to create the
+ * main and lean connection models for the user behaviour data.
  */
 import { IuserBehaviour } from '@open-stock/stock-universal';
 import { ConnectOptions, Document, Model } from 'mongoose';
@@ -36,13 +38,16 @@ import { ConnectOptions, Document, Model } from 'mongoose';
  */
 export type TuserBehaviour = Document & IuserBehaviour;
 /**
- * Represents the main Mongoose model for the user behaviour data, including recent activity, cart, wishlist, compare list, and search terms.
+ * Represents the main Mongoose model for the user behaviour
+ * data, including recent activity, cart, wishlist, compare list, and search terms.
  * This model is used for the main database connection.
  */
 export declare let userBehaviourMain: Model<TuserBehaviour>;
 /**
- * Represents the lean Mongoose model for the user behaviour data, including recent activity, cart, wishlist, compare list, and search terms.
- * This model is used for the lean database connection, which provides a more optimized and efficient way of querying the data.
+ * Represents the lean Mongoose model for the user behaviour data,
+ *  including recent activity, cart, wishlist, compare list, and search terms.
+ * This model is used for the lean database connection, which provides
+ * a more optimized and efficient way of querying the data.
  */
 export declare let userBehaviourLean: Model<TuserBehaviour>;
 export declare const userBehaviourSelect: {

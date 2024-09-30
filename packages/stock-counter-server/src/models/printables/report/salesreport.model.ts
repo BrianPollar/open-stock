@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-type-arguments */
 import { IsalesReport } from '@open-stock/stock-universal';
-import { createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
+import {
+  createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj
+} from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
@@ -72,10 +74,12 @@ export const createSalesReportModel = async(dbUrl: string, dbOptions?: ConnectOp
   }
 
   if (main) {
-    salesReportMain = mainConnection.model<TsalesReport>('salesReport', salesReportSchema);
+    salesReportMain = mainConnection
+      .model<TsalesReport>('salesReport', salesReportSchema);
   }
 
   if (lean) {
-    salesReportLean = mainConnectionLean.model<TsalesReport>('salesReport', salesReportSchema);
+    salesReportLean = mainConnectionLean
+      .model<TsalesReport>('salesReport', salesReportSchema);
   }
 };

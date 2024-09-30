@@ -3,6 +3,10 @@ import * as jwt from 'jsonwebtoken';
 import path from 'path';
 import * as tracer from 'tracer';
 import { stockUniversalConfig } from '../stock-universal-local';
+// eslint-disable-next-line @typescript-eslint/naming-convention
+const GoogleStrategy = require('passport-google-oidc');
+// eslint-disable-next-line @typescript-eslint/naming-convention
+const FacebookStrategy = require('passport-facebook');
 // This vat creates a passportLogger named `controllers/passport`.
 const passportLogger = tracer.colorConsole({
     format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
@@ -37,7 +41,7 @@ const extractJwt = require('passport-jwt').ExtractJwt;
  * Runs the Passport configuration for JWT authentication.
  * @param jwtSecret - The secret key used to sign and verify JWT tokens.
  */
-export const runPassport = (jwtSecret) => {
+export const runPassport = (jwtSecret, strategys) => {
     // Create a JWT options object.
     const jwtOptions = {
         jwtFromRequest: extractJwt.fromHeader('authorization'),
@@ -50,19 +54,45 @@ export const runPassport = (jwtSecret) => {
     });
     // Use the JWT strategy with Passport.
     passport.use(jwtLogin);
+    if (strategys?.google) {
+        const googleLogin = new GoogleStrategy({
+            clientID: strategys.google.GOOGLE_CLIENT_ID,
+            clientSecret: strategys.google.GOOGLE_CLIENT_SECRET,
+            callbackURL: '/oauth2/redirect/google',
+            scope: ['profile']
+        }, function verify(issuer, profile, cb) {
+            return cb(null, profile);
+        });
+        passport.use(googleLogin);
+    }
+    if (strategys?.facebook) {
+        const facebookLogin = new FacebookStrategy({
+            clientID: strategys.facebook.FACEBOOK_CLIENT_ID,
+            clientSecret: strategys.facebook.FACEBOOK_CLIENT_SECRET,
+            callbackURL: '/oauth2/redirect/facebook',
+            state: true
+        }, function verify(accessToken, refreshToken, profile, cb) {
+            return cb(null, profile);
+        });
+        passport.use(facebookLogin);
+    }
 };
 // This function defines a function that checks the user's permissions for the given role.
 /**
  * Middleware function for role-based authorization.
  * @param nowRole - The current role to check.
  * @param permProp - The permission property to check within the role.
- * @returns A middleware function that checks the user's permissions and authorizes access based on the role and permission property.
+ * @returns A middleware function that checks the user's permissions
+ * and authorizes access based on the role and permission property.
  */
 export const roleAuthorisation = (nowRole, permProp, mayBeProfile) => {
     // Log the role name.
     passportLogger.info(`roleAuthorisation - role: ${nowRole}`);
     // Create a middleware function that checks the user's permissions.
-    return (req, res, next) => {
+    return (
+    // req: IcustomRequest<never, Partial<{ profileOnly?: string } &
+    // unknown & Record<string, string | number | boolean | string[] | unknown>>>,
+    req, res, next) => {
         // Get the user's permissions from the request object.
         const { permissions } = req.user;
         if (nowRole !== 'buyer' && permissions.companyAdminAccess) {
@@ -123,6 +153,7 @@ const extractToken = (req) => {
 export const appendUserToReqIfTokenExist = (req, res, next) => {
     const token = extractToken(req);
     if (!token) {
+        req.user = {};
         return next();
     }
     jwt.verify(token, stockUniversalConfig.authSecrets.jwtSecret, function (err, decoded) {
@@ -134,5 +165,7 @@ export const appendUserToReqIfTokenExist = (req, res, next) => {
             return next();
         }
     });
+};
+export const canFilterDeepProps = () => {
 };
 //# sourceMappingURL=passport.js.map

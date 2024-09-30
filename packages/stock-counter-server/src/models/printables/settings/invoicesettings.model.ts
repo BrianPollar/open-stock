@@ -1,5 +1,7 @@
 import { IinvoiceSetting } from '@open-stock/stock-universal';
-import { createExpireDocIndex, preUpdateDocExpire, withCompanySchemaObj, withCompanySelectObj } from '@open-stock/stock-universal-server';
+import {
+  createExpireDocIndex, preUpdateDocExpire, withCompanySchemaObj, withCompanySelectObj
+} from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../../utils/database';
 
@@ -60,11 +62,13 @@ export const createInvoiceSettingModel = async(dbUrl: string, dbOptions?: Connec
   }
 
   if (main) {
-    invoiceSettingMain = mainConnection.model<TinvoiceSetting>('InvoiceSetting', invoiceSettingSchema);
+    invoiceSettingMain = mainConnection
+      .model<TinvoiceSetting>('InvoiceSetting', invoiceSettingSchema);
   }
 
   if (lean) {
-    invoiceSettingLean = mainConnectionLean.model<TinvoiceSetting>('invoiceSetting', invoiceSettingSchema);
+    invoiceSettingLean = mainConnectionLean
+      .model<TinvoiceSetting>('invoiceSetting', invoiceSettingSchema);
   }
 };
 

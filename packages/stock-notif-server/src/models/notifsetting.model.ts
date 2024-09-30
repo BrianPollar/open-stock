@@ -61,10 +61,12 @@ export const createNotifStnModel = async(dbUrl: string, dbOptions?: ConnectOptio
   }
 
   if (main) {
-    notifSettingMain = mainConnection.model<TnotifSetting>('NotifSetting', notifSettingSchema);
+    notifSettingMain = mainConnection
+      .model<TnotifSetting>('NotifSetting', notifSettingSchema);
   }
 
   if (lean) {
-    notifSettingLean = mainConnectionLean.model<TnotifSetting>('NotifSetting', notifSettingSchema);
+    notifSettingLean = mainConnectionLean
+      .model<TnotifSetting>('NotifSetting', notifSettingSchema);
   }
 };

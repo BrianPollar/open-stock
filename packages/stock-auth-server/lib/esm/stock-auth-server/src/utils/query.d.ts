@@ -187,3 +187,25 @@ export declare const populateCompany: (returnActive?: boolean) => {
     }[];
     transform?: undefined;
 };
+/**
+   * Populates the user field on a given document with the associated user, including
+   * the user's photos, profile picture, and profile cover picture.
+   *
+   * @returns A mongoose populate object.
+   */
+export declare const populateOwner: () => {
+    path: string;
+    model: import("mongoose").Model<import("../models/user.model").Tuser, {}, {}, {}, import("mongoose").Document<unknown, {}, import("../models/user.model").Tuser> & import("mongoose").Document<any, any, any> & import("@open-stock/stock-universal").Iuser & import("../models/user.model").IschemaMethods & {
+        _id: import("mongoose").Types.ObjectId;
+    }, any>;
+    populate: {
+        path: string;
+        model: import("mongoose").Model<import("@open-stock/stock-universal").IfileMeta, {}, {}, {}, import("mongoose").Document<unknown, {}, import("@open-stock/stock-universal").IfileMeta> & import("@open-stock/stock-universal").IfileMeta & Required<{
+            _id: string;
+        }>, any>;
+        transform: (doc: any) => {
+            _id: any;
+            url: any;
+        };
+    }[];
+};

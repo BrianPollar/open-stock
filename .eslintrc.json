@@ -10,6 +10,17 @@
     "es6": true
   },
   "rules": {
+    "dot-location": [
+      "error",
+      "property"
+    ],
+    "max-len": [
+      "error",
+      {
+        "code": 120
+      }
+    ],
+    "require-await": "error",
     // member spacing
     "lines-between-class-members": [
       "error",
@@ -293,7 +304,7 @@
             "leadingUnderscore": "forbid",
             "trailingUnderscore": "forbid",
             "filter": {
-              "regex": "(_id)",
+              "regex": "(_id|_ids)",
               "match": false
             }
           },
@@ -304,7 +315,11 @@
               "UPPER_CASE"
             ],
             "leadingUnderscore": "forbid",
-            "trailingUnderscore": "forbid"
+            "trailingUnderscore": "forbid",
+            "filter": {
+              "regex": "(_id|_ids)",
+              "match": false
+            }
           },
           {
             "selector": "typeLike",
@@ -325,7 +340,11 @@
               "Base" */
             ],
             "leadingUnderscore": "forbid",
-            "trailingUnderscore": "forbid"
+            "trailingUnderscore": "forbid",
+            "filter": {
+              "regex": "(_id|_ids)",
+              "match": false
+            }
           },
           {
             "selector": "classMethod",
@@ -333,7 +352,11 @@
               "strictCamelCase"
             ],
             "leadingUnderscore": "forbid",
-            "trailingUnderscore": "forbid"
+            "trailingUnderscore": "forbid",
+            "filter": {
+              "regex": "(_id|_ids)",
+              "match": false
+            }
           },
           {
             "selector": "classProperty",
@@ -341,7 +364,11 @@
               "strictCamelCase"
             ],
             "leadingUnderscore": "forbid",
-            "trailingUnderscore": "forbid"
+            "trailingUnderscore": "forbid",
+            "filter": {
+              "regex": "(_id|_ids)",
+              "match": false
+            }
           },
           {
             "selector": "function",
@@ -349,7 +376,11 @@
               "strictCamelCase"
             ],
             "leadingUnderscore": "forbid",
-            "trailingUnderscore": "forbid"
+            "trailingUnderscore": "forbid",
+            "filter": {
+              "regex": "(_id|_ids)",
+              "match": false
+            }
           },
           {
             "selector": "parameter",
@@ -357,7 +388,11 @@
               "strictCamelCase"
             ],
             "leadingUnderscore": "forbid",
-            "trailingUnderscore": "forbid"
+            "trailingUnderscore": "forbid",
+            "filter": {
+              "regex": "(_id|_ids)",
+              "match": false
+            }
           },
           {
             "selector": "enum",
@@ -369,7 +404,11 @@
             "prefix": [
               "E",
               "RTC_E"
-            ]
+            ],
+            "filter": {
+              "regex": "(_id|_ids)",
+              "match": false
+            }
           },
           {
             "selector": "enumMember",
@@ -377,7 +416,11 @@
               "UPPER_CASE"
             ],
             "leadingUnderscore": "forbid",
-            "trailingUnderscore": "forbid"
+            "trailingUnderscore": "forbid",
+            "filter": {
+              "regex": "(_id|_ids)",
+              "match": false
+            }
           },
           {
             "selector": "interface",
@@ -390,7 +433,11 @@
             "prefix": [
               "I",
               "RTC_I"
-            ]
+            ],
+            "filter": {
+              "regex": "(_id|_ids)",
+              "match": false
+            }
           },
           {
             "selector": "typeAlias",
@@ -401,7 +448,11 @@
             "trailingUnderscore": "forbid",
             "prefix": [
               "T"
-            ]
+            ],
+            "filter": {
+              "regex": "(_id|_ids)",
+              "match": false
+            }
           }
         ],
         /* "@typescript-eslint/quotes": [
@@ -433,7 +484,12 @@
         "@typescript-eslint/type-annotation-spacing": "error",
         "@typescript-eslint/no-explicit-any": "warn",
         "@typescript-eslint/no-implicit-any-catch": "off",
-        "@typescript-eslint/no-misused-promises": "error",
+        "@typescript-eslint/no-misused-promises": [
+          "error",
+          {
+            "checksVoidReturn": false
+          }
+        ],
         "@typescript-eslint/no-unused-expressions": "error",
         "@typescript-eslint/no-unused-vars": "warn",
         "@typescript-eslint/await-thenable": "error",

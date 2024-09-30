@@ -1,13 +1,16 @@
-import { isUniversalServerRunning, runPassport, verifyObjectId } from '@open-stock/stock-universal-server';
+import {
+  IstrategyCred,
+  isUniversalServerRunning, runPassport,
+  verifyObjectId
+} from '@open-stock/stock-universal-server';
 import express from 'express';
 import { ConnectOptions } from 'mongoose';
 import { notifSettingMain } from './models/notifsetting.model';
-import { mailSenderRoutesDummy } from './routes-dummy/mail.routes';
-import { notifnRoutesDummy } from './routes-dummy/notification.routes';
 import { mailSenderRoutes } from './routes/mail.routes';
 import { notifnRoutes } from './routes/notification.routes';
 import {
-  InotifSecrets, ItwilioAuthySecrets, createNotificationsDatabase, createStockNotifServerLocals, isStockNotifServerRunning, notificationSettings
+  InotifSecrets, ItwilioAuthySecrets,
+  createNotificationsDatabase, createStockNotifServerLocals, isStockNotifServerRunning, notificationSettings
 } from './stock-notif-local';
 import { constructMailService } from './utils/notifications';
 import { createTwilioService, makeAuthyTwilio } from './utils/twilio';
@@ -20,13 +23,14 @@ export interface IstockNotifServerConfig {
   };
   twilioAutyConfig: ItwilioAuthySecrets;
   notifSecrets: InotifSecrets;
-  useDummyRoutes?: boolean;
+  socialAuthStrategys?: IstrategyCred;
 }
 
 export const createService = () => createTwilioService();
 
 /**
-   * Runs the stock notification server by setting up the necessary configurations, connecting to the database, initializing passport authentication, and returning the notification routes.
+   * Runs the stock notification server by setting up the necessary configurations,
+   * connecting to the database, initializing passport authentication, and returning the notification routes.
    * @param {IstockNotifServerConfig} config - The server configuration.
    * @returns {Promise<{stockNotifRouter, notificationSettings}>}
    */
@@ -37,8 +41,12 @@ export const runStockNotificationServer = async(config: IstockNotifServerConfig)
     throw error;
   }
   await createNotificationsDatabase(config.databaseConfig.url, config.databaseConfig.dbOptions);
-  runPassport(config.jwtSecret);
-  const twilioAuthy = makeAuthyTwilio(config.twilioAutyConfig.authyKey, config.twilioAutyConfig.accountSid, config.twilioAutyConfig.authToken);
+  runPassport(config.jwtSecret, config.socialAuthStrategys);
+  const twilioAuthy = makeAuthyTwilio(
+    config.twilioAutyConfig.authyKey,
+    config.twilioAutyConfig.accountSid,
+    config.twilioAutyConfig.authToken
+  );
 
   notificationSettings.twilioClient = twilioAuthy.twilioClient;
   notificationSettings.defaultAuthyMail = config.twilioAutyConfig.defaultMail;
@@ -46,16 +54,15 @@ export const runStockNotificationServer = async(config: IstockNotifServerConfig)
   notificationSettings.twilioVerificationSid = config.twilioAutyConfig.twilioVerificationSid;
 
   createStockNotifServerLocals();
-  constructMailService(config.twilioAutyConfig.sendGridApiKey, config.notifSecrets.notifPublicKey, config.notifSecrets.notifPrivateKey);
+  constructMailService(
+    config.twilioAutyConfig.sendGridApiKey,
+    config.notifSecrets.notifPublicKey,
+    config.notifSecrets.notifPrivateKey
+  );
   const stockNotifRouter = express.Router();
 
-  if (!config.useDummyRoutes) {
-    stockNotifRouter.use('/notifn', notifnRoutes);
-    stockNotifRouter.use('/mailsender', mailSenderRoutes);
-  } else {
-    stockNotifRouter.use('/notifn', notifnRoutesDummy);
-    stockNotifRouter.use('/mailsender', mailSenderRoutesDummy);
-  }
+  stockNotifRouter.use('/notifn', notifnRoutes);
+  stockNotifRouter.use('/mailsender', mailSenderRoutes);
 
   return Promise.resolve({ stockNotifRouter, notificationSettings });
 };

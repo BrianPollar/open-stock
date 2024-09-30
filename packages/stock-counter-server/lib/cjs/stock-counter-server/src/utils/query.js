@@ -90,7 +90,10 @@ exports.populateEstimates = populateEstimates;
  * @returns A mongoose populate object.
  */
 const populateSignature = () => {
-    return { path: 'generalSettings.defaultDigitalSignature', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) };
+    return {
+        path: 'generalSettings.defaultDigitalSignature',
+        model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+    };
 };
 exports.populateSignature = populateSignature;
 /**
@@ -100,7 +103,10 @@ exports.populateSignature = populateSignature;
  * @returns A mongoose populate object.
  */
 const populateStamp = () => {
-    return { path: 'generalSettings.defaultDigitalStamp', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) };
+    return {
+        path: 'generalSettings.defaultDigitalStamp',
+        model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+    };
 };
 exports.populateStamp = populateStamp;
 /**

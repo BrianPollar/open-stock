@@ -1,4 +1,4 @@
-import { makeUrId, stringifyMongooseErr, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { generateUrId, stringifyMongooseErr, verifyObjectIds } from '@open-stock/stock-universal-server';
 import * as fs from 'fs';
 import path from 'path';
 import * as tracer from 'tracer';
@@ -81,7 +81,7 @@ export const checkIpAndAttempt = async (req, res, next) => {
     if (!foundUser?.password || !foundUser?.verified) {
         return next();
     }
-    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+    const ip = req.headers['x-forwarded-for'].toString() || req.socket.remoteAddress;
     const userOrCompanayId = foundUser._id;
     let foundIpModel = await userip.findOne({ userOrCompanayId }).select({
         greenIps: 1,
@@ -201,17 +201,19 @@ export const checkIpAndAttempt = async (req, res, next) => {
  * @param next - The next middleware function.
  */
 export const isTooCommonPhrase = (req, res, next) => {
-    const passwd = req.body.passwd;
-    if (req.localEnv) {
-        const { commonPhraseData } = req.localEnv;
-        if (commonPhraseData.includes(passwd)) {
-            const toSend = {
-                success: false,
-                msg: 'the password selected is to easy'
-            };
-            return res.status(403).send(toSend);
-        }
-    }
+    // const passwd = req.body.passwd;
+    /* TODO if (req.localEnv) {
+      const { commonPhraseData } = req.localEnv;
+  
+      if (commonPhraseData.includes(passwd)) {
+        const toSend = {
+          success: false,
+          msg: 'the password selected is to easy'
+        };
+  
+        return res.status(403).send(toSend);
+      }
+    } */
     return next();
 };
 /**
@@ -223,17 +225,19 @@ export const isTooCommonPhrase = (req, res, next) => {
  * @param next - The next middleware function.
  */
 export const isInAdictionaryOnline = (req, res, next) => {
-    const passwd = req.params.passwd;
-    if (req.localEnv) {
-        const { commonDictData } = req.localEnv;
-        if (commonDictData.includes(passwd)) {
-            const toSend = {
-                success: false,
-                msg: 'the password you entered was found somwhere online, please use another one'
-            };
-            return res.status(403).send(toSend);
-        }
-    }
+    // const passwd = req.params.passwd;
+    /* TODO if (req.localEnv) {
+      const { commonDictData } = req.localEnv;
+  
+      if (commonDictData.includes(passwd)) {
+        const toSend = {
+          success: false,
+          msg: 'the password you entered was found somwhere online, please use another one'
+        };
+  
+        return res.status(403).send(toSend);
+      }
+    } */
     return next();
 };
 /**
@@ -271,7 +275,7 @@ export const loginFactorRelgator = async (req, res, next) => {
     let isPhone;
     authControllerLogger.debug(`signup, 
     emailPhone: ${emailPhone}`);
-    if (isNaN(emailPhone)) {
+    if (isNaN(Number(emailPhone))) {
         query = {
             email: emailPhone
         };
@@ -295,9 +299,7 @@ export const loginFactorRelgator = async (req, res, next) => {
         };
         return res.status(200).send(response);
     }
-    const count = await user
-        .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
-    const urId = makeUrId(Number(count[0]?.urId || '0'));
+    const urId = await generateUrId(user);
     const permissions = {
         companyAdminAccess: false
     };
@@ -334,7 +336,8 @@ export const loginFactorRelgator = async (req, res, next) => {
         return res.status(response.status).send(response);
     }
     let result;
-    const type = 'token'; // note now is only token but build a counter later to make sur that the token and link methods are shared
+    // note now is only token but build a counter later to make sur that the token and link methods are shared
+    const type = 'token';
     if (isPhone) {
         result = await sendTokenPhone(saved);
     }
@@ -350,7 +353,9 @@ export const loginFactorRelgator = async (req, res, next) => {
     }
     const toSend = {
         success: false,
-        err: 'we could not process your request, something went wrong, but we are working on it, ensure you are entering the right credentials'
+        err: `we could not process your request, 
+    something went wrong, but we are working on it, 
+    ensure you are entering the right credentials`
     };
     return res.status(500).send(toSend);
 };
@@ -361,7 +366,6 @@ export const loginFactorRelgator = async (req, res, next) => {
  * @returns The response object with the updated account password.
  */
 export const resetAccountFactory = async (req, res) => {
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     const { foundUser, _id, verifycode, how, password } = req.body;
     authControllerLogger.debug(`resetpassword, 
     verifycode: ${verifycode}`);
@@ -380,8 +384,7 @@ export const resetAccountFactory = async (req, res) => {
         response = await validatePhone(foundUser, verifycode, password);
     }
     else {
-        const type = '_code';
-        response = await validateEmail(foundUser, type, verifycode, password);
+        response = await validateEmail(foundUser, 'code', verifycode, password);
     }
     return res.status(response.status).send(response.response);
 };
@@ -433,9 +436,8 @@ export const recoverAccountFactory = async (req, res) => {
  * @returns The response object with the status and response data.
  */
 export const confirmAccountFactory = async (req, res) => {
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    const { foundUser, _id, verifycode, nowHow, type, password } = req.body;
-    authControllerLogger.debug(`verify, verifycode: ${verifycode}, how: ${nowHow}`);
+    const { foundUser, _id, verifycode, useField, verificationMean, password } = req.body;
+    authControllerLogger.debug(`verify, verifycode: ${verifycode}, useField: ${useField}`);
     const isValid = verifyObjectIds([_id]);
     if (!isValid) {
         return {
@@ -447,11 +449,11 @@ export const confirmAccountFactory = async (req, res) => {
         };
     }
     let response;
-    if (nowHow === 'phone') {
+    if (useField === 'phone') {
         response = await validatePhone(foundUser, verifycode, password);
     }
     else {
-        response = await validateEmail(foundUser, type, verifycode, password);
+        response = await validateEmail(foundUser, verificationMean, verifycode, password);
     }
     /* const now = new Date();
     let filter;

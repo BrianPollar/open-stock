@@ -1,6 +1,8 @@
 import { Icustomer } from '@open-stock/stock-universal';
-import { createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
-import mongoose, { ConnectOptions, Document, Model, Schema } from 'mongoose';
+import {
+  createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj
+} from '@open-stock/stock-universal-server';
+import { ConnectOptions, Document, Model, Schema, Types } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 
@@ -12,7 +14,7 @@ export type Tcustomer = Document & Icustomer;
 /** Defines the schema for the customer model. */
 const customerSchema: Schema<Tcustomer> = new Schema({
   ...withUrIdAndCompanySchemaObj,
-  user: { type: mongoose.Types.ObjectId, unique: true, required: [true, 'cannot be empty.'], index: true },
+  user: { type: Types.ObjectId, unique: true, required: [true, 'cannot be empty.'], index: true },
   startDate: { type: Date },
   endDate: { type: Date },
   occupation: { type: String },
@@ -70,10 +72,12 @@ export const createCustomerModel = async(dbUrl: string, dbOptions?: ConnectOptio
   }
 
   if (main) {
-    customerMain = mainConnection.model<Tcustomer>('Customer', customerSchema);
+    customerMain = mainConnection
+      .model<Tcustomer>('Customer', customerSchema);
   }
 
   if (lean) {
-    customerLean = mainConnectionLean.model<Tcustomer>('Customer', customerSchema);
+    customerLean = mainConnectionLean
+      .model<Tcustomer>('Customer', customerSchema);
   }
 };

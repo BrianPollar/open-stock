@@ -87,7 +87,10 @@ export const populateEstimates = () => {
  * @returns A mongoose populate object.
  */
 export const populateSignature = () => {
-  return { path: 'generalSettings.defaultDigitalSignature', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) };
+  return {
+    path: 'generalSettings.defaultDigitalSignature',
+    model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+  };
 };
 
 /**
@@ -97,7 +100,10 @@ export const populateSignature = () => {
  * @returns A mongoose populate object.
  */
 export const populateStamp = () => {
-  return { path: 'generalSettings.defaultDigitalStamp', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) };
+  return {
+    path: 'generalSettings.defaultDigitalStamp',
+    model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+  };
 };
 
 

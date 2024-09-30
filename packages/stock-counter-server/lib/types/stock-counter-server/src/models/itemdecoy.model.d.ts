@@ -28,7 +28,7 @@ import { ConnectOptions, Document, Model } from 'mongoose';
 /**
  * Represents an item decoy in the system.
  */
-export interface IitemDecoy extends Document, ItrackStamp {
+export type TitemDecoy = Document & ItrackStamp & {
     expireDocAfterTime: Date;
     /**
      * The unique identifier of the user.
@@ -46,15 +46,15 @@ export interface IitemDecoy extends Document, ItrackStamp {
      * The list of items associated with the decoy.
      */
     items: string[];
-}
+};
 /**
  * Represents the main item decoy model.
  */
-export declare let itemDecoyMain: Model<IitemDecoy>;
+export declare let itemDecoyMain: Model<TitemDecoy>;
 /**
  * Represents the itemDecoyLean model.
  */
-export declare let itemDecoyLean: Model<IitemDecoy>;
+export declare let itemDecoyLean: Model<TitemDecoy>;
 /**
  * Selects the item decoy.
  */

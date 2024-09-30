@@ -35,18 +35,7 @@ const deliverycityRoutesLogger = tracer.colorConsole({
  * Express router for deliverycity routes
  */
 export const deliverycityRoutes = express.Router();
-/**
- * Route for creating a new delivery city
- * @name POST /create
- * @function
- * @memberof module:deliverycityRoutes
- * @inner
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @param {Object} req.body.deliverycity - Delivery city object to create
- * @returns {Object} - Returns a success object with a boolean indicating if the city was saved successfully
- */
-deliverycityRoutes.post('/create', requireAuth, requireActiveCompany, roleAuthorisation('deliveryCitys', 'create'), async (req, res) => {
+deliverycityRoutes.post('/add', requireAuth, requireActiveCompany, roleAuthorisation('deliveryCitys', 'create'), async (req, res) => {
     const deliverycity = req.body.deliverycity;
     const newDeliverycity = new deliverycityMain(deliverycity);
     let errResponse;
@@ -74,40 +63,18 @@ deliverycityRoutes.post('/create', requireAuth, requireActiveCompany, roleAuthor
     }
     return res.status(200).send({ success: Boolean(saved) });
 });
-/**
- * Route for getting a delivery city by ID
- * @name GET /getone/:id
- * @function
- * @memberof module:deliverycityRoutes
- * @inner
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @param {string} req.params.id - ID of the delivery city to retrieve
- * @returns {Object} - Returns the delivery city object
- */
-deliverycityRoutes.get('/getone/:id', appendUserToReqIfTokenExist, async (req, res) => {
-    const { id } = req.params;
+deliverycityRoutes.get('/one/:_id', appendUserToReqIfTokenExist, async (req, res) => {
+    const { _id } = req.params;
     const deliverycity = await deliverycityLean
-        .findOne({ _id: id })
+        .findOne({ _id })
         .lean();
-    if (deliverycity) {
-        addParentToLocals(res, deliverycity._id, deliverycityMain.collection.collectionName, 'trackDataView');
+    if (!deliverycity) {
+        return res.status(404).send({ success: false, err: 'not found' });
     }
+    addParentToLocals(res, deliverycity._id, deliverycityMain.collection.collectionName, 'trackDataView');
     return res.status(200).send(deliverycity);
 });
-/**
- * Route for getting all delivery cities with pagination
- * @name GET /getall/:offset/:limit
- * @function
- * @memberof module:deliverycityRoutes
- * @inner
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @param {string} req.params.offset - Offset for pagination
- * @param {string} req.params.limit - Limit for pagination
- * @returns {Object[]} - Returns an array of delivery city objects
- */
-deliverycityRoutes.get('/getall/:offset/:limit/:companyIdParam', appendUserToReqIfTokenExist, async (req, res) => {
+deliverycityRoutes.get('/all/:offset/:limit', appendUserToReqIfTokenExist, async (req, res) => {
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     const all = await Promise.all([
         deliverycityLean
@@ -126,17 +93,6 @@ deliverycityRoutes.get('/getall/:offset/:limit/:companyIdParam', appendUserToReq
     }
     return res.status(200).send(response);
 });
-/**
- * Route for updating a delivery city by ID
- * @name PUT /update
- * @function
- * @memberof module:deliverycityRoutes
- * @inner
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @param {Object} req.body - Updated delivery city object
- * @returns {Object} - Returns a success object with a boolean indicating if the city was updated successfully
- */
 deliverycityRoutes.put('/update', requireAuth, requireActiveCompany, roleAuthorisation('deliveryCitys', 'update'), async (req, res) => {
     const updatedCity = req.body;
     const isValid = verifyObjectIds([updatedCity._id]);
@@ -182,60 +138,38 @@ deliverycityRoutes.put('/update', requireAuth, requireActiveCompany, roleAuthori
     addParentToLocals(res, updatedCity._id, deliverycityMain.collection.collectionName, 'makeTrackEdit');
     return res.status(200).send({ success: Boolean(updated) });
 });
-/**
- * Route for deleting a delivery city by ID
- * @name DELETE /deleteone/:id
- * @function
- * @memberof module:deliverycityRoutes
- * @inner
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @param {string} req.params.id - ID of the delivery city to delete
- * @returns {Object} - Returns a success object with a boolean indicating if the city was deleted successfully
- */
-deliverycityRoutes.delete('/deleteone/:id', requireAuth, requireActiveCompany, roleAuthorisation('deliveryCitys', 'delete'), async (req, res) => {
-    const { id } = req.params;
-    const isValid = verifyObjectIds([id]);
+deliverycityRoutes.delete('/delete/one/:_id', requireAuth, requireActiveCompany, roleAuthorisation('deliveryCitys', 'delete'), async (req, res) => {
+    const { _id } = req.params;
+    const isValid = verifyObjectIds([_id]);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    // const deleted = await deliverycityMain.findOneAndDelete({ _id: id });
-    const deleted = await deliverycityMain.updateOne({ _id: id, ...makePredomFilter(req) }, { $set: { isDeleted: true } });
+    // const deleted = await deliverycityMain.findOneAndDelete({ _id });
+    const deleted = await deliverycityMain
+        .updateOne({ _id, ...makePredomFilter(req) }, { $set: { isDeleted: true } });
     if (Boolean(deleted)) {
-        addParentToLocals(res, id, deliverycityMain.collection.collectionName, 'trackDataDelete');
+        addParentToLocals(res, _id, deliverycityMain.collection.collectionName, 'trackDataDelete');
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
-        return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
+        return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
-/**
- * Route for deleting multiple delivery cities by ID
- * @name PUT /deletemany
- * @function
- * @memberof module:deliverycityRoutes
- * @inner
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @param {string[]} req.body.ids - Array of IDs of the delivery cities to delete
- * @returns {Object} - Returns a success object with a boolean indicating if the cities were deleted successfully
- */
-deliverycityRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('deliveryCitys', 'delete'), async (req, res) => {
-    const { ids } = req.body;
-    const isValid = verifyObjectIds([...ids]);
+deliverycityRoutes.put('/delete/many', requireAuth, requireActiveCompany, roleAuthorisation('deliveryCitys', 'delete'), async (req, res) => {
+    const { _ids } = req.body;
+    const isValid = verifyObjectIds([..._ids]);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     /* const deleted = await deliverycityMain
-      .deleteMany({ _id: { $in: ids } })
-      .catch(err => {
-        deliverycityRoutesLogger.error('deletemany - err: ', err);
-  
-        return null;
-      }); */
+    .deleteMany({ _id: { $in: _ids } })
+    .catch(err => {
+      deliverycityRoutesLogger.error('deletemany - err: ', err);
+
+      return null;
+    }); */
     const deleted = await deliverycityMain
-        .updateMany({ _id: { $in: ids } }, {
+        .updateMany({ _id: { $in: _ids } }, {
         $set: { isDeleted: true }
     })
         .catch(err => {
@@ -243,13 +177,15 @@ deliverycityRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActive
         return null;
     });
     if (Boolean(deleted)) {
-        for (const val of ids) {
+        for (const val of _ids) {
             addParentToLocals(res, val, deliverycityMain.collection.collectionName, 'trackDataDelete');
         }
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
-        return res.status(404).send({ success: Boolean(deleted), err: 'could not delete selected items, try again in a while' });
+        return res.status(404).send({
+            success: Boolean(deleted), err: 'could not delete selected items, try again in a while'
+        });
     }
 });
 //# sourceMappingURL=deliverycity.routes.js.map

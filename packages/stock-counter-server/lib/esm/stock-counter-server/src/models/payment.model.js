@@ -50,10 +50,12 @@ export const createPaymentModel = async (dbUrl, dbOptions, main = true, lean = t
         await connectStockDatabase(dbUrl, dbOptions);
     }
     if (main) {
-        paymentMain = mainConnection.model('Payment', paymentSchema);
+        paymentMain = mainConnection
+            .model('Payment', paymentSchema);
     }
     if (lean) {
-        paymentLean = mainConnectionLean.model('Payment', paymentSchema);
+        paymentLean = mainConnectionLean
+            .model('Payment', paymentSchema);
     }
 };
 //# sourceMappingURL=payment.model.js.map

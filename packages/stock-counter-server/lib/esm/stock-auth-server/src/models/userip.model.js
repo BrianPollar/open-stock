@@ -30,10 +30,12 @@ export const createUseripModel = async (dbUrl, dbOptions, main = true, lean = tr
         await connectAuthDatabase(dbUrl, dbOptions);
     }
     if (main) {
-        userip = mainConnection.model('userip', useripSchema);
+        userip = mainConnection
+            .model('userip', useripSchema);
     }
     if (lean) {
-        useripLean = mainConnectionLean.model('userip', useripSchema);
+        useripLean = mainConnectionLean
+            .model('userip', useripSchema);
     }
 };
 //# sourceMappingURL=userip.model.js.map

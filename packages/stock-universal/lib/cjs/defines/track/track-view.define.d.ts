@@ -57,8 +57,8 @@ export declare class TrackView extends DatabaseAuto {
     /**
      * Deletes a track view by id.
      *
-     * @param id the id of the track view to delete.
+     * @param _id the id of the track view to delete.
      * @returns a boolean indicating whether the track view was successfully deleted.
      */
-    static deleteOne(id: string): Promise<Isuccess>;
+    static deleteOne(_id: string): Promise<Isuccess>;
 }

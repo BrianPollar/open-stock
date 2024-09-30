@@ -5,9 +5,6 @@ const stock_auth_client_1 = require("@open-stock/stock-auth-client");
 const stock_universal_1 = require("@open-stock/stock-universal");
 const rxjs_1 = require("rxjs");
 const stock_counter_client_1 = require("../stock-counter-client");
-/**
- * Represents a review object.
- */
 class Review extends stock_universal_1.DatabaseAuto {
     /**
      * Creates a new Review object.
@@ -33,62 +30,72 @@ class Review extends stock_universal_1.DatabaseAuto {
     }
     /**
      * Gets all reviews for a given item.
-     * @param companyId - The ID of the company
+  
      * @param itemId The ID of the item to get reviews for.
      * @param url The URL to use for the request. Defaults to 'getall'.
      * @param offset The offset to use for the request. Defaults to 0.
      * @param limit The limit to use for the request. Defaults to 0.
      * @returns An array of Review objects.
      */
-    static async getreviews(companyId, itemId, url = 'getall', offset = 0, limit = 20) {
+    static async getAll(itemId, // TODO
+    offset = 0, limit = 20) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makeGet(`/review/${url}/${itemId}/${offset}/${limit}/${companyId}`);
+            .makeGet(`/review/all/${itemId}/${offset}/${limit}`);
         const reviews = await (0, rxjs_1.lastValueFrom)(observer$);
         return {
             count: reviews.count,
             reviews: reviews.data.map(val => new Review(val))
         };
     }
-    static async getRatingCount(id, rating // 0 - 10
+    static async filterAll(filter) {
+        const observer$ = stock_counter_client_1.StockCounterClient.ehttp
+            .makePost('/review/filter', filter);
+        const reviews = await (0, rxjs_1.lastValueFrom)(observer$);
+        return {
+            count: reviews.count,
+            reviews: reviews.data.map(val => new Review(val))
+        };
+    }
+    static async getRatingCount(_id, rating // 0 - 10
     ) {
-        const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makeGet(`/review/getratingcount/${id}/${rating}`);
+        const observer$ = stock_counter_client_1.StockCounterClient.ehttp
+            .makeGet(`/review/getratingcount/${_id}/${rating}`);
         const count = await (0, rxjs_1.lastValueFrom)(observer$);
         return count;
     }
     /**
      * Gets a single review by ID.
-     * @param companyId - The ID of the company
-     * @param id The ID of the review to get.
+  
+     * @param _id The ID of the review to get.
      * @returns A Review object.
      */
-    static async getOnereview(companyId, id) {
-        const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makeGet(`/review/getone/${id}/${companyId}`);
+    static async getOne(_id) {
+        const observer$ = stock_counter_client_1.StockCounterClient.ehttp
+            .makeGet(`/review/one/${_id}`);
         const review = await (0, rxjs_1.lastValueFrom)(observer$);
         return new Review(review);
     }
     /**
      * Creates a new review.
-     * @param companyId - The ID of the company
+  
      * @param review An object containing the data for the new review.
      * @returns An object indicating whether the operation was successful.
      */
-    static async createreview(companyId, review) {
+    static async add(review) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makePost(`/review/create/${companyId}`, {
-            review
-        });
+            .makePost('/review/add', review);
         const added = await (0, rxjs_1.lastValueFrom)(observer$);
         return added;
     }
     /**
      * Deletes the current review.
-     * @param companyId - The ID of the company
+  
      * @returns An object indicating whether the operation was successful.
      */
-    async deleteReview(companyId) {
+    remove() {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makeDelete(`/review/deleteone/${this._id}/${this.itemId}/${this.rating}/${companyId}`);
-        return await (0, rxjs_1.lastValueFrom)(observer$);
+            .makeDelete(`/review/delete/one/${this._id}/${this.itemId}/${this.rating}`);
+        return (0, rxjs_1.lastValueFrom)(observer$);
     }
 }
 exports.Review = Review;

@@ -3,8 +3,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = require("tslib");
 tslib_1.__exportStar(require("./types/union.types"), exports);
 // This exports all the types from the `union.types` file.
-tslib_1.__exportStar(require("./interfaces/computer.interface"), exports);
-// This exports all the interfaces from the `computer.interface` file.
 tslib_1.__exportStar(require("./interfaces/general.interface"), exports);
 // This exports all the interfaces from the `general.interface` file.
 tslib_1.__exportStar(require("./interfaces/inventory.interface"), exports);

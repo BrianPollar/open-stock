@@ -46,10 +46,12 @@ const createDeliverycityModel = async (dbUrl, dbOptions, main = true, lean = tru
         await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.deliverycityMain = database_1.mainConnection.model('Deliverycity', deliverycitySchema);
+        exports.deliverycityMain = database_1.mainConnection
+            .model('Deliverycity', deliverycitySchema);
     }
     if (lean) {
-        exports.deliverycityLean = database_1.mainConnectionLean.model('Deliverycity', deliverycitySchema);
+        exports.deliverycityLean = database_1.mainConnectionLean
+            .model('Deliverycity', deliverycitySchema);
     }
 };
 exports.createDeliverycityModel = createDeliverycityModel;

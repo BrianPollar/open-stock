@@ -1,5 +1,7 @@
 import { ItrackStamp } from '@open-stock/stock-universal';
-import { createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
+import {
+  createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj
+} from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
@@ -8,7 +10,7 @@ const uniqueValidator = require('mongoose-unique-validator');
 /**
  * Represents an item decoy in the system.
  */
-export interface IitemDecoy extends Document, ItrackStamp {
+export type TitemDecoy = Document & ItrackStamp & {
   expireDocAfterTime: Date;
 
   /**
@@ -30,9 +32,9 @@ export interface IitemDecoy extends Document, ItrackStamp {
    * The list of items associated with the decoy.
    */
   items: string[];
-}
+};
 
-const itemDecoySchema: Schema<IitemDecoy> = new Schema({
+const itemDecoySchema: Schema<TitemDecoy> = new Schema({
   ...withUrIdAndCompanySchemaObj,
   type: { type: String },
   items: []
@@ -62,12 +64,12 @@ const itemDecoyselect = {
 /**
  * Represents the main item decoy model.
  */
-export let itemDecoyMain: Model<IitemDecoy>;
+export let itemDecoyMain: Model<TitemDecoy>;
 
 /**
  * Represents the itemDecoyLean model.
  */
-export let itemDecoyLean: Model<IitemDecoy>;
+export let itemDecoyLean: Model<TitemDecoy>;
 
 /**
  * Selects the item decoy.
@@ -88,11 +90,13 @@ export const createItemDecoyModel = async(dbUrl: string, dbOptions?: ConnectOpti
   }
 
   if (main) {
-    itemDecoyMain = mainConnection.model<IitemDecoy>('ItemDecoy', itemDecoySchema);
+    itemDecoyMain = mainConnection
+      .model<TitemDecoy>('ItemDecoy', itemDecoySchema);
   }
 
   if (lean) {
-    itemDecoyLean = mainConnectionLean.model<IitemDecoy>('ItemDecoy', itemDecoySchema);
+    itemDecoyLean = mainConnectionLean
+      .model<TitemDecoy>('ItemDecoy', itemDecoySchema);
   }
 };
 

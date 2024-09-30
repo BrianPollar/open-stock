@@ -67,7 +67,7 @@ const verifyObjectId = (val) => {
 exports.verifyObjectId = verifyObjectId;
 /**
  * Checks if an array of values contains valid ObjectIds.
- * @param companyId - The ID of the company
+
    * @param vals - The array of values to be checked.
  * @returns A boolean indicating whether any invalid ObjectIds were found.
  */

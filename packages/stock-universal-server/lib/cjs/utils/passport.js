@@ -1,12 +1,16 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.appendUserToReqIfTokenExist = exports.getToken = exports.roleAuthorisation = exports.runPassport = void 0;
+exports.canFilterDeepProps = exports.appendUserToReqIfTokenExist = exports.getToken = exports.roleAuthorisation = exports.runPassport = void 0;
 const tslib_1 = require("tslib");
 const fs = tslib_1.__importStar(require("fs"));
 const jwt = tslib_1.__importStar(require("jsonwebtoken"));
 const path_1 = tslib_1.__importDefault(require("path"));
 const tracer = tslib_1.__importStar(require("tracer"));
 const stock_universal_local_1 = require("../stock-universal-local");
+// eslint-disable-next-line @typescript-eslint/naming-convention
+const GoogleStrategy = require('passport-google-oidc');
+// eslint-disable-next-line @typescript-eslint/naming-convention
+const FacebookStrategy = require('passport-facebook');
 // This vat creates a passportLogger named `controllers/passport`.
 const passportLogger = tracer.colorConsole({
     format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
@@ -41,7 +45,7 @@ const extractJwt = require('passport-jwt').ExtractJwt;
  * Runs the Passport configuration for JWT authentication.
  * @param jwtSecret - The secret key used to sign and verify JWT tokens.
  */
-const runPassport = (jwtSecret) => {
+const runPassport = (jwtSecret, strategys) => {
     // Create a JWT options object.
     const jwtOptions = {
         jwtFromRequest: extractJwt.fromHeader('authorization'),
@@ -54,6 +58,28 @@ const runPassport = (jwtSecret) => {
     });
     // Use the JWT strategy with Passport.
     passport.use(jwtLogin);
+    if (strategys?.google) {
+        const googleLogin = new GoogleStrategy({
+            clientID: strategys.google.GOOGLE_CLIENT_ID,
+            clientSecret: strategys.google.GOOGLE_CLIENT_SECRET,
+            callbackURL: '/oauth2/redirect/google',
+            scope: ['profile']
+        }, function verify(issuer, profile, cb) {
+            return cb(null, profile);
+        });
+        passport.use(googleLogin);
+    }
+    if (strategys?.facebook) {
+        const facebookLogin = new FacebookStrategy({
+            clientID: strategys.facebook.FACEBOOK_CLIENT_ID,
+            clientSecret: strategys.facebook.FACEBOOK_CLIENT_SECRET,
+            callbackURL: '/oauth2/redirect/facebook',
+            state: true
+        }, function verify(accessToken, refreshToken, profile, cb) {
+            return cb(null, profile);
+        });
+        passport.use(facebookLogin);
+    }
 };
 exports.runPassport = runPassport;
 // This function defines a function that checks the user's permissions for the given role.
@@ -61,13 +87,17 @@ exports.runPassport = runPassport;
  * Middleware function for role-based authorization.
  * @param nowRole - The current role to check.
  * @param permProp - The permission property to check within the role.
- * @returns A middleware function that checks the user's permissions and authorizes access based on the role and permission property.
+ * @returns A middleware function that checks the user's permissions
+ * and authorizes access based on the role and permission property.
  */
 const roleAuthorisation = (nowRole, permProp, mayBeProfile) => {
     // Log the role name.
     passportLogger.info(`roleAuthorisation - role: ${nowRole}`);
     // Create a middleware function that checks the user's permissions.
-    return (req, res, next) => {
+    return (
+    // req: IcustomRequest<never, Partial<{ profileOnly?: string } &
+    // unknown & Record<string, string | number | boolean | string[] | unknown>>>,
+    req, res, next) => {
         // Get the user's permissions from the request object.
         const { permissions } = req.user;
         if (nowRole !== 'buyer' && permissions.companyAdminAccess) {
@@ -130,6 +160,7 @@ const extractToken = (req) => {
 const appendUserToReqIfTokenExist = (req, res, next) => {
     const token = extractToken(req);
     if (!token) {
+        req.user = {};
         return next();
     }
     jwt.verify(token, stock_universal_local_1.stockUniversalConfig.authSecrets.jwtSecret, function (err, decoded) {
@@ -143,4 +174,7 @@ const appendUserToReqIfTokenExist = (req, res, next) => {
     });
 };
 exports.appendUserToReqIfTokenExist = appendUserToReqIfTokenExist;
+const canFilterDeepProps = () => {
+};
+exports.canFilterDeepProps = canFilterDeepProps;
 //# sourceMappingURL=passport.js.map

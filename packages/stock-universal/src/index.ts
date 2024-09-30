@@ -1,9 +1,6 @@
 export * from './types/union.types';
 // This exports all the types from the `union.types` file.
 
-export * from './interfaces/computer.interface';
-// This exports all the interfaces from the `computer.interface` file.
-
 export * from './interfaces/general.interface';
 // This exports all the interfaces from the `general.interface` file.
 

@@ -1,6 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-type-arguments */
 import { IinvoiceRelatedRef } from '@open-stock/stock-universal';
-import { createExpireDocIndex, preUpdateDocExpire, withCompanySchemaObj } from '@open-stock/stock-universal-server';
+import {
+  createExpireDocIndex,
+  preUpdateDocExpire,
+  withUrIdAndCompanySchemaObj
+} from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../utils/database';
 
@@ -11,7 +15,7 @@ import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectio
 export type Tinvoice = Document & IinvoiceRelatedRef & { dueDate: Date };
 
 const invoiceSchema: Schema<Tinvoice> = new Schema({
-  ...withCompanySchemaObj,
+  ...withUrIdAndCompanySchemaObj,
   invoiceRelated: { type: String },
   dueDate: { type: Date }
 }, { timestamps: true, collection: 'invoices' });
@@ -65,11 +69,13 @@ export const createInvoiceModel = async(dbUrl: string, dbOptions?: ConnectOption
   }
 
   if (main) {
-    invoiceMain = mainConnection.model<Tinvoice>('Invoice', invoiceSchema);
+    invoiceMain = mainConnection
+      .model<Tinvoice>('Invoice', invoiceSchema);
   }
 
   if (lean) {
-    invoiceLean = mainConnectionLean.model<Tinvoice>('Invoice', invoiceSchema);
+    invoiceLean = mainConnectionLean
+      .model<Tinvoice>('Invoice', invoiceSchema);
   }
 };
 

@@ -72,7 +72,6 @@ exports.updateWallet = updateWallet;
    * @returns a promise resolving to an array of wallet documents
    */
 const getAllWallets = (offset = 0, limit = 10) => {
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     const all = user_wallet_model_1.userWalletLean.find({}).sort({ _id: -1 }).skip(offset).limit(limit).lean();
     return all;
 };

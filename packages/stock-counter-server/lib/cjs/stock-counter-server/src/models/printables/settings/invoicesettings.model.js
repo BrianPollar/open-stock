@@ -44,10 +44,12 @@ const createInvoiceSettingModel = async (dbUrl, dbOptions, main = true, lean = t
         await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.invoiceSettingMain = database_1.mainConnection.model('InvoiceSetting', invoiceSettingSchema);
+        exports.invoiceSettingMain = database_1.mainConnection
+            .model('InvoiceSetting', invoiceSettingSchema);
     }
     if (lean) {
-        exports.invoiceSettingLean = database_1.mainConnectionLean.model('invoiceSetting', invoiceSettingSchema);
+        exports.invoiceSettingLean = database_1.mainConnectionLean
+            .model('invoiceSetting', invoiceSettingSchema);
     }
 };
 exports.createInvoiceSettingModel = createInvoiceSettingModel;

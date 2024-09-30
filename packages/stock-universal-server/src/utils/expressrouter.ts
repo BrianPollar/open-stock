@@ -23,19 +23,3 @@ export const apiRouter = express.Router();
 export const requireAuth = passport
   .authenticate('jwt', { session: false });
 
-// This function exports a function that generates a unique ID.
-//
-// **Parameters:**
-//
-// * `lastPosition`: The last position in the sequence of IDs.
-//
-// **Returns:**
-//
-// A string representing the next ID in the sequence.
-
-/**
- * Generates a unique ID based on the last position.
- * @param lastPosition The last position used to generate the ID.
- * @returns The generated unique ID as a string.
- */
-export const makeUrId = (lastPosition: number) => (++lastPosition).toString();

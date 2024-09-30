@@ -66,7 +66,7 @@ export interface Iauthresponse {
   /**
    * The user's ID, if any.
    */
-  // eslint-disable-next-line @typescript-eslint/naming-convention
+
   _id?: string;
 
   /**
@@ -99,9 +99,9 @@ export interface Iauthresponse {
 // This interface defines the properties of an authentication response.
 
 
-export interface IdataArrayResponse {
+export interface IdataArrayResponse<T> {
   count: number;
-  data: unknown[];
+  data: T[];
 }
 
 export interface IsubscriptionFeatureState

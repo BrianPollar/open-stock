@@ -9,11 +9,12 @@ import {
   Ireceipt,
   Isuccess, Iuser,
   TestimateStage,
-  TinvoiceType,
   // TnotifType
   TnotifType
 } from '@open-stock/stock-universal';
-import { addParentToLocals, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import {
+  addParentToLocals, stringifyMongooseErr, verifyObjectId, verifyObjectIds
+} from '@open-stock/stock-universal-server';
 import * as fs from 'fs';
 import path from 'path';
 import * as tracer from 'tracer';
@@ -57,10 +58,10 @@ const invoiceRelatedLogger = tracer.colorConsole({
  * Updates the payments related to an invoice.
  *
  * @param payment - The payment object to be added.
- * @param queryId - The ID of the company.
+ * @param companyId - The ID of the company.
  * @returns A promise that resolves to an object containing the success status and the ID of the saved payment.
  */
-export const updateInvoiceRelatedPayments = async(payment: Ireceipt, queryId: string): Promise<Isuccess & { id?: string }> => {
+export const updateInvoiceRelatedPayments = async(payment: Ireceipt): Promise<Isuccess & { _id?: string }> => {
   const isValid = verifyObjectId(payment.invoiceRelated);
 
   if (!isValid) {
@@ -108,22 +109,14 @@ export const updateInvoiceRelatedPayments = async(payment: Ireceipt, queryId: st
   if (errResponse) {
     return errResponse;
   } else {
-    return { success: true, id: (saved as { _id: string})._id };
+    return { success: true, _id: (saved as { _id: string})._id };
   }
 };
 
-/**
- * Updates an invoice related document.
- * @param invoiceRelated - The updated invoice related document.
- * @returns A promise that resolves with a success status and an optional ID.
- */
-/**
- * Updates the invoice related information.
- * @param invoiceRelated - The updated invoice related data.
- * @param queryId - The query ID.
- * @returns A promise that resolves to an object containing the success status and the updated invoice related ID.
- */
-export const updateInvoiceRelated = async(res, invoiceRelated: Required<IinvoiceRelated>, queryId: string): Promise<Isuccess& { id?: string }> => {
+export const updateInvoiceRelated = async(
+  res,
+  invoiceRelated: Required<IinvoiceRelated>
+): Promise<Isuccess& { _id?: string }> => {
   const isValid = verifyObjectId(invoiceRelated.invoiceRelated);
 
   if (!isValid) {
@@ -202,33 +195,26 @@ export const updateInvoiceRelated = async(res, invoiceRelated: Required<Iinvoice
       await updateItemsInventory((foundRelated as IinvoiceRelated));
     } else if ((foundRelated as IinvoiceRelated).status !== 'paid') {
       await updateCustomerDueAmount((foundRelated as IinvoiceRelated).billingUserId, oldTotal, true);
-      await updateCustomerDueAmount((foundRelated as IinvoiceRelated).billingUserId, (foundRelated as IinvoiceRelated).total, false);
+      await updateCustomerDueAmount((foundRelated as IinvoiceRelated)
+        .billingUserId, (foundRelated as IinvoiceRelated).total, false);
     }
 
     addParentToLocals(res, related._id, 'invoicerelateds', 'makeTrackEdit');
 
 
-    return { success: true, id: (saved as unknown as { _id: string})._id };
+    return { success: true, _id: (saved as unknown as { _id: string})._id };
   }
 };
 
-/**
- * Relocates an invoice related document.
- * @param invoiceRelated - The invoice related document to relocate.
- * @param extraNotifDesc - A description for the notification.
- * @param localMailHandler - The email handler to use for sending notifications.
- * @param bypassNotif - Whether to bypass sending notifications.
- * @returns A promise that resolves with a success status and an optional ID.
- */
 export const relegateInvRelatedCreation = async(
   res,
   invoiceRelated: Required<IinvoiceRelated>,
-  queryId: string,
+  companyId: string,
   extraNotifDesc: string,
   bypassNotif = false
-): Promise<Isuccess & { id?: string }> => {
+): Promise<Isuccess & { _id?: string }> => {
   invoiceRelatedLogger.debug('relegateInvRelatedCreation - invoiceRelated', invoiceRelated);
-  invoiceRelated.companyId = queryId;
+  invoiceRelated.companyId = companyId;
   const isValid = verifyObjectId(invoiceRelated.invoiceRelated);
   let found;
 
@@ -270,7 +256,7 @@ export const relegateInvRelatedCreation = async(
     let route: string;
     let title = '';
     let notifType: TnotifType;
-    const stn = await getCurrentNotificationSettings(queryId) as any;
+    const stn = await getCurrentNotificationSettings(companyId) as any;
 
     if (!bypassNotif && stn?.invoices) {
       switch (invoiceRelated.stage) {
@@ -316,15 +302,15 @@ export const relegateInvRelatedCreation = async(
 
       const capableUsers = await user.find({})
         .lean().select({ permissions: 1 });
-      const ids: string[] = [];
+      const _ids: string[] = [];
 
       for (const cuser of capableUsers) {
         if (cuser.permissions.invoices) {
-          ids.push(cuser._id);
+          _ids.push(cuser._id);
         }
       }
 
-      const notifFilters = { id: { $in: ids } };
+      const notifFilters = { id: { $in: _ids } };
 
       await createNotifications({
         notification,
@@ -332,38 +318,39 @@ export const relegateInvRelatedCreation = async(
       });
     }
 
-    return { success: true, id: (saved as {_id: string})._id };
+    return { success: true, _id: (saved as {_id: string})._id };
   } else {
-    await updateInvoiceRelated(res, invoiceRelated, queryId);
+    await updateInvoiceRelated(res, invoiceRelated);
 
-    return { success: true, id: invoiceRelated.invoiceRelated };
+    return { success: true, _id: invoiceRelated.invoiceRelated };
   }
 };
 
-// eslint-disable-next-line @typescript-eslint/no-shadow
+export const makeInvoiceRelatedPdct = (
+  invoiceRelated: Required<IinvoiceRelated>,
+  user: Iuser, createdAt?: Date, extras = {}
+): IinvoiceRelated => {
+  // TODO later
 
-/**
- * Creates an invoice related product based on the provided data.
- * @param invoiceRelated - The required invoice related data.
- * @param user - The user data.
- * @param createdAt - The optional creation date.
- * @param extras - Additional properties to include in the invoice related product.
- * @returns The created invoice related product.
- */
-export const makeInvoiceRelatedPdct = (invoiceRelated: Required<IinvoiceRelated>, user: Iuser, createdAt?: Date, extras = {}) => {
-  let names = user.salutation ? user.salutation + ' ' + user.fname + ' ' + user.lname : user.fname + ' ' + user.lname;
+  let names = '';
 
-  if (user.userDispNameFormat) {
-    switch (user.userDispNameFormat) {
-      case 'firstLast':
-        names = user.salutation ? user.salutation + ' ' + user.fname + ' ' + user.lname : user.fname + ' ' + user.lname;
-        break;
-      case 'lastFirst':
-        names = user.salutation ? user.salutation + ' ' + user.lname + ' ' + user.fname : user.lname + ' ' + user.fname;
-        break;
-      case 'companyName':
-        names = user.companyName;
-        break;
+  if (user) {
+    names = user.salutation ? user.salutation + ' ' + user.fname + ' ' + user.lname : user.fname + ' ' + user.lname;
+
+    if (user.userDispNameFormat) {
+      switch (user.userDispNameFormat) {
+        case 'firstLast':
+          names = user.salutation ? user.salutation + ' ' +
+          user.fname + ' ' + user.lname : user.fname + ' ' + user.lname;
+          break;
+        case 'lastFirst':
+          names = user.salutation ? user.salutation + ' ' +
+          user.lname + ' ' + user.fname : user.lname + ' ' + user.fname;
+          break;
+        case 'companyName':
+          names = user.companyName;
+          break;
+      }
     }
   }
 
@@ -375,12 +362,13 @@ export const makeInvoiceRelatedPdct = (invoiceRelated: Required<IinvoiceRelated>
     invoiceId: invoiceRelated.invoiceId,
     estimateId: invoiceRelated.estimateId,
     billingUser: names,
-    extraCompanyDetails: user.extraCompanyDetails,
+    extraCompanyDetails: user?.extraCompanyDetails,
     items: invoiceRelated.items.map(pdct => {
       if (typeof pdct.item === 'string' || !pdct.item) {
         return pdct;
       } else {
         return {
+          currency: pdct.currency,
           amount: pdct.amount,
           quantity: pdct.amount,
           rate: pdct.rate,
@@ -389,7 +377,7 @@ export const makeInvoiceRelatedPdct = (invoiceRelated: Required<IinvoiceRelated>
         };
       }
     }),
-    billingUserId: user.urId,
+    billingUserId: user?.urId,
     stage: invoiceRelated.stage,
     fromDate: invoiceRelated.fromDate,
     toDate: invoiceRelated.toDate,
@@ -400,7 +388,7 @@ export const makeInvoiceRelatedPdct = (invoiceRelated: Required<IinvoiceRelated>
     balanceDue: invoiceRelated.balanceDue,
     subTotal: invoiceRelated.subTotal,
     total: invoiceRelated.total,
-    billingUserPhoto: user.profilePic,
+    billingUserPhoto: user?.profilePic as string,
     createdAt: createdAt || invoiceRelated.createdAt,
     payments: invoiceRelated.payments,
     ecommerceSale: invoiceRelated.ecommerceSale,
@@ -410,23 +398,15 @@ export const makeInvoiceRelatedPdct = (invoiceRelated: Required<IinvoiceRelated>
   };
 };
 
-
-/**
- * Deletes multiple invoice-related documents.
- * @param companyId - The ID of the company
-   * @param ids - An array of string IDs representing the documents to be deleted.
- * @param queryId - The ID of the company associated with the documents.
- * @returns A promise that resolves to an object indicating the success status and any error information.
- */
-export const deleteManyInvoiceRelated = async(ids: string[], queryId: string) => {
-  const isValid = verifyObjectIds([...ids, ...[queryId]]);
+export const deleteManyInvoiceRelated = async(_ids: string[], companyId: string) => {
+  const isValid = verifyObjectIds([..._ids, ...[companyId]]);
 
   if (!isValid) {
     return { success: false, statu: 401, err: 'unauthourised' };
   }
 
   /* const deleted = await invoiceRelatedMain
-    .deleteMany({ _id: { $in: ids }, companyId: queryId })
+    .deleteMany({ _id: { $in: _ids }, companyId })
     .catch(err => {
       invoiceRelatedLogger.debug('deleteManyInvoiceRelated - err: ', err);
 
@@ -434,7 +414,7 @@ export const deleteManyInvoiceRelated = async(ids: string[], queryId: string) =>
     }); */
 
   const deleted = await invoiceRelatedMain
-    .updateMany({ _id: { $in: ids }, companyId: queryId }, {
+    .updateMany({ _id: { $in: _ids }, companyId }, {
       $set: { isDeleted: true }
     })
     .catch(err => {
@@ -447,7 +427,7 @@ export const deleteManyInvoiceRelated = async(ids: string[], queryId: string) =>
 
   if (deleted) {
     /* deleted2 = await receiptMain
-      .deleteMany({ invoiceRelated: { $in: ids } })
+      .deleteMany({ invoiceRelated: { $in: _ids } })
       .catch(err => {
         invoiceRelatedLogger.error('deletemany Pinstalls - err: ', err);
 
@@ -455,7 +435,7 @@ export const deleteManyInvoiceRelated = async(ids: string[], queryId: string) =>
       }); */
 
     deleted2 = await receiptMain
-      .updateMany({ invoiceRelated: { $in: ids } }, {
+      .updateMany({ invoiceRelated: { $in: _ids } }, {
         $set: { isDeleted: true }
       })
       .catch(err => {
@@ -476,42 +456,52 @@ export const deleteManyInvoiceRelated = async(ids: string[], queryId: string) =>
  * Deletes all linked documents based on the provided parameters.
  *
  * @param invoiceRelated - The identifier of the related invoice.
- * @param creationType - The type of creation (solo, chained, halfChained).
- * @param stage - The current stage of the document.
  * @param from - The previous stage of the document.
- * @param queryId - The identifier of the query.
+ * @param companyId - The identifier of the query.
  * @returns A promise that resolves to an object indicating the success of the deletion operation.
  */
-export const deleteAllLinked = async(invoiceRelated: string, creationType: TinvoiceType, stage: TestimateStage, from: TestimateStage, queryId: string) => {
-  if (stage !== from) {
-    return { success: false, err: 'cant make delete now, ' + stage + 'is linked some where else' };
+export const deleteAllLinked = async(
+  invoiceRelated: string,
+  from: TestimateStage,
+  companyId: string
+) => {
+  const invoiceRel = await invoiceRelatedLean.findOne({ _id: invoiceRelated })
+    .lean()
+    .select({ stage: 1, creationType: 1 });
+
+  if (!invoiceRel) {
+    return { success: false, err: 'not found' };
+  }
+
+  if (invoiceRel.stage !== from) {
+    return { success: false, err: 'cant make delete now, ' + invoiceRel.stage + 'is linked some where else' };
   }
 
   let changedStage: TestimateStage;
 
   if (from === 'estimate') {
-    /* await estimateMain.deleteOne({ invoiceRelated, companyId: queryId }); */
+    /* await estimateMain.deleteOne({ invoiceRelated, companyId }); */
 
-    await estimateMain.updateOne({ invoiceRelated, companyId: queryId }, {
+    await estimateMain.updateOne({ invoiceRelated, companyId }, {
       $set: { isDeleted: true }
     });
   } else if (from === 'invoice') {
     changedStage = 'estimate';
 
-    /* await invoiceMain.deleteOne({ invoiceRelated, companyId: queryId }); */
+    /* await invoiceMain.deleteOne({ invoiceRelated, companyId }); */
 
-    await invoiceMain.updateOne({ invoiceRelated, companyId: queryId }, {
+    await invoiceMain.updateOne({ invoiceRelated, companyId }, {
       $set: { isDeleted: true }
     });
   } else if (from === 'deliverynote') {
-    /* await deliveryNoteMain.deleteOne({ invoiceRelated, companyId: queryId }); */
-    await deliveryNoteMain.updateOne({ invoiceRelated, companyId: queryId }, {
+    /* await deliveryNoteMain.deleteOne({ invoiceRelated, }); */
+    await deliveryNoteMain.updateOne({ invoiceRelated, companyId }, {
       $set: { isDeleted: true }
     });
     changedStage = 'invoice';
   } else if (from === 'receipt') {
-    /* await receiptMain.deleteOne({ invoiceRelated, companyId: queryId }); */
-    await receiptMain.updateOne({ invoiceRelated, companyId: queryId }, {
+    /* await receiptMain.deleteOne({ invoiceRelated, }); */
+    await receiptMain.updateOne({ invoiceRelated, companyId }, {
       $set: { isDeleted: true }
     });
     changedStage = 'deliverynote';
@@ -519,32 +509,33 @@ export const deleteAllLinked = async(invoiceRelated: string, creationType: Tinvo
 
   let response: Isuccess = {
     success: false,
-    err: 'cant make delete now, ' + stage + 'is linked some where else'
+    err: 'cant make delete now, ' + invoiceRel.stage + 'is linked some where else'
   };
 
-  if (creationType === 'solo' || (creationType === 'chained' && stage === 'estimate')) {
-    response = await deleteManyInvoiceRelated([invoiceRelated], queryId);
+  if (invoiceRel.creationType === 'solo' ||
+  (invoiceRel.creationType === 'chained' && invoiceRel.stage === 'estimate')) {
+    response = await deleteManyInvoiceRelated([invoiceRelated], companyId);
   } else {
-    await updateRelatedStage(invoiceRelated, changedStage, queryId);
-    if (creationType === 'halfChained') {
-      if (stage === 'invoice') {
+    await updateRelatedStage(invoiceRelated, changedStage, companyId);
+    if (invoiceRel.creationType === 'halfChained') {
+      if (invoiceRel.stage === 'invoice') {
         const exist = await estimateLean.findOne({ invoiceRelated });
 
         if (!exist) {
-          response = await deleteManyInvoiceRelated([invoiceRelated], queryId);
+          response = await deleteManyInvoiceRelated([invoiceRelated], companyId);
         }
       }
-      if (stage === 'deliverynote') {
+      if (invoiceRel.stage === 'deliverynote') {
         const exist = await invoiceLean.findOne({ invoiceRelated });
 
         if (!exist) {
-          response = await deleteManyInvoiceRelated([invoiceRelated], queryId);
+          response = await deleteManyInvoiceRelated([invoiceRelated], companyId);
         }
-      } else if (stage === 'receipt') {
+      } else if (invoiceRel.stage === 'receipt') {
         const exist = await deliveryNoteLean.findOne({ invoiceRelated });
 
         if (!exist) {
-          response = await deleteManyInvoiceRelated([invoiceRelated], queryId);
+          response = await deleteManyInvoiceRelated([invoiceRelated], companyId);
         }
       }
     }
@@ -564,15 +555,14 @@ export const deleteAllLinked = async(invoiceRelated: string, creationType: Tinvo
 
 /**
  * Updates the stage of a related invoice.
- * @param id - The ID of the invoice related document.
+ * @param _id - The ID of the invoice related document.
  * @param stage - The new stage value to set.
- * @param queryId - The ID of the company to query.
+ * @param companyId - The ID of the company to query.
  * @returns A boolean indicating whether the update was successful.
  */
-const updateRelatedStage = async(id: string, stage: TestimateStage, queryId: string) => {
-  // eslint-disable-next-line @typescript-eslint/naming-convention
+const updateRelatedStage = async(_id: string, stage: TestimateStage, companyId: string) => {
   const related = await invoiceRelatedMain
-    .findOne({ _id: id, companyId: queryId })
+    .findOne({ _id })
     .lean();
 
   if (!related) {
@@ -580,7 +570,7 @@ const updateRelatedStage = async(id: string, stage: TestimateStage, queryId: str
   }
   related.stage = stage;
   await invoiceRelatedMain.updateOne({
-    _id: id, companyId: queryId
+    _id, companyId
   }, {
     $set: { stage }
   });
@@ -599,7 +589,6 @@ const updateRelatedStage = async(id: string, stage: TestimateStage, queryId: str
    * @returns A boolean indicating whether the update was successful.
    */
 export const updateItemsInventory = async(related: string | IinvoiceRelated) => {
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   let relatedObj: IinvoiceRelated;
 
   if (typeof related === 'string') {
@@ -638,7 +627,6 @@ export const updateItemsInventory = async(related: string | IinvoiceRelated) => 
    * @returns A boolean indicating whether the invoice related has enough payments.
    */
 export const canMakeReceipt = async(relatedId: string): Promise<boolean> => {
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   const related = await invoiceRelatedMain.findOne({ _id: relatedId });
 
   if (!related) {
@@ -679,8 +667,11 @@ export const getPaymentsTotal = async(payments: string[]) => {
    * @param reduce - If true then the amountDue is reduced by the given amount, else it is increased
    * @returns A promise that resolves to a boolean indicating the success of the operation
    */
-export const updateCustomerDueAmount = async(userId: string, amount: number, reduce: boolean) => { // TODO currency conversion needed here
-  // eslint-disable-next-line @typescript-eslint/naming-convention
+export const updateCustomerDueAmount = async(
+  userId: string,
+  amount: number,
+  reduce: boolean
+) => { // TODO currency conversion needed here
   const billingUser = await user.findOne({ _id: userId });
 
   if (!billingUser) {

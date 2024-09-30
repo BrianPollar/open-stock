@@ -6,7 +6,8 @@ const uniqueValidator = require('mongoose-unique-validator');
 /**
  * Represents a user IP model.
  */
-export interface IUserip extends Document {
+export interface IUserip
+extends Document {
 
   /**
    * The ID of the user or company.
@@ -44,7 +45,7 @@ export interface IUserip extends Document {
   createdAt: string;
 }
 
-const useripSchema: Schema<IUserip> = new Schema({
+const useripSchema: Schema<IUserip> = new Schema<IUserip>({
   userOrCompanayId: { type: String },
   greenIps: [],
   redIps: [],
@@ -79,11 +80,13 @@ export const createUseripModel = async(dbUrl: string, dbOptions?: ConnectOptions
   }
 
   if (main) {
-    userip = mainConnection.model<IUserip>('userip', useripSchema);
+    userip = mainConnection
+      .model<IUserip>('userip', useripSchema);
   }
 
   if (lean) {
-    useripLean = mainConnectionLean.model<IUserip>('userip', useripSchema);
+    useripLean = mainConnectionLean
+      .model<IUserip>('userip', useripSchema);
   }
 };
 

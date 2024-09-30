@@ -25,10 +25,12 @@ export const createLoginAtemptsModel = async (dbUrl, dbOptions, main = true, lea
         await connectAuthDatabase(dbUrl, dbOptions);
     }
     if (main) {
-        loginAtempts = mainConnection.model('loginAtempts', loginAtempsSchema);
+        loginAtempts = mainConnection
+            .model('loginAtempts', loginAtempsSchema);
     }
     if (lean) {
-        loginAtemptsLean = mainConnectionLean.model('loginAtempts', loginAtempsSchema);
+        loginAtemptsLean = mainConnectionLean
+            .model('loginAtempts', loginAtempsSchema);
     }
 };
 //# sourceMappingURL=loginattemps.model.js.map

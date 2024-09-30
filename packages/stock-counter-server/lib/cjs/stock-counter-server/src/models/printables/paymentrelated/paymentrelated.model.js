@@ -89,10 +89,12 @@ const createPaymentRelatedModel = async (dbUrl, dbOptions, main = true, lean = t
         await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.paymentRelatedMain = database_1.mainConnection.model('paymentRelated', paymentRelatedSchema);
+        exports.paymentRelatedMain = database_1.mainConnection
+            .model('paymentRelated', paymentRelatedSchema);
     }
     if (lean) {
-        exports.paymentRelatedLean = database_1.mainConnectionLean.model('paymentRelated', paymentRelatedSchema);
+        exports.paymentRelatedLean = database_1.mainConnectionLean
+            .model('paymentRelated', paymentRelatedSchema);
     }
 };
 exports.createPaymentRelatedModel = createPaymentRelatedModel;

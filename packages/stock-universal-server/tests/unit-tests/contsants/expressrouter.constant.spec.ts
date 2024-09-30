@@ -1,5 +1,5 @@
-import { expect, describe, it } from 'vitest';
-import { apiRouter, requireAuth, makeUrId } from '../../../../stock-universal-server/src/constants/expressrouter.constant';
+import { describe, expect, it } from 'vitest';
+import { apiRouter, makeUrId, requireAuth } from '../../../../stock-universal-server/src/constants/expressrouter.constant';
 
 describe('apiRouter', () => {
   it('should be an Express router object', () => {
@@ -23,17 +23,17 @@ describe('requireAuth', () => {
       }
     };
     const next = vi.fn();
-    const result = requireAuth(req, {}, next);
+    const result = requireAuth(req: IcustomRequest<never, unknown>, {}, next);
     expect(result).toBe(req);
-    expect(next).toBeCalledWith(req, {}, null);
+    expect(next).toBeCalledWith(req: IcustomRequest<never, unknown>, {}, null);
   });
 
   it('should not require authentication if the token is not present', () => {
     const req = {};
     const next = vi.fn();
-    const result = requireAuth(req, {}, next);
+    const result = requireAuth(req: IcustomRequest<never, unknown>, {}, next);
     expect(result).toBe(req);
-    expect(next).toBeCalledWith(req, {}, new Error('Unauthorized'));
+    expect(next).toBeCalledWith(req: IcustomRequest<never, unknown>, {}, new Error('Unauthorized'));
   });
 
   it('should authenticate using JWT strategy', () => {
@@ -50,13 +50,14 @@ describe('requireAuth', () => {
 
     // Verify that passport.authenticate is called with the correct arguments
     expect(passport.authenticate).toHaveBeenCalledWith('jwt', { session: false });
-  });*/
+  }); */
 });
 
 describe('makeUrId', () => {
   it('should generate a unique ID', () => {
     const lastPosition = 10;
     const result = makeUrId(lastPosition);
+
     expect(result).toBe('11');
   });
 });

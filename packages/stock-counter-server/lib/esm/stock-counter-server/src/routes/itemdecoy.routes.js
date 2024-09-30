@@ -1,5 +1,5 @@
 import { populateTrackEdit, populateTrackView, requireActiveCompany, requireCanUseFeature, requireUpdateSubscriptionRecord } from '@open-stock/stock-auth-server';
-import { addParentToLocals, appendUserToReqIfTokenExist, makeCompanyBasedQuery, makePredomFilter, makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { addParentToLocals, appendUserToReqIfTokenExist, constructFiltersFromBody, generateUrId, lookupSubFieldItemsRelatedFilter, makeCompanyBasedQuery, makePredomFilter, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import * as fs from 'fs';
 import path from 'path';
@@ -35,25 +35,16 @@ const itemDecoyRoutesLogger = tracer.colorConsole({
  * Router for item decoy routes.
  */
 export const itemDecoyRoutes = express.Router();
-/**
- * Create a new item decoy.
- * @param {string} how - The type of decoy to create.
- * @param {Object} itemdecoy - The decoy object to create.
- * @returns {Promise<Isuccess>} A promise that resolves to a success object.
- */
-itemDecoyRoutes.post('/create/:how/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('decoy'), roleAuthorisation('decoys', 'create'), async (req, res, next) => {
+itemDecoyRoutes.post('/add/:how', requireAuth, requireActiveCompany, requireCanUseFeature('decoy'), roleAuthorisation('decoys', 'create'), async (req, res, next) => {
     const { how } = req.params;
     const { filter } = makeCompanyBasedQuery(req);
     const { itemdecoy } = req.body;
     itemdecoy.companyId = filter.companyId;
-    // Get the count of existing decoys and generate a new urId
-    const count = await itemDecoyMain
-        .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
-    const urId = makeUrId(Number(count[0]?.urId || '0'));
+    const urId = await generateUrId(itemDecoyMain);
     let decoy;
     if (how === 'automatic') {
         // If creating an automatic decoy, verify the item ID and find the item
-        const isValid = verifyObjectId(itemdecoy.items[0]);
+        const isValid = verifyObjectId(itemdecoy.items[0]); // TODO
         if (!isValid) {
             return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
         }
@@ -120,24 +111,9 @@ itemDecoyRoutes.post('/create/:how/:companyIdParam', requireAuth, requireActiveC
     }
     return next();
 }, requireUpdateSubscriptionRecord('decoy'));
-/**
- * Get a list of all item decoys.
- * @param {string} offset - The offset to start at.
- * @param {string} limit - The maximum number of items to return.
- * @returns {Promise<Object[]>} A promise that resolves to an array of item decoys.
- */
-itemDecoyRoutes.get('/getall/:offset/:limit/:companyIdParam', appendUserToReqIfTokenExist, async (req, res) => {
+itemDecoyRoutes.get('/all/:offset/:limit', appendUserToReqIfTokenExist, async (req, res) => {
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
-    const { companyIdParam } = req.params;
-    let filter = {};
-    // eslint-disable-next-line no-undefined
-    if (companyIdParam !== undefined) {
-        const isValid = verifyObjectId(companyIdParam);
-        if (!isValid) {
-            return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-        }
-        filter = { companyId: companyIdParam };
-    }
+    const filter = {};
     const all = await Promise.all([
         itemDecoyLean
             .find({ ...filter, ...makePredomFilter(req) })
@@ -156,70 +132,70 @@ itemDecoyRoutes.get('/getall/:offset/:limit/:companyIdParam', appendUserToReqIfT
     }
     return res.status(200).send(response);
 });
-/**
- * Get a single item decoy by ID.
- * @param {string} id - The ID of the item decoy to retrieve.
- * @returns {Promise<Object>} A promise that resolves to the requested item decoy.
- */
-itemDecoyRoutes.get('/getone/:id/:companyIdParam', appendUserToReqIfTokenExist, async (req, res) => {
-    const { id } = req.params;
-    const { companyIdParam } = req.params;
-    let ids;
-    if (companyIdParam !== 'undefined') {
-        ids = [id, companyIdParam];
+itemDecoyRoutes.post('/filter', requireAuth, requireActiveCompany, roleAuthorisation('decoys', 'read'), async (req, res) => {
+    const { propSort } = req.body;
+    const { offset, limit } = offsetLimitRelegator(req.body.offset, req.body.limit);
+    const aggCursor = itemDecoyLean
+        .aggregate([
+        ...lookupSubFieldItemsRelatedFilter(constructFiltersFromBody(req), propSort, offset, limit)
+    ]);
+    const dataArr = [];
+    for await (const data of aggCursor) {
+        dataArr.push(data);
     }
-    else {
-        ids = [id];
+    const all = dataArr[0]?.data || [];
+    const count = dataArr[0]?.total?.count || 0;
+    const response = {
+        count,
+        data: all
+    };
+    for (const val of all) {
+        addParentToLocals(res, val._id, itemDecoyMain.collection.collectionName, 'trackDataView');
     }
-    const isValid = verifyObjectIds(ids);
+    return res.status(200).send(response);
+});
+itemDecoyRoutes.get('/one/:_id', appendUserToReqIfTokenExist, async (req, res) => {
+    const { _id } = req.params;
+    const _ids = [_id];
+    const isValid = verifyObjectIds(_ids);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
-    const item = await itemDecoyLean
-        .findOne({ _id: id, ...makePredomFilter(req) })
+    const decoy = await itemDecoyLean
+        .findOne({ _id, ...makePredomFilter(req) })
         .populate([populateItems(), populateTrackEdit(), populateTrackView()])
         .lean();
-    if (item) {
-        addParentToLocals(res, item._id, itemDecoyMain.collection.collectionName, 'trackDataView');
+    if (!decoy) {
+        return res.status(404).send({ success: false, err: 'not found' });
     }
-    return res.status(200).send(item);
+    addParentToLocals(res, decoy._id, itemDecoyMain.collection.collectionName, 'trackDataView');
+    return res.status(200).send(decoy);
 });
-/**
- * Delete a single item decoy by ID.
- * @param {string} id - The ID of the item decoy to delete.
- * @returns {Promise<Object>} A promise that resolves to a success object.
- */
-itemDecoyRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('decoys', 'delete'), async (req, res) => {
-    const { id } = req.params;
+itemDecoyRoutes.delete('/delete/one/:_id', requireAuth, requireActiveCompany, roleAuthorisation('decoys', 'delete'), async (req, res) => {
+    const { _id } = req.params;
     const { filter } = makeCompanyBasedQuery(req);
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    // const deleted = await itemDecoyMain.findOneAndDelete({ _id: id, companyId: queryId });
-    const deleted = await itemDecoyMain.updateOne({ _id: id, ...filter }, { $set: { isDeleted: true } });
+    // const deleted = await itemDecoyMain.findOneAndDelete({ _id, });
+    const deleted = await itemDecoyMain.updateOne({ _id, ...filter }, { $set: { isDeleted: true } });
     if (Boolean(deleted)) {
-        addParentToLocals(res, id, itemDecoyMain.collection.collectionName, 'trackDataDelete');
+        addParentToLocals(res, _id, itemDecoyMain.collection.collectionName, 'trackDataDelete');
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
-        return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
+        return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
-/**
- * Delete multiple item decoys by ID.
- * @param {string[]} ids - An array of IDs of the item decoys to delete.
- * @returns {Promise<Object>} A promise that resolves to a success object.
- */
-itemDecoyRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('decoys', 'delete'), async (req, res) => {
-    const { ids } = req.body;
+itemDecoyRoutes.put('/delete/many', requireAuth, requireActiveCompany, roleAuthorisation('decoys', 'delete'), async (req, res) => {
+    const { _ids } = req.body;
     const { filter } = makeCompanyBasedQuery(req);
     /* const deleted = await itemDecoyMain
-      .deleteMany({ _id: { $in: ids }, companyId: queryId })
-      .catch(err => {
-        itemDecoyRoutesLogger.error('deletemany - err: ', err);
-  
-        return null;
-      }); */
+    .deleteMany({ _id: { $in: _ids }, })
+    .catch(err => {
+      itemDecoyRoutesLogger.error('deletemany - err: ', err);
+
+      return null;
+    }); */
     const deleted = await itemDecoyMain
-        .updateMany({ _id: { $in: ids }, ...filter }, {
+        .updateMany({ _id: { $in: _ids }, ...filter }, {
         $set: { isDeleted: true }
     })
         .catch(err => {
@@ -227,13 +203,15 @@ itemDecoyRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCom
         return null;
     });
     if (Boolean(deleted)) {
-        for (const val of ids) {
+        for (const val of _ids) {
             addParentToLocals(res, val, itemDecoyMain.collection.collectionName, 'trackDataDelete');
         }
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
-        return res.status(404).send({ success: Boolean(deleted), err: 'could not delete selected items, try again in a while' });
+        return res.status(404).send({
+            success: Boolean(deleted), err: 'could not delete selected items, try again in a while'
+        });
     }
 });
 //# sourceMappingURL=itemdecoy.routes.js.map

@@ -1,4 +1,4 @@
 /**
  * Express router for deliverycity routes
  */
-export declare const deliverycityRoutes: any;
+export declare const deliverycityRoutes: import("express-serve-static-core").Router;

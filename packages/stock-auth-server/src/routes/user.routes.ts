@@ -1,12 +1,6 @@
 import {
-  Iaddress,
-  Iauthresponse, Ibilling,
-  Icompany,
-  Icustomrequest,
-  IdataArrayResponse,
-  IfileMeta,
-  Isuccess, Iuser,
-  Iuserperm,
+  Iauthresponse, Icompany, IcustomRequest, IcustomRequestSocial, IdataArrayResponse, IdeleteMany, IdeleteOne,
+  IfileMeta, IfilterAggResponse, IfilterProps, Isuccess, Iuser, Iuserperm,
   TuserType,
   makeRandomString,
   subscriptionPackages
@@ -14,9 +8,17 @@ import {
 import {
   addParentToLocals,
   appendBody,
+  constructFiltersFromBody,
   deleteAllFiles,
   deleteFiles,
-  fileMetaLean, makeCompanyBasedQuery, makeUrId,
+  fileMetaLean,
+  generateUrId,
+  lookupLimit,
+  lookupOffset,
+  lookupSort,
+  lookupTrackEdit,
+  lookupTrackView,
+  makeCompanyBasedQuery,
   offsetLimitRelegator,
   requireAuth,
   roleAuthorisation,
@@ -25,13 +27,14 @@ import {
   verifyObjectId,
   verifyObjectIds
 } from '@open-stock/stock-universal-server';
-import express, { Request, Response } from 'express';
+import express, { NextFunction, Request, Response } from 'express';
 import * as fs from 'fs';
+import mongoose, { Model } from 'mongoose';
 import path from 'path';
 import * as tracer from 'tracer';
 import { companyLean, companyMain } from '../models/company.model';
 import { companySubscriptionMain } from '../models/subscriptions/company-subscription.model';
-import { user, userAuthSelect, userLean } from '../models/user.model';
+import { Tuser, user, userAuthSelect, userLean } from '../models/user.model';
 import { stockAuthConfig } from '../stock-auth-local';
 import {
   checkIpAndAttempt,
@@ -42,11 +45,12 @@ import {
   recoverAccountFactory,
   resetAccountFactory
 } from '../utils/auth';
-import { populatePhotos, populateProfileCoverPic, populateProfilePic, populateTrackEdit, populateTrackView } from '../utils/query';
+import {
+  populatePhotos, populateProfileCoverPic, populateProfilePic, populateTrackEdit, populateTrackView
+} from '../utils/query';
 import { makeUserReturnObject, sendTokenEmail, sendTokenPhone } from '../utils/universial';
 import { requireActiveCompany } from './company-auth';
 import { getDays } from './subscriptions/company-subscription.routes';
-import { requireSuperAdmin } from './superadmin.routes';
 // import { notifConfig } from '../../config/notif.config';
 // import { createNotifications, NotificationController } from '../controllers/notifications.controller';
 const passport = require('passport');
@@ -84,15 +88,124 @@ const authLogger = tracer.colorConsole({
   }
 });
 
-/**
- * Handles the login and registration process for superadmin users.
- * @param req - The request object.
- * @param res - The response object.
- * @param next - The next function.
- * @returns A Promise that resolves to void.
- */
-// eslint-disable-next-line max-statements
-export const signupFactorRelgator = async(req, res, next) => {
+interface ImodelsCred {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  model: Model<any>;
+  field: string;
+  errMsg: string;
+}
+
+interface IuserLinkedInMoreModels {
+  success: boolean;
+  msg: string;
+}
+
+export const determineUserToRemove = (
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  model: Model<any>,
+  linkedModels: ImodelsCred[]
+) => {
+  return async(req: IcustomRequest<never, { _id: string; userId: string}>, res: Response, next: NextFunction) => {
+    const { _id } = req.body;
+    const isValid = verifyObjectId(_id);
+
+    if (!isValid) {
+      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
+
+    const found = await model.findOne({ _id });
+
+    if (!found || !found.user) {
+      return res.status(404).send({ msg: 'User not found', status: 404 });
+    }
+
+    const canRemove = await canRemoveOneUser(found.user, linkedModels);
+
+    if (!canRemove.success) {
+      return res.status(401).send({ ...canRemove, status: 401 });
+    }
+
+    req.body.userId = found.user ;
+    next();
+  };
+};
+
+export const determineUsersToRemove = (
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  model: Model<any>,
+  linkedModels: ImodelsCred[]
+) => {
+  return async(req: IcustomRequest<never, { _ids: string[]; userIds: string[]}>, res, next): Promise<void> => {
+    const { _ids } = req.body;
+    const isValid = verifyObjectIds(_ids);
+
+    if (!isValid) {
+      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
+
+    const manay = await model.find({ _id: { $in: _ids } });
+
+    const promises = manay.map(async(val) => {
+      const canRemove = await canRemoveOneUser(val.user, linkedModels);
+
+      return Promise.resolve({ ...canRemove, ...val });
+    });
+    const all = await Promise.all(promises);
+    const newIds = all.filter(val => val.success && val.user).map(val => val._id.toString());
+    const newUserIds = all.filter(val => val.success).map(val => val.user);
+
+    if (newIds.length <= 0) {
+      return res.status(401).send({ success: false, status: 401, err: 'sorry all users selected are linked' });
+    }
+
+    req.body._ids = newIds;
+    req.body.userIds = newUserIds;
+
+    next();
+  };
+};
+
+export const canRemoveOneUser = async(
+  id: string | mongoose.Types.ObjectId,
+  modelsCred: ImodelsCred[]
+): Promise<IuserLinkedInMoreModels> => {
+  const promises = modelsCred.map(async val => {
+    const found = await val.model.findOne({ [val.field]: id });
+    let toReturnMsg: string;
+
+    if (found) {
+      toReturnMsg = val.errMsg;
+    } else {
+      toReturnMsg = null;
+    }
+
+    return new Promise(resolve => resolve(toReturnMsg));
+  });
+
+  const all = await Promise.all(promises);
+
+  for (const val of all) {
+    if (val) {
+      return {
+        success: false,
+        msg: val as string
+      };
+    }
+  }
+
+  return {
+    success: true,
+    msg: 'user is not linked to anything'
+  };
+};
+
+export const signupFactorRelgator = async(
+  req: IcustomRequest<never, {
+    emailPhone: string; passwd: string; firstName: string; lastName: string; userType: TuserType; foundUser?: Iuser;}>,
+  res: Response,
+  next: NextFunction
+) => {
+  authLogger.info('signupFactorRelgator');
   const { emailPhone } = req.body;
   const userType: TuserType = req.body.userType || 'eUser';
   const passwd = req.body.passwd;
@@ -104,7 +217,7 @@ export const signupFactorRelgator = async(req, res, next) => {
   authLogger.debug(`signup, 
     emailPhone: ${emailPhone}`);
 
-  if (isNaN(emailPhone)) {
+  if (isNaN(Number(emailPhone))) {
     query = {
       email: emailPhone
     };
@@ -150,9 +263,7 @@ export const signupFactorRelgator = async(req, res, next) => {
   let savedSub;
 
   if (userType === 'company') {
-    const companyCount = await companyMain
-      .find({ }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
-    const companyUrId = makeUrId(Number(companyCount[0]?.urId || '0'));
+    const companyUrId = await generateUrId(companyMain);
     const name = 'company ' + makeRandomString(11, 'letters');
 
     permissions = {
@@ -214,9 +325,7 @@ export const signupFactorRelgator = async(req, res, next) => {
     };
   }
 
-  const count = await user
-    .find({ }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
-  const urId = makeUrId(Number(count[0]?.urId || '0'));
+  const urId = await generateUrId(user);
   const name = 'user ' + makeRandomString(11, 'letters');
   const newUser = new user({
     companyId: company._id || null,
@@ -277,7 +386,8 @@ export const signupFactorRelgator = async(req, res, next) => {
     }
   }
 
-  const type = 'token'; // note now is only token but build a counter later to make sur that the token and link methods are shared
+  // note now is only token but build a counter later to make sure that the token and link methods are shared
+  const type = 'token';
 
   if (isPhone) {
     response = await sendTokenPhone(saved);
@@ -286,7 +396,6 @@ export const signupFactorRelgator = async(req, res, next) => {
   }
 
   if (!response.success) {
-    // eslint-disable-next-line @typescript-eslint/naming-convention, @typescript-eslint/no-explicit-any
     await user.deleteOne({ _id: (saved)._id });
     if (company) {
       await companyMain.deleteOne({ _id: company._id });
@@ -301,7 +410,6 @@ export const signupFactorRelgator = async(req, res, next) => {
     const toReturn: Iauthresponse = {
       success: true,
       msg: response.msg,
-      // eslint-disable-next-line @typescript-eslint/naming-convention, @typescript-eslint/no-explicit-any
       _id: (saved)._id
     };
 
@@ -315,13 +423,8 @@ export const signupFactorRelgator = async(req, res, next) => {
   return res.status(500).send(toSend);
 };
 
-/**
- * Handles the user login request.
- * @param req - The request object.
- * @param res - The response object.
- * @returns The response with the user information and token.
- */
-export const userLoginRelegator = async(req: Request, res: Response, next) => {
+export const userLoginRelegator = async(req: Request, res: Response, next: NextFunction) => {
+  authLogger.info('userLoginRelegator');
   const { emailPhone, userType } = req.body;
   const { query } = determineIfIsPhoneAndMakeFilterObj(emailPhone);
   let { foundUser } = req.body;
@@ -337,7 +440,9 @@ export const userLoginRelegator = async(req: Request, res: Response, next) => {
   if (!foundUser) {
     foundUser = await userLean
       .findOne({ ...query, ...filter2 })
-      .populate([populateProfilePic(), populateProfileCoverPic(), populatePhotos(), populateTrackEdit(), populateTrackView()])
+      .populate([
+        populateProfilePic(), populateProfileCoverPic(), populatePhotos(), populateTrackEdit(), populateTrackView()
+      ])
       .lean()
     // .select(userAuthSelect)
       .catch(err => {
@@ -368,32 +473,29 @@ export const userLoginRelegator = async(req: Request, res: Response, next) => {
   return res.status(200).send(nowResponse);
 };
 
-
-/**
-   * Remove all the uploaded files from the parsed object.
-   * @param {object} parsed - Object that contains the fields to remove.
-   * @param {boolean} directlyRemove - If true, remove the files directly.
-   * @returns {Promise<boolean>} - True if all the files were removed.
-   */
-const reoveUploadedFiles = async(parsed, directlyRemove: boolean) => {
-  let ids = [];
+const reoveUploadedFiles = async(
+  parsed: { profilePic?: string; coverPic?: string; newPhotos?: string[] },
+  directlyRemove: boolean
+) => {
+  authLogger.info('reoveUploadedFiles');
+  let _ids = [];
 
   if (parsed.profilePic) {
-    ids.push(parsed.profilePic);
+    _ids.push(parsed.profilePic);
   }
 
   if (parsed.coverPic) {
-    ids.push(parsed.coverPic);
+    _ids.push(parsed.coverPic);
   }
 
   if (parsed.newPhotos) {
-    ids = [...ids, ...parsed.newPhotos];
+    _ids = [..._ids, ...parsed.newPhotos];
   }
-  if (ids.length === 0) {
+  if (_ids.length === 0) {
     return true;
   }
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  const filesWithDir = await fileMetaLean.find({ _id: { $in: ids } }).lean().select({ _id: 1, url: 1 });
+
+  const filesWithDir = await fileMetaLean.find({ _id: { $in: _ids } }).lean().select({ _id: 1, url: 1 });
 
   if (filesWithDir && filesWithDir.length > 0) {
     await deleteAllFiles(filesWithDir, directlyRemove);
@@ -402,14 +504,12 @@ const reoveUploadedFiles = async(parsed, directlyRemove: boolean) => {
   return true;
 };
 
-/**
-   * Adds a new user with the provided values and optional files.
-   * @param {object} req - Express Request object.
-   * @param {object} res - Express Response object.
-   * @param {function} next - Express NextFunction object.
-   * @returns {Promise<void>}
-   */
-export const addUser = async(req, res, next) => {
+export const addUser = async(
+  req: IcustomRequest<never, {
+    user: Iuser; profilePic?: string; coverPic?: string; newPhotos?: string[];
+  }>,
+  res: Response, next: NextFunction
+) => {
   authLogger.info('adding user');
   const userData = req.body.user;
   const parsed = req.body;
@@ -430,9 +530,8 @@ export const addUser = async(req, res, next) => {
 
     return res.status(401).send({ success: false, err: 'Phone Number already exist found' });
   }
-  if (req.params?.companyIdParam && req.params?.companyIdParam !== 'undefined' && req.params?.companyIdParam !== 'all') {
-    userData.companyId = filter.companyId;
-  }
+
+  userData.companyId = userData.companyId || filter.companyId;
 
   if (parsed.profilePic) {
     userData.profilePic = parsed.profilePic || userData.profilePic;
@@ -449,10 +548,7 @@ export const addUser = async(req, res, next) => {
     }
   }
 
-  const count = await user
-    .find({ }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
-
-  userData.urId = makeUrId(Number(count[0]?.urId || '0'));
+  userData.urId = await generateUrId(user);
   const newUser = new user(userData);
   let status = 200;
   let response: Iauthresponse = { success: true };
@@ -480,7 +576,7 @@ export const addUser = async(req, res, next) => {
       success: true,
       _id: savedUser._id
     };
-    req.body.savedUser = savedUser;
+    req.body.user = savedUser;
 
     return next();
   }
@@ -488,17 +584,16 @@ export const addUser = async(req, res, next) => {
   return res.status(status).send(response);
 };
 
-/**
-   * Updates the user's profile with the provided values and optional files.
-   * @param companyId - The ID of the company
-   * @param vals The values to update the user's profile with.
-   * @param files Optional files to upload with the user.
-   * @returns A success object indicating whether the user was updated successfully.
-   */
-export const updateUserBulk = async(req, res, next) => {
+export const updateUserBulk = async(
+  req: IcustomRequest<never, {
+    user: Iuser; profilePic?: string; coverPic?: string; newPhotos?: string[] | IfileMeta[]; profileOnly: string;
+  }>,
+  res: Response,
+  next: NextFunction
+) => {
   const updatedUser = req.body.user;
   const { filter } = makeCompanyBasedQuery(req);
-  // eslint-disable-next-line @typescript-eslint/naming-convention
+
   const { _id } = updatedUser;
 
   if (!_id) {
@@ -511,12 +606,12 @@ export const updateUserBulk = async(req, res, next) => {
     return res.status(401).send({ success: false, err: 'unauthourised' });
   }
 
-  // eslint-disable-next-line @typescript-eslint/naming-convention
+
   let filter2 = { _id } as object;
 
 
   if (req.body.profileOnly === 'true') {
-    const { userId } = (req as Icustomrequest).user;
+    const { userId } = req.user;
 
     filter2 = { user: userId };
   }
@@ -528,17 +623,14 @@ export const updateUserBulk = async(req, res, next) => {
 
   if (!foundUser) {
     if (parsed.newPhotos) {
-      await deleteAllFiles(parsed.newPhotos, true);
+      await deleteAllFiles(parsed.newPhotos as IfileMeta[], true);
     }
 
     return res.status(404).send({ success: false });
   }
 
   if (!foundUser.urId) {
-    const count = await user
-      .find({ }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
-
-    foundUser.urId = makeUrId(Number(count[0]?.urId || '0'));
+    foundUser.urId = await generateUrId(user);
   }
 
   if (parsed) {
@@ -563,7 +655,12 @@ export const updateUserBulk = async(req, res, next) => {
   keys.forEach(key => {
     if (filter.companyId === 'superAdmin' && key !== 'companyId' && key !== 'userType' && key !== '_id') {
       foundUser[key] = updatedUser[key] || foundUser[key];
-    } else if (foundUser[key] && key !== 'password' && key !== 'email' && key !== 'phone' && key !== 'companyId' && key !== 'userType') {
+    } else if (foundUser[key] &&
+      key !== 'password' &&
+      key !== 'email' &&
+      key !== 'phone' &&
+      key !== 'companyId' &&
+      key !== 'userType') {
       foundUser[key] = updatedUser[key] || foundUser[key];
     }
   });
@@ -571,7 +668,7 @@ export const updateUserBulk = async(req, res, next) => {
   const status = 200;
   let response: Iauthresponse = { success: true };
 
-  await foundUser.save().catch((err) => {
+  const savedUser = await foundUser.save().catch((err) => {
     const errResponse: Isuccess = {
       success: false
     };
@@ -583,23 +680,225 @@ export const updateUserBulk = async(req, res, next) => {
       try again in a while`;
     }
     response = errResponse;
+
+    return err;
   });
 
   if (response.success) {
+    req.body.user = savedUser as Iuser;
+
     return next();
   }
 
   return res.status(status).send(response);
 };
 
-userAuthRoutes.get(
-  '/google',
-  passport.authenticate('google', { scope: ['profile', 'email'] })
-);
+export const removeOneUser = async(
+  req: IcustomRequest<never, { _id: string; userId: string }>,
+  res: Response,
+  next: NextFunction
+) => {
+  const _id = req.body.userId || req.body._id;
+
+  const isValid = verifyObjectIds([_id]);
+
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
+
+  const found = await user.findOne({ _id })
+    .populate([populatePhotos() ])
+    .lean();
+
+  if (found) {
+    if (found.userType === 'eUser') {
+      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
+    const filesWithDir = found.photos.map(photo => (
+      {
+        _id: photo._id,
+        url: photo.url
+      }
+    ));
+
+    await deleteAllFiles(filesWithDir);
+  }
+
+  /* const deleted = await user
+    .findOneAndDelete({ _id, }); */
+
+  const deleted = await user
+    .updateOne({ _id }, { $set: { isDeleted: true } });
+
+  if (Boolean(deleted)) {
+    addParentToLocals(res, _id, user.collection.collectionName, 'makeTrackEdit');
+
+    return next();
+  } else {
+    return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
+  }
+};
+
+export const removeManyUsers = async(
+  req: IcustomRequest<never, { userIds?: string[] } & IdeleteMany>,
+  res: Response,
+  next: NextFunction
+) => {
+  const ids = req.body?.userIds.length ? req.body.userIds : req.body._ids;
+  const isValid = verifyObjectIds([...ids]);
+
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
+
+  let filesWithDir: IfileMeta[];
+  const alltoDelete = await user.find({ _id: { $in: ids } })
+    .populate([
+      populateProfilePic(true),
+      populateProfileCoverPic(true), populatePhotos(true), populateTrackEdit(), populateTrackView() ])
+    .lean();
+
+  for (const user of alltoDelete) {
+    if (user.photos?.length > 0) {
+      filesWithDir = [...filesWithDir, ...user.photos as IfileMeta[]];
+    }
+  }
+
+  await deleteAllFiles(filesWithDir);
+
+  /* const deleted = await user
+      .deleteMany({  _id: { $in: newUserIds } })
+      .catch(err => {
+        localUserRoutesLogger.error('deletemany - err: ', err);
+
+        return null;
+      }); */
+
+  const deleted = await user
+    .updateMany({ _id: { $in: ids } }, {
+      $set: { isDeleted: true }
+    })
+    .catch(err => {
+      authLogger.error('deletemany - err: ', err);
+
+      return null;
+    });
 
 
-userAuthRoutes.get('/authexpress2', requireAuth, async(req, res) => {
-  const { userId } = (req as Icustomrequest).user;
+  if (!Boolean(deleted)) {
+    return res.status(405).send({
+      success: Boolean(deleted), err: 'could not delete selected items, try again in a while' });
+  }
+  next();
+};
+
+export const socialLogin = (provider: string) => {
+  return async(req: IcustomRequestSocial, res) => {
+    const userProp = req.user;
+
+    authLogger.debug(`sociallogin, 
+    provider: ${provider}`);
+
+    const foundUser = await user.findOne({ email: userProp.email });
+
+    if (!foundUser) {
+      const urId = await generateUrId(user);
+
+      const newUser = new user({
+        urId,
+        fname: userProp.username || userProp.name,
+        lname: userProp.name || userProp.username,
+        phone: userProp.phone,
+        email: userProp.email,
+        admin: false,
+        expireAt: '',
+        verified: true,
+        socialAuthFrameworks: [{ providerName: provider, id: userProp.id }],
+        profilepic: {
+          url: userProp.photo as string
+        },
+        countryCode: +256
+      });
+
+      let errResponse: Isuccess;
+
+      const nUser = await newUser.save().catch(err => {
+        errResponse = {
+          success: false,
+          status: 403
+        };
+        if (err && err.errors) {
+          errResponse.err = stringifyMongooseErr(err.errors);
+        } else {
+          errResponse.err = `we are having problems connecting to our databases, 
+          try again in a while`;
+        }
+
+        return err;
+      });
+
+      if (nUser && nUser._id) {
+        addParentToLocals(res, nUser._id, user.collection.collectionName, 'makeTrackEdit');
+      }
+
+      if (errResponse) {
+        return res.status(403).send(errResponse);
+      } else {
+        return res.status(200).send({
+          success: true,
+          user: nUser.toAuthJSON()
+        });
+      }
+    } else {
+      const file: IfileMeta = {
+        url: userProp.photo
+      };
+
+      foundUser.profilePic = file;
+      const socialAuthFrameworks = foundUser.socialAuthFrameworks;
+      const found = socialAuthFrameworks.find(saf => saf.providerName === 'google');
+
+      if (!found) {
+        socialAuthFrameworks.push({ providerName: 'google', id: userProp.id });
+      }
+
+      foundUser.socialAuthFrameworks = socialAuthFrameworks;
+      let status = 200;
+      let response: Iauthresponse = { success: true };
+
+      await foundUser.save().catch(err => {
+        status = 403;
+        const errResponse: Isuccess = {
+          success: false
+        };
+
+        if (err && err.errors) {
+          errResponse.err = stringifyMongooseErr(err.errors);
+        } else {
+          errResponse.err = `we are having problems connecting to our databases, 
+          try again in a while`;
+        }
+        response = errResponse;
+
+        return err;
+      });
+
+      if (status === 200) {
+        response = {
+          success: true,
+          user: foundUser.toAuthJSON() as Iuser
+        };
+
+        return res.status(200).send(response);
+      } else {
+        return res.status(403).send(response);
+      }
+    }
+  };
+};
+
+userAuthRoutes.get('/authexpress2', requireAuth, async(req: IcustomRequest<never, null>, res) => {
+  const { userId } = req.user;
   const isValid = verifyObjectId(userId);
 
   if (!isValid) {
@@ -608,7 +907,9 @@ userAuthRoutes.get('/authexpress2', requireAuth, async(req, res) => {
 
   const foundUser = await userLean
     .findById(userId)
-    .populate([populateProfilePic(), populateProfileCoverPic(), populatePhotos(), populateTrackEdit(), populateTrackView() ])
+    .populate([
+      populateProfilePic(), populateProfileCoverPic(), populatePhotos(), populateTrackEdit(), populateTrackView()
+    ])
     // .populate({ path: 'companyId', model: companyLean })
     .lean()
     .select(userAuthSelect)
@@ -650,8 +951,14 @@ userAuthRoutes.get('/authexpress2', requireAuth, async(req, res) => {
   return res.status(200).send(nowResponse);
 });
 
-userAuthRoutes.post('/login', async(req, res, next) => {
-  req.body.from = 'user';
+userAuthRoutes.post('/login', async(
+  req: IcustomRequest<never, {
+    emailPhone: string; userType: string; isPhone: boolean; foundUser: Iuser;
+  }>,
+  res,
+  next
+) => {
+  // req.body.from = 'user'; // TODO remove this
   const { emailPhone, userType } = req.body;
 
   let filter2: object = {};
@@ -666,7 +973,9 @@ userAuthRoutes.post('/login', async(req, res, next) => {
     emailPhone: ${emailPhone}, userType: ${userType}`);
   const { query, isPhone } = determineIfIsPhoneAndMakeFilterObj(emailPhone);
   const foundUser = await user.findOne({ ...query, ...filter2 })
-    .populate([populateProfilePic(), populateProfileCoverPic(), populatePhotos(), populateTrackEdit(), populateTrackView() ]);
+    .populate([
+      populateProfilePic(), populateProfileCoverPic(), populatePhotos(), populateTrackEdit(), populateTrackView()
+    ]);
 
   if (!foundUser) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
@@ -678,13 +987,15 @@ userAuthRoutes.post('/login', async(req, res, next) => {
 }, checkIpAndAttempt, userLoginRelegator, recoverAccountFactory);
 
 
-userAuthRoutes.get('/authexpress', requireAuth, async(req, res, next) => {
-  req.body.from = 'user';
+userAuthRoutes.get('/authexpress', requireAuth, async(req: IcustomRequest<never, null>, res, next) => {
+  // req.body.from = 'user' // TODO;
   authLogger.debug('authexpress');
-  const { userId } = (req as Icustomrequest).user;
-  // eslint-disable-next-line @typescript-eslint/naming-convention
+  const { userId } = req.user;
+
   const foundUser = await user.findOne({ _id: userId, ... { userType: { $ne: 'customer' }, verified: true } })
-    .populate([populateProfilePic(), populateProfileCoverPic(), populatePhotos(), populateTrackEdit(), populateTrackView() ]);
+    .populate([
+      populateProfilePic(), populateProfileCoverPic(), populatePhotos(), populateTrackEdit(), populateTrackView()
+    ]);
 
   if (!foundUser) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
@@ -695,175 +1006,174 @@ userAuthRoutes.get('/authexpress', requireAuth, async(req, res, next) => {
 
 
 // okay
-userAuthRoutes.post('/signup', (req, res, next) => {
-  return next();
-}, isTooCommonPhrase, isInAdictionaryOnline, signupFactorRelgator, recoverAccountFactory, (req, res) => {
-  return res.status(401).send({ success: false, msg: 'unauthourised' });
-});
+userAuthRoutes.post(
+  '/signup',
+  (req: IcustomRequest<never, unknown>, res, next) => {
+    return next();
+  },
+  isTooCommonPhrase,
+  isInAdictionaryOnline,
+  signupFactorRelgator,
+  recoverAccountFactory,
+  (req: IcustomRequest<never, unknown>, res) => {
+    return res.status(401).send({ success: false, msg: 'unauthourised' });
+  }
+);
 
-userAuthRoutes.post('/recover', async(req, res, next) => {
-  const emailPhone = req.body.emailPhone;
+userAuthRoutes
+  .post('/recover', async(req: IcustomRequest<never, { emailPhone: string; foundUser?: Iuser}>, res, next) => {
+    const emailPhone = req.body.emailPhone;
 
-  authLogger.debug(`recover, 
+    authLogger.debug(`recover, 
     emailphone: ${emailPhone}`);
-  const { query } = determineIfIsPhoneAndMakeFilterObj(emailPhone);
+    const { query } = determineIfIsPhoneAndMakeFilterObj(emailPhone);
 
-  const foundUser = await user.findOne({ ...query, ...{ userType: { $ne: 'customer' } } })
-    .populate([populateProfilePic(), populateProfileCoverPic(), populatePhotos(), populateTrackEdit(), populateTrackView() ]);
+    const foundUser = await user.findOne({ ...query, ...{ userType: { $ne: 'customer' } } })
+      .populate([
+        populateProfilePic(), populateProfileCoverPic(), populatePhotos(), populateTrackEdit(), populateTrackView()
+      ]);
 
-  req.body.foundUser = foundUser;
+    req.body.foundUser = foundUser;
 
-  return next();
-}, recoverAccountFactory);
+    return next();
+  }, recoverAccountFactory);
 
-userAuthRoutes.post('/confirm', async(req, res, next) => {
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  const { _id, verifycode, nowHow } = req.body;
+userAuthRoutes.post(
+  '/confirm',
+  async(req: IcustomRequest<never, {
+    _id: string; verifycode: string; useField: 'email' | 'phone'; foundUser: Iuser;}>, res, next) => {
+    const { _id, verifycode, useField } = req.body;
 
-  authLogger.debug(`verify, verifycode: ${verifycode}, how: ${nowHow}`);
-  const isValid = verifyObjectIds([_id]);
+    authLogger.debug(`verify, verifycode: ${verifycode}, useField: ${useField}`);
+    const isValid = verifyObjectIds([_id]);
 
-  if (!isValid) {
-    return {
-      status: 401,
-      response: {
-        success: false,
-        err: 'unauthourised'
-      }
-    };
-  }
-  const foundUser = await user.findById(_id)
-    .populate([populateProfilePic(), populateProfileCoverPic(), populatePhotos(), populateTrackEdit(), populateTrackView() ]);
-
-  req.body.foundUser = foundUser;
-
-  return next();
-}, confirmAccountFactory);
-
-userAuthRoutes.put('/resetpaswd', async(req, res, next) => {
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  const { _id, verifycode } = req.body;
-
-  authLogger.debug(`resetpassword, 
-    verifycode: ${verifycode}`);
-  const isValid = verifyObjectIds([_id]);
-
-  if (!isValid) {
-    return {
-      status: 401,
-      response: {
-        success: false,
-        err: 'unauthourised'
-      }
-    };
-  }
-  const foundUser = await user.findById(_id)
-    .populate([populateProfilePic(), populateProfileCoverPic(), populatePhotos(), populateTrackEdit(), populateTrackView() ]);
-
-  req.body.foundUser = foundUser;
-
-  return next();
-}, resetAccountFactory);
-
-userAuthRoutes.post('/manuallyverify/:userId/:companyIdParam', requireAuth, roleAuthorisation('users', 'update'), async(req, res) => {
-  const { userId, companyIdParam } = req.params;
-  const { companyId } = (req as Icustomrequest).user;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const isValid = verifyObjectIds([userId, queryId]);
-
-  if (!isValid) {
-    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-  }
-  if (!stockAuthConfig || !stockAuthConfig.localSettings || stockAuthConfig.localSettings.production) {
-    return res.status(401).send({ success: false, er: 'unauthourized' });
-  }
-
-  const foundUser = await user
-    .findOneAndUpdate({ _id: userId, companyId: queryId });
-
-  if (!foundUser) {
-    return res.status(401).send({
-      success: false,
-      err: 'Account does not exist'
-    });
-  }
-
-  foundUser.verified = true;
-
-  return res.status(200).send({ success: true });
-});
-
-
-userAuthRoutes.post('/sociallogin', async(req, res) => {
-  const credentials = req.body;
-
-  authLogger.debug(`sociallogin, 
-    socialId: ${credentials.socialId}`);
-  const foundUser = await user.findOne({
-    fromsocial: true,
-    socialframework: credentials.type,
-    socialId: credentials.socialId
-  });
-
-  if (!foundUser) {
-    const count = await user
-      .find({ }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
-    const urId = makeUrId(Number(count[0]?.urId || '0'));
-
-    const newUser = new user({
-      urId,
-      fname: credentials.fname,
-      lname: credentials.lname,
-      phone: '',
-      email: credentials.email,
-      admin: false,
-      expireAt: '',
-      verified: true,
-      fromsocial: true,
-      socialframework: credentials.type,
-      socialId: credentials.socialId,
-      profilepic: credentials.profilepic,
-      countryCode: +256
-    });
-
-    let errResponse: Isuccess;
-
-    const nUser = await newUser.save().catch(err => {
-      errResponse = {
-        success: false,
-        status: 403
+    if (!isValid) {
+      return {
+        status: 401,
+        response: {
+          success: false,
+          err: 'unauthourised'
+        }
       };
-      if (err && err.errors) {
-        errResponse.err = stringifyMongooseErr(err.errors);
-      } else {
-        errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-      }
+    }
+    const foundUser = await user.findById(_id)
+      .populate([
+        populateProfilePic(), populateProfileCoverPic(), populatePhotos(), populateTrackEdit(), populateTrackView()
+      ]);
 
-      return err;
-    });
+    req.body.foundUser = foundUser;
 
-    if (nUser && nUser._id) {
-      addParentToLocals(res, nUser._id, user.collection.collectionName, 'makeTrackEdit');
+    return next();
+  },
+  confirmAccountFactory
+);
+
+userAuthRoutes.put(
+  '/resetpaswd',
+  async(req: IcustomRequest<never, { _id: string; verifycode: string; foundUser: Iuser}>, res, next) => {
+    const { _id, verifycode } = req.body;
+
+    authLogger.debug(`resetpassword, 
+    verifycode: ${verifycode}`);
+    const isValid = verifyObjectIds([_id]);
+
+    if (!isValid) {
+      return {
+        status: 401,
+        response: {
+          success: false,
+          err: 'unauthourised'
+        }
+      };
+    }
+    const foundUser = await user.findById(_id)
+      .populate([
+        populateProfilePic(), populateProfileCoverPic(), populatePhotos(), populateTrackEdit(), populateTrackView()
+      ]);
+
+    req.body.foundUser = foundUser;
+
+    return next();
+  },
+  resetAccountFactory
+);
+
+userAuthRoutes.post(
+  '/manuallyverify/:userId',
+  requireAuth,
+  roleAuthorisation('users', 'update'),
+  async(req: IcustomRequest<{ userId: string }, unknown>, res) => {
+    const { userId } = req.params;
+    const { companyId } = req.user;
+
+    const isValid = verifyObjectIds([userId, companyId]);
+
+    if (!isValid) {
+      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
+    if (!stockAuthConfig || !stockAuthConfig.localSettings || stockAuthConfig.localSettings.production) {
+      return res.status(401).send({ success: false, er: 'unauthourized' });
     }
 
-    if (errResponse) {
-      return res.status(403).send(errResponse);
-    } else {
-      return res.status(200).send({
-        success: true,
-        user: nUser.toAuthJSON()
+    const foundUser = await user
+      .findOneAndUpdate({ _id: userId });
+
+    if (!foundUser) {
+      return res.status(401).send({
+        success: false,
+        err: 'Account does not exist'
       });
     }
-  } else {
-    foundUser.fname = credentials.name;
-    const file: IfileMeta = {
-      url: credentials.profilepic
-    };
 
-    foundUser.profilePic = file;
+    foundUser.verified = true;
+
+    return res.status(200).send({ success: true });
+  }
+);
+
+userAuthRoutes.get('/login/facebook', passport.authenticate('facebook'));
+userAuthRoutes.get('/login/google', passport.authenticate('google'));
+
+userAuthRoutes.get(
+  '/oauth2/redirect/facebook',
+  passport.authenticate('facebook'),
+  socialLogin('facebook'),
+  checkIpAndAttempt,
+  userLoginRelegator
+);
+userAuthRoutes.get(
+  '/oauth2/redirect/google',
+  passport.authenticate('google'),
+  socialLogin('google'),
+  checkIpAndAttempt,
+  userLoginRelegator
+);
+
+userAuthRoutes.put(
+  '/updatepermissions/:_id',
+  requireAuth,
+  roleAuthorisation('users', 'update'),
+  async(req: IcustomRequest<{ _id: string}, Iuserperm>, res) => {
+    const { _id } = req.params;
+    const isValid = verifyObjectId(_id);
+
+    if (!isValid) {
+      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
+    authLogger.debug('updatepermissions');
+    const foundUser = await user
+      .findById(_id);
+
+    if (!foundUser) {
+      return res.status(401).send({
+        success: false,
+        err: 'Account does not exist'
+      });
+    }
+    foundUser.permissions = req.body || foundUser.permissions;
+
     let status = 200;
-    let response: Iauthresponse = { success: true };
+    let response: Isuccess = { success: true };
 
     await foundUser.save().catch(err => {
       status = 403;
@@ -875,677 +1185,301 @@ userAuthRoutes.post('/sociallogin', async(req, res) => {
         errResponse.err = stringifyMongooseErr(err.errors);
       } else {
         errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-      }
-      response = errResponse;
-
-      return err;
-    });
-
-    if (status === 200) {
-      response = {
-        success: true,
-        user: foundUser.toAuthJSON() as Iuser
-      };
-
-      return res.status(200).send(response);
-    } else {
-      return res.status(403).send(response);
-    }
-  }
-});
-
-userAuthRoutes.put('/updateprofile/:formtype/:companyIdParam', requireAuth, async(req, res) => {
-  const { userId } = (req as unknown as Icustomrequest).user;
-  const { userdetails } = req.body;
-  const { formtype } = req.params;
-  let users;
-  let success = true;
-  let error;
-  let status = 200;
-
-  authLogger.debug(`updateprofile, 
-    formtype: ${formtype}`);
-
-  const isValid = verifyObjectId(userId);
-
-  if (!isValid) {
-    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-  }
-  const foundUser = await user
-    .findById(userId);
-
-  if (!foundUser) {
-    return res.status(401).send({
-      success: false,
-      err: 'Account does not exist'
-    });
-  }
-  switch (formtype) {
-    case 'name':
-      foundUser.fname = userdetails.fname;
-      foundUser.lname = userdetails.lname;
-      break;
-    case 'gender':
-      foundUser.gender = userdetails.gender;
-      break;
-    case 'age':
-      foundUser.age = userdetails.age;
-      break;
-    case 'phone':
-      // compare password
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      foundUser['comparePassword'](userdetails.passwd, function(err, isMatch) {
-        if (err) {
-          status = 401;
-          success = false;
-          error = 'invalid password';
-          // throw err;
-        }
-      });
-
-      /* if (foundUser.password !== userdetails.passwd) {
-        status = 401;
-        success = false;
-        error = 'invalid password';
-      } */
-      users = await user
-        .find({ phone: foundUser.phone });
-      if (users) {
-        status = 401;
-        success = false;
-        error = `phone number is in use
-          by another Account`;
-      } else {
-        foundUser.phone = userdetails.phone;
-      }
-      break;
-    case 'email':
-      // compare password
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      foundUser['comparePassword'](userdetails.passwd, function(err, isMatch) {
-        if (err) {
-          status = 200;
-          success = false;
-          error = 'invalid password';
-        }
-      });
-
-      /* if (foundUser.password !== userdetails.passwd) {
-        status = 200;
-        success = false;
-        error = 'invalid password';
-      } */
-      users = await user
-        .find({ email: foundUser.email });
-      if (users) {
-        status = 200;
-        success = false;
-        error = `email address is in use by
-          another Account`;
-      } else {
-        foundUser.email = userdetails.email;
-      }
-      break;
-    case 'password':
-      // compare password
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      foundUser['comparePassword'](userdetails.oldPassword, function(err, isMatch) {
-        if (err) {
-          status = 200;
-          success = false;
-          error = 'invalid password';
-        }
-      });
-
-      /* if (userdetails.oldPassword === foundUser.password) {
-        foundUser.password = userdetails.password;
-      } else {
-        status = 200;
-        success = false;
-        error = 'invalid password';
-      } */
-      break;
-  }
-
-  let response: Iauthresponse = { success: true, err: error };
-
-  if (success === true) {
-    await foundUser.save().catch((err) => {
-      status = 403;
-      const errResponse: Isuccess = {
-        success: false
-      };
-
-      if (err && err.errors) {
-        errResponse.err = stringifyMongooseErr(err.errors);
-      } else {
-        errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
+      try again in a while`;
       }
       response = errResponse;
     });
+
+    return res.status(status).send(response);
   }
+);
 
-  return res.status(status).send(response);
-});
+userAuthRoutes.get(
+  '/one/:urId',
+  requireAuth,
+  roleAuthorisation('users', 'read'),
+  async(req: IcustomRequest<{ urId: string }, null>, res) => {
+    const { urId } = req.params;
+    const { filter } = makeCompanyBasedQuery(req);
+    // let companyId: string;
 
-userAuthRoutes.post('/updateprofileimg/:companyIdParam', requireAuth, uploadFiles, appendBody, saveMetaToDb, async(req, res) => {
-  let userId = req.body.user?._id;
-
-  if (!userId) {
-    userId = (req as unknown as Icustomrequest).user.userId;
-  }
-
-  const isValid = verifyObjectId(userId);
-
-  if (!isValid) {
-    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-  }
-
-  authLogger.debug('updateprofileimg');
-  const foundUser = await user
-    .findById(userId);
-
-  if (!foundUser) {
-    return res.status(401).send({
-      success: false,
-      err: 'Account does not exist'
-    });
-  }
-  const parsed = req.body.parsed;
-
-  if (parsed) {
-    if (parsed.profilePic) {
-      foundUser.profilePic = parsed.profilePic || foundUser.profilePic;
-    }
-
-    if (parsed.coverPic) {
-      foundUser.profileCoverPic = parsed.coverPic || foundUser.profileCoverPic;
-    }
-
-    if (parsed.newPhotos) {
-      const oldPhotos = foundUser.photos || [];
-
-      foundUser.photos = [...oldPhotos, ...parsed.newPhotos] as string[];
-    }
-  }
-
-  let status = 200;
-  let response: Iauthresponse = { success: true };
-
-  await foundUser.save().catch((err) => {
-    status = 403;
-    const errResponse: Isuccess = {
-      success: false
-    };
-
-    if (err && err.errors) {
-      errResponse.err = stringifyMongooseErr(err.errors);
-    } else {
-      errResponse.err = `we are having problems connecting to our databases, 
-      try again in a while`;
-    }
-    response = errResponse;
-  });
-
-  return res.status(status).send(response);
-});
-
-userAuthRoutes.put('/updatepermissions/:userId/:companyIdParam', requireAuth, roleAuthorisation('users', 'update'), async(req, res) => {
-  const { userId } = req.params;
-  const isValid = verifyObjectId(userId);
-
-  if (!isValid) {
-    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-  }
-  authLogger.debug('updatepermissions');
-  const foundUser = await user
-    .findById(userId);
-
-  if (!foundUser) {
-    return res.status(401).send({
-      success: false,
-      err: 'Account does not exist'
-    });
-  }
-  foundUser.permissions = req.body.permissions || foundUser.permissions;
-
-  let status = 200;
-  let response: Iauthresponse = { success: true };
-
-  await foundUser.save().catch(err => {
-    status = 403;
-    const errResponse: Isuccess = {
-      success: false
-    };
-
-    if (err && err.errors) {
-      errResponse.err = stringifyMongooseErr(err.errors);
-    } else {
-      errResponse.err = `we are having problems connecting to our databases, 
-      try again in a while`;
-    }
-    response = errResponse;
-  });
-
-  return res.status(status).send(response);
-});
-
-userAuthRoutes.put('/blockunblock/:userId', requireAuth, requireSuperAdmin, async(req, res) => {
-  const { userId } = req.paras;
-
-  authLogger.debug('blockunblock');
-  const isValid = verifyObjectId(userId);
-
-  if (!isValid) {
-    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-  }
-  const foundUser = await user
-    .findById(userId);
-
-  if (!foundUser) {
-    return res.status(401).send({
-      success: false,
-      err: 'Account does not exist'
-    });
-  }
-  foundUser.blocked = req.body.blocked;
-
-  let status = 200;
-  let response: Iauthresponse = { success: true };
-
-  await foundUser.save().catch(err => {
-    status = 403;
-    const errResponse: Isuccess = {
-      success: false
-    };
-
-    if (err && err.errors) {
-      errResponse.err = stringifyMongooseErr(err.errors);
-    } else {
-      errResponse.err = `we are having problems connecting to our databases, 
-      try again in a while`;
-    }
-    response = errResponse;
-  });
-
-  return res.status(status).send(response);
-});
-
-userAuthRoutes.put('/addupdateaddr/:userId/:companyIdParam', requireAuth, async(req, res) => {
-  const { userId } = req.params;
-  const { companyId } = (req as Icustomrequest).user;
-  const { companyIdParam } = req.params;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-
-  authLogger.debug('updatepermissions');
-  const isValid = verifyObjectIds([userId, queryId]);
-
-  if (!isValid) {
-    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-  }
-  const foundUser = await user
-    .findOneAndUpdate({ _id: userId, companyId: queryId });
-
-  if (!foundUser) {
-    return res.status(401).send({
-      success: false,
-      err: 'Account does not exist'
-    });
-  }
-
-  const { address, how, type } = req.body;
-
-  if (how === 'create') {
-    if (type === 'billing') {
-      foundUser.billing.push(address);
-    } else {
-      foundUser.address.push(address);
-    }
-  } else if (how === 'update') {
-    let found: Iaddress | Ibilling;
-
-    if (type === 'billing') {
-      found = foundUser.billing.find(val => val.id === address.id) ;
-    } else {
-      found = foundUser.address.find(val => val.id === address.id) ;
-    }
-    if (found) {
-      found = address;
-    }
-  } else if (type === 'billing') {
-    foundUser.billing = foundUser.billing.filter(val => val.id !== address.id);
+    /* if (companyId === 'superAdmin' && companyIdParam !== 'undefined') {
+    companyId = companyIdParam;
   } else {
-    foundUser.address = foundUser.address.filter(val => val.id !== address.id);
-  }
-
-  let status = 200;
-  let response: Iauthresponse = { success: true };
-
-  await foundUser.save().catch(err => {
-    status = 403;
-    const errResponse: Isuccess = {
-      success: false
-    };
-
-    if (err && err.errors) {
-      errResponse.err = stringifyMongooseErr(err.errors);
-    } else {
-      errResponse.err = `we are having problems connecting to our databases, 
-      try again in a while`;
-    }
-    response = errResponse;
-  });
-
-  return res.status(status).send(response);
-});
-
-userAuthRoutes.get('/getoneuser/:urId/:companyIdParam', requireAuth, roleAuthorisation('users', 'read'), async(req, res) => {
-  const { urId } = req.params;
-  const { filter } = makeCompanyBasedQuery(req);
-  // let queryId: string;
-
-  /* if (companyId === 'superAdmin' && companyIdParam !== 'undefined') {
-    queryId = companyIdParam;
-  } else {
-    queryId = companyId;
+    companyId = companyId;
   } */
-  /* if (queryId || companyId !== 'superAdmin') {
-    const isValid = verifyObjectId(queryId);
+    /* if (companyId || companyId !== 'superAdmin') {
+    const isValid = verifyObjectId(companyId);
 
     if (!isValid) {
       return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
   } */
-  const oneUser = await userLean
-    .findOne({ urId, ...filter })
-    .populate([populateProfilePic(), populateProfileCoverPic(), populatePhotos(), populateTrackEdit(), populateTrackView() ])
-    .populate({ path: 'companyId', model: companyLean })
-    .lean();
+    const oneUser = await userLean
+      .findOne({ urId, ...filter })
+      .populate([
+        populateProfilePic(), populateProfileCoverPic(), populatePhotos(), populateTrackEdit(), populateTrackView()
+      ])
+      .populate({ path: 'companyId', model: companyLean })
+      .lean();
 
-  if (oneUser && oneUser.blocked) {
-    return res.status(200).send({});
-  }
+    if (!oneUser || (oneUser && oneUser.blocked)) {
+      return res.status(404).send({ success: false, err: 'not found' });
+    }
 
-  if (filter.companyId &&
+    if (filter.companyId &&
     filter.companyId !== 'all' &&
     filter.companyId !== 'undefined' &&
     oneUser.companyId &&
     (oneUser.companyId as Icompany).blocked) {
-    return res.status(200).send({});
+      return res.status(404).send({ success: false, err: 'not found' });
+    }
+
+    addParentToLocals(res, oneUser._id, user.collection.collectionName, 'trackDataView');
+
+    return res.status(200).send(oneUser);
   }
+);
 
-  addParentToLocals(res, oneUser._id, user.collection.collectionName, 'trackDataView');
+userAuthRoutes.get(
+  '/all/:offset/:limit',
+  requireAuth,
+  requireActiveCompany,
+  roleAuthorisation('users', 'read'),
+  async(req: IcustomRequest<{ offset: string; limit: string }, null>, res) => {
+    const { filter } = makeCompanyBasedQuery(req);
+    const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
+    const currOffset = offset === 0 ? 0 : offset;
+    const currLimit = limit === 0 ? 1000 : limit;
 
-  return res.status(200).send(oneUser);
-});
+    authLogger.info('filter is ', filter);
+    const all = await Promise.all([
+      userLean
+        .find({ verified: true, userType: { $ne: 'company' }, ...filter })
+        .sort({ fname: 1 })
+        .limit(Number(currLimit))
+        .skip(Number(currOffset))
+        .populate([
+          populateProfilePic(), populateProfileCoverPic(), populatePhotos(), populateTrackEdit(), populateTrackView()
+        ])
+        .populate({ path: 'companyId', model: companyLean, select: { name: 1, blocked: 1 } })
+        .lean(),
+      userLean.countDocuments({ verified: true, userType: { $ne: 'company' }, ...filter })
 
-userAuthRoutes.get('/getusers/:where/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('users', 'read'), async(req, res) => {
-  const { filter } = makeCompanyBasedQuery(req);
+    ]);
+    const filteredUsers = all[0].filter(data => {
+      if (filter.companyId && filter.companyId !== 'all' && filter.companyId !== 'undefined') {
+        return !(data.companyId as Icompany).blocked;
+      }
 
-  /* let queryId: string;
+      return true;
+    });
+    const response: IdataArrayResponse<Tuser> = {
+      count: all[1],
+      data: filteredUsers
+    };
 
-  if (companyId === 'superAdmin' && companyIdParam !== 'undefined') {
-    queryId = companyIdParam;
-  } else {
-    queryId = companyId;
+    for (const val of all[0]) {
+      addParentToLocals(res, val._id, user.collection.collectionName, 'trackDataView');
+    }
+
+    return res.status(200).send(response);
   }
-  if (queryId || companyId !== 'superAdmin') {
-    const isValid = verifyObjectId(queryId);
+);
+
+userAuthRoutes.post(
+  '/filter',
+  requireAuth,
+  requireActiveCompany,
+  roleAuthorisation('users', 'read'),
+  async(req: IcustomRequest<never, IfilterProps>, res) => {
+    const { propSort } = req.body;
+    const { offset, limit } = offsetLimitRelegator(req.body.offset, req.body.limit);
+
+    const filter = constructFiltersFromBody(req);
+
+    const aggCursor = userLean.aggregate<IfilterAggResponse<Tuser>>([
+      {
+        $match: {
+          $and: [
+          // { status: 'pending' },
+            ...filter
+          ]
+        }
+      },
+      ...lookupTrackEdit(),
+      ...lookupTrackView(),
+      {
+        $facet: {
+          data: [...lookupSort(propSort), ...lookupOffset(offset), ...lookupLimit(limit)],
+          total: [{ $count: 'count' }]
+        }
+      },
+      {
+        $unwind: {
+          path: '$total',
+          preserveNullAndEmptyArrays: true
+        }
+      }
+    ]);
+    const dataArr: IfilterAggResponse<Tuser>[] = [];
+
+    for await (const data of aggCursor) {
+      dataArr.push(data);
+    }
+
+    const all = dataArr[0]?.data || [];
+    const count = dataArr[0]?.total?.count || 0;
+
+    const response: IdataArrayResponse<Tuser> = {
+      count,
+      data: all
+    };
+
+    for (const val of all) {
+      addParentToLocals(res, val._id, user.collection.collectionName, 'trackDataView');
+    }
+
+    return res.status(200).send(response);
+  }
+);
+
+userAuthRoutes.post(
+  '/add',
+  requireAuth,
+  roleAuthorisation('users', 'create'),
+  addUser,
+  (req: IcustomRequest<never, unknown>, res) => {
+    return res.status(200).send({ success: true });
+  }
+);
+
+userAuthRoutes.post(
+  '/add/img',
+  requireAuth,
+  roleAuthorisation('users', 'create'),
+  uploadFiles,
+  appendBody,
+  saveMetaToDb,
+  addUser,
+  (req: IcustomRequest<never, unknown>, res) => {
+    return res.status(200).send({ success: true });
+  }
+);
+
+userAuthRoutes.put(
+  '/update',
+  requireAuth,
+  requireActiveCompany,
+  roleAuthorisation('users', 'update'),
+  updateUserBulk,
+  (req: IcustomRequest<never, unknown>, res) => {
+    return res.status(200).send({ success: true });
+  }
+);
+
+userAuthRoutes.post(
+  '/update/img',
+  requireAuth,
+  requireActiveCompany,
+  roleAuthorisation('users', 'update'),
+  uploadFiles,
+  appendBody,
+  saveMetaToDb,
+  updateUserBulk,
+  (req: IcustomRequest<never, unknown>, res) => {
+    return res.status(200).send({ success: true });
+  }
+);
+
+userAuthRoutes.put(
+  '/delete/many',
+  requireAuth,
+  requireActiveCompany,
+  roleAuthorisation('users', 'delete'),
+  removeManyUsers,
+  (req: IcustomRequest<never, IdeleteMany>, res) => {
+    return res.status(200).send({ success: true });
+  }
+);
+
+userAuthRoutes.put(
+  '/delete/one',
+  requireAuth,
+  requireActiveCompany,
+  roleAuthorisation('users', 'delete'),
+  removeOneUser,
+  (req: IcustomRequest<never, IdeleteOne>, res) => {
+    return res.status(200).send({ success: true });
+  }
+);
+
+userAuthRoutes.put(
+  '/delete/images',
+  requireAuth,
+  requireActiveCompany,
+  roleAuthorisation('users', 'delete'),
+  deleteFiles(true),
+  async(req: IcustomRequest<never, { filesWithDir: IfileMeta[]; user: Partial<Iuser>}>, res) => {
+    const filesWithDir: IfileMeta[] = req.body.filesWithDir;
+    const { companyId } = req.user;
+
+
+    if (filesWithDir && !filesWithDir.length) {
+      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
+    const updatedUser = req.body.user;
+
+    const { _id } = updatedUser;
+    const isValid = verifyObjectIds([_id, companyId]);
 
     if (!isValid) {
       return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
-  } */
-  const { where } = req.params;
-  const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
-  const currOffset = offset === 0 ? 0 : offset;
-  const currLimit = limit === 0 ? 1000 : limit;
-  let filter2;
+    const foundUser = await user
+      .findOneAndUpdate({ _id });
 
-  authLogger.info('where is ', where);
-
-  switch (where) {
-    /* case 'manual':
-      filter = {
-        manuallyAdded: true,
-        companyId: queryId
-      };
-      break;
-    case 'auto':
-      filter = {
-        manuallyAdded: false,
-        companyId: queryId
-      };
-      break; */
-    case 'customer':
-      filter2 = {
-        userType: 'customer'
-      };
-      break;
-    case 'staff':
-      filter2 = {
-        userType: 'staff'
-      };
-      break;
-    case 'registered':
-      filter2 = { userType: { $ne: 'company' }, verified: true };
-      break;
-    default:
-      filter2 = { userType: { $ne: 'company' } };
-      break;
-  }
-
-  authLogger.info('filter is ', filter);
-  const all = await Promise.all([
-    userLean
-      .find({ ...filter2, ...filter })
-      .sort({ fname: 1 })
-      .limit(Number(currLimit))
-      .skip(Number(currOffset))
-      .populate([populateProfilePic(), populateProfileCoverPic(), populatePhotos(), populateTrackEdit(), populateTrackView() ])
-      .populate({ path: 'companyId', model: companyLean, select: { name: 1, blocked: 1 } })
-      .lean(),
-    userLean.countDocuments({ ...filter2, ...filter })
-
-  ]);
-  const filteredFaqs = all[0].filter(data => {
-    if (filter.companyId && filter.companyId !== 'all' && filter.companyId !== 'undefined') {
-      return !(data.companyId as Icompany).blocked;
+    if (!foundUser) {
+      return res.status(404).send({ success: false, err: 'item not found' });
     }
+    const photos = foundUser.photos;
+    const filesWithDirIds = filesWithDir
+      .map(val => val._id);
 
-    return true;
-  });
-  const response: IdataArrayResponse = {
-    count: all[1],
-    data: filteredFaqs
-  };
+    foundUser.photos = photos
+      .filter((p: string) => !filesWithDirIds.includes(p)) as string[];
+    foundUser.profilePic = foundUser.photos.find(p => p === foundUser.profilePic);
+    foundUser.profileCoverPic = foundUser.photos.find(p => p === foundUser.profileCoverPic);
+    let errResponse: Isuccess;
 
-  for (const val of all[0]) {
-    addParentToLocals(res, val._id, user.collection.collectionName, 'trackDataView');
-  }
-
-  return res.status(200).send(response);
-});
-
-userAuthRoutes.post('/adduser/:companyIdParam', requireAuth, roleAuthorisation('users', 'create'), addUser, (req, res) => {
-  return res.status(200).send({ success: true });
-});
-
-userAuthRoutes.post('/adduserimg/:companyIdParam', requireAuth, roleAuthorisation('users', 'create'), uploadFiles, appendBody, saveMetaToDb, addUser, (req, res) => {
-  return res.status(200).send({ success: true });
-});
-
-userAuthRoutes.put('/updateuserbulk/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('users', 'update'), updateUserBulk, (req, res) => {
-  return res.status(200).send({ success: true });
-});
-
-userAuthRoutes.post('/updateuserbulkimg/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('users', 'update'), uploadFiles, appendBody, saveMetaToDb, updateUserBulk, (req, res) => {
-  return res.status(200).send({ success: true });
-});
-
-userAuthRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('users', 'delete'), async(req, res) => {
-  const { ids } = req.body;
-  const { companyId } = (req as Icustomrequest).user;
-  const { companyIdParam } = req.params;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const isValid = verifyObjectIds([...ids, ...[queryId]]);
-
-  if (!isValid) {
-    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-  }
-
-  let filesWithDir: IfileMeta[];
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  const alltoDelete = await user.find({ _id: { $in: ids }, companyId: queryId })
-    .populate([populateProfilePic(), populateProfileCoverPic(), populatePhotos() ])
-    .lean();
-  let toDelIds = [];
-
-  for (const user of alltoDelete) {
-    if (user.userType === 'eUser') {
-      toDelIds = [...toDelIds, user._id];
-      if (user.photos?.length > 0) {
-        filesWithDir = [...filesWithDir, ...user.photos as IfileMeta[]];
+    await foundUser.save().catch(err => {
+      errResponse = {
+        success: false,
+        status: 403
+      };
+      if (err && err.errors) {
+        errResponse.err = stringifyMongooseErr(err.errors);
+      } else {
+        errResponse.err = `we are having problems connecting to our databases, 
+      try again in a while`;
       }
-    }
-  }
 
-  await deleteAllFiles(filesWithDir);
-
-  /* const deleted = await user
-    .deleteMany({ _id: { $in: toDelIds }, companyId: queryId }).catch(err => {
-      authLogger.error('deletemany users failed with error: ' + err.message);
-
-      return null;
-    }); */
-
-  const deleted = await user
-    .updateMany({ _id: { $in: toDelIds }, companyId: queryId }, {
-      $set: { isDeleted: true }
-    }).catch(err => {
-      authLogger.error('deletemany users failed with error: ' + err.message);
-
-      return null;
+      return errResponse;
     });
 
-  if (Boolean(deleted)) {
-    for (const val of toDelIds) {
-      addParentToLocals(res, val, user.collection.collectionName, 'trackDataDelete');
+    if (errResponse) {
+      return res.status(403).send(errResponse);
     }
 
-    return res.status(200).send({ success: Boolean(deleted) });
-  } else {
-    return res.status(404).send({ success: Boolean(deleted), err: 'could not delete selected items, try again in a while' });
+    return res.status(200).send({ success: true });
   }
-});
+);
 
-userAuthRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('users', 'delete'), async(req, res) => {
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  const { _id } = req.body;
-  const { companyId } = (req as Icustomrequest).user;
-  const { companyIdParam } = req.params;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const isValid = verifyObjectIds([_id, queryId]);
-
-  if (!isValid) {
-    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-  }
-
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  const found = await user.findOne({ _id, companyId: queryId })
-    .populate([populatePhotos() ])
-    .lean();
-
-  if (found) {
-    if (found.userType === 'eUser') {
-      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
-    const filesWithDir = found.photos.map(photo => (
-      {
-        _id: photo._id,
-        url: photo.url
-      }
-    ));
-
-    await deleteAllFiles(filesWithDir);
-  }
-
-  /* const deleted = await user
-    .findOneAndDelete({ _id, companyId: queryId }); */
-
-  const deleted = await user
-    .updateOne({ _id, companyId: queryId }, { $set: { isDeleted: true } });
-
-  if (Boolean(deleted)) {
-    addParentToLocals(res, _id, user.collection.collectionName, 'makeTrackEdit');
-
-    return res.status(200).send({ success: Boolean(deleted) });
-  } else {
-    return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
-  }
-});
-
-userAuthRoutes.put('/deleteimages/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('users', 'delete'), deleteFiles(true), async(req, res) => {
-  const filesWithDir: IfileMeta[] = req.body.filesWithDir;
-  const { companyId } = (req as Icustomrequest).user;
-  const { companyIdParam } = req.params;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-
-  if (filesWithDir && !filesWithDir.length) {
-    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-  }
-  const updatedUser = req.body.user;
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  const { _id } = updatedUser;
-  const isValid = verifyObjectIds([_id, queryId]);
-
-  if (!isValid) {
-    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-  }
-  const foundUser = await user
-    .findOneAndUpdate({ _id, companyId: queryId });
-
-  if (!foundUser) {
-    return res.status(404).send({ success: false, err: 'item not found' });
-  }
-  const photos = foundUser.photos;
-  const filesWithDirIds = filesWithDir
-    .map(val => val._id);
-
-  foundUser.photos = photos
-    .filter((p: string) => !filesWithDirIds.includes(p)) as string[];
-  foundUser.profilePic = foundUser.photos.find(p => p === foundUser.profilePic);
-  foundUser.profileCoverPic = foundUser.photos.find(p => p === foundUser.profileCoverPic);
-  let errResponse: Isuccess;
-
-  await foundUser.save().catch(err => {
-    errResponse = {
-      success: false,
-      status: 403
-    };
-    if (err && err.errors) {
-      errResponse.err = stringifyMongooseErr(err.errors);
-    } else {
-      errResponse.err = `we are having problems connecting to our databases, 
-      try again in a while`;
-    }
-
-    return errResponse;
-  });
-
-  if (errResponse) {
-    return res.status(403).send(errResponse);
-  }
-
-  return res.status(200).send({ success: true });
-});
-
-userAuthRoutes.get('/existsemailphone/:emailPhone', async(req, res) => {
+userAuthRoutes.get('/existsemailphone/:emailPhone', async(req: IcustomRequest<{ emailPhone: string }, null>, res) => {
   const { emailPhone } = req.params;
   const { query } = determineIfIsPhoneAndMakeFilterObj(emailPhone);
   const foundUser = await user.findOne({ ...query }).lean().select({ _id: 1 });
 
   return res.status(401).send({ success: true, exists: Boolean(foundUser) });
 });
+

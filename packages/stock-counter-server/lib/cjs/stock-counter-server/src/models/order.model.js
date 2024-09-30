@@ -6,7 +6,7 @@ const mongoose_1 = require("mongoose");
 const database_1 = require("../utils/database");
 const uniqueValidator = require('mongoose-unique-validator');
 const orderSchema = new mongoose_1.Schema({
-    companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
+    companyId: { type: mongoose_1.Schema.ObjectId, required: [true, 'cannot be empty.'], index: true },
     paymentRelated: { type: String, unique: true },
     invoiceRelated: { type: String, unique: true },
     deliveryDate: { type: Date, required: [true, 'cannot be empty.'], index: true }
@@ -45,10 +45,12 @@ const createOrderModel = async (dbUrl, dbOptions, main = true, lean = true) => {
         await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.orderMain = database_1.mainConnection.model('Order', orderSchema);
+        exports.orderMain = database_1.mainConnection
+            .model('Order', orderSchema);
     }
     if (lean) {
-        exports.orderLean = database_1.mainConnectionLean.model('Order', orderSchema);
+        exports.orderLean = database_1.mainConnectionLean
+            .model('Order', orderSchema);
     }
 };
 exports.createOrderModel = createOrderModel;

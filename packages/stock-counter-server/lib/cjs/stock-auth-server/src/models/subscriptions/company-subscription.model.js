@@ -53,10 +53,12 @@ const createCompanySubscription = async (dbUrl, dbOptions, main = true, lean = t
         await (0, database_1.connectAuthDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.companySubscriptionMain = database_1.mainConnection.model('CompanySubscription', companySubscriptionSchema);
+        exports.companySubscriptionMain = database_1.mainConnectionLean
+            .model('CompanySubscription', companySubscriptionSchema);
     }
     if (lean) {
-        exports.companySubscriptionLean = database_1.mainConnectionLean.model('CompanySubscription', companySubscriptionSchema);
+        exports.companySubscriptionLean = database_1.mainConnectionLean
+            .model('CompanySubscription', companySubscriptionSchema);
     }
 };
 exports.createCompanySubscription = createCompanySubscription;

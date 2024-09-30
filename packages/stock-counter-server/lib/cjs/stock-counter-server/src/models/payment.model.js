@@ -45,10 +45,12 @@ const createPaymentModel = async (dbUrl, dbOptions, main = true, lean = true) =>
         await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.paymentMain = database_1.mainConnection.model('Payment', paymentSchema);
+        exports.paymentMain = database_1.mainConnection
+            .model('Payment', paymentSchema);
     }
     if (lean) {
-        exports.paymentLean = database_1.mainConnectionLean.model('Payment', paymentSchema);
+        exports.paymentLean = database_1.mainConnectionLean
+            .model('Payment', paymentSchema);
     }
 };
 exports.createPaymentModel = createPaymentModel;

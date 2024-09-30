@@ -31,10 +31,12 @@ class TrackEdit extends base_define_1.DatabaseAuto {
      * @param userId the id of the user to query
      * @param offset the offset of the results to return
      * @param limit the maximum number of results to return
-     * @returns a promise resolving to an object containing the count of all track edits made by the user and an array of track edits
+     * @returns a promise resolving to an object containing
+     * the count of all track edits made by the user and an array of track edits
      */
     static async getByUser(userId, offset = 0, limit = 20) {
-        const observer$ = stock_universal_1.StockUniversal.ehttp.makeGet(`/track/gettrackeditbyuser/${offset}/${limit}/${userId}`);
+        const observer$ = stock_universal_1.StockUniversal
+            .ehttp.makeGet(`/track/gettrackeditbyuser/${offset}/${limit}/${userId}`);
         const edits = await (0, rxjs_1.lastValueFrom)(observer$);
         return {
             count: edits.count,
@@ -48,7 +50,8 @@ class TrackEdit extends base_define_1.DatabaseAuto {
      * @returns a promise resolving to an object containing the count of all track edits and an array of track edits
      */
     static async getAll(offset = 0, limit = 20) {
-        const observer$ = stock_universal_1.StockUniversal.ehttp.makeGet(`/track/gettrackedit/${offset}/${limit}`);
+        const observer$ = stock_universal_1.StockUniversal
+            .ehttp.makeGet(`/track/gettrackedit/${offset}/${limit}`);
         const edits = await (0, rxjs_1.lastValueFrom)(observer$);
         return {
             count: edits.count,
@@ -57,11 +60,11 @@ class TrackEdit extends base_define_1.DatabaseAuto {
     }
     /**
      * Delete a track edit
-     * @param id the id of the track edit to delete
+     * @param _id the id of the track edit to delete
      * @returns a promise resolving to an object containing a boolean indicating success
      */
-    static async deleteOne(id) {
-        const observer$ = stock_universal_1.StockUniversal.ehttp.makeDelete(`/track/deletetrackedit/${id}`);
+    static async deleteOne(_id) {
+        const observer$ = stock_universal_1.StockUniversal.ehttp.makeDelete(`/track/deletetrackedit/${_id}`);
         const deleted = await (0, rxjs_1.lastValueFrom)(observer$);
         return deleted;
     }

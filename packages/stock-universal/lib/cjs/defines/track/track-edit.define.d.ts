@@ -23,7 +23,8 @@ export declare class TrackEdit extends DatabaseAuto {
      * @param userId the id of the user to query
      * @param offset the offset of the results to return
      * @param limit the maximum number of results to return
-     * @returns a promise resolving to an object containing the count of all track edits made by the user and an array of track edits
+     * @returns a promise resolving to an object containing
+     * the count of all track edits made by the user and an array of track edits
      */
     static getByUser(userId: string, offset?: number, limit?: number): Promise<{
         count: number;
@@ -41,8 +42,8 @@ export declare class TrackEdit extends DatabaseAuto {
     }>;
     /**
      * Delete a track edit
-     * @param id the id of the track edit to delete
+     * @param _id the id of the track edit to delete
      * @returns a promise resolving to an object containing a boolean indicating success
      */
-    static deleteOne(id: string): Promise<Isuccess>;
+    static deleteOne(_id: string): Promise<Isuccess>;
 }

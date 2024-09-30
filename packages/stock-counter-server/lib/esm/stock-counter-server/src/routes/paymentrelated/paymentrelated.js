@@ -1,6 +1,6 @@
 import { user, userLean } from '@open-stock/stock-auth-server';
 import { createNotifications, getCurrentNotificationSettings, sendMail } from '@open-stock/stock-notif-server';
-import { addParentToLocals, makeUrId, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { addParentToLocals, generateUrId, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import * as fs from 'fs';
 import path from 'path';
 import * as tracer from 'tracer';
@@ -37,11 +37,12 @@ const paymentRelatedLogger = tracer.colorConsole({
 /**
  * Updates the payment related information.
  * @param paymentRelated - The payment related object to update.
- * @param queryId - The query ID.
- * @returns A promise that resolves to an object containing the success status and the updated payment related ID, if successful.
+ * @param companyId - The query ID.
+ * @returns A promise that resolves to an object containing
+ * the success status and the updated payment related ID, if successful.
  */
-export const updatePaymentRelated = async (paymentRelated, queryId) => {
-    paymentRelated.companyId = queryId;
+export const updatePaymentRelated = async (paymentRelated, companyId) => {
+    paymentRelated.companyId = companyId;
     const isValid = verifyObjectId(paymentRelated.paymentRelated);
     if (!isValid) {
         return { success: false, err: 'unauthourised', status: 401 };
@@ -86,7 +87,7 @@ export const updatePaymentRelated = async (paymentRelated, queryId) => {
         return errResponse;
     }
     else {
-        return { success: true, status: 200, id: saved._id };
+        return { success: true, status: 200, _id: saved._id };
     }
 };
 /**
@@ -96,11 +97,12 @@ export const updatePaymentRelated = async (paymentRelated, queryId) => {
  * @param invoiceRelated - The invoice-related data.
  * @param type - The type of entity ('payment' or 'order').
  * @param extraNotifDesc - Additional notification description.
- * @param queryId - The query ID.
- * @returns A promise that resolves to an object containing the success status and the ID of the created or updated entity.
+ * @param companyId - The query ID.
+ * @returns A promise that resolves to an
+ *  object containing the success status and the ID of the created or updated entity.
  */
 export const relegatePaymentRelatedCreation = async (res, paymentRelated, invoiceRelated, type, // say payment or order
-extraNotifDesc, queryId) => {
+extraNotifDesc, companyId) => {
     const isValid = verifyObjectId(paymentRelated.paymentRelated);
     let found;
     if (isValid) {
@@ -108,9 +110,7 @@ extraNotifDesc, queryId) => {
             .findOne({ _id: paymentRelated.paymentRelated }).lean().select({ urId: 1 });
     }
     if (!found || paymentRelated.creationType === 'solo') {
-        const count = await paymentRelatedMain
-            .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
-        paymentRelated.urId = makeUrId(Number(count[0]?.urId || '0'));
+        paymentRelated.urId = await generateUrId(paymentRelatedMain);
         let errResponse;
         const newPayRelated = new paymentRelatedMain(paymentRelated);
         const saved = await newPayRelated.save().catch(err => {
@@ -150,7 +150,7 @@ extraNotifDesc, queryId) => {
             accessor = 'payments';
             notifType = 'payments';
         }
-        const stn = await getCurrentNotificationSettings(queryId);
+        const stn = await getCurrentNotificationSettings(companyId);
         if (stn && stn[accessor]) {
             const actions = [{
                     operation: 'view',
@@ -171,37 +171,37 @@ extraNotifDesc, queryId) => {
             };
             const capableUsers = await user.find({})
                 .lean().select({ permissions: 1 });
-            const ids = [];
+            const _ids = [];
             if (type === 'order') {
                 for (const cuser of capableUsers) {
                     if (cuser.permissions.orders) {
-                        ids.push(cuser._id);
+                        _ids.push(cuser._id);
                     }
                 }
             }
             else {
                 for (const cuser of capableUsers) {
                     if (cuser.permissions.payments) {
-                        ids.push(cuser._id);
+                        _ids.push(cuser._id);
                     }
                 }
             }
-            const notifFilters = { id: { $in: ids } };
+            const notifFilters = { id: { $in: _ids } };
             await createNotifications({
                 notification,
                 filters: notifFilters
             });
         }
-        return { success: true, status: 200, id: saved._id };
+        return { success: true, status: 200, _id: saved._id };
         /** return {
           paymentRelated: saved._id as string
           // invoiceRelated: relatedId
         }; */
     }
     else {
-        await updatePaymentRelated(paymentRelated, queryId);
+        await updatePaymentRelated(paymentRelated, companyId);
         // await updateInvoiceRelated(invoiceRelated);
-        return { success: true, status: 200, id: paymentRelated.paymentRelated._id };
+        return { success: true, status: 200, _id: paymentRelated.paymentRelated._id };
         /** return {
           paymentRelated: paymentRelated.paymentRelated
           // invoiceRelated: invoiceRelated.invoiceRelated
@@ -219,7 +219,6 @@ extraNotifDesc, queryId) => {
 export const makePaymentRelatedPdct = (paymentRelated, invoiceRelated, 
 // eslint-disable-next-line @typescript-eslint/no-shadow
 user, meta) => ({
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     _id: meta._id,
     // createdAt: meta.createdAt,
     updatedAt: meta.updatedAt,
@@ -243,41 +242,49 @@ user, meta) => ({
 });
 /**
  * Deletes multiple payment related documents.
- * @param companyId - The ID of the company
-   * @param ids - An array of string IDs representing the documents to be deleted.
- * @param queryId - The ID of the company associated with the documents.
+
+   * @param _ids - An array of string IDs representing the documents to be deleted.
+ * @param companyId - The ID of the company associated with the documents.
  * @returns A Promise that resolves to an object indicating the success of the operation.
  */
-export const deleteManyPaymentRelated = async (ids, queryId) => {
-    const isValid = verifyObjectIds([...ids, ...[queryId]]);
+export const deleteManyPaymentRelated = async (_ids, companyId) => {
+    const isValid = verifyObjectIds([..._ids, ...[companyId]]);
     if (!isValid) {
         return { success: false, status: 402, err: 'unauthourised' };
     }
     /* const deletedMany = await paymentRelatedMain
-      .deleteMany({ _id: { $in: ids }, companyId: queryId }); */
+      .deleteMany({ _id: { $in: _ids }, companyId }); */
     const deletedMany = await paymentRelatedMain
-        .updateMany({ _id: { $in: ids }, companyId: queryId }, {
+        .updateMany({ _id: { $in: _ids }, companyId }, {
         $set: { isDeleted: true }
     });
     if (Boolean(deletedMany)) {
         return { success: Boolean(deletedMany), status: 200 };
     }
     else {
-        return { success: Boolean(deletedMany), status: 403, err: 'could not delete selected documents, try again in a while' };
+        return {
+            success: Boolean(deletedMany),
+            status: 403, err: 'could not delete selected documents, try again in a while'
+        };
     }
 };
 /**
  * Deletes all pay orders linked to a payment or an order.
  * @param paymentRelated - The payment related to the pay orders.
  * @param invoiceRelated - The invoice related to the pay orders.
- * @param creationType - The type of payment related creation.
  * @param where - Specifies whether the pay orders are linked to a payment or an order.
- * @param queryId - The ID of the query.
+ * @param companyId - The ID of the query.
  */
-export const deleteAllPayOrderLinked = async (paymentRelated, invoiceRelated, creationType, where, queryId) => {
-    await deleteManyPaymentRelated([paymentRelated], queryId);
-    await deleteManyInvoiceRelated([invoiceRelated], queryId);
-    if (creationType !== 'solo') {
+export const deleteAllPayOrderLinked = async (paymentRelated, invoiceRelated, where, companyId) => {
+    const invoiceRel = await invoiceRelatedLean.findOne({ _id: invoiceRelated })
+        .lean()
+        .select({ creationType: 1 });
+    if (!invoiceRel) {
+        return { success: false }; // TODO proper err msg
+    }
+    await deleteManyPaymentRelated([paymentRelated], companyId);
+    await deleteManyInvoiceRelated([invoiceRelated], companyId);
+    if (invoiceRel.creationType !== 'solo') {
         /* await paymentMain.deleteOne({ paymentRelated });
         await orderMain.deleteOne({ paymentRelated }); */
         await paymentMain.updateOne({ paymentRelated }, {
@@ -301,14 +308,7 @@ export const deleteAllPayOrderLinked = async (paymentRelated, invoiceRelated, cr
     }
 };
 // .catch(err => {});
-/**
- * Makes a payment installation.
- * @param receipt - The receipt object.
- * @param relatedId - The related ID.
- * @param queryId - The query ID.
- * @returns A promise that resolves to an object indicating the success of the operation.
- */
-export const makePaymentInstall = async (res, receipt, relatedId, queryId, creationType) => {
+export const makePaymentInstall = async (res, receipt, relatedId, companyId, creationType) => {
     // const pInstall = invoiceRelated.payments[0] as IpaymentInstall;
     if (receipt) {
         if (creationType !== 'solo') {
@@ -317,7 +317,7 @@ export const makePaymentInstall = async (res, receipt, relatedId, queryId, creat
                 return false;
             }
         }
-        receipt.companyId = queryId;
+        receipt.companyId = companyId;
         let errResponse;
         receipt.invoiceRelated = relatedId;
         const newInstal = new receiptMain(receipt);
@@ -341,7 +341,7 @@ export const makePaymentInstall = async (res, receipt, relatedId, queryId, creat
         if (errResponse) {
             return errResponse;
         }
-        await updateInvoiceRelatedPayments(savedPinstall, queryId);
+        await updateInvoiceRelatedPayments(savedPinstall);
         return { success: true };
     }
     return { success: true };
@@ -464,7 +464,9 @@ height: 100%;
           </div>
 
           <div class="last-divi">
-            <a href="https://eagleinfosolutions.com/support">Help</a> | <a href="https://eagleinfosolutions.com/support">Contacts</a>
+            <a href="https://eagleinfosolutions.com/support">
+            Help
+            </a> | <a href="https://eagleinfosolutions.com/support">Contacts</a>
           </div>
 
           <div class="compny-divi"> Eagle Info Solutions Inc, Kampala Uganda</div>
@@ -553,7 +555,9 @@ height: 100%;
           </div>
 
           <div class="last-divi">
-            <a href="https://eagleinfosolutions.com/support">Help</a> | <a href="https://eagleinfosolutions.com/support">Contacts</a>
+            <a href="https://eagleinfosolutions.com/support">
+            Help
+            </a> | <a href="https://eagleinfosolutions.com/support">Contacts</a>
           </div>
 
           <div class="compny-divi"> Eagle Info Solutions Inc, Kampala Uganda</div>

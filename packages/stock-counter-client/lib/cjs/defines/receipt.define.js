@@ -4,10 +4,6 @@ exports.Receipt = exports.InvoiceRelated = void 0;
 const stock_universal_1 = require("@open-stock/stock-universal");
 const rxjs_1 = require("rxjs");
 const stock_counter_client_1 = require("../stock-counter-client");
-/** The  InvoiceRelated  class is a subclass of the  DatabaseAuto  class and represents an invoice-related object. It has properties such as invoice related ID, creation type, estimate ID, invoice ID, billing user, items (an array of invoice-related product objects), billing user ID, billing user photo, stage, status, cost, payment made, tax, balance due, sub total, total, from date, to date, and payments (an array of payment install objects). The class also has methods for retrieving invoice-related objects from the server, adding and deleting invoice payments, and updating invoice payments. */
-/**
- * Represents an invoice related to a receipt.
- */
 class InvoiceRelated extends stock_universal_1.DatabaseAuto {
     /**
      * Creates a new instance of the InvoiceRelated class.
@@ -41,12 +37,12 @@ class InvoiceRelated extends stock_universal_1.DatabaseAuto {
     }
     /**
      * Gets all invoice payments.
-     * @param companyId - The ID of the company
+  
      * @returns An array of invoice payments.
      */
-    static async getInvoicePayments(companyId) {
+    static async getInvoicePayments() {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makeGet(`/invoice/getallpayments/${companyId}`);
+            .makeGet('/invoice/getallpayments');
         const invoicepays = await (0, rxjs_1.lastValueFrom)(observer$);
         return {
             count: invoicepays.count,
@@ -56,60 +52,60 @@ class InvoiceRelated extends stock_universal_1.DatabaseAuto {
     }
     /**
      * Gets a single invoice payment.
-     * @param companyId - The ID of the company
+  
      * @param urId The ID of the invoice payment.
      * @returns The invoice payment.
      */
-    static async getOneInvoicePayment(companyId, urId) {
+    static async getOneInvoicePayment(urId) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makeGet(`/invoice/getonepayment/${urId}/${companyId}`);
+            .makeGet(`/invoice/getonepayment/${urId}`);
         const invoicepay = await (0, rxjs_1.lastValueFrom)(observer$);
         return new Receipt(invoicepay);
     }
     /**
      * Adds an invoice payment.
-     * @param companyId - The ID of the company
+  
      * @param payment The invoice payment to add.
      * @returns The success status of the operation.
      */
-    static async addInvoicePayment(companyId, payment) {
+    static addInvoicePayment(payment) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makePost(`/invoice/createpayment/${companyId}`, payment);
-        return await (0, rxjs_1.lastValueFrom)(observer$);
+            .makePost('/invoice/createpayment', payment);
+        return (0, rxjs_1.lastValueFrom)(observer$);
     }
     /**
      * Deletes multiple invoice payments.
-     * @param companyId - The ID of the company
-     * @param ids The IDs of the invoice payments to delete.
+  
+     * @param _ids The IDs of the invoice payments to delete.
      * @returns The success status of the operation.
      */
-    static async deleteInvoicePayments(companyId, ids) {
+    static deleteInvoicePayments(_ids) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makePut(`/invoice/deletemanypayments/${companyId}`, { ids });
-        return await (0, rxjs_1.lastValueFrom)(observer$);
+            .makePut('/invoice/deletemanypayments', { _ids });
+        return (0, rxjs_1.lastValueFrom)(observer$);
     }
     /**
      * Updates an invoice payment.
-     * @param companyId - The ID of the company
+  
      * @param updatedInvoice The updated invoice.
      * @param invoiceRelated The related invoice.
      * @returns The success status of the operation.
      */
-    static async updateInvoicePayment(companyId, updatedInvoice, invoiceRelated) {
+    static updateInvoicePayment(vals) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makePost(`/invoice/updatepayment/${companyId}`, { updatedInvoice, invoiceRelated });
-        return await (0, rxjs_1.lastValueFrom)(observer$);
+            .makePost('/invoice/updatepayment', vals);
+        return (0, rxjs_1.lastValueFrom)(observer$);
     }
     /**
      * Updates an invoice related to a receipt.
-     * @param companyId - The ID of the company
+  
      * @param invoiceRelated The invoice related to the receipt to update.
      * @returns The success status of the operation.
      */
-    static async updateInvoiceRelated(companyId, invoiceRelated) {
+    static updateInvoiceRelated(invoiceRelated) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makePut(`/invoicerelated/update/${companyId}`, { invoiceRelated });
-        return await (0, rxjs_1.lastValueFrom)(observer$);
+            .makePut('/invoicerelated/update', invoiceRelated);
+        return (0, rxjs_1.lastValueFrom)(observer$);
     }
 }
 exports.InvoiceRelated = InvoiceRelated;
@@ -130,15 +126,25 @@ class Receipt extends InvoiceRelated {
     }
     /**
      * Retrieves receipts for a specific company.
-     * @param companyId - The ID of the company.
+     .
      * @param url - The URL for the API endpoint. Default value is 'getall'.
      * @param offset - The offset for pagination. Default value is 0.
      * @param limit - The limit for pagination. Default value is 0.
      * @returns An array of receipts.
      */
-    static async getReceipts(companyId, url = 'getall', offset = 0, limit = 20) {
+    static async getAll(offset = 0, limit = 20) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makeGet(`/receipt/${url}/${offset}/${limit}/${companyId}`);
+            .makeGet(`/receipt/all/${offset}/${limit}`);
+        const receipts = await (0, rxjs_1.lastValueFrom)(observer$);
+        return {
+            count: receipts.count,
+            receipts: receipts.data
+                .map(val => new Receipt(val))
+        };
+    }
+    static async filterAll(filter) {
+        const observer$ = stock_counter_client_1.StockCounterClient.ehttp
+            .makePost('/receipt/filter', filter);
         const receipts = await (0, rxjs_1.lastValueFrom)(observer$);
         return {
             count: receipts.count,
@@ -148,51 +154,51 @@ class Receipt extends InvoiceRelated {
     }
     /**
      * Retrieves a single receipt based on the company ID and user ID.
-     * @param companyId - The ID of the company.
+     .
      * @param urId - The ID of the user.
      * @returns A Promise that resolves to a new instance of the Receipt class.
      */
-    static async getOneReceipt(companyId, urId) {
+    static async getOne(urId) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makeGet(`/receipt/getone/${urId}/${companyId}`);
+            .makeGet(`/receipt/one/${urId}`);
         const receipt = await (0, rxjs_1.lastValueFrom)(observer$);
         return new Receipt(receipt);
     }
     /**
      * Adds a receipt to the system.
-     * @param companyId - The ID of the company.
+     .
      * @param receipt - The receipt object to be added.
      * @param invoiceRelated - The related invoice information.
      * @returns A promise that resolves to the success response.
      */
-    static async addReceipt(companyId, receipt, invoiceRelated) {
+    static add(vals) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makePost(`/receipt/create/${companyId}`, { receipt, invoiceRelated });
-        return await (0, rxjs_1.lastValueFrom)(observer$);
+            .makePost('/receipt/create', vals);
+        return (0, rxjs_1.lastValueFrom)(observer$);
     }
     /**
      * Deletes multiple receipts for a given company.
-     * @param companyId - The ID of the company.
+     .
      * @param credentials - An array of delete credentials for each receipt.
      * @returns A promise that resolves to the success response.
      */
-    static async deleteReceipts(companyId, credentials) {
+    static removeMany(val) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makePut(`/receipt/deletemany/${companyId}`, { credentials });
-        return await (0, rxjs_1.lastValueFrom)(observer$);
+            .makePut('/receipt/delete/many', val);
+        return (0, rxjs_1.lastValueFrom)(observer$);
     }
     /**
      * Updates a receipt.
-     * @param companyId - The ID of the company.
+     .
      * @param updatedReceipt - The updated receipt object.
      * @param invoiceRelated - The invoice related object.
      * @returns A promise that resolves to the success response.
      */
-    async updateReciept(companyId, updatedReceipt, invoiceRelated) {
-        updatedReceipt._id = this._id;
+    update(vals) {
+        vals.receipt._id = this._id;
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makePut(`/receipt/update/${companyId}`, { updatedReceipt, invoiceRelated });
-        return await (0, rxjs_1.lastValueFrom)(observer$);
+            .makePut('/receipt/update', vals);
+        return (0, rxjs_1.lastValueFrom)(observer$);
     }
 }
 exports.Receipt = Receipt;

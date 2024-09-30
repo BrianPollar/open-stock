@@ -15,9 +15,5 @@ class StockAuthClient {
     }
 }
 exports.StockAuthClient = StockAuthClient;
-/**
- * logger: A static property of type LoggerController.
- * It is used for logging messages related to the stock authentication client.
- */
 StockAuthClient.logger = new stock_universal_1.LoggerController();
 //# sourceMappingURL=stock-auth-client.js.map

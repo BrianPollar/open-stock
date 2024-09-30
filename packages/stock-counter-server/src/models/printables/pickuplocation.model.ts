@@ -1,5 +1,8 @@
 import { IpickupLocation } from '@open-stock/stock-universal';
-import { createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
+import {
+  createExpireDocIndex, preUpdateDocExpire,
+  withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj
+} from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
@@ -65,11 +68,13 @@ export const createPickupLocationModel = async(dbUrl: string, dbOptions?: Connec
   }
 
   if (main) {
-    pickupLocationMain = mainConnection.model<TpickupLocation>('PickupLocation', pickupLocationSchema);
+    pickupLocationMain = mainConnection
+      .model<TpickupLocation>('PickupLocation', pickupLocationSchema);
   }
 
   if (lean) {
-    pickupLocationLean = mainConnectionLean.model<TpickupLocation>('PickupLocation', pickupLocationSchema);
+    pickupLocationLean = mainConnectionLean
+      .model<TpickupLocation>('PickupLocation', pickupLocationSchema);
   }
 };
 

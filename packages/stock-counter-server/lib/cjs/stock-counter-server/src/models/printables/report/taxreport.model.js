@@ -49,10 +49,12 @@ const createTaxReportModel = async (dbUrl, dbOptions, main = true, lean = true) 
         await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.taxReportMain = database_1.mainConnection.model('taxReport', taxReportSchema);
+        exports.taxReportMain = database_1.mainConnection
+            .model('taxReport', taxReportSchema);
     }
     if (lean) {
-        exports.taxReportLean = database_1.mainConnectionLean.model('taxReport', taxReportSchema);
+        exports.taxReportLean = database_1.mainConnectionLean
+            .model('taxReport', taxReportSchema);
     }
 };
 exports.createTaxReportModel = createTaxReportModel;

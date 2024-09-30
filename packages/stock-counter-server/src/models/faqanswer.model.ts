@@ -1,5 +1,7 @@
 import { Ifaqanswer } from '@open-stock/stock-universal';
-import { createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
+import {
+  createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj
+} from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
@@ -68,10 +70,12 @@ export const createFaqanswerModel = async(dbUrl: string, dbOptions?: ConnectOpti
   }
 
   if (main) {
-    faqanswerMain = mainConnection.model<Tfaqanswer>('Faqanswer', faqanswerSchema);
+    faqanswerMain = mainConnection
+      .model<Tfaqanswer>('Faqanswer', faqanswerSchema);
   }
 
   if (lean) {
-    faqanswerLean = mainConnectionLean.model<Tfaqanswer>('Faqanswer', faqanswerSchema);
+    faqanswerLean = mainConnectionLean
+      .model<Tfaqanswer>('Faqanswer', faqanswerSchema);
   }
 };

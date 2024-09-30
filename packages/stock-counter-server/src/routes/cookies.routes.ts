@@ -1,14 +1,16 @@
 /* eslint-disable @typescript-eslint/dot-notation */
 
 import { populateCompany, populatePhotos } from '@open-stock/stock-auth-server';
-import { makeRandomString } from '@open-stock/stock-universal';
+import { IcustomRequest, makeRandomString } from '@open-stock/stock-universal';
 import { verifyObjectId } from '@open-stock/stock-universal-server';
 import express from 'express';
 import * as fs from 'fs';
 import path from 'path';
 import * as tracer from 'tracer';
 import { itemLean } from '../models/item.model';
-import { makeCartCookie, makeCompareListCookie, makeRecentCookie, makeSettingsCookie, makeWishListCookie } from '../utils/cookies';
+import {
+  makeCartCookie, makeCompareListCookie, makeRecentCookie, makeSettingsCookie, makeWishListCookie
+} from '../utils/cookies';
 
 /** Logger for the cookiesRoutes module */
 const cookiesRoutesLogger = tracer.colorConsole({
@@ -41,17 +43,8 @@ const cookiesRoutesLogger = tracer.colorConsole({
  */
 export const cookiesRoutes = express.Router();
 
-/**
- * GET request handler for retrieving settings cookie.
- * If the cookie does not exist, a default cookie is created and returned.
- * @param req - Express request object
- * @param res - Express response object
- * @param next - Express next function
- */
-cookiesRoutes.get('/getsettings/:userId', (req, res, next) => {
+cookiesRoutes.get('/getsettings/:userId', (req: IcustomRequest<never, any>, res, next) => {
   let stnCookie = req.signedCookies['settings'];
-
-  console.log('SIGNED COOKIES ', req.signedCookies);
 
   if (!stnCookie) {
     stnCookie = {
@@ -70,14 +63,7 @@ cookiesRoutes.get('/getsettings/:userId', (req, res, next) => {
   return res.send(stnCookie);
 }, makeSettingsCookie);
 
-/**
- * PUT request handler for updating settings cookie.
- * The existing settings cookie is cleared and replaced with the new cookie.
- * @param req - Express request object
- * @param res - Express response object
- * @param next - Express next function
- */
-cookiesRoutes.put('/updatesettings/:userId', (req, res, next) => {
+cookiesRoutes.put('/updatesettings/:userId', (req: IcustomRequest<never, { settings; stnCookie }>, res, next) => {
   res.clearCookie('settings');
   const stn = req.body.settings;
   const stnCookie = {
@@ -93,36 +79,26 @@ cookiesRoutes.put('/updatesettings/:userId', (req, res, next) => {
   return next();
 }, makeSettingsCookie);
 
-/**
- * PUT request handler for adding an item to the cart cookie.
- * If the cart cookie does not exist, a new empty array is created.
- * @param req - Express request object
- * @param res - Express response object
- * @param next - Express next function
- */
-cookiesRoutes.put('/addcartitem/:userId', (req, res, next) => {
-  const { cartItemId, totalCostwithNoShipping } = req.body;
-  let cartCookie = req.signedCookies.cart;
+cookiesRoutes.put(
+  '/addcartitem/:userId',
+  (req: IcustomRequest<never, { cartItemId; totalCostwithNoShipping; cartCookie }>, res, next) => {
+    const { cartItemId, totalCostwithNoShipping } = req.body;
+    let cartCookie = req.signedCookies.cart;
 
-  if (!cartCookie) {
-    cartCookie = [];
-  }
-  cartCookie.push({ cartItemId, totalCostwithNoShipping });
-  res.clearCookie('cart');
-  req.body.cartCookie = cartCookie;
-  cookiesRoutesLogger.info('addcartitem - cartCookie: ', cartCookie);
+    if (!cartCookie) {
+      cartCookie = [];
+    }
+    cartCookie.push({ cartItemId, totalCostwithNoShipping });
+    res.clearCookie('cart');
+    req.body.cartCookie = cartCookie;
+    cookiesRoutesLogger.info('addcartitem - cartCookie: ', cartCookie);
 
-  return next();
-}, makeCartCookie);
+    return next();
+  },
+  makeCartCookie
+);
 
-/**
- * PUT request handler for adding an item to the recent cookie.
- * If the recent cookie does not exist, a new empty array is created.
- * @param req - Express request object
- * @param res - Express response object
- * @param next - Express next function
- */
-cookiesRoutes.put('/addrecentitem/:userId', (req, res, next) => {
+cookiesRoutes.put('/addrecentitem/:userId', (req: IcustomRequest<never, { recentItemId; recentCookie }>, res, next) => {
   const stnCookie = req.signedCookies['settings'];
 
   if (!stnCookie) {
@@ -143,61 +119,62 @@ cookiesRoutes.put('/addrecentitem/:userId', (req, res, next) => {
 }, makeRecentCookie);
 
 
-cookiesRoutes.put('/addwishlistitem/:userId', (req, res, next) => {
+cookiesRoutes.put(
+  '/addwishlistitem/:userId',
+  (req: IcustomRequest<never, { wishListItemId; wishListCookie }>, res, next) => {
+    const stnCookie = req.signedCookies['settings'];
+
+    if (!stnCookie) {
+      return res.status(401).send({ success: false, err: 'unauthourised' });
+    }
+    const wishListItemId = req.body.wishListItemId;
+    let wishListCookie = req.signedCookies.wishList;
+
+    if (!wishListCookie) {
+      wishListCookie = [];
+    }
+    wishListCookie.push(wishListItemId);
+    res.clearCookie('wishList');
+    req.body.wishListCookie = wishListCookie;
+    cookiesRoutesLogger.info('addwishlistitem - wishListCookie: ', wishListCookie);
+
+    return next();
+  },
+  makeWishListCookie
+);
+
+
+cookiesRoutes.put(
+  '/addcomparelistitems/:userId',
+  (req: IcustomRequest<never, { compareLisItemId; compareListCookie }>, res, next) => {
+    const stnCookie = req.signedCookies['settings'];
+
+    if (!stnCookie) {
+      return res.status(401).send({ success: false, err: 'unauthourised' });
+    }
+    const compareLisItemId = req.body.compareLisItemId;
+    let compareListCookie = req.signedCookies.compareList;
+
+    if (!compareListCookie) {
+      compareListCookie = [];
+    }
+    compareListCookie.push(compareLisItemId);
+    res.clearCookie('compareList');
+    req.body.compareListCookie = compareListCookie;
+    cookiesRoutesLogger.info('addcompareListitem - compareListCookie: ', compareListCookie);
+
+    return next();
+  },
+  makeCompareListCookie
+);
+
+cookiesRoutes.put('/deletecartitem/:_id', (req: IcustomRequest<{ _id: string}, { cartCookie }>, res, next) => {
   const stnCookie = req.signedCookies['settings'];
 
   if (!stnCookie) {
     return res.status(401).send({ success: false, err: 'unauthourised' });
   }
-  const wishListItemId = req.body.wishListItemId;
-  let wishListCookie = req.signedCookies.wishList;
-
-  if (!wishListCookie) {
-    wishListCookie = [];
-  }
-  wishListCookie.push(wishListItemId);
-  res.clearCookie('wishList');
-  req.body.wishListCookie = wishListCookie;
-  cookiesRoutesLogger.info('addwishlistitem - wishListCookie: ', wishListCookie);
-
-  return next();
-}, makeWishListCookie);
-
-
-cookiesRoutes.put('/addcomparelistitems/:userId', (req, res, next) => {
-  const stnCookie = req.signedCookies['settings'];
-
-  if (!stnCookie) {
-    return res.status(401).send({ success: false, err: 'unauthourised' });
-  }
-  const compareLisItemId = req.body.compareLisItemId;
-  let compareListCookie = req.signedCookies.compareList;
-
-  if (!compareListCookie) {
-    compareListCookie = [];
-  }
-  compareListCookie.push(compareLisItemId);
-  res.clearCookie('compareList');
-  req.body.compareListCookie = compareListCookie;
-  cookiesRoutesLogger.info('addcompareListitem - compareListCookie: ', compareListCookie);
-
-  return next();
-}, makeCompareListCookie);
-
-/**
- * PUT request handler for deleting an item from the cart cookie.
- * If the cart cookie does not exist, a success response is returned.
- * @param req - Express request object
- * @param res - Express response object
- * @param next - Express next function
- */
-cookiesRoutes.put('/deletecartitem/:id', (req, res, next) => {
-  const stnCookie = req.signedCookies['settings'];
-
-  if (!stnCookie) {
-    return res.status(401).send({ success: false, err: 'unauthourised' });
-  }
-  const cartItemId = req.params.id;
+  const cartItemId = req.params._id;
   let cartCookie = req.signedCookies.cart;
 
   if (!cartCookie) {
@@ -212,13 +189,13 @@ cookiesRoutes.put('/deletecartitem/:id', (req, res, next) => {
 }, makeCartCookie);
 
 
-cookiesRoutes.put('/deletewishlistitem/:id', (req, res, next) => {
+cookiesRoutes.put('/deletewishlistitem/:_id', (req: IcustomRequest<{ _id: string}, { wishListCookie }>, res, next) => {
   const stnCookie = req.signedCookies['settings'];
 
   if (!stnCookie) {
     return res.status(401).send({ success: false, err: 'unauthourised' });
   }
-  const wishListItemId = req.params.id;
+  const wishListItemId = req.params._id;
   let wishListCookie = req.signedCookies.wishList;
 
   if (!wishListCookie) {
@@ -232,65 +209,57 @@ cookiesRoutes.put('/deletewishlistitem/:id', (req, res, next) => {
   return next();
 }, makeWishListCookie);
 
-cookiesRoutes.put('/deletecomparelistitem', (req, res, next) => {
-  const stnCookie = req.signedCookies['settings'];
+cookiesRoutes.put(
+  '/deletecomparelistitem',
+  (req: IcustomRequest<never, { compareLisItemId: string; compareListCookie}>, res, next) => {
+    const stnCookie = req.signedCookies['settings'];
 
-  if (!stnCookie) {
-    return res.status(401).send({ success: false, err: 'unauthourised' });
-  }
-  const { compareLisItemIds } = req.body;
-  let compareListCookie = req.signedCookies.compareList;
+    if (!stnCookie) {
+      return res.status(401).send({ success: false, err: 'unauthourised' });
+    }
+    const { compareLisItemId } = req.body;
+    let compareListCookie = req.signedCookies.compareList;
 
-  if (!compareListCookie) {
-    return res.status(200).send({ success: true });
-  }
-  compareListCookie = compareListCookie.filter(c => c !== compareLisItemIds);
-  res.clearCookie('compareList');
-  req.body.compareListCookie = compareListCookie;
-  cookiesRoutesLogger.info('deletecomparelistitem - compareListCookie', compareListCookie);
+    if (!compareListCookie) {
+      return res.status(200).send({ success: true });
+    }
+    compareListCookie = compareListCookie.filter(c => c !== compareLisItemId);
+    res.clearCookie('compareList');
+    req.body.compareListCookie = compareListCookie;
+    cookiesRoutesLogger.info('deletecomparelistitem - compareListCookie', compareListCookie);
 
-  return next();
-}, makeCompareListCookie);
+    return next();
+  },
+  makeCompareListCookie
+);
 
-/**
- * PUT request handler for clearing the cart cookie.
- * The cart cookie is cleared and a success response is returned.
- * @param req - Express request object
- * @param res - Express response object
- */
-cookiesRoutes.put('/clearcart', (req, res) => {
+cookiesRoutes.put('/clearcart', (req: IcustomRequest<never, unknown>, res) => {
   res.clearCookie('cart');
 
   return res.status(200).send({ success: true });
 });
 
-cookiesRoutes.put('/clearwishlist', (req, res) => {
+cookiesRoutes.put('/clearwishlist', (req: IcustomRequest<never, unknown>, res) => {
   res.clearCookie('wishList');
 
   return res.status(200).send({ success: true });
 });
 
-cookiesRoutes.put('/clearcomparelist', (req, res) => {
+cookiesRoutes.put('/clearcomparelist', (req: IcustomRequest<never, unknown>, res) => {
   res.clearCookie('compareList');
 
   return res.status(200).send({ success: true });
 });
 
-/**
- * GET request handler for appending items in the cart cookie to the response.
- * The cart cookie is verified and the corresponding items are retrieved from the database.
- * @param req - Express request object
- * @param res - Express response object
- */
-cookiesRoutes.get('/appendtocart', async(req, res) => {
+cookiesRoutes.get('/appendtocart', async(req: IcustomRequest<never, null>, res) => {
   const cartCookie: {cartItemId: string; totalCostwithNoShipping: number}[] = req.signedCookies.cart;
 
   cookiesRoutesLogger.info('appendtocart - cartCookie: ', cartCookie);
   const modified = cartCookie?.map(c => c.cartItemId);
 
   if (modified && modified.length > 0) {
-    for (const id of modified) {
-      const isValid = verifyObjectId(id);
+    for (const _id of modified) {
+      const isValid = verifyObjectId(_id);
 
       if (!isValid) {
         res.clearCookie('cart');
@@ -316,13 +285,7 @@ cookiesRoutes.get('/appendtocart', async(req, res) => {
   return res.status(200).send(newProds);
 });
 
-/**
- * GET request handler for appending items in the recent cookie to the response.
- * The recent cookie is verified and the corresponding items are retrieved from the database.
- * @param req - Express request object
- * @param res - Express response object
- */
-cookiesRoutes.get('/appendtorecent', async(req, res) => {
+cookiesRoutes.get('/appendtorecent', async(req: IcustomRequest<never, null>, res) => {
   const recentCookie = req.signedCookies['recent'];
 
   cookiesRoutesLogger.info('appendtorecent - recentCookie: ', recentCookie);
@@ -348,7 +311,7 @@ cookiesRoutes.get('/appendtorecent', async(req, res) => {
 });
 
 
-cookiesRoutes.get('/appendtowishlist', async(req, res) => {
+cookiesRoutes.get('/appendtowishlist', async(req: IcustomRequest<never, null>, res) => {
   const wishListCookie = req.signedCookies['wishList'];
 
   cookiesRoutesLogger.info('appendtowishlist - recentCookie: ', wishListCookie);
@@ -373,7 +336,7 @@ cookiesRoutes.get('/appendtowishlist', async(req, res) => {
   return res.status(200).send(items.filter(item => item.companyId));
 });
 
-cookiesRoutes.get('/appendtocomparelist', async(req, res) => {
+cookiesRoutes.get('/appendtocomparelist', async(req: IcustomRequest<never, null>, res) => {
   const compareListCookie = req.signedCookies['compareList'];
 
   cookiesRoutesLogger.info('appendtocomparelist - recentCookie: ', compareListCookie);

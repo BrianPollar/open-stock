@@ -55,7 +55,10 @@ export const monthNames = [
  */
 export type TtypecalcReturn = 'fixed' | 'ceil' | 'floor' | 'float';
 
-/** The above code defines a class called CalculationsController that contains various methods for performing calculations. It also exports a constant called monthNames, which is an array of month names. Additionally, it exports a type called TtypecalcReturn, which is a union of four possible string values.   */
+/** The above code defines a class called CalculationsController that contains various
+ * methods for performing calculations. It also exports a constant called monthNames,
+ * which is an array of month names. Additionally, it exports a type called TtypecalcReturn,
+ *  which is a union of four possible string values.   */
 
 /**
  * The CalculationsController class contains methods for performing various calculations.
@@ -76,7 +79,8 @@ export class CalculationsController {
   }
 
   /**
-   * The formartDate method takes a Date object and returns a formatted string representing the date in the format "day month year".
+   * The formartDate method takes a Date object and returns a formatted string
+   * representing the date in the format "day month year".
    * @param date The date to be formatted.
    * @returns A string representing the date in the format "day month year".
    */
@@ -89,7 +93,10 @@ export class CalculationsController {
   }
 
   /**
-   * The calculateFromDiscount method takes a price and a discount percentage, and returns the new price after applying the discount. It also takes an optional parameter called returnAs, which specifies how the result should be rounded or formatted. The method then returns the new price based on the specified format.
+   * The calculateFromDiscount method takes a price and a discount percentage,
+   * and returns the new price after applying the discount. It also takes an optional
+   * parameter called returnAs, which specifies how the result should be rounded or
+   * formatted. The method then returns the new price based on the specified format.
    * @param price The original price.
    * @param discount The discount percentage to be applied.
    * @param returnAs (Optional) Specifies how the result should be rounded or formatted. Defaults to 'fixed'.
@@ -110,7 +117,8 @@ export class CalculationsController {
   }
 
   /**
-   * The restrictArrayToLength method takes an array and a number, and returns a new array containing only the first n elements of the original array, where n is the number passed as the second parameter.
+   * The restrictArrayToLength method takes an array and a number, and returns a new array
+   *  containing only the first n elements of the original array, where n is the number passed as the second parameter.
    * @param data The original array.
    * @param restrictNoTo The number of elements to include in the new array.
    * @returns A new array containing only the first restrictNoTo elements of the original array.

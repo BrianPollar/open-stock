@@ -40,10 +40,12 @@ export const createFileMetaModel = async (dbUrl, dbOptions, main = true, lean = 
         await connectUniversalDatabase(dbUrl, dbOptions);
     }
     if (main) {
-        fileMeta = mainConnection.model('FileMeta', fileMetaSchema);
+        fileMeta = mainConnection
+            .model('FileMeta', fileMetaSchema);
     }
     if (lean) {
-        fileMetaLean = mainConnectionLean.model('FileMeta', fileMetaSchema);
+        fileMetaLean = mainConnectionLean
+            .model('FileMeta', fileMetaSchema);
     }
 };
 //# sourceMappingURL=filemeta.model.js.map

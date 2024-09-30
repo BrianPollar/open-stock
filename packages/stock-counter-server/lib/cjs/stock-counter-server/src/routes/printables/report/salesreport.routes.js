@@ -39,23 +39,11 @@ const salesReportRoutesLogger = tracer.colorConsole({
  * Express router for sales report routes.
  */
 exports.salesReportRoutes = express_1.default.Router();
-/**
- * Create a new sales report
- * @name POST /create
- * @function
- * @memberof module:routers/salesReportRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- * @returns {Promise<void>} - Promise object represents the response
- */
-exports.salesReportRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'create'), async (req, res) => {
+exports.salesReportRoutes.post('/add', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'create'), async (req, res) => {
     const salesReport = req.body.salesReport;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     salesReport.companyId = filter.companyId;
-    const count = await salesreport_model_1.salesReportMain
-        .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
-    salesReport.urId = (0, stock_universal_server_1.makeUrId)(Number(count[0]?.urId || '0'));
+    salesReport.urId = await (0, stock_universal_server_1.generateUrId)(salesreport_model_1.salesReportMain);
     const newSalesReport = new salesreport_model_1.salesReportMain(salesReport);
     let errResponse;
     const saved = await newSalesReport.save()
@@ -82,17 +70,7 @@ exports.salesReportRoutes.post('/create/:companyIdParam', stock_universal_server
     }
     return res.status(200).send({ success: true });
 });
-/**
- * Get a sales report by UR ID
- * @name GET /getone/:urId
- * @function
- * @memberof module:routers/salesReportRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- * @returns {Promise<void>} - Promise object represents the response
- */
-exports.salesReportRoutes.get('/getone/:urId/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'read'), async (req, res) => {
+exports.salesReportRoutes.get('/one/:urId', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'read'), async (req, res) => {
     const { urId } = req.params;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     const salesReport = await salesreport_model_1.salesReportLean
@@ -100,22 +78,13 @@ exports.salesReportRoutes.get('/getone/:urId/:companyIdParam', stock_universal_s
         .lean()
         .populate({ path: 'estimates', model: estimate_model_1.estimateLean })
         .populate({ path: 'invoiceRelateds', model: invoicerelated_model_1.invoiceRelatedLean });
-    if (salesReport) {
-        (0, stock_universal_server_1.addParentToLocals)(res, salesReport._id, salesreport_model_1.salesReportLean.collection.collectionName, 'trackDataView');
+    if (!salesReport) {
+        return res.status(404).send({ success: false, err: 'not found' });
     }
+    (0, stock_universal_server_1.addParentToLocals)(res, salesReport._id, salesreport_model_1.salesReportLean.collection.collectionName, 'trackDataView');
     return res.status(200).send(salesReport);
 });
-/**
- * Get all sales reports with pagination
- * @name GET /getall/:offset/:limit
- * @function
- * @memberof module:routers/salesReportRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- * @returns {Promise<void>} - Promise object represents the response
- */
-exports.salesReportRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'read'), async (req, res) => {
+exports.salesReportRoutes.get('/all/:offset/:limit', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'read'), async (req, res) => {
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     const all = await Promise.all([
@@ -137,44 +106,37 @@ exports.salesReportRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_un
     }
     return res.status(200).send(response);
 });
-/**
- * Delete a sales report by ID
- * @name DELETE /deleteone/:id
- * @function
- * @memberof module:routers/salesReportRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- * @returns {Promise<void>} - Promise object represents the response
- */
-exports.salesReportRoutes.delete('/deleteone/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'delete'), async (req, res) => {
-    const { id } = req.params;
+exports.salesReportRoutes.delete('/delete/one/:_id', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'delete'), async (req, res) => {
+    const { _id } = req.params;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    // const deleted = await salesReportMain.findOneAndDelete({ _id: id, ...filter });
-    const deleted = await salesreport_model_1.salesReportMain.updateOne({ _id: id, ...filter }, { $set: { isDeleted: true } });
+    // const deleted = await salesReportMain.findOneAndDelete({ _id, ...filter });
+    const deleted = await salesreport_model_1.salesReportMain.updateOne({ _id, ...filter }, { $set: { isDeleted: true } });
     if (Boolean(deleted)) {
-        (0, stock_universal_server_1.addParentToLocals)(res, id, salesreport_model_1.salesReportLean.collection.collectionName, 'trackDataDelete');
+        (0, stock_universal_server_1.addParentToLocals)(res, _id, salesreport_model_1.salesReportLean.collection.collectionName, 'trackDataDelete');
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
-        return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
+        return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
-/**
- * Search for sales reports by search term and search key with pagination
- * @name POST /search/:offset/:limit
- * @function
- * @memberof module:routers/salesReportRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- * @returns {Promise<void>} - Promise object represents the response
- */
-exports.salesReportRoutes.post('/search/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'read'), async (req, res) => {
+exports.salesReportRoutes.post('/filter', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'read'), async (req, res) => {
     const { searchterm, searchKey } = req.body;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
-    const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
+    const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.body.offset, req.body.limit);
+    /*
+  const aggCursor = invoiceLean
+ .aggregate<IfilterAggResponse<soth>>([
+  ...lookupSubFieldInvoiceRelatedFilter(constructFiltersFromBody(req), propSort, offset, limit)
+]);
+  const dataArr: IfilterAggResponse<soth>[] = [];
+
+  for await (const data of aggCursor) {
+    dataArr.push(data);
+  }
+
+  const all = dataArr[0]?.data || [];
+  const count = dataArr[0]?.total?.count || 0;
+  */
     const all = await Promise.all([
         salesreport_model_1.salesReportLean
             .find({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
@@ -194,28 +156,18 @@ exports.salesReportRoutes.post('/search/:offset/:limit/:companyIdParam', stock_u
     }
     return res.status(200).send(response);
 });
-/**
- * Delete multiple sales reports by IDs
- * @name PUT /deletemany
- * @function
- * @memberof module:routers/salesReportRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- * @returns {Promise<void>} - Promise object represents the response
- */
-exports.salesReportRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'delete'), async (req, res) => {
-    const { ids } = req.body;
+exports.salesReportRoutes.put('/delete/many', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'delete'), async (req, res) => {
+    const { _ids } = req.body;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     /* const deleted = await salesReportMain
-      .deleteMany({ ...filter, _id: { $in: ids } })
-      .catch(err => {
-        salesReportRoutesLogger.error('deletemany - err: ', err);
-  
-        return null;
-      }); */
+    .deleteMany({ ...filter, _id: { $in: _ids } })
+    .catch(err => {
+      salesReportRoutesLogger.error('deletemany - err: ', err);
+
+      return null;
+    }); */
     const deleted = await salesreport_model_1.salesReportMain
-        .updateMany({ ...filter, _id: { $in: ids } }, {
+        .updateMany({ ...filter, _id: { $in: _ids } }, {
         $set: { isDeleted: true }
     })
         .catch(err => {
@@ -223,13 +175,15 @@ exports.salesReportRoutes.put('/deletemany/:companyIdParam', stock_universal_ser
         return null;
     });
     if (Boolean(deleted)) {
-        for (const val of ids) {
+        for (const val of _ids) {
             (0, stock_universal_server_1.addParentToLocals)(res, val, salesreport_model_1.salesReportLean.collection.collectionName, 'trackDataDelete');
         }
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
-        return res.status(404).send({ success: Boolean(deleted), err: 'could not delete selected items, try again in a while' });
+        return res.status(404).send({
+            success: Boolean(deleted), err: 'could not delete selected items, try again in a while'
+        });
     }
 });
 //# sourceMappingURL=salesreport.routes.js.map

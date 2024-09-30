@@ -8,4 +8,4 @@ export declare const getDays: (duration: number) => number;
 /**
  * Router for handling companySubscription-related routes.
  */
-export declare const companySubscriptionRoutes: any;
+export declare const companySubscriptionRoutes: import("express-serve-static-core").Router;

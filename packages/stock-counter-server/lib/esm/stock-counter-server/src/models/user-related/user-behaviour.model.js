@@ -30,13 +30,16 @@ const userBehaviourselect = {
     searchTerms: 1
 };
 /**
- * Represents the main Mongoose model for the user behaviour data, including recent activity, cart, wishlist, compare list, and search terms.
+ * Represents the main Mongoose model for the user behaviour
+ * data, including recent activity, cart, wishlist, compare list, and search terms.
  * This model is used for the main database connection.
  */
 export let userBehaviourMain;
 /**
- * Represents the lean Mongoose model for the user behaviour data, including recent activity, cart, wishlist, compare list, and search terms.
- * This model is used for the lean database connection, which provides a more optimized and efficient way of querying the data.
+ * Represents the lean Mongoose model for the user behaviour data,
+ *  including recent activity, cart, wishlist, compare list, and search terms.
+ * This model is used for the lean database connection, which provides
+ * a more optimized and efficient way of querying the data.
  */
 export let userBehaviourLean;
 export const userBehaviourSelect = userBehaviourselect;
@@ -52,10 +55,12 @@ export const createUserBehaviourModel = async (dbUrl, dbOptions, main = true, le
         await connectStockDatabase(dbUrl, dbOptions);
     }
     if (main) {
-        userBehaviourMain = mainConnection.model('UserBehaviour', userBehaviourSchema);
+        userBehaviourMain = mainConnection
+            .model('UserBehaviour', userBehaviourSchema);
     }
     if (lean) {
-        userBehaviourLean = mainConnectionLean.model('UserBehaviour', userBehaviourSchema);
+        userBehaviourLean = mainConnectionLean
+            .model('UserBehaviour', userBehaviourSchema);
     }
 };
 //# sourceMappingURL=user-behaviour.model.js.map

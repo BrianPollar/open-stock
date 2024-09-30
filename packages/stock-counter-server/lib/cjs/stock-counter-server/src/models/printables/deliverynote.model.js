@@ -41,10 +41,12 @@ const createDeliveryNoteModel = async (dbUrl, dbOptions, main = true, lean = tru
         await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.deliveryNoteMain = database_1.mainConnection.model('DeliveryNote', deliveryNoteSchema);
+        exports.deliveryNoteMain = database_1.mainConnection
+            .model('DeliveryNote', deliveryNoteSchema);
     }
     if (lean) {
-        exports.deliveryNoteLean = database_1.mainConnectionLean.model('DeliveryNote', deliveryNoteSchema);
+        exports.deliveryNoteLean = database_1.mainConnectionLean
+            .model('DeliveryNote', deliveryNoteSchema);
     }
 };
 exports.createDeliveryNoteModel = createDeliveryNoteModel;

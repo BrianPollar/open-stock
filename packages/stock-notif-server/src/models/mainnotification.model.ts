@@ -109,10 +109,12 @@ export const createNotificationsModel = async(dbUrl: string, dbOptions?: Connect
   }
 
   if (main) {
-    mainnotificationMain = mainConnection.model<IMainnotification>('Mainnotification', mainnotificationSchema);
+    mainnotificationMain = mainConnection
+      .model<IMainnotification>('Mainnotification', mainnotificationSchema);
   }
 
   if (lean) {
-    mainnotificationLean = mainConnectionLean.model<IMainnotification>('Mainnotification', mainnotificationSchema);
+    mainnotificationLean = mainConnectionLean
+      .model<IMainnotification>('Mainnotification', mainnotificationSchema);
   }
 };

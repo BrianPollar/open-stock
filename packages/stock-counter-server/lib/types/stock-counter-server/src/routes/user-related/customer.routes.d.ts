@@ -1,3 +1,5 @@
+import { IcustomRequest, IeditCustomer } from '@open-stock/stock-universal';
+import express, { NextFunction, Response } from 'express';
 /**
    * Adds a new customer to the database.
    * @function
@@ -8,10 +10,10 @@
    * @param {NextFunction} next - The express next function.
    * @returns {Promise} - Promise representing the saved customer
    */
-export declare const addCustomer: (req: any, res: any, next: any) => Promise<any>;
+export declare const addCustomer: (req: IcustomRequest<never, IeditCustomer>, res: Response, next: NextFunction) => Promise<void | express.Response<any, Record<string, any>>>;
 /**
    * Updates a customer by ID.
-   * @name PUT /updateone/:companyIdParam
+   * @name PUT /updateone
    * @function
    * @memberof module:customerRoutes
    * @inner
@@ -19,8 +21,8 @@ export declare const addCustomer: (req: any, res: any, next: any) => Promise<any
    * @param {callback} middleware - Express middleware
    * @returns {Promise} - Promise representing the update result
    */
-export declare const updateCustomer: (req: any, res: any) => Promise<any>;
+export declare const updateCustomer: (req: IcustomRequest<never, IeditCustomer>, res: any) => Promise<any>;
 /**
  * Router for handling customer-related routes.
  */
-export declare const customerRoutes: any;
+export declare const customerRoutes: import("express-serve-static-core").Router;

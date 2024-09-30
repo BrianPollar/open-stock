@@ -1,4 +1,5 @@
 import { Iaddress, IdatabaseAuto, ItrackStamp, Iuser } from './general.interface';
+import { IurId } from './inventory.interface';
 import { Iitem } from './item.interface';
 /**
  * Represents the salary of a user.
@@ -10,7 +11,7 @@ export interface Isalary {
 /**
  * Represents the base properties of a user.
  */
-export interface IuserBase extends IdatabaseAuto, ItrackStamp {
+export interface IuserBase extends IdatabaseAuto, ItrackStamp, IurId {
     companyId?: string;
     user: string | Iuser;
     startDate: Date;

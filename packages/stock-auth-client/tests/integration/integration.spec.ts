@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import { EhttpController, LoggerController } from '@open-stock/stock-universal';
 import Axios from 'axios-observable';
 import { beforeAll, describe, expect, it } from 'vitest';

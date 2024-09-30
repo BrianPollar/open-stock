@@ -5,162 +5,66 @@ const stock_universal_1 = require("@open-stock/stock-universal");
 const rxjs_1 = require("rxjs");
 const stock_auth_client_1 = require("../stock-auth-client");
 const user_define_1 = require("./user.define");
-/**
- * Represents a company and extends the DatabaseAuto class. It has properties that
- * correspond to the fields in the company object, and methods for updating, deleting, a
- * nd managing the company's profile, addresses, and permissions.
- */
 class Company extends stock_universal_1.DatabaseAuto {
-    /**
-     * Creates a new Company instance.
-     * @param data The data to initialize the Company instance with.
-     */
     constructor(data) {
         super(data);
         this.appendUpdate(data);
     }
-    /**
-     * Retrieves multiple companys from a specified URL, with optional offset and limit parameters.
-     * @param companyId - The ID of the company
-     * @param url The URL to retrieve the companys from.
-     * @param offset The offset to start retrieving companys from.
-     * @param limit The maximum number of companys to retrieve.
-     * @returns An array of Company instances created from the retrieved company objects.
-     */
-    static async getCompanys(companyId, offset = 0, limit = 20) {
-        const observer$ = stock_auth_client_1.StockAuthClient.ehttp.makeGet(`/company/getcompanys/${offset}/${limit}/${companyId}`);
+    static async getAll(offset = 0, limit = 20) {
+        const observer$ = stock_auth_client_1.StockAuthClient
+            .ehttp.makeGet(`/company/all/${offset}/${limit}`);
         const companys = await (0, rxjs_1.lastValueFrom)(observer$);
         return {
             count: companys.count,
             companys: companys.data.map(val => new Company(val))
         };
     }
-    /**
-     * Retrieves a single company based on the provided company ID.
-     * @param companyId - The ID of the company
-     * @param urId The ID of the company to retrieve.
-     * @returns A Company instance created from the retrieved company object.
-     */
-    static async getOneCompany(companyId, urId) {
-        const observer$ = stock_auth_client_1.StockAuthClient.ehttp.makeGet(`/company/getonecompany/${urId}/${companyId}`);
+    static async filterAll(filter) {
+        const observer$ = stock_auth_client_1.StockAuthClient
+            .ehttp.makePost('/company/filter', filter);
+        const companys = await (0, rxjs_1.lastValueFrom)(observer$);
+        return {
+            count: companys.count,
+            companys: companys.data.map(val => new Company(val))
+        };
+    }
+    static async getOne(_id) {
+        const observer$ = stock_auth_client_1.StockAuthClient.ehttp.makeGet(`/company/one/${_id}`);
         const company = await (0, rxjs_1.lastValueFrom)(observer$);
         return new Company(company);
     }
-    /**
-     * Adds a new company with the provided values and optional files.
-     * @param companyId - The ID of the company
-     * @param vals The values to add the company with.
-     * @param files Optional files to upload with the company.
-     * @returns A success object indicating whether the company was added successfully.
-     */
-    static async addCompany(companyId, vals, files) {
-        let added;
-        if (files && files[0]) {
-            const observer$ = stock_auth_client_1.StockAuthClient.ehttp.uploadFiles(files, `/company/addcompanyimg/${companyId}`, vals);
-            added = await (0, rxjs_1.lastValueFrom)(observer$);
-        }
-        else {
-            const observer$ = stock_auth_client_1.StockAuthClient.ehttp.makePost('/company/addcompany', vals);
-            added = await (0, rxjs_1.lastValueFrom)(observer$);
-        }
+    static async add(vals) {
+        const observer$ = stock_auth_client_1.StockAuthClient.ehttp.makePost('/company/add', vals);
+        const added = await (0, rxjs_1.lastValueFrom)(observer$);
         return added;
     }
-    /**
-     * Deletes multiple companys based on the provided company IDs and files with directories.
-     * @param companyId - The ID of the company
-     * @param ids The IDs of the companys to delete.
-     * @param filesWithDir The files with directories to delete.
-     * @returns A success object indicating whether the companys were deleted successfully.
-     */
-    static async deleteCompanys(companyId, ids, filesWithDir) {
-        const observer$ = stock_auth_client_1.StockAuthClient.ehttp.makePut(`/company/deletemany/${companyId}`, { ids, filesWithDir });
-        return await (0, rxjs_1.lastValueFrom)(observer$);
+    static deleteCompanys(vals) {
+        const observer$ = stock_auth_client_1.StockAuthClient
+            .ehttp.makePut('/company/delete/many', vals);
+        return (0, rxjs_1.lastValueFrom)(observer$);
     }
-    /**
-     * Updates the company's profile with the provided values and optional files.
-     * @param companyId - The ID of the company
-     * @param vals The values to update the company's profile with.
-     * @param files Optional files to upload with the company.
-     * @returns A success object indicating whether the company was updated successfully.
-     */
-    async updateCompanyBulk(companyId, vals, files) {
+    async update(vals, files) {
         vals.company._id = this._id;
-        let added;
-        if (files && files[0]) {
-            const observer$ = stock_auth_client_1.StockAuthClient.ehttp.uploadFiles(files, `/company/updatecompanybulkimg/${companyId}`, vals);
-            added = await (0, rxjs_1.lastValueFrom)(observer$);
-        }
-        else {
-            const observer$ = stock_auth_client_1.StockAuthClient.ehttp.makePut(`/company/updatecompanybulk/${companyId}`, vals);
-            added = await (0, rxjs_1.lastValueFrom)(observer$);
-        }
-        return added;
-    }
-    /**
-     * Updates a company's information.
-     * @param companyId - The ID of the company
-     * @param vals - The updated values for the company.
-     * @param formtype - The type of form being updated.
-     * @param files - Optional array of files to upload.
-     * @returns A promise that resolves to the updated company information.
-     */
-    async updateCompany(companyId, vals, formtype, files) {
         let updated;
         if (files && files.length > 0) {
             const observer$ = stock_auth_client_1.StockAuthClient.ehttp
-                .uploadFiles(files, '/company/updateprofileimg', vals);
+                .uploadFiles(files, '/company/update/img', vals);
             updated = await (0, rxjs_1.lastValueFrom)(observer$);
         }
         else {
-            const observer$ = stock_auth_client_1.StockAuthClient.ehttp
-                .makePut(`/company/updateprofile/${formtype}/${companyId}`, vals);
+            const observer$ = stock_auth_client_1.StockAuthClient.ehttp.makePut('/company/update', vals);
             updated = await (0, rxjs_1.lastValueFrom)(observer$);
-        }
-        if (updated.success) {
-            this.appendUpdate(vals.companydetails);
         }
         return updated;
     }
-    /**
-     * Deletes images associated with a company.
-     * @param companyId - The ID of the company.
-     * @param filesWithDir - An array of file metadata objects.
-     * @returns A promise that resolves to the success status of the deletion.
-     */
-    async deleteImages(companyId, filesWithDir) {
+    async remove() {
         const observer$ = stock_auth_client_1.StockAuthClient.ehttp
-            .makePut(`/company/deleteimages/${companyId}`, { filesWithDir, company: { _id: this._id } });
-        const deleted = await (0, rxjs_1.lastValueFrom)(observer$);
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-        const toStrings = filesWithDir.map(val => val._id);
-        this.photos = this.photos.filter(val => !toStrings.includes(val._id));
-        return deleted;
-    }
-    /**
-     * Deletes a company by its ID.
-     * @param companyId The ID of the company to delete.
-     * @returns A promise that resolves to the deleted company.
-     */
-    async deleteCompany(companyId) {
-        const observer$ = stock_auth_client_1.StockAuthClient.ehttp
-            .makePut(`/company/deleteone/${companyId}`, {
-            _id: this._id,
-            filesWithDir: [{
-                    filename: this.profilePic
-                },
-                {
-                    filename: this.profileCoverPic
-                }
-            ]
+            .makePut('/company/delete/one', {
+            _id: this._id
         });
         const deleted = await (0, rxjs_1.lastValueFrom)(observer$);
         return deleted;
     }
-    /**
-     * Updates the company object with the provided data.
-     * If a property is not provided in the data object, it remains unchanged.
-     * @param data - The data object containing the properties to update.
-     */
     appendUpdate(data) {
         if (data) {
             this.urId = data.urId || this.urId;
@@ -169,9 +73,6 @@ class Company extends stock_universal_1.DatabaseAuto {
             this.dateOfEst = data.dateOfEst || this.dateOfEst;
             this.details = data.details || this.details;
             this.businessType = data.businessType || this.businessType;
-            this.profilePic = data.profilePic || this.profilePic;
-            this.profileCoverPic = data.profileCoverPic || this.profileCoverPic;
-            this.photos = data.photos || this.photos;
             this.websiteAddress = data.websiteAddress || this.websiteAddress;
             this.blockedReasons = data.blockedReasons || this.blockedReasons;
             this.left = data.left || this.left;

@@ -43,10 +43,12 @@ export const createTrackEditModel = async (dbUrl, dbOptions, main = true, lean =
         await connectUniversalDatabase(dbUrl, dbOptions);
     }
     if (main) {
-        trackEditMain = mainConnection.model('TrackEdit', trackEditSchema);
+        trackEditMain = mainConnection
+            .model('TrackEdit', trackEditSchema);
     }
     if (lean) {
-        trackEditLean = mainConnectionLean.model('TrackEdit', trackEditSchema);
+        trackEditLean = mainConnectionLean
+            .model('TrackEdit', trackEditSchema);
     }
 };
 //# sourceMappingURL=track-edit.model.js.map

@@ -6,13 +6,6 @@ const rxjs_1 = require("rxjs");
 const stock_counter_client_1 = require("../../stock-counter-client");
 const expense_define_1 = require("../expense.define");
 const invoice_define_1 = require("../invoice.define");
-/** The  ProfitAndLossReport  class extends the  DatabaseAuto  class. It has properties such as  urId ,  totalAmount ,  date ,  expenses , and  invoiceRelateds . The constructor takes an object  data  as an argument and assigns its properties to the corresponding class properties. It also converts the  expenses  and  invoiceRelateds  arrays into instances of the  Expense  and  InvoiceRelated  classes, respectively.
-
-The class has several static methods:
--  getProfitAndLossReports : Retrieves profit and loss reports from the server. It takes optional parameters  url ,  offset , and  limit  to specify the API endpoint and pagination options. */
-/**
- * Represents a Profit and Loss Report.
- */
 class ProfitAndLossReport extends stock_universal_1.DatabaseAuto {
     /**
      * Creates a new instance of ProfitAndLossReport.
@@ -34,14 +27,24 @@ class ProfitAndLossReport extends stock_universal_1.DatabaseAuto {
     }
     /**
      * Retrieves profit and loss reports from the server.
-     * @param companyId - The ID of the company
+  
      * @param url - The API endpoint to use. Defaults to 'getall'.
      * @param offset - The offset to use for pagination. Defaults to 0.
      * @param limit - The limit to use for pagination. Defaults to 0.
      * @returns An array of ProfitAndLossReport instances.
      */
-    static async getProfitAndLossReports(companyId, url = 'getall', offset = 0, limit = 20) {
-        const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makeGet(`/profitandlossreport//${url}/${offset}/${limit}/${companyId}`);
+    static async getAll(offset = 0, limit = 20) {
+        const observer$ = stock_counter_client_1.StockCounterClient.ehttp
+            .makeGet(`/profitandlossreport/all/${offset}/${limit}`);
+        const profitandlossreports = await (0, rxjs_1.lastValueFrom)(observer$);
+        return {
+            count: profitandlossreports.count,
+            profitandlossreports: profitandlossreports.data.map((val) => new ProfitAndLossReport(val))
+        };
+    }
+    static async filterAll(filter) {
+        const observer$ = stock_counter_client_1.StockCounterClient.ehttp
+            .makePost('/profitandlossreport/filter', filter);
         const profitandlossreports = await (0, rxjs_1.lastValueFrom)(observer$);
         return {
             count: profitandlossreports.count,
@@ -50,34 +53,42 @@ class ProfitAndLossReport extends stock_universal_1.DatabaseAuto {
     }
     /**
      * Retrieves a single profit and loss report based on the provided urId.
-     * @param companyId - The ID of the company
+  
      * @param urId - The ID of the report to retrieve.
      * @returns A ProfitAndLossReport instance.
      */
-    static async getOneProfitAndLossReport(companyId, urId) {
-        const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makeGet(`/profitandlossreport/getone/${urId}/${companyId}`);
+    static async getOne(urId) {
+        const observer$ = stock_counter_client_1.StockCounterClient.ehttp
+            .makeGet(`/profitandlossreport/one/${urId}`);
         const profitandlossreport = await (0, rxjs_1.lastValueFrom)(observer$);
         return new ProfitAndLossReport(profitandlossreport);
     }
     /**
      * Adds a new profit and loss report to the server.
-     * @param companyId - The ID of the company
+  
      * @param vals - The data for the new report.
      * @returns An Isuccess object.
      */
-    static async addProfitAndLossReport(companyId, vals) {
-        const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makePost(`/profitandlossreport/create/${companyId}`, vals);
-        return await (0, rxjs_1.lastValueFrom)(observer$);
+    static add(vals) {
+        const observer$ = stock_counter_client_1.StockCounterClient.ehttp
+            .makePost('/profitandlossreport/add', vals);
+        return (0, rxjs_1.lastValueFrom)(observer$);
     }
     /**
      * Deletes multiple profit and loss reports from the server.
-     * @param companyId - The ID of the company
-     * @param ids - An array of report IDs to be deleted.
+  
+     * @param _ids - An array of report IDs to be deleted.
      * @returns An Isuccess object.
      */
-    static async deleteProfitAndLossReports(companyId, ids) {
-        const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makePut(`/profitandlossreport/deletemany/${companyId}`, { ids });
-        return await (0, rxjs_1.lastValueFrom)(observer$);
+    static removeMany(vals) {
+        const observer$ = stock_counter_client_1.StockCounterClient.ehttp
+            .makePut('/profitandlossreport/delete/many', vals);
+        return (0, rxjs_1.lastValueFrom)(observer$);
+    }
+    remove() {
+        const observer$ = stock_counter_client_1.StockCounterClient.ehttp
+            .makeDelete('/profitandlossreport/delete/one');
+        return (0, rxjs_1.lastValueFrom)(observer$);
     }
 }
 exports.ProfitAndLossReport = ProfitAndLossReport;

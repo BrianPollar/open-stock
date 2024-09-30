@@ -7,7 +7,7 @@ export abstract class DatabaseAuto {
   /**
    * The `_id` property is a unique identifier for the object.
    */
-  // eslint-disable-next-line @typescript-eslint/naming-convention
+
   _id?: string;
 
   /**

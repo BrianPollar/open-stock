@@ -11,20 +11,23 @@
 
 /**
  * Creates an offset-limit object with default values.
- * If the offset is 0, it is set to 10000.
+ * If the offset is 0, it is set to 0.
  * If the limit is 0, it is set to 10000.
  * @param offset - The offset value.
  * @param limit - The limit value.
  * @returns An object with offset and limit properties.
  */
-export const offsetLimitRelegator = (offset: number, limit: number) => ({
+export const offsetLimitRelegator = (offset: string | number, limit: string| number) => {
+  const numOffset = Number(offset);
+  const numLimit = Number(limit);
 
-  // If the offset is 0, then set it to 10000.
-  offset: offset === 0 ? 10000 : offset,
+  return {
+    // If the offset is 0, then set it to 0.
+    offset: (!numOffset || numOffset === 0) ? 0 : numOffset,
 
-  // If the limit is 0, then set it to 10000.
-  limit: limit === 0 ? 10000 : limit
-});
+    // If the limit is 0, then set it to 10000.
+    limit: (!numLimit || numLimit === 0) ? 10000 : numLimit
+  };};
 
 // **Comments:**
 //

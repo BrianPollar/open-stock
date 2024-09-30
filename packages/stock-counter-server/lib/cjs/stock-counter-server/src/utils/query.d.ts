@@ -41,7 +41,7 @@ export declare const populateBillingUser: () => {
  */
 export declare const populatePayments: () => {
     path: string;
-    model: import("mongoose").Model<import("../models/printables/receipt.model").Treceipt, {}, {}, {}, import("mongoose").Document<unknown, {}, import("../models/printables/receipt.model").Treceipt> & import("mongoose").Document<any, any, any> & import("@open-stock/stock-universal").IurId & import("@open-stock/stock-universal").IinvoiceRelatedRef & {
+    model: import("mongoose").Model<import("../models/printables/receipt.model").Treceipt, {}, {}, {}, import("mongoose").Document<unknown, {}, import("../models/printables/receipt.model").Treceipt> & import("mongoose").Document<any, any, any> & import("@open-stock/stock-universal").IinvoiceRelatedRef & {
         ammountRcievd: number;
         paymentMode: string;
         type: string;
@@ -72,7 +72,7 @@ export declare const populateInvoiceRelated: (returnItemPhotos?: boolean) => {
         populate?: undefined;
     } | {
         path: string;
-        model: import("mongoose").Model<import("../models/printables/receipt.model").Treceipt, {}, {}, {}, import("mongoose").Document<unknown, {}, import("../models/printables/receipt.model").Treceipt> & import("mongoose").Document<any, any, any> & import("@open-stock/stock-universal").IurId & import("@open-stock/stock-universal").IinvoiceRelatedRef & {
+        model: import("mongoose").Model<import("../models/printables/receipt.model").Treceipt, {}, {}, {}, import("mongoose").Document<unknown, {}, import("../models/printables/receipt.model").Treceipt> & import("mongoose").Document<any, any, any> & import("@open-stock/stock-universal").IinvoiceRelatedRef & {
             ammountRcievd: number;
             paymentMode: string;
             type: string;
@@ -228,9 +228,7 @@ export declare const populatePaymentRelated: () => {
             profilepic: number;
             profilecoverpic: number;
             description: number;
-            fromsocial: number;
-            socialframework: number;
-            socialId: number;
+            socialAuthFrameworks: number;
             updatedAt: number;
             createdAt: number;
             userType: number;

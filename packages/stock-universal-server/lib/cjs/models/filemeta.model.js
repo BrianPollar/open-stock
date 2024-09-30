@@ -35,10 +35,12 @@ const createFileMetaModel = async (dbUrl, dbOptions, main = true, lean = true) =
         await (0, database_1.connectUniversalDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.fileMeta = database_1.mainConnection.model('FileMeta', fileMetaSchema);
+        exports.fileMeta = database_1.mainConnection
+            .model('FileMeta', fileMetaSchema);
     }
     if (lean) {
-        exports.fileMetaLean = database_1.mainConnectionLean.model('FileMeta', fileMetaSchema);
+        exports.fileMetaLean = database_1.mainConnectionLean
+            .model('FileMeta', fileMetaSchema);
     }
 };
 exports.createFileMetaModel = createFileMetaModel;

@@ -1,12 +1,22 @@
-import { makePredomFilter } from '@open-stock/stock-universal-server';
+import {
+  constructFiltersFromBody, lookupLimit, lookupOffset, lookupSort,
+  lookupTrackEdit, lookupTrackView, makePredomFilter, requireAuth, roleAuthorisation
+} from '@open-stock/stock-universal-server';
 
-import { IdataArrayResponse, Isuccess } from '@open-stock/stock-universal';
-import { addParentToLocals, makeUrId, offsetLimitRelegator, stringifyMongooseErr } from '@open-stock/stock-universal-server';
+import { requireActiveCompany } from '@open-stock/stock-auth-server';
+import {
+  IcustomRequest, IdataArrayResponse, IfilterAggResponse, IfilterProps, IreviewMain, Isuccess
+} from '@open-stock/stock-universal';
+import {
+  addParentToLocals,
+  generateUrId,
+  offsetLimitRelegator, stringifyMongooseErr
+} from '@open-stock/stock-universal-server';
 import express from 'express';
 import * as fs from 'fs';
 import path from 'path';
 import * as tracer from 'tracer';
-import { reviewLean, reviewMain } from '../models/review.model';
+import { Treview, reviewLean, reviewMain } from '../models/review.model';
 import { addReview, removeReview } from './item.routes';
 
 /**
@@ -42,27 +52,12 @@ const reviewRoutesLogger = tracer.colorConsole({
  */
 export const reviewRoutes = express.Router();
 
-/**
- * Route for creating a new review
- * @name POST /create
- * @function
- * @memberof module:reviewRoutes
- * @inner
- * @param {Object} req - Express request object
- * @param {Object} req.body - Request body containing the review to be created
- * @param {Object} req.body.review - Review object to be created
- * @param {Object} res - Express response object
- * @param {Object} next - Express next middleware function
- * @returns {void}
- */
-reviewRoutes.post('/create/:companyIdParam', async(req, res, next) => {
-  const review = req.body.review;
+reviewRoutes.post('/add', async(req: IcustomRequest<never, IreviewMain>, res, next) => {
+  const review = req.body;
 
   review.companyId = 'superAdmin';
-  const count = (await reviewMain
-    .find({ }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 })[0]?.urId) || 0;
 
-  review.urId = makeUrId(count);
+  review.urId = await generateUrId(reviewMain);
   const newReview = new reviewMain(review);
   let errResponse: Isuccess;
 
@@ -94,66 +89,104 @@ reviewRoutes.post('/create/:companyIdParam', async(req, res, next) => {
   return next();
 }, addReview);
 
-/**
- * Route for getting a single review by ID
- * @name GET /getone/:id
- * @function
- * @memberof module:reviewRoutes
- * @inner
- * @param {Object} req - Express request object
- * @param {Object} req.params - Request parameters containing the ID of the review to be retrieved
- * @param {string} req.params.id - ID of the review to be retrieved
- * @param {Object} res - Express response object
- * @returns {Object} Review object
- */
-reviewRoutes.get('/getone/:id/:companyIdParam', async(req, res) => {
-  const { id } = req.params;
+reviewRoutes.get('/one/:_id', async(req: IcustomRequest<{ _id: string }, null>, res) => {
+  const { _id } = req.params;
   const review = await reviewLean
-    .findOne({ _id: id, ...makePredomFilter(req) })
+    .findOne({ _id, ...makePredomFilter(req) })
     .lean();
 
-  if (review) {
-    addParentToLocals(res, review._id, reviewMain.collection.collectionName, 'trackDataView');
+  if (!review) {
+    return res.status(404).send({ success: false, err: 'not found' });
   }
+
+  addParentToLocals(res, review._id, reviewMain.collection.collectionName, 'trackDataView');
 
   return res.status(200).send(review);
 });
 
-/**
- * Route for getting all reviews for a specific item
- * @name GET /getall/:id
- * @function
- * @memberof module:reviewRoutes
- * @inner
- * @param {Object} req - Express request object
- * @param {Object} req.params - Request parameters containing the ID of the item to retrieve reviews for
- * @param {string} req.params.id - ID of the item to retrieve reviews for
- * @param {Object} res - Express response object
- * @returns {Array} Array of review objects
- */
-reviewRoutes.get('/getall/:id/:offset/:limit/:companyIdParam', async(req, res) => {
-  const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
-  const all = await Promise.all([
-    reviewLean
-      .find({ itemId: req.params.id, ...makePredomFilter(req) })
-      .skip(offset)
-      .limit(limit)
-      .lean(),
-    reviewLean.countDocuments({ itemId: req.params.id })
-  ]);
-  const response: IdataArrayResponse = {
-    count: all[1],
-    data: all[0]
-  };
+reviewRoutes.get(
+  '/all/:_id/:offset/:limit',
+  async(req: IcustomRequest<{ offset: string; limit: string; _id: string }, null>, res) => {
+    const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
+    const all = await Promise.all([
+      reviewLean
+        .find({ itemId: req.params._id, ...makePredomFilter(req) })
+        .skip(offset)
+        .limit(limit)
+        .lean(),
+      reviewLean.countDocuments({ itemId: req.params._id })
+    ]);
+    const response: IdataArrayResponse<Treview> = {
+      count: all[1],
+      data: all[0]
+    };
 
-  for (const val of all[0]) {
-    addParentToLocals(res, val._id, reviewMain.collection.collectionName, 'trackDataView');
+    for (const val of all[0]) {
+      addParentToLocals(res, val._id, reviewMain.collection.collectionName, 'trackDataView');
+    }
+
+    return res.status(200).send(response);
   }
+);
 
-  return res.status(200).send(response);
-});
+reviewRoutes.post(
+  '/filter',
+  requireAuth,
+  requireActiveCompany,
+  roleAuthorisation('items', 'read'),
+  async(req: IcustomRequest<never, IfilterProps>, res) => {
+    const { propSort } = req.body;
+    const { offset, limit } = offsetLimitRelegator(req.body.offset, req.body.limit);
+    const filter = constructFiltersFromBody(req);
 
-reviewRoutes.get('/getratingcount/:id/:rating', async(req, res) => {
+    const aggCursor = reviewLean.aggregate<IfilterAggResponse<Treview>>([
+      {
+        $match: {
+          $and: [
+          // { status: 'pending' },
+            ...filter
+          ]
+        }
+      },
+      ...lookupTrackEdit(),
+      ...lookupTrackView(),
+      {
+        $facet: {
+          data: [...lookupSort(propSort), ...lookupOffset(offset), ...lookupLimit(limit)],
+          total: [{ $count: 'count' }]
+        }
+      },
+      {
+        $unwind: {
+          path: '$total',
+          preserveNullAndEmptyArrays: true
+        }
+      }
+    ]);
+    const dataArr: IfilterAggResponse<Treview>[] = [];
+
+    for await (const data of aggCursor) {
+      dataArr.push(data);
+    }
+
+    const all = dataArr[0]?.data || [];
+    const count = dataArr[0]?.total?.count || 0;
+
+    const staffsToReturn = all.filter(val => val.userId);
+    const response: IdataArrayResponse<Treview> = {
+      count,
+      data: staffsToReturn
+    };
+
+    for (const val of all) {
+      addParentToLocals(res, val._id, reviewMain.collection.collectionName, 'trackDataView');
+    }
+
+    return res.status(200).send(response);
+  }
+);
+
+reviewRoutes.get('/getratingcount/:_id/:rating', async(req: IcustomRequest<never, null>, res) => {
   const { id, rating } = req.params;
   const review = await reviewLean
     .find({ itemId: id, rating })
@@ -162,32 +195,21 @@ reviewRoutes.get('/getratingcount/:id/:rating', async(req, res) => {
   return res.status(200).send({ count: review.length });
 });
 
-/**
- * Route for deleting a single review by ID
- * @name DELETE /deleteone/:id/:itemId/:rating
- * @function
- * @memberof module:reviewRoutes
- * @inner
- * @param {Object} req - Express request object
- * @param {Object} req.params - Request parameters containing the ID of the review to be deleted, the ID of the item the review belongs to, and the rating of the review
- * @param {string} req.params.id - ID of the review to be deleted
- * @param {string} req.params.itemId - ID of the item the review belongs to
- * @param {string} req.params.rating - Rating of the review to be deleted
- * @param {Object} res - Express response object
- * @param {Object} next - Express next middleware function
- * @returns {void}
- */
-reviewRoutes.delete('/deleteone/:id/:itemId/:rating/:companyIdParam', async(req, res, next) => {
-  const { id } = req.params;
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  // const deleted = await reviewMain.findOneAndDelete({ _id: id });
-  const deleted = await reviewMain.updateOne({ _id: id }, { $set: { isDeleted: true } });
+reviewRoutes.delete(
+  '/delete/one/:_id/:itemId/:rating',
+  async(req: IcustomRequest<never, unknown>, res, next) => {
+    const { _id } = req.params;
 
-  if (Boolean(deleted)) {
-    addParentToLocals(res, id, reviewMain.collection.collectionName, 'trackDataDelete');
+    // const deleted = await reviewMain.findOneAndDelete({ _id });
+    const deleted = await reviewMain.updateOne({ _id }, { $set: { isDeleted: true } });
 
-    return next();
-  } else {
-    return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
-  }
-}, removeReview);
+    if (Boolean(deleted)) {
+      addParentToLocals(res, _id, reviewMain.collection.collectionName, 'trackDataDelete');
+
+      return next();
+    } else {
+      return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
+    }
+  },
+  removeReview
+);

@@ -1,8 +1,8 @@
-import { createExpireDocIndex, preUpdateDocExpire, withCompanySchemaObj } from '@open-stock/stock-universal-server';
+import { createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj } from '@open-stock/stock-universal-server';
 import { Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../utils/database';
 const invoiceSchema = new Schema({
-    ...withCompanySchemaObj,
+    ...withUrIdAndCompanySchemaObj,
     invoiceRelated: { type: String },
     dueDate: { type: Date }
 }, { timestamps: true, collection: 'invoices' });
@@ -47,10 +47,12 @@ export const createInvoiceModel = async (dbUrl, dbOptions, main = true, lean = t
         await connectStockDatabase(dbUrl, dbOptions);
     }
     if (main) {
-        invoiceMain = mainConnection.model('Invoice', invoiceSchema);
+        invoiceMain = mainConnection
+            .model('Invoice', invoiceSchema);
     }
     if (lean) {
-        invoiceLean = mainConnectionLean.model('Invoice', invoiceSchema);
+        invoiceLean = mainConnectionLean
+            .model('Invoice', invoiceSchema);
     }
 };
 //# sourceMappingURL=invoice.model.js.map

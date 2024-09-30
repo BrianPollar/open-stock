@@ -13,7 +13,8 @@ exports.resolveUserUrId = resolveUserUrId;
  * @param userId - The user ID or user object.
  * @param alterenativeImageUrl - The alternative image URL to use if the user's image is not available.
  * @param property - The property to retrieve the image URL from. Defaults to 'profilePic'.
- * @param photoPosition - The position of the photo in the 'photos' array. Only applicable if 'property' is set to 'photos'. Defaults to 0.
+ * @param photoPosition - The position of the photo
+ *  in the 'photos' array. Only applicable if 'property' is set to 'photos'. Defaults to 0.
  * @returns The resolved image URL.
  */
 const resolveImageUrl = (userId, alterenativeImageUrl, property = 'profilePic', photoPosition = 0) => {

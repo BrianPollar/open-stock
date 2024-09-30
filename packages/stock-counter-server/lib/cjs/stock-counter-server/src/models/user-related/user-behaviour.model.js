@@ -45,10 +45,12 @@ const createUserBehaviourModel = async (dbUrl, dbOptions, main = true, lean = tr
         await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.userBehaviourMain = database_1.mainConnection.model('UserBehaviour', userBehaviourSchema);
+        exports.userBehaviourMain = database_1.mainConnection
+            .model('UserBehaviour', userBehaviourSchema);
     }
     if (lean) {
-        exports.userBehaviourLean = database_1.mainConnectionLean.model('UserBehaviour', userBehaviourSchema);
+        exports.userBehaviourLean = database_1.mainConnectionLean
+            .model('UserBehaviour', userBehaviourSchema);
     }
 };
 exports.createUserBehaviourModel = createUserBehaviourModel;

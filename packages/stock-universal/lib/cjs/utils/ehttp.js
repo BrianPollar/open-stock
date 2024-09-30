@@ -46,7 +46,10 @@ class EhttpController {
      */
     makeGet(route, retryTimes = 5) {
         // Return a GET request from the Axios instance.
-        return this.axiosInstance.get(route).pipe((0, rxjs_1.retry)(retryTimes), (0, rxjs_1.map)(res => res.data));
+        return this.axiosInstance.get(route).pipe((0, rxjs_1.retry)(retryTimes), (0, rxjs_1.map)(res => {
+            this.logger.debug('makeGet', res.data);
+            return res.data;
+        }));
     }
     /**
      * A method that makes a PUT request to the specified route.
@@ -56,7 +59,10 @@ class EhttpController {
      */
     makePut(route, extras) {
         // Return a PUT request from the Axios instance.
-        return this.axiosInstance.put(route, extras).pipe((0, rxjs_1.map)(res => res.data));
+        return this.axiosInstance.put(route, extras).pipe((0, rxjs_1.map)(res => {
+            this.logger.debug('makePut', res.data);
+            return res.data;
+        }));
     }
     /**
      * A method that makes a POST request to the specified route.
@@ -66,7 +72,10 @@ class EhttpController {
      */
     makePost(route, extras) {
         // Return a POST request from the Axios instance.
-        return this.axiosInstance.post(route, extras).pipe((0, rxjs_1.map)(res => res.data));
+        return this.axiosInstance.post(route, extras).pipe((0, rxjs_1.map)(res => {
+            this.logger.debug('makePost', res.data);
+            return res.data;
+        }));
     }
     /**
      * A method that makes a DELETE request to the specified route.
@@ -75,12 +84,15 @@ class EhttpController {
      */
     makeDelete(route) {
         // Return a DELETE request from the Axios instance.
-        return this.axiosInstance.delete(route).pipe((0, rxjs_1.map)(res => res.data));
+        return this.axiosInstance.delete(route).pipe((0, rxjs_1.map)(res => {
+            this.logger.debug('makeDelete', res.data);
+            return res.data;
+        }));
     }
     /**
      * A method that uploads files to the specified URL.
      * @param files - An array of files to upload.
-     * @param companyId - The ID of the company
+  
      * @param url - The URL to upload the files to.
      * @param extras - Any extra data to include in the request.
      * @returns An Observable that emits the response data.
@@ -99,7 +111,10 @@ class EhttpController {
         // Log the request.
         this.logger.debug('uploadFiles:: - url: url , formData: %formData ', url, formData);
         // Return a POST request from the Axios instance.
-        return this.axiosInstance.post(url, formData).pipe((0, rxjs_1.map)(res => res.data));
+        return this.axiosInstance.post(url, formData).pipe((0, rxjs_1.map)(res => {
+            this.logger.debug('uploadFiles', res.data);
+            return res.data;
+        }));
     }
 }
 exports.EhttpController = EhttpController;

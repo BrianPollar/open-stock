@@ -30,8 +30,8 @@ export class TrackEdit
    * @returns a TrackEdit object
    */
   static async getByParent(parent: string) {
-    const observer$ = StockUniversal.ehttp.makeGet(`/track/gettrackeditbyparent/${parent}`);
-    const edit = await lastValueFrom(observer$) as ItrackEdit;
+    const observer$ = StockUniversal.ehttp.makeGet<ItrackEdit>(`/track/gettrackeditbyparent/${parent}`);
+    const edit = await lastValueFrom(observer$);
 
     return new TrackEdit(edit);
   }
@@ -41,15 +41,17 @@ export class TrackEdit
    * @param userId the id of the user to query
    * @param offset the offset of the results to return
    * @param limit the maximum number of results to return
-   * @returns a promise resolving to an object containing the count of all track edits made by the user and an array of track edits
+   * @returns a promise resolving to an object containing
+   * the count of all track edits made by the user and an array of track edits
    */
   static async getByUser(userId: string, offset = 0, limit = 20) {
-    const observer$ = StockUniversal.ehttp.makeGet(`/track/gettrackeditbyuser/${offset}/${limit}/${userId}`);
-    const edits = await lastValueFrom(observer$) as IdataArrayResponse;
+    const observer$ = StockUniversal
+      .ehttp.makeGet<IdataArrayResponse<ItrackEdit>>(`/track/gettrackeditbyuser/${offset}/${limit}/${userId}`);
+    const edits = await lastValueFrom(observer$);
 
     return {
       count: edits.count,
-      trackEdits: edits.data.map(val => new TrackEdit(val as ItrackEdit))
+      trackEdits: edits.data.map(val => new TrackEdit(val))
     };
   }
 
@@ -60,24 +62,24 @@ export class TrackEdit
    * @returns a promise resolving to an object containing the count of all track edits and an array of track edits
    */
   static async getAll(offset = 0, limit = 20) {
-    const observer$ = StockUniversal.ehttp.makeGet(`/track/gettrackedit/${offset}/${limit}`);
-    const edits = await lastValueFrom(observer$) as IdataArrayResponse;
+    const observer$ = StockUniversal
+      .ehttp.makeGet<IdataArrayResponse<ItrackEdit>>(`/track/gettrackedit/${offset}/${limit}`);
+    const edits = await lastValueFrom(observer$);
 
     return {
       count: edits.count,
-      trackEdits: edits.data.map(val => new TrackEdit(val as ItrackEdit))
+      trackEdits: edits.data.map(val => new TrackEdit(val))
     };
   }
 
   /**
    * Delete a track edit
-   * @param id the id of the track edit to delete
+   * @param _id the id of the track edit to delete
    * @returns a promise resolving to an object containing a boolean indicating success
    */
-  static async deleteOne(id: string) {
-    const observer$ = StockUniversal.ehttp.makeDelete(`/track/deletetrackedit/${id}`);
-
-    const deleted = await lastValueFrom(observer$) as Isuccess;
+  static async deleteOne(_id: string) {
+    const observer$ = StockUniversal.ehttp.makeDelete<Isuccess>(`/track/deletetrackedit/${_id}`);
+    const deleted = await lastValueFrom(observer$);
 
     return deleted;
   }

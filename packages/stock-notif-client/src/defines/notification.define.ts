@@ -3,14 +3,16 @@
  * @packageDocumentation
  */
 
-import { Iactionwithall, IdataArrayResponse, Imainnotification, InotifSetting, Isuccess, TnotifType } from '@open-stock/stock-universal';
+import {
+  Iactionwithall, IdataArrayResponse, Imainnotification, InotifSetting, Isuccess, TnotifType
+} from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
 import { StockNotifClient } from '../stock-notif-client';
 
 /** Represents a main notification. */
 export class NotificationMain {
   /** The ID of the notification. */
-  // eslint-disable-next-line @typescript-eslint/naming-convention
+
   _id: string;
 
   /** An array of actions associated with the notification. */
@@ -59,75 +61,76 @@ export class NotificationMain {
 
   /**
    * Creates a new notification.
-   * @param companyId - The ID of the company
+
    * @param notif The notification to create.
    * @returns A promise that resolves to the success status of the operation.
    */
-  static async creatNotifs(companyId: string, notif: Imainnotification) {
-    const observer$ = StockNotifClient.ehttp.makePost(`/notifn/create/${companyId}`, notif);
+  static create(notif: Imainnotification) {
+    const observer$ = StockNotifClient.ehttp.makePost<Isuccess>('/notifn/create', notif);
 
-    return await lastValueFrom(observer$) as Isuccess;
+    return lastValueFrom(observer$);
   }
 
   /**
    * Gets a list of notifications.
-   * @param companyId - The ID of the company
+
    * @param url The URL to use for the request.
    * @param offset The offset to use for the request.
    * @param limit The limit to use for the request.
    * @returns A promise that resolves to an array of NotificationMain instances.
    */
-  static async getNotifications(companyId: string, url = 'getmynotifn', offset = 0, limit = 20) {
-    const observer$ = StockNotifClient.ehttp.makeGet(`/notifn/${url}/${offset}/${limit}/${companyId}`);
-    const notifications = await lastValueFrom(observer$) as IdataArrayResponse;
+  static async getAll(url = 'getmynotifn', offset = 0, limit = 20) {
+    const observer$ = StockNotifClient
+      .ehttp.makeGet<IdataArrayResponse<Imainnotification>>(`/notifn/${url}/${offset}/${limit}`);
+    const notifications = await lastValueFrom(observer$);
 
     return {
       count: notifications.count,
-      notifications: notifications.data.map(val => new NotificationMain(val as Imainnotification)) };
+      notifications: notifications.data.map(val => new NotificationMain(val)) };
   }
 
   /**
    * Appends a subscription to the list of subscriptions.
-   * @param companyId - The ID of the company
+
    * @param subscription The subscription to append.
    * @returns A promise that resolves to the success status of the operation.
    */
-  static async appendSubscription(companyId: string, subscription: PushSubscription | null) {
-    const observer$ = StockNotifClient.ehttp.makePost(`/notifn/subscription/${companyId}`, { subscription });
+  static appendSubscription(subscription: PushSubscription | null) {
+    const observer$ = StockNotifClient.ehttp.makePost<Isuccess>('/notifn/subscription', { subscription });
 
-    return lastValueFrom(observer$) as Promise<Isuccess>;
+    return lastValueFrom(observer$);
   }
 
   /**
    * Gets the number of unviewed notifications.
-   * @param companyId - The ID of the company
+
    * @returns A promise that resolves to the number of unviewed notifications.
    */
-  static async getUnviewedLength(companyId: string) {
-    const observer$ = StockNotifClient.ehttp.makeGet(`/notifn/unviewedlength/${companyId}`);
+  static getUnviewedLength(companyId: string) {
+    const observer$ = StockNotifClient.ehttp.makeGet<number>('/notifn/unviewedlength');
 
-    return await lastValueFrom(observer$) as number;
+    return lastValueFrom(observer$);
   }
 
   /**
    * Clears all notifications.
-   * @param companyId - The ID of the company
+
    * @returns A promise that resolves to the success status of the operation.
    */
-  static async clearAll(companyId: string) {
-    const observer$ = StockNotifClient.ehttp.makePost(`/notifn/clearall/${companyId}`, {});
+  static clearAll(companyId: string) {
+    const observer$ = StockNotifClient.ehttp.makePost<Isuccess>('/notifn/clearall', {});
 
-    return lastValueFrom(observer$) as Promise<Isuccess>;
+    return lastValueFrom(observer$) ;
   }
 
   /**
    * Updates the viewed status of the notification.
-   * @param companyId - The ID of the company
+
    * @returns A promise that resolves to the success status of the operation.
    */
   async updateViewed(companyId: string) {
-    const observer$ = StockNotifClient.ehttp.makePost(`/notifn/updateviewed/${companyId}`, { id: this._id });
-    const response = await lastValueFrom(observer$) as Isuccess;
+    const observer$ = StockNotifClient.ehttp.makePost<Isuccess>('/notifn/updateviewed', { id: this._id });
+    const response = await lastValueFrom(observer$);
 
     return response;
   }
@@ -178,25 +181,25 @@ export class NotifSetting {
 
   /**
    * Gets the notification settings.
-   * @param companyId - The ID of the company
+
    * @returns A promise that resolves to an array of NotifSetting instances.
    */
   static async getNotificationsSetting(companyId: string) {
-    const observer$ = StockNotifClient.ehttp.makeGet(`/notifn/getstn/${companyId}`);
-    const stn = await lastValueFrom(observer$) as InotifSetting[];
+    const observer$ = StockNotifClient.ehttp.makeGet<InotifSetting[]>('/notifn/getstn');
+    const stn = await lastValueFrom(observer$);
 
     return stn.map(val => new NotifSetting(val));
   }
 
   /**
    * Updates the notification settings.
-   * @param companyId - The ID of the company
+
    * @param vals The new values for the notification settings.
    * @returns A promise that resolves to the success status of the operation.
    */
-  async update(companyId: string, vals: InotifSetting) {
-    const observer$ = StockNotifClient.ehttp.makePut(`/notifn/updatestn/${companyId}`, vals);
+  update(vals: InotifSetting) {
+    const observer$ = StockNotifClient.ehttp.makePut<Isuccess>('/notifn/updatestn', vals);
 
-    return await lastValueFrom(observer$) as Isuccess;
+    return lastValueFrom(observer$);
   }
 }

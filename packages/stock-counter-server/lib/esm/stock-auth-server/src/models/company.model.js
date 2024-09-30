@@ -18,9 +18,6 @@ export const companySchema = new Schema({
     address: { type: String },
     companyDispNameFormat: { type: String },
     businessType: { type: String },
-    profilePic: { type: String },
-    profileCoverPic: { type: String },
-    photos: [],
     websiteAddress: { type: String },
     blocked: { type: Boolean, default: false },
     verified: { type: Boolean, default: false },
@@ -78,11 +75,8 @@ const companyAuthselect = {
     details: 1,
     companyDispNameFormat: 1,
     businessType: 1,
-    profilepic: 1,
-    profileCoverPic: 1,
     createdAt: 1,
     websiteAddress: 1,
-    photos: 1,
     blocked: 1,
     verified: 1,
     expireAt: 1,
@@ -99,8 +93,6 @@ const companyaboutSelect = {
     details: 1,
     companyDispNameFormat: 1,
     businessType: 1,
-    profilepic: 1,
-    profileCoverPic: 1,
     createdAt: 1,
     websiteAddress: 1,
     photos: 1,
@@ -139,10 +131,12 @@ export const createCompanyModel = async (dbUrl, dbOptions, main = true, lean = t
         await connectAuthDatabase(dbUrl, dbOptions);
     }
     if (main) {
-        companyMain = mainConnection.model('Company', companySchema);
+        companyMain = mainConnection
+            .model('Company', companySchema);
     }
     if (lean) {
-        companyLean = mainConnectionLean.model('Company', companySchema);
+        companyLean = mainConnectionLean
+            .model('Company', companySchema);
     }
 };
 //# sourceMappingURL=company.model.js.map

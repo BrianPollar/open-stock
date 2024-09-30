@@ -47,10 +47,12 @@ const createJobCardModel = async (dbUrl, dbOptions, main = true, lean = true) =>
         await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.jobCardMain = database_1.mainConnection.model('JobCard', jobCardSchema);
+        exports.jobCardMain = database_1.mainConnection
+            .model('JobCard', jobCardSchema);
     }
     if (lean) {
-        exports.jobCardLean = database_1.mainConnectionLean.model('JobCard', jobCardSchema);
+        exports.jobCardLean = database_1.mainConnectionLean
+            .model('JobCard', jobCardSchema);
     }
 };
 exports.createJobCardModel = createJobCardModel;

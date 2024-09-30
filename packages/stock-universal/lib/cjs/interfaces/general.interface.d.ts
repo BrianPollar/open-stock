@@ -59,10 +59,6 @@ export interface Icompany extends IurId, ItrackStamp {
     companyDispNameFormat: string;
     /** The business type of the company. */
     businessType: string;
-    /** The profile picture of the company. */
-    profilePic: string | IfileMeta;
-    /** The profile cover picture of the company. */
-    profileCoverPic: string | IfileMeta;
     /** The password of the company. */
     password: string;
     /** The website address of the company. */
@@ -194,17 +190,12 @@ export interface Iuser extends IdatabaseAuto, ItrackStamp, Partial<IcurrencyProp
      */
     password?: string;
     /**
-     * Indicates if the user is from a social framework.
-     */
-    fromsocial?: boolean;
-    /**
      * The social framework used by the user.
      */
-    socialframework?: string;
-    /**
-     * The social ID of the user.
-     */
-    socialId?: string;
+    socialAuthFrameworks?: {
+        providerName: string;
+        id: string;
+    }[];
     /**
      * The blocked status of the user.
      */
@@ -507,13 +498,6 @@ export interface IpromoCode extends IcurrencyProp {
     state: string;
 }
 /**
- * Represents the interface for deleting credentials of a local user.
- */
-export interface IdeleteCredentialsLocalUser {
-    userId: string;
-    id?: string;
-}
-/**
  * Represents the metadata of a file.
  */
 export interface IfileMeta extends IdatabaseAuto, ItrackStamp {
@@ -545,7 +529,7 @@ export interface IcompanySubscription extends IdatabaseAuto, ItrackStamp {
     ammount: number;
     duration: TsubscriptionDurVal;
     active: boolean;
-    sunscriprionId: string;
+    subscriprionId: string;
     features: IsubscriptionFeature[];
     startDate: Date;
     endDate: Date;
@@ -616,4 +600,30 @@ export interface IcompanySetting extends ItrackStamp {
 }
 export interface IcurrencyProp {
     currency: string;
+}
+export interface IcomparisonFilter {
+    name: string;
+    value: number | Date | string;
+    direction: 'eq' | 'gt' | 'gte' | 'lt' | 'lte';
+}
+export interface IpropFilter {
+    [key: string]: any;
+}
+export interface IpropSort {
+    [key: string]: 'asc' | 'desc';
+}
+export interface IfilterProps {
+    searchterm?: string;
+    searchKey?: string;
+    offset?: number;
+    limit?: number;
+    propFilter?: IpropFilter[];
+    comparisonFilter?: IcomparisonFilter[];
+    propSort?: IpropSort[];
+}
+export interface IfilterAggResponse<T> {
+    data: T[];
+    total: {
+        count: number;
+    };
 }

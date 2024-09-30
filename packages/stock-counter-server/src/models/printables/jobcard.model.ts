@@ -1,5 +1,7 @@
 import { IjobCard } from '@open-stock/stock-universal';
-import { createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
+import {
+  createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj
+} from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
@@ -69,10 +71,12 @@ export const createJobCardModel = async(dbUrl: string, dbOptions?: ConnectOption
   }
 
   if (main) {
-    jobCardMain = mainConnection.model<TjobCard>('JobCard', jobCardSchema);
+    jobCardMain = mainConnection
+      .model<TjobCard>('JobCard', jobCardSchema);
   }
 
   if (lean) {
-    jobCardLean = mainConnectionLean.model<TjobCard>('JobCard', jobCardSchema);
+    jobCardLean = mainConnectionLean
+      .model<TjobCard>('JobCard', jobCardSchema);
   }
 };

@@ -58,10 +58,12 @@ export const createExpenseModel = async (dbUrl, dbOptions, main = true, lean = t
         await connectStockDatabase(dbUrl, dbOptions);
     }
     if (main) {
-        expenseMain = mainConnection.model('Expense', expenseSchema);
+        expenseMain = mainConnection
+            .model('Expense', expenseSchema);
     }
     if (lean) {
-        expenseLean = mainConnectionLean.model('Expense', expenseSchema);
+        expenseLean = mainConnectionLean
+            .model('Expense', expenseSchema);
     }
 };
 //# sourceMappingURL=expense.model.js.map

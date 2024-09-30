@@ -42,7 +42,7 @@ export const transformFaqToNameOrImage = (faq, type) => {
 };
 /**
  * Transforms an estimate ID from a number to a string format.
- * @param id - The estimate ID to transform.
+ * @param _id - The estimate ID to transform.
  * @returns The transformed estimate ID.
  */
 export const transformEstimateId = (id) => {
@@ -66,7 +66,7 @@ export const transformEstimateId = (id) => {
 };
 /**
  * Transforms an invoice ID into a formatted string.
- * @param id - The invoice ID to transform.
+ * @param _id - The invoice ID to transform.
  * @returns The formatted invoice string.
  */
 export const transformInvoice = (id) => {
@@ -91,7 +91,7 @@ export const transformInvoice = (id) => {
 /**
  * Transforms the given ID based on the specified criteria.
  *
- * @param id - The ID to be transformed.
+ * @param _id - The ID to be transformed.
  * @param where - The criteria for the transformation.
  * @returns The transformed ID.
  */
@@ -169,18 +169,18 @@ export const makeInvoiceRelated = (data) => {
 };
 /**
  * Function to like an item.
- * @param companyId - The ID of the company.
+ .
  * @param currentUser - The current user.
  * @param item - The item to be liked.
  * @returns A promise that resolves to an object indicating the success of the operation.
  */
-export const likeFn = (companyId, currentUser, item) => {
+export const likeFn = (currentUser, item) => {
     const logger = new LoggerController();
     if (!currentUser) {
         return { success: false };
     }
     return item
-        .likeItem(companyId, currentUser._id)
+        .like(currentUser._id)
         .catch(err => {
         logger.debug(':like:: - err ', err);
         return { success: false };
@@ -188,18 +188,18 @@ export const likeFn = (companyId, currentUser, item) => {
 };
 /**
  * Unlike the item for the current user.
- * @param companyId - The ID of the company.
+ .
  * @param currentUser - The current user.
  * @param item - The item to unlike.
  * @returns A promise that resolves to an object indicating the success of the unlike operation.
  */
-export const unLikeFn = (companyId, currentUser, item) => {
+export const unLikeFn = (currentUser, item) => {
     const logger = new LoggerController();
     if (!currentUser) {
         return { success: false };
     }
     return item
-        .likeItem(companyId, currentUser._id)
+        .unLike(currentUser._id)
         .catch(err => {
         logger.debug(':unLike:: - err ', err);
         return { success: false };
@@ -223,44 +223,39 @@ export const determineLikedFn = (item, currentUser) => {
 };
 /**
  * Marks the invoice status as a given value.
- * @param companyId - The ID of the company.
+ .
  * @param invoice - The invoice object.
  * @param val - The value to set the status to.
  * @returns A promise that resolves when the update is complete.
  */
-export const markInvStatusAsFn = async (companyId, invoice, val) => {
+export const markInvStatusAsFn = async (invoice, val) => {
     const vals = {
         _id: invoice._id,
         status: val
     };
-    const invRelated = makeInvoiceRelated(invoice);
-    invRelated.status = val;
+    const invoiceRelated = makeInvoiceRelated(invoice);
+    invoiceRelated.status = val;
     await invoice
-        .update(companyId, vals, invRelated);
+        .update({ invoice: vals, invoiceRelated });
 };
 /**
  * Deletes an invoice from the list of invoices.
- * @param companyId - The ID of the company.
- * @param id - The ID of the invoice to delete.
+ .
+ * @param _id - The ID of the invoice to delete.
  * @param invoices - The array of invoices.
  */
-export const deleteInvoiceFn = async (companyId, id, invoices) => {
-    const invoice = invoices
-        .find(val => val._id === id);
-    const credentials = {
-        id,
-        creationType: invoice.creationType,
-        stage: invoice.stage,
-        invoiceRelated: invoice.invoiceRelated
+export const deleteInvoiceFn = async (_id) => {
+    const val = {
+        _ids: [_id]
     };
     await Invoice
-        .deleteInvoices(companyId, [credentials]);
+        .removeMany(val);
 };
 /**
  * Toggles the selection of an item in an array of selections.
  * If the item is already selected, it will be deselected.
  * If the item is not selected, it will be selected.
- * @param id - The ID of the item to toggle.
+ * @param _id - The ID of the item to toggle.
  * @param selections - The array of selections.
  */
 export const toggleSelectionFn = (id, selections) => {
@@ -274,23 +269,22 @@ export const toggleSelectionFn = (id, selections) => {
 };
 /**
  * Deletes multiple invoices based on the provided selections.
- * @param companyId - The ID of the company.
+ .
  * @param invoices - An array of invoices.
  * @param selections - An array of invoice IDs to be deleted.
  * @returns A promise that resolves to an object indicating the success of the deletion.
  */
-export const deleteManyInvoicesFn = (companyId, invoices, selections) => {
+export const deleteManyInvoicesFn = (invoices, selections) => {
     const logger = new LoggerController();
-    const credentials = invoices
-        .filter(val => selections.includes(val._id))
-        .map(value => ({
-        id: value._id,
-        creationType: value.creationType,
-        invoiceRelated: value.invoiceRelated,
-        stage: value.stage
-    }));
+    const val = {
+        _ids: invoices
+            .filter(val => selections.includes(val._id))
+            .map(value => {
+            return value._id;
+        })
+    };
     return Invoice
-        .deleteInvoices(companyId, credentials)
+        .removeMany(val)
         .catch(err => {
         logger.error('InvoicesListComponent:deleteMany:: - err ', err);
         return { success: false };

@@ -3,10 +3,11 @@ import { vi } from 'vitest';
 
 const stockUniversalServer = vi.hoisted(async() => {
   const actual = await vi.importActual('@open-stock/stock-universal-server');
+
   return {
     // @ts-ignore
     ...actual,
-    requireAuth: vi.fn((req, res, next) => {
+    requireAuth: vi.fn((req: IcustomRequest<never, unknown>, res, next) => {
       req.user = {
         userId: 'string',
         permissions: {

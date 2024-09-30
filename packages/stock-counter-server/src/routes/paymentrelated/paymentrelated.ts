@@ -8,10 +8,11 @@ import {
   Ireceipt,
   Isuccess, Iuser,
   TinvoiceType,
-  TnotifType,
-  TpaymentRelatedType
+  TnotifType
 } from '@open-stock/stock-universal';
-import { addParentToLocals, makeUrId, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import {
+  addParentToLocals, generateUrId, stringifyMongooseErr, verifyObjectId, verifyObjectIds
+} from '@open-stock/stock-universal-server';
 import * as fs from 'fs';
 import path from 'path';
 import * as tracer from 'tracer';
@@ -56,14 +57,15 @@ const paymentRelatedLogger = tracer.colorConsole({
 /**
  * Updates the payment related information.
  * @param paymentRelated - The payment related object to update.
- * @param queryId - The query ID.
- * @returns A promise that resolves to an object containing the success status and the updated payment related ID, if successful.
+ * @param companyId - The query ID.
+ * @returns A promise that resolves to an object containing
+ * the success status and the updated payment related ID, if successful.
  */
 export const updatePaymentRelated = async(
   paymentRelated: Required<IpaymentRelated>,
-  queryId: string
-): Promise<Isuccess & { id?: string }> => {
-  paymentRelated.companyId = queryId;
+  companyId: string
+): Promise<Isuccess & { _id?: string }> => {
+  paymentRelated.companyId = companyId;
   const isValid = verifyObjectId(paymentRelated.paymentRelated);
 
   if (!isValid) {
@@ -112,7 +114,7 @@ export const updatePaymentRelated = async(
   if (errResponse) {
     return errResponse;
   } else {
-    return { success: true, status: 200, id: (saved as { _id: string })._id };
+    return { success: true, status: 200, _id: (saved as { _id: string })._id };
   }
 };
 
@@ -123,8 +125,9 @@ export const updatePaymentRelated = async(
  * @param invoiceRelated - The invoice-related data.
  * @param type - The type of entity ('payment' or 'order').
  * @param extraNotifDesc - Additional notification description.
- * @param queryId - The query ID.
- * @returns A promise that resolves to an object containing the success status and the ID of the created or updated entity.
+ * @param companyId - The query ID.
+ * @returns A promise that resolves to an
+ *  object containing the success status and the ID of the created or updated entity.
  */
 export const relegatePaymentRelatedCreation = async(
   res,
@@ -132,8 +135,8 @@ export const relegatePaymentRelatedCreation = async(
   invoiceRelated: Required<IinvoiceRelated>,
   type: 'payment' | 'order', // say payment or order
   extraNotifDesc: string,
-  queryId: string
-): Promise<Isuccess & {id?: string}> => {
+  companyId: string
+): Promise<Isuccess & {_id?: string}> => {
   const isValid = verifyObjectId(paymentRelated.paymentRelated);
   let found;
 
@@ -142,10 +145,7 @@ export const relegatePaymentRelatedCreation = async(
       .findOne({ _id: paymentRelated.paymentRelated }).lean().select({ urId: 1 });
   }
   if (!found || paymentRelated.creationType === 'solo') {
-    const count = await paymentRelatedMain
-      .find({ companyId: queryId }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
-
-    paymentRelated.urId = makeUrId(Number(count[0]?.urId || '0'));
+    paymentRelated.urId = await generateUrId(paymentRelatedMain);
 
     let errResponse: Isuccess;
     const newPayRelated = new paymentRelatedMain(paymentRelated);
@@ -191,7 +191,7 @@ export const relegatePaymentRelatedCreation = async(
       notifType = 'payments';
     }
 
-    const stn = await getCurrentNotificationSettings(queryId);
+    const stn = await getCurrentNotificationSettings(companyId);
 
     if (stn && stn[accessor]) {
       const actions: Iactionwithall[] = [{
@@ -215,23 +215,23 @@ export const relegatePaymentRelatedCreation = async(
 
       const capableUsers = await user.find({})
         .lean().select({ permissions: 1 });
-      const ids: string[] = [];
+      const _ids: string[] = [];
 
       if (type === 'order') {
         for (const cuser of capableUsers) {
           if (cuser.permissions.orders) {
-            ids.push(cuser._id);
+            _ids.push(cuser._id);
           }
         }
       } else {
         for (const cuser of capableUsers) {
           if (cuser.permissions.payments) {
-            ids.push(cuser._id);
+            _ids.push(cuser._id);
           }
         }
       }
 
-      const notifFilters = { id: { $in: ids } };
+      const notifFilters = { id: { $in: _ids } };
 
       await createNotifications({
         notification,
@@ -239,17 +239,17 @@ export const relegatePaymentRelatedCreation = async(
       });
     }
 
-    return { success: true, status: 200, id: (saved as {_id: string})._id };
+    return { success: true, status: 200, _id: (saved as {_id: string})._id };
 
     /** return {
       paymentRelated: saved._id as string
       // invoiceRelated: relatedId
     }; */
   } else {
-    await updatePaymentRelated(paymentRelated, queryId);
+    await updatePaymentRelated(paymentRelated, companyId);
 
     // await updateInvoiceRelated(invoiceRelated);
-    return { success: true, status: 200, id: (paymentRelated.paymentRelated as unknown as { _id: string})._id };
+    return { success: true, status: 200, _id: (paymentRelated.paymentRelated as unknown as { _id: string})._id };
 
     /** return {
       paymentRelated: paymentRelated.paymentRelated
@@ -272,8 +272,8 @@ export const makePaymentRelatedPdct = (
   // eslint-disable-next-line @typescript-eslint/no-shadow
   user: Iuser,
   meta
-) => ({
-  // eslint-disable-next-line @typescript-eslint/naming-convention
+): IpaymentRelated => ({
+
   _id: meta._id,
   // createdAt: meta.createdAt,
   updatedAt: meta.updatedAt,
@@ -299,30 +299,33 @@ export const makePaymentRelatedPdct = (
 
 /**
  * Deletes multiple payment related documents.
- * @param companyId - The ID of the company
-   * @param ids - An array of string IDs representing the documents to be deleted.
- * @param queryId - The ID of the company associated with the documents.
+
+   * @param _ids - An array of string IDs representing the documents to be deleted.
+ * @param companyId - The ID of the company associated with the documents.
  * @returns A Promise that resolves to an object indicating the success of the operation.
  */
-export const deleteManyPaymentRelated = async(ids: string[], queryId: string): Promise<Isuccess> => {
-  const isValid = verifyObjectIds([...ids, ...[queryId]]);
+export const deleteManyPaymentRelated = async(_ids: string[], companyId: string): Promise<Isuccess> => {
+  const isValid = verifyObjectIds([..._ids, ...[companyId]]);
 
   if (!isValid) {
     return { success: false, status: 402, err: 'unauthourised' };
   }
 
   /* const deletedMany = await paymentRelatedMain
-    .deleteMany({ _id: { $in: ids }, companyId: queryId }); */
+    .deleteMany({ _id: { $in: _ids }, companyId }); */
 
   const deletedMany = await paymentRelatedMain
-    .updateMany({ _id: { $in: ids }, companyId: queryId }, {
+    .updateMany({ _id: { $in: _ids }, companyId }, {
       $set: { isDeleted: true }
     });
 
   if (Boolean(deletedMany)) {
     return { success: Boolean(deletedMany), status: 200 };
   } else {
-    return { success: Boolean(deletedMany), status: 403, err: 'could not delete selected documents, try again in a while' };
+    return {
+      success: Boolean(deletedMany),
+      status: 403, err: 'could not delete selected documents, try again in a while'
+    };
   }
 };
 
@@ -330,20 +333,26 @@ export const deleteManyPaymentRelated = async(ids: string[], queryId: string): P
  * Deletes all pay orders linked to a payment or an order.
  * @param paymentRelated - The payment related to the pay orders.
  * @param invoiceRelated - The invoice related to the pay orders.
- * @param creationType - The type of payment related creation.
  * @param where - Specifies whether the pay orders are linked to a payment or an order.
- * @param queryId - The ID of the query.
+ * @param companyId - The ID of the query.
  */
 export const deleteAllPayOrderLinked = async(
   paymentRelated: string,
   invoiceRelated: string,
-  creationType: TpaymentRelatedType,
   where: 'payment' | 'order',
-  queryId: string
+  companyId: string
 ) => {
-  await deleteManyPaymentRelated([paymentRelated], queryId);
-  await deleteManyInvoiceRelated([invoiceRelated], queryId);
-  if (creationType !== 'solo') {
+  const invoiceRel = await invoiceRelatedLean.findOne({ _id: invoiceRelated })
+    .lean()
+    .select({ creationType: 1 });
+
+  if (!invoiceRel) {
+    return { success: false }; // TODO proper err msg
+  }
+
+  await deleteManyPaymentRelated([paymentRelated], companyId);
+  await deleteManyInvoiceRelated([invoiceRelated], companyId);
+  if (invoiceRel.creationType !== 'solo') {
     /* await paymentMain.deleteOne({ paymentRelated });
     await orderMain.deleteOne({ paymentRelated }); */
 
@@ -370,14 +379,13 @@ export const deleteAllPayOrderLinked = async(
 
 // .catch(err => {});
 
-/**
- * Makes a payment installation.
- * @param receipt - The receipt object.
- * @param relatedId - The related ID.
- * @param queryId - The query ID.
- * @returns A promise that resolves to an object indicating the success of the operation.
- */
-export const makePaymentInstall = async(res, receipt: Ireceipt, relatedId: string, queryId: string, creationType: TinvoiceType) => {
+export const makePaymentInstall = async(
+  res,
+  receipt: Ireceipt,
+  relatedId: string,
+  companyId: string,
+  creationType: TinvoiceType
+) => {
   // const pInstall = invoiceRelated.payments[0] as IpaymentInstall;
   if (receipt) {
     if (creationType !== 'solo') {
@@ -387,7 +395,7 @@ export const makePaymentInstall = async(res, receipt: Ireceipt, relatedId: strin
         return false;
       }
     }
-    receipt.companyId = queryId;
+    receipt.companyId = companyId;
     let errResponse: Isuccess;
 
     receipt.invoiceRelated = relatedId;
@@ -415,7 +423,7 @@ export const makePaymentInstall = async(res, receipt: Ireceipt, relatedId: strin
       return errResponse;
     }
 
-    await updateInvoiceRelatedPayments(savedPinstall as unknown as Ireceipt, queryId);
+    await updateInvoiceRelatedPayments(savedPinstall as unknown as Ireceipt);
 
     return { success: true };
   }
@@ -546,7 +554,9 @@ height: 100%;
           </div>
 
           <div class="last-divi">
-            <a href="https://eagleinfosolutions.com/support">Help</a> | <a href="https://eagleinfosolutions.com/support">Contacts</a>
+            <a href="https://eagleinfosolutions.com/support">
+            Help
+            </a> | <a href="https://eagleinfosolutions.com/support">Contacts</a>
           </div>
 
           <div class="compny-divi"> Eagle Info Solutions Inc, Kampala Uganda</div>
@@ -636,7 +646,9 @@ height: 100%;
           </div>
 
           <div class="last-divi">
-            <a href="https://eagleinfosolutions.com/support">Help</a> | <a href="https://eagleinfosolutions.com/support">Contacts</a>
+            <a href="https://eagleinfosolutions.com/support">
+            Help
+            </a> | <a href="https://eagleinfosolutions.com/support">Contacts</a>
           </div>
 
           <div class="compny-divi"> Eagle Info Solutions Inc, Kampala Uganda</div>

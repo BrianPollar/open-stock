@@ -54,10 +54,12 @@ const createItemOfferModel = async (dbUrl, dbOptions, main = true, lean = true) 
         await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.itemOfferMain = database_1.mainConnection.model('ItemOffer', itemOfferSchema);
+        exports.itemOfferMain = database_1.mainConnection
+            .model('ItemOffer', itemOfferSchema);
     }
     if (lean) {
-        exports.itemOfferLean = database_1.mainConnectionLean.model('ItemOffer', itemOfferSchema);
+        exports.itemOfferLean = database_1.mainConnectionLean
+            .model('ItemOffer', itemOfferSchema);
     }
 };
 exports.createItemOfferModel = createItemOfferModel;

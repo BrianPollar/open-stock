@@ -39,17 +39,7 @@ const pickupLocationRoutesLogger = tracer.colorConsole({
  * Express router for pickup location routes
  */
 exports.pickupLocationRoutes = express_1.default.Router();
-/**
- * Route to create a new pickup location
- * @name POST /create
- * @function
- * @memberof module:pickupLocationRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- * @returns {Promise<void>}
- */
-exports.pickupLocationRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('deliveryCitys', 'create'), async (req, res) => {
+exports.pickupLocationRoutes.post('/add', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('deliveryCitys', 'create'), async (req, res) => {
     const pickupLocation = req.body;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     pickupLocation.companyId = filter.companyId;
@@ -79,17 +69,7 @@ exports.pickupLocationRoutes.post('/create/:companyIdParam', stock_universal_ser
     }
     return res.status(200).send({ success: Boolean(saved) });
 });
-/**
- * Route to update an existing pickup location
- * @name PUT /update
- * @function
- * @memberof module:pickupLocationRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- * @returns {Promise<void>}
- */
-exports.pickupLocationRoutes.put('/update/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('deliveryCitys', 'update'), async (req, res) => {
+exports.pickupLocationRoutes.put('/update', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('deliveryCitys', 'update'), async (req, res) => {
     const updatedPickupLocation = req.body;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     updatedPickupLocation.companyId = filter.companyId;
@@ -130,38 +110,19 @@ exports.pickupLocationRoutes.put('/update/:companyIdParam', stock_universal_serv
     (0, stock_universal_server_1.addParentToLocals)(res, pickupLocation._id, pickuplocation_model_1.pickupLocationMain.collection.collectionName, 'makeTrackEdit');
     return res.status(200).send({ success: Boolean(updated) });
 });
-/**
- * Route to get a single pickup location by ID
- * @name GET /getone/:id
- * @function
- * @memberof module:pickupLocationRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- * @returns {Promise<void>}
- */
-exports.pickupLocationRoutes.get('/getone/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('deliveryCitys', 'read'), async (req, res) => {
-    const { id } = req.params;
+exports.pickupLocationRoutes.get('/one/:_id', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('deliveryCitys', 'read'), async (req, res) => {
+    const { _id } = req.params;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     const pickupLocation = await pickuplocation_model_1.pickupLocationLean
-        .findOne({ _id: id, ...filter })
+        .findOne({ _id, ...filter })
         .lean();
-    if (pickupLocation) {
-        (0, stock_universal_server_1.addParentToLocals)(res, pickupLocation._id, pickuplocation_model_1.pickupLocationMain.collection.collectionName, 'trackDataView');
+    if (!pickupLocation) {
+        return res.status(404).send({ success: false, err: 'not found' });
     }
+    (0, stock_universal_server_1.addParentToLocals)(res, pickupLocation._id, pickuplocation_model_1.pickupLocationMain.collection.collectionName, 'trackDataView');
     return res.status(200).send(pickupLocation);
 });
-/**
- * Route to get all pickup locations with pagination
- * @name GET /getall/:offset/:limit
- * @function
- * @memberof module:pickupLocationRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- * @returns {Promise<void>}
- */
-exports.pickupLocationRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('deliveryCitys', 'read'), async (req, res) => {
+exports.pickupLocationRoutes.get('/all/:offset/:limit', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('deliveryCitys', 'read'), async (req, res) => {
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     const all = await Promise.all([
@@ -181,83 +142,74 @@ exports.pickupLocationRoutes.get('/getall/:offset/:limit/:companyIdParam', stock
     }
     return res.status(200).send(response);
 });
-/**
- * Route to delete a single pickup location by ID
- * @name DELETE /deleteone/:id
- * @function
- * @memberof module:pickupLocationRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- * @returns {Promise<void>}
- */
-exports.pickupLocationRoutes.delete('/deleteone/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('deliveryCitys', 'delete'), async (req, res) => {
-    const { id } = req.params;
+exports.pickupLocationRoutes.delete('/delete/one/:_id', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('deliveryCitys', 'delete'), async (req, res) => {
+    const { _id } = req.params;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    // const deleted = await pickupLocationMain.findOneAndDelete({ _id: id, ...filter });
-    const deleted = await pickuplocation_model_1.pickupLocationMain.updateOne({ _id: id, ...filter }, { $set: { isDeleted: true } });
+    // const deleted = await pickupLocationMain.findOneAndDelete({ _id, ...filter });
+    const deleted = await pickuplocation_model_1.pickupLocationMain.updateOne({ _id, ...filter }, { $set: { isDeleted: true } });
     if (Boolean(deleted)) {
-        (0, stock_universal_server_1.addParentToLocals)(res, id, pickuplocation_model_1.pickupLocationMain.collection.collectionName, 'trackDataDelete');
+        (0, stock_universal_server_1.addParentToLocals)(res, _id, pickuplocation_model_1.pickupLocationMain.collection.collectionName, 'trackDataDelete');
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
-        return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
+        return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
-/**
- * Route to search for pickup locations by a search term and key
- * @name POST /search/:offset/:limit
- * @function
- * @memberof module:pickupLocationRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- * @returns {Promise<void>}
- */
-exports.pickupLocationRoutes.post('/search/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('deliveryCitys', 'read'), async (req, res) => {
-    const { searchterm, searchKey } = req.body;
+exports.pickupLocationRoutes.post('/filter', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('deliveryCitys', 'read'), async (req, res) => {
+    const { propSort } = req.body;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
-    const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
-    const all = await Promise.all([
-        pickuplocation_model_1.pickupLocationLean
-            .find({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
-            .skip(offset)
-            .limit(limit)
-            .lean(),
-        pickuplocation_model_1.pickupLocationLean.countDocuments({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
+    const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.body.offset, req.body.limit);
+    const aggCursor = pickuplocation_model_1.pickupLocationLean.aggregate([
+        {
+            $match: {
+                $and: [
+                    // { status: 'pending' },
+                    ...filter
+                ]
+            }
+        },
+        ...(0, stock_universal_server_1.lookupTrackEdit)(),
+        ...(0, stock_universal_server_1.lookupTrackView)(),
+        {
+            $facet: {
+                data: [...(0, stock_universal_server_1.lookupSort)(propSort), ...(0, stock_universal_server_1.lookupOffset)(offset), ...(0, stock_universal_server_1.lookupLimit)(limit)],
+                total: [{ $count: 'count' }]
+            }
+        },
+        {
+            $unwind: {
+                path: '$total',
+                preserveNullAndEmptyArrays: true
+            }
+        }
     ]);
+    const dataArr = [];
+    for await (const data of aggCursor) {
+        dataArr.push(data);
+    }
+    const all = dataArr[0]?.data || [];
+    const count = dataArr[0]?.total?.count || 0;
     const response = {
-        count: all[1],
-        data: all[0]
+        count,
+        data: all
     };
-    for (const val of all[0]) {
+    for (const val of all) {
         (0, stock_universal_server_1.addParentToLocals)(res, val._id, pickuplocation_model_1.pickupLocationMain.collection.collectionName, 'trackDataView');
     }
     return res.status(200).send(response);
 });
-/**
- * Route to delete multiple pickup locations by ID
- * @name PUT /deletemany
- * @function
- * @memberof module:pickupLocationRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- * @returns {Promise<void>}
- */
-exports.pickupLocationRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('deliveryCitys', 'delete'), async (req, res) => {
-    const { ids } = req.body;
+exports.pickupLocationRoutes.put('/delete/many', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('deliveryCitys', 'delete'), async (req, res) => {
+    const { _ids } = req.body;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     /* const deleted = await pickupLocationMain
-      .deleteMany({ _id: { $in: ids }, ...filter })
-      .catch(err => {
-        pickupLocationRoutesLogger.error('deletemany - err: ', err);
-  
-        return null;
-      }); */
+    .deleteMany({ _id: { $in: _ids }, ...filter })
+    .catch(err => {
+      pickupLocationRoutesLogger.error('deletemany - err: ', err);
+
+      return null;
+    }); */
     const deleted = await pickuplocation_model_1.pickupLocationMain
-        .updateMany({ _id: { $in: ids }, ...filter }, {
+        .updateMany({ _id: { $in: _ids }, ...filter }, {
         $set: { isDeleted: true }
     })
         .catch(err => {
@@ -265,13 +217,15 @@ exports.pickupLocationRoutes.put('/deletemany/:companyIdParam', stock_universal_
         return null;
     });
     if (Boolean(deleted)) {
-        for (const val of ids) {
+        for (const val of _ids) {
             (0, stock_universal_server_1.addParentToLocals)(res, val, pickuplocation_model_1.pickupLocationMain.collection.collectionName, 'trackDataDelete');
         }
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
-        return res.status(404).send({ success: Boolean(deleted), err: 'could not delete selected items, try again in a while' });
+        return res.status(404).send({
+            success: Boolean(deleted), err: 'could not delete selected items, try again in a while'
+        });
     }
 });
 //# sourceMappingURL=pickuplocation.routes.js.map

@@ -1,9 +1,12 @@
+import { IcustomRequest, IsubscriptionPackage } from '@open-stock/stock-universal';
 import { addParentToLocals, makePredomFilter, requireAuth } from '@open-stock/stock-universal-server';
 import express from 'express';
 import * as fs from 'fs';
 import path from 'path';
 import * as tracer from 'tracer';
-import { subscriptionPackageLean, subscriptionPackageMain } from '../../models/subscriptions/subscription-package.model';
+import {
+  subscriptionPackageLean, subscriptionPackageMain
+} from '../../models/subscriptions/subscription-package.model';
 import { requireSuperAdmin } from '../superadmin.routes';
 
 /** Logger for subscriptionPackage routes */
@@ -37,64 +40,76 @@ const subscriptionPackageRoutesLogger = tracer.colorConsole({
  */
 export const subscriptionPackageRoutes = express.Router();
 
-subscriptionPackageRoutes.post('/create', requireAuth, requireSuperAdmin, async(req, res) => {
-  subscriptionPackageRoutesLogger.info('Create subscription');
-  const subscriptionPackages = req.body;
-  const newPkg = new subscriptionPackageMain(subscriptionPackages);
-  let savedErr: string;
+subscriptionPackageRoutes.post(
+  '/create',
+  requireAuth,
+  requireSuperAdmin,
+  async(req: IcustomRequest<never, unknown>, res) => {
+    subscriptionPackageRoutesLogger.info('Create subscription');
+    const subscriptionPackages = req.body;
+    const newPkg = new subscriptionPackageMain(subscriptionPackages);
+    let savedErr: string;
 
-  const saved = await newPkg.save().catch(err => {
-    subscriptionPackageRoutesLogger.error('save error', err);
-    savedErr = err;
+    const saved = await newPkg.save().catch(err => {
+      subscriptionPackageRoutesLogger.error('save error', err);
+      savedErr = err;
 
-    return err;
-  });
+      return err;
+    });
 
-  if (savedErr) {
-    return res.status(500).send({ success: false });
+    if (savedErr) {
+      return res.status(500).send({ success: false });
+    }
+
+    if (saved && saved._id) {
+      addParentToLocals(res, saved._id, subscriptionPackageMain.collection.collectionName, 'makeTrackEdit');
+    }
+
+
+    return res.status(200).send({ success: true, status: 200 });
   }
+);
 
-  if (saved && saved._id) {
-    addParentToLocals(res, saved._id, subscriptionPackageMain.collection.collectionName, 'makeTrackEdit');
+
+subscriptionPackageRoutes.put(
+  '/updateone',
+  requireAuth,
+  requireSuperAdmin,
+  async(req: IcustomRequest<never, IsubscriptionPackage>, res) => {
+    subscriptionPackageRoutesLogger.info('Update subscription');
+    const subscriptionPackage = req.body;
+    const subPackage = await subscriptionPackageMain
+      .findOne({ _id: subscriptionPackage._id })
+      .lean();
+
+    let savedErr: string;
+
+    await subscriptionPackageMain.updateOne({
+      _id: subscriptionPackage._id
+    }, {
+      name: subscriptionPackage.name || subPackage.name,
+      ammount: subscriptionPackage.ammount || subPackage.ammount,
+      duration: subscriptionPackage.duration || subPackage.duration,
+      active: subscriptionPackage.active || subPackage.active,
+      features: subscriptionPackage.features || subPackage.features
+    }).catch(err => {
+      subscriptionPackageRoutesLogger.error('save error', err);
+      savedErr = err;
+
+      return null;
+    });
+    if (savedErr) {
+      return res.status(500).send({ success: false });
+    }
+
+    addParentToLocals(res, subscriptionPackage._id, subscriptionPackageMain.collection.collectionName, 'makeTrackEdit');
+
+    return res.status(200).send({ success: true, status: 200 });
   }
+);
 
-
-  return res.status(200).send({ success: true, status: 200 });
-});
-
-
-subscriptionPackageRoutes.put('/updateone', requireAuth, requireSuperAdmin, async(req, res) => {
-  const subscriptionPackage = req.body;
-  const subPackage = await subscriptionPackageMain
-    .findOne({ _id: subscriptionPackage._id })
-    .lean();
-
-  let savedErr: string;
-
-  await subscriptionPackageMain.updateOne({
-    _id: subscriptionPackage._id
-  }, {
-    name: subscriptionPackage.name || subPackage.name,
-    ammount: subscriptionPackage.ammount || subPackage.ammount,
-    duration: subscriptionPackage.duration || subPackage.duration,
-    active: subscriptionPackage.active || subPackage.active,
-    features: subscriptionPackage.features || subPackage.features
-  }).catch(err => {
-    subscriptionPackageRoutesLogger.error('save error', err);
-    savedErr = err;
-
-    return null;
-  });
-  if (savedErr) {
-    return res.status(500).send({ success: false });
-  }
-
-  addParentToLocals(res, subscriptionPackage._id, subscriptionPackageMain.collection.collectionName, 'makeTrackEdit');
-
-  return res.status(200).send({ success: true, status: 200 });
-});
-
-subscriptionPackageRoutes.get('/getall', async(req, res) => {
+subscriptionPackageRoutes.get('/all', async(req: IcustomRequest<never, null>, res) => {
+  subscriptionPackageRoutesLogger.info('Get all subscription');
   const subscriptionPackages = await subscriptionPackageLean
     .find({ ...makePredomFilter(req) })
     .lean();
@@ -106,17 +121,17 @@ subscriptionPackageRoutes.get('/getall', async(req, res) => {
   return res.status(200).send(subscriptionPackages);
 });
 
-subscriptionPackageRoutes.put('/deleteone/:id', requireAuth, async(req, res) => {
-  const { id } = req.params;
-  // const deleted = await subscriptionPackageMain.findOneAndDelete({ _id: id });
-  const deleted = await subscriptionPackageMain.updateOne({ _id: id }, { $set: { isDeleted: true } });
+subscriptionPackageRoutes.put('/delete/one/:_id', requireAuth, async(req: IcustomRequest<never, unknown>, res) => {
+  const { _id } = req.params;
+  // const deleted = await subscriptionPackageMain.findOneAndDelete({ _id });
+  const deleted = await subscriptionPackageMain.updateOne({ _id }, { $set: { isDeleted: true } });
 
   if (Boolean(deleted)) {
-    addParentToLocals(res, id, subscriptionPackageMain.collection.collectionName, 'trackDataDelete');
+    addParentToLocals(res, _id, subscriptionPackageMain.collection.collectionName, 'trackDataDelete');
 
     return res.status(200).send({ success: Boolean(deleted) });
   } else {
-    return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
+    return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
   }
 });
 

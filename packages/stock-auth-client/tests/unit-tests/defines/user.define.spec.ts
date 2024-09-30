@@ -84,7 +84,7 @@ describe('User', () => {
 
   it('#deleteUsers static should delete many users', async() => {
     const lSpy = vi.spyOn(StockAuthClient.ehttp, 'makePut').mockImplementation(() => of({ success: true }));
-    const deleted = await User.deleteUsers(companyId, ['ids'], []);
+    const deleted = await User.deleteUsers(companyId, ['_ids'], []);
 
     expect(typeof deleted).toBe('object');
     // expect(deleted).toHaveProperty('success');

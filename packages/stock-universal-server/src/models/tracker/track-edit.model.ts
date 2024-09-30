@@ -56,10 +56,12 @@ export const createTrackEditModel = async(dbUrl: string, dbOptions?: ConnectOpti
   }
 
   if (main) {
-    trackEditMain = mainConnection.model('TrackEdit', trackEditSchema) as Model<TtrackEdit>;
+    trackEditMain = mainConnection
+      .model('TrackEdit', trackEditSchema) as Model<TtrackEdit>;
   }
 
   if (lean) {
-    trackEditLean = mainConnectionLean.model('TrackEdit', trackEditSchema) as Model<TtrackEdit>;
+    trackEditLean = mainConnectionLean
+      .model('TrackEdit', trackEditSchema) as Model<TtrackEdit>;
   }
 };

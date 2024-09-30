@@ -53,3 +53,13 @@ export interface IinventoryMeta extends IcurrencyProp {
     quantity: number;
     cost: number;
 }
+export interface IitemDecoy {
+    urId: string;
+    companyId: string;
+    items: Iitem[];
+}
+export interface IitemOffer {
+    urId: string;
+    companyId: string;
+    items: Iitem[];
+}

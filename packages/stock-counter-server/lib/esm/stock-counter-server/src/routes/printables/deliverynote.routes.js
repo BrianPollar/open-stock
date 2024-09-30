@@ -1,7 +1,8 @@
 import { populateTrackEdit, populateTrackView, requireActiveCompany, requireCanUseFeature, requireUpdateSubscriptionRecord } from '@open-stock/stock-auth-server';
-import { addParentToLocals, makeCompanyBasedQuery, makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr } from '@open-stock/stock-universal-server';
+import { addParentToLocals, constructFiltersFromBody, generateUrId, lookupSubFieldInvoiceRelatedFilter, makeCompanyBasedQuery, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr } from '@open-stock/stock-universal-server';
 import express from 'express';
 import * as fs from 'fs';
+import { Promise } from 'mongoose';
 import path from 'path';
 import * as tracer from 'tracer';
 import { deliveryNoteLean, deliveryNoteMain } from '../../models/printables/deliverynote.model';
@@ -35,33 +36,18 @@ const deliveryNoteRoutesLogger = tracer.colorConsole({
  * Express router for delivery note routes.
  */
 export const deliveryNoteRoutes = express.Router();
-/**
- * Route to create a delivery note
- * @name POST /create
- * @function
- * @memberof module:deliveryNoteRoutes
- * @inner
- * @param {Object} req - Express request object
- * @param {Object} req.body - Request body containing delivery note and invoice related data
- * @param {Object} req.body.deliveryNote - Delivery note data
- * @param {Object} req.body.invoiceRelated - Invoice related data
- * @param {Object} res - Express response object
- * @returns {Object} Success status and saved delivery note data
- */
-deliveryNoteRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('quotation'), roleAuthorisation('deliveryNotes', 'create'), async (req, res, next) => {
+deliveryNoteRoutes.post('/add', requireAuth, requireActiveCompany, requireCanUseFeature('quotation'), roleAuthorisation('deliveryNotes', 'create'), async (req, res, next) => {
     const { deliveryNote, invoiceRelated } = req.body;
     const { filter } = makeCompanyBasedQuery(req);
     deliveryNote.companyId = filter.companyId;
     invoiceRelated.companyId = filter.companyId;
-    const count = await deliveryNoteMain
-        .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
-    deliveryNote.urId = makeUrId(Number(count[0]?.urId || '0'));
+    deliveryNote.urId = await generateUrId(deliveryNoteMain);
     const extraNotifDesc = 'Newly generated delivery note';
     const invoiceRelatedRes = await relegateInvRelatedCreation(res, invoiceRelated, filter.companyId, extraNotifDesc);
     if (!invoiceRelatedRes.success) {
         return res.status(invoiceRelatedRes.status).send(invoiceRelatedRes);
     }
-    deliveryNote.invoiceRelated = invoiceRelatedRes.id;
+    deliveryNote.invoiceRelated = invoiceRelatedRes._id;
     const newDeliveryNote = new deliveryNoteMain(deliveryNote);
     let errResponse;
     const saved = await newDeliveryNote.save()
@@ -86,51 +72,28 @@ deliveryNoteRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCom
     if (saved && saved._id) {
         addParentToLocals(res, saved._id, deliveryNoteLean.collection.collectionName, 'makeTrackEdit');
     }
-    await updateInvoiceRelated(res, invoiceRelated, filter.companyId);
+    await updateInvoiceRelated(res, invoiceRelated);
     return next();
 }, requireUpdateSubscriptionRecord('quotation'));
-/**
- * Route to get a delivery note by UR ID
- * @name GET /getone/:urId
- * @function
- * @memberof module:deliveryNoteRoutes
- * @inner
- * @param {Object} req - Express request object
- * @param {string} req.params.urId - UR ID of the delivery note to retrieve
- * @param {Object} res - Express response object
- * @returns {Object} Delivery note data with related invoice data
- */
-deliveryNoteRoutes.get('/getone/:urId/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('deliveryNotes', 'read'), async (req, res) => {
+deliveryNoteRoutes.get('/one/:urId', requireAuth, requireActiveCompany, roleAuthorisation('deliveryNotes', 'read'), async (req, res) => {
     const { urId } = req.params;
     const { filter } = makeCompanyBasedQuery(req);
     const deliveryNote = await deliveryNoteLean
         .findOne({ urId, ...filter })
         .lean()
         .populate([populateInvoiceRelated(), populateTrackEdit(), populateTrackView()]);
-    let returned;
-    if (deliveryNote) {
-        returned = makeInvoiceRelatedPdct(deliveryNote.invoiceRelated, deliveryNote.invoiceRelated
-            .billingUserId, deliveryNote.createdAt, {
-            _id: deliveryNote._id,
-            urId: deliveryNote.urId
-        });
-        addParentToLocals(res, deliveryNote._id, deliveryNoteLean.collection.collectionName, 'trackDataView');
+    if (!deliveryNote || !deliveryNote.invoiceRelated) {
+        return res.status(404).send({ success: false, err: 'not found' });
     }
+    const returned = makeInvoiceRelatedPdct(deliveryNote.invoiceRelated, deliveryNote.invoiceRelated
+        .billingUserId, deliveryNote.createdAt, {
+        _id: deliveryNote._id,
+        urId: deliveryNote.urId
+    });
+    addParentToLocals(res, deliveryNote._id, deliveryNoteLean.collection.collectionName, 'trackDataView');
     return res.status(200).send(returned);
 });
-/**
- * Route to get all delivery notes with related invoice data
- * @name GET /getall/:offset/:limit
- * @function
- * @memberof module:deliveryNoteRoutes
- * @inner
- * @param {Object} req - Express request object
- * @param {string} req.params.offset - Offset for pagination
- * @param {string} req.params.limit - Limit for pagination
- * @param {Object} res - Express response object
- * @returns {Array} Array of delivery note data with related invoice data
- */
-deliveryNoteRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('deliveryNotes', 'read'), async (req, res) => {
+deliveryNoteRoutes.get('/all/:offset/:limit', requireAuth, requireActiveCompany, roleAuthorisation('deliveryNotes', 'read'), async (req, res) => {
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     const { filter } = makeCompanyBasedQuery(req);
     const all = await Promise.all([
@@ -143,6 +106,7 @@ deliveryNoteRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, re
         deliveryNoteLean.countDocuments(filter)
     ]);
     const returned = all[0]
+        .filter(val => val && val.invoiceRelated)
         .map(val => makeInvoiceRelatedPdct(val.invoiceRelated, val.invoiceRelated
         .billingUserId, (val).createdAt, {
         _id: val._id,
@@ -157,87 +121,62 @@ deliveryNoteRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, re
     }
     return res.status(200).send(response);
 });
-/**
- * Route to delete a delivery note and its related invoice data
- * @name PUT /deleteone
- * @function
- * @memberof module:deliveryNoteRoutes
- * @inner
- * @param {Object} req - Express request object
- * @param {string} req.body.id - ID of the delivery note to delete
- * @param {string} req.body.invoiceRelated - ID of the related invoice data to delete
- * @param {string} req.body.creationType - Type of creation for the related invoice data
- * @param {string} req.body.stage - Stage of the related invoice data
- * @param {Object} res - Express response object
- * @returns {Object} Success status of the deletion operation
- */
-deliveryNoteRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('deliveryNotes', 'delete'), async (req, res) => {
-    const { id, invoiceRelated, creationType, stage } = req.body;
+deliveryNoteRoutes.put('/delete/one', requireAuth, requireActiveCompany, roleAuthorisation('deliveryNotes', 'delete'), async (req, res) => {
+    const { _id } = req.body;
     const { filter } = makeCompanyBasedQuery(req);
-    const deleted = await deleteAllLinked(invoiceRelated, creationType, stage, 'deliverynote', filter.companyId);
+    const found = await deliveryNoteLean.findOne({ _id }).lean();
+    if (!found) {
+        return res.status(404).send({ success: false, err: 'not found' });
+    }
+    const deleted = await deleteAllLinked(found.invoiceRelated, 'deliverynote', filter.companyId);
     if (Boolean(deleted)) {
-        addParentToLocals(res, id, deliveryNoteLean.collection.collectionName, 'trackDataDelete');
+        addParentToLocals(res, _id, deliveryNoteLean.collection.collectionName, 'trackDataDelete');
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
-        return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
+        return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
-/**
- * Route to search for delivery notes by search term and key
- * @name POST /search/:offset/:limit
- * @function
- * @memberof module:deliveryNoteRoutes
- * @inner
- * @param {Object} req - Express request object
- * @param {string} req.params.limit - Limit for pagination
- * @param {string} req.params.offset - Offset for pagination
- * @param {Object} req.body - Request body containing search term and key
- * @param {string} req.body.searchterm - Search term
- * @param {string} req.body.searchKey - Search key
- * @param {Object} res - Express response object
- * @returns {Array} Array of delivery note data with related invoice data
- */
-deliveryNoteRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('deliveryNotes', 'read'), async (req, res) => {
-    const { searchterm, searchKey } = req.body;
-    const { filter } = makeCompanyBasedQuery(req);
-    const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
-    const all = await Promise.all([
-        deliveryNoteLean
-            .find({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
-            .skip(offset)
-            .limit(limit)
-            .lean()
-            .populate([populateInvoiceRelated(), populateTrackEdit(), populateTrackView()]),
-        deliveryNoteLean.countDocuments({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
+deliveryNoteRoutes.post('/filter', requireAuth, requireActiveCompany, roleAuthorisation('deliveryNotes', 'read'), async (req, res) => {
+    const { propSort } = req.body;
+    const { offset, limit } = offsetLimitRelegator(req.body.offset, req.body.limit);
+    const aggCursor = deliveryNoteLean
+        .aggregate([
+        ...lookupSubFieldInvoiceRelatedFilter(constructFiltersFromBody(req), propSort, offset, limit)
     ]);
-    const returned = all[0]
+    const dataArr = [];
+    for await (const data of aggCursor) {
+        dataArr.push(data);
+    }
+    const all = dataArr[0]?.data || [];
+    const count = dataArr[0]?.total?.count || 0;
+    const returned = all
+        .filter(val => val && val.invoiceRelated)
         .map(val => makeInvoiceRelatedPdct(val.invoiceRelated, val.invoiceRelated
         .billingUserId));
     const response = {
-        count: all[1],
+        count,
         data: returned
     };
-    for (const val of all[0]) {
+    for (const val of all) {
         addParentToLocals(res, val._id, deliveryNoteLean.collection.collectionName, 'trackDataView');
     }
     return res.status(200).send(response);
 });
-deliveryNoteRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('deliveryNotes', 'delete'), async (req, res) => {
-    const { credentials } = req.body;
+deliveryNoteRoutes.put('/delete/many', requireAuth, requireActiveCompany, roleAuthorisation('deliveryNotes', 'delete'), async (req, res) => {
+    const { _ids } = req.body;
     const { filter } = makeCompanyBasedQuery(req);
-    /** const ids = credentials
-      .map(val => val.id);
-    await deliveryNoteMain
-      .deleteMany({ _id: { $in: ids } });**/
-    const promises = credentials
-        .map(async (val) => {
-        await deleteAllLinked(val.invoiceRelated, val.creationType, val.stage, 'deliverynote', filter.companyId);
-        return new Promise(resolve => resolve(true));
+    const promises = _ids
+        .map(async (_id) => {
+        const found = await deliveryNoteLean.findOne({ _id }).lean();
+        if (found) {
+            await deleteAllLinked(found.invoiceRelated, 'deliverynote', filter.companyId);
+        }
+        return new Promise(resolve => resolve(found._id));
     });
-    await Promise.all(promises);
-    for (const val of credentials) {
-        addParentToLocals(res, val.id, deliveryNoteLean.collection.collectionName, 'trackDataDelete');
+    const filterdExist = await Promise.all(promises);
+    for (const val of filterdExist) {
+        addParentToLocals(res, val, deliveryNoteLean.collection.collectionName, 'trackDataDelete');
     }
     return res.status(200).send({ success: true });
 });

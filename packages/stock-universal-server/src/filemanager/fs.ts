@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/dot-notation */
 /* eslint-disable @typescript-eslint/prefer-for-of */
 import { Config, removeBackground } from '@imgly/background-removal-node';
-import { Icustomrequest, IfileMeta } from '@open-stock/stock-universal';
+import { IcustomRequest, IfileMeta } from '@open-stock/stock-universal';
+import { NextFunction, Response } from 'express';
 import * as fs from 'fs';
 import multer from 'multer';
 import * as path from 'path';
@@ -42,9 +43,9 @@ const fsControllerLogger = tracer.colorConsole({
  * @param {Function} next - The next middleware function.
  */
 export const uploadFiles = (
-  req,
-  res,
-  next
+  req: IcustomRequest<never, unknown>,
+  res: Response,
+  next: NextFunction
 ) => {
   const makeupload = upload.fields(multerFileds);
 
@@ -71,19 +72,19 @@ export const uploadFiles = (
  * @param next - The next middleware function.
  */
 export const appendBody = (
-  req,
-  res,
-  next
+  req: IcustomRequest<never, {data: string}>,
+  res: Response,
+  next: NextFunction
 ) => {
-  if (!(req as IMulterRequest).files) {
+  if (!req.files) {
     return res.status(404).send({ success: false });
   }
-  const { companyId } = (req as Icustomrequest).user;
-  const { companyIdParam } = req.params;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const videoDirectory = path.join(stockUniversalConfig.envCfig.videoDirectory + '/' + queryId + '/');
-  const photoDirectory = path.join(stockUniversalConfig.envCfig.photoDirectory + '/' + queryId + '/');
-  const { userId } = (req as Icustomrequest).user;
+  const { companyId } = req.user;
+
+
+  const videoDirectory = path.join(stockUniversalConfig.envCfig.videoDirectory + '/' + companyId + '/');
+  const photoDirectory = path.join(stockUniversalConfig.envCfig.photoDirectory + '/' + companyId + '/');
+  const { userId } = req.user;
   const parsed = JSON.parse(req.body.data);
   const newPhotos: IfileMeta[] = [];
   const newVideos: IfileMeta[] = [];
@@ -175,9 +176,9 @@ export const appendBody = (
  * @param next - The next middleware function.
  */
 export const saveMetaToDb = async(
-  req,
-  res,
-  next
+  req: IcustomRequest<never, {newPhotos: IfileMeta[] | string[]; thumbnail: IfileMeta}>,
+  res: Response,
+  next: NextFunction
 ) => {
   const parsed = req.body;
 
@@ -185,7 +186,7 @@ export const saveMetaToDb = async(
     return next();
   }
   if (parsed.newPhotos) {
-    const promises = parsed.newPhotos
+    const promises = (parsed.newPhotos as IfileMeta[])
       // eslint-disable-next-line @typescript-eslint/no-misused-promises
       .map((value: IfileMeta) => new Promise(async(resolve) => {
         const newFileMeta = new fileMeta(value);
@@ -204,7 +205,7 @@ export const saveMetaToDb = async(
         resolve(newSaved);
       }));
 
-    parsed.newPhotos = await Promise.all(promises);
+    parsed.newPhotos = await Promise.all(promises) as IfileMeta[];
   }
 
   /* if (parsed.profilePic) {
@@ -255,11 +256,11 @@ export const saveMetaToDb = async(
   }
 
   if (parsed.newPhotos) {
-    const mappedParsedFiles = parsed.newPhotos.map((value: IfileMeta) => value._id.toString());
+    const mappedParsedFiles = (parsed.newPhotos as IfileMeta[]).map((value: IfileMeta) => value._id.toString());
 
     parsed.newPhotos = mappedParsedFiles;
   }
-  req.body = parsed; // newPhotos are strings of ids
+  req.body = parsed; // newPhotos are strings of _ids
 
   return next();
 };
@@ -271,9 +272,9 @@ export const saveMetaToDb = async(
  * @param next - The next middleware function.
  */
 export const updateFiles = (
-  req,
-  res,
-  next
+  req: IcustomRequest<never, unknown>,
+  res: Response,
+  next: NextFunction
 ) => {
   const makeupload = upload.fields(multerFileds);
 
@@ -298,14 +299,14 @@ export const deleteAllFiles = async(filesWithDir: IfileMeta[], directlyRemove = 
   if (filesWithDir && !filesWithDir.length) {
     // return res.status(401).send({ error: 'unauthorised' }); // TODO better catch
   }
-  const ids = filesWithDir.map((value/** : Ifilewithdir */) => value._id);
+  const _ids = filesWithDir.map((value/** : Ifilewithdir */) => value._id);
 
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  // await fileMeta.deleteMany({ _id: { $in: ids } });
+
+  // await fileMeta.deleteMany({ _id: { $in: _ids } });
   if (!directlyRemove) {
-    await fileMeta.updateMany({ _id: { $in: ids } }, { $set: { isDeleted: true } });
+    await fileMeta.updateMany({ _id: { $in: _ids } }, { $set: { isDeleted: true } });
   } else {
-    await fileMeta.deleteMany({ _id: { $in: ids } });
+    await fileMeta.deleteMany({ _id: { $in: _ids } });
   }
 
   if (filesWithDir && filesWithDir.length && directlyRemove) {
@@ -344,9 +345,9 @@ export const deleteAllFiles = async(filesWithDir: IfileMeta[], directlyRemove = 
  */
 export const deleteFiles = (directlyRemove = false) => {
   return async(
-    req,
-    res,
-    next
+    req: IcustomRequest<never, { filesWithDir: IfileMeta[]}>,
+    res: Response,
+    next: NextFunction
   ) => {
     const { filesWithDir } = req.body;
 
@@ -363,8 +364,8 @@ export const deleteFiles = (directlyRemove = false) => {
  * @returns A download of the specified file.
  */
 export const getOneFile = (
-  req,
-  res
+  req: IcustomRequest<{ filename: string}, unknown>,
+  res: Response
 ) => {
   const { filename } = req.params;
 
@@ -380,7 +381,7 @@ export const getOneFile = (
  * @param req - The request object.
  * @param res - The response object.
  */
-export const returnLazyFn = (req, res) => res.status(200).send({ success: true });
+export const returnLazyFn = (req: IcustomRequest<never, unknown>, res) => res.status(200).send({ success: true });
 
 
 export const removeBg = (imageSrc: string) => {

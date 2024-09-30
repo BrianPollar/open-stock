@@ -132,6 +132,5 @@ tslib_1.__exportStar(require("./routes/payment.routes"), exports);
 tslib_1.__exportStar(require("./routes/promo.routes"), exports);
 tslib_1.__exportStar(require("./routes/review.routes"), exports);
 tslib_1.__exportStar(require("./stock-counter-server"), exports);
-tslib_1.__exportStar(require("./routes/user-related/locluser.routes"), exports);
 tslib_1.__exportStar(require("./utils/query"), exports);
 //# sourceMappingURL=index.js.map

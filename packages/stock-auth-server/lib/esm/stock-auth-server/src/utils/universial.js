@@ -55,7 +55,7 @@ export const generateToken = (authConfig, expiryDate, jwtSecret
  * Sets the user information.
  * @param userId - The ID of the user.
  * @param permissions - The user's permissions.
- * @param companyId - The ID of the company.
+ .
  * @param companyPermissions - The company's permissions.
  * @returns The user information.
  */
@@ -82,9 +82,9 @@ export const makeUserReturnObject = async (foundUser) => {
             }]
     })
         .lean();
-    if (company && company.owner.photos[0]) {
-        company.profilePic = company.owner.photos[0];
-    }
+    /* if (company && (company.owner as any).photos[0]) {
+      company.profilePic = (company.owner as any).photos[0];
+    } */
     universialControllerLogger.debug('found company: ', company);
     let permissions;
     if (company && company.owner === foundUser._id.toString()) {
@@ -95,7 +95,7 @@ export const makeUserReturnObject = async (foundUser) => {
     else {
         permissions = foundUser.permissions || {};
     }
-    const userInfo = setUserInfo(foundUser._id.toString(), permissions, foundUser.companyId, { active: !company.blocked });
+    const userInfo = setUserInfo(foundUser._id.toString(), permissions, foundUser.companyId, { active: company ? !company.blocked : true });
     const token = generateToken(userInfo, '1d', stockUniversalConfig.authSecrets.jwtSecret);
     let activeSubscription;
     const now = new Date();
@@ -124,15 +124,15 @@ export const makeUserReturnObject = async (foundUser) => {
  * @param newPassword - The new password to set (only applicable for 'password' case).
  * @returns A promise that resolves to an authentication response object.
  */
-export const validatePhone = async (foundUser, verifycode, newPassword) => {
+export const validatePhone = (foundUser, verifycode, newPassword) => {
     if (!foundUser) {
-        return {
+        return Promise.resolve({
             status: 404,
             response: {
                 success: false,
                 err: 'user account not found'
             }
-        };
+        });
     }
     return new Promise(resolve => {
         const postVerify = async function (err) {
@@ -255,8 +255,8 @@ export const validatePhone = async (foundUser, verifycode, newPassword) => {
  * @param newPassword - The new password (only applicable for 'password' case).
  * @returns A promise that resolves to an authentication response object.
  */
-export const validateEmail = async (foundUser, type, verifycode, newPassword) => {
-    universialControllerLogger.info('validateEmail - %type: ', type);
+export const validateEmail = async (foundUser, verificationMean, verifycode, newPassword) => {
+    universialControllerLogger.info('validateEmail - %type: ', verificationMean);
     let msg;
     if (!foundUser) {
         msg = 'try signup again, account not found';
@@ -270,7 +270,7 @@ export const validateEmail = async (foundUser, type, verifycode, newPassword) =>
     }
     const token = await emailtoken.findOne({ token: verifycode });
     if (!token) {
-        if (type === '_link') {
+        if (verificationMean === 'link') {
             msg = `the verification
 				link has already expired`;
         }
@@ -334,16 +334,14 @@ export const validateEmail = async (foundUser, type, verifycode, newPassword) =>
 /**
  * Sends a token to the user's phone for authentication.
  * @param foundUser - The user object.
- * @param enableValidationSMS - Flag indicating whether to enable SMS validation. Default is '1'.
+ * @param enableValidationSms - Flag indicating whether to enable SMS validation. Default is '1'.
  * @returns A promise that resolves to an authentication response object.
  */
-export const sendTokenPhone = (foundUser, 
-// eslint-disable-next-line @typescript-eslint/naming-convention
-enableValidationSMS = '1' // twilio enable sms validation
+export const sendTokenPhone = (foundUser, enableValidationSms = '1' // twilio enable sms validation
 ) => new Promise(resolve => {
     universialControllerLogger.info('sendTokenPhone');
     let response;
-    if (enableValidationSMS === '1') {
+    if (enableValidationSms === '1') {
         foundUser.sendAuthyToken(function (err) {
             if (err) {
                 universialControllerLogger.error('sendTokenPhone - err: ', err);
@@ -479,7 +477,9 @@ height: 100%;
           </div>
 
           <div class="last-divi">
-            <a href="https://eagleinfosolutions.com/support">Help</a> | <a href="https://eagleinfosolutions.com/support">Contacts</a>
+            <a href="https://eagleinfosolutions.com/support">
+            Help
+            </a> | <a href="https://eagleinfosolutions.com/support">Contacts</a>
           </div>
 
           <div class="compny-divi"> Eagle Info Solutions Inc, Kampala Uganda</div>
@@ -574,7 +574,9 @@ height: 100%;
           </div>
 
           <div class="last-divi">
-            <a href="https://eagleinfosolutions.com/support">Help</a> | <a href="https://eagleinfosolutions.com/support">Contacts</a>
+            <a href="https://eagleinfosolutions.com/support">
+            Help
+            </a> | <a href="https://eagleinfosolutions.com/support">Contacts</a>
           </div>
 
           <div class="compny-divi"> Eagle Info Solutions Inc, Kampala Uganda</div>

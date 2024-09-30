@@ -4,7 +4,8 @@ import {
 import { IcurrencyProp, IfileMeta } from './general.interface';
 import { IurId } from './inventory.interface';
 
-// This file imports the `TcombinedProductClass`, `TpriceCurrenncy`, `TitemColor`, and `TitemState` types from the `union.types` file.
+// This file imports the `TcombinedProductClass`, `TpriceCurrenncy`,
+// `TitemColor`, and `TitemState` types from the `union.types` file.
 // This file imports the `IurId` interface from the `inventory.interface` file.
 
 
@@ -142,3 +143,16 @@ extends IcurrencyProp {
 }
 
 // This interface defines the inventory information for an item.
+
+
+export interface IitemDecoy {
+  urId: string;
+  companyId: string;
+  items: Iitem[];
+}
+
+export interface IitemOffer {
+  urId: string;
+  companyId: string;
+  items: Iitem[];
+}

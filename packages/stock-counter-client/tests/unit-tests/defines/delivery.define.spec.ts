@@ -65,7 +65,7 @@ describe('DeliveryCity', () => {
 
   it('#deleteDeliveryCitys static should delete many DeliveryCitys', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makePut').mockImplementationOnce(() => of({ success: true }));
-    const deleted = await DeliveryCity.deleteDeliveryCitys(companyId, ['ids']);
+    const deleted = await DeliveryCity.deleteDeliveryCitys(companyId, ['_ids']);
 
     expect(typeof deleted).toEqual('object');
     expect(deleted).toHaveProperty('success');

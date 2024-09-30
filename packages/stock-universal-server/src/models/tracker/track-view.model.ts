@@ -52,10 +52,12 @@ export const createTrackViewModel = async(dbUrl: string, dbOptions?: ConnectOpti
   }
 
   if (main) {
-    trackViewMain = mainConnection.model('TrackView', trackViewSchema) as Model<TtrackView>;
+    trackViewMain = mainConnection
+      .model('TrackView', trackViewSchema) as Model<TtrackView>;
   }
 
   if (lean) {
-    trackViewLean = mainConnectionLean.model('TrackView', trackViewSchema) as Model<TtrackView>;
+    trackViewLean = mainConnectionLean
+      .model('TrackView', trackViewSchema) as Model<TtrackView>;
   }
 };

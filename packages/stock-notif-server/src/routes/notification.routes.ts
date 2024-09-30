@@ -4,8 +4,8 @@
  * - POST /create: creates a new notification.
  * - GET /getmynotifn: gets all notifications for the authenticated user that have not been viewed.
  * - GET /getmyavailnotifn: gets all available notifications for the authenticated user.
- * - GET /getone/:id: gets a single notification by id.
- * - DELETE /deleteone/:id: deletes a single notification by id.
+ * - GET /one/:_id: gets a single notification by id.
+ * - DELETE /delete/one/:_id: deletes a single notification by id.
  * - POST /subscription: creates or updates a subscription for the authenticated user.
  * - POST /updateviewed: updates the viewed status of a notification for the authenticated user.
  * - GET /unviewedlength: gets the count of unviewed notifications for the authenticated user.
@@ -20,10 +20,12 @@
  * @requires @open-stock/stock-universal-server
  */
 
-import { Icustomrequest, IdataArrayResponse, Isuccess } from '@open-stock/stock-universal';
-import { offsetLimitRelegator, requireAuth, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { IcustomRequest, IdataArrayResponse, Isuccess } from '@open-stock/stock-universal';
+import {
+  offsetLimitRelegator, requireAuth, stringifyMongooseErr, verifyObjectId, verifyObjectIds
+} from '@open-stock/stock-universal-server';
 import express from 'express';
-import { mainnotificationLean, mainnotificationMain } from '../models/mainnotification.model';
+import { IMainnotification, mainnotificationLean, mainnotificationMain } from '../models/mainnotification.model';
 import { notifSettingLean, notifSettingMain } from '../models/notifsetting.model';
 import { subscriptionLean, subscriptionMain } from '../models/subscriptions.model';
 import { createNotifStn, updateNotifnViewed } from '../utils/notifications';
@@ -33,209 +35,243 @@ import { createNotifStn, updateNotifnViewed } from '../utils/notifications';
  */
 export const notifnRoutes = express.Router();
 
-notifnRoutes.get('/getmynotifn/:offset/:limit/:companyIdParam', requireAuth, async(req, res) => {
-  const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
-  const { userId } = (req as unknown as Icustomrequest).user;
-  const { companyId } = (req as Icustomrequest).user;
-  const { companyIdParam } = req.params;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const isValid = verifyObjectId(queryId);
+notifnRoutes.get(
+  '/getmynotifn/:offset/:limit',
+  requireAuth,
+  async(req: IcustomRequest<{ offset: string; limit: string }, null>, res) => {
+    const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
+    const { userId } = req.user;
+    const { companyId } = req.user;
 
-  if (!isValid) {
-    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-  }
-  const all = await Promise.all([
-    mainnotificationLean
-      .find({ userId, active: true, viewed: { $nin: [userId] }, companyId: queryId })
-      .skip(offset)
-      .limit(limit)
-      .lean()
-      .sort({ createdAt: -1 }),
-    mainnotificationLean.countDocuments({ userId, active: true, viewed: { $nin: [userId] }, companyId: queryId })
-  ]);
-  const response: IdataArrayResponse = {
-    count: all[1],
-    data: all[0]
-  };
 
-  return res.status(200).send(response);
-});
+    const isValid = verifyObjectId(companyId);
 
-notifnRoutes.get('/getmyavailnotifn/:offset/:limit/:companyIdParam', requireAuth, async(req, res) => {
-  const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
-  const { companyId } = (req as Icustomrequest).user;
-  const { companyIdParam } = req.params;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const isValid = verifyObjectId(queryId);
-
-  if (!isValid) {
-    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-  }
-  const all = await Promise.all([
-    mainnotificationLean
-      .find({ active: true, companyId: queryId })
-      .skip(offset)
-      .limit(limit)
-      .lean()
-      .sort({ name: 'asc' }),
-    mainnotificationLean.countDocuments({ active: true, companyId: queryId })
-  ]);
-  const response: IdataArrayResponse = {
-    count: all[1],
-    data: all[0]
-  };
-
-  return res.status(200).send(response);
-});
-
-notifnRoutes.get('/getone/:id/:companyIdParam', requireAuth, async(req, res) => {
-  const { companyId } = (req as Icustomrequest).user;
-  const { companyIdParam } = req.params;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const { id } = req.params;
-  const isValid = verifyObjectIds([id, queryId]);
-
-  if (!isValid) {
-    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-  }
-  const notifs = await mainnotificationLean
-    .findOne({ _id: id, companyId: queryId })
-    .lean()
-    .sort({ name: 'asc' });
-
-  return res.status(200).send(notifs);
-});
-
-notifnRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, async(req, res) => {
-  const id = req.params.id;
-  const { companyId } = (req as Icustomrequest).user;
-  const { companyIdParam } = req.params;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const isValid = verifyObjectIds([id, queryId]);
-
-  if (!isValid) {
-    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-  }
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  // const deleted = await mainnotificationMain.findOneAndRemove({ _id: id, companyId: queryId });
-  const deleted = await mainnotificationMain.updateOne({ _id: id, companyId: queryId }, { $set: { isDeleted: true } });
-
-  if (Boolean(deleted)) {
-    return res.status(200).send({ success: Boolean(deleted) });
-  } else {
-    return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
-  }
-});
-
-notifnRoutes.post('/subscription/:companyIdParam', requireAuth, async(req, res) => {
-  const { companyId } = (req as Icustomrequest).user;
-  const { companyIdParam } = req.params;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const { userId, permissions } = (req as Icustomrequest).user;
-  const isValid = verifyObjectIds([queryId]);
-
-  if (!isValid) {
-    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-  }
-  const subscription = req.body;
-  let sub = await subscriptionLean
-    .findOne({ userId, companyId: queryId });
-
-  if (sub) {
-    sub.subscription = subscription.subscription;
-  } else {
-    const newSub = {
-      subscription,
-      userId,
-      orders: permissions.orders,
-      payments: permissions.payments,
-      users: permissions.users,
-      items: permissions.items,
-      faqs: permissions.faqs,
-      buyer: permissions.buyer
+    if (!isValid) {
+      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
+    const all = await Promise.all([
+      mainnotificationLean
+        .find({ userId, active: true, viewed: { $nin: [userId] } })
+        .skip(offset)
+        .limit(limit)
+        .lean()
+        .sort({ createdAt: -1 }),
+      mainnotificationLean.countDocuments({ userId, active: true, viewed: { $nin: [userId] } })
+    ]);
+    const response: IdataArrayResponse<IMainnotification> = {
+      count: all[1],
+      data: all[0]
     };
 
-    sub = new subscriptionMain(newSub);
+    return res.status(200).send(response);
   }
+);
 
-  let errResponse: Isuccess;
+notifnRoutes.get(
+  '/getmyavailnotifn/:offset/:limit',
+  requireAuth,
+  async(req: IcustomRequest<{ offset: string; limit: string }, null>, res) => {
+    const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
+    const { companyId } = req.user;
 
-  await sub.save().catch(err => {
-    errResponse = {
-      success: false,
-      status: 403
+
+    const isValid = verifyObjectId(companyId);
+
+    if (!isValid) {
+      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
+    const all = await Promise.all([
+      mainnotificationLean
+        .find({ active: true })
+        .skip(offset)
+        .limit(limit)
+        .lean()
+        .sort({ name: 'asc' }),
+      mainnotificationLean.countDocuments({ active: true })
+    ]);
+    const response: IdataArrayResponse<IMainnotification> = {
+      count: all[1],
+      data: all[0]
     };
-    if (err && err.errors) {
-      errResponse.err = stringifyMongooseErr(err.errors);
-    } else {
-      errResponse.err = `we are having problems connecting to our databases, 
-      try again in a while`;
+
+    return res.status(200).send(response);
+  }
+);
+
+notifnRoutes.get(
+  '/one/:_id',
+  requireAuth,
+  async(req: IcustomRequest<{ _id: string }, null>, res) => {
+    const { companyId } = req.user;
+
+
+    const { _id } = req.params;
+    const isValid = verifyObjectIds([_id, companyId]);
+
+    if (!isValid) {
+      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
+    const notifs = await mainnotificationLean
+      .findOne({ _id })
+      .lean()
+      .sort({ name: 'asc' });
+
+    if (!notifs) {
+      return res.status(404).send({ success: false, err: 'not found' });
     }
 
-    return err;
-  });
-
-  if (errResponse) {
-    return res.status(403).send(errResponse);
+    return res.status(200).send(notifs);
   }
+);
 
-  return res.status(200).send({ success: true });
-});
+notifnRoutes.delete(
+  '/delete/one/:_id',
+  requireAuth,
+  async(req: IcustomRequest<{ _id: string }, unknown>, res) => {
+    const _id = req.params._id;
+    const { companyId } = req.user;
 
-notifnRoutes.post('/updateviewed/:companyIdParam', requireAuth, async(req, res) => {
-  const user = (req as Icustomrequest).user;
-  const { companyId } = (req as Icustomrequest).user;
-  const { companyIdParam } = req.params;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const { id } = req.body;
-  const isValid = verifyObjectIds([id, queryId]);
 
-  if (!isValid) {
-    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    const isValid = verifyObjectIds([_id, companyId]);
+
+    if (!isValid) {
+      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
+
+    // const deleted = await mainnotificationMain.findOneAndRemove({ _id, });
+    const deleted = await mainnotificationMain
+      .updateOne({ _id }, { $set: { isDeleted: true } });
+
+    if (Boolean(deleted)) {
+      return res.status(200).send({ success: Boolean(deleted) });
+    } else {
+      return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
+    }
   }
-  await updateNotifnViewed(user, id);
+);
 
-  return res.status(200).send({ success: true });
-});
+notifnRoutes.post(
+  '/subscription',
+  requireAuth,
+  async(req: IcustomRequest<never, { subscription }>, res) => {
+    const { companyId } = req.user;
 
-notifnRoutes.get('/unviewedlength/:companyIdParam', requireAuth, async(req, res) => {
-  const { companyId } = (req as Icustomrequest).user;
-  const { companyIdParam } = req.params;
-  const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const isValid = verifyObjectId(queryId);
 
-  if (!isValid) {
-    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    const { userId, permissions } = req.user;
+    const isValid = verifyObjectIds([companyId]);
+
+    if (!isValid) {
+      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
+    const subscription = req.body;
+    let sub = await subscriptionLean
+      .findOne({ userId });
+
+    if (sub) {
+      sub.subscription = subscription.subscription;
+    } else {
+      const newSub = {
+        subscription,
+        userId,
+        orders: permissions.orders,
+        payments: permissions.payments,
+        users: permissions.users,
+        items: permissions.items,
+        faqs: permissions.faqs,
+        buyer: permissions.buyer
+      };
+
+      sub = new subscriptionMain(newSub);
+    }
+
+    let errResponse: Isuccess;
+
+    await sub.save().catch(err => {
+      errResponse = {
+        success: false,
+        status: 403
+      };
+      if (err && err.errors) {
+        errResponse.err = stringifyMongooseErr(err.errors);
+      } else {
+        errResponse.err = `we are having problems connecting to our databases, 
+      try again in a while`;
+      }
+
+      return err;
+    });
+
+    if (errResponse) {
+      return res.status(403).send(errResponse);
+    }
+
+    return res.status(200).send({ success: true });
   }
-  const { userId, permissions } = (req as Icustomrequest).user;
+);
 
-  let filter;
+notifnRoutes.post(
+  '/updateviewed',
+  requireAuth,
+  async(req: IcustomRequest<never, { _id: string}>, res) => {
+    const user = req.user;
+    const { companyId } = req.user;
 
-  if (permissions.users &&
+
+    const { _id } = req.body;
+    const isValid = verifyObjectIds([_id, companyId]);
+
+    if (!isValid) {
+      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
+    await updateNotifnViewed(user, _id);
+
+    return res.status(200).send({ success: true });
+  }
+);
+
+notifnRoutes.get(
+  '/unviewedlength',
+  requireAuth,
+  async(req: IcustomRequest<never, null>, res) => {
+    const { companyId } = req.user;
+
+
+    const isValid = verifyObjectId(companyId);
+
+    if (!isValid) {
+      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
+    const { userId, permissions } = req.user;
+
+    let filter;
+
+    if (permissions.users &&
     !permissions.orders &&
     !permissions.payments &&
     !permissions.items) {
-    filter = { userId };
-  } else {
-    filter = {
-      orders: permissions.orders,
-      payments: permissions.payments,
-      users: permissions.users,
-      items: permissions.items
-    };
+      filter = { userId };
+    } else {
+      filter = {
+        orders: permissions.orders,
+        payments: permissions.payments,
+        users: permissions.users,
+        items: permissions.items
+      };
+    }
+    const notifsCount = await mainnotificationLean
+      .find({ viewed: { $nin: [userId] }, ...filter })
+      .count();
+
+    return res.status(200).send({ count: notifsCount });
   }
-  const notifsCount = await mainnotificationLean
-    .find({ companyId: queryId, viewed: { $nin: [userId] }, ...filter })
-    .count();
+);
 
-  return res.status(200).send({ count: notifsCount });
-});
+notifnRoutes.put('/clearall', requireAuth, async(req: IcustomRequest<never, unknown>, res) => {
+  const { companyId } = req.user;
+  //
 
-notifnRoutes.put('/clearall/:companyIdParam', requireAuth, async(req, res) => {
-  const { companyId } = (req as Icustomrequest).user;
-  // const { companyIdParam } = req.params;
-  // const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-  const { userId } = (req as Icustomrequest).user;
+  //
+  const { userId } = req.user;
 
   const all = await mainnotificationLean.find({
     userId, active: true, companyId
@@ -275,26 +311,26 @@ notifnRoutes.put('/clearall/:companyIdParam', requireAuth, async(req, res) => {
 
 
 // settings
-notifnRoutes.post('/createstn/:companyIdParam', async(req, res) => {
+notifnRoutes.post('/createstn', async(req: IcustomRequest<never, { stn }>, res) => {
   const { stn } = req.body;
-  const { companyIdParam } = req.params;
+  const { companyId } = req.user;
 
-  stn.companyId = companyIdParam;
+  stn.companyId = companyId;
   const response = await createNotifStn(stn);
 
   return res.status(response.status).send({ success: response.success });
 });
 
-notifnRoutes.put('/updatestn', async(req, res) => {
+notifnRoutes.put('/updatestn', async(req: IcustomRequest<never, { stn }>, res) => {
   const { stn } = req.body;
-  const id = stn?._id;
-  const isValid = verifyObjectIds([id]);
+  const _id = stn?._id;
+  const isValid = verifyObjectIds([_id]);
 
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
 
-  const notifStn = await notifSettingMain.findById(id);
+  const notifStn = await notifSettingMain.findById(_id);
 
   if (!notifStn) {
     return res.status(404).send({ success: false });
@@ -330,10 +366,11 @@ notifnRoutes.put('/updatestn', async(req, res) => {
 });
 
 // settings
-notifnRoutes.post('/getstn', requireAuth, async(req, res) => {
-  const { companyId } = (req as Icustomrequest).user;
-  // const { companyIdParam } = req.params;
-  // const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
+notifnRoutes.post('/getstn', requireAuth, async(req: IcustomRequest<never, unknown>, res) => {
+  const { companyId } = req.user;
+  //
+
+  //
   const stns = await notifSettingLean
     .find({ companyId })
     .lean();

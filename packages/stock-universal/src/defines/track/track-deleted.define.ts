@@ -24,24 +24,25 @@ export class TrackDeleted
    * @returns An object containing the total count of trackDeleteds and an array of the trackDeleteds.
    */
   static async getAll(offset = 0, limit = 20) {
-    const observer$ = StockUniversal.ehttp.makeGet(`/track/gettrackdelete/${offset}/${limit}`);
-    const edits = await lastValueFrom(observer$) as IdataArrayResponse;
+    const observer$ = StockUniversal
+      .ehttp.makeGet<IdataArrayResponse<ItrackDeleted>>(`/track/gettrackdelete/${offset}/${limit}`);
+    const edits = await lastValueFrom(observer$);
 
     return {
       count: edits.count,
-      trackDeleteds: edits.data.map(val => new TrackDeleted(val as ItrackDeleted))
+      trackDeleteds: edits.data.map(val => new TrackDeleted(val))
     };
   }
 
   /**
    * Deletes a trackDeleted by id.
    *
-   * @param id - The id of the trackDeleted to delete.
+   * @param _id - The id of the trackDeleted to delete.
    * @returns A boolean indicating whether the trackDeleted was successfully deleted.
    */
-  static async deleteOne(id: string) {
-    const observer$ = StockUniversal.ehttp.makeDelete(`/track/deletetrackdelete/${id}`);
-    const deleted = await lastValueFrom(observer$) as Isuccess;
+  static async deleteOne(_id: string) {
+    const observer$ = StockUniversal.ehttp.makeDelete<Isuccess>(`/track/deletetrackdelete/${_id}`);
+    const deleted = await lastValueFrom(observer$);
 
     return deleted;
   }

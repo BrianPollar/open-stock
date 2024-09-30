@@ -1,5 +1,7 @@
 import { Ideliverycity } from '@open-stock/stock-universal';
-import { createExpireDocIndex, preUpdateDocExpire, withCompanySchemaObj, withCompanySelectObj } from '@open-stock/stock-universal-server';
+import {
+  createExpireDocIndex, preUpdateDocExpire, withCompanySchemaObj, withCompanySelectObj
+} from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
@@ -69,10 +71,12 @@ export const createDeliverycityModel = async(dbUrl: string, dbOptions?: ConnectO
   }
 
   if (main) {
-    deliverycityMain = mainConnection.model<Tdeliverycity>('Deliverycity', deliverycitySchema);
+    deliverycityMain = mainConnection
+      .model<Tdeliverycity>('Deliverycity', deliverycitySchema);
   }
 
   if (lean) {
-    deliverycityLean = mainConnectionLean.model<Tdeliverycity>('Deliverycity', deliverycitySchema);
+    deliverycityLean = mainConnectionLean
+      .model<Tdeliverycity>('Deliverycity', deliverycitySchema);
   }
 };

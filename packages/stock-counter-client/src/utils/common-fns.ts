@@ -1,5 +1,8 @@
 import { User } from '@open-stock/stock-auth-client';
-import { IdeleteCredentialsInvRel, Iinvoice, IinvoiceRelated, IpaymentRelated, ItrackEdit, ItrackView, LoggerController, TinvoiceStatus } from '@open-stock/stock-universal';
+import {
+  IdeleteMany, Iinvoice,
+  IinvoiceRelated, IpaymentRelated, ItrackEdit, ItrackView, LoggerController, TinvoiceStatus
+} from '@open-stock/stock-universal';
 import { DeliveryNote } from '../defines/deliverynote.define';
 import { Estimate } from '../defines/estimate.define';
 import { Faq } from '../defines/faq.define';
@@ -53,7 +56,7 @@ export const transformFaqToNameOrImage = (
 
 /**
  * Transforms an estimate ID from a number to a string format.
- * @param id - The estimate ID to transform.
+ * @param _id - The estimate ID to transform.
  * @returns The transformed estimate ID.
  */
 export const transformEstimateId = (id: number): string => {
@@ -80,7 +83,7 @@ export const transformEstimateId = (id: number): string => {
 
 /**
  * Transforms an invoice ID into a formatted string.
- * @param id - The invoice ID to transform.
+ * @param _id - The invoice ID to transform.
  * @returns The formatted invoice string.
  */
 export const transformInvoice = (id: number): string => {
@@ -108,7 +111,7 @@ export const transformInvoice = (id: number): string => {
 /**
  * Transforms the given ID based on the specified criteria.
  *
- * @param id - The ID to be transformed.
+ * @param _id - The ID to be transformed.
  * @param where - The criteria for the transformation.
  * @returns The transformed ID.
  */
@@ -165,7 +168,8 @@ export const makePaymentRelated = (data: Order | Payment): IpaymentRelated => {
  * @param data - The data object containing information about the invoice-related entity.
  * @returns An `IinvoiceRelated` object.
  */
-export const makeInvoiceRelated = (data: DeliveryNote | Estimate | Invoice | Receipt | Order | Payment): IinvoiceRelated => {
+export const makeInvoiceRelated = (data: DeliveryNote |
+  Estimate | Invoice | Receipt | Order | Payment): IinvoiceRelated => {
   const related = {
     trackEdit: data.trackEdit as unknown as ItrackEdit,
     trackView: data.trackView as unknown as ItrackView,
@@ -195,13 +199,12 @@ export const makeInvoiceRelated = (data: DeliveryNote | Estimate | Invoice | Rec
 
 /**
  * Function to like an item.
- * @param companyId - The ID of the company.
+ .
  * @param currentUser - The current user.
  * @param item - The item to be liked.
  * @returns A promise that resolves to an object indicating the success of the operation.
  */
 export const likeFn = (
-  companyId: string,
   currentUser: User,
   item: Item
 ) => {
@@ -212,7 +215,7 @@ export const likeFn = (
   }
 
   return item
-    .likeItem(companyId, currentUser._id)
+    .like(currentUser._id)
     .catch(err => {
       logger.debug(':like:: - err ', err);
 
@@ -222,13 +225,12 @@ export const likeFn = (
 
 /**
  * Unlike the item for the current user.
- * @param companyId - The ID of the company.
+ .
  * @param currentUser - The current user.
  * @param item - The item to unlike.
  * @returns A promise that resolves to an object indicating the success of the unlike operation.
  */
 export const unLikeFn = (
-  companyId: string,
   currentUser: User,
   item: Item
 ) => {
@@ -239,7 +241,7 @@ export const unLikeFn = (
   }
 
   return item
-    .likeItem(companyId, currentUser._id)
+    .unLike(currentUser._id)
     .catch(err => {
       logger.debug(':unLike:: - err ', err);
 
@@ -265,13 +267,12 @@ export const determineLikedFn = (item: Item, currentUser: User): boolean => {
 
 /**
  * Marks the invoice status as a given value.
- * @param companyId - The ID of the company.
+ .
  * @param invoice - The invoice object.
  * @param val - The value to set the status to.
  * @returns A promise that resolves when the update is complete.
  */
 export const markInvStatusAsFn = async(
-  companyId: string,
   invoice: Invoice,
   val: TinvoiceStatus
 ) => {
@@ -280,42 +281,35 @@ export const markInvStatusAsFn = async(
     status: val
   } as Iinvoice;
 
-  const invRelated = makeInvoiceRelated(invoice);
+  const invoiceRelated = makeInvoiceRelated(invoice);
 
-  invRelated.status = val;
+  invoiceRelated.status = val;
 
   await invoice
-    .update(companyId, vals, invRelated);
+    .update({ invoice: vals, invoiceRelated });
 };
 
 /**
  * Deletes an invoice from the list of invoices.
- * @param companyId - The ID of the company.
- * @param id - The ID of the invoice to delete.
+ .
+ * @param _id - The ID of the invoice to delete.
  * @param invoices - The array of invoices.
  */
-export const deleteInvoiceFn = async(
-  companyId: string,
-  id: string, invoices: Invoice[]
-) => {
-  const invoice = invoices
-    .find(val => val._id === id);
-  const credentials: IdeleteCredentialsInvRel = {
-    id,
-    creationType: invoice.creationType,
-    stage: invoice.stage,
-    invoiceRelated: invoice.invoiceRelated
+export const deleteInvoiceFn = async(_id: string) => {
+  const val: IdeleteMany = {
+    _ids: [_id]
+
   };
 
   await Invoice
-    .deleteInvoices(companyId, [credentials]);
+    .removeMany(val);
 };
 
 /**
  * Toggles the selection of an item in an array of selections.
  * If the item is already selected, it will be deselected.
  * If the item is not selected, it will be selected.
- * @param id - The ID of the item to toggle.
+ * @param _id - The ID of the item to toggle.
  * @param selections - The array of selections.
  */
 export const toggleSelectionFn = (id: string, selections: string[]) => {
@@ -330,28 +324,26 @@ export const toggleSelectionFn = (id: string, selections: string[]) => {
 
 /**
  * Deletes multiple invoices based on the provided selections.
- * @param companyId - The ID of the company.
+ .
  * @param invoices - An array of invoices.
  * @param selections - An array of invoice IDs to be deleted.
  * @returns A promise that resolves to an object indicating the success of the deletion.
  */
 export const deleteManyInvoicesFn = (
-  companyId: string,
   invoices: Invoice[],
   selections: string[]
 ) => {
   const logger = new LoggerController();
-  const credentials: IdeleteCredentialsInvRel[] = invoices
-    .filter(val => selections.includes(val._id))
-    .map(value => ({
-      id: value._id,
-      creationType: value.creationType,
-      invoiceRelated: value.invoiceRelated,
-      stage: value.stage
-    }));
+  const val: IdeleteMany = {
+    _ids: invoices
+      .filter(val => selections.includes(val._id))
+      .map(value => {
+        return value._id;
+      })
+  };
 
   return Invoice
-    .deleteInvoices(companyId, credentials)
+    .removeMany(val)
     .catch(err => {
       logger.error('InvoicesListComponent:deleteMany:: - err ', err);
 

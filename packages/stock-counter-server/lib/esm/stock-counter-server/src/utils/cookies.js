@@ -26,13 +26,6 @@ const cookieServiceLogger = tracer.colorConsole({
         });
     }
 });
-/**
- * Creates a tourer cookie.
- * @param req - The request object.
- * @param res - The response object.
- * @param next - The next middleware function.
- * @returns The next middleware function.
- */
 export const makeTourerCookie = (req, res, next) => {
     const tourer = req.body.tourer;
     cookieServiceLogger.info('Tourer cookie - tourer: ', tourer);
@@ -46,12 +39,6 @@ export const makeTourerCookie = (req, res, next) => {
     });
     return next();
 };
-/**
- * Creates a settings cookie.
- * @param req - The request object.
- * @param res - The response object.
- * @returns The response object with a status of 200 and the stnCookie.
- */
 export const makeSettingsCookie = (req, res) => {
     const stnCookie = req.body.stnCookie;
     cookieServiceLogger.info('Setting cookie - stnCookie: ', stnCookie);
@@ -72,12 +59,6 @@ export const makeSettingsCookie = (req, res) => {
     });
     return res.status(200).send(stnCookie);
 };
-/**
- * Creates a cart cookie.
- * @param req - The request object.
- * @param res - The response object.
- * @returns The response object with a status of 200 and a success message.
- */
 export const makeCartCookie = async (req, res) => {
     const { cartItemId } = req.body;
     const { userId } = req.params;
@@ -96,12 +77,6 @@ export const makeCartCookie = async (req, res) => {
     });
     return res.status(200).send({ success: true });
 };
-/**
- * Creates a recent cookie.
- * @param req - The request object.
- * @param res - The response object.
- * @returns The response object with a status of 200 and a success message.
- */
 export const makeRecentCookie = async (req, res) => {
     const recentCookie = req.body.recentCookie;
     const { userId } = req.params;
@@ -120,12 +95,6 @@ export const makeRecentCookie = async (req, res) => {
     });
     return res.status(200).send({ success: true });
 };
-/**
- * Creates a recent cookie.
- * @param req - The request object.
- * @param res - The response object.
- * @returns The response object with a status of 200 and a success message.
- */
 export const makeWishListCookie = async (req, res) => {
     const wishListCookie = req.body.wishListCookie;
     const { userId } = req.params;
@@ -144,12 +113,6 @@ export const makeWishListCookie = async (req, res) => {
     });
     return res.status(200).send({ success: true });
 };
-/**
- * Creates a recent cookie.
- * @param req - The request object.
- * @param res - The response object.
- * @returns The response object with a status of 200 and a success message.
- */
 export const makeCompareListCookie = async (req, res) => {
     const compareListCookie = req.body.compareListCookie;
     const { userId } = req.params;

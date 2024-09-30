@@ -1,7 +1,7 @@
 import { IcompanySubscription } from '@open-stock/stock-universal';
 import { createExpireDocIndex, withCompanySchemaObj, withCompanySelectObj } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import { connectAuthDatabase, isAuthDbConnected, mainConnection, mainConnectionLean } from '../../utils/database';
+import { connectAuthDatabase, isAuthDbConnected, mainConnectionLean } from '../../utils/database';
 
 const uniqueValidator = require('mongoose-unique-validator');
 
@@ -71,10 +71,12 @@ export const createCompanySubscription = async(dbUrl: string, dbOptions?: Connec
   }
 
   if (main) {
-    companySubscriptionMain = mainConnection.model<TcompanySubscription>('CompanySubscription', companySubscriptionSchema);
+    companySubscriptionMain = mainConnectionLean
+      .model<TcompanySubscription>('CompanySubscription', companySubscriptionSchema);
   }
 
   if (lean) {
-    companySubscriptionLean = mainConnectionLean.model<TcompanySubscription>('CompanySubscription', companySubscriptionSchema);
+    companySubscriptionLean = mainConnectionLean
+      .model<TcompanySubscription>('CompanySubscription', companySubscriptionSchema);
   }
 };

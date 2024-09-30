@@ -68,10 +68,8 @@ const appendBody = (req, res, next) => {
         return res.status(404).send({ success: false });
     }
     const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const videoDirectory = path.join(stock_universal_local_1.stockUniversalConfig.envCfig.videoDirectory + '/' + queryId + '/');
-    const photoDirectory = path.join(stock_universal_local_1.stockUniversalConfig.envCfig.photoDirectory + '/' + queryId + '/');
+    const videoDirectory = path.join(stock_universal_local_1.stockUniversalConfig.envCfig.videoDirectory + '/' + companyId + '/');
+    const photoDirectory = path.join(stock_universal_local_1.stockUniversalConfig.envCfig.photoDirectory + '/' + companyId + '/');
     const { userId } = req.user;
     const parsed = JSON.parse(req.body.data);
     const newPhotos = [];
@@ -227,7 +225,7 @@ const saveMetaToDb = async (req, res, next) => {
         const mappedParsedFiles = parsed.newPhotos.map((value) => value._id.toString());
         parsed.newPhotos = mappedParsedFiles;
     }
-    req.body = parsed; // newPhotos are strings of ids
+    req.body = parsed; // newPhotos are strings of _ids
     return next();
 };
 exports.saveMetaToDb = saveMetaToDb;
@@ -258,14 +256,13 @@ const deleteAllFiles = async (filesWithDir, directlyRemove = false) => {
     if (filesWithDir && !filesWithDir.length) {
         // return res.status(401).send({ error: 'unauthorised' }); // TODO better catch
     }
-    const ids = filesWithDir.map((value /** : Ifilewithdir */) => value._id);
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    // await fileMeta.deleteMany({ _id: { $in: ids } });
+    const _ids = filesWithDir.map((value /** : Ifilewithdir */) => value._id);
+    // await fileMeta.deleteMany({ _id: { $in: _ids } });
     if (!directlyRemove) {
-        await filemeta_model_1.fileMeta.updateMany({ _id: { $in: ids } }, { $set: { isDeleted: true } });
+        await filemeta_model_1.fileMeta.updateMany({ _id: { $in: _ids } }, { $set: { isDeleted: true } });
     }
     else {
-        await filemeta_model_1.fileMeta.deleteMany({ _id: { $in: ids } });
+        await filemeta_model_1.fileMeta.deleteMany({ _id: { $in: _ids } });
     }
     if (filesWithDir && filesWithDir.length && directlyRemove) {
         const promises = filesWithDir

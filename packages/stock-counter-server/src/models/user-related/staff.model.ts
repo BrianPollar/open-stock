@@ -1,6 +1,8 @@
 import { Istaff } from '@open-stock/stock-universal';
-import { createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
-import mongoose, { ConnectOptions, Document, Model, Schema } from 'mongoose';
+import {
+  createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj
+} from '@open-stock/stock-universal-server';
+import { ConnectOptions, Document, Model, Schema, Types } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 
@@ -13,7 +15,7 @@ export type Tstaff = Document & Istaff;
 /** Defines the schema for the staff model. */
 const staffSchema: Schema<Tstaff> = new Schema({
   ...withUrIdAndCompanySchemaObj,
-  user: { type: mongoose.Types.ObjectId, unique: true, required: [true, 'cannot be empty.'], index: true },
+  user: { type: Types.ObjectId, unique: true, required: [true, 'cannot be empty.'], index: true },
   startDate: { type: Date },
   endDate: { type: Date },
   occupation: { type: String },
@@ -74,11 +76,13 @@ export const createStaffModel = async(dbUrl: string, dbOptions?: ConnectOptions,
   }
 
   if (main) {
-    staffMain = mainConnection.model<Tstaff>('Staff', staffSchema);
+    staffMain = mainConnection
+      .model<Tstaff>('Staff', staffSchema);
   }
 
   if (lean) {
-    staffLean = mainConnectionLean.model<Tstaff>('Staff', staffSchema);
+    staffLean = mainConnectionLean
+      .model<Tstaff>('Staff', staffSchema);
   }
 };
 

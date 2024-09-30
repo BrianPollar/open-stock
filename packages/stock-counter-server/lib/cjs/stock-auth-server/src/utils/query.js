@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.populateCompany = exports.populateTrackView = exports.populateTrackEdit = exports.populateProfileCoverPic = exports.populateProfilePic = exports.populatePhotos = void 0;
+exports.populateOwner = exports.populateCompany = exports.populateTrackView = exports.populateTrackEdit = exports.populateProfileCoverPic = exports.populateProfilePic = exports.populatePhotos = void 0;
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const company_model_1 = require("../models/company.model");
 const user_model_1 = require("../models/user.model");
@@ -116,4 +116,21 @@ const populateCompany = (returnActive = true) => {
     }
 };
 exports.populateCompany = populateCompany;
+/**
+   * Populates the user field on a given document with the associated user, including
+   * the user's photos, profile picture, and profile cover picture.
+   *
+   * @returns A mongoose populate object.
+   */
+const populateOwner = () => {
+    return { path: 'owner', model: user_model_1.userLean,
+        populate: [{
+                path: 'photos', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+            }, {
+                path: 'profilePic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+            }, {
+                path: 'profileCoverPic', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+            }] };
+};
+exports.populateOwner = populateOwner;
 //# sourceMappingURL=query.js.map

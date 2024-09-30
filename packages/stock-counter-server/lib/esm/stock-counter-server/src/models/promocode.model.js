@@ -70,10 +70,12 @@ export const createPromocodeModel = async (dbUrl, dbOptions, main = true, lean =
         await connectStockDatabase(dbUrl, dbOptions);
     }
     if (main) {
-        promocodeMain = mainConnection.model('promocode', promocodeSchema);
+        promocodeMain = mainConnection
+            .model('promocode', promocodeSchema);
     }
     if (lean) {
-        promocodeLean = mainConnectionLean.model('promocode', promocodeSchema);
+        promocodeLean = mainConnectionLean
+            .model('promocode', promocodeSchema);
     }
 };
 //# sourceMappingURL=promocode.model.js.map

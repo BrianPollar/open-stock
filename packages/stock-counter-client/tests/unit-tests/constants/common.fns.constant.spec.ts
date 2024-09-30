@@ -8,7 +8,7 @@ import { Invoice } from '../../../src/defines/invoice.define';
   const actual: object = await vi.importActual('../../../src/defines/invoice.define');
   return {
     ...actual,
-    // eslint-disable-next-line @typescript-eslint/naming-convention
+
     Invoice: {
       ...actual.Invoice,
       update: vi.fn().mockResolvedValue({ success: true })

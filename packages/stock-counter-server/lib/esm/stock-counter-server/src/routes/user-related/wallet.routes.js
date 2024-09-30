@@ -33,20 +33,20 @@ const walletRoutesLogger = tracer.colorConsole({
  * Router for wallet related routes.
  */
 export const walletRoutes = express.Router();
-walletRoutes.post('/create/:companyIdParam', requireAuth);
-walletRoutes.post('/createimg/:companyIdParam', requireAuth);
-walletRoutes.post('/getone', requireAuth, async (req, res) => {
-    const { id, userId } = req.body;
+walletRoutes.post('/add', requireAuth);
+walletRoutes.post('/add/img', requireAuth);
+walletRoutes.post('/one', requireAuth, async (req, res) => {
+    const { _id, userId } = req.body;
     const { filter } = makeCompanyBasedQuery(req);
     let filter2 = {};
-    if (id) {
-        const isValid = verifyObjectIds([id]);
+    if (_id) {
+        const isValid = verifyObjectIds([_id]);
         if (!isValid) {
             return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
         }
-        filter2 = { ...filter2, _id: id };
+        filter2 = { ...filter2, _id };
     }
-    /* if (queryId) {
+    /* if (companyId) {
       filter = { ...filter, ...filter };
     } */
     if (userId) {
@@ -56,17 +56,16 @@ walletRoutes.post('/getone', requireAuth, async (req, res) => {
         }
         filter2 = { ...filter2, user: userId };
     }
-    if (req.body.profileOnly === 'true') {
-        const { userId } = req.user;
-        filter2 = { user: userId };
-    }
     const wallet = await userWalletLean
         .findOne({ ...filter, ...filter2 })
         .populate([populateUser(), populateTrackEdit(), populateTrackView()])
         .lean();
+    if (!wallet) {
+        return res.status(404).send({ success: false, err: 'not found' });
+    }
     return res.status(200).send(wallet);
 });
-walletRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, async (req, res) => {
+walletRoutes.get('/all/:offset/:limit', requireAuth, async (req, res) => {
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     const { filter } = makeCompanyBasedQuery(req);
     const all = await Promise.all([
@@ -84,7 +83,7 @@ walletRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, async (r
     };
     return res.status(200).send(response);
 });
-walletRoutes.get('/getbyrole/:offset/:limit/:role/:companyIdParam', requireAuth, async (req, res) => {
+walletRoutes.get('/getbyrole/:offset/:limit/:role', requireAuth, async (req, res) => {
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     const { filter } = makeCompanyBasedQuery(req);
     const all = await Promise.all([
@@ -103,8 +102,8 @@ walletRoutes.get('/getbyrole/:offset/:limit/:role/:companyIdParam', requireAuth,
     };
     return res.status(200).send(response);
 });
-walletRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, async (req, res) => {
-    const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
+walletRoutes.post('/filter', requireAuth, async (req, res) => {
+    const { offset, limit } = offsetLimitRelegator(req.body.offset, req.body.limit);
     const { searchterm, searchKey, extraDetails } = req.body;
     const { filter } = makeCompanyBasedQuery(req);
     let filters;
@@ -124,6 +123,19 @@ walletRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, async (
     if (!extraDetails) {
         matchFilter = {};
     }
+    /* const aggCursor = invoiceLean
+ .aggregate<IfilterAggResponse<soth>>([
+  ...lookupSubFieldInvoiceRelatedFilter(constructFiltersFromBody(req), propSort, offset, limit)
+]);
+  const dataArr: IfilterAggResponse<soth>[] = [];
+
+  for await (const data of aggCursor) {
+    dataArr.push(data);
+  }
+
+  const all = dataArr[0]?.data || [];
+  const count = dataArr[0]?.total?.count || 0;
+  */
     const all = await Promise.all([
         userWalletLean
             .find({ ...filter, ...filters })
@@ -140,33 +152,32 @@ walletRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, async (
     };
     return res.status(200).send(response);
 });
-walletRoutes.put('/update/:companyIdParam', requireAuth);
-walletRoutes.post('/updateimg/:companyIdParam', requireAuth);
-walletRoutes.put('/deleteone/:companyIdParam', requireAuth, async (req, res) => {
-    const { id } = req.body;
+walletRoutes.put('/update', requireAuth);
+walletRoutes.post('/update/img', requireAuth);
+walletRoutes.put('/delete/one', requireAuth, async (req, res) => {
+    const { _id } = req.body;
     const { filter } = makeCompanyBasedQuery(req);
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    // const deleted = await userWalletMain.findOneAndDelete({ _id: id, ...filter });
-    const deleted = await userWalletMain.updateOne({ _id: id, ...filter }, { $set: { isDeleted: true } });
+    // const deleted = await userWalletMain.findOneAndDelete({ _id, ...filter });
+    const deleted = await userWalletMain.updateOne({ _id, ...filter }, { $set: { isDeleted: true } });
     if (Boolean(deleted)) {
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
-        return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
+        return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
-walletRoutes.put('/deletemany/:companyIdParam', requireAuth, async (req, res) => {
-    const { ids } = req.body;
+walletRoutes.put('/delete/many', requireAuth, async (req, res) => {
+    const { _ids } = req.body;
     const { filter } = makeCompanyBasedQuery(req);
     /* const deleted = await userWalletMain
-      .deleteMany({ _id: { $in: ids }, ...filter })
-      .catch(err => {
-        walletRoutesLogger.error('deletemany - err: ', err);
-  
-        return null;
-      }); */
+    .deleteMany({ _id: { $in: _ids }, ...filter })
+    .catch(err => {
+      walletRoutesLogger.error('deletemany - err: ', err);
+
+      return null;
+    }); */
     const deleted = await userWalletMain
-        .updateMany({ _id: { $in: ids }, ...filter }, {
+        .updateMany({ _id: { $in: _ids }, ...filter }, {
         $set: { isDeleted: true }
     })
         .catch(err => {
@@ -177,7 +188,9 @@ walletRoutes.put('/deletemany/:companyIdParam', requireAuth, async (req, res) =>
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
-        return res.status(404).send({ success: Boolean(deleted), err: 'could not delete selected items, try again in a while' });
+        return res.status(404).send({
+            uccess: Boolean(deleted), err: 'could not delete selected items, try again in a while'
+        });
     }
 });
 //# sourceMappingURL=wallet.routes.js.map

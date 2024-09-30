@@ -41,6 +41,7 @@ export declare let estimateLean: Model<Testimate>;
  */
 export declare const estimateSelect: {
     invoiceRelated: number;
+    urId: number;
     companyId: number;
     trackEdit: number;
     trackView: number;

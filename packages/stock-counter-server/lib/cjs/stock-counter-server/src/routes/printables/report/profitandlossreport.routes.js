@@ -44,13 +44,11 @@ exports.profitAndLossReportRoutes = express_1.default.Router();
  * @param req - The request object.
  * @param res - The response object.
  */
-exports.profitAndLossReportRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'create'), async (req, res) => {
-    const profitAndLossReport = req.body.profitAndLossReport;
+exports.profitAndLossReportRoutes.post('/add', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'create'), async (req, res) => {
+    const profitAndLossReport = req.body;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     profitAndLossReport.companyId = filter.companyId;
-    const count = await profitandlossreport_model_1.profitandlossReportMain
-        .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
-    profitAndLossReport.urId = (0, stock_universal_server_1.makeUrId)(Number(count[0]?.urId || '0'));
+    profitAndLossReport.urId = await (0, stock_universal_server_1.generateUrId)(profitandlossreport_model_1.profitandlossReportMain);
     const newProfitAndLossReport = new profitandlossreport_model_1.profitandlossReportMain(profitAndLossReport);
     let errResponse;
     const saved = await newProfitAndLossReport.save()
@@ -77,12 +75,7 @@ exports.profitAndLossReportRoutes.post('/create/:companyIdParam', stock_universa
     }
     return res.status(200).send({ success: true });
 });
-/**
- * Get a single profit and loss report by URID.
- * @param req - The request object.
- * @param res - The response object.
- */
-exports.profitAndLossReportRoutes.get('/getone/:urId/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'read'), async (req, res) => {
+exports.profitAndLossReportRoutes.get('/one/:urId', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'read'), async (req, res) => {
     const { urId } = req.params;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     const profitAndLossReport = await profitandlossreport_model_1.profitandlossReportLean
@@ -90,17 +83,13 @@ exports.profitAndLossReportRoutes.get('/getone/:urId/:companyIdParam', stock_uni
         .lean()
         .populate({ path: 'expenses', model: expense_model_1.expenseLean })
         .populate({ path: 'payments', model: payment_model_1.paymentLean });
-    if (profitAndLossReport) {
-        (0, stock_universal_server_1.addParentToLocals)(res, profitAndLossReport._id, profitandlossreport_model_1.profitandlossReportLean.collection.collectionName, 'trackDataView');
+    if (!profitAndLossReport) {
+        return res.status(404).send({ success: false, err: 'not found' });
     }
+    (0, stock_universal_server_1.addParentToLocals)(res, profitAndLossReport._id, profitandlossreport_model_1.profitandlossReportLean.collection.collectionName, 'trackDataView');
     return res.status(200).send(profitAndLossReport);
 });
-/**
- * Get all profit and loss reports with pagination.
- * @param req - The request object.
- * @param res - The response object.
- */
-exports.profitAndLossReportRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'read'), async (req, res) => {
+exports.profitAndLossReportRoutes.get('/all/:offset/:limit', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'read'), async (req, res) => {
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     const all = await Promise.all([
@@ -122,34 +111,37 @@ exports.profitAndLossReportRoutes.get('/getall/:offset/:limit/:companyIdParam', 
     }
     return res.status(200).send(response);
 });
-/**
- * Delete a single profit and loss report by ID.
- * @param req - The request object.
- * @param res - The response object.
- */
-exports.profitAndLossReportRoutes.delete('/deleteone/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'delete'), async (req, res) => {
-    const { id } = req.params;
+exports.profitAndLossReportRoutes.delete('/delete/one/:_id', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'delete'), async (req, res) => {
+    const { _id } = req.params;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    // const deleted = await profitandlossReportMain.findOneAndDelete({ _id: id, ...filter });
-    const deleted = await profitandlossreport_model_1.profitandlossReportMain.updateOne({ _id: id, ...filter }, { $set: { isDeleted: true } });
+    // const deleted = await profitandlossReportMain.findOneAndDelete({ _id, ...filter });
+    const deleted = await profitandlossreport_model_1.profitandlossReportMain.updateOne({ _id, ...filter }, { $set: { isDeleted: true } });
     if (Boolean(deleted)) {
-        (0, stock_universal_server_1.addParentToLocals)(res, id, profitandlossreport_model_1.profitandlossReportLean.collection.collectionName, 'trackDataDelete');
+        (0, stock_universal_server_1.addParentToLocals)(res, _id, profitandlossreport_model_1.profitandlossReportLean.collection.collectionName, 'trackDataDelete');
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
-        return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
+        return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
-/**
- * Search for profit and loss reports by a search term and key with pagination.
- * @param req - The request object.
- * @param res - The response object.
- */
-exports.profitAndLossReportRoutes.post('/search/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'read'), async (req, res) => {
+exports.profitAndLossReportRoutes.post('/filter', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'read'), async (req, res) => {
     const { searchterm, searchKey } = req.body;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
-    const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
+    const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.body.offset, req.body.limit);
+    /*
+  const aggCursor = invoiceLean
+ .aggregate<IfilterAggResponse<soth>>([
+  ...lookupSubFieldInvoiceRelatedFilter(constructFiltersFromBody(req), propSort, offset, limit)
+]);
+  const dataArr: IfilterAggResponse<soth>[] = [];
+
+  for await (const data of aggCursor) {
+    dataArr.push(data);
+  }
+
+  const all = dataArr[0]?.data || [];
+  const count = dataArr[0]?.total?.count || 0;
+  */
     const all = await Promise.all([
         profitandlossreport_model_1.profitandlossReportLean
             .find({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
@@ -169,23 +161,18 @@ exports.profitAndLossReportRoutes.post('/search/:offset/:limit/:companyIdParam',
     }
     return res.status(200).send(response);
 });
-/**
- * Delete multiple profit and loss reports by ID.
- * @param req - The request object.
- * @param res - The response object.
- */
-exports.profitAndLossReportRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'delete'), async (req, res) => {
-    const { ids } = req.body;
+exports.profitAndLossReportRoutes.put('/delete/many', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'delete'), async (req, res) => {
+    const { _ids } = req.body;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     /* const deleted = await profitandlossReportMain
-      .deleteMany({ ...filter, _id: { $in: ids } })
-      .catch(err => {
-        profitAndLossReportRoutesLogger.debug('deletemany - err', err);
-  
-        return null;
-      }); */
+    .deleteMany({ ...filter, _id: { $in: _ids } })
+    .catch(err => {
+      profitAndLossReportRoutesLogger.debug('deletemany - err', err);
+
+      return null;
+    }); */
     const deleted = await profitandlossreport_model_1.profitandlossReportMain
-        .updateMany({ ...filter, _id: { $in: ids } }, {
+        .updateMany({ ...filter, _id: { $in: _ids } }, {
         $set: { isDeleted: true }
     })
         .catch(err => {
@@ -193,13 +180,15 @@ exports.profitAndLossReportRoutes.put('/deletemany/:companyIdParam', stock_unive
         return null;
     });
     if (Boolean(deleted)) {
-        for (const val of ids) {
+        for (const val of _ids) {
             (0, stock_universal_server_1.addParentToLocals)(res, val, profitandlossreport_model_1.profitandlossReportLean.collection.collectionName, 'trackDataDelete');
         }
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
-        return res.status(404).send({ success: Boolean(deleted), err: 'could not delete selected items, try again in a while' });
+        return res.status(404).send({
+            success: Boolean(deleted), err: 'could not delete selected items, try again in a while'
+        });
     }
 });
 //# sourceMappingURL=profitandlossreport.routes.js.map

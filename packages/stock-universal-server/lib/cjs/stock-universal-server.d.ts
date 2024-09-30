@@ -48,7 +48,7 @@ export interface IStockUniversalServerConfig {
  */
 export declare const runStockUniversalServer: (config: IStockUniversalServerConfig) => Promise<{
     isStockUniversalServerRunning: boolean;
-    stockUniversalRouter: any;
+    stockUniversalRouter: import("express-serve-static-core").Router;
 }>;
 /**
  * Checks if the universal server for stock is running.

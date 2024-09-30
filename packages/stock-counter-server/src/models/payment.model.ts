@@ -73,11 +73,13 @@ export const createPaymentModel = async(dbUrl: string, dbOptions?: ConnectOption
   }
 
   if (main) {
-    paymentMain = mainConnection.model<Tpayment>('Payment', paymentSchema);
+    paymentMain = mainConnection
+      .model<Tpayment>('Payment', paymentSchema);
   }
 
   if (lean) {
-    paymentLean = mainConnectionLean.model<Tpayment>('Payment', paymentSchema);
+    paymentLean = mainConnectionLean
+      .model<Tpayment>('Payment', paymentSchema);
   }
 };
 

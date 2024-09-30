@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-type-arguments */
 import { IinvoiceRelatedRef } from '@open-stock/stock-universal';
-import { createExpireDocIndex, preUpdateDocExpire, withCompanySchemaObj, withCompanySelectObj } from '@open-stock/stock-universal-server';
+import {
+  createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj
+} from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../utils/database';
 
@@ -10,7 +12,7 @@ import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectio
 export type Testimate = Document & IinvoiceRelatedRef;
 
 const estimateSchema: Schema<Testimate> = new Schema({
-  ...withCompanySchemaObj,
+  ...withUrIdAndCompanySchemaObj,
   invoiceRelated: { type: String }
 }, { timestamps: true, collection: 'estimates' });
 
@@ -27,7 +29,7 @@ estimateSchema.pre('updateMany', function(next) {
  * for estimate
  */
 const estimateselect = {
-  ...withCompanySelectObj,
+  ...withUrIdAndCompanySelectObj,
   invoiceRelated: 1
 };
 
@@ -59,10 +61,12 @@ export const createEstimateModel = async(dbUrl: string, dbOptions?: ConnectOptio
   }
 
   if (main) {
-    estimateMain = mainConnection.model<Testimate>('Estimate', estimateSchema);
+    estimateMain = mainConnection
+      .model<Testimate>('Estimate', estimateSchema);
   }
 
   if (lean) {
-    estimateLean = mainConnectionLean.model<Testimate>('Estimate', estimateSchema);
+    estimateLean = mainConnectionLean
+      .model<Testimate>('Estimate', estimateSchema);
   }
 };

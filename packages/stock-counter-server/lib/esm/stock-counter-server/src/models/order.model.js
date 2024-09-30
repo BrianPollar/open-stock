@@ -3,7 +3,7 @@ import { Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 const orderSchema = new Schema({
-    companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
+    companyId: { type: Schema.ObjectId, required: [true, 'cannot be empty.'], index: true },
     paymentRelated: { type: String, unique: true },
     invoiceRelated: { type: String, unique: true },
     deliveryDate: { type: Date, required: [true, 'cannot be empty.'], index: true }
@@ -50,10 +50,12 @@ export const createOrderModel = async (dbUrl, dbOptions, main = true, lean = tru
         await connectStockDatabase(dbUrl, dbOptions);
     }
     if (main) {
-        orderMain = mainConnection.model('Order', orderSchema);
+        orderMain = mainConnection
+            .model('Order', orderSchema);
     }
     if (lean) {
-        orderLean = mainConnectionLean.model('Order', orderSchema);
+        orderLean = mainConnectionLean
+            .model('Order', orderSchema);
     }
 };
 //# sourceMappingURL=order.model.js.map

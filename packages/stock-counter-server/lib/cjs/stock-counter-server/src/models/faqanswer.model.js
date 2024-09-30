@@ -45,10 +45,12 @@ const createFaqanswerModel = async (dbUrl, dbOptions, main = true, lean = true) 
         await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.faqanswerMain = database_1.mainConnection.model('Faqanswer', faqanswerSchema);
+        exports.faqanswerMain = database_1.mainConnection
+            .model('Faqanswer', faqanswerSchema);
     }
     if (lean) {
-        exports.faqanswerLean = database_1.mainConnectionLean.model('Faqanswer', faqanswerSchema);
+        exports.faqanswerLean = database_1.mainConnectionLean
+            .model('Faqanswer', faqanswerSchema);
     }
 };
 exports.createFaqanswerModel = createFaqanswerModel;

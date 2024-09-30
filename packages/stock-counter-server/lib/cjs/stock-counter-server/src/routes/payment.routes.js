@@ -52,11 +52,12 @@ const paymentRoutesLogger = tracer.colorConsole({
  * Express router for payment routes.
  */
 exports.paymentRoutes = express_1.default.Router();
-/** paymentRoutes.post('/braintreeclenttoken/:companyIdParam', requireAuth, async (req, res) => {
+/** paymentRoutes
+ * .post('/braintreeclenttoken', requireAuth, async (req: IcustomRequest<never, unknown>, res) => {
   const token = await brainTreeInstance.generateToken();
   return res.status(200).send({ token, success: true });
 });**/
-exports.paymentRoutes.post('/create/:companyIdParam', stock_universal_server_2.requireAuth, async (req, res) => {
+exports.paymentRoutes.post('/add', stock_universal_server_2.requireAuth, async (req, res) => {
     let { payment } = req.body;
     const { filter } = (0, stock_universal_server_2.makeCompanyBasedQuery)(req);
     const isValid = (0, stock_universal_server_2.verifyObjectId)(filter.companyId);
@@ -75,7 +76,7 @@ exports.paymentRoutes.post('/create/:companyIdParam', stock_universal_server_2.r
     if (!paymentRelatedRes.success) {
         return res.status(paymentRelatedRes.status).send(paymentRelatedRes);
     }
-    payment.paymentRelated = paymentRelatedRes.id;
+    payment.paymentRelated = paymentRelatedRes._id;
     const payments = invoiceRelated.payments.slice();
     invoiceRelated.payments.length = 0;
     invoiceRelated.payments = [];
@@ -83,9 +84,9 @@ exports.paymentRoutes.post('/create/:companyIdParam', stock_universal_server_2.r
     if (!invoiceRelatedRes.success) {
         return res.status(invoiceRelatedRes.status).send(invoiceRelatedRes);
     }
-    payment.invoiceRelated = invoiceRelatedRes.id;
+    payment.invoiceRelated = invoiceRelatedRes._id;
     if (payments && payments.length) {
-        await (0, paymentrelated_1.makePaymentInstall)(res, payments, invoiceRelatedRes.id, filter.companyId, invoiceRelated.creationType);
+        await (0, paymentrelated_1.makePaymentInstall)(res, payments[0], invoiceRelatedRes._id, filter.companyId, invoiceRelated.creationType);
     }
     const newPaymt = new payment_model_1.paymentMain(payment);
     let errResponse;
@@ -113,12 +114,11 @@ exports.paymentRoutes.post('/create/:companyIdParam', stock_universal_server_2.r
     }
     return res.status(200).send({ success: Boolean(saved) });
 });
-exports.paymentRoutes.put('/update/:companyIdParam', stock_universal_server_2.requireAuth, async (req, res) => {
+exports.paymentRoutes.put('/update', stock_universal_server_2.requireAuth, async (req, res) => {
     const { filter } = (0, stock_universal_server_2.makeCompanyBasedQuery)(req);
     const { updatedPayment, paymentRelated } = req.body;
     updatedPayment.companyId = filter.companyId;
     paymentRelated.companyId = filter.companyId;
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     const { _id } = updatedPayment;
     const isValid = (0, stock_universal_server_2.verifyObjectIds)([_id, filter.companyId]);
     if (!isValid) {
@@ -161,22 +161,22 @@ exports.paymentRoutes.put('/update/:companyIdParam', stock_universal_server_2.re
     (0, stock_universal_server_2.addParentToLocals)(res, _id, payment_model_1.paymentMain.collection.collectionName, 'makeTrackEdit');
     return res.status(200).send({ success: Boolean(updated) });
 });
-exports.paymentRoutes.get('/getone/:id/:companyIdParam', stock_universal_server_2.requireAuth, async (req, res) => {
-    const { id } = req.params;
+exports.paymentRoutes.get('/one/:_id', stock_universal_server_2.requireAuth, async (req, res) => {
+    const { _id } = req.params;
     const { filter } = (0, stock_universal_server_2.makeCompanyBasedQuery)(req);
     const payment = await payment_model_1.paymentLean
-        .findOne({ _id: id, ...filter })
+        .findOne({ _id, ...filter })
         .lean()
         .populate([(0, query_1.populatePaymentRelated)(), (0, query_1.populateInvoiceRelated)(true), (0, stock_auth_server_1.populateTrackEdit)(), (0, stock_auth_server_1.populateTrackView)()]);
-    let returned;
-    if (payment) {
-        returned = (0, paymentrelated_1.makePaymentRelatedPdct)(payment.paymentRelated, payment.invoiceRelated, payment.invoiceRelated
-            .billingUserId, payment);
-        (0, stock_universal_server_2.addParentToLocals)(res, payment._id, payment_model_1.paymentMain.collection.collectionName, 'trackDataView');
+    if (!payment) {
+        return res.status(404).send({ success: false, err: 'not found' });
     }
+    const returned = (0, paymentrelated_1.makePaymentRelatedPdct)(payment.paymentRelated, payment.invoiceRelated, payment.invoiceRelated
+        .billingUserId, payment);
+    (0, stock_universal_server_2.addParentToLocals)(res, payment._id, payment_model_1.paymentMain.collection.collectionName, 'trackDataView');
     return res.status(200).send(returned);
 });
-exports.paymentRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universal_server_2.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_2.roleAuthorisation)('payments', 'read'), async (req, res) => {
+exports.paymentRoutes.get('/all/:offset/:limit', stock_universal_server_2.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_2.roleAuthorisation)('payments', 'read'), async (req, res) => {
     const { offset, limit } = (0, stock_universal_server_2.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const { filter } = (0, stock_universal_server_2.makeCompanyBasedQuery)(req);
     const all = await Promise.all([
@@ -200,7 +200,7 @@ exports.paymentRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_univer
     }
     return res.status(200).send(response);
 });
-exports.paymentRoutes.get('/getmypayments/:offset/:limit/:companyIdParam', stock_universal_server_2.requireAuth, async (req, res) => {
+exports.paymentRoutes.get('/getmypayments/:offset/:limit', stock_universal_server_2.requireAuth, async (req, res) => {
     const { userId } = req.user;
     const isValid = (0, stock_universal_server_2.verifyObjectId)(userId);
     if (!isValid) {
@@ -222,57 +222,62 @@ exports.paymentRoutes.get('/getmypayments/:offset/:limit/:companyIdParam', stock
     };
     return res.status(200).send(response);
 });
-exports.paymentRoutes.put('/deleteone/:companyIdParam', stock_universal_server_2.requireAuth, stock_auth_server_1.requireSuperAdmin, async (req, res) => {
+exports.paymentRoutes.put('/delete/one', stock_universal_server_2.requireAuth, stock_auth_server_1.requireSuperAdmin, async (req, res) => {
     const { filter } = (0, stock_universal_server_2.makeCompanyBasedQuery)(req);
-    const { id, paymentRelated, invoiceRelated, creationType, where } = req.body;
-    const deleted = await (0, paymentrelated_1.deleteAllPayOrderLinked)(paymentRelated, invoiceRelated, creationType, where, filter.companyId);
+    const { _id } = req.body;
+    const found = await payment_model_1.paymentLean.findOne({ _id });
+    if (!found) {
+        return res.status(404).send({ success: false, err: 'not found' });
+    }
+    const deleted = await (0, paymentrelated_1.deleteAllPayOrderLinked)(found.paymentRelated, found.invoiceRelated, 'payment', filter.companyId);
     // await paymentMain.findByIdAndDelete(id);
     if (Boolean(deleted)) {
-        (0, stock_universal_server_2.addParentToLocals)(res, id, payment_model_1.paymentMain.collection.collectionName, 'trackDataDelete');
+        (0, stock_universal_server_2.addParentToLocals)(res, _id, payment_model_1.paymentMain.collection.collectionName, 'trackDataDelete');
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
-        return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
+        return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
-exports.paymentRoutes.post('/search/:offset/:limit/:companyIdParam', stock_universal_server_2.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_2.roleAuthorisation)('payments', 'read'), async (req, res) => {
-    const { searchterm, searchKey } = req.body;
-    const { filter } = (0, stock_universal_server_2.makeCompanyBasedQuery)(req);
-    const { offset, limit } = (0, stock_universal_server_2.offsetLimitRelegator)(req.params.offset, req.params.limit);
-    const all = await Promise.all([
-        payment_model_1.paymentLean
-            .find({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
-            .lean()
-            .skip(offset)
-            .limit(limit)
-            .populate([(0, query_1.populatePaymentRelated)(), (0, query_1.populateInvoiceRelated)(true), (0, stock_auth_server_1.populateTrackEdit)(), (0, stock_auth_server_1.populateTrackView)()]),
-        payment_model_1.paymentLean.countDocuments({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
+exports.paymentRoutes.post('/filter', stock_universal_server_2.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_2.roleAuthorisation)('payments', 'read'), async (req, res) => {
+    const { propSort } = req.body;
+    const { offset, limit } = (0, stock_universal_server_2.offsetLimitRelegator)(req.body.offset, req.body.limit);
+    const aggCursor = payment_model_1.paymentLean
+        .aggregate([
+        ...(0, stock_universal_server_1.lookupSubFieldInvoiceRelatedFilter)((0, stock_universal_server_1.constructFiltersFromBody)(req), propSort, offset, limit)
     ]);
-    const returned = all[0]
+    const dataArr = [];
+    for await (const data of aggCursor) {
+        dataArr.push(data);
+    }
+    const all = dataArr[0]?.data || [];
+    const count = dataArr[0]?.total?.count || 0;
+    const returned = all
         .map(val => (0, paymentrelated_1.makePaymentRelatedPdct)(val.paymentRelated, val.invoiceRelated, val.invoiceRelated
         .billingUserId, val));
     const response = {
-        count: all[1],
+        count,
         data: returned
     };
+    for (const val of all) {
+        (0, stock_universal_server_2.addParentToLocals)(res, val._id, payment_model_1.paymentMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
-exports.paymentRoutes.put('/deletemany/:companyIdParam', stock_universal_server_2.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_2.roleAuthorisation)('payments', 'delete'), async (req, res) => {
-    const { credentials } = req.body;
+exports.paymentRoutes.put('/delete/many', stock_universal_server_2.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_2.roleAuthorisation)('payments', 'delete'), async (req, res) => {
+    const { _ids } = req.body;
     const { filter } = (0, stock_universal_server_2.makeCompanyBasedQuery)(req);
-    if (!credentials || credentials?.length < 1) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
-    /** await paymentMain
-      .deleteMany({ _id: { $in: ids } });**/
-    const promises = credentials
-        .map(async (val) => {
-        await (0, paymentrelated_1.deleteAllPayOrderLinked)(val.paymentRelated, val.invoiceRelated, val.creationType, val.where, filter.companyId);
-        return new Promise(resolve => resolve(true));
+    const promises = _ids
+        .map(async (_id) => {
+        const found = await payment_model_1.paymentLean.findOne({ _id });
+        if (found) {
+            await (0, paymentrelated_1.deleteAllPayOrderLinked)(found.paymentRelated, found.invoiceRelated, 'payment', filter.companyId);
+        }
+        return new Promise(resolve => resolve(found._id));
     });
-    await Promise.all(promises);
-    for (const val of credentials) {
-        (0, stock_universal_server_2.addParentToLocals)(res, val.id, payment_model_1.paymentMain.collection.collectionName, 'trackDataDelete');
+    const filterdExist = await Promise.all(promises);
+    for (const val of filterdExist) {
+        (0, stock_universal_server_2.addParentToLocals)(res, val, payment_model_1.paymentMain.collection.collectionName, 'trackDataDelete');
     }
     return res.status(200).send({ success: true });
 });

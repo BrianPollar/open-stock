@@ -1,13 +1,15 @@
 import { IsubscriptionPackage } from '@open-stock/stock-universal';
 import { createExpireDocIndex, globalSchemaObj, globalSelectObj } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import { connectAuthDatabase, isAuthDbConnected, mainConnection, mainConnectionLean } from '../../utils/database';
+import {
+  connectAuthDatabase, isAuthDbConnected, mainConnection, mainConnectionLean
+} from '../../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 
 export type TsubscriptionPackage= Document & IsubscriptionPackage;
 
 /** subscription package schema */
-const subscriptionPackageSchema: Schema = new Schema({
+const subscriptionPackageSchema: Schema<TsubscriptionPackage> = new Schema<TsubscriptionPackage>({
   ...globalSchemaObj,
   name: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
   ammount: { type: Number, unique: true, required: [true, 'cannot be empty.'], index: true },
@@ -51,17 +53,24 @@ export const subscriptionPackageSelect = subscriptionPackageselect;
  * @param main Whether to create a main connection.
  * @param lean Whether to create a lean connection.
  */
-export const createSubscriptionPackageModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
+export const createSubscriptionPackageModel = async(
+  dbUrl: string,
+  dbOptions?: ConnectOptions,
+  main = true,
+  lean = true
+) => {
   createExpireDocIndex(subscriptionPackageSchema);
   if (!isAuthDbConnected) {
     await connectAuthDatabase(dbUrl, dbOptions);
   }
 
   if (main) {
-    subscriptionPackageMain = mainConnection.model<TsubscriptionPackage>('SubscriptionPackage', subscriptionPackageSchema);
+    subscriptionPackageMain = mainConnection
+      .model<TsubscriptionPackage>('SubscriptionPackage', subscriptionPackageSchema);
   }
 
   if (lean) {
-    subscriptionPackageLean = mainConnectionLean.model<TsubscriptionPackage>('SubscriptionPackage', subscriptionPackageSchema);
+    subscriptionPackageLean = mainConnectionLean
+      .model<TsubscriptionPackage>('SubscriptionPackage', subscriptionPackageSchema);
   }
 };

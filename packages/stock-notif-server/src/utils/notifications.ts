@@ -211,7 +211,7 @@ export const verifyAuthyToken = (phone: string, countryCode: string, code: strin
     notificationSettings.twilioClient.verify.v2.services(notificationSettings.twilioVerificationSid)
       .verificationChecks
       .create({ to: `${countryCode + phone.toString()}`, code: `${code}` })
-      // eslint-disable-next-line @typescript-eslint/naming-convention
+
       .then(verification_check => {
         notificationsControllerLogger.debug('verification_check', verification_check);
         if (verification_check.status === 'approved') {
@@ -265,7 +265,7 @@ export const constructMail = (
  * @param {object} mailOptions - The options for sending the email.
  * @returns {Promise<object>} A promise that resolves with the response from sending the email.
  */
-export const sendMail = async(mailOptions) => {
+export const sendMail = (mailOptions) => {
   return new Promise((resolve, reject) => {
     sgMail
       .send(mailOptions)
@@ -411,15 +411,15 @@ export const createPayload = (
 /**
  * Updates the viewed status of a notification for a specific user.
  * @param user - The authenticated user.
- * @param id - The ID of the notification to update.
+ * @param _id - The ID of the notification to update.
  * @returns A boolean indicating whether the update was successful.
  */
-export const updateNotifnViewed = async(user: Iauthtoken, id: string) => {
+export const updateNotifnViewed = async(user: Iauthtoken, _id: string) => {
   notificationsControllerLogger.info('updateNotifnViewed - user: ', user);
   const { userId } = user;
 
   await mainnotificationMain
-    .updateOne({ _id: id }, { $push: { viewed: userId } });
+    .updateOne({ _id }, { $push: { viewed: userId } });
 
   return true;
 };

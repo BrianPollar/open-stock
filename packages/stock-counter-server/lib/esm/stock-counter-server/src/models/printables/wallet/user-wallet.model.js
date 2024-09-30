@@ -26,7 +26,8 @@ const userWalletselect = {
 export let userWalletMain;
 /**
  * Represents a lean Mongoose model for the user wallet.
- * This model is used for the main database connection and provides a lightweight, read-optimized version of the user wallet data.
+ * This model is used for the main database connection and
+ * provides a lightweight, read-optimized version of the user wallet data.
  */
 export let userWalletLean;
 export const userWalletSelect = userWalletselect;
@@ -42,10 +43,12 @@ export const createUserWalletModel = async (dbUrl, dbOptions, main = true, lean 
         await connectStockDatabase(dbUrl, dbOptions);
     }
     if (main) {
-        userWalletMain = mainConnection.model('UserWallet', userWalletSchema);
+        userWalletMain = mainConnection
+            .model('UserWallet', userWalletSchema);
     }
     if (lean) {
-        userWalletLean = mainConnectionLean.model('UserWallet', userWalletSchema);
+        userWalletLean = mainConnectionLean
+            .model('UserWallet', userWalletSchema);
     }
 };
 //# sourceMappingURL=user-wallet.model.js.map

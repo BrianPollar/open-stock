@@ -1,7 +1,7 @@
-import { Iaddress, Icustomer, IdeleteCredentialsLocalUser, Ifile, IfileMeta, Isuccess, Iuser } from '@open-stock/stock-universal';
+import { Iaddress, Icustomer, IdeleteMany, IdeleteOne, IeditCustomer, Ifile, IfilterProps, IsubscriptionFeatureState, Isuccess } from '@open-stock/stock-universal';
 import { UserBase } from './userbase.define';
 interface IgetOneFilter {
-    id?: string;
+    _id?: string;
     userId?: string;
     companyId?: string;
 }
@@ -20,60 +20,58 @@ export declare class Customer extends UserBase {
     /**
      * Retrieves a list of customers from a specified URL.
      * @static
-     * @param companyId - The ID of the company
+  
      * @param {number} [offset=0] - The offset for pagination.
      * @param {number} [limit=0] - The limit for pagination.
      * @returns {Promise<Customer[]>} - An array of Customer instances created from the retrieved customer data.
      */
-    static getCustomers(companyId: string, offset?: number, limit?: number): Promise<{
+    static getAll(offset?: number, limit?: number): Promise<{
+        count: number;
+        customers: Customer[];
+    }>;
+    static filterAll(filter: IfilterProps): Promise<{
         count: number;
         customers: Customer[];
     }>;
     /**
      * Retrieves a single customer by ID.
      * @static
-     * @param companyId - The ID of the company
-     * @param {string} id - The customer ID.
+  
+     * @param {string} _id - The customer ID.
      * @returns {Promise<Customer>} - A single Customer instance created from the retrieved customer data.
      */
-    static getOneCustomer(companyId: string, filter: IgetOneFilter): Promise<Customer>;
+    static getOne(filter: IgetOneFilter): Promise<Customer>;
     /**
      * Creates a new customer.
      * @static
-     * @param companyId - The ID of the company
+  
      * @param {Icustomer} customer - The customer data to be created.
      * @returns {Promise<Isuccess>} - A success response indicating whether the customer creation was successful.
      */
-    static createCustomer(companyId: string, vals: {
-        customer: Icustomer;
-        user: Partial<Iuser>;
-    }, files?: Ifile[]): Promise<Isuccess>;
+    static add(vals: IeditCustomer, files?: Ifile[]): Promise<IsubscriptionFeatureState>;
     /**
      * Deletes multiple customers.
      * @static
-     * @param companyId - The ID of the company
+  
      * @param {IdeleteCredentialsLocalUser[]} credentials - An array of customer credentials.
      * @param {Ifilewithdir[]} filesWithDir - An array of files with directories.
      * @returns {Promise<Isuccess>} - A success response indicating whether the deletion was successful.
      */
-    static deleteCustomers(companyId: string, credentials: IdeleteCredentialsLocalUser[], filesWithDir: IfileMeta[]): Promise<Isuccess>;
+    static removeMany(val: IdeleteMany): Promise<Isuccess>;
     /**
      * Updates the current customer instance.
-     * @param companyId - The ID of the company
+  
      * @param {Icustomer} vals - The updated customer data.
      * @returns {Promise<Isuccess>} - A success response indicating whether the update was successful.
      */
-    updateCustomer(companyId: string, vals: {
-        customer: Icustomer;
-        user: Partial<Iuser>;
-    }, files?: Ifile[]): Promise<Isuccess>;
+    update(vals: IeditCustomer, files?: Ifile[]): Promise<Isuccess>;
     /**
      * Deletes the current customer instance.
-     * @param companyId - The ID of the company
+  
      * @param {IdeleteCredentialsLocalUser} credential - The customer credential.
      * @param {Ifilewithdir[]} filesWithDir - An array of files with directories.
      * @returns {Promise<Isuccess>} - A success response indicating whether the deletion was successful.
      */
-    deleteCustomer(companyId: string, credential: IdeleteCredentialsLocalUser, filesWithDir: IfileMeta[]): Promise<Isuccess>;
+    remove(val: IdeleteOne): Promise<Isuccess>;
 }
 export {};

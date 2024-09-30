@@ -40,30 +40,10 @@ const paymentControllerLogger = tracer.colorConsole({
         });
     }
 });
-/**
- * Allows payment on delivery
- * @param paymentRelated - The payment related information
- * @param invoiceRelated - The invoice related information
- * @param order - The order information
- * @param payment - The payment information
- * @param userId - The user ID
- * @param locaLMailHandler - The email handler
- * @returns A promise that resolves to an Isuccess object
- */
-export const payOnDelivery = async (res, paymentRelated, invoiceRelated, order, payment, userId, companyId) => {
+export const payOnDelivery = (res, paymentRelated, invoiceRelated, order, payment, userId, companyId) => {
     order.status = 'pending';
     return appendAll(res, paymentRelated, invoiceRelated, order, payment, userId, companyId, false);
 };
-/**
- * Appends all payment related information
- * @param paymentRelated - The payment related information
- * @param invoiceRelated - The invoice related information
- * @param order - The order information
- * @param payment - The payment information
- * @param userId - The user ID
- * @param paid - Whether the payment has been made
- * @returns A promise that resolves to an Isuccess object with additional properties
- */
 const appendAll = async (res, paymentRelated, invoiceRelated, order, payment, userId, companyId, paid = true) => {
     paymentControllerLogger.debug('appendAll - userId:', userId);
     const saved = await addOrder(res, paymentRelated, invoiceRelated, order, userId, companyId);
@@ -73,20 +53,20 @@ const appendAll = async (res, paymentRelated, invoiceRelated, order, payment, us
         payment.paymentRelated = saved.paymentRelated;
         payment.invoiceRelated = saved.invoiceRelated;
         await addPayment(payment, userId, paid);
-        return { success: saved.success, status: saved.status, paymentRelated: saved.paymentRelated, invoiceRelated: saved.invoiceRelated, order: saved.orderId };
+        return {
+            success: saved.success,
+            status: saved.status,
+            paymentRelated: saved.paymentRelated, invoiceRelated: saved.invoiceRelated, order: saved.orderId
+        };
     }
     else {
-        return { success: saved.success, status: saved.status, err: saved.err, paymentRelated: saved.paymentRelated, invoiceRelated: saved.invoiceRelated, order: saved.orderId };
+        return {
+            success: saved.success,
+            status: saved.status,
+            err: saved.err, paymentRelated: saved.paymentRelated, invoiceRelated: saved.invoiceRelated, order: saved.orderId
+        };
     }
 };
-/**
- * Adds an order to the database
- * @param paymentRelated - The payment related information
- * @param invoiceRelated - The invoice related information
- * @param order - The order information
- * @param userId - The user ID
- * @returns A promise that resolves to an Isuccess object with additional properties
- */
 const addOrder = async (res, paymentRelated, invoiceRelated, order, userId, companyId) => {
     paymentControllerLogger.info('addOrder');
     const extraNotifDesc = 'New Order';
@@ -94,9 +74,9 @@ const addOrder = async (res, paymentRelated, invoiceRelated, order, userId, comp
     const paymentRelatedId = await relegatePaymentRelatedCreation(res, paymentRelated, invoiceRelated, 'order', extraNotifDesc, companyId);
     paymentControllerLogger.error('addOrder - paymentRelatedId', paymentRelatedId);
     if (!paymentRelatedId.success) {
-        return { success: false, status: 403, paymentRelated: paymentRelatedId.id };
+        return { success: false, status: 403, paymentRelated: paymentRelatedId._id };
     }
-    order.paymentRelated = paymentRelatedId.id;
+    order.paymentRelated = paymentRelatedId._id;
     const invoice = {
         invoiceRelated: '',
         dueDate: order.deliveryDate
@@ -107,11 +87,11 @@ const addOrder = async (res, paymentRelated, invoiceRelated, order, userId, comp
     const invoiceRelatedId = await saveInvoice(res, invoice, invoiceRelated, companyId);
     paymentControllerLogger.error('invoiceRelatedId', invoiceRelatedId);
     if (!invoiceRelatedId.success) {
-        return { success: false, status: 403, invoiceRelated: invoiceRelatedId.id };
+        return { success: false, status: 403, invoiceRelated: invoiceRelatedId._id };
     }
-    order.invoiceRelated = invoiceRelatedId.id;
+    order.invoiceRelated = invoiceRelatedId._id;
     if (payments && payments.length) {
-        await makePaymentInstall(res, payments[0], invoiceRelatedId.id, companyId, 'solo');
+        await makePaymentInstall(res, payments[0], invoiceRelatedId._id, companyId, 'solo');
     }
     let errResponse;
     const newOrder = new orderMain(order);
@@ -153,8 +133,13 @@ const addOrder = async (res, paymentRelated, invoiceRelated, order, userId, comp
     };
     // body.options.orders = true; // TODO
     await createNotifications(body);
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    return { success: true, status: 200, orderId: withId._id, paymentRelated: (order).paymentRelated, invoiceRelated: invoiceRelatedId.id };
+    return {
+        success: true,
+        status: 200,
+        orderId: withId._id,
+        paymentRelated: (order).paymentRelated,
+        invoiceRelated: invoiceRelatedId._id
+    };
 };
 /**
  * Adds a payment to the database
@@ -314,18 +299,6 @@ export const paymentMethodDelegator = async (res, paymentRelated, invoiceRelated
     }
     return response;
 };
-/**
- * Submits a Pesapal payment order.
- * @param paymentRelated - The required payment related information.
- * @param invoiceRelated - The required invoice related information.
- * @param type - The type of payment.
- * @param order - The order details.
- * @param payment - The payment details.
- * @param userId - The ID of the user.
- * @param companyId - The ID of the company.
- * @param burgain - The burgain details.
- * @returns A promise that resolves to an object containing the success status, status code, and the Pesapal order response.
- */
 export const relegatePesapalPayment = async (res, paymentRelated, invoiceRelated, type, order, payment, userId, companyId) => {
     paymentControllerLogger.debug('relegatePesapalPayment', paymentRelated);
     const isValidCompanyId = verifyObjectId(paymentRelated.companyId);
@@ -402,7 +375,12 @@ export const relegatePesapalPayment = async (res, paymentRelated, invoiceRelated
             };
         }
     }
-    return { success: true, status: 200, pesapalOrderRes: response.pesaPalOrderRes, paymentRelated: appended.paymentRelated.toString() };
+    return {
+        success: true,
+        status: 200,
+        pesapalOrderRes: response.pesaPalOrderRes,
+        paymentRelated: appended.paymentRelated.toString()
+    };
 };
 /**
  * Deletes all created documents on a failed payment creation.

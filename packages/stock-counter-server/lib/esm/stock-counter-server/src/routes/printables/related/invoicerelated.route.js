@@ -1,5 +1,5 @@
 import { populateTrackEdit, populateTrackView, requireActiveCompany } from '@open-stock/stock-auth-server';
-import { addParentToLocals, makeCompanyBasedQuery, offsetLimitRelegator, requireAuth, roleAuthorisation, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { addParentToLocals, constructFiltersFromBody, lookupLimit, lookupOffset, lookupSort, lookupTrackEdit, lookupTrackView, makeCompanyBasedQuery, offsetLimitRelegator, requireAuth, roleAuthorisation, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
 import * as fs from 'fs';
 import path from 'path';
@@ -35,16 +35,11 @@ const fileStorageLogger = tracer.colorConsole({
  * Router for handling invoice related routes.
  */
 export const invoiceRelateRoutes = express.Router();
-/**
- * Get a single invoice related product by ID
- * @param id - The ID of the invoice related product to retrieve
- * @returns The retrieved invoice related product
- */
-invoiceRelateRoutes.get('/getone/:id/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'read'), async (req, res) => {
+invoiceRelateRoutes.get('/one/:_id', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'read'), async (req, res) => {
     const { filter } = makeCompanyBasedQuery(req);
-    const { id } = req.params;
+    const { _id } = req.params;
     const related = await invoiceRelatedLean
-        .findOne({ _id: id, ...filter })
+        .findOne({ _id, ...filter })
         .lean()
         .populate([populateBillingUser(), populatePayments(), populateTrackEdit(), populateTrackView()]);
     let returned;
@@ -55,13 +50,7 @@ invoiceRelateRoutes.get('/getone/:id/:companyIdParam', requireAuth, requireActiv
     }
     return res.status(200).send(returned);
 });
-/**
- * Get all invoice related products with pagination
- * @param offset - The offset to start retrieving invoice related products from
- * @param limit - The maximum number of invoice related products to retrieve
- * @returns The retrieved invoice related products
- */
-invoiceRelateRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'read'), async (req, res) => {
+invoiceRelateRoutes.get('/all/:offset/:limit', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'read'), async (req, res) => {
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     const { filter } = makeCompanyBasedQuery(req);
     const all = await Promise.all([
@@ -83,11 +72,12 @@ invoiceRelateRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, r
     };
     if (all[0]) {
         const returned = all[0]
+            .filter(val => val)
             .map(val => makeInvoiceRelatedPdct(val, val
             .billingUserId));
         response.data = returned;
         for (const val of all[0]) {
-            addParentToLocals(res, val._id, 'invoicerelateds', 'trackDataView');
+            addParentToLocals(res, val._id, invoiceRelatedLean.collection.collectionName, 'trackDataView');
         }
         return res.status(200).send(response);
     }
@@ -95,62 +85,204 @@ invoiceRelateRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, r
         return res.status(200).send(response);
     }
 });
-/**
- * Search for invoice related products with pagination
- * @param searchterm - The search term to use for searching invoice related products
- * @param searchKey - The key to search for the search term in
- * @param offset - The offset to start retrieving invoice related products from
- * @param limit - The maximum number of invoice related products to retrieve
- * @returns The retrieved invoice related products
- */
-invoiceRelateRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'read'), async (req, res) => {
-    const { searchterm, searchKey } = req.body;
-    const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
-    const { filter } = makeCompanyBasedQuery(req);
-    const all = await Promise.all([
-        invoiceRelatedLean
-            .find({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
-            .skip(offset)
-            .limit(limit)
-            .lean()
-            .populate([populateBillingUser(), populatePayments(), populateTrackEdit(), populateTrackView()])
-            .catch(err => {
-            fileStorageLogger.error('getall - err: ', err);
-            return null;
-        }),
-        invoiceRelatedLean.countDocuments({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
+invoiceRelateRoutes.post('/filter', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'read'), async (req, res) => {
+    const { propSort } = req.body;
+    const { offset, limit } = offsetLimitRelegator(req.body.offset, req.body.limit);
+    const filter = constructFiltersFromBody(req);
+    const aggCursor = invoiceRelatedLean.aggregate([
+        {
+            $match: {
+                $and: [
+                    // { status: 'pending' },
+                    ...filter
+                ]
+            }
+        },
+        ...lookupTrackEdit(),
+        ...lookupTrackView(),
+        {
+            $facet: {
+                data: [...lookupSort(propSort), ...lookupOffset(offset), ...lookupLimit(limit)],
+                total: [{ $count: 'count' }]
+            }
+        },
+        {
+            $unwind: {
+                path: '$total',
+                preserveNullAndEmptyArrays: true
+            }
+        }
     ]);
+    const dataArr = [];
+    for await (const data of aggCursor) {
+        dataArr.push(data);
+    }
+    const all = dataArr[0]?.data || [];
+    const count = dataArr[0]?.total?.count || 0;
     const response = {
-        count: all[1],
+        count,
         data: null
     };
-    if (all[0]) {
-        const returned = all[0]
+    if (all) {
+        const returned = all
+            .filter(val => val)
             .map(val => makeInvoiceRelatedPdct(val, val
             .billingUserId));
         response.data = returned;
+        for (const val of all) {
+            addParentToLocals(res, val._id, invoiceRelatedLean.collection.collectionName, 'trackDataView');
+        }
         return res.status(200).send(response);
     }
     else {
         return res.status(200).send(response);
     }
 });
-/**
- * Update an invoicereturned product
- * @param invoiceRelated - The updated invoice related product
- * @returns A success message if the update was successful
- */
-invoiceRelateRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'update'), async (req, res) => {
+invoiceRelateRoutes.put('/update', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'update'), async (req, res) => {
     const { invoiceRelated } = req.body;
     const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    invoiceRelated.companyId = queryId;
-    const isValid = verifyObjectIds([invoiceRelated.invoiceRelated, queryId]);
+    invoiceRelated.companyId = companyId;
+    const isValid = verifyObjectIds([invoiceRelated.invoiceRelated, companyId]);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
-    await updateInvoiceRelated(res, invoiceRelated, companyId);
+    await updateInvoiceRelated(res, invoiceRelated);
     return res.status(200).send({ success: true });
 });
+/*
+db.estimates.aggregate<IfilterAggResponse<soth>>([
+  {
+    $addFields: {
+      invoiceRelated: { $toObjectId: '$invoiceRelated' }
+    }
+  },
+  {
+    $lookup: {
+      from: 'invoicerelateds',
+      as: 'FieldCollege',
+      let: { invoiceRelated: '$invoiceRelated' },
+      pipeline: [
+        {
+          $match: {
+            $and: [
+              { $expr: { $eq: ['$$invoiceRelated', '$_id'] } },
+              { status: 'pending' }
+            ]
+          }
+        },
+        { $limit: 1 },
+        {
+          $addFields: {
+            billingUserId: { $toObjectId: '$billingUserId' }
+          }
+        },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'billingUserId',
+            foreignField: '_id',
+            as: 'billingUserId'
+          }
+        },
+        { $unwind: '$billingUserId' }
+      ]
+    }
+  },
+  {
+    $addFields: {
+      trackEdit: { $toObjectId: '$trackEdit' }
+    }
+  },
+  {
+    $lookup: {
+      from: 'trackedits',
+      localField: 'trackEdit',
+      foreignField: '_id',
+      as: 'trackEdit'
+    }
+  },
+  {
+    $unwind: {
+      path: '$trackEdit',
+      preserveNullAndEmptyArrays: true
+    }
+  },
+  { $match: { FieldCollege: { $ne: [] } } },
+  {
+    $addFields: {
+      FieldCollege: { $arrayElemAt: ['$FieldCollege', 0] }
+    }
+  },
+  { $facet: {
+    data: [],
+    total: [{ $count: 'count' }]
+  } },
+  { $unwind: '$total' }
+]);
+*/
+/*
+db.estimates.aggregate<IfilterAggResponse<soth>>([
+  {
+    $addFields: {
+      invoiceRelated: { $toObjectId: '$invoiceRelated' }
+    }
+  },
+  {
+    $lookup: {
+      from: 'invoicerelateds',
+      as: 'FieldCollege',
+      let: { invoiceRelated: '$invoiceRelated' },
+      pipeline: [
+        {
+          $match: {
+            $and: [
+              { $expr: { $eq: ['$$invoiceRelated', '$_id'] } },
+              { status: 'pending' }
+            ]
+          }
+        },
+        {
+          $addFields: {
+            billingUserId: { $toObjectId: '$billingUserId' }
+          }
+        },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'billingUserId',
+            foreignField: '_id',
+            as: 'billingUserId'
+          }
+        },
+        { $unwind: '$billingUserId' }
+      ]
+    }
+  },
+  {
+    $addFields: {
+      trackEdit: { $toObjectId: '$trackEdit' }
+    }
+  },
+  {
+    $lookup: {
+      from: 'trackedits',
+      localField: 'trackEdit',
+      foreignField: '_id',
+      as: 'trackEdit'
+    }
+  },
+  {
+    $unwind: {
+      path: '$trackEdit',
+      preserveNullAndEmptyArrays: true
+    }
+  },
+  { $match: { FieldCollege: { $ne: [] } } },
+  { $facet: {
+    data: [],
+    total: [{ $count: 'count' }]
+  } },
+  { $unwind: '$total' }
+]);
+*/
 //# sourceMappingURL=invoicerelated.route.js.map

@@ -25,7 +25,7 @@
 /// <reference types="mongoose/types/inferschematype" />
 import { IuserBehaviour } from '@open-stock/stock-universal';
 interface Ifilter {
-    ids: string[];
+    _ids: string[];
     newOffset: number;
     newLimit: number;
 }
@@ -127,7 +127,8 @@ export declare const isUserHasNoOrders: (length: number, userCookieId: string, u
    */
 export declare const remindFromWishList: (length: number, userCookieId: string, userId?: string) => Promise<Ifilter>;
 /**
-   * Retrieves a filter object based on the user's cart and returns it. If the user has no items in their cart, it will return an empty filter with a random offset.
+   * Retrieves a filter object based on the user's cart and returns it.
+   * If the user has no items in their cart, it will return an empty filter with a random offset.
    * @param {number} length - The number of items to retrieve.
    * @param {string} userCookieId - The user's cookie ID.
    * @param {string} [userId] - The user's ID.
@@ -177,7 +178,8 @@ export declare const registerRecents: (item: string, userCookieId: string, userI
    * @param item The id of the item to add to the wishlist.
    * @param userCookieId The cookie id of the user.
    * @param userId The id of the user.
-   * @returns A promise resolving to an object with a `success` property, which is `true` if the operation was successful.
+   * @returns A promise resolving to an object with a `success`
+   * property, which is `true` if the operation was successful.
    */
 export declare const registerWishList: (item: string, userCookieId: string, userId?: string) => Promise<{
     success: boolean;

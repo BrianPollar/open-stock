@@ -56,6 +56,7 @@ exports.subscriptionPackageRoutes.post('/create', stock_universal_server_1.requi
     return res.status(200).send({ success: true, status: 200 });
 });
 exports.subscriptionPackageRoutes.put('/updateone', stock_universal_server_1.requireAuth, superadmin_routes_1.requireSuperAdmin, async (req, res) => {
+    subscriptionPackageRoutesLogger.info('Update subscription');
     const subscriptionPackage = req.body;
     const subPackage = await subscription_package_model_1.subscriptionPackageMain
         .findOne({ _id: subscriptionPackage._id })
@@ -80,7 +81,8 @@ exports.subscriptionPackageRoutes.put('/updateone', stock_universal_server_1.req
     (0, stock_universal_server_1.addParentToLocals)(res, subscriptionPackage._id, subscription_package_model_1.subscriptionPackageMain.collection.collectionName, 'makeTrackEdit');
     return res.status(200).send({ success: true, status: 200 });
 });
-exports.subscriptionPackageRoutes.get('/getall', async (req, res) => {
+exports.subscriptionPackageRoutes.get('/all', async (req, res) => {
+    subscriptionPackageRoutesLogger.info('Get all subscription');
     const subscriptionPackages = await subscription_package_model_1.subscriptionPackageLean
         .find({ ...(0, stock_universal_server_1.makePredomFilter)(req) })
         .lean();
@@ -89,16 +91,16 @@ exports.subscriptionPackageRoutes.get('/getall', async (req, res) => {
     }
     return res.status(200).send(subscriptionPackages);
 });
-exports.subscriptionPackageRoutes.put('/deleteone/:id', stock_universal_server_1.requireAuth, async (req, res) => {
-    const { id } = req.params;
-    // const deleted = await subscriptionPackageMain.findOneAndDelete({ _id: id });
-    const deleted = await subscription_package_model_1.subscriptionPackageMain.updateOne({ _id: id }, { $set: { isDeleted: true } });
+exports.subscriptionPackageRoutes.put('/delete/one/:_id', stock_universal_server_1.requireAuth, async (req, res) => {
+    const { _id } = req.params;
+    // const deleted = await subscriptionPackageMain.findOneAndDelete({ _id });
+    const deleted = await subscription_package_model_1.subscriptionPackageMain.updateOne({ _id }, { $set: { isDeleted: true } });
     if (Boolean(deleted)) {
-        (0, stock_universal_server_1.addParentToLocals)(res, id, subscription_package_model_1.subscriptionPackageMain.collection.collectionName, 'trackDataDelete');
+        (0, stock_universal_server_1.addParentToLocals)(res, _id, subscription_package_model_1.subscriptionPackageMain.collection.collectionName, 'trackDataDelete');
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
-        return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
+        return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
 //# sourceMappingURL=subscription-package.routes.js.map

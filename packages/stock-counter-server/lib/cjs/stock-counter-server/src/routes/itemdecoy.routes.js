@@ -39,25 +39,16 @@ const itemDecoyRoutesLogger = tracer.colorConsole({
  * Router for item decoy routes.
  */
 exports.itemDecoyRoutes = express_1.default.Router();
-/**
- * Create a new item decoy.
- * @param {string} how - The type of decoy to create.
- * @param {Object} itemdecoy - The decoy object to create.
- * @returns {Promise<Isuccess>} A promise that resolves to a success object.
- */
-exports.itemDecoyRoutes.post('/create/:how/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_auth_server_1.requireCanUseFeature)('decoy'), (0, stock_universal_server_1.roleAuthorisation)('decoys', 'create'), async (req, res, next) => {
+exports.itemDecoyRoutes.post('/add/:how', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_auth_server_1.requireCanUseFeature)('decoy'), (0, stock_universal_server_1.roleAuthorisation)('decoys', 'create'), async (req, res, next) => {
     const { how } = req.params;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     const { itemdecoy } = req.body;
     itemdecoy.companyId = filter.companyId;
-    // Get the count of existing decoys and generate a new urId
-    const count = await itemdecoy_model_1.itemDecoyMain
-        .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
-    const urId = (0, stock_universal_server_1.makeUrId)(Number(count[0]?.urId || '0'));
+    const urId = await (0, stock_universal_server_1.generateUrId)(itemdecoy_model_1.itemDecoyMain);
     let decoy;
     if (how === 'automatic') {
         // If creating an automatic decoy, verify the item ID and find the item
-        const isValid = (0, stock_universal_server_1.verifyObjectId)(itemdecoy.items[0]);
+        const isValid = (0, stock_universal_server_1.verifyObjectId)(itemdecoy.items[0]); // TODO
         if (!isValid) {
             return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
         }
@@ -124,24 +115,9 @@ exports.itemDecoyRoutes.post('/create/:how/:companyIdParam', stock_universal_ser
     }
     return next();
 }, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('decoy'));
-/**
- * Get a list of all item decoys.
- * @param {string} offset - The offset to start at.
- * @param {string} limit - The maximum number of items to return.
- * @returns {Promise<Object[]>} A promise that resolves to an array of item decoys.
- */
-exports.itemDecoyRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
+exports.itemDecoyRoutes.get('/all/:offset/:limit', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
-    const { companyIdParam } = req.params;
-    let filter = {};
-    // eslint-disable-next-line no-undefined
-    if (companyIdParam !== undefined) {
-        const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
-        if (!isValid) {
-            return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-        }
-        filter = { companyId: companyIdParam };
-    }
+    const filter = {};
     const all = await Promise.all([
         itemdecoy_model_1.itemDecoyLean
             .find({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
@@ -160,70 +136,70 @@ exports.itemDecoyRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_univ
     }
     return res.status(200).send(response);
 });
-/**
- * Get a single item decoy by ID.
- * @param {string} id - The ID of the item decoy to retrieve.
- * @returns {Promise<Object>} A promise that resolves to the requested item decoy.
- */
-exports.itemDecoyRoutes.get('/getone/:id/:companyIdParam', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
-    const { id } = req.params;
-    const { companyIdParam } = req.params;
-    let ids;
-    if (companyIdParam !== 'undefined') {
-        ids = [id, companyIdParam];
+exports.itemDecoyRoutes.post('/filter', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('decoys', 'read'), async (req, res) => {
+    const { propSort } = req.body;
+    const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.body.offset, req.body.limit);
+    const aggCursor = itemdecoy_model_1.itemDecoyLean
+        .aggregate([
+        ...(0, stock_universal_server_1.lookupSubFieldItemsRelatedFilter)((0, stock_universal_server_1.constructFiltersFromBody)(req), propSort, offset, limit)
+    ]);
+    const dataArr = [];
+    for await (const data of aggCursor) {
+        dataArr.push(data);
     }
-    else {
-        ids = [id];
+    const all = dataArr[0]?.data || [];
+    const count = dataArr[0]?.total?.count || 0;
+    const response = {
+        count,
+        data: all
+    };
+    for (const val of all) {
+        (0, stock_universal_server_1.addParentToLocals)(res, val._id, itemdecoy_model_1.itemDecoyMain.collection.collectionName, 'trackDataView');
     }
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)(ids);
+    return res.status(200).send(response);
+});
+exports.itemDecoyRoutes.get('/one/:_id', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
+    const { _id } = req.params;
+    const _ids = [_id];
+    const isValid = (0, stock_universal_server_1.verifyObjectIds)(_ids);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
-    const item = await itemdecoy_model_1.itemDecoyLean
-        .findOne({ _id: id, ...(0, stock_universal_server_1.makePredomFilter)(req) })
+    const decoy = await itemdecoy_model_1.itemDecoyLean
+        .findOne({ _id, ...(0, stock_universal_server_1.makePredomFilter)(req) })
         .populate([(0, query_1.populateItems)(), (0, stock_auth_server_1.populateTrackEdit)(), (0, stock_auth_server_1.populateTrackView)()])
         .lean();
-    if (item) {
-        (0, stock_universal_server_1.addParentToLocals)(res, item._id, itemdecoy_model_1.itemDecoyMain.collection.collectionName, 'trackDataView');
+    if (!decoy) {
+        return res.status(404).send({ success: false, err: 'not found' });
     }
-    return res.status(200).send(item);
+    (0, stock_universal_server_1.addParentToLocals)(res, decoy._id, itemdecoy_model_1.itemDecoyMain.collection.collectionName, 'trackDataView');
+    return res.status(200).send(decoy);
 });
-/**
- * Delete a single item decoy by ID.
- * @param {string} id - The ID of the item decoy to delete.
- * @returns {Promise<Object>} A promise that resolves to a success object.
- */
-exports.itemDecoyRoutes.delete('/deleteone/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('decoys', 'delete'), async (req, res) => {
-    const { id } = req.params;
+exports.itemDecoyRoutes.delete('/delete/one/:_id', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('decoys', 'delete'), async (req, res) => {
+    const { _id } = req.params;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    // const deleted = await itemDecoyMain.findOneAndDelete({ _id: id, companyId: queryId });
-    const deleted = await itemdecoy_model_1.itemDecoyMain.updateOne({ _id: id, ...filter }, { $set: { isDeleted: true } });
+    // const deleted = await itemDecoyMain.findOneAndDelete({ _id, });
+    const deleted = await itemdecoy_model_1.itemDecoyMain.updateOne({ _id, ...filter }, { $set: { isDeleted: true } });
     if (Boolean(deleted)) {
-        (0, stock_universal_server_1.addParentToLocals)(res, id, itemdecoy_model_1.itemDecoyMain.collection.collectionName, 'trackDataDelete');
+        (0, stock_universal_server_1.addParentToLocals)(res, _id, itemdecoy_model_1.itemDecoyMain.collection.collectionName, 'trackDataDelete');
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
-        return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
+        return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
-/**
- * Delete multiple item decoys by ID.
- * @param {string[]} ids - An array of IDs of the item decoys to delete.
- * @returns {Promise<Object>} A promise that resolves to a success object.
- */
-exports.itemDecoyRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('decoys', 'delete'), async (req, res) => {
-    const { ids } = req.body;
+exports.itemDecoyRoutes.put('/delete/many', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('decoys', 'delete'), async (req, res) => {
+    const { _ids } = req.body;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     /* const deleted = await itemDecoyMain
-      .deleteMany({ _id: { $in: ids }, companyId: queryId })
-      .catch(err => {
-        itemDecoyRoutesLogger.error('deletemany - err: ', err);
-  
-        return null;
-      }); */
+    .deleteMany({ _id: { $in: _ids }, })
+    .catch(err => {
+      itemDecoyRoutesLogger.error('deletemany - err: ', err);
+
+      return null;
+    }); */
     const deleted = await itemdecoy_model_1.itemDecoyMain
-        .updateMany({ _id: { $in: ids }, ...filter }, {
+        .updateMany({ _id: { $in: _ids }, ...filter }, {
         $set: { isDeleted: true }
     })
         .catch(err => {
@@ -231,13 +207,15 @@ exports.itemDecoyRoutes.put('/deletemany/:companyIdParam', stock_universal_serve
         return null;
     });
     if (Boolean(deleted)) {
-        for (const val of ids) {
+        for (const val of _ids) {
             (0, stock_universal_server_1.addParentToLocals)(res, val, itemdecoy_model_1.itemDecoyMain.collection.collectionName, 'trackDataDelete');
         }
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
-        return res.status(404).send({ success: Boolean(deleted), err: 'could not delete selected items, try again in a while' });
+        return res.status(404).send({
+            success: Boolean(deleted), err: 'could not delete selected items, try again in a while'
+        });
     }
 });
 //# sourceMappingURL=itemdecoy.routes.js.map

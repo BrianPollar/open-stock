@@ -46,10 +46,12 @@ export const createDeliveryNoteModel = async (dbUrl, dbOptions, main = true, lea
         await connectStockDatabase(dbUrl, dbOptions);
     }
     if (main) {
-        deliveryNoteMain = mainConnection.model('DeliveryNote', deliveryNoteSchema);
+        deliveryNoteMain = mainConnection
+            .model('DeliveryNote', deliveryNoteSchema);
     }
     if (lean) {
-        deliveryNoteLean = mainConnectionLean.model('DeliveryNote', deliveryNoteSchema);
+        deliveryNoteLean = mainConnectionLean
+            .model('DeliveryNote', deliveryNoteSchema);
     }
 };
 //# sourceMappingURL=deliverynote.model.js.map

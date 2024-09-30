@@ -1,5 +1,7 @@
 import { IpaymentRelated } from '@open-stock/stock-universal';
-import { createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
+import {
+  createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj
+} from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
@@ -108,11 +110,13 @@ export const createPaymentRelatedModel = async(dbUrl: string, dbOptions?: Connec
   }
 
   if (main) {
-    paymentRelatedMain = mainConnection.model<TpaymentRelated>('paymentRelated', paymentRelatedSchema);
+    paymentRelatedMain = mainConnection
+      .model<TpaymentRelated>('paymentRelated', paymentRelatedSchema);
   }
 
   if (lean) {
-    paymentRelatedLean = mainConnectionLean.model<TpaymentRelated>('paymentRelated', paymentRelatedSchema);
+    paymentRelatedLean = mainConnectionLean
+      .model<TpaymentRelated>('paymentRelated', paymentRelatedSchema);
   }
 };
 

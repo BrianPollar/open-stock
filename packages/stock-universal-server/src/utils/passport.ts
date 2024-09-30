@@ -1,9 +1,14 @@
-import { Icustomrequest, TroleAuth, TroleAuthProp } from '@open-stock/stock-universal';
+import { Iauthtoken, IcustomRequest, TroleAuth, TroleAuthProp } from '@open-stock/stock-universal';
+import { NextFunction, Response } from 'express';
 import * as fs from 'fs';
 import * as jwt from 'jsonwebtoken';
 import path from 'path';
 import * as tracer from 'tracer';
 import { stockUniversalConfig } from '../stock-universal-local';
+// eslint-disable-next-line @typescript-eslint/naming-convention
+const GoogleStrategy = require('passport-google-oidc');
+// eslint-disable-next-line @typescript-eslint/naming-convention
+const FacebookStrategy = require('passport-facebook');
 
 // This vat creates a passportLogger named `controllers/passport`.
 const passportLogger = tracer.colorConsole({
@@ -40,11 +45,26 @@ const jwtStrategy = require('passport-jwt').Strategy;
 // This var imports the `extractJwt` module from `passport-jwt`.
 const extractJwt = require('passport-jwt').ExtractJwt;
 
+export interface IstrategyCred {
+  google?: {
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    GOOGLE_CLIENT_ID: string;
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    GOOGLE_CLIENT_SECRET: string;
+  };
+  facebook?: {
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    FACEBOOK_CLIENT_ID: string;
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    FACEBOOK_CLIENT_SECRET: string;
+  };
+}
+
 /**
  * Runs the Passport configuration for JWT authentication.
  * @param jwtSecret - The secret key used to sign and verify JWT tokens.
  */
-export const runPassport = (jwtSecret) => {
+export const runPassport = (jwtSecret, strategys?: IstrategyCred) => {
   // Create a JWT options object.
   const jwtOptions = {
     jwtFromRequest: extractJwt.fromHeader('authorization'),
@@ -57,8 +77,36 @@ export const runPassport = (jwtSecret) => {
     done(null, jwtPayload);
   });
 
+
   // Use the JWT strategy with Passport.
   passport.use(jwtLogin);
+
+
+  if (strategys?.google) {
+    const googleLogin = new GoogleStrategy({
+      clientID: strategys.google.GOOGLE_CLIENT_ID,
+      clientSecret: strategys.google.GOOGLE_CLIENT_SECRET,
+      callbackURL: '/oauth2/redirect/google',
+      scope: [ 'profile' ]
+    }, function verify(issuer, profile, cb) {
+      return cb(null, profile);
+    });
+
+    passport.use(googleLogin);
+  }
+
+  if (strategys?.facebook) {
+    const facebookLogin = new FacebookStrategy({
+      clientID: strategys.facebook.FACEBOOK_CLIENT_ID,
+      clientSecret: strategys.facebook.FACEBOOK_CLIENT_SECRET,
+      callbackURL: '/oauth2/redirect/facebook',
+      state: true
+    }, function verify(accessToken, refreshToken, profile, cb) {
+      return cb(null, profile);
+    });
+
+    passport.use(facebookLogin);
+  }
 };
 
 // This function defines a function that checks the user's permissions for the given role.
@@ -67,7 +115,8 @@ export const runPassport = (jwtSecret) => {
  * Middleware function for role-based authorization.
  * @param nowRole - The current role to check.
  * @param permProp - The permission property to check within the role.
- * @returns A middleware function that checks the user's permissions and authorizes access based on the role and permission property.
+ * @returns A middleware function that checks the user's permissions
+ * and authorizes access based on the role and permission property.
  */
 export const roleAuthorisation = (nowRole: TroleAuth, permProp: TroleAuthProp, mayBeProfile?: boolean) => {
   // Log the role name.
@@ -75,12 +124,14 @@ export const roleAuthorisation = (nowRole: TroleAuth, permProp: TroleAuthProp, m
 
   // Create a middleware function that checks the user's permissions.
   return (
-    req,
-    res,
-    next
+    // req: IcustomRequest<never, Partial<{ profileOnly?: string } &
+    // unknown & Record<string, string | number | boolean | string[] | unknown>>>,
+    req: IcustomRequest<never, unknown>,
+    res: Response,
+    next: NextFunction
   ) => {
     // Get the user's permissions from the request object.
-    const { permissions } = (req as Icustomrequest).user;
+    const { permissions } = req.user;
 
     if (nowRole !== 'buyer' && permissions.companyAdminAccess) {
       return next();
@@ -93,7 +144,7 @@ export const roleAuthorisation = (nowRole: TroleAuth, permProp: TroleAuthProp, m
 
       return next();
     } else if (mayBeProfile) {
-      req.body.profileOnly = 'true';
+      (req.body as { profileOnly: string }).profileOnly = 'true';
 
       return next();
     } else {
@@ -116,7 +167,7 @@ export const roleAuthorisation = (nowRole: TroleAuth, permProp: TroleAuthProp, m
  * @param {NextFunction} next - The next middleware function.
  * @returns {void}
  */
-export const getToken = (req, res, next) => {
+export const getToken = (req: IcustomRequest<never, unknown>, res, next) => {
   // Return the next middleware function.
   return next();
 };
@@ -143,10 +194,12 @@ const extractToken = (req) => {
    * @param {NextFunction} next - The next middleware function.
    * @returns {void}
    */
-export const appendUserToReqIfTokenExist = (req, res, next) => {
+export const appendUserToReqIfTokenExist = (req: IcustomRequest<never, unknown>, res, next) => {
   const token = extractToken(req);
 
   if (!token) {
+    req.user = {} as Iauthtoken;
+
     return next();
   }
 
@@ -159,4 +212,8 @@ export const appendUserToReqIfTokenExist = (req, res, next) => {
       return next();
     }
   });
+};
+
+export const canFilterDeepProps = () => {
+
 };

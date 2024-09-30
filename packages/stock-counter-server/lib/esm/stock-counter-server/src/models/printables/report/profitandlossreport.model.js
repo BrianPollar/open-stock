@@ -53,10 +53,12 @@ export const createProfitandlossReportModel = async (dbUrl, dbOptions, main = tr
         await connectStockDatabase(dbUrl, dbOptions);
     }
     if (main) {
-        profitandlossReportMain = mainConnection.model('profitandlossReport', profitandlossReportSchema);
+        profitandlossReportMain = mainConnection
+            .model('profitandlossReport', profitandlossReportSchema);
     }
     if (lean) {
-        profitandlossReportLean = mainConnectionLean.model('profitandlossReport', profitandlossReportSchema);
+        profitandlossReportLean = mainConnectionLean
+            .model('profitandlossReport', profitandlossReportSchema);
     }
 };
 //# sourceMappingURL=profitandlossreport.model.js.map

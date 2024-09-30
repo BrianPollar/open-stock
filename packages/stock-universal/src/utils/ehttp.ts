@@ -79,11 +79,15 @@ export class EhttpController {
    * @param route - The route to make the GET request to.
    * @returns An Observable that emits the response data.
    */
-  makeGet(route: string, retryTimes = 5): Observable<unknown> {
+  makeGet<T = void>(route: string, retryTimes = 5): Observable<T> {
     // Return a GET request from the Axios instance.
     return this.axiosInstance.get(route).pipe(
       retry(retryTimes),
-      map(res => res.data)
+      map(res => {
+        this.logger.debug('makeGet', res.data);
+
+        return res.data;
+      })
     );
   }
 
@@ -93,9 +97,13 @@ export class EhttpController {
    * @param extras - Any extra data to include in the request.
    * @returns An Observable that emits the response data.
    */
-  makePut(route: string, extras): Observable<unknown> {
+  makePut<T = void>(route: string, extras): Observable<T> {
     // Return a PUT request from the Axios instance.
-    return this.axiosInstance.put(route, extras).pipe(map(res => res.data));
+    return this.axiosInstance.put(route, extras).pipe(map(res => {
+      this.logger.debug('makePut', res.data);
+
+      return res.data;
+    }));
   }
 
   /**
@@ -104,9 +112,12 @@ export class EhttpController {
    * @param extras - Any extra data to include in the request.
    * @returns An Observable that emits the response data.
    */
-  makePost(route: string, extras): Observable<unknown> {
+  makePost<T = void>(route: string, extras): Observable<T> {
     // Return a POST request from the Axios instance.
-    return this.axiosInstance.post(route, extras).pipe(map(res => res.data));
+    return this.axiosInstance.post(route, extras).pipe(map(res => {
+      this.logger.debug('makePost', res.data);
+
+      return res.data;}));
   }
 
   /**
@@ -114,24 +125,27 @@ export class EhttpController {
    * @param route - The route to make the DELETE request to.
    * @returns An Observable that emits the response data.
    */
-  makeDelete(route: string): Observable<unknown> {
+  makeDelete<T = void>(route: string): Observable<T> {
     // Return a DELETE request from the Axios instance.
-    return this.axiosInstance.delete(route).pipe(map(res => res.data));
+    return this.axiosInstance.delete(route).pipe(map(res => {
+      this.logger.debug('makeDelete', res.data);
+
+      return res.data;}));
   }
 
   /**
    * A method that uploads files to the specified URL.
    * @param files - An array of files to upload.
-   * @param companyId - The ID of the company
+
    * @param url - The URL to upload the files to.
    * @param extras - Any extra data to include in the request.
    * @returns An Observable that emits the response data.
    */
-  uploadFiles(
+  uploadFiles<T = void>(
     files: Ifile[],
     url: string, extras?
   ):
-    Observable<unknown> {
+    Observable<T> {
     // Create a new FormData object.
     const formData: FormData = new FormData();
 
@@ -149,6 +163,10 @@ export class EhttpController {
     this.logger.debug('uploadFiles:: - url: url , formData: %formData ', url, formData);
 
     // Return a POST request from the Axios instance.
-    return this.axiosInstance.post(url, formData).pipe(map(res => res.data));
+    return this.axiosInstance.post(url, formData).pipe(map(res => {
+      this.logger.debug('uploadFiles', res.data);
+
+      return res.data;
+    }));
   }
 }

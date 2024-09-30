@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-type-arguments */
-import { IinvoiceRelatedRef, IurId } from '@open-stock/stock-universal';
-import { createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
+import { IinvoiceRelatedRef } from '@open-stock/stock-universal';
+import {
+  createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj
+} from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
@@ -8,7 +10,7 @@ const uniqueValidator = require('mongoose-unique-validator');
 /**
  * Represents a receipt document.
  */
-export type Treceipt = Document & IurId & IinvoiceRelatedRef & {
+export type Treceipt = Document & IinvoiceRelatedRef & {
 
   /**
    * The amount received.
@@ -101,11 +103,13 @@ export const createReceiptModel = async(dbUrl: string, dbOptions?: ConnectOption
   }
 
   if (main) {
-    receiptMain = mainConnection.model<Treceipt>('Receipt', receiptSchema);
+    receiptMain = mainConnection
+      .model<Treceipt>('Receipt', receiptSchema);
   }
 
   if (lean) {
-    receiptLean = mainConnectionLean.model<Treceipt>('Receipt', receiptSchema);
+    receiptLean = mainConnectionLean
+      .model<Treceipt>('Receipt', receiptSchema);
   }
 };
 

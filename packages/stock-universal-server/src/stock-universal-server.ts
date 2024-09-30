@@ -1,6 +1,8 @@
 import { IenvironmentConfig } from '@open-stock/stock-universal';
 import { ConnectOptions } from 'mongoose';
-import { connectUniversalDatabase, createStockUniversalServerLocals, isStockUniversalServerRunning } from './stock-universal-local';
+import {
+  connectUniversalDatabase, createStockUniversalServerLocals, isStockUniversalServerRunning
+} from './stock-universal-local';
 // const colors = require('colors');
 import express from 'express';
 import * as fs from 'fs';

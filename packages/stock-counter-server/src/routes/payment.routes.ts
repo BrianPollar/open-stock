@@ -1,4 +1,6 @@
-import { appendUserToReqIfTokenExist, makePredomFilter } from '@open-stock/stock-universal-server';
+import {
+  appendUserToReqIfTokenExist, constructFiltersFromBody, lookupSubFieldInvoiceRelatedFilter, makePredomFilter
+} from '@open-stock/stock-universal-server';
 
 /**
  * Express routes for payment related operations.
@@ -9,7 +11,7 @@ import { appendUserToReqIfTokenExist, makePredomFilter } from '@open-stock/stock
  */
 
 import express from 'express';
-import { paymentLean, paymentMain } from '../models/payment.model';
+import { Tpayment, paymentLean, paymentMain } from '../models/payment.model';
 import { paymentRelatedLean } from '../models/printables/paymentrelated/paymentrelated.model';
 // import { paymentInstallsLean } from '../models/printables/paymentrelated/paymentsinstalls.model';
 import { invoiceRelatedMain } from '../models/printables/related/invoicerelated.model';
@@ -20,9 +22,21 @@ import {
   updatePaymentRelated
 } from './paymentrelated/paymentrelated';
 // import * as url from 'url';
-import { companySubscriptionLean, companySubscriptionMain, populateTrackEdit, populateTrackView, requireActiveCompany, requireSuperAdmin } from '@open-stock/stock-auth-server';
-import { Icustomrequest, IdataArrayResponse, IinvoiceRelated, IpaymentRelated, Isuccess, Iuser } from '@open-stock/stock-universal';
-import { addParentToLocals, makeCompanyBasedQuery, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import {
+  companySubscriptionLean, companySubscriptionMain,
+  populateTrackEdit, populateTrackView, requireActiveCompany, requireSuperAdmin
+} from '@open-stock/stock-auth-server';
+import {
+  IcustomRequest, IdataArrayResponse,
+  IdeleteMany,
+  IdeleteOne,
+  IfilterAggResponse, IfilterProps,
+  IinvoiceRelated, Ipayment, IpaymentRelated, Ireceipt, Isuccess, Iuser
+} from '@open-stock/stock-universal';
+import {
+  addParentToLocals, makeCompanyBasedQuery,
+  offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds
+} from '@open-stock/stock-universal-server';
 import * as fs from 'fs';
 import path from 'path';
 import * as tracer from 'tracer';
@@ -60,296 +74,369 @@ const paymentRoutesLogger = tracer.colorConsole({
  */
 export const paymentRoutes = express.Router();
 
-/** paymentRoutes.post('/braintreeclenttoken/:companyIdParam', requireAuth, async (req, res) => {
+/** paymentRoutes
+ * .post('/braintreeclenttoken', requireAuth, async (req: IcustomRequest<never, unknown>, res) => {
   const token = await brainTreeInstance.generateToken();
   return res.status(200).send({ token, success: true });
 });**/
 
-paymentRoutes.post('/create/:companyIdParam', requireAuth, async(req, res) => {
-  let { payment } = req.body;
-  const { filter } = makeCompanyBasedQuery(req);
-  const isValid = verifyObjectId(filter.companyId);
+paymentRoutes.post(
+  '/add',
+  requireAuth,
+  async(req: IcustomRequest<never, {
+    payment: Ipayment;
+    paymentRelated: Required<IpaymentRelated>; invoiceRelated: Required<IinvoiceRelated>; }>, res) => {
+    let { payment } = req.body;
+    const { filter } = makeCompanyBasedQuery(req);
+    const isValid = verifyObjectId(filter.companyId);
 
-  if (!isValid) {
-    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-  }
-  payment.companyId = filter.companyId;
-  const { paymentRelated, invoiceRelated } = req.body;
-
-  if (!payment) {
-    payment = {
-      paymentRelated: ''
-    };
-  }
-  const extraNotifDesc = 'Newly created order';
-  const paymentRelatedRes = await relegatePaymentRelatedCreation(res, paymentRelated, invoiceRelated, 'order', extraNotifDesc, filter.companyId);
-
-  if (!paymentRelatedRes.success) {
-    return res.status(paymentRelatedRes.status).send(paymentRelatedRes);
-  }
-  payment.paymentRelated = paymentRelatedRes.id;
-
-  const payments = invoiceRelated.payments.slice();
-
-  invoiceRelated.payments.length = 0;
-  invoiceRelated.payments = [];
-  const invoiceRelatedRes = await relegateInvRelatedCreation(res, invoiceRelated as Required<IinvoiceRelated>, filter.companyId, extraNotifDesc, true);
-
-  if (!invoiceRelatedRes.success) {
-    return res.status(invoiceRelatedRes.status).send(invoiceRelatedRes);
-  }
-  payment.invoiceRelated = invoiceRelatedRes.id;
-
-  if (payments && payments.length) {
-    await makePaymentInstall(res, payments, invoiceRelatedRes.id, filter.companyId, invoiceRelated.creationType);
-  }
-  const newPaymt = new paymentMain(payment);
-  let errResponse: Isuccess;
-  const saved = await newPaymt.save()
-    .catch(err => {
-      paymentRoutesLogger.error('create - err: ', err);
-      errResponse = {
-        success: false,
-        status: 403
-      };
-      if (err && err.errors) {
-        errResponse.err = stringifyMongooseErr(err.errors);
-      } else {
-        errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-      }
-
-      return err;
-    });
-
-  if (errResponse) {
-    return res.status(403).send(errResponse);
-  }
-
-  if (saved && saved._id) {
-    addParentToLocals(res, saved._id, paymentMain.collection.collectionName, 'makeTrackEdit');
-  }
-
-  return res.status(200).send({ success: Boolean(saved) });
-});
-
-paymentRoutes.put('/update/:companyIdParam', requireAuth, async(req, res) => {
-  const { filter } = makeCompanyBasedQuery(req);
-  const { updatedPayment, paymentRelated } = req.body;
-
-  updatedPayment.companyId = filter.companyId;
-  paymentRelated.companyId = filter.companyId;
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  const { _id } = updatedPayment;
-  const isValid = verifyObjectIds([_id, filter.companyId]);
-
-  if (!isValid) {
-    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-  }
-
-  const payment = await paymentMain
-    .findOne({ _id, ...filter })
-    .lean();
-
-  if (!payment) {
-    return res.status(404).send({ success: false });
-  }
-
-  await updatePaymentRelated(paymentRelated, filter.companyId);
-
-  let errResponse: Isuccess;
-  const updated = await paymentMain.updateOne({
-    _id, ...filter
-  }, {
-    $set: {
-      order: updatedPayment.order || payment.order,
-      isDeleted: updatedPayment.isDeleted || payment.isDeleted
+    if (!isValid) {
+      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
-  })
-    .catch(err => {
-      paymentRoutesLogger.info('update - err', err);
-      errResponse = {
-        success: false,
-        status: 403
-      };
-      if (err && err.errors) {
-        errResponse.err = stringifyMongooseErr(err.errors);
-      } else {
-        errResponse.err = `we are having problems connecting to our databases, 
+    payment.companyId = filter.companyId;
+    const { paymentRelated, invoiceRelated } = req.body;
+
+    if (!payment) {
+      payment = {
+        paymentRelated: ''
+      } as Ipayment;
+    }
+    const extraNotifDesc = 'Newly created order';
+    const paymentRelatedRes = await relegatePaymentRelatedCreation(
+      res,
+      paymentRelated,
+      invoiceRelated,
+      'order',
+      extraNotifDesc,
+      filter.companyId
+    );
+
+    if (!paymentRelatedRes.success) {
+      return res.status(paymentRelatedRes.status).send(paymentRelatedRes);
+    }
+    payment.paymentRelated = paymentRelatedRes._id;
+
+    const payments = invoiceRelated.payments.slice() as Ireceipt[];
+
+    invoiceRelated.payments.length = 0;
+    invoiceRelated.payments = [];
+    const invoiceRelatedRes = await relegateInvRelatedCreation(
+      res,
+      invoiceRelated,
+      filter.companyId,
+      extraNotifDesc,
+      true
+    );
+
+    if (!invoiceRelatedRes.success) {
+      return res.status(invoiceRelatedRes.status).send(invoiceRelatedRes);
+    }
+    payment.invoiceRelated = invoiceRelatedRes._id;
+
+    if (payments && payments.length) {
+      await makePaymentInstall(res, payments[0], invoiceRelatedRes._id, filter.companyId, invoiceRelated.creationType);
+    }
+    const newPaymt = new paymentMain(payment);
+    let errResponse: Isuccess;
+    const saved = await newPaymt.save()
+      .catch(err => {
+        paymentRoutesLogger.error('create - err: ', err);
+        errResponse = {
+          success: false,
+          status: 403
+        };
+        if (err && err.errors) {
+          errResponse.err = stringifyMongooseErr(err.errors);
+        } else {
+          errResponse.err = `we are having problems connecting to our databases, 
         try again in a while`;
-      }
+        }
 
-      return errResponse;
-    });
+        return err;
+      });
 
-  if (errResponse) {
-    return res.status(403).send(errResponse);
+    if (errResponse) {
+      return res.status(403).send(errResponse);
+    }
+
+    if (saved && saved._id) {
+      addParentToLocals(res, saved._id, paymentMain.collection.collectionName, 'makeTrackEdit');
+    }
+
+    return res.status(200).send({ success: Boolean(saved) });
   }
+);
 
-  addParentToLocals(res, _id, paymentMain.collection.collectionName, 'makeTrackEdit');
+paymentRoutes.put(
+  '/update',
+  requireAuth,
+  async(req: IcustomRequest<never, { updatedPayment: Ipayment;paymentRelated: Required<IpaymentRelated> }>, res) => {
+    const { filter } = makeCompanyBasedQuery(req);
+    const { updatedPayment, paymentRelated } = req.body;
 
-  return res.status(200).send({ success: Boolean(updated) });
-});
+    updatedPayment.companyId = filter.companyId;
+    paymentRelated.companyId = filter.companyId;
 
+    const { _id } = updatedPayment;
+    const isValid = verifyObjectIds([_id, filter.companyId]);
 
-paymentRoutes.get('/getone/:id/:companyIdParam', requireAuth, async(req, res) => {
-  const { id } = req.params;
+    if (!isValid) {
+      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
+
+    const payment = await paymentMain
+      .findOne({ _id, ...filter })
+      .lean();
+
+    if (!payment) {
+      return res.status(404).send({ success: false });
+    }
+
+    await updatePaymentRelated(paymentRelated, filter.companyId);
+
+    let errResponse: Isuccess;
+    const updated = await paymentMain.updateOne({
+      _id, ...filter
+    }, {
+      $set: {
+        order: updatedPayment.order || payment.order,
+        isDeleted: updatedPayment.isDeleted || payment.isDeleted
+      }
+    })
+      .catch(err => {
+        paymentRoutesLogger.info('update - err', err);
+        errResponse = {
+          success: false,
+          status: 403
+        };
+        if (err && err.errors) {
+          errResponse.err = stringifyMongooseErr(err.errors);
+        } else {
+          errResponse.err = `we are having problems connecting to our databases, 
+        try again in a while`;
+        }
+
+        return errResponse;
+      });
+
+    if (errResponse) {
+      return res.status(403).send(errResponse);
+    }
+
+    addParentToLocals(res, _id, paymentMain.collection.collectionName, 'makeTrackEdit');
+
+    return res.status(200).send({ success: Boolean(updated) });
+  }
+);
+
+paymentRoutes.get('/one/:_id', requireAuth, async(req: IcustomRequest<{ _id: string }, null>, res) => {
+  const { _id } = req.params;
   const { filter } = makeCompanyBasedQuery(req);
   const payment = await paymentLean
-    .findOne({ _id: id, ...filter })
+    .findOne({ _id, ...filter })
     .lean()
     .populate([populatePaymentRelated(), populateInvoiceRelated(true), populateTrackEdit(), populateTrackView()]);
-  let returned;
 
-  if (payment) {
-    returned = makePaymentRelatedPdct(
+  if (!payment) {
+    return res.status(404).send({ success: false, err: 'not found' });
+  }
+
+  const returned = makePaymentRelatedPdct(
       payment.paymentRelated as Required<IpaymentRelated>,
       payment.invoiceRelated as Required<IinvoiceRelated>,
       (payment.invoiceRelated as IinvoiceRelated)
         .billingUserId as unknown as Iuser,
       payment
-    );
+  );
 
-    addParentToLocals(res, payment._id, paymentMain.collection.collectionName, 'trackDataView');
-  }
+  addParentToLocals(res, payment._id, paymentMain.collection.collectionName, 'trackDataView');
 
   return res.status(200).send(returned);
 });
 
-paymentRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('payments', 'read'), async(req, res) => {
-  const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
-  const { filter } = makeCompanyBasedQuery(req);
-  const all = await Promise.all([
-    paymentLean
-      .find(filter)
-      .skip(offset)
-      .limit(limit)
-      .lean()
-      .populate([populatePaymentRelated(), populateInvoiceRelated(true), populateTrackEdit(), populateTrackView()]),
-    paymentLean.countDocuments(filter)
-  ]);
-  const returned = all[0]
-    .map(val => makePaymentRelatedPdct(
+paymentRoutes.get(
+  '/all/:offset/:limit',
+  requireAuth,
+  requireActiveCompany,
+  roleAuthorisation('payments', 'read'),
+  async(req: IcustomRequest<{ offset: string; limit: string }, null>, res) => {
+    const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
+    const { filter } = makeCompanyBasedQuery(req);
+    const all = await Promise.all([
+      paymentLean
+        .find(filter)
+        .skip(offset)
+        .limit(limit)
+        .lean()
+        .populate([populatePaymentRelated(), populateInvoiceRelated(true), populateTrackEdit(), populateTrackView()]),
+      paymentLean.countDocuments(filter)
+    ]);
+    const returned = all[0]
+      .map(val => makePaymentRelatedPdct(
       val.paymentRelated as Required<IpaymentRelated>,
       val.invoiceRelated as Required<IinvoiceRelated>,
       (val.invoiceRelated as IinvoiceRelated)
         .billingUserId as unknown as Iuser,
       val
-    ));
-  const response: IdataArrayResponse = {
-    count: all[1],
-    data: returned
-  };
+      ));
+    const response: IdataArrayResponse<IpaymentRelated> = {
+      count: all[1],
+      data: returned
+    };
 
-  for (const val of returned) {
-    addParentToLocals(res, val._id, paymentMain.collection.collectionName, 'trackDataView');
+    for (const val of returned) {
+      addParentToLocals(res, val._id, paymentMain.collection.collectionName, 'trackDataView');
+    }
+
+    return res.status(200).send(response);
   }
+);
 
-  return res.status(200).send(response);
-});
+paymentRoutes.get(
+  '/getmypayments/:offset/:limit',
+  requireAuth,
+  async(req: IcustomRequest<never, null>, res) => {
+    const { userId } = req.user;
+    const isValid = verifyObjectId(userId);
 
-paymentRoutes.get('/getmypayments/:offset/:limit/:companyIdParam', requireAuth, async(req, res) => {
-  const { userId } = (req as unknown as Icustomrequest).user;
-  const isValid = verifyObjectId(userId);
-
-  if (!isValid) {
-    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-  }
-  const all = await Promise.all([
-    paymentLean
-      .find({ user: userId, ...makePredomFilter(req) })
-      .lean()
-      .populate([populatePaymentRelated(), populateInvoiceRelated(true), populateTrackEdit(), populateTrackView()]),
-    paymentLean.countDocuments({ user: userId, ...makePredomFilter(req) })
-  ]);
-  const returned = all[0]
-    .map(val => makePaymentRelatedPdct(
+    if (!isValid) {
+      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
+    const all = await Promise.all([
+      paymentLean
+        .find({ user: userId, ...makePredomFilter(req) })
+        .lean()
+        .populate([populatePaymentRelated(), populateInvoiceRelated(true), populateTrackEdit(), populateTrackView()]),
+      paymentLean.countDocuments({ user: userId, ...makePredomFilter(req) })
+    ]);
+    const returned = all[0]
+      .map(val => makePaymentRelatedPdct(
       val.paymentRelated as Required<IpaymentRelated>,
       val.invoiceRelated as Required<IinvoiceRelated>,
       (val.invoiceRelated as IinvoiceRelated)
         .billingUserId as unknown as Iuser,
       val
-    ));
-  const response: IdataArrayResponse = {
-    count: all[1],
-    data: returned
-  };
+      ));
+    const response: IdataArrayResponse<IpaymentRelated> = {
+      count: all[1],
+      data: returned
+    };
 
-  return res.status(200).send(response);
-});
-
-paymentRoutes.put('/deleteone/:companyIdParam', requireAuth, requireSuperAdmin, async(req, res) => {
-  const { filter } = makeCompanyBasedQuery(req);
-  const { id, paymentRelated, invoiceRelated, creationType, where } = req.body;
-  const deleted = await deleteAllPayOrderLinked(paymentRelated, invoiceRelated, creationType, where, filter.companyId);
-
-  // await paymentMain.findByIdAndDelete(id);
-  if (Boolean(deleted)) {
-    addParentToLocals(res, id, paymentMain.collection.collectionName, 'trackDataDelete');
-
-    return res.status(200).send({ success: Boolean(deleted) });
-  } else {
-    return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
+    return res.status(200).send(response);
   }
-});
+);
 
-paymentRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('payments', 'read'), async(req, res) => {
-  const { searchterm, searchKey } = req.body;
-  const { filter } = makeCompanyBasedQuery(req);
-  const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
-  const all = await Promise.all([
-    paymentLean
-      .find({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
-      .lean()
-      .skip(offset)
-      .limit(limit)
-      .populate([populatePaymentRelated(), populateInvoiceRelated(true), populateTrackEdit(), populateTrackView()]),
-    paymentLean.countDocuments({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
-  ]);
-  const returned = all[0]
-    .map(val => makePaymentRelatedPdct(
+paymentRoutes.put(
+  '/delete/one',
+  requireAuth,
+  requireSuperAdmin,
+  async(req: IcustomRequest<never, IdeleteOne>, res) => {
+    const { filter } = makeCompanyBasedQuery(req);
+    const { _id } = req.body;
+    const found = await paymentLean.findOne({ _id });
+
+    if (!found) {
+      return res.status(404).send({ success: false, err: 'not found' });
+    }
+    const deleted = await deleteAllPayOrderLinked(
+      found.paymentRelated as string,
+      found.invoiceRelated as string,
+      'payment',
+      filter.companyId
+    );
+
+    // await paymentMain.findByIdAndDelete(id);
+    if (Boolean(deleted)) {
+      addParentToLocals(res, _id, paymentMain.collection.collectionName, 'trackDataDelete');
+
+      return res.status(200).send({ success: Boolean(deleted) });
+    } else {
+      return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
+    }
+  }
+);
+
+paymentRoutes.post(
+  '/filter',
+  requireAuth,
+  requireActiveCompany,
+  roleAuthorisation('payments', 'read'),
+  async(req: IcustomRequest<never, IfilterProps>, res) => {
+    const { propSort } = req.body;
+    const { offset, limit } = offsetLimitRelegator(req.body.offset, req.body.limit);
+
+    const aggCursor = paymentLean
+      .aggregate<IfilterAggResponse<Tpayment>>([
+        ...lookupSubFieldInvoiceRelatedFilter(constructFiltersFromBody(req), propSort, offset, limit)
+      ]);
+    const dataArr: IfilterAggResponse<Tpayment>[] = [];
+
+    for await (const data of aggCursor) {
+      dataArr.push(data);
+    }
+
+    const all = dataArr[0]?.data || [];
+    const count = dataArr[0]?.total?.count || 0;
+
+    const returned = all
+      .map(val => makePaymentRelatedPdct(
       val.paymentRelated as Required<IpaymentRelated>,
       val.invoiceRelated as Required<IinvoiceRelated>,
       (val.invoiceRelated as IinvoiceRelated)
         .billingUserId as unknown as Iuser,
       val
-    ));
-  const response: IdataArrayResponse = {
-    count: all[1],
-    data: returned
-  };
+      ));
+    const response: IdataArrayResponse<IpaymentRelated> = {
+      count,
+      data: returned
+    };
 
-  return res.status(200).send(response);
-});
+    for (const val of all) {
+      addParentToLocals(res, val._id, paymentMain.collection.collectionName, 'trackDataView');
+    }
 
-paymentRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('payments', 'delete'), async(req, res) => {
-  const { credentials } = req.body;
-  const { filter } = makeCompanyBasedQuery(req);
-
-  if (!credentials || credentials?.length < 1) {
-    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    return res.status(200).send(response);
   }
+);
 
-  /** await paymentMain
-    .deleteMany({ _id: { $in: ids } });**/
-  const promises = credentials
-    .map(async val => {
-      await deleteAllPayOrderLinked(val.paymentRelated, val.invoiceRelated, val.creationType, val.where, filter.companyId);
+paymentRoutes.put(
+  '/delete/many',
+  requireAuth,
+  requireActiveCompany,
+  roleAuthorisation('payments', 'delete'),
+  async(req: IcustomRequest<never, IdeleteMany>, res) => {
+    const { _ids } = req.body;
+    const { filter } = makeCompanyBasedQuery(req);
 
-      return new Promise(resolve => resolve(true));
-    });
+    const promises = _ids
+      .map(async _id => {
+        const found = await paymentLean.findOne({ _id });
 
-  await Promise.all(promises);
+        if (found) {
+          await deleteAllPayOrderLinked(
+            found.paymentRelated as string,
+            found.invoiceRelated as string,
+            'payment',
+            filter.companyId
+          );
+        }
 
-  for (const val of credentials) {
-    addParentToLocals(res, val.id, paymentMain.collection.collectionName, 'trackDataDelete');
+        return new Promise(resolve => resolve(found._id));
+      });
+
+
+    const filterdExist = await Promise.all(promises) as string[];
+
+    for (const val of filterdExist) {
+      addParentToLocals(res, val, paymentMain.collection.collectionName, 'trackDataDelete');
+    }
+
+    return res.status(200).send({ success: true });
   }
-
-  return res.status(200).send({ success: true });
-});
+);
 
 // get ipn
-paymentRoutes.get('/ipn', async(req, res) => {
+paymentRoutes.get('/ipn', async(req: IcustomRequest<never, null>, res) => {
   const currntUrl = new URL(req.url);
   // get access to URLSearchParams object
   const searchParams = currntUrl.searchParams;
@@ -404,48 +491,55 @@ paymentRoutes.get('/ipn', async(req, res) => {
 });
 
 
-paymentRoutes.get('/paymentstatus/:orderTrackingId/:paymentRelated', appendUserToReqIfTokenExist, async(req, res) => {
-  const { orderTrackingId } = req.params;
+paymentRoutes.get(
+  '/paymentstatus/:orderTrackingId/:paymentRelated',
+  appendUserToReqIfTokenExist,
+  async(req: IcustomRequest<never, null>, res) => {
+    const { orderTrackingId } = req.params;
 
-  if (!pesapalPaymentInstance) {
-    return res.status(403).send({ success: false, err: 'missing some info' });
+    if (!pesapalPaymentInstance) {
+      return res.status(403).send({ success: false, err: 'missing some info' });
+    }
+    const response = await pesapalPaymentInstance.getTransactionStatus(orderTrackingId);
+
+    if ((response as {success: boolean}).success) {
+      const resp = await updateInvoicerelatedStatus(res, orderTrackingId);
+
+      return res.status(200).send({ success: resp.success });
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return res.status(403).send({ success: (response as any).success, err: (response as any).err });
   }
-  const response = await pesapalPaymentInstance.getTransactionStatus(orderTrackingId);
+);
 
-  if ((response as {success: boolean}).success) {
-    const resp = await updateInvoicerelatedStatus(res, orderTrackingId);
 
-    return res.status(200).send({ success: resp.success });
+paymentRoutes.get(
+  '/subscriptiopaystatus/:orderTrackingId/:subscriptionId',
+  async(req: IcustomRequest<{ subscriptionId: string; orderTrackingId: string }, null>, res) => {
+    const { orderTrackingId } = req.params;
+
+    if (!pesapalPaymentInstance) {
+      return res.status(403).send({ success: false, err: 'missing some info' });
+    }
+    const response = await pesapalPaymentInstance.getTransactionStatus(orderTrackingId);
+
+    if ((response as {success: boolean}).success) {
+      const subscription = await companySubscriptionMain.findOne({ subscriptionId: req.params.subscriptionId });
+
+      subscription.active = true;
+      subscription.status = 'paid'; // TODO
+      await subscription.save();
+
+      // TODO update subscription no invoicerelated
+      // const resp = await updateInvoicerelatedStatus(orderTrackingId);
+      return res.status(200).send({ success: true });
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return res.status(403).send({ success: (response as any).success, err: (response as any).err });
   }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return res.status(403).send({ success: (response as any).success, err: (response as any).err });
-});
-
-
-paymentRoutes.get('/subscriptiopaystatus/:orderTrackingId/:subscriptionId', async(req, res) => {
-  const { orderTrackingId } = req.params;
-
-  if (!pesapalPaymentInstance) {
-    return res.status(403).send({ success: false, err: 'missing some info' });
-  }
-  const response = await pesapalPaymentInstance.getTransactionStatus(orderTrackingId);
-
-  if ((response as {success: boolean}).success) {
-    const subscription = await companySubscriptionMain.findOne({ subscriptionId: req.params.subscriptionId });
-
-    subscription.active = true;
-    subscription.status = 'paid'; // TODO
-    await subscription.save();
-
-    // TODO update subscription no invoicerelated
-    // const resp = await updateInvoicerelatedStatus(orderTrackingId);
-    return res.status(200).send({ success: true });
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return res.status(403).send({ success: (response as any).success, err: (response as any).err });
-});
+);
 
 export const updateInvoicerelatedStatus = async(res, orderTrackingId: string) => {
   const toUpdate = await invoiceRelatedMain

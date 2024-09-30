@@ -9,9 +9,9 @@ describe('EhttpController', () => {
     baseURL: 'https://yourapi.com',
     timeout: 1000,
     headers: {
-      // eslint-disable-next-line @typescript-eslint/naming-convention
+
       'X-Custom-Header': 'foobar',
-      // eslint-disable-next-line @typescript-eslint/naming-convention
+
       Authorization: 'auth-token'
     }
   });
@@ -61,7 +61,7 @@ describe('EhttpController', () => {
 
   it('should be able to make a PUT request', () => {
     const controller = EhttpController.create('https://example.com', 'token');
-    const observable = controller.makePut('/api/users/1', {
+    const observable = controller.makePut<Isuccess>('/api/users/1', {
       name: 'John Doe'
     });
 
@@ -70,7 +70,7 @@ describe('EhttpController', () => {
 
   it('should be able to make a POST request', () => {
     const controller = EhttpController.create('https://example.com', 'token');
-    const observable = controller.makePost('/api/users', {
+    const observable = controller.makePost<Isuccess>('/api/users', {
       name: 'John Doe'
     });
 
@@ -79,7 +79,7 @@ describe('EhttpController', () => {
 
   it('should be able to make a DELETE request', () => {
     const controller = EhttpController.create('https://example.com', 'token');
-    const observable = controller.makeDelete('/api/users/1');
+    const observable = controller.makeDelete<Isuccess>('/api/users/1');
 
     expect(observable).toBeDefined();
   });

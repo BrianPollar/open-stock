@@ -1,15 +1,14 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createStaffModel = exports.staffSelect = exports.staffLean = exports.staffMain = void 0;
-const tslib_1 = require("tslib");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
-const mongoose_1 = tslib_1.__importStar(require("mongoose"));
+const mongoose_1 = require("mongoose");
 const database_1 = require("../../utils/database");
 const uniqueValidator = require('mongoose-unique-validator');
 /** Defines the schema for the staff model. */
 const staffSchema = new mongoose_1.Schema({
     ...stock_universal_server_1.withUrIdAndCompanySchemaObj,
-    user: { type: mongoose_1.default.Types.ObjectId, unique: true, required: [true, 'cannot be empty.'], index: true },
+    user: { type: mongoose_1.Types.ObjectId, unique: true, required: [true, 'cannot be empty.'], index: true },
     startDate: { type: Date },
     endDate: { type: Date },
     occupation: { type: String },
@@ -52,10 +51,12 @@ const createStaffModel = async (dbUrl, dbOptions, main = true, lean = true) => {
         await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.staffMain = database_1.mainConnection.model('Staff', staffSchema);
+        exports.staffMain = database_1.mainConnection
+            .model('Staff', staffSchema);
     }
     if (lean) {
-        exports.staffLean = database_1.mainConnectionLean.model('Staff', staffSchema);
+        exports.staffLean = database_1.mainConnectionLean
+            .model('Staff', staffSchema);
     }
 };
 exports.createStaffModel = createStaffModel;

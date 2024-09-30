@@ -4,7 +4,8 @@ import { connectAuthDatabase, isAuthDbConnected, mainConnection, mainConnectionL
 /**
  * Represents a login attempt.
  */
-export interface IloginAttempts extends Document {
+export interface IloginAttempts
+extends Document {
 
   /**
    * The ID of the user attempting to login.
@@ -32,7 +33,7 @@ export interface IloginAttempts extends Document {
   createdAt: string;
 }
 
-const loginAtempsSchema: Schema<IloginAttempts> = new Schema({
+const loginAtempsSchema: Schema<IloginAttempts> = new Schema<IloginAttempts>({
   userId: { type: String, index: true },
   ip: { type: String, index: true },
   successful: { type: Boolean, default: true }
@@ -63,11 +64,13 @@ export const createLoginAtemptsModel = async(dbUrl: string, dbOptions?: ConnectO
   }
 
   if (main) {
-    loginAtempts = mainConnection.model<IloginAttempts>('loginAtempts', loginAtempsSchema);
+    loginAtempts = mainConnection
+      .model<IloginAttempts>('loginAtempts', loginAtempsSchema);
   }
 
   if (lean) {
-    loginAtemptsLean = mainConnectionLean.model<IloginAttempts>('loginAtempts', loginAtempsSchema);
+    loginAtemptsLean = mainConnectionLean
+      .model<IloginAttempts>('loginAtempts', loginAtempsSchema);
   }
 };
 

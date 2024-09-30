@@ -2,8 +2,10 @@ import {
   DatabaseAuto,
   IcostMeta,
   IdataArrayResponse,
+  IdeleteMany,
   Ifile,
   IfileMeta,
+  IfilterProps,
   IinventoryMeta, Iitem, Isponsored,
   IsubscriptionFeatureState,
   Isuccess,
@@ -13,256 +15,123 @@ import {
 import { lastValueFrom } from 'rxjs';
 import { StockCounterClient } from '../stock-counter-client';
 
-/**
- * Item class: This class represents an item object with properties and methods for manipulating item data.
- * It includes methods for searching items, getting items, adding items, updating items, deleting items,
- * adding and updating sponsored items, liking and unliking items, deleting images, and others.
- */
 export class Item extends DatabaseAuto {
-  /** Unique identifier for the user who created the item. */
   urId: string;
-
-  /** The user's company ID. */
   companyId: string;
-
-  /** The number of items in stock. */
   numbersInstock: number;
-
-  /** The name of the item. */
   name: string;
-
-  /** The brand of the item. */
   brand: string;
-
-  /** The category of the item. */
   category?: string;
-
   subCategory?: string;
-
-  /** The state of the item. */
   state?: TitemState;
-
-  /** The colors of the item. */
   colors?: TitemColor[];
-
-  /** The model of the item. */
   model?: string;
-
-  /** The country of origin of the item. */
   origin?: string;
-
-  /** The cost metadata of the item. */
   costMeta: IcostMeta;
-
-  /** The description of the item. */
   description?: string;
-
-  /** The inventory metadata of the item. */
   inventoryMeta: IinventoryMeta[];
-
-  /** The photos of the item. */
   photos?: IfileMeta[] = [];
   video?: IfileMeta;
-
-  /** Any known problems with the item. */
   anyKnownProblems?: string;
-
-  /** The number of items bought. */
   numberBought?: number;
-
-  /** The sponsored items of the item. */
   sponsored?: Isponsored[];
-
-  /** The buyer guarantee of the item. */
   buyerGuarantee?: string;
-
-  /** The users who reviewed the item. */
   reviewedBy?: string[];
-
-  /** The number of reviews of the item. */
   reviewCount?: number;
-
-  /** The weight of the reviews of the item. */
   reviewWeight?: number;
-
-  /** The users who liked the item. */
   likes?: string[];
-
-  /** The number of likes of the item. */
   likesCount?: number;
-
-  /** The number of times the item has been viewed. */
   timesViewed?: number;
-
-  /** The quantity of the item ordered. */
   orderedQty = 1;
-
-  /** The total rating of the item. */
   reviewRatingsTotal?;
-
-  /**
-   * Creates an instance of Item.
-   * @param data The data to initialize the item with.
-   */
   ecomerceCompat: boolean;
-
   soldCount = 0;
 
-  /**
-   * Represents the constructor of the Item class.
-   * @param data - The data used to initialize the Item instance.
-   */
-  constructor(data) {
+  constructor(data: Iitem) {
     super(data);
     this.appndPdctCtror(data);
   }
 
-  /**
-   * Searches for items.
-   * @param companyId - The ID of the company
-   * @param type The type of the item.
-   * @param searchterm The search term.
-   * @param searchKey The search key.
-   * @param extraFilters Additional filters.
-   * @returns An array of items that match the search criteria.
-   */
-  static async searchItems(
-    companyId: string,
-    searchterm: string,
-    searchKey: string,
-    extraFilters,
-    category = 'all',
-    subCategory?: string,
+  static async filterAll(filter: IfilterProps) {
+    const observer$ = StockCounterClient.ehttp
+      .makePost<IdataArrayResponse<Item>>('/item/filter', filter);
+    const items = await lastValueFrom(observer$);
+
+    return {
+      count: items.count,
+      items: items.data
+        .map(val => new Item(val as Iitem)) };
+  }
+
+  static async getAll(
+    route: 'all' | 'gettodaysuggestions' | 'getbehaviourdecoy' | 'getfeatured',
     offset = 0,
     limit = 20,
     ecomerceCompat: 'false' | 'true' = 'false'
   ) {
     const observer$ = StockCounterClient.ehttp
-      .makePost(`/item/search/${offset}/${limit}/${companyId}`, { searchterm, searchKey, category, extraFilters, subCategory, ecomerceCompat });
-    const items = await lastValueFrom(observer$) as IdataArrayResponse;
+      .makeGet<IdataArrayResponse<Item>>(`/item/${route}/${offset}/${limit}/${ecomerceCompat}`);
+    const items = await lastValueFrom(observer$);
 
     return {
       count: items.count,
       items: items.data
-        .map(val => new Item(val)) };
+        .map(val => new Item(val as Iitem)) };
   }
 
-  /**
-   * Gets items.
-   * @param companyId - The ID of the company
-   * @param url The URL to get the items from.
-   * @param offset The offset to start getting items from.
-   * @param limit The maximum number of items to get.
-   * @returns An array of items.
-   */
-  static async getItems(
-    companyId: string,
-    url: string,
-    offset = 0,
-    limit = 20,
-    ecomerceCompat: 'false' | 'true' = 'false'
-  ) {
+  static async getOne(urId: string) {
     const observer$ = StockCounterClient.ehttp
-      .makeGet(`${url}/${offset}/${limit}/${companyId}/${ecomerceCompat}`);
-    const items = await lastValueFrom(observer$) as IdataArrayResponse;
-
-    return {
-      count: items.count,
-      items: items.data
-        .map(val => new Item(val)) };
-  }
-
-  /**
-   * Gets a single item.
-   * @param companyId - The ID of the company
-   * @param url The URL to get the item from.
-   * @returns The item.
-   */
-  static async getOneItem(
-    companyId: string,
-    url: string
-  ) {
-    const observer$ = StockCounterClient.ehttp
-      .makeGet(`${url}/${companyId}`);
+      .makeGet<Iitem>(`/item/one/${urId}`);
     const item = await lastValueFrom(observer$);
 
     return new Item(item);
   }
 
-  /**
-   * Adds an item.
-   * @param companyId - The ID of the company
-   * @param vals The values to add the item with.
-   * @param files The files to add to the item.
-   * @param inventoryStock Whether the item is in inventory stock.
-   * @returns The success status of adding the item.
-   */
-  static async addItem(
-    companyId: string,
-    vals: object,
+  static async add(
+    vals: Partial<Iitem>,
     files: Ifile[],
     ecomerceCompat = false
   ) {
     let added: IsubscriptionFeatureState;
-    const details = {
+    const body = {
       item: vals
     };
 
     if (ecomerceCompat) {
       const observer$ = StockCounterClient.ehttp
-        .uploadFiles(
+        .uploadFiles<IsubscriptionFeatureState>(
           files,
-          `/item/createimg/${companyId}`,
-          details
+          '/item/add/img',
+          body
         );
 
-      added = await lastValueFrom(observer$) as IsubscriptionFeatureState;
+      added = await lastValueFrom(observer$) ;
     } else {
       const observer$ = StockCounterClient.ehttp
-        .makePost(`/item/create/${companyId}`, details);
+        .makePost<IsubscriptionFeatureState>('/item/add', body);
 
-      added = await lastValueFrom(observer$) as IsubscriptionFeatureState;
+      added = await lastValueFrom(observer$);
     }
 
     return added;
   }
 
-  /**
-   * Deletes items.
-   * @param companyId - The ID of the company
-   * @param ids The IDs of the items to delete.
-   * @param filesWithDir The files to delete with their directories.
-   * @param url The URL to delete the items from.
-   * @returns The success status of deleting the items.
-   */
-  static async deleteItems(
-    companyId: string,
-    ids: string[],
-    filesWithDir: IfileMeta[],
-    url: string
+  static removeMany(
+    url: string,
+    vals: IdeleteMany
   ) {
     const observer$ = StockCounterClient.ehttp
-      .makePut(`${url}/${companyId}`, { ids, filesWithDir });
+      .makePut<Isuccess>(`${url}`, vals);
 
-    return await lastValueFrom(observer$) as Isuccess;
+    return lastValueFrom(observer$);
   }
 
-  /**
-   * Updates an item.
-   * @param companyId - The ID of the company
-   * @param vals The values to update the item with.
-   * @param url The URL to update the item from.
-   * @param files The files to update the item with.
-   * @returns The success status of updating the item.
-   */
-  async updateItem(
-    companyId: string,
-    vals: object,
-    url: string,
+  async update(
+    vals: Partial<Iitem>,
     files?: Ifile[]
   ) {
     let updated: Isuccess;
-    const details = {
+    const body = {
       item: {
         _id: this._id,
         ...vals
@@ -271,38 +140,30 @@ export class Item extends DatabaseAuto {
 
     if (files && files.length > 0) {
       const observer$ = StockCounterClient.ehttp
-        .uploadFiles(
+        .uploadFiles<Isuccess>(
           files,
-          `/item/updateimg/${companyId}`,
-          details
+          '/item/update/img',
+          body
         );
 
-      updated = await lastValueFrom(observer$) as Isuccess;
+      updated = await lastValueFrom(observer$);
     } else {
       const observer$ = StockCounterClient.ehttp
-        .makePut(`${url}/${companyId}`, details);
+        .makePut<Isuccess>('/item/update', body);
 
-      updated = await lastValueFrom(observer$) as Isuccess;
+      updated = await lastValueFrom(observer$);
     }
 
     return updated;
   }
 
-  /**
-   * Makes an item sponsored.
-   * @param companyId - The ID of the company
-   * @param sponsored The sponsored item.
-   * @param item The item to make sponsored.
-   * @returns The success status of making the item sponsored.
-   */
-  async makeSponsored(
-    companyId: string,
+  async addSponsored(
     sponsored: Isponsored,
     item: Item
   ) {
     const observer$ = StockCounterClient.ehttp
-      .makePut(`/item/addsponsored/${this._id}/${companyId}`, { sponsored });
-    const added = await lastValueFrom(observer$) as Isuccess;
+      .makePut<Isuccess>(`/item/sponsored/add/${this._id}`, sponsored);
+    const added = await lastValueFrom(observer$);
 
     if (added.success) {
       if (!this.sponsored) {
@@ -314,16 +175,10 @@ export class Item extends DatabaseAuto {
     return added;
   }
 
-  /**
-   * Updates a sponsored item.
-   * @param companyId - The ID of the company
-   * @param sponsored The sponsored item to update.
-   * @returns The success status of updating the sponsored item.
-   */
-  async updateSponsored(companyId: string, sponsored: Isponsored) {
+  async updateSponsored(sponsored: Isponsored) {
     const observer$ = StockCounterClient.ehttp
-      .makePut(`/item/updatesponsored/${this._id}/${companyId}`, { sponsored });
-    const updated = await lastValueFrom(observer$) as Isuccess;
+      .makePut<Isuccess>(`/item/sponsored/update/${this._id}`, sponsored);
+    const updated = await lastValueFrom(observer$);
 
     if (updated.success) {
       const found = this.sponsored
@@ -337,16 +192,10 @@ export class Item extends DatabaseAuto {
     return updated;
   }
 
-  /**
-   * Deletes a sponsored item.
-   * @param companyId - The ID of the company
-   * @param itemId The ID of the item to delete.
-   * @returns The success status of deleting the sponsored item.
-   */
-  async deleteSponsored(companyId: string, itemId: string) {
+  async removeSponsored(itemId: string) {
     const observer$ = StockCounterClient.ehttp
-      .makeDelete(`/item/deletesponsored/${this._id}/${itemId}/${companyId}`);
-    const deleted = await lastValueFrom(observer$) as Isuccess;
+      .makeDelete<Isuccess>(`/item/sponsored/delete/${this._id}/${itemId}`);
+    const deleted = await lastValueFrom(observer$);
 
     if (deleted.success) {
       const found = this.sponsored.find(sponsd => (sponsd.item as unknown as Item)._id === itemId);
@@ -361,33 +210,26 @@ export class Item extends DatabaseAuto {
     return deleted;
   }
 
-  /**
-   * Retrieves sponsored items for a given company.
-   * @param companyId - The ID of the company.
-   * @returns A Promise that resolves to an array of sponsored items.
-   */
-  async getSponsored(companyId: string) {
+  async getSponsored() {
     const mappedIds = this.sponsored.map(val =>(val.item as unknown as Item)._id || val.item);
     const observer$ = StockCounterClient.ehttp
-      .makePost(`/item/getsponsored/${companyId}`, { sponsored: mappedIds || [] });
-    const items = await lastValueFrom(observer$) as IdataArrayResponse;
+      .makePost<IdataArrayResponse<Iitem>>('/item/sponsored/get', { _ids: mappedIds || [] });
+    const items = await lastValueFrom(observer$);
 
     return this.sponsored
       .map(sponsrd => {
-        sponsrd.item = new Item(items.data.find(val => (val as Item)._id === (sponsrd.item as unknown as Item)._id || sponsrd.item)) as unknown as Iitem;
+        sponsrd.item = new Item(items
+          .data
+          .find(val => {
+            return (val as Item)._id === (sponsrd.item as unknown as Item)._id || sponsrd.item;
+          })) as unknown as Iitem;
       });
   }
 
-  /**
-   * Likes an item.
-   * @param companyId - The ID of the company.
-   * @param userId - The ID of the user.
-   * @returns A promise that resolves to the updated item.
-   */
-  async likeItem(companyId: string, userId: string) {
+  async like(userId: string) {
     const observer$ = StockCounterClient.ehttp
-      .makePut(`/item/like/${this._id}/${companyId}`, {});
-    const updated = await lastValueFrom(observer$) as Isuccess;
+      .makePut<Isuccess>(`/item/like/${this._id}`, {});
+    const updated = await lastValueFrom(observer$);
 
     this.likes.push(userId);
     this.likesCount++;
@@ -395,16 +237,10 @@ export class Item extends DatabaseAuto {
     return updated;
   }
 
-  /**
-   * Unlikes an item by removing the user's like from the item's likes array.
-   * @param companyId - The ID of the company associated with the item.
-   * @param userId - The ID of the user who unliked the item.
-   * @returns A promise that resolves to the updated item.
-   */
-  async unLikeItem(companyId: string, userId: string) {
+  async unLike(userId: string) {
     const observer$ = StockCounterClient.ehttp
-      .makePut(`/item/unlike/${this._id}/${companyId}`, {});
-    const updated = await lastValueFrom(observer$) as Isuccess;
+      .makePut<Isuccess>(`/item/unlike/${this._id}`, {});
+    const updated = await lastValueFrom(observer$);
 
     this.likes = this.likes.filter(val => val !== userId);
     this.likesCount--;
@@ -412,31 +248,20 @@ export class Item extends DatabaseAuto {
     return updated;
   }
 
-  /**
-   * Deletes an item associated with a company.
-   * @param companyId - The ID of the company.
-   * @returns A promise that resolves to the success response.
-   */
-  async deleteItem(companyId: string) {
+  remove() {
     const filesWithDir = this.photos
       .map(val => ({ filename: val }));
 
     const observer$ = StockCounterClient.ehttp
-      .makePut(`/item/deleteone/${this._id}/${companyId}`, { filesWithDir });
+      .makePut<Isuccess>(`/item/delete/one/${this._id}`, { filesWithDir });
 
-    return await lastValueFrom(observer$) as Isuccess;
+    return lastValueFrom(observer$);
   }
 
-  /**
-   * Deletes images associated with an item.
-   * @param companyId - The ID of the company.
-   * @param filesWithDir - An array of file metadata objects.
-   * @returns A promise that resolves to the success status of the deletion.
-   */
-  async deleteFiles(companyId: string, filesWithDir: IfileMeta[]) {
+  async removeFiles(filesWithDir: IfileMeta[]) {
     const observer$ = StockCounterClient.ehttp
-      .makePut(`/item/deletefiles/${companyId}`, { filesWithDir, item: { _id: this._id } });
-    const deleted = await lastValueFrom(observer$) as Isuccess;
+      .makePut<Isuccess>('/item/deletefiles', { filesWithDir, item: { _id: this._id } });
+    const deleted = await lastValueFrom(observer$);
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     const toStrings = filesWithDir.map(val => val._id);
 
@@ -452,7 +277,7 @@ export class Item extends DatabaseAuto {
    * Updates the properties of the item based on the provided data.
    * @param {object} data - The data containing the properties to update.
    */
-  appndPdctCtror(data) {
+  appndPdctCtror(data: Iitem) {
     this.urId = data.urId;
     this.companyId = data.companyId || this.companyId;
     this.numbersInstock = data.numbersInstock || this.numbersInstock;
@@ -478,8 +303,8 @@ export class Item extends DatabaseAuto {
     this.brand = data.brand || this.brand;
     this.category = data.category || this.category;
     this.state = data.state || this.state;
-    this.photos = data.photos || this.photos;
-    this.video = data.video || this.video;
+    this.photos = data.photos as IfileMeta[] || this.photos;
+    this.video = data.video as IfileMeta || this.video;
     this.colors = data.colors || this.colors;
     this.model = data.model || this.model;
     this.origin = data.origin || this.origin;

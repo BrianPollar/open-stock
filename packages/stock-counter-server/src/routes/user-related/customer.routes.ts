@@ -1,23 +1,32 @@
 
 import {
-  addUser, populateTrackEdit, populateTrackView, requireActiveCompany, requireCanUseFeature, requireUpdateSubscriptionRecord, updateUserBulk
+  addUser, determineUserToRemove, determineUsersToRemove, populateTrackEdit,
+  populateTrackView, removeManyUsers, removeOneUser, requireActiveCompany,
+  requireCanUseFeature, requireUpdateSubscriptionRecord, updateUserBulk
 } from '@open-stock/stock-auth-server';
-import { IdataArrayResponse, Isuccess } from '@open-stock/stock-universal';
+import {
+  IcustomRequest, IdataArrayResponse,
+  IdeleteMany,
+  IeditCustomer,
+  IfilterAggResponse, IfilterProps, Isuccess
+} from '@open-stock/stock-universal';
 import {
   addParentToLocals,
-  appendBody, makeCompanyBasedQuery, makeUrId, offsetLimitRelegator,
+  appendBody, constructFiltersFromBody,
+  generateUrId,
+  lookupSubFieldUserFilter, makeCompanyBasedQuery, offsetLimitRelegator,
   requireAuth,
   roleAuthorisation,
   saveMetaToDb,
   stringifyMongooseErr, uploadFiles, verifyObjectIds
 } from '@open-stock/stock-universal-server';
-import express from 'express';
+import express, { NextFunction, Response } from 'express';
 import * as fs from 'fs';
 import path from 'path';
 import * as tracer from 'tracer';
+import { invoiceRelatedLean } from '../../models/printables/related/invoicerelated.model';
 import { Tcustomer, customerLean, customerMain } from '../../models/user-related/customer.model';
 import { populateUser } from '../../utils/query';
-import { removeManyUsers, removeOneUser } from './locluser.routes';
 
 /** Logger for customer routes */
 const customerRoutesLogger = tracer.colorConsole({
@@ -55,19 +64,18 @@ const customerRoutesLogger = tracer.colorConsole({
    * @param {NextFunction} next - The express next function.
    * @returns {Promise} - Promise representing the saved customer
    */
-export const addCustomer = async(req, res, next) => {
+export const addCustomer = async(
+  req: IcustomRequest<never, IeditCustomer>,
+  res: Response,
+  next: NextFunction
+) => {
   const { filter } = makeCompanyBasedQuery(req);
+  const { customer, user } = req.body;
 
-  const customer = req.body.customer;
-  const savedUser = req.body.savedUser;
-
-  customer.user = savedUser._id;
+  customer.user = user._id;
   customer.companyId = filter.companyId;
 
-  const count = await customerMain
-    .find({ }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 }) as unknown as Tcustomer;
-
-  customer.urId = makeUrId(Number(count[0]?.urId || '0'));
+  customer.urId = await generateUrId(customerMain);
   const newCustomer = new customerMain(customer);
   let errResponse: Isuccess;
 
@@ -109,7 +117,7 @@ export const addCustomer = async(req, res, next) => {
 
 /**
    * Updates a customer by ID.
-   * @name PUT /updateone/:companyIdParam
+   * @name PUT /updateone
    * @function
    * @memberof module:customerRoutes
    * @inner
@@ -117,7 +125,7 @@ export const addCustomer = async(req, res, next) => {
    * @param {callback} middleware - Express middleware
    * @returns {Promise} - Promise representing the update result
    */
-export const updateCustomer = async(req, res) => {
+export const updateCustomer = async(req: IcustomRequest<never, IeditCustomer>, res) => {
   const updatedCustomer = req.body.customer;
   const { filter } = makeCompanyBasedQuery(req);
 
@@ -173,197 +181,234 @@ export const updateCustomer = async(req, res) => {
  */
 export const customerRoutes = express.Router();
 
-/**
- * Route for creating a new customer.
- * @name POST /create
- * @function
- * @memberof module:customerRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- * @param {callback} middleware - Express middleware
- * @returns {Promise} - Promise representing the HTTP response
- */
-customerRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('customer'), roleAuthorisation('users', 'create'), addUser, addCustomer, requireUpdateSubscriptionRecord('customer'));
+customerRoutes.post(
+  '/add',
+  requireAuth,
+  requireActiveCompany,
+  requireCanUseFeature('customer'),
+  roleAuthorisation('users', 'create'),
+  addUser,
+  addCustomer,
+  requireUpdateSubscriptionRecord('customer')
+);
 
-/**
- * Route for creating a new customer.
- * @name POST /create
- * @function
- * @memberof module:customerRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- * @param {callback} middleware - Express middleware
- * @returns {Promise} - Promise representing the HTTP response
- */
-customerRoutes.post('/createimg/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('customer'), roleAuthorisation('users', 'create'), uploadFiles, appendBody, saveMetaToDb, addUser, addCustomer, requireUpdateSubscriptionRecord('customer'));
+customerRoutes.post(
+  '/add/img',
+  requireAuth,
+  requireActiveCompany,
+  requireCanUseFeature('customer'),
+  roleAuthorisation('users', 'create'),
+  uploadFiles,
+  appendBody,
+  saveMetaToDb,
+  addUser,
+  addCustomer,
+  requireUpdateSubscriptionRecord('customer')
+);
 
-/**
- * Route for getting a single customer by ID.
- * @name GET /getone/:id
- * @function
- * @memberof module:customerRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- * @returns {Promise} - Promise representing the HTTP response
- */
-customerRoutes.post('/getone/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('customers', 'read'), async(req, res) => {
-  const { id, userId } = req.body;
-  const { filter } = makeCompanyBasedQuery(req);
-  let filter2 = {};
+customerRoutes.post(
+  '/one',
+  requireAuth,
+  requireActiveCompany,
+  roleAuthorisation('customers', 'read'),
+  async(req: IcustomRequest<never, { _id: string; userId: string}>, res) => {
+    const { _id, userId } = req.body;
+    const { filter } = makeCompanyBasedQuery(req);
+    let filter2 = {};
 
-  if (id) {
-    const isValid = verifyObjectIds([id]);
+    if (_id) {
+      const isValid = verifyObjectIds([_id]);
 
-    if (!isValid) {
-      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+      if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+      }
+      filter2 = { ...filter2, _id };
     }
-    filter2 = { ...filter2, _id: id };
-  }
 
-  /* if (queryId) {
+    /* if (companyId) {
     filter = { ...filter, ...filter };
   } */
-  if (userId) {
-    const isValid = verifyObjectIds([userId]);
+    if (userId) {
+      const isValid = verifyObjectIds([userId]);
 
-    if (!isValid) {
-      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+      if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+      }
+      filter2 = { ...filter2, user: userId };
     }
-    filter2 = { ...filter2, user: userId };
-  }
-  const customer = await customerLean
-    .findOne({ ...filter2, ...filter })
-    .populate([populateUser(), populateTrackEdit(), populateTrackView()])
-    .lean();
-
-  if (customer) {
-    addParentToLocals(res, customer._id, customerMain.collection.collectionName, 'trackDataView');
-  }
-
-  return res.status(200).send(customer);
-});
-
-/**
- * Route for getting all customers with pagination.
- * @name GET /getall/:offset/:limit
- * @function
- * @memberof module:customerRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- * @returns {Promise} - Promise representing the HTTP response
- */
-customerRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('customers', 'read'), async(req, res) => {
-  const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
-  const { filter } = makeCompanyBasedQuery(req);
-  const all = await Promise.all([
-    customerLean
-      .find({ ...filter })
+    const customer = await customerLean
+      .findOne({ ...filter2, ...filter })
       .populate([populateUser(), populateTrackEdit(), populateTrackView()])
-      .skip(offset)
-      .limit(limit)
-      .lean(),
-    customerLean.countDocuments({ ...filter })
-  ]);
-  const response: IdataArrayResponse = {
-    count: all[1],
-    data: all[0]
-  };
+      .lean();
 
-  for (const val of all[0]) {
-    addParentToLocals(res, val._id, customerMain.collection.collectionName, 'trackDataView');
+    if (!customer) {
+      return res.status(404).send({ success: false, err: 'not found' });
+    }
+
+    addParentToLocals(res, customer._id, customerMain.collection.collectionName, 'trackDataView');
+
+    return res.status(200).send(customer);
   }
+);
 
-  return res.status(200).send(response);
-});
+customerRoutes.get(
+  '/all/:offset/:limit',
+  requireAuth,
+  requireActiveCompany,
+  roleAuthorisation('customers', 'read'),
+  async(req: IcustomRequest<{ offset: string; limit: string }, null>, res) => {
+    const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
+    const { filter } = makeCompanyBasedQuery(req);
+    const all = await Promise.all([
+      customerLean
+        .find({ ...filter })
+        .populate([populateUser(), populateTrackEdit(), populateTrackView()])
+        .skip(offset)
+        .limit(limit)
+        .lean(),
+      customerLean.countDocuments({ ...filter })
+    ]);
+    const response: IdataArrayResponse<Tcustomer> = {
+      count: all[1],
+      data: all[0]
+    };
 
-/**
- * Route for updating a customer.
- * @name PUT /update
- * @function
- * @memberof module:customerRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- * @param {callback} middleware - Express middleware
- * @returns {Promise} - Promise representing the HTTP response
- */
-customerRoutes.put('/update/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('customers', 'update'), updateUserBulk, updateCustomer);
+    for (const val of all[0]) {
+      addParentToLocals(res, val._id, customerMain.collection.collectionName, 'trackDataView');
+    }
 
-customerRoutes.post('/updateimg/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('customers', 'update'), uploadFiles, appendBody, saveMetaToDb, updateUserBulk, updateCustomer);
-
-/**
- * Route for deleting a single customer.
- * @name PUT /deleteone
- * @function
- * @memberof module:customerRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- * @param {callback} middleware - Express middleware
- * @param {callback} middleware - Express middleware
- * @returns {Promise} - Promise representing the HTTP response
- */
-customerRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('customers', 'delete'), removeOneUser('customer'), async(req, res) => {
-  const { id } = req.body;
-  const { filter } = makeCompanyBasedQuery(req);
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  // const deleted = await customerMain.findOneAndDelete({ _id: id, ...filter });
-  const deleted = await customerMain.updateOne({ _id: id, ...filter }, { $set: { isDeleted: true } }, { $set: { isDeleted: true } });
-
-  if (Boolean(deleted)) {
-    addParentToLocals(res, id, customerMain.collection.collectionName, 'trackDataDelete');
-
-    return res.status(200).send({ success: Boolean(deleted) });
-  } else {
-    return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
+    return res.status(200).send(response);
   }
-});
+);
 
-/**
- * Route for deleting multiple customers.
- * @name PUT /deletemany
- * @function
- * @memberof module:customerRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- * @param {callback} middleware - Express middleware
- * @param {callback} middleware - Express middleware
- * @returns {Promise} - Promise representing the HTTP response
- */
-customerRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('customers', 'delete'), removeManyUsers('staff'), async(req, res) => {
-  const { ids } = req.body;
-  const { filter } = makeCompanyBasedQuery(req);
+customerRoutes.post(
+  '/filter',
+  requireAuth,
+  requireActiveCompany,
+  roleAuthorisation('customers', 'read'),
+  async(req: IcustomRequest<never, IfilterProps>, res) => {
+    const { propSort } = req.body;
+    const { offset, limit } = offsetLimitRelegator(req.body.offset, req.body.limit);
 
-  /* const deleted = await customerMain
-    .deleteMany({ ...filter, _id: { $in: ids } })
+    const aggCursor = customerLean
+      .aggregate<IfilterAggResponse<Tcustomer>>([
+        ...lookupSubFieldUserFilter(constructFiltersFromBody(req), propSort, offset, limit)
+      ]);
+    const dataArr: IfilterAggResponse<Tcustomer>[] = [];
+
+    for await (const data of aggCursor) {
+      dataArr.push(data);
+    }
+
+    const all = dataArr[0]?.data || [];
+    const count = dataArr[0]?.total?.count || 0;
+
+    const staffsToReturn = all.filter(val => val.user);
+    const response: IdataArrayResponse<Tcustomer> = {
+      count,
+      data: staffsToReturn
+    };
+
+    for (const val of staffsToReturn) {
+      addParentToLocals(res, val._id, customerMain.collection.collectionName, 'trackDataView');
+    }
+
+    return res.status(200).send(response);
+  }
+);
+
+customerRoutes.put(
+  '/update',
+  requireAuth,
+  requireActiveCompany,
+  roleAuthorisation('customers', 'update'),
+  updateUserBulk,
+  updateCustomer
+);
+
+customerRoutes.post(
+  '/update/img',
+  requireAuth,
+  requireActiveCompany,
+  roleAuthorisation('customers', 'update'),
+  uploadFiles,
+  appendBody,
+  saveMetaToDb,
+  updateUserBulk,
+  updateCustomer
+);
+
+customerRoutes.put(
+  '/delete/one',
+  requireAuth,
+  requireActiveCompany,
+  roleAuthorisation('customers', 'delete'),
+  determineUserToRemove(customerLean, [{
+    model: invoiceRelatedLean,
+    field: 'billingUserId',
+    errMsg: 'user has an invoice an could not be removed, consider removing invoice first'
+  }]),
+  removeOneUser,
+  async(req: IcustomRequest<never, { _id: string}>, res) => {
+    const { _id } = req.body;
+    const { filter } = makeCompanyBasedQuery(req);
+
+    // const deleted = await customerMain.findOneAndDelete({ _id, ...filter });
+    const deleted = await customerMain
+      .updateOne({ _id, ...filter }, { $set: { isDeleted: true } }, { $set: { isDeleted: true } });
+
+    if (Boolean(deleted)) {
+      addParentToLocals(res, _id, customerMain.collection.collectionName, 'trackDataDelete');
+
+      return res.status(200).send({ success: Boolean(deleted) });
+    } else {
+      return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
+    }
+  }
+);
+
+customerRoutes.put(
+  '/delete/many',
+  requireAuth,
+  requireActiveCompany,
+  roleAuthorisation('customers', 'delete'),
+  determineUsersToRemove(customerLean, [{
+    model: invoiceRelatedLean,
+    field: 'billingUserId',
+    errMsg: 'user has an invoice an could not be removed, consider removing invoice first'
+  }]),
+  removeManyUsers,
+  async(req: IcustomRequest<never, IdeleteMany>, res) => {
+    const { _ids } = req.body;
+    const { filter } = makeCompanyBasedQuery(req);
+
+    /* const deleted = await customerMain
+    .deleteMany({ ...filter, _id: { $in: _ids } })
     .catch(err => {
       customerRoutesLogger.error('deletemany - err: ', err);
 
       return null;
     }); */
 
-  const deleted = await customerMain
-    .updateMany({ ...filter, _id: { $in: ids } }, {
-      $set: { isDeleted: true }
-    })
-    .catch(err => {
-      customerRoutesLogger.error('deletemany - err: ', err);
+    const deleted = await customerMain
+      .updateMany({ ...filter, _id: { $in: _ids } }, {
+        $set: { isDeleted: true }
+      })
+      .catch(err => {
+        customerRoutesLogger.error('deletemany - err: ', err);
 
-      return null;
-    });
+        return null;
+      });
 
-  if (Boolean(deleted)) {
-    for (const val of ids) {
-      addParentToLocals(res, val, customerMain.collection.collectionName, 'trackDataDelete');
+    if (Boolean(deleted)) {
+      for (const val of _ids) {
+        addParentToLocals(res, val, customerMain.collection.collectionName, 'trackDataDelete');
+      }
+
+      return res.status(200).send({ success: Boolean(deleted) });
+    } else {
+      return res.status(404).send({
+        success: Boolean(deleted), err: 'could not delete selected items, try again in a while' });
     }
-
-    return res.status(200).send({ success: Boolean(deleted) });
-  } else {
-    return res.status(404).send({ success: Boolean(deleted), err: 'could not delete selected items, try again in a while' });
   }
-});
+);

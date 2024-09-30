@@ -47,7 +47,10 @@ export class PaymentController {
 
       for (const j of alteredData) {
         if (j.item.costMeta.offer) {
-          j.totalCostwithNoShipping = StockCounterClient.calcCtrl.calculateFromDiscount(j.item.costMeta.sellingPrice, j.item.costMeta.discount) * j.quantity;
+          j.totalCostwithNoShipping = StockCounterClient.calcCtrl.calculateFromDiscount(
+            j.item.costMeta.sellingPrice,
+            j.item.costMeta.discount
+          ) * j.quantity;
           res += j.totalCostwithNoShipping;
         } else {
           j.totalCostwithNoShipping = j.item.costMeta.sellingPrice * j.quantity;
@@ -127,10 +130,10 @@ export class PaymentController {
    * @param isDemo - A boolean indicating whether the method is being called for demo purposes.
    * @returns An array of DeliveryCity objects representing the available delivery cities.
    */
-  async getDeliveryCitys(companyId: string, deliveryCitys: DeliveryCity[], address?: Iaddress, isDemo = false) {
+  async getDeliveryCitys(deliveryCitys: DeliveryCity[], address?: Iaddress, isDemo = false) {
     if (!deliveryCitys?.length) {
       const { citys } = await DeliveryCity
-        .getDeliveryCitys(companyId);
+        .getAll();
 
       deliveryCitys = citys;
       if (!address) {
@@ -149,16 +152,17 @@ export class PaymentController {
 
   /**
    * Determines the current city based on the address provided.
-   * It calls the getDeliveryCitys method to retrieve the delivery cities and sets the current city based on the address.
+   * It calls the getDeliveryCitys method to retrieve the delivery
+   * cities and sets the current city based on the address.
    * It also calculates the estimated delivery date based on the current city's deliversInDays property.
    * The method returns the estimated delivery date.
    * @param deliveryCitys - An array of DeliveryCity objects representing the available delivery cities.
    * @param addr - The Iaddress object representing the delivery address.
    * @returns The estimated delivery date.
    */
-  async determineCity(companyId: string, deliveryCitys: DeliveryCity[], addr: Iaddress) {
+  async determineCity(deliveryCitys: DeliveryCity[], addr: Iaddress) {
     StockCounterClient.logger.debug('PaymentController:determineCity:: - addr', addr);
-    await this.getDeliveryCitys(companyId, deliveryCitys, addr);
+    await this.getDeliveryCitys(deliveryCitys, addr);
     this.currentCity = deliveryCitys.find(val => val._id === addr.city);
     const date = new Date();
     const deliversInDays = this.currentCity.deliversInDays;

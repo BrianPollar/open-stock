@@ -2,7 +2,6 @@ import { createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, 
 import { Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
-/** Mongoose schema for the item model */
 const itemSchema = new Schema({
     ...withUrIdAndCompanySchemaObj,
     numbersInstock: { type: Number, required: [true, 'cannot be empty.'], index: true },
@@ -100,10 +99,12 @@ export const createItemModel = async (dbUrl, dbOptions, main = true, lean = true
         await connectStockDatabase(dbUrl, dbOptions);
     }
     if (main) {
-        itemMain = mainConnection.model('Item', itemSchema);
+        itemMain = mainConnection
+            .model('Item', itemSchema);
     }
     if (lean) {
-        itemLean = mainConnectionLean.model('Item', itemSchema);
+        itemLean = mainConnectionLean
+            .model('Item', itemSchema);
     }
 };
 //# sourceMappingURL=item.model.js.map

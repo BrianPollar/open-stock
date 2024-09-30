@@ -1,5 +1,6 @@
 /**
- * @fileoverview This file contains interfaces related to inventory management, such as invoices, expenses, quotations, job cards, receipts, reports, and invoice settings.
+ * @fileoverview This file contains interfaces related to inventory management,
+ * such as invoices, expenses, quotations, job cards, receipts, reports, and invoice settings.
  * @packageDocumentation
  */
 
@@ -17,7 +18,8 @@ import { Iitem } from './item.interface';
 /**
  * Represents an invoice.
  */
-export interface Iinvoice extends IinvoiceRelated {
+export interface Iinvoice
+extends IinvoiceRelated, IurId {
   estimateId: number;
   dueDate: Date;
 }
@@ -133,7 +135,7 @@ extends IurId, ItrackStamp {
 
 /** Represents an estimate. */
 export interface Iestimate
-extends IinvoiceRelated {
+extends IinvoiceRelated, IurId {
   estimateId: number;
 }
 
@@ -178,7 +180,8 @@ export interface IexpenseInvoiceId {
 
 /** Represents an invoice-related reference. */
 export interface IinvoiceRelatedRef
-extends ItrackStamp {
+extends ItrackStamp, IdatabaseAuto {
+  urId?: string;
   payType?: TpayType;
   companyId?: string;
   invoiceRelated: string | IinvoiceRelated;
@@ -192,29 +195,34 @@ extends IurId, ItrackStamp, IcurrencyProp {
 }
 
 /** Represents an expense report. */
-export interface IexpenseReport extends IreportRelated {
+export interface IexpenseReport
+extends IreportRelated {
   expenses: string[] | Iexpense[];
 }
 
 /** Represents a sales report. */
-export interface IsalesReport extends IreportRelated {
+export interface IsalesReport
+extends IreportRelated {
   estimates: string[] | Iestimate[];
   invoiceRelateds: string[] | IinvoiceRelated[];
 }
 
 /** Represents an invoices report. */
-export interface IinvoicesReport extends IreportRelated {
+export interface IinvoicesReport
+extends IreportRelated {
   invoices: string[] | Iinvoice[];
 }
 
 /** Represents a profit and loss report. */
-export interface IprofitAndLossReport extends IreportRelated {
+export interface IprofitAndLossReport
+extends IreportRelated {
   expenses: string[] | Iexpense[];
   invoiceRelateds: string[] | IinvoiceRelated[];
 }
 
 /** Represents a tax report. */
-export interface ItaxReport extends IreportRelated {
+export interface ItaxReport
+extends IreportRelated {
   estimates: string[] | Iestimate[];
   invoiceRelateds: string[] | IinvoiceRelated[];
 }
@@ -222,6 +230,7 @@ export interface ItaxReport extends IreportRelated {
 /** Represents invoice settings. */
 export interface IinvoiceSetting
 extends IdatabaseAuto, ItrackStamp {
+  companyId?: string;
   generalSettings: IinvoiceSettingsGeneral;
   taxSettings: IinvoiceSettingsTax;
   bankSettings: IinvoiceSettingsBank;

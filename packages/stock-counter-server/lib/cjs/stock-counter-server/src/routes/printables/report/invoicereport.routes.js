@@ -39,22 +39,11 @@ const invoicesReportRoutesLogger = tracer.colorConsole({
  * Express router for invoices report routes.
  */
 exports.invoicesReportRoutes = express_1.default.Router();
-/**
- * Route to create a new invoices report
- * @name POST /create
- * @function
- * @memberof module:routes/invoicesReportRoutes~invoicesReportRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- */
-exports.invoicesReportRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'create'), async (req, res) => {
+exports.invoicesReportRoutes.post('/add', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'create'), async (req, res) => {
     const invoicesReport = req.body.invoicesReport;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     invoicesReport.companyId = filter.companyId;
-    const count = await invoicereport_model_1.invoicesReportMain
-        .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
-    invoicesReport.urId = (0, stock_universal_server_1.makeUrId)(Number(count[0]?.urId || '0'));
+    invoicesReport.urId = await (0, stock_universal_server_1.generateUrId)(invoicereport_model_1.invoicesReportMain);
     const newInvoiceReport = new invoicereport_model_1.invoicesReportMain(invoicesReport);
     let errResponse;
     const saved = await newInvoiceReport.save().catch(err => {
@@ -79,16 +68,7 @@ exports.invoicesReportRoutes.post('/create/:companyIdParam', stock_universal_ser
     }
     return res.status(200).send({ success: true });
 });
-/**
- * Route to get a single invoices report by urId
- * @name GET /getone/:urId
- * @function
- * @memberof module:routes/invoicesReportRoutes~invoicesReportRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- */
-exports.invoicesReportRoutes.get('/getone/:urId/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'read'), async (req, res) => {
+exports.invoicesReportRoutes.get('/one/:urId', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'read'), async (req, res) => {
     const { urId } = req.params;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     const invoicesReport = await invoicereport_model_1.invoicesReportLean
@@ -96,21 +76,13 @@ exports.invoicesReportRoutes.get('/getone/:urId/:companyIdParam', stock_universa
         .lean()
         .populate({ path: 'estimates', model: estimate_model_1.estimateLean })
         .populate({ path: 'payments', model: payment_model_1.paymentLean });
-    if (invoicesReport) {
-        (0, stock_universal_server_1.addParentToLocals)(res, invoicesReport._id, invoicereport_model_1.invoicesReportLean.collection.collectionName, 'trackDataView');
+    if (!invoicesReport) {
+        return res.status(404).send({ success: false, err: 'not found' });
     }
+    (0, stock_universal_server_1.addParentToLocals)(res, invoicesReport._id, invoicereport_model_1.invoicesReportLean.collection.collectionName, 'trackDataView');
     return res.status(200).send(invoicesReport);
 });
-/**
- * Route to get all invoices reports with pagination
- * @name GET /getall/:offset/:limit
- * @function
- * @memberof module:routes/invoicesReportRoutes~invoicesReportRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- */
-exports.invoicesReportRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'read'), async (req, res) => {
+exports.invoicesReportRoutes.get('/all/:offset/:limit', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'read'), async (req, res) => {
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     const all = await Promise.all([
@@ -132,42 +104,37 @@ exports.invoicesReportRoutes.get('/getall/:offset/:limit/:companyIdParam', stock
     }
     return res.status(200).send(response);
 });
-/**
- * Route to delete a single invoices report by id
- * @name DELETE /deleteone/:id
- * @function
- * @memberof module:routes/invoicesReportRoutes~invoicesReportRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- */
-exports.invoicesReportRoutes.delete('/deleteone/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'delete'), async (req, res) => {
-    const { id } = req.params;
+exports.invoicesReportRoutes.delete('/delete/one/:_id', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'delete'), async (req, res) => {
+    const { _id } = req.params;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    // const deleted = await invoicesReportMain.findOneAndDelete({ _id: id, ...filter });
-    const deleted = await invoicereport_model_1.invoicesReportMain.updateOne({ _id: id, ...filter }, { $set: { isDeleted: true } });
+    // const deleted = await invoicesReportMain.findOneAndDelete({ _id, ...filter });
+    const deleted = await invoicereport_model_1.invoicesReportMain.updateOne({ _id, ...filter }, { $set: { isDeleted: true } });
     if (Boolean(deleted)) {
-        (0, stock_universal_server_1.addParentToLocals)(res, id, invoicereport_model_1.invoicesReportLean.collection.collectionName, 'trackDataDelete');
+        (0, stock_universal_server_1.addParentToLocals)(res, _id, invoicereport_model_1.invoicesReportLean.collection.collectionName, 'trackDataDelete');
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
-        return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
+        return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
-/**
- * Route to search invoices reports by a search term and key with pagination
- * @name POST /search/:offset/:limit
- * @function
- * @memberof module:routes/invoicesReportRoutes~invoicesReportRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- */
-exports.invoicesReportRoutes.post('/search/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'read'), async (req, res) => {
+exports.invoicesReportRoutes.post('/filter', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'read'), async (req, res) => {
     const { searchterm, searchKey } = req.body;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
-    const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
+    const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.body.offset, req.body.limit);
+    /* TODO
+  const aggCursor = invoiceLean
+ .aggregate<IfilterAggResponse<soth>>([
+  ...lookupSubFieldInvoiceRelatedFilter(constructFiltersFromBody(req), propSort, offset, limit)
+]);
+  const dataArr: IfilterAggResponse<soth>[] = [];
+
+  for await (const data of aggCursor) {
+    dataArr.push(data);
+  }
+
+  const all = dataArr[0]?.data || [];
+  const count = dataArr[0]?.total?.count || 0;
+  */
     const all = await Promise.all([
         invoicereport_model_1.invoicesReportLean
             .find({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
@@ -187,27 +154,18 @@ exports.invoicesReportRoutes.post('/search/:offset/:limit/:companyIdParam', stoc
     }
     return res.status(200).send(response);
 });
-/**
- * Route to delete multiple invoices reports by ids
- * @name PUT /deletemany
- * @function
- * @memberof module:routes/invoicesReportRoutes~invoicesReportRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- */
-exports.invoicesReportRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'delete'), async (req, res) => {
-    const { ids } = req.body;
+exports.invoicesReportRoutes.put('/delete/many', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'delete'), async (req, res) => {
+    const { _ids } = req.body;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     /* const deleted = await invoicesReportMain
-      .deleteMany({ ...filter, _id: { $in: ids } })
-      .catch(err => {
-        invoicesReportRoutesLogger.error('deletemany - err: ', err);
-  
-        return null;
-      }); */
+    .deleteMany({ ...filter, _id: { $in: _ids } })
+    .catch(err => {
+      invoicesReportRoutesLogger.error('deletemany - err: ', err);
+
+      return null;
+    }); */
     const deleted = await invoicereport_model_1.invoicesReportMain
-        .updateMany({ ...filter, _id: { $in: ids } }, {
+        .updateMany({ ...filter, _id: { $in: _ids } }, {
         $set: { isDeleted: true }
     })
         .catch(err => {
@@ -215,13 +173,16 @@ exports.invoicesReportRoutes.put('/deletemany/:companyIdParam', stock_universal_
         return null;
     });
     if (Boolean(deleted)) {
-        for (const val of ids) {
+        for (const val of _ids) {
             (0, stock_universal_server_1.addParentToLocals)(res, val, invoicereport_model_1.invoicesReportLean.collection.collectionName, 'trackDataDelete');
         }
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
-        return res.status(404).send({ success: Boolean(deleted), err: 'could not delete selected items, try again in a while' });
+        return res.status(404).send({
+            success: Boolean(deleted),
+            err: 'could not delete selected items, try again in a while'
+        });
     }
 });
 //# sourceMappingURL=invoicereport.routes.js.map

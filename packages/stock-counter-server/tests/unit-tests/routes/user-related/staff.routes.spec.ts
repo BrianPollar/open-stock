@@ -1,13 +1,12 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable no-console */
-import { vi, afterAll, expect, describe, beforeAll, it } from 'vitest';
-import { Application } from 'express';
-import { disconnectMongoose } from '@open-stock/stock-universal-server';
-import { createExpressServer } from '../../../../../tests/helpers';
-import * as http from 'http';
-import { staffRoutes } from '../../../../../stock-counter-server/src/routes/user-related/staff.routes';
-import { connectStockCounterDatabase } from '../../../../src/stock-counter-local';
 import { IpermProp } from '@open-stock/stock-universal';
+import { disconnectMongoose } from '@open-stock/stock-universal-server';
+import * as http from 'http';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { staffRoutes } from '../../../../../stock-counter-server/src/routes/user-related/staff.routes';
+import { createExpressServer } from '../../../../../tests/helpers';
+import { connectStockCounterDatabase } from '../../../../src/stock-counter-local';
 
 const mocks = vi.hoisted(() => {
   return {
@@ -30,7 +29,7 @@ const permObj: IpermProp = {
 
 const stockUniversalServer = vi.hoisted(() => {
   return {
-    requireAuth: vi.fn((req, res, next) => {
+    requireAuth: vi.fn((req: IcustomRequest<never, unknown>, res, next) => {
       req.user = {
         companyId: 'superAdmin',
         userId: '507f1f77bcf86cd799439011',
@@ -52,6 +51,7 @@ const stockUniversalServer = vi.hoisted(() => {
 
 vi.mock('@open-stock/stock-universal-server', async() => {
   const actual: object = await vi.importActual('@open-stock/stock-universal-server');
+
   return {
     ...actual,
     requireAuth: stockUniversalServer.requireAuth

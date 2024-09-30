@@ -1,5 +1,5 @@
 import { requireActiveCompany } from '@open-stock/stock-auth-server';
-import { addParentToLocals, makeCompanyBasedQuery, makeUrId, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr } from '@open-stock/stock-universal-server';
+import { addParentToLocals, generateUrId, makeCompanyBasedQuery, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr } from '@open-stock/stock-universal-server';
 import express from 'express';
 import * as fs from 'fs';
 import path from 'path';
@@ -35,22 +35,11 @@ const invoicesReportRoutesLogger = tracer.colorConsole({
  * Express router for invoices report routes.
  */
 export const invoicesReportRoutes = express.Router();
-/**
- * Route to create a new invoices report
- * @name POST /create
- * @function
- * @memberof module:routes/invoicesReportRoutes~invoicesReportRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- */
-invoicesReportRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'create'), async (req, res) => {
+invoicesReportRoutes.post('/add', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'create'), async (req, res) => {
     const invoicesReport = req.body.invoicesReport;
     const { filter } = makeCompanyBasedQuery(req);
     invoicesReport.companyId = filter.companyId;
-    const count = await invoicesReportMain
-        .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
-    invoicesReport.urId = makeUrId(Number(count[0]?.urId || '0'));
+    invoicesReport.urId = await generateUrId(invoicesReportMain);
     const newInvoiceReport = new invoicesReportMain(invoicesReport);
     let errResponse;
     const saved = await newInvoiceReport.save().catch(err => {
@@ -75,16 +64,7 @@ invoicesReportRoutes.post('/create/:companyIdParam', requireAuth, requireActiveC
     }
     return res.status(200).send({ success: true });
 });
-/**
- * Route to get a single invoices report by urId
- * @name GET /getone/:urId
- * @function
- * @memberof module:routes/invoicesReportRoutes~invoicesReportRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- */
-invoicesReportRoutes.get('/getone/:urId/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'read'), async (req, res) => {
+invoicesReportRoutes.get('/one/:urId', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'read'), async (req, res) => {
     const { urId } = req.params;
     const { filter } = makeCompanyBasedQuery(req);
     const invoicesReport = await invoicesReportLean
@@ -92,21 +72,13 @@ invoicesReportRoutes.get('/getone/:urId/:companyIdParam', requireAuth, requireAc
         .lean()
         .populate({ path: 'estimates', model: estimateLean })
         .populate({ path: 'payments', model: paymentLean });
-    if (invoicesReport) {
-        addParentToLocals(res, invoicesReport._id, invoicesReportLean.collection.collectionName, 'trackDataView');
+    if (!invoicesReport) {
+        return res.status(404).send({ success: false, err: 'not found' });
     }
+    addParentToLocals(res, invoicesReport._id, invoicesReportLean.collection.collectionName, 'trackDataView');
     return res.status(200).send(invoicesReport);
 });
-/**
- * Route to get all invoices reports with pagination
- * @name GET /getall/:offset/:limit
- * @function
- * @memberof module:routes/invoicesReportRoutes~invoicesReportRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- */
-invoicesReportRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'read'), async (req, res) => {
+invoicesReportRoutes.get('/all/:offset/:limit', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'read'), async (req, res) => {
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     const { filter } = makeCompanyBasedQuery(req);
     const all = await Promise.all([
@@ -128,42 +100,37 @@ invoicesReportRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, 
     }
     return res.status(200).send(response);
 });
-/**
- * Route to delete a single invoices report by id
- * @name DELETE /deleteone/:id
- * @function
- * @memberof module:routes/invoicesReportRoutes~invoicesReportRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- */
-invoicesReportRoutes.delete('/deleteone/:id/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'delete'), async (req, res) => {
-    const { id } = req.params;
+invoicesReportRoutes.delete('/delete/one/:_id', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'delete'), async (req, res) => {
+    const { _id } = req.params;
     const { filter } = makeCompanyBasedQuery(req);
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    // const deleted = await invoicesReportMain.findOneAndDelete({ _id: id, ...filter });
-    const deleted = await invoicesReportMain.updateOne({ _id: id, ...filter }, { $set: { isDeleted: true } });
+    // const deleted = await invoicesReportMain.findOneAndDelete({ _id, ...filter });
+    const deleted = await invoicesReportMain.updateOne({ _id, ...filter }, { $set: { isDeleted: true } });
     if (Boolean(deleted)) {
-        addParentToLocals(res, id, invoicesReportLean.collection.collectionName, 'trackDataDelete');
+        addParentToLocals(res, _id, invoicesReportLean.collection.collectionName, 'trackDataDelete');
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
-        return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
+        return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
-/**
- * Route to search invoices reports by a search term and key with pagination
- * @name POST /search/:offset/:limit
- * @function
- * @memberof module:routes/invoicesReportRoutes~invoicesReportRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- */
-invoicesReportRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'read'), async (req, res) => {
+invoicesReportRoutes.post('/filter', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'read'), async (req, res) => {
     const { searchterm, searchKey } = req.body;
     const { filter } = makeCompanyBasedQuery(req);
-    const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
+    const { offset, limit } = offsetLimitRelegator(req.body.offset, req.body.limit);
+    /* TODO
+  const aggCursor = invoiceLean
+ .aggregate<IfilterAggResponse<soth>>([
+  ...lookupSubFieldInvoiceRelatedFilter(constructFiltersFromBody(req), propSort, offset, limit)
+]);
+  const dataArr: IfilterAggResponse<soth>[] = [];
+
+  for await (const data of aggCursor) {
+    dataArr.push(data);
+  }
+
+  const all = dataArr[0]?.data || [];
+  const count = dataArr[0]?.total?.count || 0;
+  */
     const all = await Promise.all([
         invoicesReportLean
             .find({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
@@ -183,27 +150,18 @@ invoicesReportRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth,
     }
     return res.status(200).send(response);
 });
-/**
- * Route to delete multiple invoices reports by ids
- * @name PUT /deletemany
- * @function
- * @memberof module:routes/invoicesReportRoutes~invoicesReportRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- */
-invoicesReportRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'delete'), async (req, res) => {
-    const { ids } = req.body;
+invoicesReportRoutes.put('/delete/many', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'delete'), async (req, res) => {
+    const { _ids } = req.body;
     const { filter } = makeCompanyBasedQuery(req);
     /* const deleted = await invoicesReportMain
-      .deleteMany({ ...filter, _id: { $in: ids } })
-      .catch(err => {
-        invoicesReportRoutesLogger.error('deletemany - err: ', err);
-  
-        return null;
-      }); */
+    .deleteMany({ ...filter, _id: { $in: _ids } })
+    .catch(err => {
+      invoicesReportRoutesLogger.error('deletemany - err: ', err);
+
+      return null;
+    }); */
     const deleted = await invoicesReportMain
-        .updateMany({ ...filter, _id: { $in: ids } }, {
+        .updateMany({ ...filter, _id: { $in: _ids } }, {
         $set: { isDeleted: true }
     })
         .catch(err => {
@@ -211,13 +169,16 @@ invoicesReportRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActi
         return null;
     });
     if (Boolean(deleted)) {
-        for (const val of ids) {
+        for (const val of _ids) {
             addParentToLocals(res, val, invoicesReportLean.collection.collectionName, 'trackDataDelete');
         }
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
-        return res.status(404).send({ success: Boolean(deleted), err: 'could not delete selected items, try again in a while' });
+        return res.status(404).send({
+            success: Boolean(deleted),
+            err: 'could not delete selected items, try again in a while'
+        });
     }
 });
 //# sourceMappingURL=invoicereport.routes.js.map

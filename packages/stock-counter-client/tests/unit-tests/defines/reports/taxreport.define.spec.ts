@@ -66,7 +66,7 @@ describe('Environment', () => {
 
   it('#deleteTaxReports static should delete many TaxReports', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makePut').mockImplementationOnce(() => of({ success: true }));
-    const deleted = await TaxReport.deleteTaxReports(companyId, ['ids']);
+    const deleted = await TaxReport.deleteTaxReports(companyId, ['_ids']);
 
     expect(typeof deleted).toEqual('object');
     expect(deleted).toHaveProperty('success');

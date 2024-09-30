@@ -50,11 +50,8 @@ export declare const companyAuthSelect: {
     details: number;
     companyDispNameFormat: number;
     businessType: number;
-    profilepic: number;
-    profileCoverPic: number;
     createdAt: number;
     websiteAddress: number;
-    photos: number;
     blocked: number;
     verified: number;
     expireAt: number;
@@ -77,8 +74,6 @@ export declare const companyAboutSelect: {
     details: number;
     companyDispNameFormat: number;
     businessType: number;
-    profilepic: number;
-    profileCoverPic: number;
     createdAt: number;
     websiteAddress: number;
     photos: number;

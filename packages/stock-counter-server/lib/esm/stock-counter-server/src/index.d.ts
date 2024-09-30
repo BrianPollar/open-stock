@@ -127,5 +127,4 @@ export * from './routes/payment.routes';
 export * from './routes/promo.routes';
 export * from './routes/review.routes';
 export * from './stock-counter-server';
-export * from './routes/user-related/locluser.routes';
 export * from './utils/query';

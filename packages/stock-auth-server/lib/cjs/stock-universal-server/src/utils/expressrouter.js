@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.makeUrId = exports.requireAuth = exports.apiRouter = void 0;
+exports.requireAuth = exports.apiRouter = void 0;
 const tslib_1 = require("tslib");
 /* eslint-disable @typescript-eslint/no-var-requires */
 const express_1 = tslib_1.__importDefault(require("express"));
@@ -23,20 +23,4 @@ exports.apiRouter = express_1.default.Router();
  */
 exports.requireAuth = passport
     .authenticate('jwt', { session: false });
-// This function exports a function that generates a unique ID.
-//
-// **Parameters:**
-//
-// * `lastPosition`: The last position in the sequence of IDs.
-//
-// **Returns:**
-//
-// A string representing the next ID in the sequence.
-/**
- * Generates a unique ID based on the last position.
- * @param lastPosition The last position used to generate the ID.
- * @returns The generated unique ID as a string.
- */
-const makeUrId = (lastPosition) => (++lastPosition).toString();
-exports.makeUrId = makeUrId;
 //# sourceMappingURL=expressrouter.js.map

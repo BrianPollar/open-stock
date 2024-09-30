@@ -53,10 +53,12 @@ export const createTrackDeletedModel = async(dbUrl: string, dbOptions?: ConnectO
   }
 
   if (main) {
-    trackDeletedMain = mainConnection.model('TrackDeleted', trackDeletedSchema) as Model<TtrackDeleted>;
+    trackDeletedMain = mainConnection
+      .model('TrackDeleted', trackDeletedSchema) as Model<TtrackDeleted>;
   }
 
   if (lean) {
-    trackDeletedLean = mainConnectionLean.model('TrackDeleted', trackDeletedSchema) as Model<TtrackDeleted>;
+    trackDeletedLean = mainConnectionLean
+      .model('TrackDeleted', trackDeletedSchema) as Model<TtrackDeleted>;
   }
 };

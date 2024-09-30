@@ -1,8 +1,8 @@
-import Axios from 'axios-observable';
-import { vi, afterAll, expect, describe, beforeAll, it } from 'vitest';
 import { StockAuthClient } from '@open-stock/stock-auth-client';
 import { EhttpController, LoggerController } from '@open-stock/stock-universal';
 import { disconnectMongoose } from '@open-stock/stock-universal-server';
+import Axios from 'axios-observable';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => {
   return {
@@ -22,9 +22,9 @@ describe('status integration tests', () => {
     baseURL: 'https://yourapi.com',
     timeout: 1000,
     headers: {
-      // eslint-disable-next-line @typescript-eslint/naming-convention
+
       'X-Custom-Header': 'foobar',
-      // eslint-disable-next-line @typescript-eslint/naming-convention
+
       Authorization: 'auth-token'
     }
   });

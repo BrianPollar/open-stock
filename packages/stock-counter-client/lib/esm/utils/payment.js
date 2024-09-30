@@ -112,10 +112,10 @@ export class PaymentController {
      * @param isDemo - A boolean indicating whether the method is being called for demo purposes.
      * @returns An array of DeliveryCity objects representing the available delivery cities.
      */
-    async getDeliveryCitys(companyId, deliveryCitys, address, isDemo = false) {
+    async getDeliveryCitys(deliveryCitys, address, isDemo = false) {
         if (!deliveryCitys?.length) {
             const { citys } = await DeliveryCity
-                .getDeliveryCitys(companyId);
+                .getAll();
             deliveryCitys = citys;
             if (!address) {
                 this.currentCity = deliveryCitys[0];
@@ -132,16 +132,17 @@ export class PaymentController {
     }
     /**
      * Determines the current city based on the address provided.
-     * It calls the getDeliveryCitys method to retrieve the delivery cities and sets the current city based on the address.
+     * It calls the getDeliveryCitys method to retrieve the delivery
+     * cities and sets the current city based on the address.
      * It also calculates the estimated delivery date based on the current city's deliversInDays property.
      * The method returns the estimated delivery date.
      * @param deliveryCitys - An array of DeliveryCity objects representing the available delivery cities.
      * @param addr - The Iaddress object representing the delivery address.
      * @returns The estimated delivery date.
      */
-    async determineCity(companyId, deliveryCitys, addr) {
+    async determineCity(deliveryCitys, addr) {
         StockCounterClient.logger.debug('PaymentController:determineCity:: - addr', addr);
-        await this.getDeliveryCitys(companyId, deliveryCitys, addr);
+        await this.getDeliveryCitys(deliveryCitys, addr);
         this.currentCity = deliveryCitys.find(val => val._id === addr.city);
         const date = new Date();
         const deliversInDays = this.currentCity.deliversInDays;

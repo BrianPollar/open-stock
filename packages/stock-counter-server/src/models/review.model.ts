@@ -93,10 +93,12 @@ export const createReviewModel = async(dbUrl: string, dbOptions?: ConnectOptions
   }
 
   if (main) {
-    reviewMain = mainConnection.model<Treview>('Review', reviewSchema);
+    reviewMain = mainConnection
+      .model<Treview>('Review', reviewSchema);
   }
 
   if (lean) {
-    reviewLean = mainConnectionLean.model<Treview>('Review', reviewSchema);
+    reviewLean = mainConnectionLean
+      .model<Treview>('Review', reviewSchema);
   }
 };

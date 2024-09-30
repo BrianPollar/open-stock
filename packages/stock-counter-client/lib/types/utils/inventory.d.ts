@@ -16,58 +16,69 @@ export declare class InventoryController {
      */
     getCompanyPercentageFromEcommerceSale(amount: number, ecommerceSalePercentage: number): number;
     /**
-     * This method checks if the current stage of an item in the inventory is the same as the specified stage. It returns true if they are the same, otherwise it compares the positions of the stages and returns true if the current stage is before or at the same position as the specified stage.
+     * This method checks if the current stage of an item in the inventory
+     * is the same as the specified stage. It returns true if they are the same,
+     * otherwise it compares the positions of the stages and returns true if the current
+     * stage is before or at the same position as the specified stage.
      * @param currStage - The current stage of the item.
      * @param stage - The specified stage to compare with.
      * @returns A boolean value indicating whether the current stage is the same as or before the specified stage.
      */
     stageRelegator(currStage: TestimateStage, stage: TestimateStage): boolean;
     /**
-     * This method checks if an item exists in a related product in the inventory. It returns true if the item exists in the related product.
+     * This method checks if an item exists in a related product in the inventory.
+     * It returns true if the item exists in the related product.
      * @param itemId - The ID of the item to check.
      * @param invPdt - The related product to check.
      * @returns A boolean value indicating whether the item exists in the related product.
      */
     itemExistInRelatedPdct(itemId: string, invPdt: IinvoiceRelatedPdct): boolean;
     /**
-     * This method calculates the total profit margin for a list of items. It sums up the difference between the selling price and cost price of each item.
+     * This method calculates the total profit margin for a list of items.
+     * It sums up the difference between the selling price and cost price of each item.
      * @param items - The list of items to calculate the profit margin for.
      * @returns The total profit margin for the list of items.
      */
     calcBulkProfitMarginPdts(items: Item[], ecommerceSalePercentage?: number): number;
     /**
-     * This method calculates the profit margin for a single item. It subtracts the cost price from the selling price of the item.
+     * This method calculates the profit margin for a single item.
+     * It subtracts the cost price from the selling price of the item.
      * @param item - The item to calculate the profit margin for.
      * @returns The profit margin for the item.
      */
     calcItemProfitMargin(item: Item, ecommerceSalePercentage?: number): number;
     /**
-     * This method calculates the biggest expense point from a list of expenses. It finds the expense with the highest cost and returns it.
+     * This method calculates the biggest expense point from a list of expenses.
+     * It finds the expense with the highest cost and returns it.
      * @param expenses - The list of expenses to find the biggest expense point from.
      * @returns The expense with the highest cost.
      */
     calcBigExpensePoint(expenses: Expense[]): Expense;
     /**
-     * This method calculates the subtotal for a list of related products in an invoice. It multiplies the amount and quantity of each related product and sums up the results.
+     * This method calculates the subtotal for a list of related products in an invoice.
+     * It multiplies the amount and quantity of each related product and sums up the results.
      * @param items - The list of related products to calculate the subtotal for.
      * @returns The subtotal for the list of related products.
      */
     calcSubtotal(items: IinvoiceRelatedPdct[], ecommerceSalePercentage?: number): number;
     /**
-     * This method calculates the balance due for an invoice. It subtracts the payment made from the total amount of the invoice.
+     * This method calculates the balance due for an invoice.
+     * It subtracts the payment made from the total amount of the invoice.
      * @param invoice - The invoice to calculate the balance due for.
      * @returns The balance due for the invoice.
      */
     calcBalanceDue(invoice: Invoice): number;
     /**
-     * This method calculates the total amount for an invoice, including tax. It calculates the subtotal of the related products and adds the tax amount based on the tax rate.
+     * This method calculates the total amount for an invoice,
+     * including tax. It calculates the subtotal of the related products and adds the tax amount based on the tax rate.
      * @param items - The list of related products to calculate the total amount for.
      * @param tax - The tax rate to apply.
      * @returns The total amount for the invoice, including tax.
      */
     calcTotal(items: IinvoiceRelatedPdct[], tax: number): number;
     /**
-     * This method calculates the total profit for all items in a list of related invoices. It sums up the profit from each item in each related invoice.
+     * This method calculates the total profit for all items in a list
+     *  of related invoices. It sums up the profit from each item in each related invoice.
      * @param related - The list of related invoices to calculate the total profit for.
      * @param allItems - The list of all items to use for calculating the profit.
      * @returns The total profit for all items in the list of related invoices.
@@ -75,20 +86,23 @@ export declare class InventoryController {
     getAllItemsProfit(related: InvoiceRelatedWithReceipt[], allItems: Item[]): number;
     /**
      * This method finds an item by its ID in a list of all items. It returns the found item.
-     * @param id - The ID of the item to find.
+     * @param _id - The ID of the item to find.
      * @param allItems - The list of all items to search in.
      * @returns The found item, or undefined if no item was found.
      */
     findItem(id: string, allItems: Item[]): Item;
     /**
-     * This method calculates the profit for a specific item across all related invoices. It filters the related invoices to find the ones that contain the item and calculates the profit for each invoice.
+     * This method calculates the profit for a specific item across all
+     * related invoices. It filters the related invoices to
+     *  find the ones that contain the item and calculates the profit for each invoice.
      * @param itemId - The ID of the item to calculate the profit for.
      * @param related - The list of related invoices to calculate the profit for.
      * @param allItems - The list of all items to use for calculating the profit.
      * @returns The profit for the item across all related invoices.
      */
     getProfitByItem(itemId: string, related: InvoiceRelatedWithReceipt[], allItems: Item[]): number;
-    /** getExpenseByItem(item: Item): This method calculates the total expense for an item. It sums up the cost of each inventory meta entry for the item. */
+    /** getExpenseByItem(item: Item): This method calculates the total
+     * expense for an item. It sums up the cost of each inventory meta entry for the item. */
     getExpenseByItem(item: Item): number;
     /**
      * Compares two dates deeply based on the specified position.

@@ -42,10 +42,12 @@ const createSubscriptionPackageModel = async (dbUrl, dbOptions, main = true, lea
         await (0, database_1.connectAuthDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.subscriptionPackageMain = database_1.mainConnection.model('SubscriptionPackage', subscriptionPackageSchema);
+        exports.subscriptionPackageMain = database_1.mainConnection
+            .model('SubscriptionPackage', subscriptionPackageSchema);
     }
     if (lean) {
-        exports.subscriptionPackageLean = database_1.mainConnectionLean.model('SubscriptionPackage', subscriptionPackageSchema);
+        exports.subscriptionPackageLean = database_1.mainConnectionLean
+            .model('SubscriptionPackage', subscriptionPackageSchema);
     }
 };
 exports.createSubscriptionPackageModel = createSubscriptionPackageModel;

@@ -42,19 +42,22 @@ export const multerFileds = [
 // This function defines the storage strategy for Multer.
 /**
  * Multer disk storage configuration for rudimentary file storage.
- * This storage configuration determines the destination directory and filename for uploaded files based on their MIME type.
+ * This storage configuration determines the destination directory
+ * and filename for uploaded files based on their MIME type.
  * @remarks
- * The destination directory is determined by the MIME type of the file. If the MIME type is an image, the file will be stored in the photoDirectory. If the MIME type is a video, the file will be stored in the videoDirectory.
+ * The destination directory is determined by the MIME type of the file.
+ * If the MIME type is an image, the file will be stored in the photoDirectory.
+ * If the MIME type is a video, the file will be stored in the videoDirectory.
  * The filename is generated based on the MIME type and a random string.
  */
 const rudimentaryStorage = multer.diskStorage({
     // This function gets the directory for the file based on its MIME type.
     destination(req, file, cb) {
         const { companyId } = req.user;
-        const { companyIdParam } = req.params;
-        const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-        const videoDirectory = stockUniversalConfig.envCfig.absolutepath + '/' + stockUniversalConfig.envCfig.videoDirectory + '/' + queryId;
-        const photoDirectory = stockUniversalConfig.envCfig.absolutepath + '/' + stockUniversalConfig.envCfig.photoDirectory + '/' + queryId;
+        const videoDirectory = stockUniversalConfig.envCfig.absolutepath + '/' +
+            stockUniversalConfig.envCfig.videoDirectory + '/' + companyId;
+        const photoDirectory = stockUniversalConfig.envCfig.absolutepath + '/' +
+            stockUniversalConfig.envCfig.photoDirectory + '/' + companyId;
         const mimeType = file.mimetype;
         fileStorageLogger.debug('rudimentaryStorage - mimeType: ', mimeType);
         let storageDir;

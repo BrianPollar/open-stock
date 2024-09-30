@@ -20,10 +20,12 @@ const createLoginAtemptsModel = async (dbUrl, dbOptions, main = true, lean = tru
         await (0, database_1.connectAuthDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.loginAtempts = database_1.mainConnection.model('loginAtempts', loginAtempsSchema);
+        exports.loginAtempts = database_1.mainConnection
+            .model('loginAtempts', loginAtempsSchema);
     }
     if (lean) {
-        exports.loginAtemptsLean = database_1.mainConnectionLean.model('loginAtempts', loginAtempsSchema);
+        exports.loginAtemptsLean = database_1.mainConnectionLean
+            .model('loginAtempts', loginAtempsSchema);
     }
 };
 exports.createLoginAtemptsModel = createLoginAtemptsModel;

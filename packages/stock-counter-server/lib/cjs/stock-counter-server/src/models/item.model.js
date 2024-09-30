@@ -5,7 +5,6 @@ const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const mongoose_1 = require("mongoose");
 const database_1 = require("../utils/database");
 const uniqueValidator = require('mongoose-unique-validator');
-/** Mongoose schema for the item model */
 const itemSchema = new mongoose_1.Schema({
     ...stock_universal_server_1.withUrIdAndCompanySchemaObj,
     numbersInstock: { type: Number, required: [true, 'cannot be empty.'], index: true },
@@ -95,10 +94,12 @@ const createItemModel = async (dbUrl, dbOptions, main = true, lean = true) => {
         await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.itemMain = database_1.mainConnection.model('Item', itemSchema);
+        exports.itemMain = database_1.mainConnection
+            .model('Item', itemSchema);
     }
     if (lean) {
-        exports.itemLean = database_1.mainConnectionLean.model('Item', itemSchema);
+        exports.itemLean = database_1.mainConnectionLean
+            .model('Item', itemSchema);
     }
 };
 exports.createItemModel = createItemModel;

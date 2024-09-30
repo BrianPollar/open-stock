@@ -68,8 +68,8 @@ const firePesapalRelegator = async (subctn, savedSub, company, currUser) => {
         }
     };
     const response = await pesapalPaymentInstance.submitOrder(payDetails, subctn._id, 'Complete product payment');
+    companySubscriptionRoutesLogger.debug('firePesapalRelegator::Pesapal payment failed', response);
     if (!response.success) {
-        companySubscriptionRoutesLogger.error('Pesapal payment failed', response);
         return { success: false, err: response.err };
     }
     const companySub = await companySubscriptionMain.findByIdAndUpdate(savedSub._id);
@@ -122,14 +122,12 @@ export const getDays = (duration) => {
  * Router for handling companySubscription-related routes.
  */
 export const companySubscriptionRoutes = express.Router();
-companySubscriptionRoutes.post('/subscribe/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('subscriptions', 'create'), async (req, res) => {
+companySubscriptionRoutes.post('/subscribe', requireAuth, requireActiveCompany, roleAuthorisation('subscriptions', 'create'), async (req, res) => {
     companySubscriptionRoutesLogger.info('making companySubscriptionRoutes');
     const { companyId } = req.user;
-    const { companyIdParam } = req.params;
     const subscriptionPackage = req.body;
     let response;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = verifyObjectId(queryId);
+    const isValid = verifyObjectId(companyId);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
@@ -140,7 +138,6 @@ companySubscriptionRoutes.post('/subscribe/:companyIdParam', requireAuth, requir
         name: subscriptionPackage.name,
         ammount: subscriptionPackage.ammount,
         duration: subscriptionPackage.duration,
-        companyId: queryId,
         active: true,
         subscriprionId: subscriptionPackage._id,
         startDate,
@@ -156,24 +153,29 @@ companySubscriptionRoutes.post('/subscribe/:companyIdParam', requireAuth, requir
         savedErr = err;
         return null;
     });
+    companySubscriptionRoutesLogger.debug(`newCompSub id - ${savedSub?._id}, savedErr - ${savedErr}`);
     if (savedSub && savedSub._id) {
         addParentToLocals(res, savedSub._id, companySubscriptionMain.collection.collectionName, 'makeTrackEdit');
     }
     if (savedErr) {
         return res.status(500).send({ success: false });
     }
+    companySubscriptionRoutesLogger.info('companyId-', companyId);
     if (companyId !== 'superAdmin') {
         const company = await companyLean.findById(companyId).lean();
         if (!company) {
+            companySubscriptionRoutesLogger.info('did not find company');
             await companySubscriptionMain.deleteOne({ _id: savedSub._id });
             return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
         }
         const currUser = await userLean.findOne({ _id: company.owner }).lean();
         if (!currUser) {
+            companySubscriptionRoutesLogger.info('did not find user');
             await companySubscriptionMain.deleteOne({ _id: savedSub._id });
             return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
         }
         response = await firePesapalRelegator(subscriptionPackage, savedSub, company, currUser);
+        companySubscriptionRoutesLogger.debug('firePesapalRelegator::response', response);
         if (!response.success) {
             await companySubscriptionMain.deleteOne({ _id: savedSub._id });
             return res.status(401).send({ success: false, status: 401, err: response.err });
@@ -181,7 +183,8 @@ companySubscriptionRoutes.post('/subscribe/:companyIdParam', requireAuth, requir
     }
     return res.status(200).send({ success: true, data: response });
 });
-companySubscriptionRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, async (req, res) => {
+companySubscriptionRoutes.get('/all/:offset/:limit', requireAuth, async (req, res) => {
+    companySubscriptionRoutesLogger.info('getall');
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     const { companyId } = req.user;
     let query;
@@ -208,23 +211,23 @@ companySubscriptionRoutes.get('/getall/:offset/:limit/:companyIdParam', requireA
     }
     return res.status(200).send(response);
 });
-companySubscriptionRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('subscriptions', 'delete'), async (req, res) => {
-    const { id } = req.body;
+companySubscriptionRoutes.put('/delete/one', requireAuth, requireActiveCompany, roleAuthorisation('subscriptions', 'delete'), async (req, res) => {
+    companySubscriptionRoutesLogger.info('deleteone');
+    const { _id } = req.body;
     const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = verifyObjectIds([id, queryId]);
+    const isValid = verifyObjectIds([_id, companyId]);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
-    // const deleted = await companySubscriptionMain.findOneAndDelete({ _id: id, companyId: queryId });
-    const deleted = await companySubscriptionMain.updateOne({ _id: id, companyId: queryId }, { $set: { isDeleted: true } });
+    // const deleted = await companySubscriptionMain.findOneAndDelete({ _id, });
+    const deleted = await companySubscriptionMain
+        .updateOne({ _id }, { $set: { isDeleted: true } });
     if (Boolean(deleted)) {
-        addParentToLocals(res, id, companySubscriptionMain.collection.collectionName, 'trackDataDelete');
+        addParentToLocals(res, _id, companySubscriptionMain.collection.collectionName, 'trackDataDelete');
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
-        return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
+        return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
 //# sourceMappingURL=company-subscription.routes.js.map

@@ -20,13 +20,16 @@ const userWalletHistoryselect = {
     type: 1
 };
 /**
- * Represents the main Mongoose model for the user behaviour data, including recent activity, cart, wishlist, compare list, and search terms.
+ * Represents the main Mongoose
+ * model for the user behaviour data, including recent activity, cart, wishlist, compare list, and search terms.
  * This model is used for the main database connection.
  */
 export let userWalletHistoryMain;
 /**
- * Represents the lean Mongoose model for the user behaviour data, including recent activity, cart, wishlist, compare list, and search terms.
- * This model is used for the lean database connection, which provides a more optimized and efficient way of querying the data.
+ * Represents the lean Mongoose model for the user behaviour data,
+ *  including recent activity, cart, wishlist, compare list, and search terms.
+ * This model is used for the lean database connection, which
+ * provides a more optimized and efficient way of querying the data.
  */
 export let userWalletHistoryLean;
 export const userWalletHistorySelect = userWalletHistoryselect;
@@ -42,10 +45,12 @@ export const createUserWalletHistoryModel = async (dbUrl, dbOptions, main = true
         await connectStockDatabase(dbUrl, dbOptions);
     }
     if (main) {
-        userWalletHistoryMain = mainConnection.model('UserWalletHistory', userWalletHistorySchema);
+        userWalletHistoryMain = mainConnection
+            .model('UserWalletHistory', userWalletHistorySchema);
     }
     if (lean) {
-        userWalletHistoryLean = mainConnectionLean.model('UserWalletHistory', userWalletHistorySchema);
+        userWalletHistoryLean = mainConnectionLean
+            .model('UserWalletHistory', userWalletHistorySchema);
     }
 };
 //# sourceMappingURL=user-wallet-history.model.js.map

@@ -11,17 +11,21 @@ export const globalSchemaObj = {
 
 export const withCompanySchemaObj = {
   ...globalSchemaObj,
-  companyId: { type: String, index: true } as unknown as {type: StringConstructor; index: boolean}
+  companyId: { type: Schema.ObjectId, index: true } as unknown as {type: StringConstructor; index: boolean}
 };
 
 export const withUrIdAndCompanySchemaObj = {
   ...withCompanySchemaObj,
-  urId: { type: String, required: [true, 'cannot be empty.'], index: true } as unknown as {type: StringConstructor; required: boolean; index: boolean}
+  urId: {
+    type: String, required: [true, 'cannot be empty.'], index: true
+  } as unknown as {type: StringConstructor; required: boolean; index: boolean}
 };
 
 export const withUrIdSchemaObj = {
   ...globalSchemaObj,
-  urId: { type: String, required: [true, 'cannot be empty.'], index: true } as unknown as {type: StringConstructor; required: boolean; index: boolean}
+  urId: {
+    type: String, required: [true, 'cannot be empty.'], index: true
+  } as unknown as {type: StringConstructor; required: boolean; index: boolean}
 };
 
 export const globalSelectObj = {

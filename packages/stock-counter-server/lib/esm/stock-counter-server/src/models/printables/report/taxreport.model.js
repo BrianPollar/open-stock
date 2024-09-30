@@ -54,10 +54,12 @@ export const createTaxReportModel = async (dbUrl, dbOptions, main = true, lean =
         await connectStockDatabase(dbUrl, dbOptions);
     }
     if (main) {
-        taxReportMain = mainConnection.model('taxReport', taxReportSchema);
+        taxReportMain = mainConnection
+            .model('taxReport', taxReportSchema);
     }
     if (lean) {
-        taxReportLean = mainConnectionLean.model('taxReport', taxReportSchema);
+        taxReportLean = mainConnectionLean
+            .model('taxReport', taxReportSchema);
     }
 };
 //# sourceMappingURL=taxreport.model.js.map

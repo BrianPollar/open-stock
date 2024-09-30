@@ -12,7 +12,8 @@ export declare const defineAdmin: () => {
     };
 };
 /**
- * Takes a password and adminServerPasswd as parameters and returns a promise that resolves to an admin login response object.
+ * Takes a password and adminServerPasswd
+ * as parameters and returns a promise that resolves to an admin login response object.
  * It compares the provided password with the encrypted adminServerPasswd and returns success if they match.
  * @param password - The password to check against the encrypted adminServerPasswd.
  * @param adminServerPasswd - The encrypted admin password.
@@ -20,8 +21,10 @@ export declare const defineAdmin: () => {
  */
 export declare const login: (password: string, adminServerPasswd: string) => Promise<Iadminloginres>;
 /**
- * Takes emailPhone, password, processadminID, and adminServerPasswd as parameters and returns a promise that resolves to an admin login response object.
- * It checks if the provided emailPhone matches the processadminID and then calls the login function to check the password.
+ * Takes emailPhone, password, processadminID, and
+ * adminServerPasswd as parameters and returns a promise that resolves to an admin login response object.
+ * It checks if the provided emailPhone matches the
+ * processadminID and then calls the login function to check the password.
  * @param emailPhone - The email or phone number of the admin user.
  * @param password - The password to check against the encrypted adminServerPasswd.
  * @param processadminID - The admin ID to check against the emailPhone.

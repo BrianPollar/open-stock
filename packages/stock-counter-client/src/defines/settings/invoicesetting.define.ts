@@ -2,8 +2,10 @@
 import {
   DatabaseAuto,
   IdataArrayResponse,
+  IdeleteMany,
   Ifile,
   IfileMeta,
+  IfilterProps,
   IinvoicePrintDetails,
   IinvoiceSetting,
   IinvoiceSettingsBank,
@@ -14,21 +16,13 @@ import {
 import { lastValueFrom } from 'rxjs';
 import { StockCounterClient } from '../../stock-counter-client';
 
-
-/** The  InvoiceSettings  class extends the  DatabaseAuto  class and represents a set of invoice settings. It has properties for general settings, tax settings, and bank settings, and a constructor that initializes these properties. */
-/**
- * Represents the settings for an invoice.
- */
-export class InvoiceSettings extends DatabaseAuto {
+export class InvoiceSettings
+  extends DatabaseAuto {
   generalSettings: IinvoiceSettingsGeneral;
   taxSettings: IinvoiceSettingsTax;
   bankSettings: IinvoiceSettingsBank;
   printDetails: IinvoicePrintDetails;
 
-  /**
-   * Creates an instance of InvoiceSettings.
-   * @param {IinvoiceSetting} data - The data to initialize the instance with.
-   */
   constructor(data: IinvoiceSetting) {
     super(data);
     this.generalSettings = data.generalSettings;
@@ -37,115 +31,82 @@ export class InvoiceSettings extends DatabaseAuto {
     this.printDetails = data.printDetails;
   }
 
-  /**
-   * Retrieves all invoice settings from the server, with optional pagination parameters for offset and limit.
-   * @param companyId - The ID of the company
-   * @param {string} [url='getall'] - The URL to retrieve the invoice settings from.
-   * @param {number} [offset=0] - The offset to start retrieving the invoice settings from.
-   * @param {number} [limit=0] - The maximum number of invoice settings to retrieve.
-   * @returns {Promise<InvoiceSettings[]>} An array of InvoiceSettings objects.
-   */
-  static async getInvoiceSettings(
-    companyId: string,
-    url = 'getall',
+  static async getAll(
     offset = 0,
     limit = 20
   ) {
     const observer$ = StockCounterClient.ehttp
-      .makeGet(`/invoicesettings/${url}/${offset}/${limit}/${companyId}`);
-    const { count, data } = await lastValueFrom(observer$) as IdataArrayResponse;
+      .makeGet<IdataArrayResponse<IinvoiceSetting>>(`/invoicesettings/all/${offset}/${limit}`);
+    const { count, data } = await lastValueFrom(observer$);
 
     return {
       count,
       invoiceSettings: data
-        .map(val => new InvoiceSettings(val as IinvoiceSetting))
+        .map(val => new InvoiceSettings(val))
     };
   }
 
-  /**
-   * Retrieves a specific invoice settings object from the server based on its ID.
-   * @param companyId - The ID of the company
-   * @param {string} id - The ID of the invoice settings object to retrieve.
-   * @returns {Promise<InvoiceSettings>} A single InvoiceSettings object.
-   */
-  static async getOneInvoiceSettings(
-    companyId: string,
-    id: string
-  ): Promise<InvoiceSettings> {
+  static async filterAll(filter: IfilterProps) {
     const observer$ = StockCounterClient.ehttp
-      .makeGet(`/invoicesettings/getone/${id}/${companyId}`);
-    const invoiceSetting = await lastValueFrom(observer$) as IinvoiceSetting;
+      .makePost<IdataArrayResponse<IinvoiceSetting>>('/invoicesettings/filter', filter);
+    const { count, data } = await lastValueFrom(observer$);
+
+    return {
+      count,
+      invoiceSettings: data
+        .map(val => new InvoiceSettings(val))
+    };
+  }
+
+  static async getOne(_id: string): Promise<InvoiceSettings> {
+    const observer$ = StockCounterClient.ehttp
+      .makeGet<IinvoiceSetting>(`/invoicesettings/one/${_id}`);
+    const invoiceSetting = await lastValueFrom(observer$);
 
     return new InvoiceSettings(invoiceSetting);
   }
 
-  /**
-   * Adds a new invoice settings object to the server.
-   * @param companyId - The ID of the company
-   * @param {IinvoiceSetting} vals - The settings values to add.
-   * @param {Ifile[]} [files] - Optional files for uploading digital signatures and stamps.
-   * @returns {Promise<Isuccess>} A success message.
-   */
-  static async addInvoiceSettings(
-    companyId: string,
-    vals: IinvoiceSetting,
+  static async add(
+    invoiceSetting: IinvoiceSetting,
     files?: Ifile[]
-  ): Promise<Isuccess> {
+  ) {
     let added: Isuccess;
-    const details = {
-      invoicesettings: vals
+    const body = {
+      invoiceSetting
     };
 
     if (files && files[0]) {
-      console.log('CREATING IMAFE');
       const observer$ = StockCounterClient.ehttp
-        .uploadFiles(
+        .uploadFiles<Isuccess>(
           files,
-          `/invoicesettings/createimg/${companyId}`,
-          details
+          '/invoicesettings/add/img',
+          body
         );
 
-      added = await lastValueFrom(observer$) as Isuccess;
+      added = await lastValueFrom(observer$);
     } else {
       const observer$ = StockCounterClient.ehttp
-        .makePost(`/invoicesettings/create/${companyId}`, details);
+        .makePost<Isuccess>('/invoicesettings/add', body);
 
-      added = await lastValueFrom(observer$) as Isuccess;
+      added = await lastValueFrom(observer$);
     }
 
     return added;
   }
 
-  /**
-   * Deletes multiple invoice settings objects from the server based on their IDs.
-   * @param companyId - The ID of the company
-   * @param {string[]} ids - An array of IDs of the invoice settings objects to delete.
-   * @returns {Promise<Isuccess>} A success message.
-   */
-  static deleteInvoiceSettings(
-    companyId: string,
-    ids: string[]
-  ): Promise<Isuccess> {
+  static removeMany(vals: IdeleteMany) {
     const observer$ = StockCounterClient.ehttp
-      .makePut(`/invoicesettings/deletemany/${companyId}`, { ids });
+      .makePut<Isuccess>('/invoicesettings/delete/many', vals);
 
-    return lastValueFrom(observer$) as Promise<Isuccess>;
+    return lastValueFrom(observer$);
   }
 
-  /**
-   * Updates an existing invoice settings object on the server.
-   * @param companyId - The ID of the company
-   * @param {IinvoiceSetting} vals - The updated settings values.
-   * @param {Ifile[]} [files] - Optional files for updating digital signatures and stamps.
-   * @returns {Promise<Isuccess>} A success message.
-   */
-  async updateInvoiceSettings(
-    companyId: string,
+  async update(
     vals: IinvoiceSetting,
     files?: Ifile[]
-  ): Promise<Isuccess> {
-    const details = {
-      invoicesettings: {
+  ) {
+    const body = {
+      invoiceSetting: {
         ...vals,
         _id: this._id
       },
@@ -161,34 +122,30 @@ export class InvoiceSettings extends DatabaseAuto {
 
     if (files && files[0]) {
       const observer$ = StockCounterClient.ehttp
-        .uploadFiles(
+        .uploadFiles<Isuccess>(
           files,
-          `/invoicesettings/updateimg/${companyId}`,
-          details
+          '/invoicesettings/update/img',
+          body
         );
 
-      added = await lastValueFrom(observer$) as Isuccess;
+      added = await lastValueFrom(observer$);
     } else {
       const observer$ = StockCounterClient.ehttp
-        .makePut(`/invoicesettings/update/${companyId}`, details);
+        .makePut<Isuccess>('/invoicesettings/update', body);
 
-      added = await lastValueFrom(observer$) as Isuccess;
+      added = await lastValueFrom(observer$);
     }
 
     return added;
   }
 
-
-  /**
-   * Deletes images associated with an item.
-   * @param companyId - The ID of the company.
-   * @param filesWithDir - An array of file metadata objects.
-   * @returns A promise that resolves to the success status of the deletion.
-   */
-  async deleteImages(companyId: string, where: 'signature' | 'stamp', filesWithDir: IfileMeta[]) {
+  async removeImages(where: 'signature' | 'stamp', filesWithDir: IfileMeta[]) {
     const observer$ = StockCounterClient.ehttp
-      .makePut(`/invoicesettings/deleteimages/${companyId}`, { filesWithDir, item: { _id: this._id } });
-    const deleted = await lastValueFrom(observer$) as Isuccess;
+      .makePut<Isuccess>('/invoicesettings/delete/images', {
+        filesWithDir,
+        invoiceSetting: { _id: this._id }
+      });
+    const deleted = await lastValueFrom(observer$);
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     if (deleted.success) {

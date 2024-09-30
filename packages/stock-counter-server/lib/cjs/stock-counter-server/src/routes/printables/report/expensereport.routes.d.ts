@@ -1,4 +1,4 @@
 /**
  * Expense report routes.
  */
-export declare const expenseReportRoutes: any;
+export declare const expenseReportRoutes: import("express-serve-static-core").Router;

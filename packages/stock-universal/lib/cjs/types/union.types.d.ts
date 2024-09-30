@@ -194,7 +194,7 @@ export type TnotifType = 'orders' | 'payments' | 'users' | 'jobcards' | 'invoice
  * Represents the format options for displaying a user's display name.
  */
 export type TuserDispNameFormat = 'firstLast' | 'lastFirst' | 'companyName';
-export type TuserType = 'company' | 'staff' | 'customer' | 'eUser' | 'manager' | 'other';
+export type TuserType<T = 'eUser'> = 'company' | 'staff' | 'customer' | 'eUser' | T;
 /**
  * Represents the type of payment.
  * - `nonSubscription`: Indicates a non-subscription payment.

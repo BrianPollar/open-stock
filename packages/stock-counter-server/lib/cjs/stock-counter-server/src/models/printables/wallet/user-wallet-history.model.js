@@ -35,10 +35,12 @@ const createUserWalletHistoryModel = async (dbUrl, dbOptions, main = true, lean 
         await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.userWalletHistoryMain = database_1.mainConnection.model('UserWalletHistory', userWalletHistorySchema);
+        exports.userWalletHistoryMain = database_1.mainConnection
+            .model('UserWalletHistory', userWalletHistorySchema);
     }
     if (lean) {
-        exports.userWalletHistoryLean = database_1.mainConnectionLean.model('UserWalletHistory', userWalletHistorySchema);
+        exports.userWalletHistoryLean = database_1.mainConnectionLean
+            .model('UserWalletHistory', userWalletHistorySchema);
     }
 };
 exports.createUserWalletHistoryModel = createUserWalletHistoryModel;

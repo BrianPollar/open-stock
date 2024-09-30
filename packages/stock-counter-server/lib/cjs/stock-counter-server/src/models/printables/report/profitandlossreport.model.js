@@ -48,10 +48,12 @@ const createProfitandlossReportModel = async (dbUrl, dbOptions, main = true, lea
         await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.profitandlossReportMain = database_1.mainConnection.model('profitandlossReport', profitandlossReportSchema);
+        exports.profitandlossReportMain = database_1.mainConnection
+            .model('profitandlossReport', profitandlossReportSchema);
     }
     if (lean) {
-        exports.profitandlossReportLean = database_1.mainConnectionLean.model('profitandlossReport', profitandlossReportSchema);
+        exports.profitandlossReportLean = database_1.mainConnectionLean
+            .model('profitandlossReport', profitandlossReportSchema);
     }
 };
 exports.createProfitandlossReportModel = createProfitandlossReportModel;

@@ -54,10 +54,12 @@ export const createSalesReportModel = async (dbUrl, dbOptions, main = true, lean
         await connectStockDatabase(dbUrl, dbOptions);
     }
     if (main) {
-        salesReportMain = mainConnection.model('salesReport', salesReportSchema);
+        salesReportMain = mainConnection
+            .model('salesReport', salesReportSchema);
     }
     if (lean) {
-        salesReportLean = mainConnectionLean.model('salesReport', salesReportSchema);
+        salesReportLean = mainConnectionLean
+            .model('salesReport', salesReportSchema);
     }
 };
 //# sourceMappingURL=salesreport.model.js.map

@@ -46,7 +46,6 @@ export interface IstockcounterServerConfig {
     * The path configuration for the local server.
     */
     localPath: IlocalPath;
-    useDummyRoutes?: boolean;
     ecommerceRevenuePercentage: number;
 }
 /**
@@ -82,7 +81,7 @@ export declare let notifRedirectUrl: string;
  * @throws An error if the authentication server is not running.
  */
 export declare const runStockCounterServer: (config: IstockcounterServerConfig, paymentInstance: PesaPalController) => Promise<{
-    stockCounterRouter: any;
+    stockCounterRouter: import("express-serve-static-core").Router;
 }>;
 /**
  * Checks if the stock counter server is running.

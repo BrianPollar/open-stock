@@ -38,30 +38,15 @@ const promocodeRoutesLogger = tracer.colorConsole({
  * Router for handling promo code routes.
  */
 exports.promocodeRoutes = express_1.default.Router();
-/**
- * Route for creating a new promocode
- * @name POST /create
- * @function
- * @memberof module:routes/promocodeRoutes
- * @inner
- * @param {string[]} items - Array of item IDs that the promocode applies to
- * @param {number} amount - Discount amount in cents
- * @param {string} roomId - ID of the room the promocode applies to
- * @returns {Promise<Isuccess>} - Promise representing the success or failure of the operation
- */
-exports.promocodeRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'create'), async (req, res) => {
+exports.promocodeRoutes.post('/create', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'create'), async (req, res) => {
     const { items, amount, roomId } = req.body;
     const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
+    const isValid = (0, stock_universal_server_1.verifyObjectId)(companyId);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const code = (0, stock_universal_1.makeRandomString)(8, 'combined');
-    const count = await promocode_model_1.promocodeMain
-        .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
-    const urId = (0, stock_universal_server_1.makeUrId)(Number(count[0]?.urId || '0'));
+    const urId = await (0, stock_universal_server_1.generateUrId)(promocode_model_1.promocodeMain);
     const promocode = {
         urId,
         companyId,
@@ -97,36 +82,19 @@ exports.promocodeRoutes.post('/create/:companyIdParam', stock_universal_server_1
     }
     return res.status(200).send({ success: Boolean(saved), code });
 });
-/**
- * Route for getting a single promocode by ID
- * @name GET /getone/:id
- * @function
- * @memberof module:routes/promocodeRoutes
- * @inner
- * @param {string} id - ID of the promocode to retrieve
- * @returns {Promise<object>} - Promise representing the retrieved promocode
- */
-exports.promocodeRoutes.get('/getone/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'read'), async (req, res) => {
-    const { id } = req.params;
+exports.promocodeRoutes.get('/one/:_id', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'read'), async (req, res) => {
+    const { _id } = req.params;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     const promocode = await promocode_model_1.promocodeLean
-        .findOne({ _id: id, ...filter })
+        .findOne({ _id, ...filter })
         .lean();
-    if (promocode) {
-        (0, stock_universal_server_1.addParentToLocals)(res, promocode._id, promocode_model_1.promocodeMain.collection.collectionName, 'trackDataView');
+    if (!promocode) {
+        return res.status(404).send({ success: false, err: 'not found' });
     }
+    (0, stock_universal_server_1.addParentToLocals)(res, promocode._id, promocode_model_1.promocodeMain.collection.collectionName, 'trackDataView');
     return res.status(200).send(promocode);
 });
-/**
- * Route for getting a single promocode by code
- * @name GET /getonebycode/:code
- * @function
- * @memberof module:routes/promocodeRoutes
- * @inner
- * @param {string} code - Code of the promocode to retrieve
- * @returns {Promise<object>} - Promise representing the retrieved promocode
- */
-exports.promocodeRoutes.get('/getonebycode/:code/:companyIdParam', async (req, res) => {
+exports.promocodeRoutes.get('/getonebycode/:code', async (req, res) => {
     const { code } = req.params;
     const promocode = await promocode_model_1.promocodeLean
         .findOne({ code })
@@ -136,17 +104,7 @@ exports.promocodeRoutes.get('/getonebycode/:code/:companyIdParam', async (req, r
     }
     return res.status(200).send(promocode);
 });
-/**
- * Route for getting all promocodes with pagination
- * @name GET /getall/:offset/:limit
- * @function
- * @memberof module:routes/promocodeRoutes
- * @inner
- * @param {string} offset - Offset for pagination
- * @param {string} limit - Limit for pagination
- * @returns {Promise<object[]>} - Promise representing the retrieved promocodes
- */
-exports.promocodeRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'read'), async (req, res) => {
+exports.promocodeRoutes.get('/all/:offset/:limit', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'read'), async (req, res) => {
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     const all = await Promise.all([
@@ -166,33 +124,64 @@ exports.promocodeRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_univ
     }
     return res.status(200).send(response);
 });
-/**
- * Route for deleting a single promocode by ID
- * @name DELETE /deleteone/:id
- * @function
- * @memberof module:routes/promocodeRoutes
- * @inner
- * @param {string} id - ID of the promocode to delete
- * @returns {Promise<Isuccess>} - Promise representing the success or failure of the operation
- */
-exports.promocodeRoutes.delete('/deleteone/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'delete'), async (req, res) => {
-    const { id } = req.params;
+exports.promocodeRoutes.post('/filter', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'read'), async (req, res) => {
+    const { propSort } = req.body;
+    const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.body.offset, req.body.limit);
+    const filter = (0, stock_universal_server_1.constructFiltersFromBody)(req);
+    const aggCursor = promocode_model_1.promocodeLean.aggregate([
+        {
+            $match: {
+                $and: [
+                    // { status: 'pending' },
+                    ...filter
+                ]
+            }
+        },
+        ...(0, stock_universal_server_1.lookupTrackEdit)(),
+        ...(0, stock_universal_server_1.lookupTrackView)(),
+        {
+            $facet: {
+                data: [...(0, stock_universal_server_1.lookupSort)(propSort), ...(0, stock_universal_server_1.lookupOffset)(offset), ...(0, stock_universal_server_1.lookupLimit)(limit)],
+                total: [{ $count: 'count' }]
+            }
+        },
+        {
+            $unwind: {
+                path: '$total',
+                preserveNullAndEmptyArrays: true
+            }
+        }
+    ]);
+    const dataArr = [];
+    for await (const data of aggCursor) {
+        dataArr.push(data);
+    }
+    const all = dataArr[0]?.data || [];
+    const count = dataArr[0]?.total?.count || 0;
+    const response = {
+        count,
+        data: all
+    };
+    for (const val of all) {
+        (0, stock_universal_server_1.addParentToLocals)(res, val._id, promocode_model_1.promocodeMain.collection.collectionName, 'trackDataView');
+    }
+    return res.status(200).send(response);
+});
+exports.promocodeRoutes.delete('/delete/one/:_id', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'delete'), async (req, res) => {
+    const { _id } = req.params;
     const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)([id, queryId]);
+    const isValid = (0, stock_universal_server_1.verifyObjectIds)([_id, companyId]);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    // const deleted = await promocodeMain.findOneAndDelete({ _id: id, companyId: queryId });
-    const deleted = await promocode_model_1.promocodeMain.updateOne({ _id: id, companyId: queryId }, { $set: { isDeleted: true } });
+    // const deleted = await promocodeMain.findOneAndDelete({ _id, });
+    const deleted = await promocode_model_1.promocodeMain.updateOne({ _id }, { $set: { isDeleted: true } });
     if (Boolean(deleted)) {
-        (0, stock_universal_server_1.addParentToLocals)(res, id, promocode_model_1.promocodeMain.collection.collectionName, 'trackDataDelete');
+        (0, stock_universal_server_1.addParentToLocals)(res, _id, promocode_model_1.promocodeMain.collection.collectionName, 'trackDataDelete');
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
-        return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
+        return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
 //# sourceMappingURL=promo.routes.js.map

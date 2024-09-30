@@ -22,12 +22,12 @@
 /// <reference types="mongoose/types/validation" />
 /// <reference types="mongoose/types/virtuals" />
 /// <reference types="mongoose/types/inferschematype" />
-import { IinvoiceRelatedRef, IurId } from '@open-stock/stock-universal';
+import { IinvoiceRelatedRef } from '@open-stock/stock-universal';
 import { ConnectOptions, Document, Model } from 'mongoose';
 /**
  * Represents a receipt document.
  */
-export type Treceipt = Document & IurId & IinvoiceRelatedRef & {
+export type Treceipt = Document & IinvoiceRelatedRef & {
     /**
      * The amount received.
      */

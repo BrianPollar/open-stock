@@ -1,13 +1,12 @@
 import { populateTrackEdit, populateTrackView, requireActiveCompany, requireCanUseFeature, requireUpdateSubscriptionRecord } from '@open-stock/stock-auth-server';
-import { addParentToLocals, makeCompanyBasedQuery, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr } from '@open-stock/stock-universal-server';
+import { addParentToLocals, constructFiltersFromBody, generateUrId, lookupSubFieldInvoiceRelatedFilter, makeCompanyBasedQuery, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr } from '@open-stock/stock-universal-server';
 import express from 'express';
 import * as fs from 'fs';
 import path from 'path';
-import { filter } from 'rxjs';
 import * as tracer from 'tracer';
 import { estimateLean, estimateMain } from '../../models/printables/estimate.model';
-import { invoiceRelatedLean, invoiceRelatedMain } from '../../models/printables/related/invoicerelated.model';
-import { populateBillingUser, populateInvoiceRelated, populatePayments } from '../../utils/query';
+import { invoiceRelatedMain } from '../../models/printables/related/invoicerelated.model';
+import { populateInvoiceRelated } from '../../utils/query';
 import { deleteAllLinked, makeInvoiceRelatedPdct, relegateInvRelatedCreation } from './related/invoicerelated';
 /** Logger for estimate routes */
 const estimateRoutesogger = tracer.colorConsole({
@@ -39,33 +38,26 @@ const estimateRoutesogger = tracer.colorConsole({
  */
 /**
  * Generates a new estimate ID based on the given query ID.
- * @param queryId The query ID used to filter the invoices.
+ * @param companyId The query ID used to filter the invoices.
  * @returns The new estimate ID.
  */
-const makeEstimateId = async (queryId) => {
+const makeEstimateId = async (companyId) => {
     const count = await invoiceRelatedMain
-        .find({ ...filter, estimateId: { $exists: true, $ne: null } }).sort({ _id: -1 }).limit(1).lean().select({ estimateId: 1 });
+        .find({ companyId, estimateId: { $exists: true, $ne: null } })
+        .sort({ _id: -1 }).limit(1).lean().select({ estimateId: 1 });
     let incCount = count[0]?.estimateId || 0;
     return ++incCount;
 };
-/**
- * Updates the estimate with the specified ID and sets the stage and invoice ID.
- * @param estimateId - The ID of the estimate to update.
- * @param stage - The stage to set for the estimate.
- * @param queryId - The query ID associated with the estimate.
- * @param invoiceId - The invoice ID to set for the estimate (optional).
- * @returns A boolean indicating whether the estimate was successfully updated.
- */
-export const updateEstimateUniv = async (res, estimateId, stage, queryId, invoiceId) => {
+export const updateEstimateUniv = async (res, estimateId, stage, companyId) => {
     const estimate = await estimateMain
-        .findOne({ estimateId, ...filter })
+        .findOne({ estimateId, companyId })
         .lean();
     if (!estimate) {
         return false;
     }
     let savedErr;
     await estimateMain.updateOne({
-        estimateId, ...filter
+        estimateId, companyId
     }, {
         $set: {
             stage
@@ -84,16 +76,11 @@ export const updateEstimateUniv = async (res, estimateId, stage, queryId, invoic
 };
 /** Router for estimate routes */
 export const estimateRoutes = express.Router();
-/**
- * Creates a new estimate and invoice related object.
- * @param req The request object.
- * @param res The response object.
- * @returns A success object with a boolean indicating whether the operation was successful.
- */
-estimateRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany, requireCanUseFeature('quotation'), roleAuthorisation('estimates', 'create'), async (req, res, next) => {
+estimateRoutes.post('/add', requireAuth, requireActiveCompany, requireCanUseFeature('quotation'), roleAuthorisation('estimates', 'create'), async (req, res, next) => {
     const { estimate, invoiceRelated } = req.body;
     const { filter } = makeCompanyBasedQuery(req);
     estimate.companyId = filter.companyId;
+    estimate.urId = await generateUrId(estimateMain);
     invoiceRelated.companyId = filter.companyId;
     invoiceRelated.estimateId = await makeEstimateId(filter.companyId);
     const extraNotifDesc = 'Newly created estimate';
@@ -101,14 +88,15 @@ estimateRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany
     if (!invoiceRelatedRes.success) {
         return res.status(invoiceRelatedRes.status).send(invoiceRelatedRes);
     }
-    estimate.invoiceRelated = invoiceRelatedRes.id;
+    estimate.invoiceRelated = invoiceRelatedRes._id;
     const newEstimate = new estimateMain(estimate);
     let errResponse;
     /**
-     * Saves a new estimate and returns a response object.
-     * @param {Estimate} newEstimate - The new estimate to be saved.
-     * @returns {Promise<{success: boolean, status: number, err?: string}>} - A promise that resolves to an object with success, status, and err properties.
-     */
+   * Saves a new estimate and returns a response object.
+   * @param {Estimate} newEstimate - The new estimate to be saved.
+   * @returns {Promise<{success: boolean, status: number, err?: string}>} - A promise that
+   * resolves to an object with success, status, and err properties.
+   */
     const saved = await newEstimate.save()
         .catch(err => {
         estimateRoutesogger.error('create - err: ', err);
@@ -133,34 +121,24 @@ estimateRoutes.post('/create/:companyIdParam', requireAuth, requireActiveCompany
     }
     return next();
 }, requireUpdateSubscriptionRecord('quotation'));
-/**
- * Gets an estimate and its associated invoice related object by estimate ID.
- * @param req The request object.
- * @param res The response object.
- * @returns The invoice related object associated with the estimate.
- */
-estimateRoutes.get('/getone/:estimateId/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('estimates', 'read'), async (req, res) => {
-    const { estimateId } = req.params;
+estimateRoutes.get('/one/:urId', requireAuth, requireActiveCompany, roleAuthorisation('estimates', 'read'), async (req, res) => {
+    const { urId } = req.params;
     const { filter } = makeCompanyBasedQuery(req);
-    const invoiceRelated = await invoiceRelatedLean
-        .findOne({ estimateId, ...filter })
+    const estimate = await estimateLean
+        .findOne({ urId, ...filter })
         .lean()
-        .populate([populatePayments(), populateBillingUser(), populateTrackEdit(), populateTrackView()]);
-    let returned;
-    if (invoiceRelated) {
-        returned = makeInvoiceRelatedPdct(invoiceRelated, invoiceRelated
-            .billingUserId);
-        // addParentToLocals(res, invoiceRelated._id, estimateLean.collection.collectionName, 'trackDataView'); // TODO
+        .populate([populateInvoiceRelated(), populateTrackEdit(), populateTrackView()]);
+    if (!estimate || !estimate.invoiceRelated) {
+        return res.status(404).send({ success: false, err: 'not found' });
     }
+    const returned = makeInvoiceRelatedPdct(estimate.invoiceRelated, estimate.invoiceRelated
+        .billingUserId, estimate.createdAt, { _id: estimate._id,
+        urId: estimate.urId
+    });
+    // addParentToLocals(res, invoiceRelated._id, estimateLean.collection.collectionName, 'trackDataView'); // TODO
     return res.status(200).send(returned);
 });
-/**
- * Gets all estimates and their associated invoice related objects.
- * @param req The request object.
- * @param res The response object.
- * @returns An array of invoice related objects associated with the estimates.
- */
-estimateRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('estimates', 'read'), async (req, res) => {
+estimateRoutes.get('/all/:offset/:limit', requireAuth, requireActiveCompany, roleAuthorisation('estimates', 'read'), async (req, res) => {
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     const { filter } = makeCompanyBasedQuery(req);
     const all = await Promise.all([
@@ -173,8 +151,8 @@ estimateRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requir
         estimateLean.countDocuments(filter)
     ]);
     const returned = all[0]
-        .map(val => makeInvoiceRelatedPdct(val.invoiceRelated, val.invoiceRelated
-        .billingUserId, null, {
+        .filter(val => val && val.invoiceRelated)
+        .map(val => makeInvoiceRelatedPdct(val.invoiceRelated, val.invoiceRelated?.billingUserId, null, {
         _id: val._id
     }));
     const response = {
@@ -186,71 +164,61 @@ estimateRoutes.get('/getall/:offset/:limit/:companyIdParam', requireAuth, requir
     }
     return res.status(200).send(response);
 });
-/**
- * Deletes an estimate and its associated invoice related object.
- * @param req The request object.
- * @param res The response object.
- * @returns A success object with a boolean indicating whether the operation was successful.
- */
-estimateRoutes.put('/deleteone/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('estimates', 'delete'), async (req, res) => {
-    const { id, invoiceRelated, creationType, stage } = req.body;
+estimateRoutes.put('/delete/one', requireAuth, requireActiveCompany, roleAuthorisation('estimates', 'delete'), async (req, res) => {
+    const { _id } = req.body;
     const { filter } = makeCompanyBasedQuery(req);
-    const deleted = await deleteAllLinked(invoiceRelated, creationType, stage, 'estimate', filter.companyId);
+    const found = await estimateLean.findOne({ _id }).lean();
+    if (!found) {
+        return res.status(404).send({ success: false, err: 'not found' });
+    }
+    const deleted = await deleteAllLinked(found.invoiceRelated, 'estimate', filter.companyId);
     if (Boolean(deleted)) {
-        addParentToLocals(res, id, estimateLean.collection.collectionName, 'trackDataDelete');
+        addParentToLocals(res, _id, estimateLean.collection.collectionName, 'trackDataDelete');
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
-        return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
+        return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
-/**
- * Searches for estimates by a given search term and search key.
- * @param req The request object.
- * @param res The response object.
- * @returns An array of invoice related objects associated with the matching estimates.
- */
-estimateRoutes.post('/search/:offset/:limit/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('estimates', 'read'), async (req, res) => {
-    const { searchterm, searchKey } = req.body;
-    const { filter } = makeCompanyBasedQuery(req);
-    const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
-    const all = await Promise.all([
-        estimateLean
-            .find({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
-            .skip(offset)
-            .limit(limit)
-            .lean()
-            .populate([populateInvoiceRelated(), populateTrackEdit(), populateTrackView()]),
-        estimateLean.countDocuments({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
+estimateRoutes.post('/filter', requireAuth, requireActiveCompany, roleAuthorisation('estimates', 'read'), async (req, res) => {
+    const { propSort } = req.body;
+    const { offset, limit } = offsetLimitRelegator(req.body.offset, req.body.limit);
+    const aggCursor = estimateLean
+        .aggregate([
+        ...lookupSubFieldInvoiceRelatedFilter(constructFiltersFromBody(req), propSort, offset, limit)
     ]);
-    const returned = all[0]
-        .map(val => makeInvoiceRelatedPdct(val.invoiceRelated, val.invoiceRelated
-        .billingUserId));
+    const dataArr = [];
+    for await (const data of aggCursor) {
+        dataArr.push(data);
+    }
+    const all = dataArr[0]?.data || [];
+    const count = dataArr[0]?.total?.count || 0;
+    const returned = all
+        .filter(val => val && val.invoiceRelated)
+        .map(val => makeInvoiceRelatedPdct(val.invoiceRelated, val.invoiceRelated?.billingUserId));
     const response = {
-        count: all[1],
+        count,
         data: returned
     };
-    for (const val of all[0]) {
+    for (const val of all) {
         addParentToLocals(res, val._id, estimateLean.collection.collectionName, 'trackDataView');
     }
     return res.status(200).send(response);
 });
-estimateRoutes.put('/deletemany/:companyIdParam', requireAuth, requireActiveCompany, roleAuthorisation('estimates', 'delete'), async (req, res) => {
-    const { credentials } = req.body;
+estimateRoutes.put('/delete/many', requireAuth, requireActiveCompany, roleAuthorisation('estimates', 'delete'), async (req, res) => {
+    const { _ids } = req.body;
     const { filter } = makeCompanyBasedQuery(req);
-    if (!credentials || credentials?.length < 1) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
-    /** await estimateMain
-      .deleteMany({ _id: { $in: ids } });**/
-    const promises = credentials
+    const promises = _ids
         .map(async (val) => {
-        await deleteAllLinked(val.invoiceRelated, val.creationType, val.stage, 'estimate', filter.companyId);
-        return new Promise(resolve => resolve(true));
+        const found = await estimateLean.findOne({ _id: val }).lean();
+        if (found) {
+            await deleteAllLinked(found.invoiceRelated, 'estimate', filter.companyId);
+        }
+        return new Promise(resolve => resolve(found._id));
     });
-    await Promise.all(promises);
-    for (const val of credentials) {
-        addParentToLocals(res, val.id, estimateLean.collection.collectionName, 'trackDataDelete');
+    const filterdExist = await Promise.all(promises);
+    for (const val of filterdExist) {
+        addParentToLocals(res, val, estimateLean.collection.collectionName, 'trackDataDelete');
     }
     return res.status(200).send({ success: true });
 });

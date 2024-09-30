@@ -51,10 +51,12 @@ const createReceiptModel = async (dbUrl, dbOptions, main = true, lean = true) =>
         await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.receiptMain = database_1.mainConnection.model('Receipt', receiptSchema);
+        exports.receiptMain = database_1.mainConnection
+            .model('Receipt', receiptSchema);
     }
     if (lean) {
-        exports.receiptLean = database_1.mainConnectionLean.model('Receipt', receiptSchema);
+        exports.receiptLean = database_1.mainConnectionLean
+            .model('Receipt', receiptSchema);
     }
 };
 exports.createReceiptModel = createReceiptModel;

@@ -74,10 +74,12 @@ export const createReviewModel = async (dbUrl, dbOptions, main = true, lean = tr
         await connectStockDatabase(dbUrl, dbOptions);
     }
     if (main) {
-        reviewMain = mainConnection.model('Review', reviewSchema);
+        reviewMain = mainConnection
+            .model('Review', reviewSchema);
     }
     if (lean) {
-        reviewLean = mainConnectionLean.model('Review', reviewSchema);
+        reviewLean = mainConnectionLean
+            .model('Review', reviewSchema);
     }
 };
 //# sourceMappingURL=review.model.js.map

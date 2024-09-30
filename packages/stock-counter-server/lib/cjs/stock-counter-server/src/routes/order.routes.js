@@ -42,27 +42,9 @@ const orderRoutesLogger = tracer.colorConsole({
  * Express router for handling order routes.
  */
 exports.orderRoutes = express_1.default.Router();
-/**
- * Route for creating an order
- * @name POST /makeorder
- * @function
- * @memberof module:routes/orderRoutes
- * @inner
- * @param {Request} req - Express request object
- * @param {Response} res - Express response object
- * @returns {Promise} - Promise representing the result of the operation
- */
-exports.orderRoutes.post('/makeorder/:companyIdParam', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
-    // const { userId } = (req as Icustomrequest).user;
-    // const { companyId } = (req as Icustomrequest).user;
-    const { companyIdParam } = req.params;
-    // const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    /* const isValid = verifyObjectId(companyIdParam);
-    if (!isValid) {
-      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    } */
+exports.orderRoutes.post('/makeorder', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
     const { order, payment, bagainCred, paymentRelated, invoiceRelated, userObj } = req.body;
-    const companyId = order.companyId || companyIdParam ? companyIdParam : 'superAdmin';
+    const companyId = order.companyId;
     order.companyId = companyId;
     payment.companyId = companyId;
     paymentRelated.companyId = companyId;
@@ -74,9 +56,7 @@ exports.orderRoutes.post('/makeorder/:companyIdParam', stock_universal_server_1.
             userDoc = found;
         }
         else {
-            const count = await stock_auth_server_1.user
-                .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
-            userObj.urId = (0, stock_universal_server_2.makeUrId)(Number(count[0]?.urId || '0'));
+            userObj.urId = await (0, stock_universal_server_1.generateUrId)(stock_auth_server_1.user);
             const newUser = new stock_auth_server_1.user(userObj);
             let savedErr;
             userDoc = await newUser.save().catch(err => {
@@ -88,7 +68,7 @@ exports.orderRoutes.post('/makeorder/:companyIdParam', stock_universal_server_1.
                 return res.status(500).send({ success: false });
             }
             if (userDoc && userDoc._id) {
-                (0, stock_universal_server_2.addParentToLocals)(res, userDoc._id, order_model_1.orderMain.collection.collectionName, 'makeTrackEdit');
+                (0, stock_universal_server_2.addParentToLocals)(res, userDoc._id, stock_auth_server_1.user.collection.collectionName, 'makeTrackEdit');
             }
         }
     }
@@ -105,62 +85,41 @@ exports.orderRoutes.post('/makeorder/:companyIdParam', stock_universal_server_1.
     }
     invoiceRelated.billingUser = userDoc.fname + ' ' + userDoc.lname;
     invoiceRelated.billingUserId = userDoc._id;
+    // eslint-disable-next-line max-len
     invoiceRelated.billingUserPhoto = (typeof userDoc.profilePic === 'string') ? userDoc.profilePic : (userDoc.profilePic)?.url;
-    const done = await (0, payment_1.paymentMethodDelegator)(res, paymentRelated, invoiceRelated, order.paymentMethod, order, payment, userDoc._id, companyIdParam, bagainCred);
+    const done = await (0, payment_1.paymentMethodDelegator)(res, paymentRelated, invoiceRelated, order.paymentMethod, order, payment, userDoc._id, companyId, bagainCred);
     return res.status(done.status).send({ success: done.success, data: done });
 });
-exports.orderRoutes.post('/paysubscription/:companyIdParam', stock_universal_server_2.requireAuth, async (req, res) => {
-    // const { userId } = (req as Icustomrequest).user;
+exports.orderRoutes.post('/paysubscription', stock_universal_server_2.requireAuth, async (req, res) => {
+    // const { userId } = req.user;
     const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_2.verifyObjectId)(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
     const { order, payment, bagainCred, paymentRelated, invoiceRelated } = req.body;
-    order.companyId = queryId;
-    payment.companyId = queryId;
-    paymentRelated.companyId = queryId;
-    invoiceRelated.companyId = queryId;
+    order.companyId = companyId;
+    payment.companyId = companyId;
+    paymentRelated.companyId = companyId;
+    invoiceRelated.companyId = companyId;
     const done = await (0, payment_1.paymentMethodDelegator)(res, paymentRelated, invoiceRelated, order.paymentMethod, order, payment, companyId, companyId, bagainCred, 'subscription');
     return res.status(done.status).send({ success: done.success, data: done });
 });
-/**
- * Route for creating an order
- * @name POST /create
- * @function
- * @memberof module:routes/orderRoutes
- * @inner
- * @param {Request} req - Express request object
- * @param {Response} res - Express response object
- * @returns {Promise} - Promise representing the result of the operation
- */
-exports.orderRoutes.post('/create/:companyIdParam', stock_universal_server_2.requireAuth, async (req, res) => {
+exports.orderRoutes.post('/add', stock_universal_server_2.requireAuth, async (req, res) => {
     const { order, paymentRelated, invoiceRelated } = req.body;
     const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    const isValid = (0, stock_universal_server_2.verifyObjectId)(queryId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
-    order.companyId = queryId;
-    paymentRelated.companyId = queryId;
-    invoiceRelated.companyId = queryId;
+    order.companyId = companyId;
+    paymentRelated.companyId = companyId;
+    invoiceRelated.companyId = companyId;
     const extraNotifDesc = 'Newly created order';
-    const paymentRelatedRes = await (0, paymentrelated_1.relegatePaymentRelatedCreation)(res, paymentRelated, invoiceRelated, 'order', extraNotifDesc, queryId);
+    const paymentRelatedRes = await (0, paymentrelated_1.relegatePaymentRelatedCreation)(res, paymentRelated, invoiceRelated, 'order', extraNotifDesc, companyId);
     orderRoutesLogger.debug('Order route - paymentRelatedRes', paymentRelatedRes);
     if (!paymentRelatedRes.success) {
         return res.status(paymentRelatedRes.status || 403).send(paymentRelatedRes);
     }
-    order.paymentRelated = paymentRelatedRes.id;
+    order.paymentRelated = paymentRelatedRes._id;
     const invoiceRelatedRes = await (0, invoicerelated_1.relegateInvRelatedCreation)(res, invoiceRelated, companyId, extraNotifDesc, true);
     orderRoutesLogger.debug('Order route - invoiceRelatedRes', invoiceRelatedRes);
     if (!invoiceRelatedRes.success) {
         return res.status(invoiceRelatedRes.status || 403).send(invoiceRelatedRes);
     }
-    order.invoiceRelated = invoiceRelatedRes.id;
+    order.invoiceRelated = invoiceRelatedRes._id;
     const newOrder = new order_model_1.orderMain(order);
     let errResponse;
     const saved = await newOrder.save()
@@ -187,22 +146,11 @@ exports.orderRoutes.post('/create/:companyIdParam', stock_universal_server_2.req
     }
     return res.status(200).send({ success: Boolean(saved) });
 });
-/**
- * Route for updating an order
- * @name PUT /update
- * @function
- * @memberof module:routes/orderRoutes
- * @inner
- * @param {Request} req - Express request object
- * @param {Response} res - Express response object
- * @returns {Promise} - Promise representing the result of the operation
- */
-exports.orderRoutes.put('/update/:companyIdParam', stock_universal_server_2.requireAuth, async (req, res) => {
+exports.orderRoutes.put('/update', stock_universal_server_2.requireAuth, async (req, res) => {
     const { updatedOrder, paymentRelated } = req.body;
     const { filter } = (0, stock_universal_server_2.makeCompanyBasedQuery)(req);
     updatedOrder.companyId = filter.companyId;
     paymentRelated.companyId = filter.companyId;
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     const { _id } = updatedOrder;
     const isValid = (0, stock_universal_server_2.verifyObjectIds)([_id, filter.companyId]);
     if (!isValid) {
@@ -245,32 +193,22 @@ exports.orderRoutes.put('/update/:companyIdParam', stock_universal_server_2.requ
     (0, stock_universal_server_2.addParentToLocals)(res, _id, order_model_1.orderMain.collection.collectionName, 'makeTrackEdit');
     return res.status(200).send({ success: Boolean(updated) });
 });
-/**
- * Route for getting a single order
- * @name GET /getone/:id
- * @function
- * @memberof module:routes/orderRoutes
- * @inner
- * @param {Request} req - Express request object
- * @param {Response} res - Express response object
- * @returns {Promise} - Promise representing the result of the operation
- */
-exports.orderRoutes.get('/getone/:id/:companyIdParam', stock_universal_server_2.requireAuth, async (req, res) => {
-    const { id } = req.params;
+exports.orderRoutes.get('/one/:_id', stock_universal_server_2.requireAuth, async (req, res) => {
+    const { _id } = req.params;
     const { filter } = (0, stock_universal_server_2.makeCompanyBasedQuery)(req);
     const order = await order_model_1.orderLean
-        .findOne({ _id: id, ...filter })
+        .findOne({ _id, ...filter })
         .lean()
         .populate([(0, query_1.populatePaymentRelated)(), (0, query_1.populateInvoiceRelated)(true), (0, stock_auth_server_1.populateTrackEdit)(), (0, stock_auth_server_1.populateTrackView)()]);
-    let returned;
-    if (order) {
-        returned = (0, paymentrelated_1.makePaymentRelatedPdct)(order.paymentRelated, order.invoiceRelated, order.invoiceRelated
-            .billingUserId, order);
-        (0, stock_universal_server_2.addParentToLocals)(res, order._id, order_model_1.orderMain.collection.collectionName, 'trackDataView');
+    if (!order) {
+        return res.status(404).send({ success: false, err: 'not found' });
     }
+    const returned = (0, paymentrelated_1.makePaymentRelatedPdct)(order.paymentRelated, order.invoiceRelated, order.invoiceRelated
+        .billingUserId, order);
+    (0, stock_universal_server_2.addParentToLocals)(res, order._id, order_model_1.orderMain.collection.collectionName, 'trackDataView');
     return res.status(200).send(returned);
 });
-exports.orderRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universal_server_2.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_2.roleAuthorisation)('orders', 'read'), async (req, res) => {
+exports.orderRoutes.get('/all/:offset/:limit', stock_universal_server_2.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_2.roleAuthorisation)('orders', 'read'), async (req, res) => {
     const { offset, limit } = (0, stock_universal_server_2.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const { filter } = (0, stock_universal_server_2.makeCompanyBasedQuery)(req);
     const all = await Promise.all([
@@ -294,7 +232,7 @@ exports.orderRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universa
     }
     return res.status(200).send(response);
 });
-exports.orderRoutes.get('/getmyorders/:offset/:limit/:companyIdParam', stock_universal_server_2.requireAuth, async (req, res) => {
+exports.orderRoutes.get('/getmyorders/:offset/:limit', stock_universal_server_2.requireAuth, async (req, res) => {
     const { userId } = req.user;
     const isValid = (0, stock_universal_server_2.verifyObjectId)(userId);
     if (!isValid) {
@@ -312,31 +250,34 @@ exports.orderRoutes.get('/getmyorders/:offset/:limit/:companyIdParam', stock_uni
     }
     return res.status(200).send(returned);
 });
-exports.orderRoutes.put('/deleteone/:companyIdParam', stock_universal_server_2.requireAuth, async (req, res) => {
-    const { id, paymentRelated, invoiceRelated, creationType, where } = req.body;
+exports.orderRoutes.put('/delete/one', stock_universal_server_2.requireAuth, async (req, res) => {
+    const { _id } = req.body;
     const { filter } = (0, stock_universal_server_2.makeCompanyBasedQuery)(req);
-    const isValid = (0, stock_universal_server_2.verifyObjectIds)([id, filter.companyId]);
+    const isValid = (0, stock_universal_server_2.verifyObjectIds)([_id, filter.companyId]);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
-    const deleted = await (0, paymentrelated_1.deleteAllPayOrderLinked)(paymentRelated, invoiceRelated, creationType, where, filter.companyId);
+    const found = await order_model_1.orderLean.findOne({ _id }).lean();
+    if (!found) {
+        return res.status(404).send({ success: false, err: 'not found' });
+    }
+    const deleted = await (0, paymentrelated_1.deleteAllPayOrderLinked)(found.paymentRelated, found.invoiceRelated, 'order', filter.companyId);
     // await orderMain.findByIdAndDelete(id);
     if (Boolean(deleted)) {
-        (0, stock_universal_server_2.addParentToLocals)(res, id, order_model_1.orderMain.collection.collectionName, 'trackDataDelete');
+        (0, stock_universal_server_2.addParentToLocals)(res, _id, order_model_1.orderMain.collection.collectionName, 'trackDataDelete');
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
-        return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
+        return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
-exports.orderRoutes.put('/appendDelivery/:orderId/:status/:companyIdParam', stock_universal_server_2.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_2.roleAuthorisation)('orders', 'update'), async (req, res) => {
+exports.orderRoutes.put('/appendDelivery/:orderId/:status', stock_universal_server_2.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_2.roleAuthorisation)('orders', 'update'), async (req, res) => {
     const { orderId } = req.params;
     const { filter } = (0, stock_universal_server_2.makeCompanyBasedQuery)(req);
     const isValid = (0, stock_universal_server_2.verifyObjectId)(orderId);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     const order = await order_model_1.orderMain
         .findOne({ _id: orderId, ...filter })
         .lean();
@@ -368,44 +309,45 @@ exports.orderRoutes.put('/appendDelivery/:orderId/:status/:companyIdParam', stoc
     (0, stock_universal_server_2.addParentToLocals)(res, order._id, order_model_1.orderMain.collection.collectionName, 'makeTrackEdit');
     return res.status(200).send({ success: true });
 });
-exports.orderRoutes.post('/search/:offset/:limit/:companyIdParam', stock_universal_server_2.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_2.roleAuthorisation)('orders', 'read'), async (req, res) => {
-    const { searchterm, searchKey } = req.body;
-    const { filter } = (0, stock_universal_server_2.makeCompanyBasedQuery)(req);
-    const { offset, limit } = (0, stock_universal_server_2.offsetLimitRelegator)(req.params.offset, req.params.limit);
-    const all = await Promise.all([
-        order_model_1.orderLean
-            .find({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
-            .lean()
-            .skip(offset)
-            .limit(limit)
-            .populate([(0, query_1.populatePaymentRelated)(), (0, query_1.populateInvoiceRelated)(true), (0, stock_auth_server_1.populateTrackEdit)(), (0, stock_auth_server_1.populateTrackView)()]),
-        order_model_1.orderLean.countDocuments({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
+exports.orderRoutes.post('/filter', stock_universal_server_2.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_2.roleAuthorisation)('orders', 'read'), async (req, res) => {
+    const { propSort } = req.body;
+    const { offset, limit } = (0, stock_universal_server_2.offsetLimitRelegator)(req.body.offset, req.body.limit);
+    const aggCursor = order_model_1.orderLean
+        .aggregate([
+        ...(0, stock_universal_server_1.lookupSubFieldInvoiceRelatedFilter)((0, stock_universal_server_1.constructFiltersFromBody)(req), propSort, offset, limit)
     ]);
-    const returned = all[0]
+    const dataArr = [];
+    for await (const data of aggCursor) {
+        dataArr.push(data);
+    }
+    const all = dataArr[0]?.data || [];
+    const count = dataArr[0]?.total?.count || 0;
+    const returned = all
         .map(val => (0, paymentrelated_1.makePaymentRelatedPdct)(val.paymentRelated, val.invoiceRelated, val.invoiceRelated
         .billingUserId, val));
     const response = {
-        count: all[1],
+        count,
         data: returned
     };
+    for (const val of all) {
+        (0, stock_universal_server_2.addParentToLocals)(res, val._id, order_model_1.orderMain.collection.collectionName, 'trackDataView');
+    }
     return res.status(200).send(response);
 });
-exports.orderRoutes.put('/deletemany/:companyIdParam', stock_universal_server_2.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_2.roleAuthorisation)('orders', 'delete'), async (req, res) => {
-    const { credentials } = req.body;
+exports.orderRoutes.put('/delete/many', stock_universal_server_2.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_2.roleAuthorisation)('orders', 'delete'), async (req, res) => {
+    const { _ids } = req.body;
     const { filter } = (0, stock_universal_server_2.makeCompanyBasedQuery)(req);
-    if (!credentials || credentials?.length < 1) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
-    /** await orderMain
-      .deleteMany({ _id: { $in: ids } });**/
-    const promises = credentials
-        .map(async (val) => {
-        await (0, paymentrelated_1.deleteAllPayOrderLinked)(val.paymentRelated, val.invoiceRelated, val.creationType, val.where, filter.companyId);
-        return new Promise(resolve => resolve(true));
+    const promises = _ids
+        .map(async (_id) => {
+        const found = await order_model_1.orderLean.findOne({ _id }).lean();
+        if (found) {
+            await (0, paymentrelated_1.deleteAllPayOrderLinked)(found.paymentRelated, found.invoiceRelated, 'order', filter.companyId);
+        }
+        return new Promise(resolve => resolve(found._id));
     });
-    await Promise.all(promises);
-    for (const val of credentials) {
-        (0, stock_universal_server_2.addParentToLocals)(res, val.id, order_model_1.orderMain.collection.collectionName, 'trackDataDelete');
+    const filterdExist = await Promise.all(promises);
+    for (const val of filterdExist) {
+        (0, stock_universal_server_2.addParentToLocals)(res, val, order_model_1.orderMain.collection.collectionName, 'trackDataDelete');
     }
     return res.status(200).send({ success: true });
 });

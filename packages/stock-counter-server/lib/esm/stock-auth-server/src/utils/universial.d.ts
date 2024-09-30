@@ -36,7 +36,7 @@ export declare const generateToken: (authConfig: Iauthtoken, expiryDate: string 
  * Sets the user information.
  * @param userId - The ID of the user.
  * @param permissions - The user's permissions.
- * @param companyId - The ID of the company.
+ .
  * @param companyPermissions - The company's permissions.
  * @returns The user information.
  */
@@ -65,14 +65,14 @@ export declare const validatePhone: (foundUser: Iuser & Document, verifycode: st
  * @param newPassword - The new password (only applicable for 'password' case).
  * @returns A promise that resolves to an authentication response object.
  */
-export declare const validateEmail: (foundUser: Iuser & Document, type: string, verifycode: string, newPassword: string) => Promise<IauthresponseObj>;
+export declare const validateEmail: (foundUser: Iuser & Document, verificationMean: 'link' | 'code', verifycode: string, newPassword: string) => Promise<IauthresponseObj>;
 /**
  * Sends a token to the user's phone for authentication.
  * @param foundUser - The user object.
- * @param enableValidationSMS - Flag indicating whether to enable SMS validation. Default is '1'.
+ * @param enableValidationSms - Flag indicating whether to enable SMS validation. Default is '1'.
  * @returns A promise that resolves to an authentication response object.
  */
-export declare const sendTokenPhone: (foundUser: any, enableValidationSMS?: string) => Promise<Iauthresponse>;
+export declare const sendTokenPhone: (foundUser: any, enableValidationSms?: string) => Promise<Iauthresponse>;
 /**
  * Sends a verification email to the specified user with a token or link.
  * @param foundUser - The user object to send the email to.

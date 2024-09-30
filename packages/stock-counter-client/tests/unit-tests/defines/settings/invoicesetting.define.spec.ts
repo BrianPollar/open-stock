@@ -36,7 +36,7 @@ describe('InvoiceSettings', () => {
 
     expect(typeof list).toEqual('object');
     expectTypeOf(list).toEqualTypeOf<InvoiceSettings[]>([]);
-    expect(lSpy).toHaveBeenCalledWith('/invoicesettings/getall/0/0/companyId');
+    expect(lSpy).toHaveBeenCalledWith('/invoicesettings/all/0/0/companyId');
   });
 
   it('#getOneInvoiceSettings static should get one InvoiceSettings', async() => {
@@ -45,7 +45,7 @@ describe('InvoiceSettings', () => {
 
     expect(typeof one).toEqual('object');
     expect(one).toBeInstanceOf(InvoiceSettings);
-    expect(lSpy).toHaveBeenCalledWith('/invoicesettings/getone/urId');
+    expect(lSpy).toHaveBeenCalledWith('/invoicesettings/one/urId');
   });
 
   it('#addInvoiceSettings static should add one InvoiceSettings', async() => {
@@ -62,13 +62,13 @@ describe('InvoiceSettings', () => {
 
   it('#deleteInvoiceSettings static should delete many InvoiceSettings', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makePut').mockImplementationOnce(() => of({ success: true }));
-    const deleted = await InvoiceSettings.deleteInvoiceSettings(companyId, ['ids']);
+    const deleted = await InvoiceSettings.deleteInvoiceSettings(companyId, ['_ids']);
 
     expect(typeof deleted).toEqual('object');
     expect(deleted).toHaveProperty('success');
     expect(deleted.success).toEqual(true);
     expect(typeof deleted.success).toBe('boolean');
     expectTypeOf(deleted.success).toEqualTypeOf<boolean>(Boolean('true'));
-    expect(lSpy).toHaveBeenCalledWith('/invoicesettings/deletemany/companyId', { ids: ['ids'] });
+    expect(lSpy).toHaveBeenCalledWith('/invoicesettings/delete/many/companyId', { _ids: ['_ids'] });
   });
 });

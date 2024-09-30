@@ -1,5 +1,4 @@
 export * from './types/union.types';
-export * from './interfaces/computer.interface';
 export * from './interfaces/general.interface';
 export * from './interfaces/inventory.interface';
 export * from './interfaces/notification.interface';

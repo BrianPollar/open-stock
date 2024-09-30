@@ -390,13 +390,13 @@ export type TuserDispNameFormat =
   'lastFirst' |
   'companyName';
 
-export type TuserType =
+export type TuserType<T = 'eUser'> =
   'company' |
   'staff' |
   'customer' |
   'eUser' |
-  'manager' |
-  'other';
+  T
+  ;
 
 /**
  * Represents the type of payment.
@@ -474,7 +474,11 @@ export type TuserActionTrackState = 'delete' | 'update' | 'create' | 'restore';
 
 export type TtrackWhat = 'makeTrackEdit' | 'trackDataView' | 'trackDataRestore' | 'trackDataDelete';
 
-export type TdataTypeForTrack = 'user' | 'company' | 'company-subscription' | 'customer' | 'delivery-city' | 'delivery-note' | 'estimate' |
-'expense-report' | 'expense' | 'faq-answer' | 'faqs' | 'file' | 'invoice-related' | 'invoice' | 'invoice-setting' |
-'invoices-report' | 'item-decoy' | 'item-offer' | 'item' | 'order' | 'payment' | 'pickup-location' | 'profitandloss-report' | 'receipt' |
+export type TdataTypeForTrack = 'user' |
+'company' | 'company-subscription' | 'customer' |
+'delivery-city' | 'delivery-note' | 'estimate' |
+'expense-report' | 'expense' | 'faq-answer' | 'faqs' |
+'file' | 'invoice-related' | 'invoice' | 'invoice-setting' |
+'invoices-report' | 'item-decoy' | 'item-offer' | 'item' | 'order' |
+'payment' | 'pickup-location' | 'profitandloss-report' | 'receipt' |
 'review' | 'sales-report' | 'staff';

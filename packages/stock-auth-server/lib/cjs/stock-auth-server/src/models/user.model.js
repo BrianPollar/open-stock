@@ -38,9 +38,7 @@ const uniqueValidator = require('mongoose-unique-validator');
  * @property {boolean} [verified=false] - User verification status.
  * // @property {string} [authyId] - Authy ID.
  * @property {string} [password] - User password.
- * @property {boolean} [fromsocial] - User social media status.
- * @property {string} [socialframework] - User social media framework.
- * @property {string} [socialId] - User social media ID.
+ * @property {string} [socialAuthFrameworks] - User social media frameworks.
  * @property {number} [countryCode=256] - User country code.
  * @property {number} [amountDue=0] - User amount due.
  * @property {boolean} [manuallyAdded=false] - User manually added status.
@@ -70,9 +68,7 @@ const userSchema = new mongoose_1.Schema({
     verified: { type: Boolean, default: false },
     // authyId: { type: String },
     password: { type: String },
-    fromsocial: { type: Boolean },
-    socialframework: { type: String },
-    socialId: { type: String },
+    socialAuthFrameworks: [],
     countryCode: { type: String, default: '+256' },
     amountDue: { type: Number, default: 0 },
     manuallyAdded: { type: Boolean, default: false },
@@ -215,7 +211,7 @@ userSchema.methods['toProfileJSONFor'] = function () {
 };
 userSchema.methods['toJSONFor'] = function () {
     return {
-        id: this.id,
+        _id: this._id,
         name: this.name,
         profilepic: this.profilepic,
         photos: this.photos,
@@ -244,9 +240,7 @@ const userAuthselect = {
     verified: 1,
     authyId: 1,
     password: 1,
-    fromsocial: 1,
-    socialframework: 1,
-    socialId: 1,
+    socialAuthFrameworks: 1,
     countryCode: 1,
     amountDue: 1,
     manuallyAdded: 1,
@@ -268,9 +262,7 @@ const useraboutSelect = {
     profilepic: 1,
     profilecoverpic: 1,
     description: 1,
-    fromsocial: 1,
-    socialframework: 1,
-    socialId: 1,
+    socialAuthFrameworks: 1,
     updatedAt: 1,
     createdAt: 1,
     userType: 1,
@@ -298,10 +290,12 @@ const createUserModel = async (dbUrl, dbOptions, main = true, lean = true) => {
         await (0, database_1.connectAuthDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.user = database_1.mainConnection.model('User', userSchema);
+        exports.user = database_1.mainConnection
+            .model('User', userSchema);
     }
     if (lean) {
-        exports.userLean = database_1.mainConnectionLean.model('User', userSchema);
+        exports.userLean = database_1.mainConnectionLean
+            .model('User', userSchema);
     }
 };
 exports.createUserModel = createUserModel;

@@ -1,5 +1,7 @@
 import { IcurrencyProp, ItrackStamp } from '@open-stock/stock-universal';
-import { createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
+import {
+  createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj
+} from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
@@ -7,8 +9,7 @@ const uniqueValidator = require('mongoose-unique-validator');
 /**
  * Represents an item offer.
  */
-export interface IitemOffer
-extends Document, ItrackStamp, IcurrencyProp {
+export type TitemOffer = Document & ItrackStamp & IcurrencyProp & {
 
   /** The user's ID. */
   urId: string;
@@ -33,9 +34,9 @@ extends Document, ItrackStamp, IcurrencyProp {
 
   /** The amount of the offer. */
   ammount: number;
-}
+};
 
-const itemOfferSchema: Schema<IitemOffer> = new Schema({
+const itemOfferSchema: Schema<TitemOffer> = new Schema({
   ...withUrIdAndCompanySchemaObj,
   items: [],
   expireAt: { type: Date },
@@ -80,12 +81,12 @@ const itemOfferselect = {
 /**
  * Represents the main item offer model.
  */
-export let itemOfferMain: Model<IitemOffer>;
+export let itemOfferMain: Model<TitemOffer>;
 
 /**
  * Represents a lean item offer model.
  */
-export let itemOfferLean: Model<IitemOffer>;
+export let itemOfferLean: Model<TitemOffer>;
 
 /**
  * Represents the item offer select function.
@@ -106,10 +107,12 @@ export const createItemOfferModel = async(dbUrl: string, dbOptions?: ConnectOpti
   }
 
   if (main) {
-    itemOfferMain = mainConnection.model<IitemOffer>('ItemOffer', itemOfferSchema);
+    itemOfferMain = mainConnection
+      .model<TitemOffer>('ItemOffer', itemOfferSchema);
   }
 
   if (lean) {
-    itemOfferLean = mainConnectionLean.model<IitemOffer>('ItemOffer', itemOfferSchema);
+    itemOfferLean = mainConnectionLean
+      .model<TitemOffer>('ItemOffer', itemOfferSchema);
   }
 };

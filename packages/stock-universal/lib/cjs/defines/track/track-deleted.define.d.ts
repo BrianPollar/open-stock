@@ -20,8 +20,8 @@ export declare class TrackDeleted extends DatabaseAuto {
     /**
      * Deletes a trackDeleted by id.
      *
-     * @param id - The id of the trackDeleted to delete.
+     * @param _id - The id of the trackDeleted to delete.
      * @returns A boolean indicating whether the trackDeleted was successfully deleted.
      */
-    static deleteOne(id: string): Promise<Isuccess>;
+    static deleteOne(_id: string): Promise<Isuccess>;
 }

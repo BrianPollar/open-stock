@@ -48,10 +48,12 @@ export const createItemDecoyModel = async (dbUrl, dbOptions, main = true, lean =
         await connectStockDatabase(dbUrl, dbOptions);
     }
     if (main) {
-        itemDecoyMain = mainConnection.model('ItemDecoy', itemDecoySchema);
+        itemDecoyMain = mainConnection
+            .model('ItemDecoy', itemDecoySchema);
     }
     if (lean) {
-        itemDecoyLean = mainConnectionLean.model('ItemDecoy', itemDecoySchema);
+        itemDecoyLean = mainConnectionLean
+            .model('ItemDecoy', itemDecoySchema);
     }
 };
 //# sourceMappingURL=itemdecoy.model.js.map

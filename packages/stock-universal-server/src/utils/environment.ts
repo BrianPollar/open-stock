@@ -1,9 +1,11 @@
+
 /**
  * Middleware function to retrieve environment variables and store them in the request object.
  * @param name - The name of the environment variable(s) to retrieve. Can be a string or an array of strings.
- * @returns A middleware function that sets the environment variables on the request object and calls the next middleware.
+ * @returns A middleware function that sets the environment
+ * variables on the request object and calls the next middleware.
  */
-export const getEnvVar = (name: string | string[]) => (req, res, next) => {
+/* export const getEnvVar = (name: string | string[]) => (req: IcustomRequest<never, unknown>, res, next) => {
   // If `name` is a string, then push it onto an empty array.
   // Otherwise, just use the `name` array as-is.
   let productArr = [];
@@ -36,7 +38,7 @@ export const getEnvVar = (name: string | string[]) => (req, res, next) => {
 
   // Return the next middleware function.
   return next();
-};
+}; */
 
 /**
  * Retrieves the Express locals variable with the specified name.

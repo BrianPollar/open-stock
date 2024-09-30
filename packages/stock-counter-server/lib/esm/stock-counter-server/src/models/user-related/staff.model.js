@@ -1,11 +1,11 @@
 import { createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
-import mongoose, { Schema } from 'mongoose';
+import { Schema, Types } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 /** Defines the schema for the staff model. */
 const staffSchema = new Schema({
     ...withUrIdAndCompanySchemaObj,
-    user: { type: mongoose.Types.ObjectId, unique: true, required: [true, 'cannot be empty.'], index: true },
+    user: { type: Types.ObjectId, unique: true, required: [true, 'cannot be empty.'], index: true },
     startDate: { type: Date },
     endDate: { type: Date },
     occupation: { type: String },
@@ -56,10 +56,12 @@ export const createStaffModel = async (dbUrl, dbOptions, main = true, lean = tru
         await connectStockDatabase(dbUrl, dbOptions);
     }
     if (main) {
-        staffMain = mainConnection.model('Staff', staffSchema);
+        staffMain = mainConnection
+            .model('Staff', staffSchema);
     }
     if (lean) {
-        staffLean = mainConnectionLean.model('Staff', staffSchema);
+        staffLean = mainConnectionLean
+            .model('Staff', staffSchema);
     }
 };
 //# sourceMappingURL=staff.model.js.map

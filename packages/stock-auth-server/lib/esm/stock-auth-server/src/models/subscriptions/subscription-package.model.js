@@ -47,10 +47,12 @@ export const createSubscriptionPackageModel = async (dbUrl, dbOptions, main = tr
         await connectAuthDatabase(dbUrl, dbOptions);
     }
     if (main) {
-        subscriptionPackageMain = mainConnection.model('SubscriptionPackage', subscriptionPackageSchema);
+        subscriptionPackageMain = mainConnection
+            .model('SubscriptionPackage', subscriptionPackageSchema);
     }
     if (lean) {
-        subscriptionPackageLean = mainConnectionLean.model('SubscriptionPackage', subscriptionPackageSchema);
+        subscriptionPackageLean = mainConnectionLean
+            .model('SubscriptionPackage', subscriptionPackageSchema);
     }
 };
 //# sourceMappingURL=subscription-package.model.js.map

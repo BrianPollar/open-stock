@@ -1,5 +1,7 @@
 import { IuserWallet } from '@open-stock/stock-universal';
-import { createExpireDocIndex, globalSchemaObj, globalSelectObj, preUpdateDocExpire } from '@open-stock/stock-universal-server';
+import {
+  createExpireDocIndex, globalSchemaObj, globalSelectObj, preUpdateDocExpire
+} from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../../utils/database';
 
@@ -39,7 +41,8 @@ export let userWalletMain: Model<TuserWallet>;
 
 /**
  * Represents a lean Mongoose model for the user wallet.
- * This model is used for the main database connection and provides a lightweight, read-optimized version of the user wallet data.
+ * This model is used for the main database connection and
+ * provides a lightweight, read-optimized version of the user wallet data.
  */
 export let userWalletLean: Model<TuserWallet>;
 
@@ -58,10 +61,12 @@ export const createUserWalletModel = async(dbUrl: string, dbOptions?: ConnectOpt
   }
 
   if (main) {
-    userWalletMain = mainConnection.model<TuserWallet>('UserWallet', userWalletSchema);
+    userWalletMain = mainConnection
+      .model<TuserWallet>('UserWallet', userWalletSchema);
   }
 
   if (lean) {
-    userWalletLean = mainConnectionLean.model<TuserWallet>('UserWallet', userWalletSchema);
+    userWalletLean = mainConnectionLean
+      .model<TuserWallet>('UserWallet', userWalletSchema);
   }
 };

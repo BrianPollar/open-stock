@@ -62,7 +62,7 @@ describe('ItemDecoy', () => {
 
   it('#deleteItemDecoys static should delete many ItemDecoys', async() => {
     const lSpy = vi.spyOn(StockCounterClient.ehttp, 'makePut').mockImplementationOnce(() => of({ success: true }));
-    const deleted = await ItemDecoy.deleteItemDecoys(companyId, ['ids']);
+    const deleted = await ItemDecoy.deleteItemDecoys(companyId, ['_ids']);
 
     expect(typeof deleted).toEqual('object');
     expect(deleted).toHaveProperty('success');

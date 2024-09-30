@@ -34,10 +34,12 @@ const createTrackViewModel = async (dbUrl, dbOptions, main = true, lean = true) 
         await (0, stock_universal_local_1.connectUniversalDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.trackViewMain = database_1.mainConnection.model('TrackView', trackViewSchema);
+        exports.trackViewMain = database_1.mainConnection
+            .model('TrackView', trackViewSchema);
     }
     if (lean) {
-        exports.trackViewLean = database_1.mainConnectionLean.model('TrackView', trackViewSchema);
+        exports.trackViewLean = database_1.mainConnectionLean
+            .model('TrackView', trackViewSchema);
     }
 };
 exports.createTrackViewModel = createTrackViewModel;

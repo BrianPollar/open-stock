@@ -5,7 +5,7 @@ const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const mongoose_1 = require("mongoose");
 const database_1 = require("../../utils/database");
 const invoiceSchema = new mongoose_1.Schema({
-    ...stock_universal_server_1.withCompanySchemaObj,
+    ...stock_universal_server_1.withUrIdAndCompanySchemaObj,
     invoiceRelated: { type: String },
     dueDate: { type: Date }
 }, { timestamps: true, collection: 'invoices' });
@@ -42,10 +42,12 @@ const createInvoiceModel = async (dbUrl, dbOptions, main = true, lean = true) =>
         await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.invoiceMain = database_1.mainConnection.model('Invoice', invoiceSchema);
+        exports.invoiceMain = database_1.mainConnection
+            .model('Invoice', invoiceSchema);
     }
     if (lean) {
-        exports.invoiceLean = database_1.mainConnectionLean.model('Invoice', invoiceSchema);
+        exports.invoiceLean = database_1.mainConnectionLean
+            .model('Invoice', invoiceSchema);
     }
 };
 exports.createInvoiceModel = createInvoiceModel;

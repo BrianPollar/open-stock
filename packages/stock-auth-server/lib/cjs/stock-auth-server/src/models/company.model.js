@@ -21,9 +21,6 @@ exports.companySchema = new mongoose_1.Schema({
     address: { type: String },
     companyDispNameFormat: { type: String },
     businessType: { type: String },
-    profilePic: { type: String },
-    profileCoverPic: { type: String },
-    photos: [],
     websiteAddress: { type: String },
     blocked: { type: Boolean, default: false },
     verified: { type: Boolean, default: false },
@@ -81,11 +78,8 @@ const companyAuthselect = {
     details: 1,
     companyDispNameFormat: 1,
     businessType: 1,
-    profilepic: 1,
-    profileCoverPic: 1,
     createdAt: 1,
     websiteAddress: 1,
-    photos: 1,
     blocked: 1,
     verified: 1,
     expireAt: 1,
@@ -102,8 +96,6 @@ const companyaboutSelect = {
     details: 1,
     companyDispNameFormat: 1,
     businessType: 1,
-    profilepic: 1,
-    profileCoverPic: 1,
     createdAt: 1,
     websiteAddress: 1,
     photos: 1,
@@ -134,10 +126,12 @@ const createCompanyModel = async (dbUrl, dbOptions, main = true, lean = true) =>
         await (0, database_1.connectAuthDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.companyMain = database_1.mainConnection.model('Company', exports.companySchema);
+        exports.companyMain = database_1.mainConnection
+            .model('Company', exports.companySchema);
     }
     if (lean) {
-        exports.companyLean = database_1.mainConnectionLean.model('Company', exports.companySchema);
+        exports.companyLean = database_1.mainConnectionLean
+            .model('Company', exports.companySchema);
     }
 };
 exports.createCompanyModel = createCompanyModel;

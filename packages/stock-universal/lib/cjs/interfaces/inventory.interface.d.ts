@@ -1,5 +1,6 @@
 /**
- * @fileoverview This file contains interfaces related to inventory management, such as invoices, expenses, quotations, job cards, receipts, reports, and invoice settings.
+ * @fileoverview This file contains interfaces related to inventory management,
+ * such as invoices, expenses, quotations, job cards, receipts, reports, and invoice settings.
  * @packageDocumentation
  */
 import { TestimateStage, TexpenseCategory, TinvoiceStatus, TinvoiceType, TpayType, TreceiptType } from '../types/union.types';
@@ -8,7 +9,7 @@ import { Iitem } from './item.interface';
 /**
  * Represents an invoice.
  */
-export interface Iinvoice extends IinvoiceRelated {
+export interface Iinvoice extends IinvoiceRelated, IurId {
     estimateId: number;
     dueDate: Date;
 }
@@ -108,7 +109,7 @@ export interface IjobCard extends IurId, ItrackStamp {
     cost: number;
 }
 /** Represents an estimate. */
-export interface Iestimate extends IinvoiceRelated {
+export interface Iestimate extends IinvoiceRelated, IurId {
     estimateId: number;
 }
 /** Represents a receipt. */
@@ -143,7 +144,8 @@ export interface IexpenseInvoiceId {
     estimateId: number;
 }
 /** Represents an invoice-related reference. */
-export interface IinvoiceRelatedRef extends ItrackStamp {
+export interface IinvoiceRelatedRef extends ItrackStamp, IdatabaseAuto {
+    urId?: string;
     payType?: TpayType;
     companyId?: string;
     invoiceRelated: string | IinvoiceRelated;
@@ -178,6 +180,7 @@ export interface ItaxReport extends IreportRelated {
 }
 /** Represents invoice settings. */
 export interface IinvoiceSetting extends IdatabaseAuto, ItrackStamp {
+    companyId?: string;
     generalSettings: IinvoiceSettingsGeneral;
     taxSettings: IinvoiceSettingsTax;
     bankSettings: IinvoiceSettingsBank;

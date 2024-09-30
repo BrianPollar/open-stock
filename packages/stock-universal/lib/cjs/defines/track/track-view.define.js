@@ -15,7 +15,8 @@ class TrackView extends base_define_1.DatabaseAuto {
         this.users = data.users;
     }
     static async getByDates(url, filters, offset = 0, limit = 40) {
-        const observer$ = stock_universal_1.StockUniversal.ehttp.makePost(`/track/${url}${offset}/${limit}`, filters);
+        const observer$ = stock_universal_1.StockUniversal
+            .ehttp.makePost(`/track/${url}${offset}/${limit}`, filters);
         const views = await (0, rxjs_1.lastValueFrom)(observer$);
         return {
             count: views.count,
@@ -40,7 +41,8 @@ class TrackView extends base_define_1.DatabaseAuto {
      * @returns a TrackView object with a count of the total results and an array of track views
      */
     static async getByUser(userId, offset = 0, limit = 20) {
-        const observer$ = stock_universal_1.StockUniversal.ehttp.makeGet(`/track/gettrackviewbyuser/${offset}/${limit}/${userId}`);
+        const observer$ = stock_universal_1.StockUniversal
+            .ehttp.makeGet(`/track/gettrackviewbyuser/${offset}/${limit}/${userId}`);
         const views = await (0, rxjs_1.lastValueFrom)(observer$);
         return {
             count: views.count,
@@ -54,7 +56,8 @@ class TrackView extends base_define_1.DatabaseAuto {
      * @returns a TrackView object with a count of the total results and an array of track views
      */
     static async getAll(offset = 0, limit = 20) {
-        const observer$ = stock_universal_1.StockUniversal.ehttp.makeGet(`/track/gettrackview/${offset}/${limit}`);
+        const observer$ = stock_universal_1.StockUniversal
+            .ehttp.makeGet(`/track/gettrackview/${offset}/${limit}`);
         const views = await (0, rxjs_1.lastValueFrom)(observer$);
         return {
             count: views.count,
@@ -64,11 +67,11 @@ class TrackView extends base_define_1.DatabaseAuto {
     /**
      * Deletes a track view by id.
      *
-     * @param id the id of the track view to delete.
+     * @param _id the id of the track view to delete.
      * @returns a boolean indicating whether the track view was successfully deleted.
      */
-    static async deleteOne(id) {
-        const observer$ = stock_universal_1.StockUniversal.ehttp.makeDelete(`/track/deletetrackview/${id}`);
+    static async deleteOne(_id) {
+        const observer$ = stock_universal_1.StockUniversal.ehttp.makeDelete(`/track/deletetrackview/${_id}`);
         const deleted = await (0, rxjs_1.lastValueFrom)(observer$);
         return deleted;
     }

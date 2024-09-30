@@ -45,10 +45,10 @@ const invoiceRelatedLogger = tracer.colorConsole({
  * Updates the payments related to an invoice.
  *
  * @param payment - The payment object to be added.
- * @param queryId - The ID of the company.
+ * @param companyId - The ID of the company.
  * @returns A promise that resolves to an object containing the success status and the ID of the saved payment.
  */
-const updateInvoiceRelatedPayments = async (payment, queryId) => {
+const updateInvoiceRelatedPayments = async (payment) => {
     const isValid = (0, stock_universal_server_1.verifyObjectId)(payment.invoiceRelated);
     if (!isValid) {
         return { success: false, status: 401, err: 'unauthourised' };
@@ -90,22 +90,11 @@ const updateInvoiceRelatedPayments = async (payment, queryId) => {
         return errResponse;
     }
     else {
-        return { success: true, id: saved._id };
+        return { success: true, _id: saved._id };
     }
 };
 exports.updateInvoiceRelatedPayments = updateInvoiceRelatedPayments;
-/**
- * Updates an invoice related document.
- * @param invoiceRelated - The updated invoice related document.
- * @returns A promise that resolves with a success status and an optional ID.
- */
-/**
- * Updates the invoice related information.
- * @param invoiceRelated - The updated invoice related data.
- * @param queryId - The query ID.
- * @returns A promise that resolves to an object containing the success status and the updated invoice related ID.
- */
-const updateInvoiceRelated = async (res, invoiceRelated, queryId) => {
+const updateInvoiceRelated = async (res, invoiceRelated) => {
     const isValid = (0, stock_universal_server_1.verifyObjectId)(invoiceRelated.invoiceRelated);
     if (!isValid) {
         return { success: false, status: 401, err: 'unauthourised' };
@@ -176,24 +165,17 @@ const updateInvoiceRelated = async (res, invoiceRelated, queryId) => {
         }
         else if (foundRelated.status !== 'paid') {
             await (0, exports.updateCustomerDueAmount)(foundRelated.billingUserId, oldTotal, true);
-            await (0, exports.updateCustomerDueAmount)(foundRelated.billingUserId, foundRelated.total, false);
+            await (0, exports.updateCustomerDueAmount)(foundRelated
+                .billingUserId, foundRelated.total, false);
         }
         (0, stock_universal_server_1.addParentToLocals)(res, related._id, 'invoicerelateds', 'makeTrackEdit');
-        return { success: true, id: saved._id };
+        return { success: true, _id: saved._id };
     }
 };
 exports.updateInvoiceRelated = updateInvoiceRelated;
-/**
- * Relocates an invoice related document.
- * @param invoiceRelated - The invoice related document to relocate.
- * @param extraNotifDesc - A description for the notification.
- * @param localMailHandler - The email handler to use for sending notifications.
- * @param bypassNotif - Whether to bypass sending notifications.
- * @returns A promise that resolves with a success status and an optional ID.
- */
-const relegateInvRelatedCreation = async (res, invoiceRelated, queryId, extraNotifDesc, bypassNotif = false) => {
+const relegateInvRelatedCreation = async (res, invoiceRelated, companyId, extraNotifDesc, bypassNotif = false) => {
     invoiceRelatedLogger.debug('relegateInvRelatedCreation - invoiceRelated', invoiceRelated);
-    invoiceRelated.companyId = queryId;
+    invoiceRelated.companyId = companyId;
     const isValid = (0, stock_universal_server_1.verifyObjectId)(invoiceRelated.invoiceRelated);
     let found;
     if (isValid) {
@@ -228,7 +210,7 @@ const relegateInvRelatedCreation = async (res, invoiceRelated, queryId, extraNot
         let route;
         let title = '';
         let notifType;
-        const stn = await (0, stock_notif_server_1.getCurrentNotificationSettings)(queryId);
+        const stn = await (0, stock_notif_server_1.getCurrentNotificationSettings)(companyId);
         if (!bypassNotif && stn?.invoices) {
             switch (invoiceRelated.stage) {
                 case 'estimate':
@@ -271,48 +253,45 @@ const relegateInvRelatedCreation = async (res, invoiceRelated, queryId, extraNot
             };
             const capableUsers = await stock_auth_server_1.user.find({})
                 .lean().select({ permissions: 1 });
-            const ids = [];
+            const _ids = [];
             for (const cuser of capableUsers) {
                 if (cuser.permissions.invoices) {
-                    ids.push(cuser._id);
+                    _ids.push(cuser._id);
                 }
             }
-            const notifFilters = { id: { $in: ids } };
+            const notifFilters = { id: { $in: _ids } };
             await (0, stock_notif_server_1.createNotifications)({
                 notification,
                 filters: notifFilters
             });
         }
-        return { success: true, id: saved._id };
+        return { success: true, _id: saved._id };
     }
     else {
-        await (0, exports.updateInvoiceRelated)(res, invoiceRelated, queryId);
-        return { success: true, id: invoiceRelated.invoiceRelated };
+        await (0, exports.updateInvoiceRelated)(res, invoiceRelated);
+        return { success: true, _id: invoiceRelated.invoiceRelated };
     }
 };
 exports.relegateInvRelatedCreation = relegateInvRelatedCreation;
-// eslint-disable-next-line @typescript-eslint/no-shadow
-/**
- * Creates an invoice related product based on the provided data.
- * @param invoiceRelated - The required invoice related data.
- * @param user - The user data.
- * @param createdAt - The optional creation date.
- * @param extras - Additional properties to include in the invoice related product.
- * @returns The created invoice related product.
- */
 const makeInvoiceRelatedPdct = (invoiceRelated, user, createdAt, extras = {}) => {
-    let names = user.salutation ? user.salutation + ' ' + user.fname + ' ' + user.lname : user.fname + ' ' + user.lname;
-    if (user.userDispNameFormat) {
-        switch (user.userDispNameFormat) {
-            case 'firstLast':
-                names = user.salutation ? user.salutation + ' ' + user.fname + ' ' + user.lname : user.fname + ' ' + user.lname;
-                break;
-            case 'lastFirst':
-                names = user.salutation ? user.salutation + ' ' + user.lname + ' ' + user.fname : user.lname + ' ' + user.fname;
-                break;
-            case 'companyName':
-                names = user.companyName;
-                break;
+    // TODO later
+    let names = '';
+    if (user) {
+        names = user.salutation ? user.salutation + ' ' + user.fname + ' ' + user.lname : user.fname + ' ' + user.lname;
+        if (user.userDispNameFormat) {
+            switch (user.userDispNameFormat) {
+                case 'firstLast':
+                    names = user.salutation ? user.salutation + ' ' +
+                        user.fname + ' ' + user.lname : user.fname + ' ' + user.lname;
+                    break;
+                case 'lastFirst':
+                    names = user.salutation ? user.salutation + ' ' +
+                        user.lname + ' ' + user.fname : user.lname + ' ' + user.fname;
+                    break;
+                case 'companyName':
+                    names = user.companyName;
+                    break;
+            }
         }
     }
     return {
@@ -323,13 +302,14 @@ const makeInvoiceRelatedPdct = (invoiceRelated, user, createdAt, extras = {}) =>
         invoiceId: invoiceRelated.invoiceId,
         estimateId: invoiceRelated.estimateId,
         billingUser: names,
-        extraCompanyDetails: user.extraCompanyDetails,
+        extraCompanyDetails: user?.extraCompanyDetails,
         items: invoiceRelated.items.map(pdct => {
             if (typeof pdct.item === 'string' || !pdct.item) {
                 return pdct;
             }
             else {
                 return {
+                    currency: pdct.currency,
                     amount: pdct.amount,
                     quantity: pdct.amount,
                     rate: pdct.rate,
@@ -338,7 +318,7 @@ const makeInvoiceRelatedPdct = (invoiceRelated, user, createdAt, extras = {}) =>
                 };
             }
         }),
-        billingUserId: user.urId,
+        billingUserId: user?.urId,
         stage: invoiceRelated.stage,
         fromDate: invoiceRelated.fromDate,
         toDate: invoiceRelated.toDate,
@@ -349,7 +329,7 @@ const makeInvoiceRelatedPdct = (invoiceRelated, user, createdAt, extras = {}) =>
         balanceDue: invoiceRelated.balanceDue,
         subTotal: invoiceRelated.subTotal,
         total: invoiceRelated.total,
-        billingUserPhoto: user.profilePic,
+        billingUserPhoto: user?.profilePic,
         createdAt: createdAt || invoiceRelated.createdAt,
         payments: invoiceRelated.payments,
         ecommerceSale: invoiceRelated.ecommerceSale,
@@ -359,27 +339,20 @@ const makeInvoiceRelatedPdct = (invoiceRelated, user, createdAt, extras = {}) =>
     };
 };
 exports.makeInvoiceRelatedPdct = makeInvoiceRelatedPdct;
-/**
- * Deletes multiple invoice-related documents.
- * @param companyId - The ID of the company
-   * @param ids - An array of string IDs representing the documents to be deleted.
- * @param queryId - The ID of the company associated with the documents.
- * @returns A promise that resolves to an object indicating the success status and any error information.
- */
-const deleteManyInvoiceRelated = async (ids, queryId) => {
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)([...ids, ...[queryId]]);
+const deleteManyInvoiceRelated = async (_ids, companyId) => {
+    const isValid = (0, stock_universal_server_1.verifyObjectIds)([..._ids, ...[companyId]]);
     if (!isValid) {
         return { success: false, statu: 401, err: 'unauthourised' };
     }
     /* const deleted = await invoiceRelatedMain
-      .deleteMany({ _id: { $in: ids }, companyId: queryId })
+      .deleteMany({ _id: { $in: _ids }, companyId })
       .catch(err => {
         invoiceRelatedLogger.debug('deleteManyInvoiceRelated - err: ', err);
   
         return null;
       }); */
     const deleted = await invoicerelated_model_1.invoiceRelatedMain
-        .updateMany({ _id: { $in: ids }, companyId: queryId }, {
+        .updateMany({ _id: { $in: _ids }, companyId }, {
         $set: { isDeleted: true }
     })
         .catch(err => {
@@ -389,14 +362,14 @@ const deleteManyInvoiceRelated = async (ids, queryId) => {
     let deleted2 = true;
     if (deleted) {
         /* deleted2 = await receiptMain
-          .deleteMany({ invoiceRelated: { $in: ids } })
+          .deleteMany({ invoiceRelated: { $in: _ids } })
           .catch(err => {
             invoiceRelatedLogger.error('deletemany Pinstalls - err: ', err);
     
             return null;
           }); */
         deleted2 = await receipt_model_1.receiptMain
-            .updateMany({ invoiceRelated: { $in: ids } }, {
+            .updateMany({ invoiceRelated: { $in: _ids } }, {
             $set: { isDeleted: true }
         })
             .catch(err => {
@@ -416,70 +389,75 @@ exports.deleteManyInvoiceRelated = deleteManyInvoiceRelated;
  * Deletes all linked documents based on the provided parameters.
  *
  * @param invoiceRelated - The identifier of the related invoice.
- * @param creationType - The type of creation (solo, chained, halfChained).
- * @param stage - The current stage of the document.
  * @param from - The previous stage of the document.
- * @param queryId - The identifier of the query.
+ * @param companyId - The identifier of the query.
  * @returns A promise that resolves to an object indicating the success of the deletion operation.
  */
-const deleteAllLinked = async (invoiceRelated, creationType, stage, from, queryId) => {
-    if (stage !== from) {
-        return { success: false, err: 'cant make delete now, ' + stage + 'is linked some where else' };
+const deleteAllLinked = async (invoiceRelated, from, companyId) => {
+    const invoiceRel = await invoicerelated_model_1.invoiceRelatedLean.findOne({ _id: invoiceRelated })
+        .lean()
+        .select({ stage: 1, creationType: 1 });
+    if (!invoiceRel) {
+        return { success: false, err: 'not found' };
+    }
+    if (invoiceRel.stage !== from) {
+        return { success: false, err: 'cant make delete now, ' + invoiceRel.stage + 'is linked some where else' };
     }
     let changedStage;
     if (from === 'estimate') {
-        /* await estimateMain.deleteOne({ invoiceRelated, companyId: queryId }); */
-        await estimate_model_1.estimateMain.updateOne({ invoiceRelated, companyId: queryId }, {
+        /* await estimateMain.deleteOne({ invoiceRelated, companyId }); */
+        await estimate_model_1.estimateMain.updateOne({ invoiceRelated, companyId }, {
             $set: { isDeleted: true }
         });
     }
     else if (from === 'invoice') {
         changedStage = 'estimate';
-        /* await invoiceMain.deleteOne({ invoiceRelated, companyId: queryId }); */
-        await invoice_model_1.invoiceMain.updateOne({ invoiceRelated, companyId: queryId }, {
+        /* await invoiceMain.deleteOne({ invoiceRelated, companyId }); */
+        await invoice_model_1.invoiceMain.updateOne({ invoiceRelated, companyId }, {
             $set: { isDeleted: true }
         });
     }
     else if (from === 'deliverynote') {
-        /* await deliveryNoteMain.deleteOne({ invoiceRelated, companyId: queryId }); */
-        await deliverynote_model_1.deliveryNoteMain.updateOne({ invoiceRelated, companyId: queryId }, {
+        /* await deliveryNoteMain.deleteOne({ invoiceRelated, }); */
+        await deliverynote_model_1.deliveryNoteMain.updateOne({ invoiceRelated, companyId }, {
             $set: { isDeleted: true }
         });
         changedStage = 'invoice';
     }
     else if (from === 'receipt') {
-        /* await receiptMain.deleteOne({ invoiceRelated, companyId: queryId }); */
-        await receipt_model_1.receiptMain.updateOne({ invoiceRelated, companyId: queryId }, {
+        /* await receiptMain.deleteOne({ invoiceRelated, }); */
+        await receipt_model_1.receiptMain.updateOne({ invoiceRelated, companyId }, {
             $set: { isDeleted: true }
         });
         changedStage = 'deliverynote';
     }
     let response = {
         success: false,
-        err: 'cant make delete now, ' + stage + 'is linked some where else'
+        err: 'cant make delete now, ' + invoiceRel.stage + 'is linked some where else'
     };
-    if (creationType === 'solo' || (creationType === 'chained' && stage === 'estimate')) {
-        response = await (0, exports.deleteManyInvoiceRelated)([invoiceRelated], queryId);
+    if (invoiceRel.creationType === 'solo' ||
+        (invoiceRel.creationType === 'chained' && invoiceRel.stage === 'estimate')) {
+        response = await (0, exports.deleteManyInvoiceRelated)([invoiceRelated], companyId);
     }
     else {
-        await updateRelatedStage(invoiceRelated, changedStage, queryId);
-        if (creationType === 'halfChained') {
-            if (stage === 'invoice') {
+        await updateRelatedStage(invoiceRelated, changedStage, companyId);
+        if (invoiceRel.creationType === 'halfChained') {
+            if (invoiceRel.stage === 'invoice') {
                 const exist = await estimate_model_1.estimateLean.findOne({ invoiceRelated });
                 if (!exist) {
-                    response = await (0, exports.deleteManyInvoiceRelated)([invoiceRelated], queryId);
+                    response = await (0, exports.deleteManyInvoiceRelated)([invoiceRelated], companyId);
                 }
             }
-            if (stage === 'deliverynote') {
+            if (invoiceRel.stage === 'deliverynote') {
                 const exist = await invoice_model_1.invoiceLean.findOne({ invoiceRelated });
                 if (!exist) {
-                    response = await (0, exports.deleteManyInvoiceRelated)([invoiceRelated], queryId);
+                    response = await (0, exports.deleteManyInvoiceRelated)([invoiceRelated], companyId);
                 }
             }
-            else if (stage === 'receipt') {
+            else if (invoiceRel.stage === 'receipt') {
                 const exist = await deliverynote_model_1.deliveryNoteLean.findOne({ invoiceRelated });
                 if (!exist) {
-                    response = await (0, exports.deleteManyInvoiceRelated)([invoiceRelated], queryId);
+                    response = await (0, exports.deleteManyInvoiceRelated)([invoiceRelated], companyId);
                 }
             }
         }
@@ -497,22 +475,21 @@ const deleteAllLinked = async (invoiceRelated, creationType, stage, from, queryI
 exports.deleteAllLinked = deleteAllLinked;
 /**
  * Updates the stage of a related invoice.
- * @param id - The ID of the invoice related document.
+ * @param _id - The ID of the invoice related document.
  * @param stage - The new stage value to set.
- * @param queryId - The ID of the company to query.
+ * @param companyId - The ID of the company to query.
  * @returns A boolean indicating whether the update was successful.
  */
-const updateRelatedStage = async (id, stage, queryId) => {
-    // eslint-disable-next-line @typescript-eslint/naming-convention
+const updateRelatedStage = async (_id, stage, companyId) => {
     const related = await invoicerelated_model_1.invoiceRelatedMain
-        .findOne({ _id: id, companyId: queryId })
+        .findOne({ _id })
         .lean();
     if (!related) {
         return false;
     }
     related.stage = stage;
     await invoicerelated_model_1.invoiceRelatedMain.updateOne({
-        _id: id, companyId: queryId
+        _id, companyId
     }, {
         $set: { stage }
     });
@@ -528,7 +505,6 @@ const updateRelatedStage = async (id, stage, queryId) => {
    * @returns A boolean indicating whether the update was successful.
    */
 const updateItemsInventory = async (related) => {
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     let relatedObj;
     if (typeof related === 'string') {
         relatedObj = await invoicerelated_model_1.invoiceRelatedMain.findOne({ _id: related }).lean();
@@ -562,7 +538,6 @@ exports.updateItemsInventory = updateItemsInventory;
    * @returns A boolean indicating whether the invoice related has enough payments.
    */
 const canMakeReceipt = async (relatedId) => {
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     const related = await invoicerelated_model_1.invoiceRelatedMain.findOne({ _id: relatedId });
     if (!related) {
         return false;
@@ -597,7 +572,6 @@ exports.getPaymentsTotal = getPaymentsTotal;
    * @returns A promise that resolves to a boolean indicating the success of the operation
    */
 const updateCustomerDueAmount = async (userId, amount, reduce) => {
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     const billingUser = await stock_auth_server_1.user.findOne({ _id: userId });
     if (!billingUser) {
         return false;

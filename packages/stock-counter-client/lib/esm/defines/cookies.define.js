@@ -1,10 +1,5 @@
 import { lastValueFrom } from 'rxjs';
 import { StockCounterClient } from '../stock-counter-client';
-/**
- * This is a class called "Cookies" that handles the management of cookies for a website.
- * It has properties for "cartEnabled" and "recentEnabled" which determine whether the cart and recent items functionalities are enabled or not.
- * The class has a constructor that initializes these properties.
- */
 export class Cookies {
     constructor() { }
     /**
@@ -12,9 +7,9 @@ export class Cookies {
      * It updates the "cartEnabled" and "recentEnabled" properties based on the response.
      */
     async getSettings(userId) {
-        const observer$ = StockCounterClient.ehttp.makeGet('/cookies/getsettings/' + userId);
-        const response = await lastValueFrom(observer$);
-        const settings = response;
+        const observer$ = StockCounterClient.ehttp
+            .makeGet('/cookies/getsettings/' + userId);
+        const settings = await lastValueFrom(observer$);
         this.cartEnabled = settings?.cartEnabled;
         this.recentEnabled = settings?.recentEnabled;
         this.wishListEnabled = settings?.wishListEnabled;
@@ -31,18 +26,18 @@ export class Cookies {
         const observer$ = StockCounterClient.ehttp
             .makePut('/cookies/updatesettings/' + userId, { settings });
         const response = await lastValueFrom(observer$);
-        const updated = response;
-        if (updated.success) {
+        if (response.cartEnabled) {
             this.cartEnabled = settings.cartEnabled;
             this.recentEnabled = settings.recentEnabled;
             this.wishListEnabled = settings.wishListEnabled;
             this.compareListEnabled = settings.compareListEnabled;
         }
-        return updated;
+        return response;
     }
     /**
      * Adds a cart item to the cookies.
-     * It takes the "cartItemId" and "totalCostwithNoShipping" as parameters and makes a PUT request to add the item to the cart.
+     * It takes the "cartItemId" and "totalCostwithNoShipping"
+     *  as parameters and makes a PUT request to add the item to the cart.
      * If the "cartEnabled" property is false, it returns a success response.
      * @param cartItemId - The ID of the cart item to add.
      * @param totalCostwithNoShipping - The total cost of the cart item without shipping.
@@ -117,7 +112,8 @@ export class Cookies {
         if (!this.wishListEnabled) {
             return { success: true };
         }
-        const observer$ = StockCounterClient.ehttp.makePut(`/cookies/deletewishlistitem/${wishListItemId}`, {});
+        const observer$ = StockCounterClient.ehttp
+            .makePut(`/cookies/deletewishlistitem/${wishListItemId}`, {});
         const response = await lastValueFrom(observer$);
         return response;
     }
@@ -131,7 +127,8 @@ export class Cookies {
         if (!this.compareListEnabled) {
             return { success: true };
         }
-        const observer$ = StockCounterClient.ehttp.makePut('/cookies/deletecomparelistitem', { compareLisItemId });
+        const observer$ = StockCounterClient.ehttp
+            .makePut('/cookies/deletecomparelistitem', { compareLisItemId });
         const response = await lastValueFrom(observer$);
         return response;
     }
@@ -158,7 +155,8 @@ export class Cookies {
         if (!this.wishListEnabled) {
             return { success: true };
         }
-        const observer$ = StockCounterClient.ehttp.makePut('/cookies/clearwishlist', {});
+        const observer$ = StockCounterClient.ehttp
+            .makePut('/cookies/clearwishlist', {});
         const response = await lastValueFrom(observer$);
         return response;
     }
@@ -171,7 +169,8 @@ export class Cookies {
         if (!this.compareListEnabled) {
             return { success: true };
         }
-        const observer$ = StockCounterClient.ehttp.makePut('/cookies/clearcomparelist', {});
+        const observer$ = StockCounterClient.ehttp
+            .makePut('/cookies/clearcomparelist', {});
         const response = await lastValueFrom(observer$);
         return response;
     }
@@ -215,7 +214,8 @@ export class Cookies {
         if (!this.wishListEnabled) {
             return [];
         }
-        const observer$ = StockCounterClient.ehttp.makeGet('/cookies/appendtowishlist');
+        const observer$ = StockCounterClient.ehttp
+            .makeGet('/cookies/appendtowishlist');
         const response = await lastValueFrom(observer$);
         return response;
     }
@@ -229,7 +229,8 @@ export class Cookies {
         if (!this.compareListEnabled) {
             return [];
         }
-        const observer$ = StockCounterClient.ehttp.makeGet('/cookies/appendtorecent');
+        const observer$ = StockCounterClient.ehttp
+            .makeGet('/cookies/appendtorecent');
         const response = await lastValueFrom(observer$);
         return response;
     }

@@ -1,192 +1,112 @@
-
-import { DatabaseAuto, Iaddress, Ibilling, Icompany, IdataArrayResponse, Ifile, IfileMeta, Isuccess, Iuser, Iuserperm, TuserDispNameFormat, TuserType } from '@open-stock/stock-universal';
+import {
+  DatabaseAuto, Iaddress, Ibilling, Icompany,
+  IdataArrayResponse, IdeleteMany, IdeleteOne, Ifile, IfileMeta, IfilterProps,
+  Isuccess, Iuser, Iuserperm, TuserDispNameFormat, TuserType
+} from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
 import { StockAuthClient } from '../stock-auth-client';
 import { Company } from './company.define';
 
-/**
- * Represents a user and extends the DatabaseAuto class.
- * It has properties that correspond to the fields in the user object, and methods for updating, deleting,
- *  and managing the user's profile, addresses, and permissions.
- */
-export class User extends DatabaseAuto {
-  //
-  /** The user's ID. */
+export class User
+  extends DatabaseAuto {
+  static routeUrl: string;
   urId: string;
-
-  /** The user's company ID. */
   companyId: Company;
-
-  /** The user's full name. */
   names: string;
-
-  /** The user's first name. */
   fname: string;
-
-  /** The user's last name. */
   lname: string;
-
-  /** The user's company name. */
   companyName: string;
-
-  /** The user's email address. */
   email: string;
-
-  /** The user's address. */
   address: Iaddress[] = [];
-
-  /** The user's billing information. */
   billing: Ibilling[] = [];
-
-  /** The user's unique ID. */
   uid: string;
-
-  /** The user's department ID. */
   did: string;
-
-  /** The user's address ID. */
   aid: string;
-
-  /** The user's photos. */
   photos: IfileMeta[];
   profilePic: IfileMeta;
   profileCoverPic: IfileMeta;
-
-  /** Whether the user is an admin. */
-  // admin = false;
-  /** Whether the user is a sub-admin. */
-  // subAdmin = false;
-  /** The user's permissions. */
   permissions: Iuserperm = {
     companyAdminAccess: false
   };
 
-
-  /** The user's phone number. */
   phone: number;
-
-  /** The amount due from the user. */
   amountDue = 0;
-
   readonly currency: string;
-
-  /** Whether the user was manually added. */
   manuallyAdded: boolean;
-
-  /** Whether the user is currently online. */
   online = false;
-
-  /** The user's salutation. */
   salutation: string;
-
-  /** Additional company details. */
   extraCompanyDetails: string;
-
-  /** The format for displaying the user's name. */
   userDispNameFormat: TuserDispNameFormat = 'firstLast';
   userType?: TuserType;
   verified: boolean;
 
-  /**
-   * Creates a new User instance.
-   * @param data The data to initialize the User instance with.
-   */
   constructor(data: Iuser) {
     super(data);
     this.appendUpdate(data);
     this.currency = data.currency;
   }
 
-  /**
-   * Checks if a user with the given email or phone number exists.
-   * @param emailPhone The email or phone number to check.
-   * @returns A boolean indicating whether the user exists.
-   */
   static async existsEmailOrPhone(emailPhone: string) {
-    const observer$ = StockAuthClient.ehttp.makeGet(`/user/existsemailphone/${emailPhone}`);
-    const response = await lastValueFrom(observer$) as Isuccess & { exists: boolean };
+    const observer$ = StockAuthClient.ehttp.makeGet<{ exists: boolean }>(`/user/existsemailphone/${emailPhone}`);
+    const response = await lastValueFrom(observer$);
 
     return response.exists;
   }
 
-  /**
-   * Retrieves multiple users from a specified URL, with optional offset and limit parameters.
-   * @param companyId - The ID of the company
-   * @param url The URL to retrieve the users from.
-   * @param offset The offset to start retrieving users from.
-   * @param limit The maximum number of users to retrieve.
-   * @returns An array of User instances created from the retrieved user objects.
-   */
-  static async getUsers(companyId: string, where: TuserType | 'all' | 'registered', offset = 0, limit = 20) {
-    const observer$ = StockAuthClient.ehttp.makeGet(`/user/getusers/${where}/${offset}/${limit}/${companyId}`);
-    const users = await lastValueFrom(observer$) as IdataArrayResponse;
+  static async getAll(offset = 0, limit = 20) {
+    const observer$ = StockAuthClient
+      .ehttp.makeGet<IdataArrayResponse<Iuser>>(`/user/all/${offset}/${limit}`);
+    const users = await lastValueFrom(observer$);
 
     return {
       count: users.count,
-      users: users.data.map(val => new User(val as Iuser))
+      users: users.data.map(val => new User(val))
     };
   }
 
-  /**
-   * Retrieves a single user based on the provided user ID.
-   * @param companyId - The ID of the company
-   * @param urId The ID of the user to retrieve.
-   * @returns A User instance created from the retrieved user object.
-   */
-  static async getOneUser(companyId: string, urId: string) {
-    const observer$ = StockAuthClient.ehttp.makeGet(`/user/getoneuser/${urId}/${companyId}`);
-    const user = await lastValueFrom(observer$) as Iuser;
+  static async filterAll(filter: IfilterProps) {
+    const observer$ = StockAuthClient.ehttp.makePost<IdataArrayResponse<Iuser>>('/user/filter', filter);
+    const users = await lastValueFrom(observer$);
+
+    return {
+      count: users.count,
+      users: users.data.map(val => new User(val))
+    };
+  }
+
+  static async getOne(urId: string) {
+    const observer$ = StockAuthClient.ehttp.makeGet<Iuser>(`/user/one/${urId}`);
+    const user = await lastValueFrom(observer$);
 
     return new User(user);
   }
 
-  /**
-   * Adds a new user with the provided values and optional files.
-   * @param companyId - The ID of the company
-   * @param vals The values to add the user with.
-   * @param files Optional files to upload with the user.
-   * @returns A success object indicating whether the user was added successfully.
-   */
-  static async addUser(companyId: string, vals: Iuser, files?: Ifile[]) {
-    const details = {
-      user: vals
+  static async add(user: Partial<Iuser>, files?: Ifile[]) {
+    const body = {
+      user
     };
     let added: Isuccess;
 
     if (files && files[0]) {
-      const observer$ = StockAuthClient.ehttp.uploadFiles(files, `/user/adduserimg/${companyId}`, details);
+      const observer$ = StockAuthClient.ehttp.uploadFiles<Isuccess>(files, '/user/add/img', body);
 
-      added = await lastValueFrom(observer$) as Isuccess;
+      added = await lastValueFrom(observer$);
     } else {
-      const observer$ = StockAuthClient.ehttp.makePost(`/user/adduser/${companyId}`, details);
+      const observer$ = StockAuthClient.ehttp.makePost<Isuccess>('/user/add', body);
 
-      added = await lastValueFrom(observer$) as Isuccess;
+      added = await lastValueFrom(observer$);
     }
 
     return added;
   }
 
-  /**
-   * Deletes multiple users based on the provided user IDs and files with directories.
-   * @param companyId - The ID of the company
-   * @param ids The IDs of the users to delete.
-   * @param filesWithDir The files with directories to delete.
-   * @returns A success object indicating whether the users were deleted successfully.
-   */
-  static async deleteUsers(companyId: string, ids: string[], filesWithDir: IfileMeta[]) {
-    const observer$ = StockAuthClient.ehttp.makePut(`/user/deletemany/${companyId}`, { ids, filesWithDir });
+  static removeMany(vals: IdeleteMany) {
+    const observer$ = StockAuthClient.ehttp.makePut<Isuccess>('/user/delete/many', vals);
 
-    return await lastValueFrom(observer$) as Isuccess;
+    return lastValueFrom(observer$);
   }
 
-  /**
-   * Updates the user's profile with the provided values and optional files.
-   * @param companyId - The ID of the company
-   * @param vals The values to update the user's profile with.
-   * @param files Optional files to upload with the user.
-   * @returns A success object indicating whether the user was updated successfully.
-   */
-  async updateUserBulk(companyId: string, vals: Iuser, files?: Ifile[]) {
+  async update(vals: Iuser, files?: Ifile[]) {
     const details = {
       user: {
         ...vals,
@@ -196,175 +116,46 @@ export class User extends DatabaseAuto {
     let updated: Isuccess;
 
     if (files && files[0]) {
-      const observer$ = StockAuthClient.ehttp.uploadFiles(files, `/user/updateuserbulkimg/${companyId}`, details);
+      const observer$ = StockAuthClient
+        .ehttp.uploadFiles<Isuccess>(files, '/user/update/img', details);
 
-      updated = await lastValueFrom(observer$) as Isuccess;
+      updated = await lastValueFrom(observer$);
     } else {
-      const observer$ = StockAuthClient.ehttp.makePut(`/user/updateuserbulk/${companyId}`, details);
+      const observer$ = StockAuthClient.ehttp.makePut<Isuccess>('/user/update', details);
 
-      updated = await lastValueFrom(observer$) as Isuccess;
+      updated = await lastValueFrom(observer$);
     }
 
     return updated;
   }
 
-  /**
-   * Makes the user an admin based on their permissions.
-   * If the user has all permissions except 'buyer', they are considered a sub-admin.
-   * If the user has all permissions, they are considered an admin.
-   * Updates the user's admin and subAdmin properties accordingly.
-   * If the user becomes an admin, their urId, _id, fname, lname, and email properties are updated.
-   */
-  /* makeAdmin() {
-    const keys = Object.keys(this.permissions);
-    let admin = true;
-    let subAdmin = false;
-    keys.forEach(key => {
-      if (key !== 'buyer') {
-        if (this.permissions[key]) {
-          subAdmin = true;
-        } else {
-          admin = false;
-        }
-      }
-    });
-    this.admin = admin;
-    this.subAdmin = subAdmin;
-    if (this.admin) {
-      this.urId = 'admin';
-      // this._id = 'admin';
-      // this.fname = this.fname || 'admin';
-      // this.lname = this.lname || 'admin';
-      // this.email = this.email || 'admin';
-    }
-  } */
-
-  /**
-   * Updates a user's profile information.
-   * @param companyId - The ID of the company.
-   * @param vals - The updated user data.
-   * @param formtype - The type of form being updated.
-   * @param files - Optional array of files to upload.
-   * @returns A promise that resolves to the updated user data.
-   */
-  async updateUser(
-    companyId: string,
-    vals,
-    formtype: string,
-    files?: Ifile[]
-  ) {
-    let updated: Isuccess;
-
-    if (files && files.length > 0) {
-      const observer$ = StockAuthClient.ehttp
-        .uploadFiles(
-          files,
-          '/user/updateprofileimg',
-          vals
-        );
-
-      updated = await lastValueFrom(observer$) as Isuccess;
-    } else {
-      const observer$ = StockAuthClient.ehttp
-        .makePut(`/user/updateprofile/${formtype}/${companyId}`, vals);
-
-      updated = await lastValueFrom(observer$) as Isuccess;
-    }
-    if (updated.success) {
-      this.appendUpdate(vals.userdetails);
-    }
-
-    return updated;
-  }
-
-  /**
-   * Manages the address for a user.
-   * @param companyId - The ID of the company.
-   * @param address - The address or billing information to manage.
-   * @param how - The operation to perform (update or create). Default is 'update'.
-   * @param type - The type of address to manage (billing or shipping). Default is 'billing'.
-   * @returns A promise that resolves to the updated success status.
-   */
-  async manageAddress(companyId: string, address: Iaddress | Ibilling, how = 'update', type = 'billing') {
+  async modifyPermissions(permissions: Iuserperm) {
     const observer$ = StockAuthClient.ehttp
-      .makePut(`/user/addupdateaddr/${this._id}/${companyId}`, { address, how, type });
-    const updated = await lastValueFrom(observer$) as Isuccess;
-
-    if (updated.success) {
-      if (how === 'create') {
-        if (type === 'billing') {
-          this.billing.push(address as Ibilling);
-        } else {
-          this.address.push(address as Iaddress);
-        }
-      } else if (how === 'update') {
-        let found: Iaddress | Ibilling | undefined;
-
-        if (type === 'billing') {
-          found = this.billing.find(val => val.id === address.id);
-        } else {
-          found = this.address.find(val => val.id === address.id);
-        }
-        if (found) {
-          found = address;
-        }
-      } else if (type === 'billing') {
-        this.billing = this.billing.filter(val => val.id !== address.id);
-      } else {
-        this.address = this.address.filter(val => val.id !== address.id);
-      }
-    }
-
-    return updated;
-  }
-
-  /**
-   * Updates the permissions for a user in a specific company.
-   * @param companyId - The ID of the company.
-   * @param permissions - The updated permissions for the user.
-   * @returns A promise that resolves to the updated user object.
-   */
-  async managePermission(companyId: string, permissions: Iuserperm) {
-    const observer$ = StockAuthClient.ehttp
-      .makePut(`/user/updatepermissions/${this._id}/${companyId}`, { permissions });
-    const updated = await lastValueFrom(observer$) as Isuccess;
+      .makePut<Isuccess>(`/user/updatepermissions/${this._id}`, permissions);
+    const updated = await lastValueFrom(observer$);
 
     this.permissions = permissions;
 
     return updated;
   }
 
-  /**
-   * Deletes a user with the specified companyId.
-   * @param companyId - The ID of the company associated with the user.
-   * @returns A promise that resolves to the deleted user.
-   */
-  async deleteUser(companyId: string) {
+  async remove() {
     const observer$ = StockAuthClient.ehttp
-      .makePut(
-        `/user/deleteone/${companyId}`,
+      .makePut<Isuccess>(
+        '/user/delete/one',
         {
-          _id: this._id,
-          filesWithDir: [{
-            filename: this.profilePic
-          }] }
+          _id: this._id
+        } as IdeleteOne
       );
-    const deleted = await lastValueFrom(observer$) as Isuccess;
+    const deleted = await lastValueFrom(observer$);
 
     return deleted;
   }
 
-  /**
-   * Deletes images associated with a company.
-   * @param companyId - The ID of the company.
-   * @param filesWithDir - An array of file metadata objects.
-   * @returns A promise that resolves to the success status of the deletion operation.
-   */
-  async deleteImages(companyId: string, filesWithDir: IfileMeta[]) {
+  async removeImages(filesWithDir: IfileMeta[]) {
     const observer$ = StockAuthClient.ehttp
-      .makePut(`/user/deleteimages/${companyId}`, { filesWithDir, user: { _id: this._id } });
-    const deleted = await lastValueFrom(observer$) as Isuccess;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      .makePut<Isuccess>('/user/delete/images', { filesWithDir, user: { _id: this._id } });
+    const deleted = await lastValueFrom(observer$);
     const toStrings = filesWithDir.map(val => val._id);
 
     this.photos = this.photos.filter(val => !toStrings.includes(val._id));
@@ -372,14 +163,7 @@ export class User extends DatabaseAuto {
     return deleted;
   }
 
-  /**
-   * Updates the user object with the provided data.
-   * If data is provided, the corresponding properties of the user object will be updated.
-   * If a property is not provided in the data, it will retain its current value.
-   * After updating the user object, it calls the makeAdmin() method.
-   * @param data - The data object containing the properties to update.
-   */
-  appendUpdate(data: Iuser) {
+  appendUpdate(data: Partial<Iuser>) {
     if (data) {
       this.urId = data.urId;
       if (data.companyId) {
@@ -408,7 +192,6 @@ export class User extends DatabaseAuto {
       this.userType = data.userType || this.userType;
       this.verified = data.verified || this.verified;
     }
-
-    // this.makeAdmin();
   }
 }
+

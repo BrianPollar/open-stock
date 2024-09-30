@@ -5,7 +5,7 @@ const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const mongoose_1 = require("mongoose");
 const database_1 = require("../../utils/database");
 const estimateSchema = new mongoose_1.Schema({
-    ...stock_universal_server_1.withCompanySchemaObj,
+    ...stock_universal_server_1.withUrIdAndCompanySchemaObj,
     invoiceRelated: { type: String }
 }, { timestamps: true, collection: 'estimates' });
 estimateSchema.pre('updateOne', function (next) {
@@ -18,7 +18,7 @@ estimateSchema.pre('updateMany', function (next) {
  * for estimate
  */
 const estimateselect = {
-    ...stock_universal_server_1.withCompanySelectObj,
+    ...stock_universal_server_1.withUrIdAndCompanySelectObj,
     invoiceRelated: 1
 };
 /**
@@ -37,10 +37,12 @@ const createEstimateModel = async (dbUrl, dbOptions, main = true, lean = true) =
         await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.estimateMain = database_1.mainConnection.model('Estimate', estimateSchema);
+        exports.estimateMain = database_1.mainConnection
+            .model('Estimate', estimateSchema);
     }
     if (lean) {
-        exports.estimateLean = database_1.mainConnectionLean.model('Estimate', estimateSchema);
+        exports.estimateLean = database_1.mainConnectionLean
+            .model('Estimate', estimateSchema);
     }
 };
 exports.createEstimateModel = createEstimateModel;

@@ -36,7 +36,7 @@ export declare let ecommerceRevenuePercentage: number;
  * Creates stock counter server locals.
  * @param notifRedirectUrl - The notification redirect URL.
  */
-export declare const createStockCounterServerLocals: (notifRedirectUrl: string, ecommerceRevenuePerntge: number, trackUsersBool?: boolean) => void;
+export declare const createStockCounterServerLocals: (notifRedirectUrl: string, ecommerceRevenuePerntge: number) => void;
 /**
  * Connects to the Stock Counter database.
  * po 8

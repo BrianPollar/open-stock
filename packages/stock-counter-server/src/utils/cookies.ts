@@ -1,3 +1,5 @@
+import { IcustomRequest } from '@open-stock/stock-universal';
+import { NextFunction, Response } from 'express';
 import * as fs from 'fs';
 import path from 'path';
 import * as tracer from 'tracer';
@@ -29,17 +31,10 @@ const cookieServiceLogger = tracer.colorConsole({
   }
 });
 
-/**
- * Creates a tourer cookie.
- * @param req - The request object.
- * @param res - The response object.
- * @param next - The next middleware function.
- * @returns The next middleware function.
- */
 export const makeTourerCookie = (
-  req,
-  res,
-  next
+  req: IcustomRequest<never, { tourer}>,
+  res: Response,
+  next: NextFunction
 ) => {
   const tourer = req.body.tourer;
 
@@ -56,15 +51,9 @@ export const makeTourerCookie = (
   return next();
 };
 
-/**
- * Creates a settings cookie.
- * @param req - The request object.
- * @param res - The response object.
- * @returns The response object with a status of 200 and the stnCookie.
- */
 export const makeSettingsCookie = (
-  req,
-  res
+  req: IcustomRequest<never, { stnCookie}>,
+  res: Response
 ) => {
   const stnCookie = req.body.stnCookie;
 
@@ -89,15 +78,9 @@ export const makeSettingsCookie = (
   return res.status(200).send(stnCookie);
 };
 
-/**
- * Creates a cart cookie.
- * @param req - The request object.
- * @param res - The response object.
- * @returns The response object with a status of 200 and a success message.
- */
 export const makeCartCookie = async(
-  req,
-  res
+  req: IcustomRequest<never, { cartItemId; cartCookie}>,
+  res: Response
 ) => {
   const { cartItemId } = req.body;
   const { userId } = req.params;
@@ -120,15 +103,9 @@ export const makeCartCookie = async(
   return res.status(200).send({ success: true });
 };
 
-/**
- * Creates a recent cookie.
- * @param req - The request object.
- * @param res - The response object.
- * @returns The response object with a status of 200 and a success message.
- */
 export const makeRecentCookie = async(
-  req,
-  res
+  req: IcustomRequest<never, { recentCookie; recentItemId}>,
+  res: Response
 ) => {
   const recentCookie = req.body.recentCookie;
   const { userId } = req.params;
@@ -150,16 +127,9 @@ export const makeRecentCookie = async(
   return res.status(200).send({ success: true });
 };
 
-
-/**
- * Creates a recent cookie.
- * @param req - The request object.
- * @param res - The response object.
- * @returns The response object with a status of 200 and a success message.
- */
 export const makeWishListCookie = async(
-  req,
-  res
+  req: IcustomRequest<never, { wishListCookie; wishListItemId}>,
+  res: Response
 ) => {
   const wishListCookie = req.body.wishListCookie;
   const { userId } = req.params;
@@ -181,15 +151,9 @@ export const makeWishListCookie = async(
   return res.status(200).send({ success: true });
 };
 
-/**
- * Creates a recent cookie.
- * @param req - The request object.
- * @param res - The response object.
- * @returns The response object with a status of 200 and a success message.
- */
 export const makeCompareListCookie = async(
-  req,
-  res
+  req: IcustomRequest<never, { compareListCookie; compareLisItemId }>,
+  res: Response
 ) => {
   const compareListCookie = req.body.compareListCookie;
   const { userId } = req.params;

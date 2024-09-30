@@ -53,10 +53,12 @@ const createExpenseModel = async (dbUrl, dbOptions, main = true, lean = true) =>
         await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.expenseMain = database_1.mainConnection.model('Expense', expenseSchema);
+        exports.expenseMain = database_1.mainConnection
+            .model('Expense', expenseSchema);
     }
     if (lean) {
-        exports.expenseLean = database_1.mainConnectionLean.model('Expense', expenseSchema);
+        exports.expenseLean = database_1.mainConnectionLean
+            .model('Expense', expenseSchema);
     }
 };
 exports.createExpenseModel = createExpenseModel;

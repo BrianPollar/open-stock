@@ -12,15 +12,19 @@ exports.globalSchemaObj = {
 };
 exports.withCompanySchemaObj = {
     ...exports.globalSchemaObj,
-    companyId: { type: String, index: true }
+    companyId: { type: mongoose_1.Schema.ObjectId, index: true }
 };
 exports.withUrIdAndCompanySchemaObj = {
     ...exports.withCompanySchemaObj,
-    urId: { type: String, required: [true, 'cannot be empty.'], index: true }
+    urId: {
+        type: String, required: [true, 'cannot be empty.'], index: true
+    }
 };
 exports.withUrIdSchemaObj = {
     ...exports.globalSchemaObj,
-    urId: { type: String, required: [true, 'cannot be empty.'], index: true }
+    urId: {
+        type: String, required: [true, 'cannot be empty.'], index: true
+    }
 };
 exports.globalSelectObj = {
     trackEdit: 1,

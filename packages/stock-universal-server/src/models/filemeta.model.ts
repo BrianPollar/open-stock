@@ -1,6 +1,8 @@
 import { IfileMeta } from '@open-stock/stock-universal';
 import { ConnectOptions, Model, Schema } from 'mongoose';
-import { connectUniversalDatabase, isUniversalDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
+import {
+  connectUniversalDatabase, isUniversalDbConnected, mainConnection, mainConnectionLean
+} from '../utils/database';
 
 const uniqueValidator = require('mongoose-unique-validator');
 
@@ -49,10 +51,12 @@ export const createFileMetaModel = async(dbUrl: string, dbOptions?: ConnectOptio
   }
 
   if (main) {
-    fileMeta = mainConnection.model<IfileMeta>('FileMeta', fileMetaSchema);
+    fileMeta = mainConnection
+      .model<IfileMeta>('FileMeta', fileMetaSchema);
   }
 
   if (lean) {
-    fileMetaLean = mainConnectionLean.model<IfileMeta>('FileMeta', fileMetaSchema);
+    fileMetaLean = mainConnectionLean
+      .model<IfileMeta>('FileMeta', fileMetaSchema);
   }
 };

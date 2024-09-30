@@ -23,6 +23,7 @@
 /// <reference types="mongoose/types/validation" />
 /// <reference types="mongoose/types/virtuals" />
 /// <reference types="mongoose/types/inferschematype" />
+import { IstrategyCred } from '@open-stock/stock-universal-server';
 import { ConnectOptions } from 'mongoose';
 import { PesaPalController } from 'pesapal3';
 /**
@@ -61,8 +62,8 @@ export interface IStockAuthServerConfig {
         dbOptions?: ConnectOptions;
     };
     localPath: IlocalPath;
-    useDummyRoutes?: boolean;
     permanentlyDeleteAfter: number;
+    socialAuthStrategys?: IstrategyCred;
 }
 /**
  * The PesaPal payment instance for the server.
@@ -73,14 +74,15 @@ export declare let pesapalPaymentInstance: PesaPalController;
  */
 export declare let notifRedirectUrl: string;
 /**
- * Runs the stock authentication server by setting up the necessary configurations, connecting to the database, initializing passport authentication, and returning the authentication routes.
+ * Runs the stock authentication server by setting up the necessary configurations, connecting to the database,
+ *  initializing passport authentication, and returning the authentication routes.
  * @param {IStockAuthServerConfig} config - The server configuration.
  * @param {EmailHandler} emailHandler - The email handler.
  * @param {*} app - The Express app.
  * @returns {Promise<{authRoutes, userLean}>}
  */
 export declare const runStockAuthServer: (config: IStockAuthServerConfig, paymentInstance: PesaPalController) => Promise<{
-    stockAuthRouter: any;
+    stockAuthRouter: import("express-serve-static-core").Router;
 }>;
 /**
  * Checks if the stock authentication server is running.

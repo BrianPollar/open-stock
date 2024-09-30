@@ -38,9 +38,11 @@ export let mainConnectionLean: Connection;
 export let isAuthDbConnected = false;
 
 /**
- * The  connectAuthDatabase  function is an asynchronous function that connects to the authentication database using the provided database configuration URL.
+ * The  connectAuthDatabase  function is an asynchronous f
+ * unction that connects to the authentication database using the provided database configuration URL.
  * It first checks if the authentication database is already connected, and if so, it returns early.
- * Otherwise, it creates two new connections ( mainConnection  and  mainConnectionLean ) using the  makeNewConnection  function.
+ * Otherwise, it creates two new connections ( mainConnection
+ * and  mainConnectionLean ) using the  makeNewConnection  function.
  * Once the connections are established, it sets the  isAuthDbConnected  flag to  true .
  *
  * @param databaseConfigUrl - The URL of the database configuration.
@@ -55,10 +57,13 @@ export const connectAuthDatabase = async(databaseConfigUrl: string, dbOptions?: 
 };
 
 /**
- * The  process.on('SIGINT', ...)  block is used to handle the SIGINT signal, which is sent when the user presses Ctrl+C to terminate the process.
+ * The  process.on('SIGINT', ...)  block is used to handle the SIGINT
+ * signal, which is sent when the user presses Ctrl+C to terminate the process.
  * When this signal is received, the block of code inside the callback function is executed.
- * In this case, it logs a message indicating that the process is disconnecting from the database and then closes the connections to the database.
- * If the connections are closed successfully, it logs a message indicating that the connections have been disconnected and exits the process with a status code of 0.
+ * In this case, it logs a message indicating that the process is
+ * disconnecting from the database and then closes the connections to the database.
+ * If the connections are closed successfully, it logs a message i
+ * ndicating that the connections have been disconnected and exits the process with a status code of 0.
  */
 process.on('SIGINT', () => {
   dbConnectionsLogger.info('PROCESS EXIT :: now disconnecting mongoose');

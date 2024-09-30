@@ -68,10 +68,12 @@ const createReviewModel = async (dbUrl, dbOptions, main = true, lean = true) => 
         await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.reviewMain = database_1.mainConnection.model('Review', reviewSchema);
+        exports.reviewMain = database_1.mainConnection
+            .model('Review', reviewSchema);
     }
     if (lean) {
-        exports.reviewLean = database_1.mainConnectionLean.model('Review', reviewSchema);
+        exports.reviewLean = database_1.mainConnectionLean
+            .model('Review', reviewSchema);
     }
 };
 exports.createReviewModel = createReviewModel;

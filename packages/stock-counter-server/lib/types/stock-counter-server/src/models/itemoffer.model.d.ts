@@ -27,7 +27,7 @@ import { ConnectOptions, Document, Model } from 'mongoose';
 /**
  * Represents an item offer.
  */
-export interface IitemOffer extends Document, ItrackStamp, IcurrencyProp {
+export type TitemOffer = Document & ItrackStamp & IcurrencyProp & {
     /** The user's ID. */
     urId: string;
     /** The user's company ID. */
@@ -44,15 +44,15 @@ export interface IitemOffer extends Document, ItrackStamp, IcurrencyProp {
     subHeader: string;
     /** The amount of the offer. */
     ammount: number;
-}
+};
 /**
  * Represents the main item offer model.
  */
-export declare let itemOfferMain: Model<IitemOffer>;
+export declare let itemOfferMain: Model<TitemOffer>;
 /**
  * Represents a lean item offer model.
  */
-export declare let itemOfferLean: Model<IitemOffer>;
+export declare let itemOfferLean: Model<TitemOffer>;
 /**
  * Represents the item offer select function.
  */

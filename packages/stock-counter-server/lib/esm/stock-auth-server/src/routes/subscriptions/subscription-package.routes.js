@@ -52,6 +52,7 @@ subscriptionPackageRoutes.post('/create', requireAuth, requireSuperAdmin, async 
     return res.status(200).send({ success: true, status: 200 });
 });
 subscriptionPackageRoutes.put('/updateone', requireAuth, requireSuperAdmin, async (req, res) => {
+    subscriptionPackageRoutesLogger.info('Update subscription');
     const subscriptionPackage = req.body;
     const subPackage = await subscriptionPackageMain
         .findOne({ _id: subscriptionPackage._id })
@@ -76,7 +77,8 @@ subscriptionPackageRoutes.put('/updateone', requireAuth, requireSuperAdmin, asyn
     addParentToLocals(res, subscriptionPackage._id, subscriptionPackageMain.collection.collectionName, 'makeTrackEdit');
     return res.status(200).send({ success: true, status: 200 });
 });
-subscriptionPackageRoutes.get('/getall', async (req, res) => {
+subscriptionPackageRoutes.get('/all', async (req, res) => {
+    subscriptionPackageRoutesLogger.info('Get all subscription');
     const subscriptionPackages = await subscriptionPackageLean
         .find({ ...makePredomFilter(req) })
         .lean();
@@ -85,16 +87,16 @@ subscriptionPackageRoutes.get('/getall', async (req, res) => {
     }
     return res.status(200).send(subscriptionPackages);
 });
-subscriptionPackageRoutes.put('/deleteone/:id', requireAuth, async (req, res) => {
-    const { id } = req.params;
-    // const deleted = await subscriptionPackageMain.findOneAndDelete({ _id: id });
-    const deleted = await subscriptionPackageMain.updateOne({ _id: id }, { $set: { isDeleted: true } });
+subscriptionPackageRoutes.put('/delete/one/:_id', requireAuth, async (req, res) => {
+    const { _id } = req.params;
+    // const deleted = await subscriptionPackageMain.findOneAndDelete({ _id });
+    const deleted = await subscriptionPackageMain.updateOne({ _id }, { $set: { isDeleted: true } });
     if (Boolean(deleted)) {
-        addParentToLocals(res, id, subscriptionPackageMain.collection.collectionName, 'trackDataDelete');
+        addParentToLocals(res, _id, subscriptionPackageMain.collection.collectionName, 'trackDataDelete');
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
-        return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
+        return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
 //# sourceMappingURL=subscription-package.routes.js.map

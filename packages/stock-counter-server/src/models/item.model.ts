@@ -1,16 +1,13 @@
 import { Iitem } from '@open-stock/stock-universal';
-import { createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
+import {
+  createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj
+} from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 
-/**
- * Represents the type of the item model.
- * Extends the Document type and allows any additional properties.
- */
 export type TitemModel = Document & Iitem;
 
-/** Mongoose schema for the item model */
 const itemSchema: Schema = new Schema({
   ...withUrIdAndCompanySchemaObj,
   numbersInstock: { type: Number, required: [true, 'cannot be empty.'], index: true },
@@ -120,10 +117,12 @@ export const createItemModel = async(dbUrl: string, dbOptions?: ConnectOptions, 
   }
 
   if (main) {
-    itemMain = mainConnection.model<Iitem>('Item', itemSchema);
+    itemMain = mainConnection
+      .model<Iitem>('Item', itemSchema);
   }
 
   if (lean) {
-    itemLean = mainConnectionLean.model<Iitem>('Item', itemSchema);
+    itemLean = mainConnectionLean
+      .model<Iitem>('Item', itemSchema);
   }
 };

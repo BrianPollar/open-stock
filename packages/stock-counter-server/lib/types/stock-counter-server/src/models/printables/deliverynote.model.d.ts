@@ -22,13 +22,13 @@
 /// <reference types="mongoose/types/validation" />
 /// <reference types="mongoose/types/virtuals" />
 /// <reference types="mongoose/types/inferschematype" />
-import { IinvoiceRelatedRef, IurId } from '@open-stock/stock-universal';
+import { IinvoiceRelatedRef } from '@open-stock/stock-universal';
 import { ConnectOptions, Document, Model } from 'mongoose';
 /**
  * Represents a delivery note.
  * @typedef {Document & IurId & IinvoiceRelatedRef} TdeliveryNote
  */
-export type TdeliveryNote = Document & IurId & IinvoiceRelatedRef;
+export type TdeliveryNote = Document & IinvoiceRelatedRef;
 /**
  * Represents the main delivery note model.
  */

@@ -40,7 +40,7 @@ export class Payment extends PaymentRelated {
     }
     /**
      * Creates a new payment.
-     * @param companyId - The ID of the company
+  
      * @param paymentRelated - The payment related data.
      * @param invoiceRelated - The invoice related data.
      * @param order - The order data.
@@ -49,42 +49,31 @@ export class Payment extends PaymentRelated {
      * @param nonce - The payment nonce.
      * @returns A Promise that resolves to a success object.
      */
-    static async createPayment(companyId, paymentRelated, invoiceRelated, order, payment, bagainCred, nonce) {
-        const observer$ = StockCounterClient.ehttp.makePost(`/payment/create/${companyId}`, {
-            paymentRelated,
-            invoiceRelated,
-            order,
-            payment,
-            bagainCred,
-            nonce
-        });
-        return await lastValueFrom(observer$);
+    static add(vals) {
+        const observer$ = StockCounterClient.ehttp
+            .makePost('/payment/add', vals);
+        return lastValueFrom(observer$);
     }
     /**
-     * Searches for payments.
-     * @param companyId - The ID of the company
-     * @param searchterm - The search term.
-     * @param searchKey - The search key.
+     * Retrieves payments.
+  
+     * @param url - The URL to retrieve payments from.
+     * @param offset - The offset to start retrieving payments from.
+     * @param limit - The maximum number of payments to retrieve.
      * @returns A Promise that resolves to an array of Payment objects.
      */
-    static async searchPayments(companyId, searchterm, searchKey) {
-        const observer$ = StockCounterClient.ehttp.makePost(`/payment/search/${companyId}`, { searchterm, searchKey });
+    static async getAll(offset = 0, limit = 20) {
+        const observer$ = StockCounterClient.ehttp
+            .makeGet(`/payment/all/${offset}/${limit}`);
         const payments = await lastValueFrom(observer$);
         return {
             count: payments.count,
             payments: payments.data.map(val => new Payment(val))
         };
     }
-    /**
-     * Retrieves payments.
-     * @param companyId - The ID of the company
-     * @param url - The URL to retrieve payments from.
-     * @param offset - The offset to start retrieving payments from.
-     * @param limit - The maximum number of payments to retrieve.
-     * @returns A Promise that resolves to an array of Payment objects.
-     */
-    static async getPayments(companyId, url = 'getall', offset = 0, limit = 20) {
-        const observer$ = StockCounterClient.ehttp.makeGet(`/payment/${url}/${offset}/${limit}/${companyId}`);
+    static async filterAll(filter) {
+        const observer$ = StockCounterClient.ehttp
+            .makePost('/payment/filter', filter);
         const payments = await lastValueFrom(observer$);
         return {
             count: payments.count,
@@ -93,45 +82,48 @@ export class Payment extends PaymentRelated {
     }
     /**
      * Retrieves a single payment.
-     * @param companyId - The ID of the company
-     * @param id - The ID of the payment to retrieve.
+  
+     * @param _id - The ID of the payment to retrieve.
      * @returns A Promise that resolves to a Payment object.
      */
-    static async getOnePayment(companyId, id) {
-        const observer$ = StockCounterClient.ehttp.makeGet(`/payment/getone/${id}/${companyId}`);
+    static async getOne(_id) {
+        const observer$ = StockCounterClient.ehttp
+            .makeGet(`/payment/one/${_id}`);
         const payment = await lastValueFrom(observer$);
         return new Payment(payment);
     }
     /**
      * Deletes multiple payments.
-     * @param companyId - The ID of the company
+  
      * @param credentials - The credentials to delete the payments.
      * @returns A Promise that resolves to a success object.
      */
-    static async deletePayments(companyId, credentials) {
-        const observer$ = StockCounterClient.ehttp.makePut(`/payment/deletemany/${companyId}`, { credentials });
-        return await lastValueFrom(observer$);
+    static removeMany(credentials) {
+        const observer$ = StockCounterClient.ehttp
+            .makePut('/payment/delete/many', { credentials });
+        return lastValueFrom(observer$);
     }
     /**
      * Updates a payment.
-     * @param companyId - The ID of the company
+  
      * @param updatedPayment - The updated payment data.
      * @param paymentRelated - The updated payment related data.
      * @param invoiceRelated - The updated invoice related data.
      * @returns A Promise that resolves to a success object.
      */
-    async updatePayment(companyId, updatedPayment, paymentRelated, invoiceRelated) {
-        const observer$ = StockCounterClient.ehttp.makePut(`/payment/update/${companyId}`, { updatedPayment, paymentRelated, invoiceRelated });
-        return await lastValueFrom(observer$);
+    update(vals) {
+        const observer$ = StockCounterClient.ehttp
+            .makePut('/payment/update', vals);
+        return lastValueFrom(observer$);
     }
     /**
      * Deletes a payment.
-     * @param companyId - The ID of the company
+  
      * @returns A Promise that resolves to a success object.
      */
-    async deletePayment(companyId) {
-        const observer$ = StockCounterClient.ehttp.makeDelete(`/payment/deleteone/${this._id}/${companyId}`);
-        return await lastValueFrom(observer$);
+    remove() {
+        const observer$ = StockCounterClient.ehttp.makeDelete(`/payment/delete/one/${this._id}`);
+        return lastValueFrom(observer$);
     }
 }
 //# sourceMappingURL=payment.define.js.map

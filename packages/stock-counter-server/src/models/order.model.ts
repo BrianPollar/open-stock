@@ -1,6 +1,6 @@
 import { IinvoiceRelated, IpaymentRelated } from '@open-stock/stock-universal';
 import { createExpireDocIndex, preUpdateDocExpire } from '@open-stock/stock-universal-server';
-import { ConnectOptions, Document, Model, Schema } from 'mongoose';
+import { ConnectOptions, Document, Model, ObjectId, Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 
@@ -8,7 +8,7 @@ const uniqueValidator = require('mongoose-unique-validator');
  * Represents an order in the system.
  */
 export type Torder = Document & {
-  companyId: string;
+  companyId: string | ObjectId;
   paymentRelated: string | IpaymentRelated;
   invoiceRelated: string | IinvoiceRelated;
   deliveryDate: Date;
@@ -16,7 +16,7 @@ export type Torder = Document & {
 };
 
 const orderSchema: Schema<Torder> = new Schema({
-  companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
+  companyId: { type: Schema.ObjectId, required: [true, 'cannot be empty.'], index: true },
   paymentRelated: { type: String, unique: true },
   invoiceRelated: { type: String, unique: true },
   deliveryDate: { type: Date, required: [true, 'cannot be empty.'], index: true }
@@ -73,10 +73,12 @@ export const createOrderModel = async(dbUrl: string, dbOptions?: ConnectOptions,
   }
 
   if (main) {
-    orderMain = mainConnection.model<Torder>('Order', orderSchema);
+    orderMain = mainConnection
+      .model<Torder>('Order', orderSchema);
   }
 
   if (lean) {
-    orderLean = mainConnectionLean.model<Torder>('Order', orderSchema);
+    orderLean = mainConnectionLean
+      .model<Torder>('Order', orderSchema);
   }
 };

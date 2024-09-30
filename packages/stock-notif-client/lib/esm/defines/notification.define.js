@@ -24,24 +24,25 @@ export class NotificationMain {
     }
     /**
      * Creates a new notification.
-     * @param companyId - The ID of the company
+  
      * @param notif The notification to create.
      * @returns A promise that resolves to the success status of the operation.
      */
-    static async creatNotifs(companyId, notif) {
-        const observer$ = StockNotifClient.ehttp.makePost(`/notifn/create/${companyId}`, notif);
-        return await lastValueFrom(observer$);
+    static create(notif) {
+        const observer$ = StockNotifClient.ehttp.makePost('/notifn/create', notif);
+        return lastValueFrom(observer$);
     }
     /**
      * Gets a list of notifications.
-     * @param companyId - The ID of the company
+  
      * @param url The URL to use for the request.
      * @param offset The offset to use for the request.
      * @param limit The limit to use for the request.
      * @returns A promise that resolves to an array of NotificationMain instances.
      */
-    static async getNotifications(companyId, url = 'getmynotifn', offset = 0, limit = 20) {
-        const observer$ = StockNotifClient.ehttp.makeGet(`/notifn/${url}/${offset}/${limit}/${companyId}`);
+    static async getAll(url = 'getmynotifn', offset = 0, limit = 20) {
+        const observer$ = StockNotifClient
+            .ehttp.makeGet(`/notifn/${url}/${offset}/${limit}`);
         const notifications = await lastValueFrom(observer$);
         return {
             count: notifications.count,
@@ -50,39 +51,39 @@ export class NotificationMain {
     }
     /**
      * Appends a subscription to the list of subscriptions.
-     * @param companyId - The ID of the company
+  
      * @param subscription The subscription to append.
      * @returns A promise that resolves to the success status of the operation.
      */
-    static async appendSubscription(companyId, subscription) {
-        const observer$ = StockNotifClient.ehttp.makePost(`/notifn/subscription/${companyId}`, { subscription });
+    static appendSubscription(subscription) {
+        const observer$ = StockNotifClient.ehttp.makePost('/notifn/subscription', { subscription });
         return lastValueFrom(observer$);
     }
     /**
      * Gets the number of unviewed notifications.
-     * @param companyId - The ID of the company
+  
      * @returns A promise that resolves to the number of unviewed notifications.
      */
-    static async getUnviewedLength(companyId) {
-        const observer$ = StockNotifClient.ehttp.makeGet(`/notifn/unviewedlength/${companyId}`);
-        return await lastValueFrom(observer$);
+    static getUnviewedLength(companyId) {
+        const observer$ = StockNotifClient.ehttp.makeGet('/notifn/unviewedlength');
+        return lastValueFrom(observer$);
     }
     /**
      * Clears all notifications.
-     * @param companyId - The ID of the company
+  
      * @returns A promise that resolves to the success status of the operation.
      */
-    static async clearAll(companyId) {
-        const observer$ = StockNotifClient.ehttp.makePost(`/notifn/clearall/${companyId}`, {});
+    static clearAll(companyId) {
+        const observer$ = StockNotifClient.ehttp.makePost('/notifn/clearall', {});
         return lastValueFrom(observer$);
     }
     /**
      * Updates the viewed status of the notification.
-     * @param companyId - The ID of the company
+  
      * @returns A promise that resolves to the success status of the operation.
      */
     async updateViewed(companyId) {
-        const observer$ = StockNotifClient.ehttp.makePost(`/notifn/updateviewed/${companyId}`, { id: this._id });
+        const observer$ = StockNotifClient.ehttp.makePost('/notifn/updateviewed', { id: this._id });
         const response = await lastValueFrom(observer$);
         return response;
     }
@@ -115,23 +116,23 @@ export class NotifSetting {
     }
     /**
      * Gets the notification settings.
-     * @param companyId - The ID of the company
+  
      * @returns A promise that resolves to an array of NotifSetting instances.
      */
     static async getNotificationsSetting(companyId) {
-        const observer$ = StockNotifClient.ehttp.makeGet(`/notifn/getstn/${companyId}`);
+        const observer$ = StockNotifClient.ehttp.makeGet('/notifn/getstn');
         const stn = await lastValueFrom(observer$);
         return stn.map(val => new NotifSetting(val));
     }
     /**
      * Updates the notification settings.
-     * @param companyId - The ID of the company
+  
      * @param vals The new values for the notification settings.
      * @returns A promise that resolves to the success status of the operation.
      */
-    async update(companyId, vals) {
-        const observer$ = StockNotifClient.ehttp.makePut(`/notifn/updatestn/${companyId}`, vals);
-        return await lastValueFrom(observer$);
+    update(vals) {
+        const observer$ = StockNotifClient.ehttp.makePut('/notifn/updatestn', vals);
+        return lastValueFrom(observer$);
     }
 }
 //# sourceMappingURL=notification.define.js.map

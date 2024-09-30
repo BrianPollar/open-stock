@@ -34,13 +34,19 @@ export class TrackView
   }
 
 
-  static async getByDates(url: 'gettrackviewbyuserdate' | 'gettrackviewbydate', filters: IdateFilterObj, offset = 0, limit = 40) {
-    const observer$ = StockUniversal.ehttp.makePost(`/track/${url}${offset}/${limit}`, filters);
-    const views = await lastValueFrom(observer$) as IdataArrayResponse;
+  static async getByDates(
+    url: 'gettrackviewbyuserdate' | 'gettrackviewbydate',
+    filters: IdateFilterObj,
+    offset = 0,
+    limit = 40
+  ) {
+    const observer$ = StockUniversal
+      .ehttp.makePost<IdataArrayResponse<ItrackView>>(`/track/${url}${offset}/${limit}`, filters);
+    const views = await lastValueFrom(observer$);
 
     return {
       count: views.count,
-      trackViews: views.data.map(val => new TrackView(val as ItrackView))
+      trackViews: views.data.map(val => new TrackView(val))
     };
   }
 
@@ -50,8 +56,8 @@ export class TrackView
    * @returns a TrackView object
    */
   static async getByParent(parent: string) {
-    const observer$ = StockUniversal.ehttp.makeGet(`/track/gettrackviewbyparent/${parent}`);
-    const view = await lastValueFrom(observer$) as ItrackView;
+    const observer$ = StockUniversal.ehttp.makeGet<ItrackView>(`/track/gettrackviewbyparent/${parent}`);
+    const view = await lastValueFrom(observer$);
 
     return new TrackView(view);
   }
@@ -64,12 +70,13 @@ export class TrackView
    * @returns a TrackView object with a count of the total results and an array of track views
    */
   static async getByUser(userId: string, offset = 0, limit = 20) {
-    const observer$ = StockUniversal.ehttp.makeGet(`/track/gettrackviewbyuser/${offset}/${limit}/${userId}`);
-    const views = await lastValueFrom(observer$) as IdataArrayResponse;
+    const observer$ = StockUniversal
+      .ehttp.makeGet<IdataArrayResponse<ItrackView>>(`/track/gettrackviewbyuser/${offset}/${limit}/${userId}`);
+    const views = await lastValueFrom(observer$);
 
     return {
       count: views.count,
-      trackViews: views.data.map(val => new TrackView(val as ItrackView))
+      trackViews: views.data.map(val => new TrackView(val))
     };
   }
 
@@ -80,24 +87,25 @@ export class TrackView
    * @returns a TrackView object with a count of the total results and an array of track views
    */
   static async getAll(offset = 0, limit = 20) {
-    const observer$ = StockUniversal.ehttp.makeGet(`/track/gettrackview/${offset}/${limit}`);
-    const views = await lastValueFrom(observer$) as IdataArrayResponse;
+    const observer$ = StockUniversal
+      .ehttp.makeGet<IdataArrayResponse<ItrackView>>(`/track/gettrackview/${offset}/${limit}`);
+    const views = await lastValueFrom(observer$);
 
     return {
       count: views.count,
-      trackViews: views.data.map(val => new TrackView(val as ItrackView))
+      trackViews: views.data.map(val => new TrackView(val))
     };
   }
 
   /**
    * Deletes a track view by id.
    *
-   * @param id the id of the track view to delete.
+   * @param _id the id of the track view to delete.
    * @returns a boolean indicating whether the track view was successfully deleted.
    */
-  static async deleteOne(id: string) {
-    const observer$ = StockUniversal.ehttp.makeDelete(`/track/deletetrackview/${id}`);
-    const deleted = await lastValueFrom(observer$) as Isuccess;
+  static async deleteOne(_id: string) {
+    const observer$ = StockUniversal.ehttp.makeDelete<Isuccess>(`/track/deletetrackview/${_id}`);
+    const deleted = await lastValueFrom(observer$);
 
     return deleted;
   }

@@ -6,7 +6,8 @@ const uniqueValidator = require('mongoose-unique-validator');
 /**
  * Represents an email token.
  */
-export interface IEmailtoken extends Document {
+export interface IEmailtoken
+extends Document {
 
   /**
    * The ID of the user associated with the token.
@@ -29,7 +30,7 @@ export interface IEmailtoken extends Document {
   createdAt: string;
 }
 
-const emailtokenSchema: Schema<IEmailtoken> = new Schema({
+const emailtokenSchema: Schema<IEmailtoken> = new Schema<IEmailtoken>({
   userId: { type: String },
   token: { type: String, unique: true }
 }, { timestamps: true, collection: 'emailtokens' });
@@ -61,10 +62,12 @@ export const createEmailtokenModel = async(dbUrl: string, dbOptions?: ConnectOpt
   }
 
   if (main) {
-    emailtoken = mainConnection.model<IEmailtoken>('emailtoken', emailtokenSchema);
+    emailtoken = mainConnection
+      .model<IEmailtoken>('emailtoken', emailtokenSchema);
   }
 
   if (lean) {
-    emailtokenLean = mainConnectionLean.model<IEmailtoken>('emailtoken', emailtokenSchema);
+    emailtokenLean = mainConnectionLean
+      .model<IEmailtoken>('emailtoken', emailtokenSchema);
   }
 };

@@ -27,10 +27,12 @@ export const createEmailtokenModel = async (dbUrl, dbOptions, main = true, lean 
         await connectAuthDatabase(dbUrl, dbOptions);
     }
     if (main) {
-        emailtoken = mainConnection.model('emailtoken', emailtokenSchema);
+        emailtoken = mainConnection
+            .model('emailtoken', emailtokenSchema);
     }
     if (lean) {
-        emailtokenLean = mainConnectionLean.model('emailtoken', emailtokenSchema);
+        emailtokenLean = mainConnectionLean
+            .model('emailtoken', emailtokenSchema);
     }
 };
 //# sourceMappingURL=emailtoken.model.js.map

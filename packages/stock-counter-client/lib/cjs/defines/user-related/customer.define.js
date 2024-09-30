@@ -20,13 +20,23 @@ class Customer extends userbase_define_1.UserBase {
     /**
      * Retrieves a list of customers from a specified URL.
      * @static
-     * @param companyId - The ID of the company
+  
      * @param {number} [offset=0] - The offset for pagination.
      * @param {number} [limit=0] - The limit for pagination.
      * @returns {Promise<Customer[]>} - An array of Customer instances created from the retrieved customer data.
      */
-    static async getCustomers(companyId, offset = 0, limit = 20) {
-        const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makeGet(`/customer/getall/${offset}/${limit}/${companyId}`);
+    static async getAll(offset = 0, limit = 20) {
+        const observer$ = stock_counter_client_1.StockCounterClient.ehttp
+            .makeGet(`/customer/all/${offset}/${limit}`);
+        const customers = await (0, rxjs_1.lastValueFrom)(observer$);
+        return {
+            count: customers.count,
+            customers: customers.data.map(val => new Customer(val))
+        };
+    }
+    static async filterAll(filter) {
+        const observer$ = stock_counter_client_1.StockCounterClient
+            .ehttp.makePost('/customer/filter', filter);
         const customers = await (0, rxjs_1.lastValueFrom)(observer$);
         return {
             count: customers.count,
@@ -36,31 +46,34 @@ class Customer extends userbase_define_1.UserBase {
     /**
      * Retrieves a single customer by ID.
      * @static
-     * @param companyId - The ID of the company
-     * @param {string} id - The customer ID.
+  
+     * @param {string} _id - The customer ID.
      * @returns {Promise<Customer>} - A single Customer instance created from the retrieved customer data.
      */
-    static async getOneCustomer(companyId, filter) {
-        const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makePost(`/customer/getone/${companyId}`, filter);
+    static async getOne(filter) {
+        const observer$ = stock_counter_client_1.StockCounterClient
+            .ehttp.makePost('/customer/one', filter);
         const customer = await (0, rxjs_1.lastValueFrom)(observer$);
         return new Customer(customer);
     }
     /**
      * Creates a new customer.
      * @static
-     * @param companyId - The ID of the company
+  
      * @param {Icustomer} customer - The customer data to be created.
      * @returns {Promise<Isuccess>} - A success response indicating whether the customer creation was successful.
      */
-    static async createCustomer(companyId, vals, files) {
+    static async add(vals, files) {
         let added;
         vals.user.userType = 'customer';
         if (files && files[0]) {
-            const observer$ = stock_counter_client_1.StockCounterClient.ehttp.uploadFiles(files, `/customer/createimg/${companyId}`, vals);
+            const observer$ = stock_counter_client_1.StockCounterClient.ehttp
+                .uploadFiles(files, '/customer/add/img', vals);
             added = await (0, rxjs_1.lastValueFrom)(observer$);
         }
         else {
-            const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makePost(`/customer/create/${companyId}`, vals);
+            const observer$ = stock_counter_client_1.StockCounterClient.ehttp
+                .makePost('/customer/add', vals);
             added = await (0, rxjs_1.lastValueFrom)(observer$);
         }
         return added;
@@ -68,31 +81,34 @@ class Customer extends userbase_define_1.UserBase {
     /**
      * Deletes multiple customers.
      * @static
-     * @param companyId - The ID of the company
+  
      * @param {IdeleteCredentialsLocalUser[]} credentials - An array of customer credentials.
      * @param {Ifilewithdir[]} filesWithDir - An array of files with directories.
      * @returns {Promise<Isuccess>} - A success response indicating whether the deletion was successful.
      */
-    static async deleteCustomers(companyId, credentials, filesWithDir) {
-        const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makePut(`/customer/deletemany/${companyId}`, { credentials, filesWithDir });
-        return await (0, rxjs_1.lastValueFrom)(observer$);
+    static removeMany(val) {
+        const observer$ = stock_counter_client_1.StockCounterClient.ehttp
+            .makePut('/customer/delete/many', val);
+        return (0, rxjs_1.lastValueFrom)(observer$);
     }
     /**
      * Updates the current customer instance.
-     * @param companyId - The ID of the company
+  
      * @param {Icustomer} vals - The updated customer data.
      * @returns {Promise<Isuccess>} - A success response indicating whether the update was successful.
      */
-    async updateCustomer(companyId, vals, files) {
+    async update(vals, files) {
         let updated;
         vals.customer._id = this._id;
         vals.user._id = typeof this.user === 'string' ? this.user : this.user._id;
         if (files && files[0]) {
-            const observer$ = stock_counter_client_1.StockCounterClient.ehttp.uploadFiles(files, `/customer/updateimg/${companyId}`, vals);
+            const observer$ = stock_counter_client_1.StockCounterClient.ehttp
+                .uploadFiles(files, '/customer/update/img', vals);
             updated = await (0, rxjs_1.lastValueFrom)(observer$);
         }
         else {
-            const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makePut(`/customer/update/${companyId}`, vals);
+            const observer$ = stock_counter_client_1.StockCounterClient.ehttp
+                .makePut('/customer/update', vals);
             updated = await (0, rxjs_1.lastValueFrom)(observer$);
         }
         if (updated.success) {
@@ -102,14 +118,15 @@ class Customer extends userbase_define_1.UserBase {
     }
     /**
      * Deletes the current customer instance.
-     * @param companyId - The ID of the company
+  
      * @param {IdeleteCredentialsLocalUser} credential - The customer credential.
      * @param {Ifilewithdir[]} filesWithDir - An array of files with directories.
      * @returns {Promise<Isuccess>} - A success response indicating whether the deletion was successful.
      */
-    async deleteCustomer(companyId, credential, filesWithDir) {
-        const observer$ = stock_counter_client_1.StockCounterClient.ehttp.makePut(`/customer/deleteone/${companyId}`, { credential, filesWithDir });
-        return await (0, rxjs_1.lastValueFrom)(observer$);
+    remove(val) {
+        const observer$ = stock_counter_client_1.StockCounterClient.ehttp
+            .makePut('/customer/delete/one', val);
+        return (0, rxjs_1.lastValueFrom)(observer$);
     }
 }
 exports.Customer = Customer;

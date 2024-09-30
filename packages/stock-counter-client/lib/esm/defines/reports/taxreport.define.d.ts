@@ -1,9 +1,6 @@
-import { DatabaseAuto, Isuccess, ItaxReport } from '@open-stock/stock-universal';
+import { DatabaseAuto, IdeleteMany, IfilterProps, Isuccess, ItaxReport } from '@open-stock/stock-universal';
 import { Estimate } from '../estimate.define';
 import { InvoiceRelatedWithReceipt } from '../invoice.define';
-/**
- * TaxReport class: This class represents a tax report object. It extends the DatabaseAuto class.
- */
 export declare class TaxReport extends DatabaseAuto {
     /** A string representing the unique identifier of the tax report. */
     urId: string;
@@ -26,35 +23,40 @@ export declare class TaxReport extends DatabaseAuto {
     constructor(data: ItaxReport);
     /**
      * Retrieves multiple tax reports from the server.
-     * @param companyId - The ID of the company
+  
      * @param url Optional parameter for the URL of the request.
      * @param offset Optional parameter for the offset of the request.
      * @param limit Optional parameter for the limit of the request.
      * @returns An array of TaxReport instances.
      */
-    static getTaxReports(companyId: string, url?: string, offset?: number, limit?: number): Promise<{
+    static getAll(offset?: number, limit?: number): Promise<{
+        count: number;
+        taxreports: TaxReport[];
+    }>;
+    static filterAll(filter: IfilterProps): Promise<{
         count: number;
         taxreports: TaxReport[];
     }>;
     /**
      * Retrieves a single tax report from the server based on the provided unique identifier (urId).
-     * @param companyId - The ID of the company
+  
      * @param urId A string representing the unique identifier of the tax report.
      * @returns A TaxReport instance.
      */
-    static getOneTaxReport(companyId: string, urId: string): Promise<TaxReport>;
+    static getOne(urId: string): Promise<TaxReport>;
     /**
      * Adds a new tax report to the server.
-     * @param companyId - The ID of the company
+  
      * @param vals An object that implements the ItaxReport interface.
      * @returns A success response.
      */
-    static addTaxReport(companyId: string, vals: ItaxReport): Promise<Isuccess>;
+    static add(vals: ItaxReport): Promise<Isuccess>;
     /**
-     * Deletes multiple tax reports from the server based on the provided array of unique identifiers (ids).
-     * @param companyId - The ID of the company
-     * @param ids An array of strings representing the unique identifiers of the tax reports to be deleted.
+     * Deletes multiple tax reports from the server based on the provided array of unique identifiers (_ids).
+  
+     * @param _ids An array of strings representing the unique identifiers of the tax reports to be deleted.
      * @returns A success response.
      */
-    static deleteTaxReports(companyId: string, ids: string[]): Promise<Isuccess>;
+    static removeMany(vals: IdeleteMany): Promise<Isuccess>;
+    remove(): Promise<Isuccess>;
 }

@@ -107,4 +107,20 @@ export const populateCompany = (returnActive = true) => {
         };
     }
 };
+/**
+   * Populates the user field on a given document with the associated user, including
+   * the user's photos, profile picture, and profile cover picture.
+   *
+   * @returns A mongoose populate object.
+   */
+export const populateOwner = () => {
+    return { path: 'owner', model: userLean,
+        populate: [{
+                path: 'photos', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+            }, {
+                path: 'profilePic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+            }, {
+                path: 'profileCoverPic', model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url })
+            }] };
+};
 //# sourceMappingURL=query.js.map

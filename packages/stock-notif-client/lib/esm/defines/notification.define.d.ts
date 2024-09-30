@@ -32,45 +32,45 @@ export declare class NotificationMain {
     constructor(data: Imainnotification);
     /**
      * Creates a new notification.
-     * @param companyId - The ID of the company
+  
      * @param notif The notification to create.
      * @returns A promise that resolves to the success status of the operation.
      */
-    static creatNotifs(companyId: string, notif: Imainnotification): Promise<Isuccess>;
+    static create(notif: Imainnotification): Promise<Isuccess>;
     /**
      * Gets a list of notifications.
-     * @param companyId - The ID of the company
+  
      * @param url The URL to use for the request.
      * @param offset The offset to use for the request.
      * @param limit The limit to use for the request.
      * @returns A promise that resolves to an array of NotificationMain instances.
      */
-    static getNotifications(companyId: string, url?: string, offset?: number, limit?: number): Promise<{
+    static getAll(url?: string, offset?: number, limit?: number): Promise<{
         count: number;
         notifications: NotificationMain[];
     }>;
     /**
      * Appends a subscription to the list of subscriptions.
-     * @param companyId - The ID of the company
+  
      * @param subscription The subscription to append.
      * @returns A promise that resolves to the success status of the operation.
      */
-    static appendSubscription(companyId: string, subscription: PushSubscription | null): Promise<Isuccess>;
+    static appendSubscription(subscription: PushSubscription | null): Promise<Isuccess>;
     /**
      * Gets the number of unviewed notifications.
-     * @param companyId - The ID of the company
+  
      * @returns A promise that resolves to the number of unviewed notifications.
      */
     static getUnviewedLength(companyId: string): Promise<number>;
     /**
      * Clears all notifications.
-     * @param companyId - The ID of the company
+  
      * @returns A promise that resolves to the success status of the operation.
      */
     static clearAll(companyId: string): Promise<Isuccess>;
     /**
      * Updates the viewed status of the notification.
-     * @param companyId - The ID of the company
+  
      * @returns A promise that resolves to the success status of the operation.
      */
     updateViewed(companyId: string): Promise<Isuccess>;
@@ -105,15 +105,15 @@ export declare class NotifSetting {
     };
     /**
      * Gets the notification settings.
-     * @param companyId - The ID of the company
+  
      * @returns A promise that resolves to an array of NotifSetting instances.
      */
     static getNotificationsSetting(companyId: string): Promise<NotifSetting[]>;
     /**
      * Updates the notification settings.
-     * @param companyId - The ID of the company
+  
      * @param vals The new values for the notification settings.
      * @returns A promise that resolves to the success status of the operation.
      */
-    update(companyId: string, vals: InotifSetting): Promise<Isuccess>;
+    update(vals: InotifSetting): Promise<Isuccess>;
 }

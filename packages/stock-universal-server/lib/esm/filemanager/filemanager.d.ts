@@ -12,7 +12,8 @@ export declare const createDirectories: (envConfig: IenvironmentConfig) => Promi
  * @param absolutepath - The absolute path of the directory or the parent directory.
  * @param dir - The name of the directory to check or create.
  * @param casel - Optional. Specifies whether to use the absolute path or the absolute path plus the directory name.
- *                 If set to 'first', the directory path will be set to the absolute path. Otherwise, it will be set to the absolute path plus the directory name.
+ * If set to 'first', the directory path will be set to the absolute path.
+ * Otherwise, it will be set to the absolute path plus the directory name.
  * @returns A Promise that resolves with a string indicating the result:
  *          - 'created' if the directory was created.
  *          - 'exists' if the directory already exists.

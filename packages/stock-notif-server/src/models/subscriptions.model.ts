@@ -63,10 +63,12 @@ export const createSubscriptionModel = async(dbUrl: string, dbOptions?: ConnectO
   }
 
   if (main) {
-    subscriptionMain = mainConnection.model<ISubscription>('Subscription', subscriptionSchema);
+    subscriptionMain = mainConnection
+      .model<ISubscription>('Subscription', subscriptionSchema);
   }
 
   if (lean) {
-    subscriptionLean = mainConnectionLean.model<ISubscription>('Subscription', subscriptionSchema);
+    subscriptionLean = mainConnectionLean
+      .model<ISubscription>('Subscription', subscriptionSchema);
   }
 };

@@ -43,34 +43,34 @@ export declare class EhttpController {
      * @param route - The route to make the GET request to.
      * @returns An Observable that emits the response data.
      */
-    makeGet(route: string, retryTimes?: number): Observable<unknown>;
+    makeGet<T = void>(route: string, retryTimes?: number): Observable<T>;
     /**
      * A method that makes a PUT request to the specified route.
      * @param route - The route to make the PUT request to.
      * @param extras - Any extra data to include in the request.
      * @returns An Observable that emits the response data.
      */
-    makePut(route: string, extras: any): Observable<unknown>;
+    makePut<T = void>(route: string, extras: any): Observable<T>;
     /**
      * A method that makes a POST request to the specified route.
      * @param route - The route to make the POST request to.
      * @param extras - Any extra data to include in the request.
      * @returns An Observable that emits the response data.
      */
-    makePost(route: string, extras: any): Observable<unknown>;
+    makePost<T = void>(route: string, extras: any): Observable<T>;
     /**
      * A method that makes a DELETE request to the specified route.
      * @param route - The route to make the DELETE request to.
      * @returns An Observable that emits the response data.
      */
-    makeDelete(route: string): Observable<unknown>;
+    makeDelete<T = void>(route: string): Observable<T>;
     /**
      * A method that uploads files to the specified URL.
      * @param files - An array of files to upload.
-     * @param companyId - The ID of the company
+  
      * @param url - The URL to upload the files to.
      * @param extras - Any extra data to include in the request.
      * @returns An Observable that emits the response data.
      */
-    uploadFiles(files: Ifile[], url: string, extras?: any): Observable<unknown>;
+    uploadFiles<T = void>(files: Ifile[], url: string, extras?: any): Observable<T>;
 }

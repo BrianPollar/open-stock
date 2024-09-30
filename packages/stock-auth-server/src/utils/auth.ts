@@ -1,6 +1,9 @@
-import { Iauthresponse, IauthresponseObj, Isuccess, Iuser, Iuserperm } from '@open-stock/stock-universal';
-import { makeUrId, stringifyMongooseErr, verifyObjectIds } from '@open-stock/stock-universal-server';
+import {
+  Iauthresponse, IauthresponseObj, IcustomRequest, Isuccess, Iuser, Iuserperm
+} from '@open-stock/stock-universal';
+import { generateUrId, stringifyMongooseErr, verifyObjectIds } from '@open-stock/stock-universal-server';
 import * as fs from 'fs';
+import { Document } from 'mongoose';
 import path from 'path';
 import * as tracer from 'tracer';
 import { loginAtempts } from '../models/loginattemps.model';
@@ -82,14 +85,18 @@ const comparePassword = (foundUser, passwd: string, isPhone: boolean): Promise<{
  * @param next - The next middleware function.
  * @returns The next middleware function or an error response.
  */
-export const checkIpAndAttempt = async(req, res, next) => {
+export const checkIpAndAttempt = async(
+  req: IcustomRequest<never, { foundUser: Iuser; passwd: string; isPhone: boolean}>,
+  res,
+  next
+) => {
   // let isPhone: boolean;
   const { foundUser, passwd, isPhone } = req.body;
 
   if (!foundUser?.password || !foundUser?.verified) {
     return next();
   }
-  const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+  const ip = req.headers['x-forwarded-for'].toString() || req.socket.remoteAddress;
   const userOrCompanayId = foundUser._id;
 
   let foundIpModel = await userip.findOne({ userOrCompanayId }).select({
@@ -234,10 +241,10 @@ export const checkIpAndAttempt = async(req, res, next) => {
  * @param res - The response object.
  * @param next - The next middleware function.
  */
-export const isTooCommonPhrase = (req, res, next) => {
-  const passwd = req.body.passwd;
+export const isTooCommonPhrase = (req: IcustomRequest<never, { passwd: string }>, res, next) => {
+  // const passwd = req.body.passwd;
 
-  if (req.localEnv) {
+  /* TODO if (req.localEnv) {
     const { commonPhraseData } = req.localEnv;
 
     if (commonPhraseData.includes(passwd)) {
@@ -248,7 +255,7 @@ export const isTooCommonPhrase = (req, res, next) => {
 
       return res.status(403).send(toSend);
     }
-  }
+  } */
 
   return next();
 };
@@ -261,10 +268,10 @@ export const isTooCommonPhrase = (req, res, next) => {
  * @param res - The response object.
  * @param next - The next middleware function.
  */
-export const isInAdictionaryOnline = (req, res, next) => {
-  const passwd = req.params.passwd;
+export const isInAdictionaryOnline = (req: IcustomRequest<never, { passwd: string }>, res, next) => {
+  // const passwd = req.params.passwd;
 
-  if (req.localEnv) {
+  /* TODO if (req.localEnv) {
     const { commonDictData } = req.localEnv;
 
     if (commonDictData.includes(passwd)) {
@@ -275,7 +282,7 @@ export const isInAdictionaryOnline = (req, res, next) => {
 
       return res.status(403).send(toSend);
     }
-  }
+  } */
 
   return next();
 };
@@ -306,7 +313,11 @@ export const determineIfIsPhoneAndMakeFilterObj = (emailPhone: string) => {
  * @param next - The next middleware function.
  * @returns A Promise that resolves to void.
  */
-export const loginFactorRelgator = async(req, res, next) => {
+export const loginFactorRelgator = async(
+  req: IcustomRequest<never, { passwd: string; user: { emailPhone: string; firstName: string; lastName: string } }>,
+  res,
+  next
+) => {
   const { emailPhone, firstName, lastName } = req.body.user;
   const passwd = req.body.passwd;
   let phone;
@@ -317,7 +328,7 @@ export const loginFactorRelgator = async(req, res, next) => {
   authControllerLogger.debug(`signup, 
     emailPhone: ${emailPhone}`);
 
-  if (isNaN(emailPhone)) {
+  if (isNaN(Number(emailPhone))) {
     query = {
       email: emailPhone
     };
@@ -343,9 +354,7 @@ export const loginFactorRelgator = async(req, res, next) => {
     return res.status(200).send(response);
   }
 
-  const count = await user
-    .find({ }).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
-  const urId = makeUrId(Number(count[0]?.urId || '0'));
+  const urId = await generateUrId(user);
 
   const permissions: Iuserperm = {
     companyAdminAccess: false
@@ -388,7 +397,8 @@ export const loginFactorRelgator = async(req, res, next) => {
   }
 
   let result: Iauthresponse;
-  const type = 'token'; // note now is only token but build a counter later to make sur that the token and link methods are shared
+  // note now is only token but build a counter later to make sur that the token and link methods are shared
+  const type = 'token';
 
   if (isPhone) {
     result = await sendTokenPhone(saved);
@@ -407,7 +417,9 @@ export const loginFactorRelgator = async(req, res, next) => {
 
   const toSend = {
     success: false,
-    err: 'we could not process your request, something went wrong, but we are working on it, ensure you are entering the right credentials'
+    err: `we could not process your request, 
+    something went wrong, but we are working on it, 
+    ensure you are entering the right credentials`
   };
 
   return res.status(500).send(toSend);
@@ -419,8 +431,12 @@ export const loginFactorRelgator = async(req, res, next) => {
  * @param res - The response object used to send the response.
  * @returns The response object with the updated account password.
  */
-export const resetAccountFactory = async(req, res) => {
-  // eslint-disable-next-line @typescript-eslint/naming-convention
+export const resetAccountFactory = async(
+  req: IcustomRequest<never, {
+    foundUser: Iuser & Document; _id: string; verifycode: string; how: string; password: string;
+   }>,
+  res
+) => {
   const { foundUser, _id, verifycode, how, password } = req.body;
 
   authControllerLogger.debug(`resetpassword, 
@@ -441,11 +457,9 @@ export const resetAccountFactory = async(req, res) => {
   if (how === 'phone') {
     response = await validatePhone(foundUser, verifycode, password);
   } else {
-    const type = '_code';
-
     response = await validateEmail(
       foundUser,
-      type,
+      'code',
       verifycode,
       password
     );
@@ -460,7 +474,12 @@ export const resetAccountFactory = async(req, res) => {
  * @param res - The response object.
  * @returns The response containing the success status and error message (if applicable).
  */
-export const recoverAccountFactory = async(req, res) => {
+export const recoverAccountFactory = async(
+  req: IcustomRequest<never, {
+    foundUser?: Iuser & Document; emailPhone: string; navRoute?: string;
+   }>,
+  res
+) => {
   const { appOfficialName } = stockAuthConfig.localSettings;
   const { foundUser, emailPhone, navRoute } = req.body;
 
@@ -508,11 +527,20 @@ export const recoverAccountFactory = async(req, res) => {
  * @param res - The response object.
  * @returns The response object with the status and response data.
  */
-export const confirmAccountFactory = async(req, res) => {
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  const { foundUser, _id, verifycode, nowHow, type, password } = req.body;
+export const confirmAccountFactory = async(
+  req: IcustomRequest<never, {
+    foundUser: Iuser & Document;
+    _id: string;
+    verifycode: string;
+    useField?: 'email' | 'phone';
+    verificationMean?: 'link' | 'code';
+    password: string;
+  }>,
+  res
+) => {
+  const { foundUser, _id, verifycode, useField, verificationMean, password } = req.body;
 
-  authControllerLogger.debug(`verify, verifycode: ${verifycode}, how: ${nowHow}`);
+  authControllerLogger.debug(`verify, verifycode: ${verifycode}, useField: ${useField}`);
   const isValid = verifyObjectIds([_id]);
 
   if (!isValid) {
@@ -526,12 +554,12 @@ export const confirmAccountFactory = async(req, res) => {
   }
   let response: IauthresponseObj;
 
-  if (nowHow === 'phone') {
+  if (useField === 'phone') {
     response = await validatePhone(foundUser, verifycode, password);
   } else {
     response = await validateEmail(
       foundUser,
-      type,
+      verificationMean,
       verifycode,
       password
     );

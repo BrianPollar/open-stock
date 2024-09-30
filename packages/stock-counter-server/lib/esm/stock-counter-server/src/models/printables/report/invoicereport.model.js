@@ -50,10 +50,12 @@ export const createInvoicesReportModel = async (dbUrl, dbOptions, main = true, l
         await connectStockDatabase(dbUrl, dbOptions);
     }
     if (main) {
-        invoicesReportMain = mainConnection.model('invoicesReport', invoicesReportSchema);
+        invoicesReportMain = mainConnection
+            .model('invoicesReport', invoicesReportSchema);
     }
     if (lean) {
-        invoicesReportLean = mainConnectionLean.model('invoicesReport', invoicesReportSchema);
+        invoicesReportLean = mainConnectionLean
+            .model('invoicesReport', invoicesReportSchema);
     }
 };
 //# sourceMappingURL=invoicereport.model.js.map

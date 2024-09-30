@@ -39,24 +39,11 @@ const taxReportRoutesLogger = tracer.colorConsole({
  * Router for tax report routes.
  */
 exports.taxReportRoutes = express_1.default.Router();
-/**
- * Create a new tax report
- * @name POST /create
- * @function
- * @memberof module:taxReportRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- * @param {callback} middleware - Express middleware
- * @returns {Promise<void>} - Promise object representing the response
- */
-exports.taxReportRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'create'), async (req, res) => {
+exports.taxReportRoutes.post('/add', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'create'), async (req, res) => {
     const taxReport = req.body.taxReport;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     taxReport.companyId = filter.companyId;
-    const count = await taxreport_model_1.taxReportMain
-        .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
-    taxReport.urId = (0, stock_universal_server_1.makeUrId)(Number(count[0]?.urId || '0'));
+    taxReport.urId = await (0, stock_universal_server_1.generateUrId)(taxreport_model_1.taxReportMain);
     const newTaxReport = new taxreport_model_1.taxReportMain(taxReport);
     let errResponse;
     const saved = await newTaxReport.save()
@@ -83,18 +70,7 @@ exports.taxReportRoutes.post('/create/:companyIdParam', stock_universal_server_1
     }
     return res.status(200).send({ success: true });
 });
-/**
- * Get a single tax report by UR ID
- * @name GET /getone/:urId
- * @function
- * @memberof module:taxReportRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- * @param {callback} middleware - Express middleware
- * @returns {Promise<void>} - Promise object representing the response
- */
-exports.taxReportRoutes.get('/getone/:urId/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'read'), async (req, res) => {
+exports.taxReportRoutes.get('/one/:urId', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'read'), async (req, res) => {
     const { urId } = req.params;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     const taxReport = await taxreport_model_1.taxReportLean
@@ -102,23 +78,13 @@ exports.taxReportRoutes.get('/getone/:urId/:companyIdParam', stock_universal_ser
         .lean()
         .populate({ path: 'estimates', model: estimate_model_1.estimateLean })
         .populate({ path: 'payments', model: payment_model_1.paymentLean });
-    if (taxReport) {
-        (0, stock_universal_server_1.addParentToLocals)(res, taxReport._id, taxreport_model_1.taxReportMain.collection.collectionName, 'trackDataView');
+    if (!taxReport) {
+        return res.status(404).send({ success: false, err: 'not found' });
     }
+    (0, stock_universal_server_1.addParentToLocals)(res, taxReport._id, taxreport_model_1.taxReportMain.collection.collectionName, 'trackDataView');
     return res.status(200).send(taxReport);
 });
-/**
- * Get all tax reports with pagination
- * @name GET /getall/:offset/:limit
- * @function
- * @memberof module:taxReportRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- * @param {callback} middleware - Express middleware
- * @returns {Promise<void>} - Promise object representing the response
- */
-exports.taxReportRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'read'), async (req, res) => {
+exports.taxReportRoutes.get('/all/:offset/:limit', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'read'), async (req, res) => {
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     const all = await Promise.all([
@@ -140,46 +106,37 @@ exports.taxReportRoutes.get('/getall/:offset/:limit/:companyIdParam', stock_univ
     }
     return res.status(200).send(response);
 });
-/**
- * Delete a single tax report by ID
- * @name DELETE /deleteone/:id
- * @function
- * @memberof module:taxReportRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- * @param {callback} middleware - Express middleware
- * @returns {Promise<void>} - Promise object representing the response
- */
-exports.taxReportRoutes.delete('/deleteone/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'delete'), async (req, res) => {
-    const { id } = req.params;
+exports.taxReportRoutes.delete('/delete/one/:_id', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'delete'), async (req, res) => {
+    const { _id } = req.params;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    // const deleted = await taxReportMain.findOneAndDelete({ _id: id, ...filter });
-    const deleted = await taxreport_model_1.taxReportMain.updateOne({ _id: id, ...filter }, { $set: { isDeleted: true } });
+    // const deleted = await taxReportMain.findOneAndDelete({ _id, ...filter });
+    const deleted = await taxreport_model_1.taxReportMain.updateOne({ _id, ...filter }, { $set: { isDeleted: true } });
     if (Boolean(deleted)) {
-        (0, stock_universal_server_1.addParentToLocals)(res, id, taxreport_model_1.taxReportMain.collection.collectionName, 'trackDataDelete');
+        (0, stock_universal_server_1.addParentToLocals)(res, _id, taxreport_model_1.taxReportMain.collection.collectionName, 'trackDataDelete');
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
-        return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
+        return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
-/**
- * Search for tax reports with pagination
- * @name POST /search/:offset/:limit
- * @function
- * @memberof module:taxReportRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- * @param {callback} middleware - Express middleware
- * @returns {Promise<void>} - Promise object representing the response
- */
-exports.taxReportRoutes.post('/search/:offset/:limit/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'read'), async (req, res) => {
+exports.taxReportRoutes.post('/filter', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'read'), async (req, res) => {
     const { searchterm, searchKey } = req.body;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
-    const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
+    const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.body.offset, req.body.limit);
+    /*
+  const aggCursor = invoiceLean
+  .aggregate<IfilterAggResponse<soth>>([
+  ...lookupSubFieldInvoiceRelatedFilter(constructFiltersFromBody(req), propSort, offset, limit)
+]);
+  const dataArr: IfilterAggResponse<soth>[] = [];
+
+  for await (const data of aggCursor) {
+    dataArr.push(data);
+  }
+
+  const all = dataArr[0]?.data || [];
+  const count = dataArr[0]?.total?.count || 0;
+  */
     const all = await Promise.all([
         taxreport_model_1.taxReportLean
             .find({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
@@ -199,29 +156,18 @@ exports.taxReportRoutes.post('/search/:offset/:limit/:companyIdParam', stock_uni
     }
     return res.status(200).send(response);
 });
-/**
- * Delete multiple tax reports by ID
- * @name PUT /deletemany
- * @function
- * @memberof module:taxReportRoutes
- * @inner
- * @param {string} path - Express path
- * @param {callback} middleware - Express middleware
- * @param {callback} middleware - Express middleware
- * @returns {Promise<void>} - Promise object representing the response
- */
-exports.taxReportRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'delete'), async (req, res) => {
-    const { ids } = req.body;
+exports.taxReportRoutes.put('/delete/many', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'delete'), async (req, res) => {
+    const { _ids } = req.body;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     /* const deleted = await taxReportMain
-      .deleteMany({ ...filter, _id: { $in: ids } })
-      .catch(err => {
-        taxReportRoutesLogger.error('deletemany - err: ', err);
-  
-        return null;
-      }); */
+    .deleteMany({ ...filter, _id: { $in: _ids } })
+    .catch(err => {
+      taxReportRoutesLogger.error('deletemany - err: ', err);
+
+      return null;
+    }); */
     const deleted = await taxreport_model_1.taxReportMain
-        .updateMany({ ...filter, _id: { $in: ids } }, {
+        .updateMany({ ...filter, _id: { $in: _ids } }, {
         $set: { isDeleted: true }
     })
         .catch(err => {
@@ -229,13 +175,15 @@ exports.taxReportRoutes.put('/deletemany/:companyIdParam', stock_universal_serve
         return null;
     });
     if (Boolean(deleted)) {
-        for (const val of ids) {
+        for (const val of _ids) {
             (0, stock_universal_server_1.addParentToLocals)(res, val, taxreport_model_1.taxReportMain.collection.collectionName, 'trackDataDelete');
         }
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
-        return res.status(404).send({ success: Boolean(deleted), err: 'could not delete selected items, try again in a while' });
+        return res.status(404).send({
+            success: Boolean(deleted), err: 'could not delete selected items, try again in a while'
+        });
     }
 });
 //# sourceMappingURL=taxreport.routes.js.map

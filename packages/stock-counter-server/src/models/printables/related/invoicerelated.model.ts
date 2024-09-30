@@ -1,6 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-type-arguments */
 import { IinvoiceRelated } from '@open-stock/stock-universal';
-import { createExpireDocIndex, preUpdateDocExpire, withCompanySchemaObj, withCompanySelectObj } from '@open-stock/stock-universal-server';
+import {
+  createExpireDocIndex, preUpdateDocExpire, withCompanySelectObj,
+  withUrIdAndCompanySchemaObj
+} from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../../utils/database';
 // const uniqueValidator = require('mongoose-unique-validator');
@@ -29,7 +32,7 @@ export type TinvoiceRelated = Document & IinvoiceRelated;
  * @property {Array} payments - The payments made on the invoice.
  */
 const invoiceRelatedSchema: Schema<TinvoiceRelated> = new Schema({
-  ...withCompanySchemaObj,
+  ...withUrIdAndCompanySchemaObj,
   creationType: { type: String },
   estimateId: { type: Number },
   invoiceId: { type: Number },
@@ -118,11 +121,13 @@ export const createInvoiceRelatedModel = async(dbUrl: string, dbOptions?: Connec
   }
 
   if (main) {
-    invoiceRelatedMain = mainConnection.model<TinvoiceRelated>('invoiceRelated', invoiceRelatedSchema);
+    invoiceRelatedMain = mainConnection
+      .model<TinvoiceRelated>('invoiceRelated', invoiceRelatedSchema);
   }
 
   if (lean) {
-    invoiceRelatedLean = mainConnectionLean.model<TinvoiceRelated>('invoiceRelated', invoiceRelatedSchema);
+    invoiceRelatedLean = mainConnectionLean
+      .model<TinvoiceRelated>('invoiceRelated', invoiceRelatedSchema);
   }
 };
 

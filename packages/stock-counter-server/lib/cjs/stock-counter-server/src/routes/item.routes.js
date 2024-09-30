@@ -2,35 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.removeReview = exports.addReview = exports.itemRoutes = void 0;
 const tslib_1 = require("tslib");
-/**
- * @file item.routes.ts
- * @description This file contains the express routes for handling CRUD operations on item and review data.
- * @requires express
- * @requires Request
- * @requires Response
- * @requires itemLean
- * @requires itemMain
- * @requires reviewLean
- * @requires getLogger
- * @requires Icustomrequest
- * @requires Ifilewithdir
- * @requires Isuccess
- * @requires makeRandomString
- * @requires appendBody
- * @requires deleteFiles
- * @requires makeUrId
- * @requires offsetLimitRelegator
- * @requires requireAuth
- * @requires roleAuthorisation
- * @requires stringifyMongooseErr
- * @requires uploadFiles
- * @requires verifyObjectId
- * @requires verifyObjectIds
- * @requires itemOfferMain
- * @requires itemDecoyMain
- */
 const stock_auth_server_1 = require("@open-stock/stock-auth-server");
-const stock_universal_1 = require("@open-stock/stock-universal");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
 const fs = tslib_1.__importStar(require("fs"));
@@ -39,7 +11,6 @@ const tracer = tslib_1.__importStar(require("tracer"));
 const item_model_1 = require("../models/item.model");
 const itemdecoy_model_1 = require("../models/itemdecoy.model");
 const itemoffer_model_1 = require("../models/itemoffer.model");
-const review_model_1 = require("../models/review.model");
 const user_behavoiur_1 = require("../utils/user-behavoiur");
 /** The logger for the item routes */
 const itemRoutesLogger = tracer.colorConsole({
@@ -69,17 +40,6 @@ const itemRoutesLogger = tracer.colorConsole({
  * Express router for item routes.
  */
 exports.itemRoutes = express_1.default.Router();
-/**
- * Adds a review for an item
- * @function
- * @async
- * @param {Request} req - The express request object
- * @param {Icustomrequest} req.user - The custom request object with user data
- * @param {string} req.body.review.itemId - The id of the item being reviewed
- * @param {number} req.body.review.rating - The rating given to the item in the review
- * @param {Response} res - The express response object
- * @returns {Promise<Response>} - The express response object with a success status and saved item data
- */
 const addReview = async (req, res) => {
     const { itemId, userId } = req.body.review;
     const isValid = (0, stock_universal_server_1.verifyObjectId)(itemId);
@@ -118,17 +78,6 @@ const addReview = async (req, res) => {
     return res.status(200).send({ success: Boolean(saved) });
 };
 exports.addReview = addReview;
-/**
- * Removes a review for an item
- * @function
- * @async
- * @param {Request} req - The express request object
- * @param {Icustomrequest} req.user - The custom request object with user data
- * @param {string} req.params.itemId - The id of the item being reviewed
- * @param {string} req.params.rating - The rating given to the item in the review
- * @param {Response} res - The express response object
- * @returns {Promise<Response>} - The express response object with a success status
- */
 const removeReview = async (req, res) => {
     const { userId } = req.user;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
@@ -174,23 +123,11 @@ const removeReview = async (req, res) => {
     return res.status(200).send({ success: true });
 };
 exports.removeReview = removeReview;
-/**
- * Creates a new item
- * @function
- * @async
- * @param {Request} req - The express request object
- * @param {Icustomrequest} req.user - The custom request object with user data
- * @param {Object} req.body.item - The item data to create
- * @param {Response} res - The express response object
- * @returns {Promise<Response>} - The express response object with a success status and saved item data
- */
-exports.itemRoutes.post('/create/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_auth_server_1.requireCanUseFeature)('item'), (0, stock_universal_server_1.roleAuthorisation)('items', 'create'), async (req, res, next) => {
-    const item = req.body.item;
+exports.itemRoutes.post('/add', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_auth_server_1.requireCanUseFeature)('item'), (0, stock_universal_server_1.roleAuthorisation)('items', 'create'), async (req, res, next) => {
+    const { item } = req.body;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     item.companyId = filter.companyId;
-    const count = await item_model_1.itemMain
-        .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
-    item.urId = (0, stock_universal_server_1.makeUrId)(Number(count[0]?.urId || '0'));
+    item.urId = await (0, stock_universal_server_1.generateUrId)(item_model_1.itemMain);
     const newProd = new item_model_1.itemMain(item);
     let errResponse;
     const saved = await newProd.save()
@@ -218,26 +155,14 @@ exports.itemRoutes.post('/create/:companyIdParam', stock_universal_server_1.requ
     if (!Boolean(saved)) {
         return res.status(403).send('unknown error');
     }
-    return next();
+    next();
 }, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('item'));
-/**
- * Creates a new item
- * @function
- * @async
- * @param {Request} req - The express request object
- * @param {Icustomrequest} req.user - The custom request object with user data
- * @param {Object} req.body.item - The item data to create
- * @param {Response} res - The express response object
- * @returns {Promise<Response>} - The express response object with a success status and saved item data
- */
-exports.itemRoutes.post('/createimg/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_auth_server_1.requireCanUseFeature)('item'), (0, stock_universal_server_1.roleAuthorisation)('items', 'create'), stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.saveMetaToDb, async (req, res, next) => {
+exports.itemRoutes.post('/add/img', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_auth_server_1.requireCanUseFeature)('item'), (0, stock_universal_server_1.roleAuthorisation)('items', 'create'), stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.saveMetaToDb, async (req, res, next) => {
     const item = req.body.item;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     item.companyId = filter.companyId;
     item.ecomerceCompat = true;
-    const count = await item_model_1.itemMain
-        .find({}).sort({ _id: -1 }).limit(1).lean().select({ urId: 1 });
-    item.urId = (0, stock_universal_server_1.makeUrId)(Number(count[0]?.urId || '0'));
+    item.urId = await (0, stock_universal_server_1.generateUrId)(item_model_1.itemMain);
     const parsed = req.body;
     if (parsed && parsed.newPhotos) {
         item.photos = parsed.newPhotos;
@@ -272,23 +197,12 @@ exports.itemRoutes.post('/createimg/:companyIdParam', stock_universal_server_1.r
     if (!Boolean(saved)) {
         return res.status(403).send('unknown error');
     }
-    return next();
+    next();
 }, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('item'));
-/**
- * Updates an existing item
- * @function
- * @async
- * @param {Request} req - The express request object
- * @param {Icustomrequest} req.user - The custom request object with user data
- * @param {Object} req.body.item - The item data to update
- * @param {Response} res - The express response object
- * @returns {Promise<Response>} - The express response object with a success status
- */
-exports.itemRoutes.put('/update/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'update'), async (req, res) => {
+exports.itemRoutes.put('/update', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'update'), async (req, res) => {
     const updatedProduct = req.body.item;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     updatedProduct.companyId = filter.companyId;
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     // const { _id } = updatedProduct;
     const isValid = (0, stock_universal_server_1.verifyObjectIds)([updatedProduct._id]);
     if (!isValid) {
@@ -300,8 +214,7 @@ exports.itemRoutes.put('/update/:companyIdParam', stock_universal_server_1.requi
         return res.status(404).send({ success: false });
     }
     if (!item.urId || item.urId === '0') {
-        const count = (0, stock_universal_1.makeRandomString)(3, 'numbers');
-        item.urId = (0, stock_universal_server_1.makeUrId)(Number(count));
+        item.urId = await (0, stock_universal_server_1.generateUrId)(item_model_1.itemMain);
     }
     delete updatedProduct._id;
     const keys = Object.keys(updatedProduct);
@@ -332,10 +245,9 @@ exports.itemRoutes.put('/update/:companyIdParam', stock_universal_server_1.requi
     }
     return res.status(200).send({ success: Boolean(updated) });
 });
-exports.itemRoutes.post('/updateimg/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'update'), stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.saveMetaToDb, async (req, res) => {
+exports.itemRoutes.post('/update/img', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'update'), stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.saveMetaToDb, async (req, res) => {
     const updatedProduct = req.body.item;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     const { _id } = updatedProduct;
     const isValid = (0, stock_universal_server_1.verifyObjectIds)([_id]);
     if (!isValid) {
@@ -347,8 +259,7 @@ exports.itemRoutes.post('/updateimg/:companyIdParam', stock_universal_server_1.r
         return res.status(404).send({ success: false });
     }
     if (!item.urId || item.urId === '0') {
-        const count = (0, stock_universal_1.makeRandomString)(3, 'numbers');
-        item.urId = (0, stock_universal_server_1.makeUrId)(Number(count));
+        item.urId = await (0, stock_universal_server_1.generateUrId)(item_model_1.itemMain);
     }
     const parsed = req.body;
     if (parsed && parsed.newPhotos) {
@@ -391,7 +302,7 @@ exports.itemRoutes.post('/updateimg/:companyIdParam', stock_universal_server_1.r
     }
     return res.status(200).send({ success: Boolean(updated) });
 });
-exports.itemRoutes.put('/like/:itemId/:companyIdParam', stock_universal_server_1.requireAuth, async (req, res) => {
+exports.itemRoutes.put('/like/:itemId', stock_universal_server_1.requireAuth, async (req, res) => {
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     const { userId } = req.user;
     const { itemId } = req.params;
@@ -426,18 +337,16 @@ exports.itemRoutes.put('/like/:itemId/:companyIdParam', stock_universal_server_1
     }
     return res.status(200).send({ success: true });
 });
-exports.itemRoutes.put('/unlike/:itemId/:companyIdParam', stock_universal_server_1.requireAuth, async (req, res) => {
+exports.itemRoutes.put('/unlike/:itemId', stock_universal_server_1.requireAuth, async (req, res) => {
     const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
     const { userId } = req.user;
     const { itemId } = req.params;
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)([itemId, queryId]);
+    const isValid = (0, stock_universal_server_1.verifyObjectIds)([itemId, companyId]);
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const item = await item_model_1.itemMain
-        .findOneAndUpdate({ _id: itemId, companyId: queryId });
+        .findOneAndUpdate({ _id: itemId });
     if (!item) {
         return res.status(404).send({ success: false });
     }
@@ -463,82 +372,22 @@ exports.itemRoutes.put('/unlike/:itemId/:companyIdParam', stock_universal_server
     }
     return res.status(200).send({ success: true });
 });
-exports.itemRoutes.get('/getone/:urId/:companyIdParam', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
-    const { companyIdParam, urId } = req.params;
-    let filter = { urId };
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
-    if (isValid) {
-        filter = { urId, companyId: companyIdParam };
-    }
+exports.itemRoutes.get('/one/:urId', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
+    const { urId } = req.params;
+    const filter = { urId };
     const item = await item_model_1.itemLean
         .findOne({ ...filter })
         .populate([(0, stock_auth_server_1.populatePhotos)(true), (0, stock_auth_server_1.populateCompany)()])
         .lean();
     if (!item || !item.companyId) {
-        return res.status(200).send({});
+        return res.status(404).send({ success: false, err: 'not found' });
     }
     (0, stock_universal_server_1.addParentToLocals)(res, item._id, item_model_1.itemMain.collection.collectionName, 'trackDataView');
     return res.status(200).send(item);
 });
-exports.itemRoutes.get('/filtergeneral/:prop/:val/:offset/:limit/:companyIdParam/:ecomerceCompat', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
-    const { companyIdParam, prop, val, ecomerceCompat } = req.params;
-    let filter = { [prop]: { $regex: val, $options: 'i' } };
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
-    if (isValid) {
-        filter = { companyId: companyIdParam, [prop]: { $regex: val, $options: 'i' } };
-    }
-    if (prop === 'time') {
-        filter = { companyId: companyIdParam, createdAt: { $gte: new Date(val) } };
-    }
-    if (ecomerceCompat === 'true') {
-        filter = { ...filter, ecomerceCompat: true };
-    }
-    const all = await Promise.all([
-        item_model_1.itemLean
-            .find({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
-            .populate([(0, stock_auth_server_1.populatePhotos)(true), (0, stock_auth_server_1.populateCompany)()])
-            .lean(),
-        item_model_1.itemLean.countDocuments({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
-    ]);
-    const newItems = all[0].filter(item => item.companyId);
-    const response = {
-        count: all[1],
-        data: newItems
-    };
-    return res.status(200).send(response);
-});
-exports.itemRoutes.get('/filterrandom/:prop/:val/:offset/:limit/:companyIdParam/:ecomerceCompat', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
-    const { companyIdParam, prop, val, ecomerceCompat } = req.params;
-    let filter = { [prop]: { $regex: val, $options: 'i' } };
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
-    if (isValid) {
-        filter = { companyId: companyIdParam, [prop]: { $regex: val, $options: 'i' } };
-    }
-    if (ecomerceCompat === 'true') {
-        filter = { ...filter, ecomerceCompat: true };
-    }
-    const all = await Promise.all([
-        item_model_1.itemLean
-            .find({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
-            .populate([(0, stock_auth_server_1.populatePhotos)(true), (0, stock_auth_server_1.populateCompany)()])
-            .sort({ timesViewed: 1, likesCount: 1, reviewCount: 1 })
-            .lean(),
-        item_model_1.itemLean.countDocuments({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
-    ]);
-    const newItems = all[0].filter(item => item.companyId);
-    const response = {
-        count: all[1],
-        data: newItems
-    };
-    return res.status(200).send(response);
-});
-exports.itemRoutes.get('/getall/:offset/:limit/:companyIdParam/:ecomerceCompat', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
-    const { companyIdParam, ecomerceCompat } = req.params;
+exports.itemRoutes.get('/all/:offset/:limit/:ecomerceCompat', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
+    const { ecomerceCompat } = req.params;
     let filter = {};
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
-    if (isValid) {
-        // filter = { companyId: companyIdParam }; //TODO
-    }
     if (ecomerceCompat === 'true') {
         filter = { ...filter, ecomerceCompat: true };
     }
@@ -562,44 +411,14 @@ exports.itemRoutes.get('/getall/:offset/:limit/:companyIdParam/:ecomerceCompat',
     }
     return res.status(200).send(response);
 });
-exports.itemRoutes.get('/getbestsellers/:offset/:limit/:companyIdParam/:ecomerceCompat', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
-    const { companyIdParam, ecomerceCompat } = req.params;
-    let filter = {};
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
-    if (isValid) {
-        filter = { companyId: companyIdParam };
-    }
-    if (ecomerceCompat === 'true') {
-        filter = { ...filter, ecomerceCompat: true };
-    }
-    const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
-    const all = await Promise.all([
-        item_model_1.itemLean
-            .find({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
-            .skip(offset)
-            .limit(limit)
-            .sort({ soldCount: 1 })
-            .populate([(0, stock_auth_server_1.populatePhotos)(true), (0, stock_auth_server_1.populateCompany)()])
-            .lean(),
-        item_model_1.itemLean.countDocuments({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
-    ]);
-    const newItems = all[0].filter(item => item.companyId);
-    const response = {
-        count: all[1],
-        data: newItems
-    };
-    for (const val of newItems) {
-        (0, stock_universal_server_1.addParentToLocals)(res, val._id, item_model_1.itemMain.collection.collectionName, 'trackDataView');
-    }
-    return res.status(200).send(response);
-});
-exports.itemRoutes.get('/gettodaysuggestions/:userId/:offset/:limit/:companyIdParam/:ecomerceCompat', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
-    const { userId, limit } = req.params;
+exports.itemRoutes.get('/gettodaysuggestions/:offset/:limit/:ecomerceCompat', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
+    const { limit } = req.params;
+    const { userId } = req.user;
     const stnCookie = req.signedCookies['settings'];
-    const { ids, newOffset, newLimit } = await (0, user_behavoiur_1.todaysRecomendation)(limit, stnCookie?.userCookieId, userId);
+    const { _ids, newOffset, newLimit } = await (0, user_behavoiur_1.todaysRecomendation)(Number(limit), stnCookie?.userCookieId, userId);
     let filter = { ecomerceCompat: true };
-    if (ids && ids.length > 0) {
-        filter = { ...filter, _id: { $in: ids } };
+    if (_ids && _ids.length > 0) {
+        filter = { ...filter, _id: { $in: _ids } };
     }
     const all = await Promise.all([
         item_model_1.itemLean
@@ -621,45 +440,17 @@ exports.itemRoutes.get('/gettodaysuggestions/:userId/:offset/:limit/:companyIdPa
     }
     return res.status(200).send(response);
 });
-exports.itemRoutes.get('/gettrending/:offset/:limit/:companyIdParam/:ecomerceCompat', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
-    const { companyIdParam, ecomerceCompat } = req.params;
-    let filter = {};
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
-    if (isValid) {
-        filter = { companyId: companyIdParam };
-    }
-    if (ecomerceCompat === 'true') {
-        filter = { ...filter, ecomerceCompat: true };
-    }
-    const all = await Promise.all([
-        item_model_1.itemLean
-            .find({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
-            .sort({ timesViewed: 1 })
-            .populate([(0, stock_auth_server_1.populatePhotos)(true), (0, stock_auth_server_1.populateCompany)()])
-            .lean(),
-        item_model_1.itemLean.countDocuments({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
-    ]);
-    const newItems = all[0].filter(item => item.companyId);
-    const response = {
-        count: all[1],
-        data: newItems
-    };
-    for (const val of newItems) {
-        (0, stock_universal_server_1.addParentToLocals)(res, val._id, item_model_1.itemMain.collection.collectionName, 'trackDataView');
-    }
-    return res.status(200).send(response);
-});
-exports.itemRoutes.get('/getbehaviourdecoy/:userId/offset/limit/:companyIdParam/:ecomerceCompat', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
-    const { userId } = req.params;
+exports.itemRoutes.get('/getbehaviourdecoy/offset/limit/:ecomerceCompat', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
+    const { userId } = req.user;
     const stnCookie = req.signedCookies['settings'];
-    const { ids } = await (0, user_behavoiur_1.getDecoyFromBehaviour)(stnCookie?.userCookieId, userId);
+    const { _ids } = await (0, user_behavoiur_1.getDecoyFromBehaviour)(stnCookie?.userCookieId, userId);
     const all = await Promise.all([
         item_model_1.itemLean
-            .find({ _id: { $in: ids }, ...(0, stock_universal_server_1.makePredomFilter)(req) })
+            .find({ _id: { $in: _ids }, ...(0, stock_universal_server_1.makePredomFilter)(req) })
             .sort({ timesViewed: 1 })
             .populate([(0, stock_auth_server_1.populatePhotos)(true), (0, stock_auth_server_1.populateCompany)()])
             .lean(),
-        item_model_1.itemLean.countDocuments({ _id: { $in: ids }, ...(0, stock_universal_server_1.makePredomFilter)(req) })
+        item_model_1.itemLean.countDocuments({ _id: { $in: _ids }, ...(0, stock_universal_server_1.makePredomFilter)(req) })
     ]);
     const newItems = all[0].filter(item => item.companyId);
     const response = {
@@ -671,13 +462,9 @@ exports.itemRoutes.get('/getbehaviourdecoy/:userId/offset/limit/:companyIdParam/
     }
     return res.status(200).send(response);
 });
-exports.itemRoutes.get('/getfeatured/:offset/:limit/:companyIdParam/:ecomerceCompat', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
-    const { companyIdParam, ecomerceCompat } = req.params;
+exports.itemRoutes.get('/getfeatured/:offset/:limit/:ecomerceCompat', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
+    const { ecomerceCompat } = req.params;
     let filter = {};
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
-    if (isValid) {
-        filter = { companyId: companyIdParam };
-    }
     if (ecomerceCompat === 'true') {
         filter = { ...filter, ecomerceCompat: true };
     }
@@ -699,272 +486,97 @@ exports.itemRoutes.get('/getfeatured/:offset/:limit/:companyIdParam/:ecomerceCom
     }
     return res.status(200).send(response);
 });
-// newly posted
-exports.itemRoutes.get('/getnew/:offset/:limit/:companyIdParam/:ecomerceCompat', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
-    const { companyIdParam, ecomerceCompat } = req.params;
-    let filter = {};
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
-    if (isValid) {
-        filter = { companyId: companyIdParam };
-    }
+/*
+itemRoutes.get(
+  '/filterstars/:starVal/:offset/:limit/:ecomerceCompat',
+  appendUserToReqIfTokenExist,
+  async(req: IcustomRequest<{ starVal: string; ecomerceCompat: string}, null>, res) => {
+    const { ecomerceCompat } = req.params;
+    let filter = {} as object;
+
     if (ecomerceCompat === 'true') {
-        filter = { ...filter, ecomerceCompat: true };
-    }
-    const all = await Promise.all([
-        item_model_1.itemLean
-            .find({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
-            .sort({ createdAt: -1 })
-            .populate([(0, stock_auth_server_1.populatePhotos)(true), (0, stock_auth_server_1.populateCompany)()])
-            .lean(),
-        item_model_1.itemLean.countDocuments({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
-    ]);
-    const newItems = all[0].filter(item => item.companyId);
-    const response = {
-        count: all[1],
-        data: newItems
-    };
-    for (const val of newItems) {
-        (0, stock_universal_server_1.addParentToLocals)(res, val._id, item_model_1.itemMain.collection.collectionName, 'trackDataView');
-    }
-    return res.status(200).send(response);
-});
-// new not used
-exports.itemRoutes.get('/getbrandnew/:offset/:limit/:companyIdParam/:ecomerceCompat', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
-    const { companyIdParam, ecomerceCompat } = req.params;
-    let filter = { state: 'new' };
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
-    if (isValid) {
-        filter = { companyId: companyIdParam, state: 'new' };
-    }
-    if (ecomerceCompat === 'true') {
-        filter = { ...filter, ecomerceCompat: true };
-    }
-    const all = await Promise.all([
-        item_model_1.itemLean
-            .find({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
-            .sort({ createdAt: -1 })
-            .populate([(0, stock_auth_server_1.populatePhotos)(true), (0, stock_auth_server_1.populateCompany)()])
-            .lean(),
-        item_model_1.itemLean.countDocuments({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
-    ]);
-    const newItems = all[0].filter(item => item.companyId);
-    const response = {
-        count: all[1],
-        data: newItems
-    };
-    for (const val of newItems) {
-        (0, stock_universal_server_1.addParentToLocals)(res, val._id, item_model_1.itemMain.collection.collectionName, 'trackDataView');
-    }
-    return res.status(200).send(response);
-});
-// new not used
-exports.itemRoutes.get('/getused/:offset/:limit/:companyIdParam/:ecomerceCompat', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
-    const { companyIdParam, ecomerceCompat } = req.params;
-    let filter = { state: 'refurbished' };
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
-    if (isValid) {
-        filter = { companyId: companyIdParam, state: 'refurbished' };
-    }
-    if (ecomerceCompat === 'true') {
-        filter = { ...filter, ecomerceCompat: true };
-    }
-    const all = await Promise.all([
-        item_model_1.itemLean
-            .find({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
-            .sort({ createdAt: -1 })
-            .populate([(0, stock_auth_server_1.populatePhotos)(true), (0, stock_auth_server_1.populateCompany)()])
-            .lean(),
-        item_model_1.itemLean.countDocuments({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
-    ]);
-    const newItems = all[0].filter(item => item.companyId);
-    const response = {
-        count: all[1],
-        data: newItems
-    };
-    for (const val of all[0]) {
-        (0, stock_universal_server_1.addParentToLocals)(res, val._id, item_model_1.itemMain.collection.collectionName, 'trackDataView');
-    }
-    return res.status(200).send(response);
-});
-// filterprice
-exports.itemRoutes.get('/filterprice/max/:priceFilterValue/:offset/:limit/:companyIdParam/:ecomerceCompat', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
-    const { companyIdParam, ecomerceCompat } = req.params;
-    let filter = {};
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
-    if (isValid) {
-        filter = { companyId: companyIdParam };
-    }
-    if (ecomerceCompat === 'true') {
-        filter = { ...filter, ecomerceCompat: true };
-    }
-    const { priceFilterValue } = req.params;
-    const all = await Promise.all([
-        item_model_1.itemLean
-            .find({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
-            .gte('costMeta.sellingPrice', Number(priceFilterValue))
-            .sort({ createdAt: -1 })
-            .populate([(0, stock_auth_server_1.populatePhotos)(true), (0, stock_auth_server_1.populateCompany)()])
-            .lean(),
-        item_model_1.itemLean.countDocuments({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
-    ]);
-    const newItems = all[0].filter(item => item.companyId);
-    const response = {
-        count: all[1],
-        data: newItems
-    };
-    for (const val of newItems) {
-        (0, stock_universal_server_1.addParentToLocals)(res, val._id, item_model_1.itemMain.collection.collectionName, 'trackDataView');
-    }
-    return res.status(200).send(response);
-});
-exports.itemRoutes.get('/filterprice/min/:priceFilterValue/:offset/:limit/:companyIdParam/:ecomerceCompat', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
-    const { companyIdParam, ecomerceCompat } = req.params;
-    let filter = {};
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
-    if (isValid) {
-        filter = { companyId: companyIdParam };
-    }
-    if (ecomerceCompat === 'true') {
-        filter = { ...filter, ecomerceCompat: true };
-    }
-    const { priceFilterValue } = req.params;
-    const all = await Promise.all([
-        item_model_1.itemLean
-            .find({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
-            .lte('costMeta.sellingPrice', Number(priceFilterValue))
-            .sort({ createdAt: -1 })
-            .populate([(0, stock_auth_server_1.populatePhotos)(true), (0, stock_auth_server_1.populateCompany)()])
-            .lean(),
-        item_model_1.itemLean.countDocuments({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
-    ]);
-    const newItems = all[0].filter(item => item.companyId);
-    const response = {
-        count: all[1],
-        data: newItems
-    };
-    for (const val of newItems) {
-        (0, stock_universal_server_1.addParentToLocals)(res, val._id, item_model_1.itemMain.collection.collectionName, 'trackDataView');
-    }
-    return res.status(200).send(response);
-});
-exports.itemRoutes.get('/filterprice/eq/:priceFilterMinValue/:priceFilterMaxValue/:offset/:limit/:companyIdParam/:ecomerceCompat', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
-    const { companyIdParam, ecomerceCompat } = req.params;
-    let filter = {};
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
-    if (isValid) {
-        filter = { companyId: companyIdParam };
-    }
-    if (ecomerceCompat === 'true') {
-        filter = { ...filter, ecomerceCompat: true };
-    }
-    const { priceFilterMinValue, priceFilterMaxValue } = req.params;
-    const all = await Promise.all([
-        item_model_1.itemLean
-            .find({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
-            .gte('costMeta.sellingPrice', Number(priceFilterMaxValue))
-            .lte('costMeta.sellingPrice', Number(priceFilterMinValue))
-            .sort({ createdAt: -1 })
-            .populate([(0, stock_auth_server_1.populatePhotos)(true), (0, stock_auth_server_1.populateCompany)()])
-            .lean(),
-        item_model_1.itemLean.countDocuments({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
-    ]);
-    const newItems = all[0].filter(item => item.companyId);
-    const response = {
-        count: all[1],
-        data: newItems
-    };
-    for (const val of newItems) {
-        (0, stock_universal_server_1.addParentToLocals)(res, val._id, item_model_1.itemMain.collection.collectionName, 'trackDataView');
-    }
-    return res.status(200).send(response);
-});
-exports.itemRoutes.get('/filterstars/:starVal/:offset/:limit/:companyIdParam/:ecomerceCompat', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
-    const { companyIdParam, ecomerceCompat } = req.params;
-    let filter = {};
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
-    if (isValid) {
-        filter = { companyId: companyIdParam };
-    }
-    if (ecomerceCompat === 'true') {
-        filter = { ...filter, ecomerceCompat: true };
+      filter = { ...filter, ecomerceCompat: true };
     }
     const starVal = Number(req.params.starVal);
     const all = await Promise.all([
-        review_model_1.reviewLean
-            .find({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
-            .where('rating') // rating
-            .lte(starVal + 2)
-            .gte(starVal)
-            .select({ itemId: 1 })
-            .lean()
-            .populate([(0, stock_auth_server_1.populatePhotos)(true), (0, stock_auth_server_1.populateCompany)()])
-            .lean(),
-        review_model_1.reviewLean.countDocuments({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
+      reviewLean
+        .find({ ...filter, ...makePredomFilter(req) })
+        .where('rating') // rating
+        .lte(starVal + 2)
+        .gte(starVal)
+        .select({ itemId: 1 })
+        .lean()
+        .populate([populatePhotos(true), populateCompany()])
+        .lean(),
+      reviewLean.countDocuments({ ...filter, ...makePredomFilter(req) })
     ]);
     const newItems = all[0].filter(val => val.companyId);
-    const response = {
-        count: all[1],
-        data: newItems
+    const response: IdataArrayResponse<Treview> = {
+      count: all[1],
+      data: newItems
     };
+
     for (const val of newItems) {
-        (0, stock_universal_server_1.addParentToLocals)(res, val._id, item_model_1.itemMain.collection.collectionName, 'trackDataView');
+      addParentToLocals(res, val._id, itemMain.collection.collectionName, 'trackDataView');
     }
+
     return res.status(200).send(response);
-});
-exports.itemRoutes.get('/discount/:discountValue/:offset/:limit/:companyIdParam/:ecomerceCompat', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
-    const { companyIdParam, ecomerceCompat } = req.params;
-    let filter = {};
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
-    if (isValid) {
-        filter = { companyId: companyIdParam };
-    }
+  }
+);
+*/
+/*
+itemRoutes.get(
+  '/discount/:discountValue/:offset/:limit/:ecomerceCompat',
+  appendUserToReqIfTokenExist,
+  async(req: IcustomRequest<never, null>, res) => {
+    const { ecomerceCompat } = req.params;
+    let filter = {} as object;
+
     if (ecomerceCompat === 'true') {
-        filter = { ...filter, ecomerceCompat: true };
+      filter = { ...filter, ecomerceCompat: true };
     }
     const { discountValue } = req.params;
     const all = await Promise.all([
-        item_model_1.itemLean
-            .find({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
-            .or([
-            {
-                // eslint-disable-next-line @typescript-eslint/naming-convention
-                'costMeta.offer': 'true',
-                // eslint-disable-next-line @typescript-eslint/naming-convention
-                'costMeta.discount': Number(discountValue)
-            },
-            {
-                // eslint-disable-next-line @typescript-eslint/naming-convention
-                'costMeta.offer': true,
-                // eslint-disable-next-line @typescript-eslint/naming-convention
-                'costMeta.discount': Number(discountValue)
-            }
+      itemLean
+        .find({ ...filter, ...makePredomFilter(req) })
+        .or([
+          {
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            'costMeta.offer': 'true',
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            'costMeta.discount': Number(discountValue)
+          },
+          {
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            'costMeta.offer': true,
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            'costMeta.discount': Number(discountValue)
+          }
         ])
-            .sort({ createdAt: -1 })
-            .populate([(0, stock_auth_server_1.populatePhotos)(true), (0, stock_auth_server_1.populateCompany)()])
-            .lean(),
-        item_model_1.itemLean.countDocuments({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
+        .sort({ createdAt: -1 })
+        .populate([populatePhotos(true), populateCompany()])
+        .lean(),
+      itemLean.countDocuments({ ...filter, ...makePredomFilter(req) })
     ]);
     const newItems = all[0].filter(item => item.companyId);
-    const response = {
-        count: all[1],
-        data: newItems
+    const response: IdataArrayResponse<Iitem> = {
+      count: all[1],
+      data: newItems
     };
+
     for (const val of newItems) {
-        (0, stock_universal_server_1.addParentToLocals)(res, val._id, item_model_1.itemMain.collection.collectionName, 'trackDataView');
+      addParentToLocals(res, val._id, itemMain.collection.collectionName, 'trackDataView');
     }
+
     return res.status(200).send(response);
-});
-exports.itemRoutes.post('/getsponsored/:companyIdParam', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
-    const { companyIdParam } = req.params;
-    const ids = req.body.sponsored;
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    let filter = { _id: { $in: ids } };
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
-    if (isValid) {
-        filter = { companyId: companyIdParam, _id: { $in: ids } };
-    }
-    if (ids && ids.length > 0) {
-        for (const id of ids) {
+  }
+);
+*/
+exports.itemRoutes.post('/sponsored/get', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
+    const _ids = req.body._ids;
+    const filter = { _id: { $in: _ids } };
+    if (_ids && _ids.length > 0) {
+        for (const id of _ids) {
             const isValid = (0, stock_universal_server_1.verifyObjectId)(id);
             if (!isValid) {
                 return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
@@ -986,15 +598,8 @@ exports.itemRoutes.post('/getsponsored/:companyIdParam', stock_universal_server_
     }
     return res.status(200).send(newItems);
 });
-exports.itemRoutes.get('/getoffered/:companyIdParam', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
-    const { companyId } = req.user;
-    const { companyIdParam } = req.params;
-    const queryId = companyId === 'superAdmin' ? companyIdParam : companyId;
-    let filter = {};
-    const isValid = (0, stock_universal_server_1.verifyObjectId)(queryId);
-    if (isValid) {
-        filter = { companyId: queryId };
-    }
+exports.itemRoutes.get('/getoffered', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
+    const filter = {};
     const items = await item_model_1.itemLean
         .find({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
         .populate({ path: 'sponsored', model: item_model_1.itemLean,
@@ -1010,11 +615,11 @@ exports.itemRoutes.get('/getoffered/:companyIdParam', stock_universal_server_1.a
     const filtered = newItems.filter(p => p.sponsored?.length && p.sponsored?.length > 0);
     return res.status(200).send(filtered);
 });
-exports.itemRoutes.put('/addsponsored/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'update'), async (req, res) => {
-    const { id } = req.params;
+exports.itemRoutes.put('/sponsored/add/:_id', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'update'), async (req, res) => {
+    const { _id } = req.params;
     const { sponsored } = req.body;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
-    const item = await item_model_1.itemMain.findByIdAndUpdate(id);
+    const item = await item_model_1.itemMain.findByIdAndUpdate(_id);
     if (!item) {
         return res.status(404).send({ success: false });
     }
@@ -1039,12 +644,11 @@ exports.itemRoutes.put('/addsponsored/:id/:companyIdParam', stock_universal_serv
     }
     return res.status(200).send({ success: true });
 });
-exports.itemRoutes.put('/updatesponsored/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'update'), async (req, res) => {
-    const { id } = req.params;
+exports.itemRoutes.put('/sponsored/update/:_id', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'update'), async (req, res) => {
+    const { _id } = req.params;
     const { sponsored } = req.body;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    const item = await item_model_1.itemMain.findOneAndUpdate({ _id: id, ...filter });
+    const item = await item_model_1.itemMain.findOneAndUpdate({ _id, ...filter });
     if (!item) {
         return res.status(404).send({ success: false });
     }
@@ -1073,11 +677,10 @@ exports.itemRoutes.put('/updatesponsored/:id/:companyIdParam', stock_universal_s
     }
     return res.status(200).send({ success: true });
 });
-exports.itemRoutes.delete('/deletesponsored/:id/:spnsdId/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'update'), async (req, res) => {
-    const { id, spnsdId } = req.params;
+exports.itemRoutes.delete('/sponsored/delete/:_id/:spnsdId', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'update'), async (req, res) => {
+    const { _id, spnsdId } = req.params;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    const item = await item_model_1.itemMain.findOneAndUpdate({ _id: id, ...filter });
+    const item = await item_model_1.itemMain.findOneAndUpdate({ _id, ...filter });
     if (!item) {
         return res.status(404).send({ success: false });
     }
@@ -1106,15 +709,14 @@ exports.itemRoutes.delete('/deletesponsored/:id/:spnsdId/:companyIdParam', stock
     }
     return res.status(200).send({ success: true });
 });
-exports.itemRoutes.put('/deleteone/:id/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'delete'), async (req, res) => {
-    const { id } = req.params;
+exports.itemRoutes.put('/delete/one/:_id', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'delete'), async (req, res) => {
+    const { _id } = req.params;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     // start by removing offers
-    await itemoffer_model_1.itemOfferMain.deleteMany({ ...filter, items: { $elemMatch: { $in: [id] } } });
+    await itemoffer_model_1.itemOfferMain.deleteMany({ ...filter, items: { $elemMatch: { $in: [_id] } } });
     // also remove decoys
-    await itemdecoy_model_1.itemDecoyMain.deleteMany({ ...filter, items: { $elemMatch: { $in: [id] } } });
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    const found = await item_model_1.itemMain.findOne({ _id: id, ...filter })
+    await itemdecoy_model_1.itemDecoyMain.deleteMany({ ...filter, items: { $elemMatch: { $in: [_id] } } });
+    const found = await item_model_1.itemMain.findOne({ _id, ...filter })
         .populate([(0, stock_auth_server_1.populatePhotos)(true)])
         .populate({ path: 'video', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
         .lean();
@@ -1128,25 +730,23 @@ exports.itemRoutes.put('/deleteone/:id/:companyIdParam', stock_universal_server_
         }
         await (0, stock_universal_server_1.deleteAllFiles)(filesWithDir);
     }
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    // const deleted = await itemMain.findOneAndDelete({ _id: id, ...filter });
-    const deleted = await item_model_1.itemMain.updateOne({ _id: id, ...filter }, { $set: { isDeleted: true } });
+    // const deleted = await itemMain.findOneAndDelete({ _id, ...filter });
+    const deleted = await item_model_1.itemMain.updateOne({ _id, ...filter }, { $set: { isDeleted: true } });
     if (Boolean(deleted)) {
-        (0, stock_universal_server_1.addParentToLocals)(res, id, item_model_1.itemMain.collection.collectionName, 'trackDataDelete');
+        (0, stock_universal_server_1.addParentToLocals)(res, _id, item_model_1.itemMain.collection.collectionName, 'trackDataDelete');
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
-        return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
+        return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
     }
 });
-exports.itemRoutes.put('/deletefiles/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'delete'), (0, stock_universal_server_1.deleteFiles)(true), async (req, res) => {
+exports.itemRoutes.put('/deletefiles', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'delete'), (0, stock_universal_server_1.deleteFiles)(true), async (req, res) => {
     const filesWithDir = req.body.filesWithDir;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     if (filesWithDir && !filesWithDir.length) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const updatedProduct = req.body.item;
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     const { _id } = updatedProduct;
     const item = await item_model_1.itemMain
         .findOneAndUpdate({ _id, ...filter });
@@ -1180,132 +780,69 @@ exports.itemRoutes.put('/deletefiles/:companyIdParam', stock_universal_server_1.
     }
     return res.status(200).send({ success: true });
 });
-exports.itemRoutes.post('/search/:offset/:limit/:companyIdParam;userId', async (req, res) => {
-    const { searchterm, searchKey, category, extraFilers, subCategory, ecomerceCompat } = req.body;
-    const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
+exports.itemRoutes.post('/filter', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
+    const { userId } = req.user;
+    const { searchterm, propSort } = req.body;
+    const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.body.offset, req.body.limit);
     const stnCookie = req.signedCookies['settings'];
-    (0, user_behavoiur_1.registerSearchParams)(searchterm, '', stnCookie?.userCookieId, req.params.userId);
-    const { companyIdParam } = req.params;
-    if (companyIdParam !== 'undefined') {
-        itemRoutesLogger.info('filter item with 999999 def');
-        const isValid = (0, stock_universal_server_1.verifyObjectId)(companyIdParam);
-        if (!isValid) {
-            return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    const filter = (0, stock_universal_server_1.constructFiltersFromBody)(req);
+    if (searchterm && userId) {
+        (0, user_behavoiur_1.registerSearchParams)(searchterm, '', stnCookie?.userCookieId, userId);
+    }
+    const aggCursor = item_model_1.itemLean.aggregate([
+        {
+            $match: {
+                $and: [
+                    // { status: 'pending' },
+                    ...filter
+                ]
+            }
+        },
+        ...(0, stock_universal_server_1.lookupTrackEdit)(),
+        ...(0, stock_universal_server_1.lookupTrackView)(),
+        {
+            $facet: {
+                data: [...(0, stock_universal_server_1.lookupSort)(propSort), ...(0, stock_universal_server_1.lookupOffset)(offset), ...(0, stock_universal_server_1.lookupLimit)(limit)],
+                total: [{ $count: 'count' }]
+            }
+        },
+        {
+            $unwind: {
+                path: '$total',
+                preserveNullAndEmptyArrays: true
+            }
         }
-    }
-    itemRoutesLogger.info('filter item with 11111');
-    let filter;
-    if (!category || category === 'all') {
-        if (subCategory) {
-            filter = { subCategory };
-        }
-        else {
-            filter = {};
-        }
-    }
-    else if (subCategory) {
-        filter = { category, subCategory };
-    }
-    else {
-        filter = { category };
-    }
-    if (ecomerceCompat === 'true') {
-        filter = { ...filter, ecomerceCompat: true };
-    }
-    if (companyIdParam !== 'undefined') {
-        filter = { ...filter, companyId: companyIdParam };
-    }
-    itemRoutesLogger.info('filter item with 22222');
-    if (extraFilers) {
-        switch (extraFilers.filter) {
-            case 'price':
-                if (extraFilers.val.min && extraFilers.val.max) {
-                    filter = {
-                        ...filter,
-                        ...{
-                            $gte: extraFilers.val.min,
-                            $lte: extraFilers.val.max
-                        }
-                    };
-                }
-                else if (extraFilers.val.min) {
-                    filter = {
-                        ...filter,
-                        ...{ $gte: extraFilers.val.min }
-                    };
-                }
-                else if (extraFilers.val.max) {
-                    filter = {
-                        ...filter,
-                        ...{ $lte: extraFilers.val.min }
-                    };
-                }
-                break;
-            case 'state':
-                filter = {
-                    ...filter,
-                    ...{ state: extraFilers.val.val }
-                };
-                break;
-            case 'category':
-                filter = {
-                    ...filter,
-                    ...{ category: extraFilers.val.val }
-                };
-                break;
-            case 'subCategory':
-                break;
-            case 'breand':
-                filter = {
-                    ...filter,
-                    ...{ brand: extraFilers.val.val }
-                };
-                break;
-            /* default:
-              return res.status(401).send({ success: false, err: 'unauthorised' }); */
-        }
-    }
-    /* TODO proper regex
-    const searchFields = ['name', 'description', 'category', 'subCategory', 'brand'];
-    const searchRegex = { $regex: searchterm, $options: 'i' };
-    const searchQuery = searchFields.reduce((acc, field) => {
-      acc[field] = searchRegex;
-      return acc;
-    }, {}); */
-    const all = await Promise.all([
-        item_model_1.itemLean
-            .find({ [searchKey]: { $regex: searchterm, $options: 'i' }, ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
-            .skip(offset)
-            .limit(limit)
-            .populate([(0, stock_auth_server_1.populatePhotos)(true), (0, stock_auth_server_1.populateCompany)()])
-            .lean(),
-        item_model_1.itemLean.countDocuments({ [searchKey]: { $regex: searchterm, $options: 'i' }, ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
     ]);
-    const newItems = all[0].filter(item => item.companyId);
+    const dataArr = [];
+    for await (const data of aggCursor) {
+        dataArr.push(data);
+    }
+    const all = dataArr[0]?.data || [];
+    const count = dataArr[0]?.total?.count || 0;
+    const newItems = all.filter(item => item.companyId);
     const response = {
-        count: all[1],
+        count,
         data: newItems
     };
     return res.status(200).send(response);
 });
-exports.itemRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'delete'), async (req, res) => {
-    const { ids } = req.body;
+exports.itemRoutes.put('/delete/many', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'delete'), async (req, res) => {
+    const { _ids } = req.body;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     // start by removing offers
-    /* await itemOfferMain.deleteMany({ companyId: queryId, items: { $elemMatch: { $in: ids } } }); */
+    /* await itemOfferMain.deleteMany({  items: { $elemMatch: { $in: _ids } } }); */
     // TODO tarack ehe
-    await itemoffer_model_1.itemOfferMain.updateOne({ ...filter, items: { $elemMatch: { $in: ids } } }, {
+    await itemoffer_model_1.itemOfferMain.updateOne({ ...filter, items: { $elemMatch: { $in: _ids } } }, {
         $set: { isDeleted: true }
     });
     // also remove decoys
-    /* await itemDecoyMain.deleteMany({ companyId: queryId, items: { $elemMatch: { $in: ids } } }); */
+    /* await itemDecoyMain.deleteMany({  items: { $elemMatch: { $in: _ids } } }); */
     // TODO TARC
-    await itemdecoy_model_1.itemDecoyMain.updateOne({ ...filter, items: { $elemMatch: { $in: ids } } }, {
+    await itemdecoy_model_1.itemDecoyMain.updateOne({ ...filter, items: { $elemMatch: { $in: _ids } } }, {
         $set: { isDeleted: true }
     });
     let filesWithDir;
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    const alltoDelete = await item_model_1.itemLean.find({ _id: { $in: ids } })
+    const alltoDelete = await item_model_1.itemLean.find({ _id: { $in: _ids } })
         .populate([(0, stock_auth_server_1.populatePhotos)(true)])
         .populate({ path: 'video', model: stock_universal_server_1.fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
         .lean();
@@ -1319,14 +856,14 @@ exports.itemRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.r
     }
     await (0, stock_universal_server_1.deleteAllFiles)(filesWithDir);
     /* const deleted = await itemMain
-      .deleteMany({ _id: { $in: ids } })
-      .catch(err => {
-        itemRoutesLogger.error('deletemany - err: ', err);
-  
-        return null;
-      }); */
+    .deleteMany({ _id: { $in: _ids } })
+    .catch(err => {
+      itemRoutesLogger.error('deletemany - err: ', err);
+
+      return null;
+    }); */
     const deleted = await item_model_1.itemMain
-        .updateMany({ _id: { $in: ids } }, {
+        .updateMany({ _id: { $in: _ids } }, {
         $set: { isDeleted: true }
     })
         .catch(err => {
@@ -1334,13 +871,15 @@ exports.itemRoutes.put('/deletemany/:companyIdParam', stock_universal_server_1.r
         return null;
     });
     if (Boolean(deleted)) {
-        for (const val of ids) {
+        for (const val of _ids) {
             (0, stock_universal_server_1.addParentToLocals)(res, val, item_model_1.itemMain.collection.collectionName, 'trackDataDelete');
         }
         return res.status(200).send({ success: Boolean(deleted) });
     }
     else {
-        return res.status(404).send({ success: Boolean(deleted), err: 'could not delete selected items, try again in a while' });
+        return res.status(404).send({
+            success: Boolean(deleted), err: 'could not delete selected items, try again in a while'
+        });
     }
 });
 //# sourceMappingURL=item.routes.js.map

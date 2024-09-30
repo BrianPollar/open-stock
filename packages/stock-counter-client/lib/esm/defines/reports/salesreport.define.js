@@ -3,11 +3,6 @@ import { lastValueFrom } from 'rxjs';
 import { StockCounterClient } from '../../stock-counter-client';
 import { Estimate } from '../estimate.define';
 import { InvoiceRelatedWithReceipt } from '../invoice.define';
-/**
- * The `SalesReport` class represents a sales report object.
- * It extends the `DatabaseAuto` class and adds properties specific to sales reports, such as `urId`, `totalAmount`, `date`, `estimates`, and `invoiceRelateds`.
- * The constructor takes a data object that implements the `IsalesReport` interface and initializes the class properties based on the data.
- */
 export class SalesReport extends DatabaseAuto {
     constructor(data) {
         super(data);
@@ -25,14 +20,24 @@ export class SalesReport extends DatabaseAuto {
     }
     /**
      * Retrieves multiple sales reports from the server.
-     * @param companyId - The ID of the company
+  
      * @param url Optional parameter for the URL of the request.
      * @param offset Optional parameter for the offset of the request.
      * @param limit Optional parameter for the limit of the request.
      * @returns An array of `SalesReport` instances.
      */
-    static async getSalesReports(companyId, url = 'getall', offset = 0, limit = 20) {
-        const observer$ = StockCounterClient.ehttp.makeGet(`/salesreport/${url}/${offset}/${limit}/${companyId}`);
+    static async getAll(offset = 0, limit = 20) {
+        const observer$ = StockCounterClient.ehttp
+            .makeGet(`/salesreport/all/${offset}/${limit}`);
+        const salesreports = await lastValueFrom(observer$);
+        return {
+            count: salesreports.count,
+            salesreports: salesreports.data.map((val) => new SalesReport(val))
+        };
+    }
+    static async filterAll(filter) {
+        const observer$ = StockCounterClient.ehttp
+            .makePost('/salesreport/filter', filter);
         const salesreports = await lastValueFrom(observer$);
         return {
             count: salesreports.count,
@@ -41,34 +46,42 @@ export class SalesReport extends DatabaseAuto {
     }
     /**
      * Retrieves a single sales report from the server.
-     * @param companyId - The ID of the company
+  
      * @param urId The ID of the report to retrieve.
      * @returns A `SalesReport` instance.
      */
-    static async getOneSalesReport(companyId, urId) {
-        const observer$ = StockCounterClient.ehttp.makeGet(`/salesreport/getone/${urId}/${companyId}`);
+    static async getOne(urId) {
+        const observer$ = StockCounterClient.ehttp
+            .makeGet(`/salesreport/one/${urId}`);
         const salesreport = await lastValueFrom(observer$);
         return new SalesReport(salesreport);
     }
     /**
      * Adds a new sales report to the server.
-     * @param companyId - The ID of the company
+  
      * @param vals An object that represents the data of the new report.
      * @returns An `Isuccess` object.
      */
-    static async addSalesReport(companyId, vals) {
-        const observer$ = StockCounterClient.ehttp.makePost(`/salesreport/create/${companyId}`, vals);
-        return await lastValueFrom(observer$);
+    static add(vals) {
+        const observer$ = StockCounterClient.ehttp
+            .makePost('/salesreport/add', vals);
+        return lastValueFrom(observer$);
     }
     /**
      * Deletes multiple sales reports from the server.
-     * @param companyId - The ID of the company
-     * @param ids An array of IDs of the reports to delete.
+  
+     * @param _ids An array of IDs of the reports to delete.
      * @returns An `Isuccess` object.
      */
-    static async deleteSalesReports(companyId, ids) {
-        const observer$ = StockCounterClient.ehttp.makePut(`/salesreport/deletemany/${companyId}`, { ids });
-        return await lastValueFrom(observer$);
+    static removeMany(vals) {
+        const observer$ = StockCounterClient.ehttp
+            .makePut('/salesreport/delete/many', vals);
+        return lastValueFrom(observer$);
+    }
+    remove() {
+        const observer$ = StockCounterClient.ehttp
+            .makeDelete('/salesreport/delete/one');
+        return lastValueFrom(observer$);
     }
 }
 //# sourceMappingURL=salesreport.define.js.map

@@ -40,7 +40,8 @@ const trackerLogger = tracer.colorConsole({
 /**
  * Creates a new track edit in the database.
  *
- * @param trackEdit - The track edit to create. Must contain a `parent` field which is the id of the entity being edited.
+ * @param trackEdit - The track edit to create. Must contain a `parent` f
+ * ield which is the id of the entity being edited.
  * @returns The saved track edit document.
  */
 export const createTrackEdit = async (trackEdit) => {
@@ -52,7 +53,8 @@ export const createTrackEdit = async (trackEdit) => {
 /**
  * Creates a new track view in the database.
  *
- * @param trackView - The track view to create. Must contain a `parent` field which is the id of the entity being viewed.
+ * @param trackView - The track view to create. Must contain a `parent`
+ * field which is the id of the entity being viewed.
  * @returns The saved track view document.
  */
 export const createTrackView = async (trackView) => {
@@ -64,7 +66,8 @@ export const createTrackView = async (trackView) => {
 /**
  * Creates a new track deleted in the database.
  *
- * @param trackDeleted - The track deleted to create. Must contain a `parent` field which is the id of the entity being deleted.
+ * @param trackDeleted - The track deleted to create. Must contain a `parent`
+ * field which is the id of the entity being deleted.
  * @returns The saved track deleted document.
  */
 export const createTrackDeleted = async (trackDeleted) => {
@@ -78,7 +81,8 @@ export const createTrackDeleted = async (trackDeleted) => {
  *
  * @param req - The Express request object.
  * @param parent - The id of the entity being edited.
- * @param trackEdit - The track edit data. Must contain a `createdBy` field which is the id of the user performing the edit.
+ * @param trackEdit - The track edit data. Must contain a `createdBy` field which is
+ * the id of the user performing the edit.
  * @returns The saved track edit document wrapped in an `ItrackReturn` object.
  */
 export const makeTrackEdit = async (req, parent, trackEdit) => {
@@ -94,7 +98,7 @@ export const makeTrackEdit = async (req, parent, trackEdit) => {
                 _id: trackEdit.createdBy,
                 createdAt: new Date().toString(),
                 state: 'create',
-                ip: req.headers['x-forwarded-for'] || req.socket.remoteAddress,
+                ip: req.headers['x-forwarded-for'].toString() || req.socket.remoteAddress,
                 deviceInfo: req.headers.host
             }],
         collectionName: trackEdit.collectionName
@@ -107,7 +111,8 @@ export const makeTrackEdit = async (req, parent, trackEdit) => {
    *
    * @param req - The Express request object.
    * @param parent - The id of the entity being edited.
-   * @param trackEdit - The track edit data. Must contain a `createdBy` field which is the id of the user performing the edit.
+   * @param trackEdit - The track edit data. Must contain a `createdBy`
+   * field which is the id of the user performing the edit.
    * @param userId - The id of the user who is performing the edit.
    * @param trackDataRestore - Whether the edit is a restore of a deleted document.
    * @returns An `ItrackEditReturn` object with the saved track edit data.
@@ -145,7 +150,7 @@ export const updateTrackEdit = async (req, parent, trackEdit, userId, trackDataR
     users.push({
         _id: userId,
         createdAt: new Date().toString(),
-        ip: req.headers['x-forwarded-for'] || req.socket.remoteAddress,
+        ip: req.headers['x-forwarded-for'].toString() || req.socket.remoteAddress,
         state,
         deviceInfo: req.headers.host
     });
@@ -210,9 +215,11 @@ export const getAllTrackEdit = async (req, res) => {
    *
    * @param req - The Express request object.
    * @param parent - The id of the entity being viewed.
-   * @param trackView - The track view data. Must contain a `collectionName` field which is the name of the collection the entity belongs to.
+   * @param trackView - The track view data. Must contain a `collectionName`
+   * field which is the name of the collection the entity belongs to.
    * @param userId - The id of the user performing the view.
-   * @returns A Promise resolving to an `ItrackViewReturn` object with the saved track view document wrapped in `trackView` if successful.
+   * @returns A Promise resolving to an `ItrackViewReturn`
+   * object with the saved track view document wrapped in `trackView` if successful.
    */
 export const makeTrackView = async (req, parent, trackView, userId) => {
     trackerLogger.info('makeTrackView, parent', parent);
@@ -226,7 +233,7 @@ export const makeTrackView = async (req, parent, trackView, userId) => {
         users: [{
                 _id: userId,
                 createdAt: new Date().toString(),
-                ip: req.headers['x-forwarded-for'] || req.socket.remoteAddress,
+                ip: req.headers['x-forwarded-for'].toString() || req.socket.remoteAddress,
                 deviceInfo: req.headers.host
             }],
         collectionName: trackView.collectionName
@@ -241,7 +248,8 @@ export const makeTrackView = async (req, parent, trackView, userId) => {
    * @param parent - The id of the entity being viewed.
    * @param userId - The id of the user performing the view.
    * @param collectionName - The collection name of the entity being viewed.
-   * @returns A Promise resolving to an `ItrackViewReturn` object with the saved track view document wrapped in `trackView` if successful.
+   * @returns A Promise resolving to an `ItrackViewReturn` object with
+   * the saved track view document wrapped in `trackView` if successful.
    */
 export const updateTrackView = async (req, parent, userId, collectionName) => {
     trackerLogger.info('updateTrackView, parent', parent);
@@ -265,7 +273,7 @@ export const updateTrackView = async (req, parent, userId, collectionName) => {
     users.push({
         _id: userId,
         createdAt: new Date().toString(),
-        ip: req.headers['x-forwarded-for'] || req.socket.remoteAddress,
+        ip: req.headers['x-forwarded-for'].toString() || req.socket.remoteAddress,
         deviceInfo: req.headers.host
     });
     await trackViewMain.updateOne({ parent }, { $set: { users } });
@@ -436,7 +444,8 @@ export const trackUser = (req, res, next) => {
                     };
                     const { updateParent, savedEdit } = await updateTrackEdit(req, parentWithCollection.parent, trackEdit, user.userId, false);
                     if (updateParent) {
-                        await mainConnection.db.collection(parentWithCollection.collection).updateOne({ _id: new Types.ObjectId(parentWithCollection.parent) }, { $set: { trackEdit: savedEdit._id.toString() } });
+                        await mainConnection.db.collection(parentWithCollection.collection)
+                            .updateOne({ _id: new Types.ObjectId(parentWithCollection.parent) }, { $set: { trackEdit: savedEdit._id.toString() } });
                     }
                     break;
                 }
@@ -444,7 +453,8 @@ export const trackUser = (req, res, next) => {
                     const { updateParent, trackView } = await updateTrackView(req, parentWithCollection.parent, user.userId, parentWithCollection.collection);
                     if (updateParent) {
                         trackerLogger.error('collection', 7777777, parentWithCollection.collection);
-                        await mainConnection.db.collection(parentWithCollection.collection).updateOne({ _id: new Types.ObjectId(parentWithCollection.parent) }, { $set: { trackView: trackView._id.toString() } }).catch(err => {
+                        await mainConnection.db.collection(parentWithCollection.collection)
+                            .updateOne({ _id: new Types.ObjectId(parentWithCollection.parent) }, { $set: { trackView: trackView._id.toString() } }).catch(err => {
                             trackerLogger.error('update error ', err);
                         });
                     }
@@ -459,7 +469,8 @@ export const trackUser = (req, res, next) => {
                     };
                     const { updateParent, savedEdit } = await updateTrackEdit(req, parentWithCollection.parent, trackEdit, user.userId, true);
                     if (updateParent) {
-                        await mainConnection.db.collection(parentWithCollection.collection).updateOne({ _id: new Types.ObjectId(parentWithCollection.parent) }, { $set: { trackEdit: savedEdit._id.toString() } });
+                        await mainConnection.db.collection(parentWithCollection.collection)
+                            .updateOne({ _id: new Types.ObjectId(parentWithCollection.parent) }, { $set: { trackEdit: savedEdit._id.toString() } });
                     }
                     break;
                 }
@@ -503,22 +514,17 @@ export const clearFsFiles = () => {
 export const hasValidIdsInRequest = (req, res, next) => {
     const idStrings = [];
     // eslint-disable-next-line no-var
-    var { ids, id } = req.params || {};
+    var { id } = req.params || {};
     if (id) {
         idStrings.push(id);
-    }
-    if (ids && ids.length) {
-        for (const id of ids) {
-            idStrings.push(id);
-        }
     }
     // eslint-disable-next-line no-var, @typescript-eslint/naming-convention
-    var { ids, id, _id } = req.body || {};
+    var { _ids, id, _id } = req.body || {};
     if (id) {
         idStrings.push(id);
     }
-    if (ids && ids.length) {
-        for (const id of ids) {
+    if (_ids && _ids.length) {
+        for (const id of _ids) {
             idStrings.push(id);
         }
     }
@@ -530,9 +536,9 @@ export const hasValidIdsInRequest = (req, res, next) => {
         if (isId) {
             idStrings.push(isId);
         }
-        const ids = req.body[objVal]?._ids;
-        if (ids && ids.length) {
-            for (const id of ids) {
+        const _ids = req.body[objVal]?._ids;
+        if (_ids && _ids.length) {
+            for (const id of _ids) {
                 idStrings.push(id);
             }
         }
@@ -583,9 +589,9 @@ export const isDocDeleted = async (req, res, next) => {
 };
 // TODO delete immediately
 export const trackRoutes = express.Router();
-/* trackRoutes.put('/restoreFile/:id', requireAuth, async(req, res) => {
-  const { id } = req.parama;
-  const trackDeleted = await trackDeletedLean.findOne({ _id: id }).lean();
+/* trackRoutes.put('/restoreFile/:_id', requireAuth, async(req: IcustomRequest<never, unknown>, res) => {
+  const { _id } = req.parama;
+  const trackDeleted = await trackDeletedLean.findOne({ _id }).lean();
 
   let updateErr;
 
@@ -606,9 +612,9 @@ export const trackRoutes = express.Router();
   return res.status(200).send({ success: true });
 });
 
-trackRoutes.put('/restoreFile/:id', requireAuth, async(req, res) => {
-  const { id } = req.parama;
-  const trackDeleted = await trackDeletedLean.findOne({ _id: id }).lean();
+trackRoutes.put('/restoreFile/:_id', requireAuth, async(req: IcustomRequest<never, unknown>, res) => {
+  const { _id } = req.parama;
+  const trackDeleted = await trackDeletedLean.findOne({ _id }).lean();
 
   let updateErr;
 
@@ -629,9 +635,9 @@ trackRoutes.put('/restoreFile/:id', requireAuth, async(req, res) => {
   return res.status(200).send({ success: true });
 }); */
 trackRoutes.post('/gettrackviewbydate/:offset/:limit', requireAuth, async (req, res) => {
-    const { offset, limit } = offsetLimitRelegator(req.body.offset, req.body.limit);
+    const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     let filter = {};
-    switch (req.params.direction) {
+    switch (req.body.direction) {
         case 'eq':
             filter = { createdAt: { $eq: new Date(req.body.dateVal).toISOString() } };
             break;
@@ -642,7 +648,7 @@ trackRoutes.post('/gettrackviewbydate/:offset/:limit', requireAuth, async (req, 
             filter = { createdAt: { $lte: new Date(req.body.dateVal).toISOString() } };
             break;
         case 'between':
-            if (!req.body.gteDateVal || new Date(req.params.lower) > new Date(req.body.gteDateVal)) {
+            if (!req.body.gteDateVal || new Date(req.body.lower) > new Date(req.body.gteDateVal)) {
                 return res.status(401).send({ success: false, err: 'unauthorised' });
             }
             filter = { createdAt: { $gte: req.body.dateVal, $lte: req.body.gteDateVal } };
@@ -669,9 +675,9 @@ trackRoutes.post('/gettrackviewbydate/:offset/:limit', requireAuth, async (req, 
     return res.status(200).send(response);
 });
 trackRoutes.post('/gettrackviewbyuserdate/:offset/:limit', requireAuth, async (req, res) => {
-    const { offset, limit } = offsetLimitRelegator(req.body.offset, req.body.limit);
+    const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     let filter = {};
-    switch (req.params.direction) {
+    switch (req.body.direction) {
         case 'eq':
             filter = { users: { $elemMatch: { createdAt: { $eq: new Date(req.body.dateVal).toISOString() } } } };
             break;
@@ -682,7 +688,7 @@ trackRoutes.post('/gettrackviewbyuserdate/:offset/:limit', requireAuth, async (r
             filter = { users: { $elemMatch: { createdAt: { $lte: new Date(req.body.dateVal).toISOString() } } } };
             break;
         case 'between':
-            if (!req.body.gteDateVal || new Date(req.params.lower) > new Date(req.body.gteDateVal)) {
+            if (!req.body.gteDateVal || new Date(req.body.lower) > new Date(req.body.gteDateVal)) {
                 return res.status(401).send({ success: false, err: 'unauthorised' });
             }
             filter = { users: { $elemMatch: { createdAt: { $gte: req.body.dateVal, $lte: req.body.gteDateVal } } } };
@@ -799,19 +805,22 @@ trackRoutes.get('/gettrackeditbyuser/:offset/:limit/:userId', requireAuth, async
 });
 trackRoutes.get('/gettrackview/:offset/:limit', requireAuth, async (req, res) => {
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
-    const isValid = verifyObjectId(req.params.userId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    /* const isValid = verifyObjectId(req.body.userId);
+
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  } */
     const all = await Promise.all([
         trackViewLean
             .find({
-            users: { $elemMatch: { _id: req.params.userId } }
+        // users: { $elemMatch: { _id: req.body.userId } }
         })
             .skip(offset)
             .limit(limit)
             .lean(),
-        trackViewLean.countDocuments({ users: { $elemMatch: { _id: req.params.userId } } })
+        trackViewLean.countDocuments({
+        // users: { $elemMatch: { _id: req.body.userId } }
+        })
     ]);
     const response = {
         count: all[1],
@@ -821,19 +830,22 @@ trackRoutes.get('/gettrackview/:offset/:limit', requireAuth, async (req, res) =>
 });
 trackRoutes.get('/gettrackedit/:offset/:limit', requireAuth, async (req, res) => {
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
-    const isValid = verifyObjectId(req.params.userId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    /* const isValid = verifyObjectId(req.body.userId);
+
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  } */
     const all = await Promise.all([
         trackEditLean
             .find({
-            users: { $elemMatch: { _id: req.params.userId } }
+        // users: { $elemMatch: { _id: req.body.userId } }
         })
             .skip(offset)
             .limit(limit)
             .lean(),
-        trackEditLean.countDocuments({ users: { $elemMatch: { _id: req.params.userId } } })
+        trackEditLean.countDocuments({
+        // users: { $elemMatch: { _id: req.body.userId } }
+        })
     ]);
     const response = {
         count: all[1],
@@ -843,19 +855,22 @@ trackRoutes.get('/gettrackedit/:offset/:limit', requireAuth, async (req, res) =>
 });
 trackRoutes.get('/gettrackdelete/:offset/:limit', requireAuth, async (req, res) => {
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
-    const isValid = verifyObjectId(req.params.userId);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    /* const isValid = verifyObjectId(req.body.userId);
+
+  if (!isValid) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  } */
     const all = await Promise.all([
         trackDeletedLean
             .find({
-            users: { $elemMatch: { _id: req.params.userId } }
+        // users: { $elemMatch: { _id: req.body.userId } }
         })
             .skip(offset)
             .limit(limit)
             .lean(),
-        trackDeletedLean.countDocuments({ users: { $elemMatch: { _id: req.params.userId } } })
+        trackDeletedLean.countDocuments({
+        // users: { $elemMatch: { _id: req.body.userId } }
+        })
     ]);
     const response = {
         count: all[1],
@@ -863,16 +878,16 @@ trackRoutes.get('/gettrackdelete/:offset/:limit', requireAuth, async (req, res) 
     };
     return res.status(200).send(response);
 });
-trackRoutes.delete('/deletetrackdelete/:id', requireAuth, (req, res) => {
-    const { id } = req.params;
+trackRoutes.delete('/deletetrackdelete/:_id', requireAuth, (req, res) => {
+    const { _id } = req.params;
     // remove parent
 });
-trackRoutes.delete('/deletetrackedit/:id', requireAuth, (req, res) => {
-    const { id } = req.params;
+trackRoutes.delete('/deletetrackedit/:_id', requireAuth, (req, res) => {
+    const { _id } = req.params;
     // remove parent
 });
-trackRoutes.delete('/deletetrackview/:id', requireAuth, (req, res) => {
-    const { id } = req.params;
+trackRoutes.delete('/deletetrackview/:_id', requireAuth, (req, res) => {
+    const { _id } = req.params;
     // remove parent
 });
 /**
@@ -1263,7 +1278,8 @@ const getParentData = async (parent, collectionName) => {
 /**
    * Transforms an array of IuserActionTrack objects with the user data for each _id.
    * @param {IuserActionTrack[]} data - The array of IuserActionTrack objects.
-   * @returns {Promise<IuserActionTrack[]>} - A promise that resolves to an array of IuserActionTrack objects with the user data.
+   * @returns {Promise<IuserActionTrack[]>} - A promise that resolves to an array of
+   * IuserActionTrack objects with the user data.
    */
 const transformWithUserData = async (data) => {
     const allWithParnet = data.map(async (val) => {

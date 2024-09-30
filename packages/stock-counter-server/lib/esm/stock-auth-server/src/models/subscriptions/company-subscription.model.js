@@ -1,6 +1,6 @@
 import { createExpireDocIndex, withCompanySchemaObj, withCompanySelectObj } from '@open-stock/stock-universal-server';
 import { Schema } from 'mongoose';
-import { connectAuthDatabase, isAuthDbConnected, mainConnection, mainConnectionLean } from '../../utils/database';
+import { connectAuthDatabase, isAuthDbConnected, mainConnectionLean } from '../../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 /** company subscription schema */
 const companySubscriptionSchema = new Schema({
@@ -58,10 +58,12 @@ export const createCompanySubscription = async (dbUrl, dbOptions, main = true, l
         await connectAuthDatabase(dbUrl, dbOptions);
     }
     if (main) {
-        companySubscriptionMain = mainConnection.model('CompanySubscription', companySubscriptionSchema);
+        companySubscriptionMain = mainConnectionLean
+            .model('CompanySubscription', companySubscriptionSchema);
     }
     if (lean) {
-        companySubscriptionLean = mainConnectionLean.model('CompanySubscription', companySubscriptionSchema);
+        companySubscriptionLean = mainConnectionLean
+            .model('CompanySubscription', companySubscriptionSchema);
     }
 };
 //# sourceMappingURL=company-subscription.model.js.map

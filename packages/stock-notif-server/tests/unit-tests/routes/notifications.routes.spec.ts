@@ -1,15 +1,14 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable no-console */
-import { vi, expect, describe, it, afterAll, beforeAll, beforeEach, expectTypeOf } from 'vitest';
 import request from 'supertest';
+import { afterAll, beforeAll, beforeEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 import { notifnRoutes } from '../../../../stock-notif-server/src/routes/notification.routes';
 // import { disconnectMongoose } from '@open-stock/stock-universal-server';
-import { createExpressServer } from '../../../../tests/helpers';
-import { Application } from 'express';
-import * as http from 'http';
-import { disconnectMongoose } from '@open-stock/stock-universal-server';
-import { createNotificationsDatabase } from '../../../src/stock-notif-local';
 import { IpermProp } from '@open-stock/stock-universal';
+import { disconnectMongoose } from '@open-stock/stock-universal-server';
+import * as http from 'http';
+import { createExpressServer } from '../../../../tests/helpers';
+import { createNotificationsDatabase } from '../../../src/stock-notif-local';
 
 const mocks = vi.hoisted(() => {
   return {
@@ -19,6 +18,7 @@ const mocks = vi.hoisted(() => {
 
 vi.mock('../../../../stock-notif-server/src/controllers/notifications.controller', async() => {
   const actual: object = await vi.importActual('../../../../stock-notif-server/src/controllers/notifications.controller');
+
   return {
     ... actual,
     createNotifications: mocks.createNotifications
@@ -35,7 +35,7 @@ const permObj: IpermProp = {
 
 const stockUniversalServer = vi.hoisted(() => {
   return {
-    requireAuth: vi.fn((req, res, next) => {
+    requireAuth: vi.fn((req: IcustomRequest<never, unknown>, res, next) => {
       req.user = {
         userId: '507f1f77bcf86cd799439011',
         companyId: 'superAdmin',
@@ -64,6 +64,7 @@ const mocksUnivServ = vi.hoisted(() => {
 
 vi.mock('@open-stock/stock-universal-server', async() => {
   const actual: object = await vi.importActual('@open-stock/stock-universal-server');
+
   return {
     ...actual,
     requireAuth: stockUniversalServer.requireAuth,
@@ -81,6 +82,7 @@ const mocksModel = vi.hoisted(() => {
 
 vi.mock('../../../../stock-notif-server/src/models/notification.model', async() => {
   const actual: object = await vi.importActual('../../../../stock-notif-server/src/models/notification.model');
+
   return {
     ...actual,
     mainnotificationLean: mocksModel.mainnotificationLean,
@@ -123,6 +125,7 @@ describe('AuthRoutes', () => {
     const res = await request(app).get(apiUrl + '/getmynotifn/' + companyId)
       .set('Authorization', token)
       .send();
+
     expect(res.status).toBe(200);
     expect(typeof res.body).toBe('object');
     expect(res.body.length).toEqual(0);
@@ -132,6 +135,7 @@ describe('AuthRoutes', () => {
     const res = await request(app).get(apiUrl + '/getmyavailnotifn/' + companyId)
       .set('Authorization', token)
       .send();
+
     expect(res.status).toBe(200);
     expect(typeof res.body).toBe('object');
     expect(res.body.length).toEqual(0);
@@ -140,8 +144,9 @@ describe('AuthRoutes', () => {
   it('should fail to get one as Object id is inValid', async() => {
     mocksUnivServ.verifyObjectId.mockReturnValue(false);
     mocksUnivServ.verifyObjectIds.mockReturnValue(false);
-    const res = await request(app).get(apiUrl + '/getone/1436347347347478348388835835/' + companyId)
+    const res = await request(app).get(apiUrl + '/one/1436347347347478348388835835/' + companyId)
       .send();
+
     expect(res.status).toBe(401);
     expect(typeof res.body).toBe('object');
     expect(res.body).toStrictEqual({ success: false, status: 401, err: 'unauthourised' });
@@ -150,17 +155,19 @@ describe('AuthRoutes', () => {
   it('should fail to delete on with invalid ObjectId', async() => {
     mocksUnivServ.verifyObjectId.mockReturnValue(false);
     mocksUnivServ.verifyObjectIds.mockReturnValue(false);
-    const res = await request(app).delete(apiUrl + '/deleteone/1/' + companyId)
+    const res = await request(app).delete(apiUrl + '/delete/one/1/' + companyId)
       .send();
+
     expect(res.status).toBe(401);
     expect(typeof res.body).toBe('object');
     expect(res.body).toStrictEqual({ success: false, status: 401, err: 'unauthourised' });
   });
 
   it('should pass and delete given valid ObjectId', async() => {
-    const res = await request(app).delete(apiUrl + '/deleteone/' + objectId + '/' + companyId)
+    const res = await request(app).delete(apiUrl + '/delete/one/' + objectId + '/' + companyId)
       .set('Authorization', token)
       .send();
+
     expect(res.status).toBe(404);
     expect(typeof res.body).toBe('object');
     expectTypeOf(res.body).toMatchTypeOf({});
@@ -175,6 +182,7 @@ describe('AuthRoutes', () => {
     const res = await request(app).post(apiUrl + '/subscription/' + companyId)
       .set('Authorization', token)
       .send(body);
+
     expect(res.status).toBe(401);
     expect(res.body).toHaveProperty('success');
     expect(res.body.success).toBe(false);
@@ -188,6 +196,7 @@ describe('AuthRoutes', () => {
     const res = await request(app).post(apiUrl + '/updateviewed/' + companyId)
       .set('Authorization', token)
       .send(body);
+
     expect(res.status).toBe(401);
     expect(typeof res.body).toBe('object');
     expect(res.body).toStrictEqual({ success: false, status: 401, err: 'unauthourised' });
@@ -197,6 +206,7 @@ describe('AuthRoutes', () => {
     const res = await request(app).get(apiUrl + '/unviewedlength/' + companyId)
       .set('Authorization', token)
       .send();
+
     expect(res.status).toBe(200);
     expect(typeof res.body).toBe('object');
     // expect(res.body.success).toBe(true);
@@ -206,6 +216,7 @@ describe('AuthRoutes', () => {
     const res = await request(app).put(apiUrl + '/clearall/' + companyId)
       .set('Authorization', token)
       .send();
+
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty('success');
     expect(res.body.success).toBe(true);
@@ -219,6 +230,7 @@ describe('AuthRoutes', () => {
 
     const res = await request(app).put(apiUrl + '/updatestn')
       .send(body);
+
     expect(res.status).toBe(401);
     expect(typeof res.body).toBe('object');
     expect(res.body).toStrictEqual({ success: false, status: 401, err: 'unauthourised' });
@@ -226,6 +238,7 @@ describe('AuthRoutes', () => {
 
   it('should get notification settings', async() => {
     const res = await request(app).post(apiUrl + '/getstn').send();
+
     expect(res.status).toBe(200);
     expect(typeof res.body).toBe('object');
     // expect(res.body.success).toBe(true);
