@@ -5,10 +5,6 @@ const rxjs_1 = require("rxjs");
 const stock_counter_client_1 = require("../stock-counter-client");
 class Cookies {
     constructor() { }
-    /**
-     * Makes a GET request to retrieve the current settings for the cookies from the server.
-     * It updates the "cartEnabled" and "recentEnabled" properties based on the response.
-     */
     async getSettings(userId) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
             .makeGet('/cookies/getsettings/' + userId);
@@ -18,13 +14,6 @@ class Cookies {
         this.wishListEnabled = settings?.wishListEnabled;
         this.compareListEnabled = settings?.compareListEnabled;
     }
-    /**
-     * Makes a PUT request to update the settings for the cookies on the server.
-     * It takes a "settings" parameter which contains the new settings.
-     * If the update is successful, it updates the "cartEnabled" and "recentEnabled" properties accordingly.
-     * @param settings - The new settings for the cookies.
-     * @returns An object containing a "success" property indicating whether the update was successful or not.
-     */
     async updateSettings(settings, userId) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
             .makePut('/cookies/updatesettings/' + userId, { settings });
@@ -37,15 +26,6 @@ class Cookies {
         }
         return response;
     }
-    /**
-     * Adds a cart item to the cookies.
-     * It takes the "cartItemId" and "totalCostwithNoShipping"
-     *  as parameters and makes a PUT request to add the item to the cart.
-     * If the "cartEnabled" property is false, it returns a success response.
-     * @param cartItemId - The ID of the cart item to add.
-     * @param totalCostwithNoShipping - The total cost of the cart item without shipping.
-     * @returns An object containing a "success" property indicating whether the operation was successful or not.
-     */
     async addCartItem(cartItemId, totalCostwithNoShipping, userId) {
         if (!this.cartEnabled) {
             return { success: true };
@@ -55,13 +35,6 @@ class Cookies {
         const response = await (0, rxjs_1.lastValueFrom)(observer$);
         return response;
     }
-    /**
-     * Adds a recent item to the cookies.
-     * It takes the "recentItemId" as a parameter and makes a PUT request to add the item to the recent items list.
-     * If the "recentEnabled" property is false, it returns a success response.
-     * @param recentItemId - The ID of the recent item to add.
-     * @returns An object containing a "success" property indicating whether the operation was successful or not.
-     */
     async addRecent(recentItemId, userId) {
         if (!this.recentEnabled) {
             return { success: true };
@@ -89,13 +62,6 @@ class Cookies {
         const response = await (0, rxjs_1.lastValueFrom)(observer$);
         return response;
     }
-    /**
-     * Deletes a cart item from the cookies.
-     * It takes the "recentItemId" as a parameter and makes a PUT request to delete the item from the cart.
-     * If the "cartEnabled" property is false, it returns a success response.
-     * @param cartItemId - The ID of the cart item to delete.
-     * @returns An object containing a "success" property indicating whether the operation was successful or not.
-     */
     async deleteCartItem(cartItemId) {
         if (!this.cartEnabled) {
             return { success: true };
@@ -105,12 +71,6 @@ class Cookies {
         const response = await (0, rxjs_1.lastValueFrom)(observer$);
         return response;
     }
-    /**
-     * Deletes an item from the wish list by making a PUT request to the '/cookies/deletewishlistitem' endpoint.
-     * If the 'wishListEnabled' property is false, it returns a success response.
-     * @param wishListItemId - The ID of the wish list item to delete.
-     * @returns An object containing a 'success' property indicating whether the operation was successful or not.
-     */
     async deleteWishListItem(wishListItemId) {
         if (!this.wishListEnabled) {
             return { success: true };
@@ -120,12 +80,6 @@ class Cookies {
         const response = await (0, rxjs_1.lastValueFrom)(observer$);
         return response;
     }
-    /**
-     * Deletes an item from the compare list by making a PUT request to the '/cookies/deletecomparelistitem' endpoint.
-     * If the 'compareListEnabled' property is false, it returns a success response.
-     * @param compareLisItemId - The ID of the compare list item to delete.
-     * @returns An object containing a 'success' property indicating whether the operation was successful or not.
-     */
     async deleteCompareListItem(compareLisItemId) {
         if (!this.compareListEnabled) {
             return { success: true };

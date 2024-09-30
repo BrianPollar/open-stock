@@ -21,14 +21,6 @@ class SalesReport extends stock_universal_1.DatabaseAuto {
         }
         this.currency = data.currency;
     }
-    /**
-     * Retrieves multiple sales reports from the server.
-  
-     * @param url Optional parameter for the URL of the request.
-     * @param offset Optional parameter for the offset of the request.
-     * @param limit Optional parameter for the limit of the request.
-     * @returns An array of `SalesReport` instances.
-     */
     static async getAll(offset = 0, limit = 20) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
             .makeGet(`/salesreport/all/${offset}/${limit}`);
@@ -47,35 +39,17 @@ class SalesReport extends stock_universal_1.DatabaseAuto {
             salesreports: salesreports.data.map((val) => new SalesReport(val))
         };
     }
-    /**
-     * Retrieves a single sales report from the server.
-  
-     * @param urId The ID of the report to retrieve.
-     * @returns A `SalesReport` instance.
-     */
     static async getOne(urId) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
             .makeGet(`/salesreport/one/${urId}`);
         const salesreport = await (0, rxjs_1.lastValueFrom)(observer$);
         return new SalesReport(salesreport);
     }
-    /**
-     * Adds a new sales report to the server.
-  
-     * @param vals An object that represents the data of the new report.
-     * @returns An `Isuccess` object.
-     */
     static add(vals) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
             .makePost('/salesreport/add', vals);
         return (0, rxjs_1.lastValueFrom)(observer$);
     }
-    /**
-     * Deletes multiple sales reports from the server.
-  
-     * @param _ids An array of IDs of the reports to delete.
-     * @returns An `Isuccess` object.
-     */
     static removeMany(vals) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
             .makePut('/salesreport/delete/many', vals);

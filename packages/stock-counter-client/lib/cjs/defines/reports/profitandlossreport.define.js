@@ -25,14 +25,6 @@ class ProfitAndLossReport extends stock_universal_1.DatabaseAuto {
         }
         this.currency = data.currency;
     }
-    /**
-     * Retrieves profit and loss reports from the server.
-  
-     * @param url - The API endpoint to use. Defaults to 'getall'.
-     * @param offset - The offset to use for pagination. Defaults to 0.
-     * @param limit - The limit to use for pagination. Defaults to 0.
-     * @returns An array of ProfitAndLossReport instances.
-     */
     static async getAll(offset = 0, limit = 20) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
             .makeGet(`/profitandlossreport/all/${offset}/${limit}`);
@@ -51,35 +43,17 @@ class ProfitAndLossReport extends stock_universal_1.DatabaseAuto {
             profitandlossreports: profitandlossreports.data.map((val) => new ProfitAndLossReport(val))
         };
     }
-    /**
-     * Retrieves a single profit and loss report based on the provided urId.
-  
-     * @param urId - The ID of the report to retrieve.
-     * @returns A ProfitAndLossReport instance.
-     */
     static async getOne(urId) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
             .makeGet(`/profitandlossreport/one/${urId}`);
         const profitandlossreport = await (0, rxjs_1.lastValueFrom)(observer$);
         return new ProfitAndLossReport(profitandlossreport);
     }
-    /**
-     * Adds a new profit and loss report to the server.
-  
-     * @param vals - The data for the new report.
-     * @returns An Isuccess object.
-     */
     static add(vals) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
             .makePost('/profitandlossreport/add', vals);
         return (0, rxjs_1.lastValueFrom)(observer$);
     }
-    /**
-     * Deletes multiple profit and loss reports from the server.
-  
-     * @param _ids - An array of report IDs to be deleted.
-     * @returns An Isuccess object.
-     */
     static removeMany(vals) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
             .makePut('/profitandlossreport/delete/many', vals);

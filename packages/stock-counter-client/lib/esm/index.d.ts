@@ -1,13 +1,3 @@
-/**
- * This module exports all the necessary files for the stock-counter-client package.
- * It exports defines for delivery, delivery note,
- * estimate, expense, invoice, order, payment, item,
- * item decoy, item limited, item offer, profit, receipt,
- *  cookies, faq, review, expense report, invoice report, profit and loss
- * report, sales report, tax report, invoice setting, customer, staff, and userbase.
- * It also exports controllers for calculations, inventory, and payment.
- * Finally, it exports the stock-counter-client module.
- */
 export * from './defines/cookies.define';
 export * from './defines/delivery.define';
 export * from './defines/deliverynote.define';

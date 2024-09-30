@@ -22,14 +22,6 @@ export class ProfitAndLossReport extends DatabaseAuto {
         }
         this.currency = data.currency;
     }
-    /**
-     * Retrieves profit and loss reports from the server.
-  
-     * @param url - The API endpoint to use. Defaults to 'getall'.
-     * @param offset - The offset to use for pagination. Defaults to 0.
-     * @param limit - The limit to use for pagination. Defaults to 0.
-     * @returns An array of ProfitAndLossReport instances.
-     */
     static async getAll(offset = 0, limit = 20) {
         const observer$ = StockCounterClient.ehttp
             .makeGet(`/profitandlossreport/all/${offset}/${limit}`);
@@ -48,35 +40,17 @@ export class ProfitAndLossReport extends DatabaseAuto {
             profitandlossreports: profitandlossreports.data.map((val) => new ProfitAndLossReport(val))
         };
     }
-    /**
-     * Retrieves a single profit and loss report based on the provided urId.
-  
-     * @param urId - The ID of the report to retrieve.
-     * @returns A ProfitAndLossReport instance.
-     */
     static async getOne(urId) {
         const observer$ = StockCounterClient.ehttp
             .makeGet(`/profitandlossreport/one/${urId}`);
         const profitandlossreport = await lastValueFrom(observer$);
         return new ProfitAndLossReport(profitandlossreport);
     }
-    /**
-     * Adds a new profit and loss report to the server.
-  
-     * @param vals - The data for the new report.
-     * @returns An Isuccess object.
-     */
     static add(vals) {
         const observer$ = StockCounterClient.ehttp
             .makePost('/profitandlossreport/add', vals);
         return lastValueFrom(observer$);
     }
-    /**
-     * Deletes multiple profit and loss reports from the server.
-  
-     * @param _ids - An array of report IDs to be deleted.
-     * @returns An Isuccess object.
-     */
     static removeMany(vals) {
         const observer$ = StockCounterClient.ehttp
             .makePut('/profitandlossreport/delete/many', vals);
