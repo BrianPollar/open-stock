@@ -1,7 +1,7 @@
 {
   "name": "open-stock",
   "private": true,
-  "version": "3.0.0",
+  "version": "4.2.168",
   "description": "A monorepo in TypeScript",
   "workspaces": [
     "packages/*"
