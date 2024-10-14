@@ -8,10 +8,11 @@ export class Order extends PaymentRelated {
         this.paymentMethod = data.paymentMethod;
         this.deliveryDate = data.deliveryDate;
         this.status = data.status;
+        this.orderStatus = data.orderStatus;
     }
-    static async removeMany(credentials) {
+    static async removeMany(vals) {
         const observer$ = StockCounterClient.ehttp
-            .makePut('/order/delete/many', { credentials });
+            .makePut('/order/delete/many', vals);
         const deleted = await lastValueFrom(observer$);
         return deleted;
     }
@@ -33,9 +34,9 @@ export class Order extends PaymentRelated {
             orders: orders.data.map(val => new Order(val))
         };
     }
-    static async getOne(_id) {
+    static async getOne(id) {
         const observer$ = StockCounterClient.ehttp
-            .makeGet(`/order/one/${_id}`);
+            .makeGet(`/order/one/${id}`);
         const order = await lastValueFrom(observer$);
         return new Order(order);
     }
@@ -56,7 +57,12 @@ export class Order extends PaymentRelated {
     }
     updateDeliveryStatus(status) {
         const observer$ = StockCounterClient.ehttp
-            .makePut(`/appendDelivery/${this._id}/${status}`, {});
+            .makePut(`/order/appendDelivery/${this._id}/${status}`, {});
+        return lastValueFrom(observer$);
+    }
+    remove() {
+        const observer$ = StockCounterClient.ehttp
+            .makeDelete(`/order/delete/one/${this._id}`);
         return lastValueFrom(observer$);
     }
 }

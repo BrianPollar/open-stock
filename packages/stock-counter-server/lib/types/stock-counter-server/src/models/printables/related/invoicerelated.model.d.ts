@@ -23,9 +23,10 @@
 /// <reference types="mongoose/types/virtuals" />
 /// <reference types="mongoose/types/inferschematype" />
 import { IinvoiceRelated } from '@open-stock/stock-universal';
+import { IcompanyIdAsObjectId } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model } from 'mongoose';
 /** model interface for invoiceRelated by */
-export type TinvoiceRelated = Document & IinvoiceRelated;
+export type TinvoiceRelated = Document & IinvoiceRelated & IcompanyIdAsObjectId;
 /**
  * Represents the main invoice related model.
  */

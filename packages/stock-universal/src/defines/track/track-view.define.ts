@@ -1,13 +1,13 @@
 import { lastValueFrom } from 'rxjs';
-import { ItrackView, IuserActionTrack } from '../../interfaces/general.interface';
-import { IdataArrayResponse, Isuccess } from '../../interfaces/return.interface';
 import { StockUniversal } from '../../stock-universal';
-import { TdataTypeForTrack } from '../../types/union.types';
+import { ItrackView, IuserActionTrack } from '../../types/general-types';
+import { IdataArrayResponse, Isuccess } from '../../types/return-types';
+import { TdataTypeForTrack } from '../../types/union-types';
 import { DatabaseAuto } from '../base/base.define';
 
 export interface IparentData {
   _id: string;
-  urId?: string;
+  urId: string;
   info: string;
   dataType: TdataTypeForTrack;
   invoiceId?: string;

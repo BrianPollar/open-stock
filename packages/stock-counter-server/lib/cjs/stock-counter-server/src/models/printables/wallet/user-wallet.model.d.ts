@@ -42,8 +42,8 @@ export declare let userWalletMain: Model<TuserWallet>;
 export declare let userWalletLean: Model<TuserWallet>;
 export declare const userWalletSelect: {
     user: number;
-    amount: number;
-    type: number;
+    accountBalance: number;
+    currency: number;
     trackEdit: number;
     trackView: number;
     isDeleted: number;

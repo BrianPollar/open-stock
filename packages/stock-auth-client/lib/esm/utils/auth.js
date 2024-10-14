@@ -67,21 +67,5 @@ export class AuthController {
             .makePost('/user/confirm', userInfo);
         return lastValueFrom(observer$);
     }
-    // TODO handle social login from here
-    /**
-     * The socialLogin() method is used for social login.
-     * It takes a userInfo object containing the social login information.
-     * It makes a POST request to the '/user/sociallogin' endpoint with the social login details and
-     * returns the response as a promise of type Iauthresponse.
-     * @param userInfo An object containing the social login information.
-     * @returns A promise that resolves to the response from the server.
-     */
-    socialLogin(userInfo) {
-        const loginUrl = '/user/sociallogin';
-        StockAuthClient.logger.debug('AuthService:confirm:: - verifyUrl : %s', loginUrl);
-        const observer$ = StockAuthClient.ehttp
-            .makePost(loginUrl, userInfo);
-        return lastValueFrom(observer$);
-    }
 }
 //# sourceMappingURL=auth.js.map

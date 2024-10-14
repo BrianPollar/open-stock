@@ -5,6 +5,7 @@
  * @requires mongoose-unique-validator
  */
 /// <reference types="mongoose/types/document" />
+/// <reference types="mongoose/types/schematypes" />
 /// <reference types="mongoose/types/models" />
 /// <reference types="mongoose/types/aggregate" />
 /// <reference types="mongoose/types/callback" />
@@ -30,13 +31,13 @@
 /// <reference types="mongoose/types/validation" />
 /// <reference types="mongoose/types/virtuals" />
 /// <reference types="mongoose/types/inferschematype" />
-import { ConnectOptions, Document, Model } from 'mongoose';
+import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 /**
  * Interface for the subscription document.
  */
 export interface ISubscription extends Document {
     subscription: any;
-    userId: string;
+    userId: string | Schema.Types.ObjectId;
 }
 /**
  * Represents the main subscription model.

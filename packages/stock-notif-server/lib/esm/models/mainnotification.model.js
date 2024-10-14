@@ -2,9 +2,8 @@
  * @fileoverview This file contains the Mongoose schema and model for the main notification object.
  * @packageDocumentation
  */
-import { createExpireDocIndex, globalSchemaObj } from '@open-stock/stock-universal-server';
+import { connectDatabase, createExpireDocIndex, globalSchemaObj, isDbConnected, mainConnection, mainConnectionLean } from '@open-stock/stock-universal-server';
 import { Schema } from 'mongoose';
-import { connectNotifDatabase, isNotifDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 /** Mongoose schema for the main notification object. */
 const mainnotificationSchema = new Schema({
     ...globalSchemaObj,
@@ -14,7 +13,7 @@ const mainnotificationSchema = new Schema({
             operation: { type: String },
             url: { type: String }
         }],
-    userId: { type: String, required: [true, 'cannot be empty.'], index: true },
+    userId: { type: Schema.Types.ObjectId, required: [true, 'cannot be empty.'], index: true },
     title: { type: String, required: [true, 'cannot be empty.'] },
     body: { type: String, required: [true, 'cannot be empty.'] },
     icon: { type: String },
@@ -28,19 +27,6 @@ mainnotificationSchema.index({ createdAt: -1 });
 /** Index for the expiration time of the notification. */
 mainnotificationSchema
     .index({ expireAt: 1 }, { expireAfterSeconds: 2628003 });
-/** Primary selection object for the main notification object. */
-const mainNotifselect = {
-    actions: 1,
-    userId: 1,
-    title: 1,
-    body: 1,
-    icon: 1,
-    notifType: 1,
-    notifInvokerId: 1,
-    viewed: 1,
-    active: 1,
-    createdAt: 1
-};
 /**
  * Represents the main notification model.
  */
@@ -58,8 +44,8 @@ export let mainnotificationLean;
  */
 export const createNotificationsModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     createExpireDocIndex(mainnotificationSchema);
-    if (!isNotifDbConnected) {
-        await connectNotifDatabase(dbUrl, dbOptions);
+    if (!isDbConnected) {
+        await connectDatabase(dbUrl, dbOptions);
     }
     if (main) {
         mainnotificationMain = mainConnection

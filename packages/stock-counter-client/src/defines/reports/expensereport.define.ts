@@ -11,7 +11,7 @@ import { Expense } from '../expense.define';
 export class ExpenseReport
   extends DatabaseAuto {
   urId: string;
-  companyId: string;
+  companyId?: string;
   totalAmount: number;
   date: Date;
   expenses: Expense[];
@@ -55,9 +55,9 @@ export class ExpenseReport
     };
   }
 
-  static async getOne(urId: string) {
+  static async getOne(urIdOr_id: string) {
     const observer$ = StockCounterClient.ehttp
-      .makeGet<IexpenseReport>(`/expensereport/one/${urId}`);
+      .makeGet<IexpenseReport>(`/expensereport/one/${urIdOr_id}`);
     const expensereport = await lastValueFrom(observer$);
 
     return new ExpenseReport(expensereport);

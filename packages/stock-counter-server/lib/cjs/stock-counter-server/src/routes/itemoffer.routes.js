@@ -5,35 +5,9 @@ const tslib_1 = require("tslib");
 const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
-const fs = tslib_1.__importStar(require("fs"));
-const path_1 = tslib_1.__importDefault(require("path"));
-const tracer = tslib_1.__importStar(require("tracer"));
+const mongoose_1 = require("mongoose");
 const itemoffer_model_1 = require("../models/itemoffer.model");
 const query_1 = require("../utils/query");
-/** Logger for item offer routes */
-const itemOfferRoutesLogger = tracer.colorConsole({
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-        // eslint-disable-next-line no-console
-        console.log(data.output);
-        const logDir = path_1.default.join(process.cwd() + '/openstockLog/');
-        fs.mkdir(logDir, { recursive: true }, (err) => {
-            if (err) {
-                if (err) {
-                    // eslint-disable-next-line no-console
-                    console.log('data.output err ', err);
-                }
-            }
-        });
-        fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
-            if (err) {
-                // eslint-disable-next-line no-console
-                console.log('raw.output err ', err);
-            }
-        });
-    }
-});
 /**
  * Router for item offers.
  */
@@ -44,39 +18,20 @@ exports.itemOfferRoutes.post('/add', stock_universal_server_1.requireAuth, stock
     itemoffer.companyId = filter.companyId;
     itemoffer.urId = await (0, stock_universal_server_1.generateUrId)(itemoffer_model_1.itemOfferMain);
     const newDecoy = new itemoffer_model_1.itemOfferMain(itemoffer);
-    let errResponse;
-    const saved = await newDecoy.save()
-        .catch(err => {
-        itemOfferRoutesLogger.error('create - err: ', err);
-        errResponse = {
-            success: false,
-            status: 403
-        };
-        if (err && err.errors) {
-            errResponse.err = (0, stock_universal_server_1.stringifyMongooseErr)(err.errors);
-        }
-        else {
-            errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-        }
-        return err;
-    });
-    if (errResponse) {
-        return res.status(403).send(errResponse);
+    const savedRes = await newDecoy.save()
+        .catch((err) => err);
+    if (savedRes instanceof mongoose_1.Error) {
+        const errResponse = (0, stock_universal_server_1.handleMongooseErr)(savedRes);
+        return res.status(errResponse.status).send(errResponse);
     }
-    if (saved && saved._id) {
-        (0, stock_universal_server_1.addParentToLocals)(res, saved._id, itemoffer_model_1.itemOfferMain.collection.collectionName, 'makeTrackEdit');
-    }
-    if (Boolean(saved)) {
-        return res.status(403).send('unknown error');
-    }
+    (0, stock_universal_server_1.addParentToLocals)(res, savedRes._id, itemoffer_model_1.itemOfferMain.collection.collectionName, 'makeTrackEdit');
     return next();
 }, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('offer'));
 exports.itemOfferRoutes.get('/all/:type/:offset/:limit', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
     const { type } = req.params;
     const query = {};
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.params.offset, req.params.limit);
-    let filter;
+    let filter = {};
     if (type !== 'all') {
         filter = { type, ...query };
     }
@@ -99,11 +54,11 @@ exports.itemOfferRoutes.get('/all/:type/:offset/:limit', stock_universal_server_
     return res.status(200).send(response);
 });
 exports.itemOfferRoutes.post('/filter', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('offers', 'read'), async (req, res) => {
-    const { propSort } = req.body;
+    const { propSort, returnEmptyArr } = req.body;
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.body.offset, req.body.limit);
     const aggCursor = itemoffer_model_1.itemOfferLean
         .aggregate([
-        ...(0, stock_universal_server_1.lookupSubFieldItemsRelatedFilter)((0, stock_universal_server_1.constructFiltersFromBody)(req), propSort, offset, limit)
+        ...(0, stock_universal_server_1.lookupSubFieldItemsRelatedFilter)((0, stock_universal_server_1.constructFiltersFromBody)(req), offset, limit, propSort, returnEmptyArr)
     ]);
     const dataArr = [];
     for await (const data of aggCursor) {
@@ -120,15 +75,11 @@ exports.itemOfferRoutes.post('/filter', stock_universal_server_1.requireAuth, st
     }
     return res.status(200).send(response);
 });
-exports.itemOfferRoutes.get('/one/:_id', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
-    const { _id } = req.params;
-    const _ids = [_id];
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)(_ids);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+exports.itemOfferRoutes.get('/one/:urIdOr_id', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
+    const { urIdOr_id } = req.params;
+    const filterwithId = (0, stock_universal_server_1.verifyObjectId)(urIdOr_id) ? { _id: urIdOr_id } : { urId: urIdOr_id };
     const offer = await itemoffer_model_1.itemOfferLean
-        .findOne({ _id, ...(0, stock_universal_server_1.makePredomFilter)(req) })
+        .findOne({ ...filterwithId, ...(0, stock_universal_server_1.makePredomFilter)(req) })
         .populate([(0, query_1.populateItems)(), (0, stock_auth_server_1.populateTrackEdit)(), (0, stock_auth_server_1.populateTrackView)()])
         .lean();
     if (!offer) {
@@ -141,43 +92,30 @@ exports.itemOfferRoutes.delete('/delete/one/:_id', stock_universal_server_1.requ
     const { _id } = req.params;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     // const deleted = await itemOfferMain.findOneAndDelete({ _id, });
-    const deleted = await itemoffer_model_1.itemOfferMain.updateOne({ _id, ...filter }, { $set: { isDeleted: true } });
-    if (Boolean(deleted)) {
-        (0, stock_universal_server_1.addParentToLocals)(res, _id, itemoffer_model_1.itemOfferMain.collection.collectionName, 'trackDataDelete');
-        return res.status(200).send({ success: Boolean(deleted) });
+    const updateRes = await itemoffer_model_1.itemOfferMain.updateOne({ _id, ...filter }, { $set: { isDeleted: true } })
+        .catch((err) => err);
+    if (updateRes instanceof mongoose_1.Error) {
+        const errResponse = (0, stock_universal_server_1.handleMongooseErr)(updateRes);
+        return res.status(errResponse.status).send(errResponse);
     }
-    else {
-        return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
-    }
+    (0, stock_universal_server_1.addParentToLocals)(res, _id, itemoffer_model_1.itemOfferMain.collection.collectionName, 'trackDataDelete');
+    return res.status(200).send({ success: true });
 });
 exports.itemOfferRoutes.put('/delete/many', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('offers', 'delete'), async (req, res) => {
     const { _ids } = req.body;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
-    /* const deleted = await itemOfferMain
-    .deleteMany({ _id: { $in: _ids }, })
-    .catch(err => {
-      itemOfferRoutesLogger.error('deletemany - err: ', err);
-
-      return null;
-    }); */
-    const deleted = await itemoffer_model_1.itemOfferMain
+    const updateRes = await itemoffer_model_1.itemOfferMain
         .updateMany({ _id: { $in: _ids }, ...filter }, {
         $set: { isDeleted: true }
     })
-        .catch(err => {
-        itemOfferRoutesLogger.error('deletemany - err: ', err);
-        return null;
-    });
-    if (Boolean(deleted)) {
-        for (const val of _ids) {
-            (0, stock_universal_server_1.addParentToLocals)(res, val, itemoffer_model_1.itemOfferMain.collection.collectionName, 'trackDataDelete');
-        }
-        return res.status(200).send({ success: Boolean(deleted) });
+        .catch((err) => err);
+    if (updateRes instanceof mongoose_1.Error) {
+        const errResponse = (0, stock_universal_server_1.handleMongooseErr)(updateRes);
+        return res.status(errResponse.status).send(errResponse);
     }
-    else {
-        return res.status(404).send({
-            success: Boolean(deleted), err: 'could not delete selected items, try again in a while'
-        });
+    for (const val of _ids) {
+        (0, stock_universal_server_1.addParentToLocals)(res, val, itemoffer_model_1.itemOfferMain.collection.collectionName, 'trackDataDelete');
     }
+    return res.status(200).send({ success: true });
 });
 //# sourceMappingURL=itemoffer.routes.js.map

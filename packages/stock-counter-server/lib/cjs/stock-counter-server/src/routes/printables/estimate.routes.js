@@ -5,37 +5,11 @@ const tslib_1 = require("tslib");
 const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
-const fs = tslib_1.__importStar(require("fs"));
-const path_1 = tslib_1.__importDefault(require("path"));
-const tracer = tslib_1.__importStar(require("tracer"));
+const mongoose_1 = require("mongoose");
 const estimate_model_1 = require("../../models/printables/estimate.model");
 const invoicerelated_model_1 = require("../../models/printables/related/invoicerelated.model");
 const query_1 = require("../../utils/query");
 const invoicerelated_1 = require("./related/invoicerelated");
-/** Logger for estimate routes */
-const estimateRoutesogger = tracer.colorConsole({
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-        // eslint-disable-next-line no-console
-        console.log(data.output);
-        const logDir = path_1.default.join(process.cwd() + '/openstockLog/');
-        fs.mkdir(logDir, { recursive: true }, (err) => {
-            if (err) {
-                if (err) {
-                    // eslint-disable-next-line no-console
-                    console.log('data.output err ', err);
-                }
-            }
-        });
-        fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
-            if (err) {
-                // eslint-disable-next-line no-console
-                console.log('raw.output err ', err);
-            }
-        });
-    }
-});
 /**
  * Generates a new estimate ID by finding the highest existing estimate ID and incrementing it by 1.
  * @returns The new estimate ID.
@@ -59,20 +33,16 @@ const updateEstimateUniv = async (res, estimateId, stage, companyId) => {
     if (!estimate) {
         return false;
     }
-    let savedErr;
-    await estimate_model_1.estimateMain.updateOne({
+    const updateRes = await estimate_model_1.estimateMain.updateOne({
         estimateId, companyId
     }, {
         $set: {
             stage
             // invoiceId: invoiceId || (estimate as IinvoiceRelated).invoiceId // TODO
         }
-    }).catch(err => {
-        estimateRoutesogger.error('save error', err);
-        savedErr = err;
-        return null;
-    });
-    if (savedErr) {
+    }).catch((err) => err);
+    if (updateRes instanceof mongoose_1.Error) {
+        (0, stock_universal_server_1.handleMongooseErr)(updateRes);
         return false;
     }
     (0, stock_universal_server_1.addParentToLocals)(res, estimate._id, estimate_model_1.estimateLean.collection.collectionName, 'makeTrackEdit');
@@ -91,46 +61,31 @@ exports.estimateRoutes.post('/add', stock_universal_server_1.requireAuth, stock_
     const extraNotifDesc = 'Newly created estimate';
     const invoiceRelatedRes = await (0, invoicerelated_1.relegateInvRelatedCreation)(res, invoiceRelated, filter.companyId, extraNotifDesc);
     if (!invoiceRelatedRes.success) {
-        return res.status(invoiceRelatedRes.status).send(invoiceRelatedRes);
+        return res.status(invoiceRelatedRes.status || 403).send(invoiceRelatedRes);
     }
     estimate.invoiceRelated = invoiceRelatedRes._id;
     const newEstimate = new estimate_model_1.estimateMain(estimate);
-    let errResponse;
     /**
    * Saves a new estimate and returns a response object.
    * @param {Estimate} newEstimate - The new estimate to be saved.
    * @returns {Promise<{success: boolean, status: number, err?: string}>} - A promise that
    * resolves to an object with success, status, and err properties.
    */
-    const saved = await newEstimate.save()
-        .catch(err => {
-        estimateRoutesogger.error('create - err: ', err);
-        errResponse = {
-            success: false,
-            status: 403
-        };
-        if (err && err.errors) {
-            errResponse.err = (0, stock_universal_server_1.stringifyMongooseErr)(err.errors);
-        }
-        else {
-            errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-        }
-        return err;
-    });
-    if (errResponse) {
-        return res.status(403).send(errResponse);
+    const savedRes = await newEstimate.save()
+        .catch((err) => err);
+    if (savedRes instanceof mongoose_1.Error) {
+        const errResponse = (0, stock_universal_server_1.handleMongooseErr)(savedRes);
+        return res.status(errResponse.status).send(errResponse);
     }
-    if (saved && saved._id) {
-        (0, stock_universal_server_1.addParentToLocals)(res, saved._id, estimate_model_1.estimateLean.collection.collectionName, 'makeTrackEdit');
-    }
+    (0, stock_universal_server_1.addParentToLocals)(res, savedRes._id, estimate_model_1.estimateLean.collection.collectionName, 'makeTrackEdit');
     return next();
 }, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('quotation'));
-exports.estimateRoutes.get('/one/:urId', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('estimates', 'read'), async (req, res) => {
-    const { urId } = req.params;
+exports.estimateRoutes.get('/one/:urIdOr_id', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('estimates', 'read'), async (req, res) => {
+    const { urIdOr_id } = req.params;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
+    const filterwithId = (0, stock_universal_server_1.verifyObjectId)(urIdOr_id) ? { _id: urIdOr_id } : { urId: urIdOr_id };
     const estimate = await estimate_model_1.estimateLean
-        .findOne({ urId, ...filter })
+        .findOne({ ...filterwithId, ...filter })
         .lean()
         .populate([(0, query_1.populateInvoiceRelated)(), (0, stock_auth_server_1.populateTrackEdit)(), (0, stock_auth_server_1.populateTrackView)()]);
     if (!estimate || !estimate.invoiceRelated) {
@@ -157,7 +112,9 @@ exports.estimateRoutes.get('/all/:offset/:limit', stock_universal_server_1.requi
     ]);
     const returned = all[0]
         .filter(val => val && val.invoiceRelated)
-        .map(val => (0, invoicerelated_1.makeInvoiceRelatedPdct)(val.invoiceRelated, val.invoiceRelated?.billingUserId, null, {
+        .map(val => (0, invoicerelated_1.makeInvoiceRelatedPdct)(val.invoiceRelated, val.invoiceRelated?.billingUserId, 
+    // eslint-disable-next-line no-undefined
+    undefined, {
         _id: val._id
     }));
     const response = {
@@ -176,21 +133,20 @@ exports.estimateRoutes.put('/delete/one', stock_universal_server_1.requireAuth, 
     if (!found) {
         return res.status(404).send({ success: false, err: 'not found' });
     }
-    const deleted = await (0, invoicerelated_1.deleteAllLinked)(found.invoiceRelated, 'estimate', filter.companyId);
-    if (Boolean(deleted)) {
-        (0, stock_universal_server_1.addParentToLocals)(res, _id, estimate_model_1.estimateLean.collection.collectionName, 'trackDataDelete');
-        return res.status(200).send({ success: Boolean(deleted) });
+    const updateRes = await (0, invoicerelated_1.deleteAllLinked)(found.invoiceRelated, 'estimate', filter.companyId);
+    if (updateRes instanceof mongoose_1.Error) {
+        const errResponse = (0, stock_universal_server_1.handleMongooseErr)(updateRes);
+        return res.status(errResponse.status).send(errResponse);
     }
-    else {
-        return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
-    }
+    (0, stock_universal_server_1.addParentToLocals)(res, _id, estimate_model_1.estimateLean.collection.collectionName, 'trackDataDelete');
+    return res.status(200).send({ success: true });
 });
 exports.estimateRoutes.post('/filter', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('estimates', 'read'), async (req, res) => {
-    const { propSort } = req.body;
+    const { propSort, returnEmptyArr } = req.body;
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.body.offset, req.body.limit);
     const aggCursor = estimate_model_1.estimateLean
         .aggregate([
-        ...(0, stock_universal_server_1.lookupSubFieldInvoiceRelatedFilter)((0, stock_universal_server_1.constructFiltersFromBody)(req), propSort, offset, limit)
+        ...(0, stock_universal_server_1.lookupSubFieldInvoiceRelatedFilter)((0, stock_universal_server_1.constructFiltersFromBody)(req), offset, limit, propSort, returnEmptyArr)
     ]);
     const dataArr = [];
     for await (const data of aggCursor) {
@@ -219,10 +175,10 @@ exports.estimateRoutes.put('/delete/many', stock_universal_server_1.requireAuth,
         if (found) {
             await (0, invoicerelated_1.deleteAllLinked)(found.invoiceRelated, 'estimate', filter.companyId);
         }
-        return new Promise(resolve => resolve(found._id));
+        return new Promise(resolve => resolve(found?._id));
     });
     const filterdExist = await Promise.all(promises);
-    for (const val of filterdExist) {
+    for (const val of filterdExist.filter(value => value)) {
         (0, stock_universal_server_1.addParentToLocals)(res, val, estimate_model_1.estimateLean.collection.collectionName, 'trackDataDelete');
     }
     return res.status(200).send({ success: true });

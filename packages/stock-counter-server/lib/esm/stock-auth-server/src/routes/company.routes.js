@@ -6,11 +6,9 @@
  */
 /* eslint-disable @typescript-eslint/no-var-requires */
 import { createNotifStn } from '@open-stock/stock-notif-server';
-import { addParentToLocals, appendBody, constructFiltersFromBody, generateUrId, lookupSubFieldUserFilter, makeCompanyBasedQuery, offsetLimitRelegator, requireAuth, roleAuthorisation, saveMetaToDb, stringifyMongooseErr, uploadFiles } from '@open-stock/stock-universal-server';
+import { addParentToLocals, appendBody, constructFiltersFromBody, generateUrId, handleMongooseErr, lookupSubFieldUserFilter, mainLogger, makeCompanyBasedQuery, offsetLimitRelegator, requireAuth, roleAuthorisation, saveMetaToDb, uploadFiles } from '@open-stock/stock-universal-server';
 import express from 'express';
-import * as fs from 'fs';
-import path from 'path';
-import * as tracer from 'tracer';
+import { Error } from 'mongoose';
 import { companyLean, companyMain } from '../models/company.model';
 import { user } from '../models/user.model';
 import { populateOwner, populateTrackEdit, populateTrackView } from '../utils/query';
@@ -25,29 +23,22 @@ import { addUser, determineUserToRemove, determineUsersToRemove, removeManyUsers
  */
 export const companyRoutes = express.Router();
 export const addCompany = async (req, res) => {
-    companyAuthLogger.info('Add company');
+    mainLogger.info('Add company');
+    if (!req.body.user || !req.body.company) {
+        return res.status(401).send({ success: false, err: 'unauthorised' });
+    }
     const savedUser = req.body.user;
     const companyData = req.body.company;
     companyData.owner = savedUser._id;
     companyData.urId = await generateUrId(companyMain);
     const newCompany = new companyMain(companyData);
-    let status = 200;
+    const status = 200;
     let response = { success: true };
-    const savedCompany = await newCompany.save().catch((err) => {
-        status = 403;
-        const errResponse = {
-            success: false
-        };
-        if (err && err.errors) {
-            errResponse.err = stringifyMongooseErr(err.errors);
-        }
-        else {
-            errResponse.err = `we are having problems connecting to our databases, 
-      try again in a while`;
-        }
-        response = errResponse;
-        return err;
-    });
+    const savedCompany = await newCompany.save().catch((err) => err);
+    if (savedCompany instanceof Error) {
+        const errResponse = handleMongooseErr(savedCompany);
+        return res.status(errResponse.status).send(errResponse);
+    }
     if (savedCompany && savedCompany._id) {
         addParentToLocals(res, savedCompany._id, companyMain.collection.collectionName, 'makeTrackEdit');
     }
@@ -72,7 +63,10 @@ export const addCompany = async (req, res) => {
     return res.status(status).send(response);
 };
 export const updateCompany = async (req, res) => {
-    companyAuthLogger.info('Update company');
+    mainLogger.info('Update company');
+    if (!req.body.company) {
+        return res.status(401).send({ success: false, err: 'unauthorised' });
+    }
     const updatedCompany = req.body.company;
     const foundCompany = await companyMain
         .findOne({ _id: updatedCompany._id });
@@ -89,49 +83,13 @@ export const updateCompany = async (req, res) => {
             foundCompany[key] = updatedCompany[key] || foundCompany[key];
         }
     });
-    const status = 200;
-    let response = { success: true };
-    await foundCompany.save().catch((err) => {
-        const errResponse = {
-            success: false
-        };
-        if (err && err.errors) {
-            errResponse.err = stringifyMongooseErr(err.errors);
-        }
-        else {
-            errResponse.err = `we are having problems connecting to our databases, 
-      try again in a while`;
-        }
-        response = errResponse;
-    });
-    return res.status(status).send(response);
-};
-/**
- * Logger for company authentication routes.
- */
-const companyAuthLogger = tracer.colorConsole({
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-        // eslint-disable-next-line no-console
-        console.log(data.output);
-        const logDir = path.join(process.cwd() + '/openstockLog/');
-        fs.mkdir(logDir, { recursive: true }, (err) => {
-            if (err) {
-                if (err) {
-                    // eslint-disable-next-line no-console
-                    console.log('data.output err ', err);
-                }
-            }
-        });
-        fs.appendFile(logDir + '/auth-server.log', data.rawoutput + '\n', err => {
-            if (err) {
-                // eslint-disable-next-line no-console
-                console.log('raw.output err ', err);
-            }
-        });
+    const savedRes = await foundCompany.save().catch((err) => err);
+    if (savedRes instanceof Error) {
+        const errResponse = handleMongooseErr(savedRes);
+        return res.status(errResponse.status).send(errResponse);
     }
-});
+    return res.status(200).send({ success: true });
+};
 companyRoutes.post('/add', requireAuth, requireSuperAdmin, addUser, addCompany);
 companyRoutes.get('/all/:offset/:limit', requireAuth, requireSuperAdmin, async (req, res) => {
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
@@ -169,11 +127,11 @@ companyRoutes.get('/one/:_id', requireAuth, requireSuperAdmin, async (req, res) 
     return res.status(200).send(found);
 });
 companyRoutes.post('/filter', requireAuth, requireActiveCompany, roleAuthorisation('users', 'read'), async (req, res) => {
-    const { propSort } = req.body;
+    const { propSort, returnEmptyArr } = req.body;
     const { offset, limit } = offsetLimitRelegator(req.body.offset, req.body.limit);
     const aggCursor = companyLean
         .aggregate([
-        ...lookupSubFieldUserFilter(constructFiltersFromBody(req), propSort, offset, limit)
+        ...lookupSubFieldUserFilter(constructFiltersFromBody(req), offset, limit, propSort, returnEmptyArr)
     ]);
     const dataArr = [];
     for await (const data of aggCursor) {
@@ -195,45 +153,33 @@ companyRoutes.post('/update/img', requireAuth, requireActiveCompany, roleAuthori
 companyRoutes.put('/delete/one', requireAuth, requireActiveCompany, roleAuthorisation('users', 'delete'), determineUserToRemove(companyLean, []), removeOneUser, async (req, res) => {
     const { _id } = req.body;
     const { filter } = makeCompanyBasedQuery(req);
-    const deleted = await companyMain
+    const updateRes = await companyMain
         .updateOne({ _id, ...filter }, {
         $set: { isDeleted: true }
     })
-        .catch(err => {
-        companyAuthLogger.error('deletemany - err: ', err);
-        return null;
-    });
-    if (Boolean(deleted)) {
-        addParentToLocals(res, _id, companyMain.collection.collectionName, 'trackDataDelete');
-        return res.status(200).send({ success: Boolean(deleted) });
+        .catch((err) => err);
+    if (updateRes instanceof Error) {
+        const errResponse = handleMongooseErr(updateRes);
+        return res.status(errResponse.status).send(errResponse);
     }
-    else {
-        return res.status(405).send({
-            success: Boolean(deleted), err: 'could not delete selected items, try again in a while'
-        });
-    }
+    addParentToLocals(res, _id, companyMain.collection.collectionName, 'trackDataDelete');
+    return res.status(200).send({ success: true });
 });
 companyRoutes.put('/delete/many', requireAuth, requireActiveCompany, roleAuthorisation('staffs', 'delete'), determineUsersToRemove(companyLean, []), removeManyUsers, async (req, res) => {
     const { _ids } = req.body;
     const { filter } = makeCompanyBasedQuery(req);
-    const deleted = await companyMain
+    const updateRes = await companyMain
         .updateMany({ _id: { $in: _ids }, ...filter }, {
         $set: { isDeleted: true }
     })
-        .catch(err => {
-        companyAuthLogger.error('deletemany - err: ', err);
-        return null;
-    });
-    if (Boolean(deleted)) {
-        for (const val of _ids) {
-            addParentToLocals(res, val, companyMain.collection.collectionName, 'trackDataDelete');
-        }
-        return res.status(200).send({ success: Boolean(deleted) });
+        .catch((err) => err);
+    if (updateRes instanceof Error) {
+        const errResponse = handleMongooseErr(updateRes);
+        return res.status(errResponse.status).send(errResponse);
     }
-    else {
-        return res.status(404).send({
-            success: Boolean(deleted), err: 'could not delete selected items, try again in a while'
-        });
+    for (const val of _ids) {
+        addParentToLocals(res, val, companyMain.collection.collectionName, 'trackDataDelete');
     }
+    return res.status(200).send({ success: true });
 });
 //# sourceMappingURL=company.routes.js.map

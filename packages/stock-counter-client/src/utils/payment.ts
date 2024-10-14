@@ -9,7 +9,7 @@ import { StockCounterClient } from '../stock-counter-client';
  */
 export class PaymentController {
   /** The current delivery city */
-  currentCity: DeliveryCity;
+  currentCity?: DeliveryCity;
 
   constructor() { }
 
@@ -27,8 +27,8 @@ export class PaymentController {
   calculateTargetPriceOrShipping(isShipping: boolean, data: Icart[], city: DeliveryCity, promoCode: IpromoCode | null) {
     StockCounterClient.logger.debug('PaymentController:calculate:: isShipping', isShipping, data, city);
     let res = 0;
-    let totalCost: number;
-    let totalShipping: number;
+    let totalCost = 0;
+    let totalShipping = 0;
 
     if (!isShipping) {
       let alteredData: Icart[];
@@ -165,7 +165,11 @@ export class PaymentController {
     await this.getDeliveryCitys(deliveryCitys, addr);
     this.currentCity = deliveryCitys.find(val => val._id === addr.city);
     const date = new Date();
-    const deliversInDays = this.currentCity.deliversInDays;
+    const deliversInDays = this.currentCity?.deliversInDays;
+
+    if (!deliversInDays) {
+      return date;
+    }
 
     if (deliversInDays < 30) {
       date.setDate(date.getDate() + deliversInDays);

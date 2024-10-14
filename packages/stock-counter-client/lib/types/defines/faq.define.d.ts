@@ -2,7 +2,7 @@ import { User } from '@open-stock/stock-auth-client';
 import { DatabaseAuto, IdeleteMany, Ifaq, Ifaqanswer, IfilterProps, Isuccess } from '@open-stock/stock-universal';
 export declare class Faq extends DatabaseAuto {
     urId: string;
-    companyId: string;
+    companyId?: string;
     posterName: string;
     posterEmail: string;
     userId: string | User;
@@ -18,7 +18,7 @@ export declare class Faq extends DatabaseAuto {
         count: number;
         faqs: Faq[];
     }>;
-    static getOne(_id: string): Promise<Faq>;
+    static getOne(id: string): Promise<Faq>;
     static add(faq: Ifaq): Promise<Isuccess>;
     static removeMany(vals: IdeleteMany): Promise<Isuccess>;
     changeApproved(approved: boolean): Promise<Isuccess>;
@@ -26,7 +26,7 @@ export declare class Faq extends DatabaseAuto {
 }
 export declare class FaqAnswer extends DatabaseAuto {
     urId: string;
-    companyId: string;
+    companyId?: string;
     faq: string;
     userId: User | string;
     ans: string;
@@ -35,7 +35,7 @@ export declare class FaqAnswer extends DatabaseAuto {
         count: number;
         faqans: FaqAnswer[];
     }>;
-    static getOne(_id: string): Promise<FaqAnswer>;
+    static getOne(urIdOr_id: string): Promise<FaqAnswer>;
     static add(faq: Ifaqanswer): Promise<Isuccess>;
     remove(): Promise<Isuccess>;
 }

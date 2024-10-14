@@ -18,9 +18,9 @@ export class DeliveryCity extends DatabaseAuto {
             citys: citys.data.map(val => new DeliveryCity(val))
         };
     }
-    static async getOne(_id) {
+    static async getOne(urIdOr_id) {
         const observer$ = StockCounterClient.ehttp
-            .makeGet(`/deliverycity/one/${_id}`);
+            .makeGet(`/deliverycity/one/${urIdOr_id}`);
         const city = await lastValueFrom(observer$);
         return new DeliveryCity(city);
     }

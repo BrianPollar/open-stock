@@ -3,37 +3,100 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createItemModel = exports.itemSelect = exports.itemLean = exports.itemMain = void 0;
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const mongoose_1 = require("mongoose");
-const database_1 = require("../utils/database");
 const uniqueValidator = require('mongoose-unique-validator');
 const itemSchema = new mongoose_1.Schema({
     ...stock_universal_server_1.withUrIdAndCompanySchemaObj,
     numbersInstock: { type: Number, required: [true, 'cannot be empty.'], index: true },
-    name: { type: String, required: [true, 'cannot be empty.'], index: true },
+    name: {
+        type: String,
+        required: [true, 'cannot be empty.'],
+        index: true,
+        minLength: [3, 'cannot be less than 3.'],
+        maxLength: [350, 'cannot be more than 50.']
+    },
     category: { type: String },
     subCategory: { type: String },
     state: { type: String },
     photos: [],
     video: { type: String },
     colors: [],
-    model: { type: String },
-    origin: { type: String },
-    anyKnownProblems: { type: String },
+    /* TODO model: {
+      type: String,
+      minLength: [1, 'cannot be less than 1.'],
+      maxLength: [150, 'cannot be more than 150.']
+    }, */
+    origin: {
+        type: String,
+        minLength: [1, 'cannot be less than 1.'],
+        maxLength: [150, 'cannot be more than 150.']
+    },
+    anyKnownProblems: {
+        type: String,
+        minLength: [3, 'cannot be less than 3.'],
+        maxLength: [350, 'cannot be more than 350.']
+    },
     costMeta: {},
-    description: { type: String },
-    numberBought: { type: Number, default: 0 },
-    sponsored: [{ type: String }],
-    buyerGuarantee: { type: String },
+    description: {
+        type: String,
+        minLength: [3, 'cannot be less than 1.']
+    },
+    numberBought: {
+        type: Number,
+        default: 0,
+        min: [0, 'cannot be less than 0.']
+    },
+    sponsored: [String],
+    buyerGuarantee: {
+        type: String,
+        minLength: [1, 'cannot be less than 1.'],
+        maxLength: [150, 'cannot be more than 50.']
+    },
     reviewedBy: [],
-    reviewCount: { type: Number, default: 0, index: true },
-    reviewWeight: { type: Number, default: 0 },
-    reviewRatingsTotal: { type: Number, default: 0, index: true },
+    reviewCount: {
+        type: Number,
+        default: 0,
+        index: true,
+        min: [0, 'cannot be less than 0.']
+    },
+    reviewWeight: {
+        type: Number,
+        default: 0,
+        min: [0, 'cannot be less than 0.']
+    },
+    reviewRatingsTotal: {
+        type: Number,
+        default: 0,
+        index: true,
+        min: [0, 'cannot be less than 0.']
+    },
     likes: [],
     likesCount: { type: Number, default: 0, index: true },
-    timesViewed: { type: Number, default: 0, index: true },
-    inventoryMeta: [],
-    brand: { type: String },
+    timesViewed: {
+        type: Number,
+        default: 0,
+        index: true,
+        min: [0, 'cannot be less than 0.']
+    },
+    inventoryMeta: [
+        {
+            date: { type: Date },
+            quantity: { type: Number },
+            cost: { type: Number },
+            currency: { type: String }
+        }
+    ],
+    brand: {
+        type: String,
+        minLength: [1, 'cannot be less than 1.'],
+        maxLength: [150, 'cannot be more than 150.']
+    },
     ecomerceCompat: { type: Boolean, default: false },
-    soldCount: { type: Number, default: 0, index: true } // TODO update fields related to this
+    soldCount: {
+        type: Number,
+        default: 0,
+        index: true,
+        min: [0, 'cannot be less than 0.']
+    } // TODO update fields related to this
 }, { timestamps: true, collection: 'items' });
 itemSchema.index({ createdAt: -1 });
 // Apply the uniqueValidator plugin to itemSchema.
@@ -90,15 +153,15 @@ exports.itemSelect = itemselect;
  */
 const createItemModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     (0, stock_universal_server_1.createExpireDocIndex)(itemSchema);
-    if (!database_1.isStockDbConnected) {
-        await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
+    if (!stock_universal_server_1.isDbConnected) {
+        await (0, stock_universal_server_1.connectDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.itemMain = database_1.mainConnection
+        exports.itemMain = stock_universal_server_1.mainConnection
             .model('Item', itemSchema);
     }
     if (lean) {
-        exports.itemLean = database_1.mainConnectionLean
+        exports.itemLean = stock_universal_server_1.mainConnectionLean
             .model('Item', itemSchema);
     }
 };

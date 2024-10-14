@@ -1,5 +1,5 @@
 // This file imports the `Tmkrandomstringhow` type from the `union.types` file.
-import { Tmkrandomstringhow } from '../types/union.types';
+import { Tmkrandomstringhow } from '../types/union-types';
 
 // This function generates a random string of a specified length and type.
 

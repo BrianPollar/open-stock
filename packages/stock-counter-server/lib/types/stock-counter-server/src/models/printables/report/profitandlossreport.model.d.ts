@@ -23,11 +23,12 @@
 /// <reference types="mongoose/types/virtuals" />
 /// <reference types="mongoose/types/inferschematype" />
 import { IprofitAndLossReport } from '@open-stock/stock-universal';
+import { IcompanyIdAsObjectId } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model } from 'mongoose';
 /**
  * Represents the type for the profit and loss report.
  */
-export type TprofitandlossReport = Document & IprofitAndLossReport;
+export type TprofitandlossReport = Document & IprofitAndLossReport & IcompanyIdAsObjectId;
 /**
  * Represents the main profit and loss report model.
  */

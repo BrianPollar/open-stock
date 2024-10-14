@@ -3,16 +3,35 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createExpenseModel = exports.expenseSelect = exports.expenseLean = exports.expenseMain = void 0;
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const mongoose_1 = require("mongoose");
-const database_1 = require("../utils/database");
 const uniqueValidator = require('mongoose-unique-validator');
 const expenseSchema = new mongoose_1.Schema({
     ...stock_universal_server_1.withUrIdAndCompanySchemaObj,
-    name: { type: String, required: [true, 'cannot be empty.'], index: true },
-    person: { type: String },
-    cost: { type: Number, required: [true, 'cannot be empty.'], index: true },
-    category: { type: String },
-    note: { type: String },
-    items: [],
+    name: {
+        type: String,
+        required: [true, 'cannot be empty.'],
+        index: true,
+        min: [1, 'cannot be less than 1.'],
+        max: [200, 'cannot be greater than 200.']
+    },
+    person: {
+        type: String,
+        min: [1, 'cannot be less than 1.'],
+        max: [200, 'cannot be greater than 200.']
+    },
+    cost: {
+        type: Number,
+        required: [true, 'cannot be empty.'],
+        index: true,
+        min: [0, 'cannot be less than 0.']
+    },
+    category: { type: String,
+        max: [200, 'cannot be greater than 200.']
+    },
+    note: {
+        type: String,
+        max: [300, 'cannot be greater than 300.']
+    },
+    items: [mongoose_1.Schema.Types.ObjectId],
     currency: { type: String, default: 'USD' }
 }, { timestamps: true, collection: 'expenses' });
 expenseSchema.pre('updateOne', function (next) {
@@ -49,15 +68,15 @@ exports.expenseSelect = expenseselect;
  */
 const createExpenseModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     (0, stock_universal_server_1.createExpireDocIndex)(expenseSchema);
-    if (!database_1.isStockDbConnected) {
-        await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
+    if (!stock_universal_server_1.isDbConnected) {
+        await (0, stock_universal_server_1.connectDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.expenseMain = database_1.mainConnection
+        exports.expenseMain = stock_universal_server_1.mainConnection
             .model('Expense', expenseSchema);
     }
     if (lean) {
-        exports.expenseLean = database_1.mainConnectionLean
+        exports.expenseLean = stock_universal_server_1.mainConnectionLean
             .model('Expense', expenseSchema);
     }
 };

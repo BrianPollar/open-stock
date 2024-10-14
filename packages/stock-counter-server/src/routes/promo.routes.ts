@@ -2,47 +2,20 @@
 import { requireActiveCompany } from '@open-stock/stock-auth-server';
 import {
   IcustomRequest, IdataArrayResponse,
-  IfilterAggResponse, IfilterProps,
-  Isuccess, makeRandomString
+  IfilterAggResponse, IfilterProps, makeRandomString
 } from '@open-stock/stock-universal';
 import {
   addParentToLocals, constructFiltersFromBody,
   generateUrId,
-  lookupLimit, lookupOffset, lookupSort, lookupTrackEdit,
+  handleMongooseErr,
+  lookupFacet,
+  lookupTrackEdit,
   lookupTrackView, makeCompanyBasedQuery, offsetLimitRelegator,
-  requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds
+  requireAuth, roleAuthorisation, verifyObjectId, verifyObjectIds
 } from '@open-stock/stock-universal-server';
 import express from 'express';
-import * as fs from 'fs';
-import path from 'path';
-import * as tracer from 'tracer';
+import { Error } from 'mongoose';
 import { Ipromocode, promocodeLean, promocodeMain } from '../models/promocode.model';
-
-/** Logger for promocode routes */
-const promocodeRoutesLogger = tracer.colorConsole({
-  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-  dateformat: 'HH:MM:ss.L',
-  transport(data) {
-    // eslint-disable-next-line no-console
-    console.log(data.output);
-    const logDir = path.join(process.cwd() + '/openstockLog/');
-
-    fs.mkdir(logDir, { recursive: true }, (err) => {
-      if (err) {
-        if (err) {
-          // eslint-disable-next-line no-console
-          console.log('data.output err ', err);
-        }
-      }
-    });
-    fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
-      if (err) {
-        // eslint-disable-next-line no-console
-        console.log('raw.output err ', err);
-      }
-    });
-  }
-});
 
 /**
  * Router for handling promo code routes.
@@ -55,6 +28,9 @@ promocodeRoutes.post(
   requireActiveCompany,
   roleAuthorisation('items', 'create'),
   async(req: IcustomRequest<never, { items: string; amount; roomId: string }>, res) => {
+    if (!req.user) {
+      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const { items, amount, roomId } = req.body;
     const { companyId } = req.user;
 
@@ -77,46 +53,34 @@ promocodeRoutes.post(
       expireAt: new Date().toString()
     };
     const newpromocode = new promocodeMain(promocode);
-    let errResponse: Isuccess;
-    const saved = await newpromocode.save()
-      .catch(err => {
-        promocodeRoutesLogger.error('create - err: ', err);
-        errResponse = {
-          success: false,
-          status: 403
-        };
-        if (err && err.errors) {
-          errResponse.err = stringifyMongooseErr(err.errors);
-        } else {
-          errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-        }
 
-        return err;
-      });
+    const savedRes = await newpromocode.save()
+      .catch((err: Error) => err);
 
-    if (errResponse) {
-      return res.status(403).send(errResponse);
+    if (savedRes instanceof Error) {
+      const errResponse = handleMongooseErr(savedRes);
+
+      return res.status(errResponse.status).send(errResponse);
     }
 
-    if (saved && saved._id) {
-      addParentToLocals(res, saved._id, promocodeMain.collection.collectionName, 'makeTrackEdit');
-    }
+    addParentToLocals(res, savedRes._id, promocodeMain.collection.collectionName, 'makeTrackEdit');
 
-    return res.status(200).send({ success: Boolean(saved), code });
+    return res.status(200).send({ success: true, code });
   }
 );
 
 promocodeRoutes.get(
-  '/one/:_id',
+  '/one/:urIdOr_id',
   requireAuth,
   requireActiveCompany,
   roleAuthorisation('items', 'read'),
-  async(req: IcustomRequest<{ _id: string }, null>, res) => {
-    const { _id } = req.params;
+  async(req: IcustomRequest<{ urIdOr_id: string }, null>, res) => {
+    const { urIdOr_id } = req.params;
     const { filter } = makeCompanyBasedQuery(req);
+    const filterwithId = verifyObjectId(urIdOr_id) ? { _id: urIdOr_id } : { urId: urIdOr_id };
+
     const promocode = await promocodeLean
-      .findOne({ _id, ...filter })
+      .findOne({ ...filterwithId, ...filter })
       .lean();
 
     if (!promocode) {
@@ -177,7 +141,7 @@ promocodeRoutes.post(
   requireActiveCompany,
   roleAuthorisation('items', 'read'),
   async(req: IcustomRequest<never, IfilterProps>, res) => {
-    const { propSort } = req.body;
+    const { propSort, returnEmptyArr } = req.body;
     const { offset, limit } = offsetLimitRelegator(req.body.offset, req.body.limit);
     const filter = constructFiltersFromBody(req);
 
@@ -192,18 +156,7 @@ promocodeRoutes.post(
       },
       ...lookupTrackEdit(),
       ...lookupTrackView(),
-      {
-        $facet: {
-          data: [...lookupSort(propSort), ...lookupOffset(offset), ...lookupLimit(limit)],
-          total: [{ $count: 'count' }]
-        }
-      },
-      {
-        $unwind: {
-          path: '$total',
-          preserveNullAndEmptyArrays: true
-        }
-      }
+      ...lookupFacet(offset, limit, propSort, returnEmptyArr)
     ]);
     const dataArr: IfilterAggResponse<Ipromocode>[] = [];
 
@@ -233,6 +186,9 @@ promocodeRoutes.delete(
   requireActiveCompany,
   roleAuthorisation('items', 'delete'),
   async(req: IcustomRequest<never, unknown>, res) => {
+    if (!req.user) {
+      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const { _id } = req.params;
     const { companyId } = req.user;
 
@@ -244,14 +200,17 @@ promocodeRoutes.delete(
     }
 
     // const deleted = await promocodeMain.findOneAndDelete({ _id, });
-    const deleted = await promocodeMain.updateOne({ _id }, { $set: { isDeleted: true } });
+    const updateRes = await promocodeMain.updateOne({ _id }, { $set: { isDeleted: true } })
+      .catch((err: Error) => err);
 
-    if (Boolean(deleted)) {
-      addParentToLocals(res, _id, promocodeMain.collection.collectionName, 'trackDataDelete');
+    if (updateRes instanceof Error) {
+      const errResponse = handleMongooseErr(updateRes);
 
-      return res.status(200).send({ success: Boolean(deleted) });
-    } else {
-      return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
+      return res.status(errResponse.status).send(errResponse);
     }
+
+    addParentToLocals(res, _id, promocodeMain.collection.collectionName, 'trackDataDelete');
+
+    return res.status(200).send({ success: true });
   }
 );

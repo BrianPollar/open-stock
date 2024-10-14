@@ -36,9 +36,9 @@ export class SalesReport extends DatabaseAuto {
             salesreports: salesreports.data.map((val) => new SalesReport(val))
         };
     }
-    static async getOne(urId) {
+    static async getOne(urIdOr_id) {
         const observer$ = StockCounterClient.ehttp
-            .makeGet(`/salesreport/one/${urId}`);
+            .makeGet(`/salesreport/one/${urIdOr_id}`);
         const salesreport = await lastValueFrom(observer$);
         return new SalesReport(salesreport);
     }

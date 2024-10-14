@@ -2,11 +2,13 @@
 import { sendSms, sendToken, verifyAuthyToken } from '@open-stock/stock-notif-server';
 import { Iuser } from '@open-stock/stock-universal';
 import {
-  createExpireDocIndex, preSavePassword, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj
+  connectDatabase,
+  createExpireDocIndex, isDbConnected, mainConnection, mainConnectionLean,
+  preSavePassword, preUpdateDocExpire,
+  withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj
 } from '@open-stock/stock-universal-server';
 import bcrypt from 'bcrypt';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import { connectAuthDatabase, isAuthDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 // Create authenticated Authy and Twilio API clients
 // const authy = require('authy')(config.authyKey);
 // const twilioClient = require('twilio')(config.accountSid, config.authToken);
@@ -62,23 +64,52 @@ export type Tuser = Document & Iuser & IschemaMethods;
 const userSchema: Schema<Tuser> = new Schema<Tuser>(
   {
     ...withUrIdAndCompanySchemaObj,
-    fname: { type: String, index: true },
-    lname: { type: String, index: true },
-    companyName: { type: String, index: true },
+    fname: {
+      type: String,
+      index: true,
+      minlength: [3, 'First name must be at least 3 characters'],
+      maxlength: [50, 'First name must be at most 50 characters']
+    },
+    lname: {
+      type: String,
+      index: true,
+      minlength: [3, 'Last name must be at least 3 characters'],
+      maxlength: [50, 'Last name must be at most 50 characters']
+    },
+    companyName: {
+      type: String,
+      index: true,
+      minlength: [3, 'Company name must be at least 3 characters'],
+      maxlength: [50, 'Company name must be at most 50 characters']
+    },
     salutation: { type: String },
     extraCompanyDetails: { type: String },
-    userDispNameFormat: { type: String, default: 'firstLast' },
+    userDispNameFormat: {
+      type: String,
+      default: 'firstLast',
+      enum: ['firstLast', 'lastFirst'],
+      validator: checkDispNameFormat,
+      message: props => `${props.value} is invalid display name format, must be 'firstLast' or 'lastFirst'!`
+    },
     address: [],
     billing: [],
     profilePic: { type: String },
     profileCoverPic: { type: String },
-    photos: [{ type: String }],
+    photos: [String],
     age: { type: String },
     gender: { type: String },
     admin: { type: Boolean, default: false },
     permissions: {},
-    email: { type: String },
-    phone: { type: Number },
+    email: {
+      type: String,
+      validator: checkEmail,
+      message: props => `${props.value} is invalid email!`
+    },
+    phone: {
+      type: Number,
+      validator: checkPhone,
+      message: props => `${props.value} is invalid phone!`
+    },
     expireAt: { type: String },
     verified: { type: Boolean, default: false },
     // authyId: { type: String },
@@ -97,6 +128,18 @@ userSchema.index(
   { expireAfterSeconds: 2628003 }
 );
 
+function checkDispNameFormat(v) {
+  return (v === 'firstLast' || v === 'lastFirst');
+}
+
+function checkEmail(v) {
+  return /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(v);
+}
+
+function checkPhone(v) {
+  return /^\d+$/.test(v);
+}
+
 // Apply the uniqueValidator plugin to userSchema.
 userSchema.plugin(uniqueValidator);
 
@@ -110,7 +153,7 @@ userSchema.pre('save', async function(next) {
     return next();
   }
 
-  const { hash, err } = await preSavePassword(this.get('password'));
+  const { hash, err } = await preSavePassword(this.get('password') as string);
 
   if (err) {
     return next(err);
@@ -181,7 +224,7 @@ userSchema.methods['sendAuthyToken'] = function(cb) {
       this.phone,
       this.countryCode
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ).then((res: any) => {
+    ).then((res) => {
       this.authyId = res.user.id;
       this.save((err1, doc) => {
         if (err1 || !doc) {
@@ -195,8 +238,7 @@ userSchema.methods['sendAuthyToken'] = function(cb) {
   // Otherwise send token to a known user
   sendToken(
     this.phone,
-    this.countryCode,
-    'Your Verification Token Is'
+    this.countryCode
   ).then((resp) => cb.call(this, null, resp)).catch(err => cb.call(this, err));
   // }
 };
@@ -352,8 +394,8 @@ export const userAboutSelect = useraboutSelect;
  */
 export const createUserModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
   createExpireDocIndex(userSchema);
-  if (!isAuthDbConnected) {
-    await connectAuthDatabase(dbUrl, dbOptions);
+  if (!isDbConnected) {
+    await connectDatabase(dbUrl, dbOptions);
   }
 
   if (main) {

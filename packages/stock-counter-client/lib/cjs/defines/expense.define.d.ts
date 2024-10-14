@@ -2,7 +2,7 @@ import { DatabaseAuto, IdeleteMany, Iexpense, IfilterProps, IsubscriptionFeature
 import { Item } from './item.define';
 export declare class Expense extends DatabaseAuto {
     urId: string;
-    companyId: string;
+    companyId?: string;
     name: string;
     person: string;
     cost: number;
@@ -19,7 +19,7 @@ export declare class Expense extends DatabaseAuto {
         count: number;
         expenses: Expense[];
     }>;
-    static getOne(urId: string): Promise<Expense>;
+    static getOne(urIdOr_id: string): Promise<Expense>;
     static add(vals: Iexpense): Promise<IsubscriptionFeatureState>;
     static removeMany(vals: IdeleteMany): Promise<Isuccess>;
     update(vals: Iexpense): Promise<Isuccess>;

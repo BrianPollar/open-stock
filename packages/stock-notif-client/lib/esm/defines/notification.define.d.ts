@@ -6,7 +6,7 @@ import { Iactionwithall, Imainnotification, InotifSetting, Isuccess, TnotifType 
 /** Represents a main notification. */
 export declare class NotificationMain {
     /** The ID of the notification. */
-    _id: string;
+    _id?: string;
     /** An array of actions associated with the notification. */
     actions: Iactionwithall[];
     /** The ID of the user who received the notification. */
@@ -18,13 +18,13 @@ export declare class NotificationMain {
     /** The icon associated with the notification. */
     icon: string;
     /** The type of the notification. */
-    notifType: TnotifType;
+    notifType?: TnotifType;
     /** The ID of the invoker of the notification. */
-    notifInvokerId: string;
+    notifInvokerId?: string;
     /** The expiration date of the notification. */
-    expireAt: string;
+    expireAt?: string;
     /** The creation date of the notification. */
-    createdAt: string;
+    createdAt?: string;
     /**
      * Creates a new instance of NotificationMain.
      * @param data The data to initialize the instance with.
@@ -61,19 +61,19 @@ export declare class NotificationMain {
   
      * @returns A promise that resolves to the number of unviewed notifications.
      */
-    static getUnviewedLength(companyId: string): Promise<number>;
+    static getUnviewedLength(): Promise<number>;
     /**
      * Clears all notifications.
   
      * @returns A promise that resolves to the success status of the operation.
      */
-    static clearAll(companyId: string): Promise<Isuccess>;
+    static clearAll(): Promise<Isuccess>;
     /**
      * Updates the viewed status of the notification.
   
      * @returns A promise that resolves to the success status of the operation.
      */
-    updateViewed(companyId: string): Promise<Isuccess>;
+    updateViewed(): Promise<Isuccess>;
 }
 /** Represents a notification setting. */
 export declare class NotifSetting {
@@ -108,7 +108,7 @@ export declare class NotifSetting {
   
      * @returns A promise that resolves to an array of NotifSetting instances.
      */
-    static getNotificationsSetting(companyId: string): Promise<NotifSetting[]>;
+    static getNotificationsSetting(): Promise<NotifSetting[]>;
     /**
      * Updates the notification settings.
   

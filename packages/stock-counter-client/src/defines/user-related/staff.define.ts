@@ -1,6 +1,6 @@
 import {
   IdataArrayResponse,
-  IdeleteMany, IdeleteOne, IeditStaff,
+  IdeleteMany, IeditStaff,
   Ifile, IfilterProps,
   Isalary,
   Istaff,
@@ -15,6 +15,7 @@ interface IgetOneFilter {
   _id?: string;
   userId?: string;
   companyId?: string;
+  urId?: string;
 }
 
 export class Staff
@@ -77,12 +78,12 @@ export class Staff
       const observer$ = StockCounterClient.ehttp
         .uploadFiles<IsubscriptionFeatureState>(files, '/staff/add/img', vals);
 
-      added = await lastValueFrom(observer$) ;
+      added = await lastValueFrom(observer$);
     } else {
       const observer$ = StockCounterClient.ehttp
         .makePost<IsubscriptionFeatureState>('/staff/add', vals);
 
-      added = await lastValueFrom(observer$) ;
+      added = await lastValueFrom(observer$);
     }
 
     return added;
@@ -95,7 +96,7 @@ export class Staff
     return lastValueFrom(observer$);
   }
 
-  async update(vals: IeditStaff, files: Ifile[]) {
+  async update(vals: IeditStaff, files?: Ifile[]) {
     let updated: Isuccess;
 
     vals.staff._id = this._id;
@@ -119,9 +120,9 @@ export class Staff
     return updated;
   }
 
-  remove(val: IdeleteOne) {
+  remove() {
     const observer$ = StockCounterClient.ehttp
-      .makePut<Isuccess>('/staff/delete/one', val);
+      .makePut<Isuccess>('/staff/delete/one', { _id: this._id });
 
     return lastValueFrom(observer$);
   }

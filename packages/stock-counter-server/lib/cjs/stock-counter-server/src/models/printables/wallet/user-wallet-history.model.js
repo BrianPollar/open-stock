@@ -3,11 +3,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createUserWalletHistoryModel = exports.userWalletHistorySelect = exports.userWalletHistoryLean = exports.userWalletHistoryMain = void 0;
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const mongoose_1 = require("mongoose");
-const database_1 = require("../../../utils/database");
 const userWalletHistorySchema = new mongoose_1.Schema({
     ...stock_universal_server_1.globalSchemaObj,
-    wallet: { type: String, index: true },
-    amount: { type: String, required: [true, 'cannot be empty.'], index: true },
+    wallet: { type: mongoose_1.Schema.Types.ObjectId, index: true },
+    amount: { type: Number, required: [true, 'cannot be empty.'], index: true },
     type: { type: String, required: [true, 'cannot be empty.'], index: true }
 }, { timestamps: true, collection: 'userwallethistories' });
 userWalletHistorySchema.pre('updateOne', function (next) {
@@ -31,15 +30,15 @@ exports.userWalletHistorySelect = userWalletHistoryselect;
  */
 const createUserWalletHistoryModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     (0, stock_universal_server_1.createExpireDocIndex)(userWalletHistorySchema);
-    if (!database_1.isStockDbConnected) {
-        await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
+    if (!stock_universal_server_1.isDbConnected) {
+        await (0, stock_universal_server_1.connectDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.userWalletHistoryMain = database_1.mainConnection
+        exports.userWalletHistoryMain = stock_universal_server_1.mainConnection
             .model('UserWalletHistory', userWalletHistorySchema);
     }
     if (lean) {
-        exports.userWalletHistoryLean = database_1.mainConnectionLean
+        exports.userWalletHistoryLean = stock_universal_server_1.mainConnectionLean
             .model('UserWalletHistory', userWalletHistorySchema);
     }
 };

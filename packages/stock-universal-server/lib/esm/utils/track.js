@@ -1,8 +1,5 @@
 import express from 'express';
-import * as fs from 'fs';
 import { Types } from 'mongoose';
-import path from 'path';
-import * as tracer from 'tracer';
 import { deleteAllFiles } from '../filemanager/fs';
 import { fileMetaLean } from '../models/filemeta.model';
 import { trackDeletedLean, trackDeletedMain } from '../models/tracker/track-deleted.model';
@@ -10,33 +7,12 @@ import { trackEditLean, trackEditMain } from '../models/tracker/track-edit.model
 import { trackViewLean, trackViewMain } from '../models/tracker/track-view.model';
 import { lookupBillingUser, lookupInvoiceRelated, lookupItems, lookupPaymentRelated, lookupPhotos, lookupUser } from '../query/general';
 import { stockUniversalConfig } from '../stock-universal-local';
+import { mainLogger } from './back-logger';
 import { mainConnection } from './database';
 import { requireAuth } from './expressrouter';
 import { offsetLimitRelegator } from './offsetlimitrelegator';
+import { roleAuthorisation } from './passport';
 import { verifyObjectId, verifyObjectIds } from './verify';
-const trackerLogger = tracer.colorConsole({
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-        // eslint-disable-next-line no-console
-        console.log(data.output);
-        const logDir = path.join(process.cwd() + '/openstockLog/');
-        fs.mkdir(logDir, { recursive: true }, (err) => {
-            if (err) {
-                if (err) {
-                    // eslint-disable-next-line no-console
-                    console.log('data.output err ', err);
-                }
-            }
-        });
-        fs.appendFile(logDir + '/universal-server.log', data.rawoutput + '\n', err => {
-            if (err) {
-                // eslint-disable-next-line no-console
-                console.log('raw.output err ', err);
-            }
-        });
-    }
-});
 /**
  * Creates a new track edit in the database.
  *
@@ -45,7 +21,7 @@ const trackerLogger = tracer.colorConsole({
  * @returns The saved track edit document.
  */
 export const createTrackEdit = async (trackEdit) => {
-    trackerLogger.info('createTrackEdit, trackEdit', trackEdit);
+    mainLogger.info('createTrackEdit, trackEdit', trackEdit);
     const newTrackEdit = new trackEditMain(trackEdit);
     const saved = await newTrackEdit.save();
     return saved;
@@ -58,7 +34,7 @@ export const createTrackEdit = async (trackEdit) => {
  * @returns The saved track view document.
  */
 export const createTrackView = async (trackView) => {
-    trackerLogger.info('createTrackView, ', trackView);
+    mainLogger.info('createTrackView, ', trackView);
     const newTrackView = new trackViewMain(trackView);
     const saved = await newTrackView.save();
     return saved;
@@ -71,7 +47,7 @@ export const createTrackView = async (trackView) => {
  * @returns The saved track deleted document.
  */
 export const createTrackDeleted = async (trackDeleted) => {
-    trackerLogger.info('createTrackDeleted, ', trackDeleted);
+    mainLogger.info('createTrackDeleted, ', trackDeleted);
     const newTrackDeleted = new trackDeletedMain(trackDeleted);
     const saved = await newTrackDeleted.save();
     return saved;
@@ -86,9 +62,9 @@ export const createTrackDeleted = async (trackDeleted) => {
  * @returns The saved track edit document wrapped in an `ItrackReturn` object.
  */
 export const makeTrackEdit = async (req, parent, trackEdit) => {
-    trackerLogger.info('parent ', parent);
+    mainLogger.info('parent ', parent);
     const isValid = verifyObjectId(parent);
-    if (!isValid) {
+    if (!isValid || !trackEdit.createdBy) {
         return { success: false };
     }
     const created = await createTrackEdit({
@@ -98,12 +74,12 @@ export const makeTrackEdit = async (req, parent, trackEdit) => {
                 _id: trackEdit.createdBy,
                 createdAt: new Date().toString(),
                 state: 'create',
-                ip: req.headers['x-forwarded-for'].toString() || req.socket.remoteAddress,
+                ip: req.headers['x-forwarded-for']?.toString() || req.socket.remoteAddress,
                 deviceInfo: req.headers.host
             }],
         collectionName: trackEdit.collectionName
     });
-    trackerLogger.debug('makeTrackEdit, created', created);
+    mainLogger.debug('makeTrackEdit, created', created);
     return { success: true, trackEdit: created };
 };
 /**
@@ -118,14 +94,14 @@ export const makeTrackEdit = async (req, parent, trackEdit) => {
    * @returns An `ItrackEditReturn` object with the saved track edit data.
    */
 export const updateTrackEdit = async (req, parent, trackEdit, userId, trackDataRestore = false) => {
-    trackerLogger.info('updateTrackEdit, parent ', parent);
-    trackerLogger.info('updateTrackEdit, userId ', userId);
-    trackerLogger.info('updateTrackEdit, trackDataRestore ', trackDataRestore);
+    mainLogger.info('updateTrackEdit, parent ', parent);
+    mainLogger.info('updateTrackEdit, userId ', userId);
+    mainLogger.info('updateTrackEdit, trackDataRestore ', trackDataRestore);
     const isValid = verifyObjectId(parent);
     if (!isValid) {
         return { success: false };
     }
-    let found = await trackEditLean.findOne({ parent }).lean();
+    let found = await trackEditLean.findOne({ parent });
     const users = found?.users || [];
     let state = trackEdit?.deletedBy ? 'delete' : 'update';
     if (trackDataRestore) {
@@ -146,11 +122,11 @@ export const updateTrackEdit = async (req, parent, trackEdit, userId, trackDataR
         }
         updateParent = true;
     }
-    trackerLogger.debug('updateTrackEdit, state ', state);
+    mainLogger.debug('updateTrackEdit, state ', state);
     users.push({
         _id: userId,
         createdAt: new Date().toString(),
-        ip: req.headers['x-forwarded-for'].toString() || req.socket.remoteAddress,
+        ip: req.headers['x-forwarded-for']?.toString() || req.socket.remoteAddress,
         state,
         deviceInfo: req.headers.host
     });
@@ -158,8 +134,9 @@ export const updateTrackEdit = async (req, parent, trackEdit, userId, trackDataR
             users,
             deletedBy: trackEdit.deletedBy,
             expireDocAfter: trackEdit.deletedBy ? stockUniversalConfig.expireDocAfterSeconds : ''
-        } });
-    if (trackEdit.deletedBy) {
+        } })
+        .catch((err) => err);
+    if (trackEdit.deletedBy && !trackEdit.collectionName) {
         await makeTrackDeleted({ parent, deletedAt: new Date().toString(), collectionName: trackEdit.collectionName });
     }
     return { success: true, updateParent, savedEdit: found };
@@ -171,7 +148,7 @@ export const updateTrackEdit = async (req, parent, trackEdit, userId, trackDataR
  * @returns A boolean indicating whether the document was successfully deleted.
  */
 export const deleteTrackEdit = async (parent) => {
-    trackerLogger.info('deleteTrackEdit, parent', parent);
+    mainLogger.info('deleteTrackEdit, parent', parent);
     const isValid = verifyObjectId(parent);
     if (!isValid) {
         return false;
@@ -222,8 +199,8 @@ export const getAllTrackEdit = async (req, res) => {
    * object with the saved track view document wrapped in `trackView` if successful.
    */
 export const makeTrackView = async (req, parent, trackView, userId) => {
-    trackerLogger.info('makeTrackView, parent', parent);
-    trackerLogger.info('makeTrackView, userId', userId);
+    mainLogger.info('makeTrackView, parent', parent);
+    mainLogger.info('makeTrackView, userId', userId);
     const isValid = verifyObjectId(parent);
     if (!isValid) {
         return { success: false };
@@ -233,12 +210,12 @@ export const makeTrackView = async (req, parent, trackView, userId) => {
         users: [{
                 _id: userId,
                 createdAt: new Date().toString(),
-                ip: req.headers['x-forwarded-for'].toString() || req.socket.remoteAddress,
+                ip: req.headers['x-forwarded-for']?.toString() || req.socket.remoteAddress,
                 deviceInfo: req.headers.host
             }],
         collectionName: trackView.collectionName
     });
-    trackerLogger.debug('makeTrackView, created', created);
+    mainLogger.debug('makeTrackView, created', created);
     return { success: true, trackView: created };
 };
 /**
@@ -252,14 +229,14 @@ export const makeTrackView = async (req, parent, trackView, userId) => {
    * the saved track view document wrapped in `trackView` if successful.
    */
 export const updateTrackView = async (req, parent, userId, collectionName) => {
-    trackerLogger.info('updateTrackView, parent', parent);
-    trackerLogger.info('updateTrackView, userId', userId);
-    trackerLogger.info('updateTrackView, collectionName', collectionName);
+    mainLogger.info('updateTrackView, parent', parent);
+    mainLogger.info('updateTrackView, userId', userId);
+    mainLogger.info('updateTrackView, collectionName', collectionName);
     const isValid = verifyObjectId(parent);
     if (!isValid) {
         return { success: false };
     }
-    let found = await trackViewLean.findOne({ parent }).lean();
+    let found = await trackViewLean.findOne({ parent });
     let updateParent = false;
     if (!found) {
         found = await createTrackView({
@@ -273,11 +250,12 @@ export const updateTrackView = async (req, parent, userId, collectionName) => {
     users.push({
         _id: userId,
         createdAt: new Date().toString(),
-        ip: req.headers['x-forwarded-for'].toString() || req.socket.remoteAddress,
+        ip: req.headers['x-forwarded-for']?.toString() || req.socket.remoteAddress,
         deviceInfo: req.headers.host
     });
-    await trackViewMain.updateOne({ parent }, { $set: { users } });
-    trackerLogger.debug('updateTrackView, updateParent', updateParent);
+    await trackViewMain.updateOne({ parent }, { $set: { users } })
+        .catch((err) => err);
+    mainLogger.debug('updateTrackView, updateParent', updateParent);
     return { success: true, updateParent, trackView: found };
 };
 /**
@@ -286,7 +264,7 @@ export const updateTrackView = async (req, parent, userId, collectionName) => {
    * @returns {Promise<boolean>} - true if deletion was successfull, false otherwise
    */
 export const deleteTrackView = async (parent) => {
-    trackerLogger.info('deleteTrackView, parent', parent);
+    mainLogger.info('deleteTrackView, parent', parent);
     const isValid = verifyObjectId(parent);
     if (!isValid) {
         return false;
@@ -331,7 +309,7 @@ export const getAllTrackView = async (req, res) => {
    * @returns {Promise<DocumentType<ItrackDeleted>>} - the saved track deleted document
    */
 export const makeTrackDeleted = async (trackDeleted) => {
-    trackerLogger.info('makeTrackDeleted, trackDeleted', trackDeleted);
+    mainLogger.info('makeTrackDeleted, trackDeleted', trackDeleted);
     trackDeleted.expireDocAfter = new Date();
     const newTrackDeleted = new trackDeletedMain(trackDeleted);
     const saved = await newTrackDeleted.save();
@@ -343,7 +321,7 @@ export const makeTrackDeleted = async (trackDeleted) => {
    * @returns {Promise<boolean>} - true if deleted, false if not
    */
 export const deleteTrackDeleted = async (parent) => {
-    trackerLogger.info('deleteTrackDeleted parent', parent);
+    mainLogger.info('deleteTrackDeleted parent', parent);
     const isValid = verifyObjectId(parent);
     if (!isValid) {
         return false;
@@ -399,14 +377,14 @@ export const appendTrackViewToLocals = (data: IappendTrackViewDataToLocals, res,
    */
 export const trackUser = (req, res, next) => {
     res.on('finish', async () => {
-        trackerLogger.info('trackUser, on finish');
+        mainLogger.info('trackUser, on finish');
         const user = req.user;
-        trackerLogger.debug('trackUser, trackUsers', stockUniversalConfig.trackUsers);
+        mainLogger.debug('trackUser, trackUsers', stockUniversalConfig.trackUsers);
         if (!stockUniversalConfig.trackUsers) {
             // next();
             return;
         }
-        trackerLogger.debug('trackUser, user', user);
+        mainLogger.debug('trackUser, user', user);
         if (!user || !user.userId) {
             // next();
             return;
@@ -416,10 +394,10 @@ export const trackUser = (req, res, next) => {
             return;
         }
         if (!res.locals?.parentsWithCollections) {
-            trackerLogger.debug('trackUser, no parents');
+            mainLogger.debug('trackUser, no parents');
             return;
         }
-        trackerLogger.debug('trackUser, parents pure', res.locals?.parentsWithCollections);
+        mainLogger.debug('trackUser, parents pure', res.locals?.parentsWithCollections);
         const parents = res.locals?.parentsWithCollections?.map(val => {
             if (!val.parent) {
                 return null;
@@ -428,12 +406,12 @@ export const trackUser = (req, res, next) => {
             return val;
         }).filter((obj, index, self) => // remove duplicates
          index === self.findIndex((t) => t.parent === obj.parent));
-        trackerLogger.debug('trackUser, parents transformed', parents);
+        mainLogger.debug('trackUser, parents transformed', parents);
         if (!parents) {
             return;
         }
         const promises = parents.map(async (parentWithCollection) => {
-            trackerLogger.error('trackDataView', 999999, parentWithCollection.trackWhat);
+            mainLogger.error('trackDataView', parentWithCollection.trackWhat);
             switch (parentWithCollection.trackWhat) {
                 case 'makeTrackEdit': {
                     const trackEdit = {
@@ -443,19 +421,20 @@ export const trackUser = (req, res, next) => {
                         collectionName: parentWithCollection.collection
                     };
                     const { updateParent, savedEdit } = await updateTrackEdit(req, parentWithCollection.parent, trackEdit, user.userId, false);
-                    if (updateParent) {
+                    if (updateParent && savedEdit?._id) {
                         await mainConnection.db.collection(parentWithCollection.collection)
-                            .updateOne({ _id: new Types.ObjectId(parentWithCollection.parent) }, { $set: { trackEdit: savedEdit._id.toString() } });
+                            .updateOne({ _id: new Types.ObjectId(parentWithCollection.parent) }, { $set: { trackEdit: savedEdit._id.toString() } }).catch((err) => err);
                     }
                     break;
                 }
                 case 'trackDataView': {
                     const { updateParent, trackView } = await updateTrackView(req, parentWithCollection.parent, user.userId, parentWithCollection.collection);
-                    if (updateParent) {
-                        trackerLogger.error('collection', 7777777, parentWithCollection.collection);
+                    if (updateParent && trackView?._id) {
+                        mainLogger.error('collection', parentWithCollection.collection);
                         await mainConnection.db.collection(parentWithCollection.collection)
-                            .updateOne({ _id: new Types.ObjectId(parentWithCollection.parent) }, { $set: { trackView: trackView._id.toString() } }).catch(err => {
-                            trackerLogger.error('update error ', err);
+                            .updateOne({ _id: new Types.ObjectId(parentWithCollection.parent) }, { $set: { trackView: trackView._id.toString() } }).catch((err) => {
+                            mainLogger.error('update error ', err);
+                            return err;
                         });
                     }
                     break;
@@ -468,9 +447,9 @@ export const trackUser = (req, res, next) => {
                         collectionName: parentWithCollection.collection
                     };
                     const { updateParent, savedEdit } = await updateTrackEdit(req, parentWithCollection.parent, trackEdit, user.userId, true);
-                    if (updateParent) {
+                    if (updateParent && savedEdit?._id) {
                         await mainConnection.db.collection(parentWithCollection.collection)
-                            .updateOne({ _id: new Types.ObjectId(parentWithCollection.parent) }, { $set: { trackEdit: savedEdit._id.toString() } });
+                            .updateOne({ _id: new Types.ObjectId(parentWithCollection.parent) }, { $set: { trackEdit: savedEdit._id.toString() } }).catch((err) => err);
                     }
                     break;
                 }
@@ -485,12 +464,12 @@ export const trackUser = (req, res, next) => {
                     break;
                 }
             }
-            return new Promise((resolve, reject) => {
+            return new Promise((resolve) => {
                 return resolve(true);
             });
         });
         await Promise.all(promises);
-        trackerLogger.debug('trackUser, resolved');
+        mainLogger.debug('trackUser, resolved');
     });
     next();
 };
@@ -546,7 +525,7 @@ export const hasValidIdsInRequest = (req, res, next) => {
     if (idStrings.length > 0) {
         const isValid = verifyObjectIds(idStrings);
         if (!isValid) {
-            trackerLogger.error('hasValidIdsInRequest idStrings', idStrings);
+            mainLogger.error('hasValidIdsInRequest idStrings', idStrings);
             return res.status(401).send({ success: false, err: 'unauthorised' });
         }
     }
@@ -581,7 +560,7 @@ export const isDocDeleted = async (req, res, next) => {
     if (parents.length > 0) {
         const found = await trackDeletedLean.find({ parent: { $in: parents } }).lean();
         if (found.length > 0) {
-            trackerLogger.error('isDocDeleted length', found.length);
+            mainLogger.error('isDocDeleted length', found.length);
             return res.status(401).send({ success: false, err: 'unauthorised' });
         }
     }
@@ -674,7 +653,7 @@ trackRoutes.post('/gettrackviewbydate/:offset/:limit', requireAuth, async (req, 
     };
     return res.status(200).send(response);
 });
-trackRoutes.post('/gettrackviewbyuserdate/:offset/:limit', requireAuth, async (req, res) => {
+trackRoutes.post('/gettrackviewbyuserdate/:offset/:limit', requireAuth, roleAuthorisation('viewTrackStamp', 'read'), async (req, res) => {
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     let filter = {};
     switch (req.body.direction) {
@@ -712,8 +691,9 @@ trackRoutes.post('/gettrackviewbyuserdate/:offset/:limit', requireAuth, async (r
         count: all[1],
         data: await transformDataWitParents(all[0])
     };
+    return res.status(200).send(response);
 });
-trackRoutes.get('/gettrackviewbyparent/:parent', requireAuth, async (req, res) => {
+trackRoutes.get('/gettrackviewbyparent/:parent', requireAuth, roleAuthorisation('viewTrackStamp', 'read'), async (req, res) => {
     const { parent } = req.params;
     const isValid = verifyObjectId(parent);
     if (!isValid) {
@@ -728,7 +708,7 @@ trackRoutes.get('/gettrackviewbyparent/:parent', requireAuth, async (req, res) =
     found.users = await transformWithUserData(found.users);
     return res.status(200).send(found);
 });
-trackRoutes.get('/gettrackeditbyparent/:parent', requireAuth, async (req, res) => {
+trackRoutes.get('/gettrackeditbyparent/:parent', requireAuth, roleAuthorisation('viewTrackStamp', 'read'), async (req, res) => {
     const { parent } = req.params;
     const isValid = verifyObjectId(parent);
     if (!isValid) {
@@ -743,7 +723,7 @@ trackRoutes.get('/gettrackeditbyparent/:parent', requireAuth, async (req, res) =
     found.users = await transformWithUserData(found.users);
     return res.status(200).send(found);
 });
-trackRoutes.get('/gettrackdeletebyparent/:parent', requireAuth, async (req, res) => {
+trackRoutes.get('/gettrackdeletebyparent/:parent', requireAuth, roleAuthorisation('viewTrackStamp', 'read'), async (req, res) => {
     const { parent } = req.params;
     const isValid = verifyObjectId(parent);
     if (!isValid) {
@@ -757,7 +737,7 @@ trackRoutes.get('/gettrackdeletebyparent/:parent', requireAuth, async (req, res)
     }
     return res.status(200).send(found);
 });
-trackRoutes.get('/gettrackviewbyuser/:offset/:limit/:userId', requireAuth, async (req, res) => {
+trackRoutes.get('/gettrackviewbyuser/:offset/:limit/:userId', requireAuth, roleAuthorisation('viewTrackStamp', 'read'), async (req, res) => {
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     const isValid = verifyObjectId(req.params.userId);
     if (!isValid) {
@@ -780,7 +760,7 @@ trackRoutes.get('/gettrackviewbyuser/:offset/:limit/:userId', requireAuth, async
     };
     return res.status(200).send(response);
 });
-trackRoutes.get('/gettrackeditbyuser/:offset/:limit/:userId', requireAuth, async (req, res) => {
+trackRoutes.get('/gettrackeditbyuser/:offset/:limit/:userId', requireAuth, roleAuthorisation('viewTrackStamp', 'read'), async (req, res) => {
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     const isValid = verifyObjectId(req.params.userId);
     if (!isValid) {
@@ -803,7 +783,7 @@ trackRoutes.get('/gettrackeditbyuser/:offset/:limit/:userId', requireAuth, async
     };
     return res.status(200).send(response);
 });
-trackRoutes.get('/gettrackview/:offset/:limit', requireAuth, async (req, res) => {
+trackRoutes.get('/gettrackview/:offset/:limit', requireAuth, roleAuthorisation('viewTrackStamp', 'read'), async (req, res) => {
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     /* const isValid = verifyObjectId(req.body.userId);
 
@@ -828,7 +808,7 @@ trackRoutes.get('/gettrackview/:offset/:limit', requireAuth, async (req, res) =>
     };
     return res.status(200).send(response);
 });
-trackRoutes.get('/gettrackedit/:offset/:limit', requireAuth, async (req, res) => {
+trackRoutes.get('/gettrackedit/:offset/:limit', requireAuth, roleAuthorisation('viewTrackStamp', 'read'), async (req, res) => {
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     /* const isValid = verifyObjectId(req.body.userId);
 
@@ -853,7 +833,7 @@ trackRoutes.get('/gettrackedit/:offset/:limit', requireAuth, async (req, res) =>
     };
     return res.status(200).send(response);
 });
-trackRoutes.get('/gettrackdelete/:offset/:limit', requireAuth, async (req, res) => {
+trackRoutes.get('/gettrackdelete/:offset/:limit', requireAuth, roleAuthorisation('viewTrackStamp', 'read'), async (req, res) => {
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     /* const isValid = verifyObjectId(req.body.userId);
 
@@ -878,18 +858,24 @@ trackRoutes.get('/gettrackdelete/:offset/:limit', requireAuth, async (req, res) 
     };
     return res.status(200).send(response);
 });
-trackRoutes.delete('/deletetrackdelete/:_id', requireAuth, (req, res) => {
-    const { _id } = req.params;
-    // remove parent
+/* trackRoutes.delete('/deletetrackdelete/:_id', requireAuth, (req: IcustomRequest<never, unknown>, res) => {
+  const { _id } = req.params;
+
+  // remove parent
 });
-trackRoutes.delete('/deletetrackedit/:_id', requireAuth, (req, res) => {
-    const { _id } = req.params;
-    // remove parent
+
+
+trackRoutes.delete('/deletetrackedit/:_id', requireAuth, (req: IcustomRequest<never, unknown>, res) => {
+  const { _id } = req.params;
+
+  // remove parent
 });
-trackRoutes.delete('/deletetrackview/:_id', requireAuth, (req, res) => {
-    const { _id } = req.params;
-    // remove parent
-});
+
+trackRoutes.delete('/deletetrackview/:_id', requireAuth, (req: IcustomRequest<never, unknown>, res) => {
+  const { _id } = req.params;
+
+  // remove parent
+}); */
 /**
    * Transforms the given data by replacing the parent id with the actual parent
    * document. The parent document is fetched from the database based on the
@@ -900,7 +886,9 @@ trackRoutes.delete('/deletetrackview/:_id', requireAuth, (req, res) => {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const transformDataWitParents = async (data) => {
     const allWithParnet = data.map(async (val) => {
-        val.parent = await getParentData(val.parent, val.collectionName);
+        if (val.parent && typeof val.parent === 'string') {
+            val.parent = await getParentData(val.parent, val.collectionName);
+        }
         return new Promise((resolve) => {
             return resolve(val);
         });
@@ -1283,13 +1271,16 @@ const getParentData = async (parent, collectionName) => {
    */
 const transformWithUserData = async (data) => {
     const allWithParnet = data.map(async (val) => {
-        val._id = await getUserData(val._id);
+        const userData = await getUserData(val._id);
+        if (userData) {
+            val._id = userData;
+        }
         return new Promise((resolve) => {
             return resolve(val);
         });
     });
     const dataWithParent = await Promise.all(allWithParnet);
-    return dataWithParent;
+    return dataWithParent.filter(val => val);
 };
 /**
    * Retrieves a user document from the database based on the provided user ID.
@@ -1311,6 +1302,9 @@ const getUserData = async (userId) => {
    * @returns {Promise<void>} - A promise that resolves when all documents have been removed.
    */
 export const periodicRemove = async () => {
+    if (!stockUniversalConfig.expireDocAfterSeconds) {
+        return;
+    }
     const dateDiff = addSecondsToDate(new Date(), -stockUniversalConfig.expireDocAfterSeconds);
     const collectionNames = await mainConnection.db.listCollections().toArray();
     for (const { name } of collectionNames) {
@@ -1331,6 +1325,9 @@ export const deleteLingeringFiles = async () => {
    * @returns {Promise<void>}
    */
 export const autoCleanFiles = async () => {
+    if (!stockUniversalConfig.expireDocAfterSeconds) {
+        return;
+    }
     const dateDiff = addSecondsToDate(new Date(), -stockUniversalConfig.expireDocAfterSeconds);
     const filter = { isDeleted: true, expireDocAfter: { $lt: dateDiff } };
     const files = await fileMetaLean.find(filter).lean();

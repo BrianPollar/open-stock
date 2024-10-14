@@ -12,7 +12,7 @@ exports.globalSchemaObj = {
 };
 exports.withCompanySchemaObj = {
     ...exports.globalSchemaObj,
-    companyId: { type: mongoose_1.Schema.ObjectId, index: true }
+    companyId: { type: mongoose_1.Schema.Types.ObjectId, index: true }
 };
 exports.withUrIdAndCompanySchemaObj = {
     ...exports.withCompanySchemaObj,

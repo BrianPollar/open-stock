@@ -1,4 +1,4 @@
-import { ImodelLimit, IsubscriptionFeature, IsubscriptionPackage } from '../interfaces/general.interface';
+import { ImodelLimit, IsubscriptionFeature, IsubscriptionPackage } from '../types/general-types';
 
 /**
  * Array of inventory statuses.
@@ -183,7 +183,7 @@ export const productState = [{
 ];
 
 
-export const subscriptionPackages: IsubscriptionPackage[] = [
+export const subscriptionPackages: Partial<IsubscriptionPackage>[] = [
   {
     name: 'Basic',
     ammount: 50,

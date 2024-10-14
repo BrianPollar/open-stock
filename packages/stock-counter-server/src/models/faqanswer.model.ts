@@ -1,22 +1,31 @@
 import { Ifaqanswer } from '@open-stock/stock-universal';
 import {
-  createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj
+  IcompanyIdAsObjectId,
+  connectDatabase,
+  createExpireDocIndex,
+  isDbConnected, mainConnection, mainConnectionLean,
+  preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj
 } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 
 /**
  * Represents a FAQ answer document.
  * Extends the Document interface and the Ifaqanswer interface.
  */
-export type Tfaqanswer = Document & Ifaqanswer;
+export type Tfaqanswer = Document & Omit<Ifaqanswer, 'faq'> & IcompanyIdAsObjectId & { faq: Schema.Types.ObjectId };
 
 const faqanswerSchema: Schema<Tfaqanswer> = new Schema({
   ...withUrIdAndCompanySchemaObj,
-  faq: { type: String, required: [true, 'cannot be empty.'], index: true },
-  userId: { type: String, required: [true, 'cannot be empty.'] },
-  ans: { type: String, required: [true, 'cannot be empty.'], index: true }
+  faq: { type: Schema.Types.ObjectId, required: [true, 'cannot be empty.'], index: true },
+  userId: { type: Schema.Types.ObjectId, required: [true, 'cannot be empty.'] },
+  ans: {
+    type: String,
+    required: [true, 'cannot be empty.'],
+    index: true,
+    minlength: [10, 'cannot be less than 10.'],
+    maxlength: [3000, 'cannot be more than 3000.']
+  }
 }, { timestamps: true, collection: 'faqanswers' });
 
 faqanswerSchema.pre('updateOne', function(next) {
@@ -65,8 +74,8 @@ export const faqanswerSelect = faqanswerselect;
  */
 export const createFaqanswerModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
   createExpireDocIndex(faqanswerSchema);
-  if (!isStockDbConnected) {
-    await connectStockDatabase(dbUrl, dbOptions);
+  if (!isDbConnected) {
+    await connectDatabase(dbUrl, dbOptions);
   }
 
   if (main) {

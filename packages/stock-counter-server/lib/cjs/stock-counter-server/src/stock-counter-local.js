@@ -26,6 +26,7 @@ const taxreport_model_1 = require("./models/printables/report/taxreport.model");
 const invoicesettings_model_1 = require("./models/printables/settings/invoicesettings.model");
 const user_wallet_history_model_1 = require("./models/printables/wallet/user-wallet-history.model");
 const user_wallet_model_1 = require("./models/printables/wallet/user-wallet.model");
+const waiting_wallet_pay_model_1 = require("./models/printables/wallet/waiting-wallet-pay.model");
 const promocode_model_1 = require("./models/promocode.model");
 const review_model_1 = require("./models/review.model");
 const customer_model_1 = require("./models/user-related/customer.model");
@@ -88,7 +89,8 @@ const connectStockCounterDatabase = (databaseUrl, dbOptions) => {
         (0, review_model_1.createReviewModel)(databaseUrl, dbOptions),
         (0, user_behaviour_model_1.createUserBehaviourModel)(databaseUrl, dbOptions),
         (0, user_wallet_model_1.createUserWalletModel)(databaseUrl, dbOptions),
-        (0, user_wallet_history_model_1.createUserWalletHistoryModel)(databaseUrl, dbOptions)
+        (0, user_wallet_history_model_1.createUserWalletHistoryModel)(databaseUrl, dbOptions),
+        (0, waiting_wallet_pay_model_1.createWaitingWalletPaytModel)(databaseUrl, dbOptions)
     ]);
 };
 exports.connectStockCounterDatabase = connectStockCounterDatabase;

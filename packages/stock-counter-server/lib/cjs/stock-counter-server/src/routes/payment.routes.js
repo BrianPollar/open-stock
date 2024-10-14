@@ -10,7 +10,7 @@ const stock_universal_server_1 = require("@open-stock/stock-universal-server");
  * The payment routes include creating a payment, updating a payment, and getting a payment by ID.
  * @packageDocumentation
  */
-const express_1 = tslib_1.__importDefault(require("express"));
+const express_1 = tslib_1.__importStar(require("express"));
 const payment_model_1 = require("../models/payment.model");
 const paymentrelated_model_1 = require("../models/printables/paymentrelated/paymentrelated.model");
 // import { paymentInstallsLean } from '../models/printables/paymentrelated/paymentsinstalls.model';
@@ -19,35 +19,12 @@ const paymentrelated_1 = require("./paymentrelated/paymentrelated");
 // import * as url from 'url';
 const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const stock_universal_server_2 = require("@open-stock/stock-universal-server");
-const fs = tslib_1.__importStar(require("fs"));
-const path_1 = tslib_1.__importDefault(require("path"));
-const tracer = tslib_1.__importStar(require("tracer"));
+const mongoose_1 = require("mongoose");
+const user_wallet_model_1 = require("../models/printables/wallet/user-wallet.model");
+const waiting_wallet_pay_model_1 = require("../models/printables/wallet/waiting-wallet-pay.model");
 const stock_counter_server_1 = require("../stock-counter-server");
 const query_1 = require("../utils/query");
 const invoicerelated_1 = require("./printables/related/invoicerelated");
-const paymentRoutesLogger = tracer.colorConsole({
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-        // eslint-disable-next-line no-console
-        console.log(data.output);
-        const logDir = path_1.default.join(process.cwd() + '/openstockLog/');
-        fs.mkdir(logDir, { recursive: true }, (err) => {
-            if (err) {
-                if (err) {
-                    // eslint-disable-next-line no-console
-                    console.log('data.output err ', err);
-                }
-            }
-        });
-        fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
-            if (err) {
-                // eslint-disable-next-line no-console
-                console.log('raw.output err ', err);
-            }
-        });
-    }
-});
 /**
  * Express router for payment routes.
  */
@@ -74,7 +51,7 @@ exports.paymentRoutes.post('/add', stock_universal_server_2.requireAuth, async (
     const extraNotifDesc = 'Newly created order';
     const paymentRelatedRes = await (0, paymentrelated_1.relegatePaymentRelatedCreation)(res, paymentRelated, invoiceRelated, 'order', extraNotifDesc, filter.companyId);
     if (!paymentRelatedRes.success) {
-        return res.status(paymentRelatedRes.status).send(paymentRelatedRes);
+        return res.status(paymentRelatedRes.status || 403).send(paymentRelatedRes);
     }
     payment.paymentRelated = paymentRelatedRes._id;
     const payments = invoiceRelated.payments.slice();
@@ -82,37 +59,21 @@ exports.paymentRoutes.post('/add', stock_universal_server_2.requireAuth, async (
     invoiceRelated.payments = [];
     const invoiceRelatedRes = await (0, invoicerelated_1.relegateInvRelatedCreation)(res, invoiceRelated, filter.companyId, extraNotifDesc, true);
     if (!invoiceRelatedRes.success) {
-        return res.status(invoiceRelatedRes.status).send(invoiceRelatedRes);
+        return res.status(invoiceRelatedRes.status || 403).send(invoiceRelatedRes);
     }
     payment.invoiceRelated = invoiceRelatedRes._id;
-    if (payments && payments.length) {
+    if (payments && payments.length && invoiceRelatedRes._id) {
         await (0, paymentrelated_1.makePaymentInstall)(res, payments[0], invoiceRelatedRes._id, filter.companyId, invoiceRelated.creationType);
     }
     const newPaymt = new payment_model_1.paymentMain(payment);
-    let errResponse;
-    const saved = await newPaymt.save()
-        .catch(err => {
-        paymentRoutesLogger.error('create - err: ', err);
-        errResponse = {
-            success: false,
-            status: 403
-        };
-        if (err && err.errors) {
-            errResponse.err = (0, stock_universal_server_2.stringifyMongooseErr)(err.errors);
-        }
-        else {
-            errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-        }
-        return err;
-    });
-    if (errResponse) {
-        return res.status(403).send(errResponse);
+    const savedRes = await newPaymt.save()
+        .catch((err) => err);
+    if (savedRes instanceof mongoose_1.Error) {
+        const errResponse = (0, stock_universal_server_1.handleMongooseErr)(savedRes);
+        return res.status(errResponse.status).send(errResponse);
     }
-    if (saved && saved._id) {
-        (0, stock_universal_server_2.addParentToLocals)(res, saved._id, payment_model_1.paymentMain.collection.collectionName, 'makeTrackEdit');
-    }
-    return res.status(200).send({ success: Boolean(saved) });
+    (0, stock_universal_server_1.addParentToLocals)(res, savedRes._id, payment_model_1.paymentMain.collection.collectionName, 'makeTrackEdit');
+    return res.status(200).send({ success: true });
 });
 exports.paymentRoutes.put('/update', stock_universal_server_2.requireAuth, async (req, res) => {
     const { filter } = (0, stock_universal_server_2.makeCompanyBasedQuery)(req);
@@ -131,8 +92,7 @@ exports.paymentRoutes.put('/update', stock_universal_server_2.requireAuth, async
         return res.status(404).send({ success: false });
     }
     await (0, paymentrelated_1.updatePaymentRelated)(paymentRelated, filter.companyId);
-    let errResponse;
-    const updated = await payment_model_1.paymentMain.updateOne({
+    const updateRes = await payment_model_1.paymentMain.updateOne({
         _id, ...filter
     }, {
         $set: {
@@ -140,26 +100,13 @@ exports.paymentRoutes.put('/update', stock_universal_server_2.requireAuth, async
             isDeleted: updatedPayment.isDeleted || payment.isDeleted
         }
     })
-        .catch(err => {
-        paymentRoutesLogger.info('update - err', err);
-        errResponse = {
-            success: false,
-            status: 403
-        };
-        if (err && err.errors) {
-            errResponse.err = (0, stock_universal_server_2.stringifyMongooseErr)(err.errors);
-        }
-        else {
-            errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-        }
-        return errResponse;
-    });
-    if (errResponse) {
-        return res.status(403).send(errResponse);
+        .catch((err) => err);
+    if (updateRes instanceof mongoose_1.Error) {
+        const errResponse = (0, stock_universal_server_1.handleMongooseErr)(updateRes);
+        return res.status(errResponse.status).send(errResponse);
     }
-    (0, stock_universal_server_2.addParentToLocals)(res, _id, payment_model_1.paymentMain.collection.collectionName, 'makeTrackEdit');
-    return res.status(200).send({ success: Boolean(updated) });
+    (0, stock_universal_server_1.addParentToLocals)(res, _id, payment_model_1.paymentMain.collection.collectionName, 'makeTrackEdit');
+    return res.status(200).send({ success: true });
 });
 exports.paymentRoutes.get('/one/:_id', stock_universal_server_2.requireAuth, async (req, res) => {
     const { _id } = req.params;
@@ -173,7 +120,7 @@ exports.paymentRoutes.get('/one/:_id', stock_universal_server_2.requireAuth, asy
     }
     const returned = (0, paymentrelated_1.makePaymentRelatedPdct)(payment.paymentRelated, payment.invoiceRelated, payment.invoiceRelated
         .billingUserId, payment);
-    (0, stock_universal_server_2.addParentToLocals)(res, payment._id, payment_model_1.paymentMain.collection.collectionName, 'trackDataView');
+    (0, stock_universal_server_1.addParentToLocals)(res, payment._id, payment_model_1.paymentMain.collection.collectionName, 'trackDataView');
     return res.status(200).send(returned);
 });
 exports.paymentRoutes.get('/all/:offset/:limit', stock_universal_server_2.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_2.roleAuthorisation)('payments', 'read'), async (req, res) => {
@@ -196,11 +143,14 @@ exports.paymentRoutes.get('/all/:offset/:limit', stock_universal_server_2.requir
         data: returned
     };
     for (const val of returned) {
-        (0, stock_universal_server_2.addParentToLocals)(res, val._id, payment_model_1.paymentMain.collection.collectionName, 'trackDataView');
+        (0, stock_universal_server_1.addParentToLocals)(res, val._id, payment_model_1.paymentMain.collection.collectionName, 'trackDataView');
     }
     return res.status(200).send(response);
 });
 exports.paymentRoutes.get('/getmypayments/:offset/:limit', stock_universal_server_2.requireAuth, async (req, res) => {
+    if (!req.user) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const { userId } = req.user;
     const isValid = (0, stock_universal_server_2.verifyObjectId)(userId);
     if (!isValid) {
@@ -229,22 +179,20 @@ exports.paymentRoutes.put('/delete/one', stock_universal_server_2.requireAuth, s
     if (!found) {
         return res.status(404).send({ success: false, err: 'not found' });
     }
-    const deleted = await (0, paymentrelated_1.deleteAllPayOrderLinked)(found.paymentRelated, found.invoiceRelated, 'payment', filter.companyId);
-    // await paymentMain.findByIdAndDelete(id);
-    if (Boolean(deleted)) {
-        (0, stock_universal_server_2.addParentToLocals)(res, _id, payment_model_1.paymentMain.collection.collectionName, 'trackDataDelete');
-        return res.status(200).send({ success: Boolean(deleted) });
+    const updateRes = await (0, paymentrelated_1.deleteAllPayOrderLinked)(found.paymentRelated, found.invoiceRelated, 'payment', filter.companyId);
+    if (updateRes instanceof mongoose_1.Error) {
+        const errResponse = (0, stock_universal_server_1.handleMongooseErr)(updateRes);
+        return res.status(errResponse.status).send(errResponse);
     }
-    else {
-        return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
-    }
+    (0, stock_universal_server_1.addParentToLocals)(res, _id, payment_model_1.paymentMain.collection.collectionName, 'trackDataDelete');
+    return res.status(200).send({ success: true });
 });
 exports.paymentRoutes.post('/filter', stock_universal_server_2.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_2.roleAuthorisation)('payments', 'read'), async (req, res) => {
-    const { propSort } = req.body;
+    const { propSort, returnEmptyArr } = req.body;
     const { offset, limit } = (0, stock_universal_server_2.offsetLimitRelegator)(req.body.offset, req.body.limit);
     const aggCursor = payment_model_1.paymentLean
         .aggregate([
-        ...(0, stock_universal_server_1.lookupSubFieldInvoiceRelatedFilter)((0, stock_universal_server_1.constructFiltersFromBody)(req), propSort, offset, limit)
+        ...(0, stock_universal_server_1.lookupSubFieldInvoiceRelatedFilter)((0, stock_universal_server_1.constructFiltersFromBody)(req), offset, limit, propSort, returnEmptyArr)
     ]);
     const dataArr = [];
     for await (const data of aggCursor) {
@@ -260,7 +208,7 @@ exports.paymentRoutes.post('/filter', stock_universal_server_2.requireAuth, stoc
         data: returned
     };
     for (const val of all) {
-        (0, stock_universal_server_2.addParentToLocals)(res, val._id, payment_model_1.paymentMain.collection.collectionName, 'trackDataView');
+        (0, stock_universal_server_1.addParentToLocals)(res, val._id, payment_model_1.paymentMain.collection.collectionName, 'trackDataView');
     }
     return res.status(200).send(response);
 });
@@ -273,11 +221,11 @@ exports.paymentRoutes.put('/delete/many', stock_universal_server_2.requireAuth, 
         if (found) {
             await (0, paymentrelated_1.deleteAllPayOrderLinked)(found.paymentRelated, found.invoiceRelated, 'payment', filter.companyId);
         }
-        return new Promise(resolve => resolve(found._id));
+        return new Promise(resolve => resolve(found?._id));
     });
     const filterdExist = await Promise.all(promises);
-    for (const val of filterdExist) {
-        (0, stock_universal_server_2.addParentToLocals)(res, val, payment_model_1.paymentMain.collection.collectionName, 'trackDataDelete');
+    for (const val of filterdExist.filter(value => value)) {
+        (0, stock_universal_server_1.addParentToLocals)(res, val, payment_model_1.paymentMain.collection.collectionName, 'trackDataDelete');
     }
     return res.status(200).send({ success: true });
 });
@@ -290,32 +238,25 @@ exports.paymentRoutes.get('/ipn', async (req, res) => {
     const orderTrackingId = searchParams.get('OrderTrackingId');
     const orderNotificationType = searchParams.get('OrderNotificationType');
     const orderMerchantReference = searchParams.get('OrderMerchantReference');
-    paymentRoutesLogger.info('ipn - searchParams, %orderTrackingId:, %orderNotificationType:, %orderMerchantReference:', orderTrackingId, orderNotificationType, orderMerchantReference);
+    stock_universal_server_1.mainLogger.info('ipn - searchParams, %orderTrackingId:, %orderNotificationType:, %orderMerchantReference:', orderTrackingId, orderNotificationType, orderMerchantReference);
     const companySub = await stock_auth_server_1.companySubscriptionLean.findOne({ pesaPalorderTrackingId: orderTrackingId }).lean();
-    if (companySub) {
+    if (companySub && orderTrackingId) {
         await (0, exports.updateCompanySubStatus)(res, orderTrackingId);
         await companySub.save();
         return res.status(200).send({ success: true });
-    }
-    let savedErr;
-    companySub.save().catch(err => {
-        paymentRoutesLogger.error('save error', err);
-        savedErr = err;
-        return null;
-    });
-    if (savedErr) {
-        return res.status(500).send({ success: false });
     }
     const related = await paymentrelated_model_1.paymentRelatedLean.findOne({ pesaPalorderTrackingId: orderTrackingId }).lean();
     if (!stock_counter_server_1.pesapalPaymentInstance && !related) {
         return res.status(500).send({ success: false, err: 'internal server error' });
     }
     // return relegatePesaPalNotifications(orderTrackingId, orderNotificationType, orderMerchantReference);
-    const response = await stock_counter_server_1.pesapalPaymentInstance.getTransactionStatus(orderTrackingId);
-    if (response.success) {
-        await (0, exports.updateInvoicerelatedStatus)(res, orderTrackingId);
+    if (orderTrackingId) {
+        const response = await stock_counter_server_1.pesapalPaymentInstance.getTransactionStatus(orderTrackingId);
+        if (response.success) {
+            await (0, exports.updateInvoicerelatedStatus)(res, orderTrackingId);
+        }
     }
-    return response;
+    return express_1.response;
 });
 exports.paymentRoutes.get('/paymentstatus/:orderTrackingId/:paymentRelated', stock_universal_server_1.appendUserToReqIfTokenExist, async (req, res) => {
     const { orderTrackingId } = req.params;
@@ -338,6 +279,9 @@ exports.paymentRoutes.get('/subscriptiopaystatus/:orderTrackingId/:subscriptionI
     const response = await stock_counter_server_1.pesapalPaymentInstance.getTransactionStatus(orderTrackingId);
     if (response.success) {
         const subscription = await stock_auth_server_1.companySubscriptionMain.findOne({ subscriptionId: req.params.subscriptionId });
+        if (!subscription) {
+            return res.status(403).send({ success: false, err: 'subscription not found' });
+        }
         subscription.active = true;
         subscription.status = 'paid'; // TODO
         await subscription.save();
@@ -348,36 +292,52 @@ exports.paymentRoutes.get('/subscriptiopaystatus/:orderTrackingId/:subscriptionI
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return res.status(403).send({ success: response.success, err: response.err });
 });
+exports.paymentRoutes.get('/walletpaystatus/:orderTrackingId/:waitingPayId', async (req, res) => {
+    const { waitingPayId, orderTrackingId } = req.params;
+    const waitingPay = await waiting_wallet_pay_model_1.waitingWalletPayMain.findById(waitingPayId);
+    if (!waitingPay) {
+        return res.status(403).send({ success: false, err: 'missing some info' });
+    }
+    const response = await stock_counter_server_1.pesapalPaymentInstance.getTransactionStatus(orderTrackingId);
+    if (response.success) {
+        await waiting_wallet_pay_model_1.waitingWalletPayMain.deleteOne({ _id: waitingPayId });
+        const foundWallet = await user_wallet_model_1.userWalletMain.findOne({ _id: waitingPay.walletId });
+        if (!foundWallet) {
+            return res.status(403).send({ success: false, err: 'subscription not found' });
+        }
+        const updateRes = await user_wallet_model_1.userWalletMain.updateOne({
+            _id: waitingPay.walletId
+        }, {
+            $inc: {
+                accountBalance: waitingPay.amount
+            }
+        }).catch((err) => err);
+        if (updateRes instanceof mongoose_1.Error) {
+            const errResponse = (0, stock_universal_server_1.handleMongooseErr)(updateRes);
+            return res.status(errResponse.status).send(errResponse);
+        }
+        return res.status(200).send({ success: true });
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return res.status(403).send({ success: response.success, err: response.err });
+});
 const updateInvoicerelatedStatus = async (res, orderTrackingId) => {
     const toUpdate = await invoicerelated_model_1.invoiceRelatedMain
         .findOne({ pesaPalorderTrackingId: orderTrackingId })
         .lean();
     if (toUpdate) {
-        let errResponse;
-        await invoicerelated_model_1.invoiceRelatedMain.updateOne({
+        const updateRes = await invoicerelated_model_1.invoiceRelatedMain.updateOne({
             pesaPalorderTrackingId: orderTrackingId
         }, {
             $set: {
                 status: 'paid'
             }
-        }).catch(err => {
-            errResponse = {
-                success: false,
-                status: 403
-            };
-            if (err && err.errors) {
-                errResponse.err = (0, stock_universal_server_2.stringifyMongooseErr)(err.errors);
-            }
-            else {
-                errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-            }
-            return errResponse;
-        });
-        if (errResponse) {
+        }).catch((err) => err);
+        if (updateRes instanceof mongoose_1.Error) {
+            const errResponse = (0, stock_universal_server_1.handleMongooseErr)(updateRes);
             return errResponse;
         }
-        (0, stock_universal_server_2.addParentToLocals)(res, toUpdate._id, payment_model_1.paymentMain.collection.collectionName, 'makeTrackEdit');
+        (0, stock_universal_server_1.addParentToLocals)(res, toUpdate._id, payment_model_1.paymentMain.collection.collectionName, 'makeTrackEdit');
     }
     return { success: true };
 };
@@ -388,31 +348,18 @@ const updateCompanySubStatus = async (res, orderTrackingId) => {
         .lean();
     if (toUpdate) {
         toUpdate.status = 'paid';
-        let errResponse;
-        await stock_auth_server_1.companySubscriptionMain.updateOne({
+        const saveRes = await stock_auth_server_1.companySubscriptionMain.updateOne({
             pesaPalorderTrackingId: orderTrackingId
         }, {
             $set: {
                 status: 'paid'
             }
-        }).catch(err => {
-            errResponse = {
-                success: false,
-                status: 403
-            };
-            if (err && err.errors) {
-                errResponse.err = (0, stock_universal_server_2.stringifyMongooseErr)(err.errors);
-            }
-            else {
-                errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-            }
-            return errResponse;
-        });
-        if (errResponse) {
+        }).catch((err) => err);
+        if (saveRes instanceof mongoose_1.Error) {
+            const errResponse = (0, stock_universal_server_1.handleMongooseErr)(saveRes);
             return errResponse;
         }
-        (0, stock_universal_server_2.addParentToLocals)(res, toUpdate._id, payment_model_1.paymentMain.collection.collectionName, 'makeTrackEdit');
+        (0, stock_universal_server_1.addParentToLocals)(res, toUpdate._id, payment_model_1.paymentMain.collection.collectionName, 'makeTrackEdit');
     }
     return { success: true };
 };

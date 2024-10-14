@@ -2,13 +2,13 @@ import { User } from '@open-stock/stock-auth-client';
 import { DatabaseAuto, IfilterProps, IreviewMain, Isuccess } from '@open-stock/stock-universal';
 export declare class Review extends DatabaseAuto {
     urId: string;
-    companyId: string;
-    image: string;
+    companyId?: string;
+    image?: string;
     name: string;
     email: string;
     comment: string;
     rating: number;
-    images: string[];
+    images?: string[];
     userId: User | string;
     itemId: string;
     constructor(data: IreviewMain);
@@ -24,7 +24,7 @@ export declare class Review extends DatabaseAuto {
     static getRatingCount(_id: string, rating: number): Promise<{
         count: number;
     }>;
-    static getOne(_id: string): Promise<Review>;
+    static getOne(urIdOr_id: string): Promise<Review>;
     static add(review: IreviewMain): Promise<Isuccess>;
     remove(): Promise<Isuccess>;
 }

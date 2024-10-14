@@ -1,31 +1,6 @@
-import * as fs from 'fs';
-import path from 'path';
-import * as tracer from 'tracer';
+import { handleMongooseErr, mainLogger } from '@open-stock/stock-universal-server';
+import { Error } from 'mongoose';
 import { companySubscriptionLean, companySubscriptionMain } from '../models/subscriptions/company-subscription.model';
-/** Logger for company auth */
-const companyAuthLogger = tracer.colorConsole({
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-        // eslint-disable-next-line no-console
-        console.log(data.output);
-        const logDir = path.join(process.cwd() + '/openstockLog/');
-        fs.mkdir(logDir, { recursive: true }, (err) => {
-            if (err) {
-                if (err) {
-                    // eslint-disable-next-line no-console
-                    console.log('data.output err ', err);
-                }
-            }
-        });
-        fs.appendFile(logDir + '/auth-server.log', data.rawoutput + '\n', err => {
-            if (err) {
-                // eslint-disable-next-line no-console
-                console.log('raw.output err ', err);
-            }
-        });
-    }
-});
 /**
  * Middleware that checks if the current user has the required subscription feature to access the requested resource.
  *
@@ -34,7 +9,10 @@ const companyAuthLogger = tracer.colorConsole({
  */
 export const requireCanUseFeature = (feature) => {
     return async (req, res, next) => {
-        companyAuthLogger.info('requireCanUseFeature');
+        mainLogger.info('requireCanUseFeature');
+        if (!req.user) {
+            return res.status(401).send('unauthorised no user found');
+        }
         const { userId } = req.user;
         if (userId === 'superAdmin') {
             return next();
@@ -71,7 +49,10 @@ export const requireCanUseFeature = (feature) => {
  * otherwise sends a 401 Unauthorized response.
  */
 export const requireActiveCompany = (req, res, next) => {
-    companyAuthLogger.info('requireActiveCompany');
+    mainLogger.info('requireActiveCompany');
+    if (!req.user) {
+        return res.status(401).send('unauthorised no user found');
+    }
     const { userId } = req.user;
     if (userId === 'superAdmin') {
         return next();
@@ -102,7 +83,7 @@ export const requireActiveCompany = (req, res, next) => {
   res: Response,
   next: NextFunction
 ) => {
-  companyAuthLogger.info('checkCompanyIdIfSuperAdminOrCanByPassCompanyId');
+  mainLogger.info('checkCompanyIdIfSuperAdminOrCanByPassCompanyId');
   const { userId, superAdimPerms } = req.user || {};
 
   if (userId === 'superAdmin' || (superAdimPerms && superAdimPerms.byPassActiveCompany)) {
@@ -128,7 +109,10 @@ export const requireActiveCompany = (req, res, next) => {
  */
 export const requireUpdateSubscriptionRecord = (feature) => {
     return async (req, res) => {
-        companyAuthLogger.info('requireUpdateSubscriptionRecord');
+        mainLogger.info('requireUpdateSubscriptionRecord');
+        if (!req.user) {
+            return res.status(401).send({ success: false, err: 'unauthorised' });
+        }
         const { userId } = req.user;
         if (userId === 'superAdmin') {
             return res.status(200).send({ success: true });
@@ -150,25 +134,26 @@ export const requireUpdateSubscriptionRecord = (feature) => {
         }
         const features = subsctn[0].features.slice();
         const foundIndex = features.findIndex((val) => val.type === feature);
+        if (foundIndex === -1 || !features[foundIndex].remainingSize) {
+            return res
+                .status(401)
+                .send({ success: false, err: 'unauthorised feature exhausted' });
+        }
         features[foundIndex].remainingSize -= 1;
         // subsctn.features = features;
-        let savedErr;
-        /* const saved = await subsctn.save().catch(err => {
-          companyAuthLogger.error('save error', err);
+        /* const savedRes = await subsctn.save().catch(err => {
+          mainLogger.error('save error', err);
           savedErr = err;
           return null;
         }); */
-        const updated = await companySubscriptionMain
+        const updateRes = await companySubscriptionMain
             .updateOne({ _id: subsctn[0]._id }, { features })
-            .catch((err) => {
-            companyAuthLogger.error('updated error', err);
-            savedErr = err;
-            return null;
-        });
-        if (savedErr) {
-            return res.status(500).send({ success: false });
+            .catch((err) => err);
+        if (updateRes instanceof Error) {
+            const errResponse = handleMongooseErr(updateRes);
+            return res.status(errResponse.status).send(errResponse);
         }
-        return res.status(200).send({ success: Boolean(updated), features });
+        return res.status(200).send({ success: true, features });
     };
 };
 //# sourceMappingURL=company-auth.js.map

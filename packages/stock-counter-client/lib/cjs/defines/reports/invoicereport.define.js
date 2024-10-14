@@ -35,9 +35,9 @@ class InvoiceReport extends stock_universal_1.DatabaseAuto {
             invoicesreports: invoicesreports.data.map((val) => new InvoiceReport(val))
         };
     }
-    static async getOne(urId) {
+    static async getOne(urIdOr_id) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makeGet(`/invoicesreport/one/${urId}`);
+            .makeGet(`/invoicesreport/one/${urIdOr_id}`);
         const invoicesreport = await (0, rxjs_1.lastValueFrom)(observer$);
         return new InvoiceReport(invoicesreport);
     }

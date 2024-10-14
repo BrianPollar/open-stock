@@ -201,7 +201,7 @@ export declare const registerCompareList: (item: string, userCookieId: string, u
    * @param useBehaviour - The user behaviour data to save.
    * @returns The newly created user behaviour document.
    */
-export declare const createUserBehaour: (useBehaviour: IuserBehaviour) => Promise<import("mongoose").Document<unknown, {}, import("../models/user-related/user-behaviour.model").TuserBehaviour> & import("mongoose").Document<any, any, any> & IuserBehaviour & {
+export declare const createUserBehaour: (useBehaviour: Partial<IuserBehaviour>) => Promise<import("mongoose").Document<unknown, {}, import("../models/user-related/user-behaviour.model").TuserBehaviour> & import("mongoose").Document<any, any, any> & IuserBehaviour & import("@open-stock/stock-universal-server").IcompanyIdAsObjectId & {
     _id: import("mongoose").Types.ObjectId;
 }>;
 export {};

@@ -6,35 +6,13 @@ const tslib_1 = require("tslib");
 /* eslint-disable @typescript-eslint/prefer-for-of */
 const background_removal_node_1 = require("@imgly/background-removal-node");
 const fs = tslib_1.__importStar(require("fs"));
+const mongoose_1 = require("mongoose");
 const multer_1 = tslib_1.__importDefault(require("multer"));
 const path = tslib_1.__importStar(require("path"));
-const tracer = tslib_1.__importStar(require("tracer"));
 const filemeta_model_1 = require("../models/filemeta.model");
 const stock_universal_local_1 = require("../stock-universal-local");
+const back_logger_1 = require("../utils/back-logger");
 const filestorage_1 = require("./filestorage");
-const fsControllerLogger = tracer.colorConsole({
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-        // eslint-disable-next-line no-console
-        console.log(data.output);
-        const logDir = path.join(process.cwd() + '/openstockLog/');
-        fs.mkdir(logDir, { recursive: true }, (err) => {
-            if (err) {
-                if (err) {
-                    // eslint-disable-next-line no-console
-                    console.log('data.output err ', err);
-                }
-            }
-        });
-        fs.appendFile(logDir + '/universal-server.log', data.rawoutput + '\n', err => {
-            if (err) {
-                // eslint-disable-next-line no-console
-                console.log('raw.output err ', err);
-            }
-        });
-    }
-});
 /**
  * Uploads files from the request to the server.
  * @param {Object} req - The request object.
@@ -45,12 +23,12 @@ const uploadFiles = (req, res, next) => {
     const makeupload = filestorage_1.upload.fields(filestorage_1.multerFileds);
     makeupload(req, res, function (err) {
         if (err instanceof multer_1.default.MulterError) {
-            fsControllerLogger.error('Multer UPLOAD ERROR', err);
+            back_logger_1.mainLogger.error('Multer UPLOAD ERROR', err);
             return res.status(500).send({ success: false });
         }
         else if (err) {
             // An unknown error occurred when uploading.
-            fsControllerLogger.error('UNKWON UPLOAD ERROR', err);
+            back_logger_1.mainLogger.error('UNKWON UPLOAD ERROR', err);
             return res.status(500).send({ success: false });
         }
         return next();
@@ -66,6 +44,9 @@ exports.uploadFiles = uploadFiles;
 const appendBody = (req, res, next) => {
     if (!req.files) {
         return res.status(404).send({ success: false });
+    }
+    if (!req.user) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const { companyId } = req.user;
     const videoDirectory = path.join(stock_universal_local_1.stockUniversalConfig.envCfig.videoDirectory + '/' + companyId + '/');
@@ -162,28 +143,28 @@ const saveMetaToDb = async (req, res, next) => {
     }
     if (parsed.newPhotos) {
         const promises = parsed.newPhotos
-            // eslint-disable-next-line @typescript-eslint/no-misused-promises
-            .map((value) => new Promise(async (resolve) => {
+            .map((value) => new Promise(async (resolve, reject) => {
             const newFileMeta = new filemeta_model_1.fileMeta(value);
-            let savedErr;
-            // await removeBg(value.url);
-            const newSaved = await newFileMeta.save().catch(err => {
-                fsControllerLogger.error('save error', err);
-                savedErr = err;
-                return null;
+            const newSaved = await newFileMeta.save().catch((err) => {
+                back_logger_1.mainLogger.error('save error', err);
+                reject(err);
             });
-            if (savedErr) {
-                return res.status(500).send({ success: false });
-            }
             resolve(newSaved);
         }));
-        parsed.newPhotos = await Promise.all(promises);
+        const allResolved = await Promise.all(promises).catch(err => {
+            back_logger_1.mainLogger.error('save error', err);
+            return null;
+        });
+        if (!allResolved) {
+            return res.status(500).send({ success: false });
+        }
+        parsed.newPhotos = allResolved;
     }
     /* if (parsed.profilePic) {
       const newFileMeta = new fileMeta(parsed.profilePic);
       let savedErr: string;
       const newSaved = await newFileMeta.save().catch(err => {
-        fsControllerLogger.error('save error', err);
+        mainLogger.error('save error', err);
         savedErr = err;
         return null;
       });
@@ -197,7 +178,7 @@ const saveMetaToDb = async (req, res, next) => {
       const newFileMeta = new fileMeta(parsed.profilePic);
       let savedErr: string;
       const newSaved = await newFileMeta.save().catch(err => {
-        fsControllerLogger.error('save error', err);
+        mainLogger.error('save error', err);
         savedErr = err;
         return null;
       });
@@ -209,20 +190,19 @@ const saveMetaToDb = async (req, res, next) => {
     } */
     if (parsed.thumbnail) {
         const newFileMeta = new filemeta_model_1.fileMeta(parsed.thumbnail);
-        let savedErr;
-        const newSaved = await newFileMeta.save().catch(err => {
-            fsControllerLogger.error('save error', err);
-            savedErr = err;
-            return null;
+        const newSaved = await newFileMeta.save().catch((err) => {
+            back_logger_1.mainLogger.error('save error', err);
+            return err;
         });
-        if (savedErr) {
+        if (newSaved instanceof mongoose_1.Error) {
             return res.status(500).send({ success: false });
         }
         parsed.thumbnail = newSaved._id;
-        parsed.newPhotos.push(newSaved);
+        parsed.newPhotos?.push(newSaved);
     }
     if (parsed.newPhotos) {
-        const mappedParsedFiles = parsed.newPhotos.map((value) => value._id.toString());
+        const mappedParsedFiles = (parsed.newPhotos).map((value) => value._id?.toString())
+            .filter(value => value);
         parsed.newPhotos = mappedParsedFiles;
     }
     req.body = parsed; // newPhotos are strings of _ids
@@ -239,12 +219,12 @@ const updateFiles = (req, res, next) => {
     const makeupload = filestorage_1.upload.fields(filestorage_1.multerFileds);
     makeupload(req, res, function (err) {
         if (err instanceof multer_1.default.MulterError) {
-            fsControllerLogger.error('Multer UPLOAD ERROR', err);
+            back_logger_1.mainLogger.error('Multer UPLOAD ERROR', err);
             return res.status(404).send({ success: false });
         }
         else if (err) {
             // An unknown error occurred when uploading.
-            fsControllerLogger.error('UNKWON UPLOAD ERROR', err);
+            back_logger_1.mainLogger.error('UNKWON UPLOAD ERROR', err);
             return res.status(404).send({ success: false });
         }
         return next();
@@ -267,13 +247,13 @@ const deleteAllFiles = async (filesWithDir, directlyRemove = false) => {
     if (filesWithDir && filesWithDir.length && directlyRemove) {
         const promises = filesWithDir
             .map((value /** : Ifilewithdir */) => new Promise(resolve => {
-            fsControllerLogger.debug('deleting file', value.url);
+            back_logger_1.mainLogger.debug('deleting file', value.url);
             const absolutepath = stock_universal_local_1.stockUniversalConfig.envCfig.absolutepath;
             const nowpath = path
                 .join(`${absolutepath}${value.url}`);
             fs.unlink(nowpath, (err) => {
                 if (err) {
-                    fsControllerLogger.error('error while deleting file', err);
+                    back_logger_1.mainLogger.error('error while deleting file', err);
                     resolve(false);
                 }
                 else {
@@ -309,7 +289,7 @@ exports.deleteFiles = deleteFiles;
  */
 const getOneFile = (req, res) => {
     const { filename } = req.params;
-    fsControllerLogger.debug(`download, file: ${filename}`);
+    back_logger_1.mainLogger.debug(`download, file: ${filename}`);
     const absolutepath = stock_universal_local_1.stockUniversalConfig.envCfig.absolutepath;
     const fileLocation = path.join(`${absolutepath}${filename}`, filename);
     return res.download(fileLocation, filename);
@@ -341,7 +321,7 @@ const removeBg = (imageSrc) => {
                     reject(err);
                     return;
                 }
-                fsControllerLogger.debug('files saved');
+                back_logger_1.mainLogger.debug('files saved');
                 resolve(imageSrc);
             });
         });

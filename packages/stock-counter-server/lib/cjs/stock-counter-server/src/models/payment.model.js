@@ -3,12 +3,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createPaymentModel = exports.paymentSelect = exports.paymentLean = exports.paymentMain = void 0;
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const mongoose_1 = require("mongoose");
-const database_1 = require("../utils/database");
 const uniqueValidator = require('mongoose-unique-validator');
 const paymentSchema = new mongoose_1.Schema({
-    companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
-    paymentRelated: { type: String, unique: true },
-    invoiceRelated: { type: String, unique: true },
+    companyId: { type: mongoose_1.Schema.Types.ObjectId, required: [true, 'cannot be empty.'], index: true },
+    paymentRelated: { type: mongoose_1.Schema.Types.ObjectId, unique: true },
+    invoiceRelated: { type: mongoose_1.Schema.Types.ObjectId, unique: true },
     order: { type: String }
 }, { timestamps: true, collection: 'payments' });
 // Apply the uniqueValidator plugin to paymentSchema.
@@ -41,15 +40,15 @@ exports.paymentSelect = paymentselect;
  */
 const createPaymentModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     (0, stock_universal_server_1.createExpireDocIndex)(paymentSchema);
-    if (!database_1.isStockDbConnected) {
-        await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
+    if (!stock_universal_server_1.isDbConnected) {
+        await (0, stock_universal_server_1.connectDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.paymentMain = database_1.mainConnection
+        exports.paymentMain = stock_universal_server_1.mainConnection
             .model('Payment', paymentSchema);
     }
     if (lean) {
-        exports.paymentLean = database_1.mainConnectionLean
+        exports.paymentLean = stock_universal_server_1.mainConnectionLean
             .model('Payment', paymentSchema);
     }
 };

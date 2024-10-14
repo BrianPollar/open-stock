@@ -31,7 +31,7 @@ export class User
 
   phone: number;
   amountDue = 0;
-  readonly currency: string;
+  readonly currency?: string;
   manuallyAdded: boolean;
   online = false;
   salutation: string;
@@ -106,7 +106,7 @@ export class User
     return lastValueFrom(observer$);
   }
 
-  async update(vals: Iuser, files?: Ifile[]) {
+  async update(vals: Partial<Iuser>, files?: Ifile[]) {
     const details = {
       user: {
         ...vals,
@@ -163,7 +163,7 @@ export class User
     return deleted;
   }
 
-  appendUpdate(data: Partial<Iuser>) {
+  appendUpdate(data: Iuser) {
     if (data) {
       this.urId = data.urId;
       if (data.companyId) {

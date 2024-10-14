@@ -6,39 +6,16 @@ const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const stock_universal_1 = require("@open-stock/stock-universal");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
-const fs = tslib_1.__importStar(require("fs"));
-const path_1 = tslib_1.__importDefault(require("path"));
-const tracer = tslib_1.__importStar(require("tracer"));
+const mongoose_1 = require("mongoose");
 const promocode_model_1 = require("../models/promocode.model");
-/** Logger for promocode routes */
-const promocodeRoutesLogger = tracer.colorConsole({
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-        // eslint-disable-next-line no-console
-        console.log(data.output);
-        const logDir = path_1.default.join(process.cwd() + '/openstockLog/');
-        fs.mkdir(logDir, { recursive: true }, (err) => {
-            if (err) {
-                if (err) {
-                    // eslint-disable-next-line no-console
-                    console.log('data.output err ', err);
-                }
-            }
-        });
-        fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
-            if (err) {
-                // eslint-disable-next-line no-console
-                console.log('raw.output err ', err);
-            }
-        });
-    }
-});
 /**
  * Router for handling promo code routes.
  */
 exports.promocodeRoutes = express_1.default.Router();
 exports.promocodeRoutes.post('/create', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'create'), async (req, res) => {
+    if (!req.user) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const { items, amount, roomId } = req.body;
     const { companyId } = req.user;
     const isValid = (0, stock_universal_server_1.verifyObjectId)(companyId);
@@ -57,36 +34,21 @@ exports.promocodeRoutes.post('/create', stock_universal_server_1.requireAuth, st
         expireAt: new Date().toString()
     };
     const newpromocode = new promocode_model_1.promocodeMain(promocode);
-    let errResponse;
-    const saved = await newpromocode.save()
-        .catch(err => {
-        promocodeRoutesLogger.error('create - err: ', err);
-        errResponse = {
-            success: false,
-            status: 403
-        };
-        if (err && err.errors) {
-            errResponse.err = (0, stock_universal_server_1.stringifyMongooseErr)(err.errors);
-        }
-        else {
-            errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-        }
-        return err;
-    });
-    if (errResponse) {
-        return res.status(403).send(errResponse);
+    const savedRes = await newpromocode.save()
+        .catch((err) => err);
+    if (savedRes instanceof mongoose_1.Error) {
+        const errResponse = (0, stock_universal_server_1.handleMongooseErr)(savedRes);
+        return res.status(errResponse.status).send(errResponse);
     }
-    if (saved && saved._id) {
-        (0, stock_universal_server_1.addParentToLocals)(res, saved._id, promocode_model_1.promocodeMain.collection.collectionName, 'makeTrackEdit');
-    }
-    return res.status(200).send({ success: Boolean(saved), code });
+    (0, stock_universal_server_1.addParentToLocals)(res, savedRes._id, promocode_model_1.promocodeMain.collection.collectionName, 'makeTrackEdit');
+    return res.status(200).send({ success: true, code });
 });
-exports.promocodeRoutes.get('/one/:_id', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'read'), async (req, res) => {
-    const { _id } = req.params;
+exports.promocodeRoutes.get('/one/:urIdOr_id', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'read'), async (req, res) => {
+    const { urIdOr_id } = req.params;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
+    const filterwithId = (0, stock_universal_server_1.verifyObjectId)(urIdOr_id) ? { _id: urIdOr_id } : { urId: urIdOr_id };
     const promocode = await promocode_model_1.promocodeLean
-        .findOne({ _id, ...filter })
+        .findOne({ ...filterwithId, ...filter })
         .lean();
     if (!promocode) {
         return res.status(404).send({ success: false, err: 'not found' });
@@ -125,7 +87,7 @@ exports.promocodeRoutes.get('/all/:offset/:limit', stock_universal_server_1.requ
     return res.status(200).send(response);
 });
 exports.promocodeRoutes.post('/filter', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'read'), async (req, res) => {
-    const { propSort } = req.body;
+    const { propSort, returnEmptyArr } = req.body;
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.body.offset, req.body.limit);
     const filter = (0, stock_universal_server_1.constructFiltersFromBody)(req);
     const aggCursor = promocode_model_1.promocodeLean.aggregate([
@@ -139,18 +101,7 @@ exports.promocodeRoutes.post('/filter', stock_universal_server_1.requireAuth, st
         },
         ...(0, stock_universal_server_1.lookupTrackEdit)(),
         ...(0, stock_universal_server_1.lookupTrackView)(),
-        {
-            $facet: {
-                data: [...(0, stock_universal_server_1.lookupSort)(propSort), ...(0, stock_universal_server_1.lookupOffset)(offset), ...(0, stock_universal_server_1.lookupLimit)(limit)],
-                total: [{ $count: 'count' }]
-            }
-        },
-        {
-            $unwind: {
-                path: '$total',
-                preserveNullAndEmptyArrays: true
-            }
-        }
+        ...(0, stock_universal_server_1.lookupFacet)(offset, limit, propSort, returnEmptyArr)
     ]);
     const dataArr = [];
     for await (const data of aggCursor) {
@@ -168,6 +119,9 @@ exports.promocodeRoutes.post('/filter', stock_universal_server_1.requireAuth, st
     return res.status(200).send(response);
 });
 exports.promocodeRoutes.delete('/delete/one/:_id', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('items', 'delete'), async (req, res) => {
+    if (!req.user) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const { _id } = req.params;
     const { companyId } = req.user;
     const isValid = (0, stock_universal_server_1.verifyObjectIds)([_id, companyId]);
@@ -175,13 +129,13 @@ exports.promocodeRoutes.delete('/delete/one/:_id', stock_universal_server_1.requ
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     // const deleted = await promocodeMain.findOneAndDelete({ _id, });
-    const deleted = await promocode_model_1.promocodeMain.updateOne({ _id }, { $set: { isDeleted: true } });
-    if (Boolean(deleted)) {
-        (0, stock_universal_server_1.addParentToLocals)(res, _id, promocode_model_1.promocodeMain.collection.collectionName, 'trackDataDelete');
-        return res.status(200).send({ success: Boolean(deleted) });
+    const updateRes = await promocode_model_1.promocodeMain.updateOne({ _id }, { $set: { isDeleted: true } })
+        .catch((err) => err);
+    if (updateRes instanceof mongoose_1.Error) {
+        const errResponse = (0, stock_universal_server_1.handleMongooseErr)(updateRes);
+        return res.status(errResponse.status).send(errResponse);
     }
-    else {
-        return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
-    }
+    (0, stock_universal_server_1.addParentToLocals)(res, _id, promocode_model_1.promocodeMain.collection.collectionName, 'trackDataDelete');
+    return res.status(200).send({ success: true });
 });
 //# sourceMappingURL=promo.routes.js.map

@@ -17,9 +17,9 @@ export class AuthController {
   authenticateJwt() {
     StockAuthClient.logger.debug('AuthService:AuthService:authenticateJwt::');
     const observer$ = StockAuthClient.ehttp
-      .makeGet('/user/authexpress');
+      .makeGet<Iauthresponse>('/user/authexpress');
 
-    return lastValueFrom(observer$) ;
+    return lastValueFrom(observer$);
   }
 
   googleLogin() {
@@ -108,25 +108,6 @@ export class AuthController {
     StockAuthClient.logger.debug('AuthService:confirm');
     const observer$ = StockAuthClient.ehttp
       .makePost<Iauthresponse>('/user/confirm', userInfo);
-
-    return lastValueFrom(observer$);
-  }
-
-  // TODO handle social login from here
-  /**
-   * The socialLogin() method is used for social login.
-   * It takes a userInfo object containing the social login information.
-   * It makes a POST request to the '/user/sociallogin' endpoint with the social login details and
-   * returns the response as a promise of type Iauthresponse.
-   * @param userInfo An object containing the social login information.
-   * @returns A promise that resolves to the response from the server.
-   */
-  socialLogin(userInfo) {
-    const loginUrl = '/user/sociallogin';
-
-    StockAuthClient.logger.debug('AuthService:confirm:: - verifyUrl : %s', loginUrl);
-    const observer$ = StockAuthClient.ehttp
-      .makePost<Iauthresponse>(loginUrl, userInfo);
 
     return lastValueFrom(observer$);
   }

@@ -57,9 +57,9 @@ export declare const getCurrentNotificationSettings: (companyId: string) => Prom
     stn?: undefined;
 } | {
     success: boolean;
-    stn: import("mongoose").FlattenMaps<import("./models/notifsetting.model").TnotifSetting> & {
+    stn: (import("mongoose").FlattenMaps<import("./models/notifsetting.model").TnotifSetting> & {
         _id: import("mongoose").Types.ObjectId;
-    };
+    }) | null;
 }>;
 /**
  * Checks if the notifications server is running.

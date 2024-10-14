@@ -49,8 +49,14 @@ export declare const deleteManyPaymentRelated: (_ids: string[], companyId: strin
  */
 export declare const deleteAllPayOrderLinked: (paymentRelated: string, invoiceRelated: string, where: 'payment' | 'order', companyId: string) => Promise<{
     success: boolean;
+} | undefined>;
+export declare const makePaymentInstall: (res: any, receipt: Ireceipt, relatedId: string, companyId: string, creationType: TinvoiceType) => Promise<false | {
+    success: boolean;
+    status: number;
+    err: string;
+} | {
+    success: boolean;
 }>;
-export declare const makePaymentInstall: (res: any, receipt: Ireceipt, relatedId: string, companyId: string, creationType: TinvoiceType) => Promise<false | Isuccess>;
 /**
    * Sends a notification to all users with a due date.
    * @returns A promise that resolves to true if all notifications were sent successfully.

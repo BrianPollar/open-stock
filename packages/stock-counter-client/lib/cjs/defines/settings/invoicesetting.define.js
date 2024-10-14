@@ -32,9 +32,9 @@ class InvoiceSettings extends stock_universal_1.DatabaseAuto {
                 .map(val => new InvoiceSettings(val))
         };
     }
-    static async getOne(_id) {
+    static async getOne(id) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makeGet(`/invoicesettings/one/${_id}`);
+            .makeGet(`/invoicesettings/one/${id}`);
         const invoiceSetting = await (0, rxjs_1.lastValueFrom)(observer$);
         return new InvoiceSettings(invoiceSetting);
     }
@@ -97,10 +97,12 @@ class InvoiceSettings extends stock_universal_1.DatabaseAuto {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-return
         if (deleted.success) {
             if (where === 'signature') {
-                this.generalSettings.defaultDigitalSignature = null;
+                // eslint-disable-next-line no-undefined
+                this.generalSettings.defaultDigitalSignature = undefined;
             }
             else {
-                this.generalSettings.defaultDigitalStamp = null;
+                // eslint-disable-next-line no-undefined
+                this.generalSettings.defaultDigitalStamp = undefined;
             }
         }
         return deleted;

@@ -22,6 +22,7 @@ class PaymentRelated extends invoice_define_1.InvoiceRelatedWithReceipt {
         this.manuallyAdded = data.manuallyAdded;
         this.status = data.status;
         this.paymentMethod = data.paymentMethod;
+        this.orderDeliveryCode = data.orderDeliveryCode;
     }
 }
 exports.PaymentRelated = PaymentRelated;
@@ -53,15 +54,15 @@ class Payment extends PaymentRelated {
             payments: payments.data.map(val => new Payment(val))
         };
     }
-    static async getOne(_id) {
+    static async getOne(id) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makeGet(`/payment/one/${_id}`);
+            .makeGet(`/payment/one/${id}`);
         const payment = await (0, rxjs_1.lastValueFrom)(observer$);
         return new Payment(payment);
     }
-    static removeMany(credentials) {
+    static removeMany(vals) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makePut('/payment/delete/many', { credentials });
+            .makePut('/payment/delete/many', vals);
         return (0, rxjs_1.lastValueFrom)(observer$);
     }
     update(vals) {

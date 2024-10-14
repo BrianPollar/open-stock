@@ -1,31 +1,5 @@
 import { Iadminloginres } from '@open-stock/stock-universal';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as tracer from 'tracer';
-const adminLogger = tracer.colorConsole({
-  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-  dateformat: 'HH:MM:ss.L',
-  transport(data) {
-    // eslint-disable-next-line no-console
-    console.log(data.output);
-    const logDir = path.join(process.cwd() + '/openstockLog/');
-
-    fs.mkdir(logDir, { recursive: true }, (err) => {
-      if (err) {
-        if (err) {
-          // eslint-disable-next-line no-console
-          console.log('data.output err ', err);
-        }
-      }
-    });
-    fs.appendFile(logDir + '/auth-server.log', data.rawoutput + '\n', err => {
-      if (err) {
-        // eslint-disable-next-line no-console
-        console.log('raw.output err ', err);
-      }
-    });
-  }
-});
+import { mainLogger } from '@open-stock/stock-universal-server';
 
 /**
  * Defines an admin object with the name "admin" and sets its admin permissions for various actions.
@@ -54,12 +28,12 @@ export const login = (
   password: string,
   adminServerPasswd: string
 ): Promise<Iadminloginres> => new Promise(resolve => {
-  adminLogger.info('Admin login attempted');
+  mainLogger.info('Admin login attempted');
   if (password !== adminServerPasswd) {
-    adminLogger.error('Admin login err, wrong password');
+    mainLogger.error('Admin login err, wrong password');
     resolve({ success: false });
   } else if (password === adminServerPasswd) {
-    adminLogger.info('Admin login success');
+    mainLogger.info('Admin login success');
     resolve({
       success: true,
       user: defineAdmin()
@@ -84,7 +58,7 @@ export const checkIfAdmin = async(
   processadminId: string,
   adminServerPasswd: string
 ): Promise<Iadminloginres> => {
-  adminLogger.info('checking if admin');
+  mainLogger.info('checking if admin');
   let response: Iadminloginres;
 
   if (emailPhone !== processadminId) {
@@ -95,7 +69,7 @@ export const checkIfAdmin = async(
     response = { success: false };
   }
 
-  adminLogger.debug('response for checkIfAdmin', response);
+  mainLogger.debug('response for checkIfAdmin', response);
 
   return response;
 };

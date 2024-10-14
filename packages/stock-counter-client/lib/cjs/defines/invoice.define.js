@@ -69,9 +69,9 @@ class Invoice extends InvoiceRelatedWithReceipt {
                 .map(val => new Invoice(val))
         };
     }
-    static async getOne(urId) {
+    static async getOne(urIdOr_id) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makeGet(`/invoice/one/${urId}`);
+            .makeGet(`/invoice/one/${urIdOr_id}`);
         const invoice = await (0, rxjs_1.lastValueFrom)(observer$);
         return new Invoice(invoice);
     }
@@ -89,6 +89,11 @@ class Invoice extends InvoiceRelatedWithReceipt {
         vals.invoice._id = this._id;
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
             .makePut('/invoice/update', vals);
+        return (0, rxjs_1.lastValueFrom)(observer$);
+    }
+    remove() {
+        const observer$ = stock_counter_client_1.StockCounterClient.ehttp
+            .makeDelete(`/invoice/delete/one/${this._id}`);
         return (0, rxjs_1.lastValueFrom)(observer$);
     }
 }

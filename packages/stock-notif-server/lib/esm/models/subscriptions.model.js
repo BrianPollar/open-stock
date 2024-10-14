@@ -4,15 +4,15 @@
  * @requires ../controllers/database.controller
  * @requires mongoose-unique-validator
  */
+import { connectDatabase, isDbConnected, mainConnection, mainConnectionLean } from '@open-stock/stock-universal-server';
 import { Schema } from 'mongoose';
-import { connectNotifDatabase, isNotifDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 /**
  * Mongoose schema for the subscription collection.
  */
 const subscriptionSchema = new Schema({
     subscription: {},
-    userId: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true }
+    userId: { type: Schema.Types.ObjectId, unique: true, required: [true, 'cannot be empty.'], index: true }
 }, { timestamps: true, collection: 'subscriptions' });
 // Apply the uniqueValidator plugin to subscriptionSchema.
 subscriptionSchema.plugin(uniqueValidator);
@@ -42,8 +42,8 @@ export const subscriptionSelect = subscriptionselect;
  * @param lean - Whether to create the lean connection.
  */
 export const createSubscriptionModel = async (dbUrl, dbOptions, main = true, lean = true) => {
-    if (!isNotifDbConnected) {
-        await connectNotifDatabase(dbUrl, dbOptions);
+    if (!isDbConnected) {
+        await connectDatabase(dbUrl, dbOptions);
     }
     if (main) {
         subscriptionMain = mainConnection

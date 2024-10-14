@@ -6,7 +6,7 @@
  * @param limit - The limit value.
  * @returns An object with offset and limit properties.
  */
-export declare const offsetLimitRelegator: (offset: string | number, limit: string | number) => {
+export declare const offsetLimitRelegator: (offset: string | number | undefined, limit: string | number | undefined) => {
     offset: number;
     limit: number;
 };

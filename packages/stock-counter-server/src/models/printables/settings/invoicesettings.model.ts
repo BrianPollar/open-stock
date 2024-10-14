@@ -1,20 +1,40 @@
 import { IinvoiceSetting } from '@open-stock/stock-universal';
 import {
-  createExpireDocIndex, preUpdateDocExpire, withCompanySchemaObj, withCompanySelectObj
+  IcompanyIdAsObjectId,
+  connectDatabase,
+  createExpireDocIndex,
+  isDbConnected, mainConnection, mainConnectionLean,
+  preUpdateDocExpire, withCompanySchemaObj,
+  withCompanySelectObj
 } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../../utils/database';
 
 /** model type for invoiceSetting by */
-export type TinvoiceSetting = Document & IinvoiceSetting;
+export type TinvoiceSetting = Document & IinvoiceSetting & IcompanyIdAsObjectId;
 
-const invoiceSettingSchema: Schema = new Schema({
+const invoiceSettingSchema: Schema<TinvoiceSetting> = new Schema<TinvoiceSetting>({
   ...withCompanySchemaObj,
-  generalSettings: { },
-  taxSettings: { },
-  bankSettings: { },
+  generalSettings: {
+    status: { type: String, enum: ['paid', 'pending', 'overdue', 'draft', 'unpaid', 'cancelled'] },
+    currency: { type: String },
+    amount: { type: String, minLength: [1, 'cannot be less than 1'] },
+    defaultDueTime: { type: String },
+    defaultDigitalSignature: { type: Schema.Types.ObjectId },
+    defaultDigitalStamp: { type: Schema.Types.ObjectId }
+  },
+  taxSettings: {
+    taxes: { type: Array }
+  },
+  bankSettings: {
+    enabled: { type: Boolean },
+    holderName: { type: String },
+    bankName: { type: String },
+    ifscCode: { type: String },
+    accountNumber: { type: String }
+  },
   printDetails: { }
 }, { timestamps: true, collection: 'invoicesettings' });
+
 
 invoiceSettingSchema.pre('updateOne', function(next) {
   return preUpdateDocExpire(this, next);
@@ -57,8 +77,8 @@ export const invoiceSettingSelect = invoiceSettingselect;
  */
 export const createInvoiceSettingModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
   createExpireDocIndex(invoiceSettingSchema);
-  if (!isStockDbConnected) {
-    await connectStockDatabase(dbUrl, dbOptions);
+  if (!isDbConnected) {
+    await connectDatabase(dbUrl, dbOptions);
   }
 
   if (main) {

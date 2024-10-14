@@ -11,7 +11,7 @@ import { InvoiceRelatedWithReceipt } from '../invoice.define';
 export class ProfitAndLossReport
   extends DatabaseAuto {
   urId: string;
-  companyId: string;
+  companyId?: string;
   totalAmount: number;
   date: Date;
   expenses: Expense[];
@@ -64,9 +64,9 @@ export class ProfitAndLossReport
     };
   }
 
-  static async getOne(urId: string) {
+  static async getOne(urIdOr_id: string) {
     const observer$ = StockCounterClient.ehttp
-      .makeGet<IprofitAndLossReport>(`/profitandlossreport/one/${urId}`);
+      .makeGet<IprofitAndLossReport>(`/profitandlossreport/one/${urIdOr_id}`);
     const profitandlossreport = await lastValueFrom(observer$);
 
     return new ProfitAndLossReport(profitandlossreport);

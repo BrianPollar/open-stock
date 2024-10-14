@@ -1,9 +1,10 @@
-import { Iaddress, Icustomer, IdeleteMany, IdeleteOne, IeditCustomer, Ifile, IfilterProps, IsubscriptionFeatureState, Isuccess } from '@open-stock/stock-universal';
+import { Iaddress, Icustomer, IdeleteMany, IeditCustomer, Ifile, IfilterProps, IsubscriptionFeatureState, Isuccess } from '@open-stock/stock-universal';
 import { UserBase } from './userbase.define';
 interface IgetOneFilter {
     _id?: string;
     userId?: string;
     companyId?: string;
+    urId?: string;
 }
 export declare class Customer extends UserBase {
     otherAddresses?: Iaddress[];
@@ -20,6 +21,6 @@ export declare class Customer extends UserBase {
     static add(vals: IeditCustomer, files?: Ifile[]): Promise<IsubscriptionFeatureState>;
     static removeMany(val: IdeleteMany): Promise<Isuccess>;
     update(vals: IeditCustomer, files?: Ifile[]): Promise<Isuccess>;
-    remove(val: IdeleteOne): Promise<Isuccess>;
+    remove(): Promise<Isuccess>;
 }
 export {};

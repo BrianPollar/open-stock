@@ -13,7 +13,7 @@ export declare class InvoiceSettings extends DatabaseAuto {
         count: number;
         invoiceSettings: InvoiceSettings[];
     }>;
-    static getOne(_id: string): Promise<InvoiceSettings>;
+    static getOne(id: string): Promise<InvoiceSettings>;
     static add(invoiceSetting: IinvoiceSetting, files?: Ifile[]): Promise<Isuccess>;
     static removeMany(vals: IdeleteMany): Promise<Isuccess>;
     update(vals: IinvoiceSetting, files?: Ifile[]): Promise<Isuccess>;

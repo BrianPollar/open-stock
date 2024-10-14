@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { stringifyMongooseErr } from '../../../src/constants/mongooseerrors.constant';
+import { stringifyMongooseErr } from '../../../src/constants/Errors.constant';
 
 describe('stringifyMongooseErr', () => {
   it('should return a string with concatenated error messages', () => {

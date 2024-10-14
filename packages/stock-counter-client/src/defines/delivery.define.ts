@@ -35,9 +35,9 @@ export class DeliveryCity
     };
   }
 
-  static async getOne(_id: string) {
+  static async getOne(urIdOr_id: string) {
     const observer$ = StockCounterClient.ehttp
-      .makeGet<Ideliverycity>(`/deliverycity/one/${_id}`);
+      .makeGet<Ideliverycity>(`/deliverycity/one/${urIdOr_id}`);
     const city = await lastValueFrom(observer$);
 
     return new DeliveryCity(city);

@@ -30,7 +30,7 @@ export const runStockNotificationServer = async (config) => {
     const stockNotifRouter = express.Router();
     stockNotifRouter.use('/notifn', notifnRoutes);
     stockNotifRouter.use('/mailsender', mailSenderRoutes);
-    return Promise.resolve({ stockNotifRouter, notificationSettings });
+    return { stockNotifRouter, notificationSettings };
 };
 /**
  * Retrieves the current notification settings.

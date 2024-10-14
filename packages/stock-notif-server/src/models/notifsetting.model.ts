@@ -4,18 +4,23 @@
  */
 
 import { InotifSetting } from '@open-stock/stock-universal';
+import {
+  connectDatabase, isDbConnected,
+  mainConnection, mainConnectionLean
+} from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import { connectNotifDatabase, isNotifDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 
 /**
  * Represents the type for a notification setting.
  * Extends the Document interface and the InotifSetting interface.
  */
-export type TnotifSetting = Document & InotifSetting;
+export type TnotifSetting = Document & Omit<InotifSetting, 'companyId'> & {
+  companyId: Schema.Types.ObjectId;
+};
 
 /** Schema definition for notification settings */
 const notifSettingSchema: Schema<TnotifSetting> = new Schema({
-  companyId: { type: String },
+  companyId: { type: Schema.Types.ObjectId },
   invoices: { type: Boolean, default: true },
   payments: { type: Boolean, default: true },
   orders: { type: Boolean, default: true },
@@ -56,8 +61,8 @@ export const notifSettingSelect = notifSettingselect;
  * @param {boolean} [lean=true] - Whether to create the lean connection.
  */
 export const createNotifStnModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
-  if (!isNotifDbConnected) {
-    await connectNotifDatabase(dbUrl, dbOptions);
+  if (!isDbConnected) {
+    await connectDatabase(dbUrl, dbOptions);
   }
 
   if (main) {

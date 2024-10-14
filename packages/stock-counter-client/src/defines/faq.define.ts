@@ -8,7 +8,7 @@ import { StockCounterClient } from '../stock-counter-client';
 export class Faq
   extends DatabaseAuto {
   urId: string;
-  companyId: string;
+  companyId?: string;
   posterName: string;
   posterEmail: string;
   userId: string | User;
@@ -52,10 +52,10 @@ export class Faq
       faqs: faqs.data.map(val => new Faq(val)) };
   }
 
-  static async getOne(_id: string) {
+  static async getOne(id: string) {
     const observer$ = StockCounterClient.ehttp
-      .makeGet<Ifaq>(`/faq/one/${_id}`);
-    const faq = await lastValueFrom(observer$) ;
+      .makeGet<Ifaq>(`/faq/one/${id}`);
+    const faq = await lastValueFrom(observer$);
 
     return new Faq(faq);
   }
@@ -100,7 +100,7 @@ export class Faq
 export class FaqAnswer
   extends DatabaseAuto {
   urId: string;
-  companyId: string;
+  companyId?: string;
   faq: string;
   userId: User | string;
   ans: string;
@@ -128,10 +128,10 @@ export class FaqAnswer
       faqans: faqans.data.map(val => new FaqAnswer(val)) };
   }
 
-  static async getOne(_id: string) {
+  static async getOne(urIdOr_id: string) {
     const observer$ = StockCounterClient.ehttp
-      .makeGet<Ifaqanswer>(`/faq/one/${_id}`);
-    const faqans = await lastValueFrom(observer$) ;
+      .makeGet<Ifaqanswer>(`/faq/one/${urIdOr_id}`);
+    const faqans = await lastValueFrom(observer$);
 
     return new FaqAnswer(faqans);
   }

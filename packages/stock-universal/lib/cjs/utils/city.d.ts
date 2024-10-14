@@ -1,4 +1,4 @@
-import { Icity } from '../interfaces/general.interface';
+import { Icity } from '../types/general-types';
 /**
  * An array of default cities.
  * @interface Icity

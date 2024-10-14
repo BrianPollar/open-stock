@@ -30,9 +30,9 @@ class ItemDecoy extends stock_universal_1.DatabaseAuto {
             decoys: decoys.data.map(val => new ItemDecoy(val))
         };
     }
-    static async getOne(_id) {
+    static async getOne(urIdOr_id) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makeGet(`/itemdecoy/one/${_id}`);
+            .makeGet(`/itemdecoy/one/${urIdOr_id}`);
         const decoy = await (0, rxjs_1.lastValueFrom)(observer$);
         return new ItemDecoy(decoy);
     }

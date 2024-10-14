@@ -53,7 +53,7 @@ export declare class InventoryController {
      * @param expenses - The list of expenses to find the biggest expense point from.
      * @returns The expense with the highest cost.
      */
-    calcBigExpensePoint(expenses: Expense[]): Expense;
+    calcBigExpensePoint(expenses: Expense[]): Expense | undefined;
     /**
      * This method calculates the subtotal for a list of related products in an invoice.
      * It multiplies the amount and quantity of each related product and sums up the results.
@@ -90,7 +90,7 @@ export declare class InventoryController {
      * @param allItems - The list of all items to search in.
      * @returns The found item, or undefined if no item was found.
      */
-    findItem(id: string, allItems: Item[]): Item;
+    findItem(id: string, allItems: Item[]): Item | undefined;
     /**
      * This method calculates the profit for a specific item across all
      * related invoices. It filters the related invoices to

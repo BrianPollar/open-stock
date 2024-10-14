@@ -3,15 +3,20 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createReceiptModel = exports.receiptSelect = exports.receiptLean = exports.receiptMain = void 0;
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const mongoose_1 = require("mongoose");
-const database_1 = require("../../utils/database");
 const uniqueValidator = require('mongoose-unique-validator');
 const receiptSchema = new mongoose_1.Schema({
     ...stock_universal_server_1.withUrIdAndCompanySchemaObj,
-    invoiceRelated: { type: String },
-    ammountRcievd: { type: Number },
+    invoiceRelated: { type: mongoose_1.Schema.Types.ObjectId },
+    ammountRcievd: {
+        type: Number,
+        min: [0, 'cannot be less than 0.']
+    },
     paymentMode: { type: String },
     type: { type: String },
-    amount: { type: Number },
+    amount: {
+        type: Number,
+        min: [0, 'cannot be less than 0.']
+    },
     date: { type: Date }
 }, { timestamps: true, collection: 'receipts' });
 receiptSchema.pre('updateOne', function (next) {
@@ -47,15 +52,15 @@ exports.receiptSelect = receiptselect;
  */
 const createReceiptModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     (0, stock_universal_server_1.createExpireDocIndex)(receiptSchema);
-    if (!database_1.isStockDbConnected) {
-        await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
+    if (!stock_universal_server_1.isDbConnected) {
+        await (0, stock_universal_server_1.connectDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.receiptMain = database_1.mainConnection
+        exports.receiptMain = stock_universal_server_1.mainConnection
             .model('Receipt', receiptSchema);
     }
     if (lean) {
-        exports.receiptLean = database_1.mainConnectionLean
+        exports.receiptLean = stock_universal_server_1.mainConnectionLean
             .model('Receipt', receiptSchema);
     }
 };

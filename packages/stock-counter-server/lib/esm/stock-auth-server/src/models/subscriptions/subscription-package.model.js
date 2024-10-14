@@ -1,6 +1,5 @@
-import { createExpireDocIndex, globalSchemaObj, globalSelectObj } from '@open-stock/stock-universal-server';
+import { connectDatabase, createExpireDocIndex, globalSchemaObj, globalSelectObj, isDbConnected, mainConnection, mainConnectionLean } from '@open-stock/stock-universal-server';
 import { Schema } from 'mongoose';
-import { connectAuthDatabase, isAuthDbConnected, mainConnection, mainConnectionLean } from '../../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 /** subscription package schema */
 const subscriptionPackageSchema = new Schema({
@@ -43,8 +42,8 @@ export const subscriptionPackageSelect = subscriptionPackageselect;
  */
 export const createSubscriptionPackageModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     createExpireDocIndex(subscriptionPackageSchema);
-    if (!isAuthDbConnected) {
-        await connectAuthDatabase(dbUrl, dbOptions);
+    if (!isDbConnected) {
+        await connectDatabase(dbUrl, dbOptions);
     }
     if (main) {
         subscriptionPackageMain = mainConnection

@@ -3,48 +3,18 @@
 import { requireActiveCompany } from '@open-stock/stock-auth-server';
 import {
   IcustomRequest, IdataArrayResponse,
-  IdeleteMany, IfilterProps,
-  Isuccess, ItaxReport
+  IdeleteMany, IfilterProps, ItaxReport
 } from '@open-stock/stock-universal';
 import {
   addParentToLocals, generateUrId,
-  makeCompanyBasedQuery, offsetLimitRelegator,
-  requireAuth, roleAuthorisation,
-  stringifyMongooseErr
+  handleMongooseErr, makeCompanyBasedQuery, offsetLimitRelegator,
+  requireAuth, roleAuthorisation, verifyObjectId
 } from '@open-stock/stock-universal-server';
 import express from 'express';
-import * as fs from 'fs';
-import path from 'path';
-import * as tracer from 'tracer';
+import { Error } from 'mongoose';
 import { paymentLean } from '../../../models/payment.model';
 import { estimateLean } from '../../../models/printables/estimate.model';
 import { TtaxReport, taxReportLean, taxReportMain } from '../../../models/printables/report/taxreport.model';
-
-/** Logger for tax report routes */
-const taxReportRoutesLogger = tracer.colorConsole({
-  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-  dateformat: 'HH:MM:ss.L',
-  transport(data) {
-    // eslint-disable-next-line no-console
-    console.log(data.output);
-    const logDir = path.join(process.cwd() + '/openstockLog/');
-
-    fs.mkdir(logDir, { recursive: true }, (err) => {
-      if (err) {
-        if (err) {
-          // eslint-disable-next-line no-console
-          console.log('data.output err ', err);
-        }
-      }
-    });
-    fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
-      if (err) {
-        // eslint-disable-next-line no-console
-        console.log('raw.output err ', err);
-      }
-    });
-  }
-});
 
 /**
  * Router for tax report routes.
@@ -64,47 +34,34 @@ taxReportRoutes.post(
 
     taxReport.urId = await generateUrId(taxReportMain);
     const newTaxReport = new taxReportMain(taxReport);
-    let errResponse: Isuccess;
 
-    const saved = await newTaxReport.save()
-      .catch(err => {
-        taxReportRoutesLogger.error('create - err: ', err);
-        errResponse = {
-          success: false,
-          status: 403
-        };
-        if (err && err.errors) {
-          errResponse.err = stringifyMongooseErr(err.errors);
-        } else {
-          errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-        }
 
-        return err;
-      });
+    const savedRes = await newTaxReport.save()
+      .catch((err: Error) => err);
 
-    if (errResponse) {
-      return res.status(403).send(errResponse);
+    if (savedRes instanceof Error) {
+      const errResponse = handleMongooseErr(savedRes);
+
+      return res.status(errResponse.status).send(errResponse);
     }
 
-    if (saved && saved._id) {
-      addParentToLocals(res, saved._id, taxReportMain.collection.collectionName, 'makeTrackEdit');
-    }
+    addParentToLocals(res, savedRes._id, taxReportMain.collection.collectionName, 'makeTrackEdit');
 
     return res.status(200).send({ success: true });
   }
 );
 
 taxReportRoutes.get(
-  '/one/:urId',
+  '/one/:urIdOr_id',
   requireAuth,
   requireActiveCompany,
   roleAuthorisation('reports', 'read'),
-  async(req: IcustomRequest<{ urId: string }, null>, res) => {
-    const { urId } = req.params;
+  async(req: IcustomRequest<{ urIdOr_id: string }, null>, res) => {
+    const { urIdOr_id } = req.params;
     const { filter } = makeCompanyBasedQuery(req);
+    const filterwithId = verifyObjectId(urIdOr_id) ? { _id: urIdOr_id } : { urId: urIdOr_id };
     const taxReport = await taxReportLean
-      .findOne({ urId, ...filter })
+      .findOne({ ...filterwithId, ...filter })
       .lean()
       .populate({ path: 'estimates', model: estimateLean })
       .populate({ path: 'payments', model: paymentLean });
@@ -160,15 +117,18 @@ taxReportRoutes.delete(
     const { filter } = makeCompanyBasedQuery(req);
 
     // const deleted = await taxReportMain.findOneAndDelete({ _id, ...filter });
-    const deleted = await taxReportMain.updateOne({ _id, ...filter }, { $set: { isDeleted: true } });
+    const updateRes = await taxReportMain.updateOne({ _id, ...filter }, { $set: { isDeleted: true } })
+      .catch((err: Error) => err);
 
-    if (Boolean(deleted)) {
-      addParentToLocals(res, _id, taxReportMain.collection.collectionName, 'trackDataDelete');
+    if (updateRes instanceof Error) {
+      const errResponse = handleMongooseErr(updateRes);
 
-      return res.status(200).send({ success: Boolean(deleted) });
-    } else {
-      return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
+      return res.status(errResponse.status).send(errResponse);
     }
+
+    addParentToLocals(res, _id, taxReportMain.collection.collectionName, 'trackDataDelete');
+
+    return res.status(200).send({ success: true });
   }
 );
 
@@ -178,7 +138,6 @@ taxReportRoutes.post(
   requireActiveCompany,
   roleAuthorisation('reports', 'read'),
   async(req: IcustomRequest<never, IfilterProps>, res) => {
-    const { searchterm, searchKey } = req.body;
     const { filter } = makeCompanyBasedQuery(req);
     const { offset, limit } = offsetLimitRelegator(req.body.offset, req.body.limit);
 
@@ -199,13 +158,13 @@ taxReportRoutes.post(
 
     const all = await Promise.all([
       taxReportLean
-        .find({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
+        .find({ ...filter })
         .skip(offset)
         .limit(limit)
         .lean()
         .populate({ path: 'estimates', model: estimateLean })
         .populate({ path: 'payments', model: paymentLean }),
-      taxReportLean.countDocuments({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
+      taxReportLean.countDocuments({ ...filter })
     ]);
     const response: IdataArrayResponse<TtaxReport> = {
       count: all[1],
@@ -229,34 +188,21 @@ taxReportRoutes.put(
     const { _ids } = req.body;
     const { filter } = makeCompanyBasedQuery(req);
 
-    /* const deleted = await taxReportMain
-    .deleteMany({ ...filter, _id: { $in: _ids } })
-    .catch(err => {
-      taxReportRoutesLogger.error('deletemany - err: ', err);
-
-      return null;
-    }); */
-
-    const deleted = await taxReportMain
+    const updateRes = await taxReportMain
       .updateMany({ ...filter, _id: { $in: _ids } }, {
         $set: { isDeleted: true }
-      })
-      .catch(err => {
-        taxReportRoutesLogger.error('deletemany - err: ', err);
+      }).catch((err: Error) => err);
 
-        return null;
-      });
+    if (updateRes instanceof Error) {
+      const errResponse = handleMongooseErr(updateRes);
 
-
-    if (Boolean(deleted)) {
-      for (const val of _ids) {
-        addParentToLocals(res, val, taxReportMain.collection.collectionName, 'trackDataDelete');
-      }
-
-      return res.status(200).send({ success: Boolean(deleted) });
-    } else {
-      return res.status(404).send({
-        success: Boolean(deleted), err: 'could not delete selected items, try again in a while' });
+      return res.status(errResponse.status).send(errResponse);
     }
+
+    for (const val of _ids) {
+      addParentToLocals(res, val, taxReportMain.collection.collectionName, 'trackDataDelete');
+    }
+
+    return res.status(200).send({ success: true });
   }
 );

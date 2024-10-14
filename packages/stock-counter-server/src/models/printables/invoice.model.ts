@@ -1,22 +1,24 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-type-arguments */
 import { IinvoiceRelatedRef } from '@open-stock/stock-universal';
 import {
+  IcompanyIdAsObjectId,
+  connectDatabase,
   createExpireDocIndex,
+  isDbConnected, mainConnection, mainConnectionLean,
   preUpdateDocExpire,
   withUrIdAndCompanySchemaObj
 } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../utils/database';
 
 /**
  * Represents a printable invoice.
  * @typedef {Document & IinvoiceRelatedRef & { dueDate: Date }} Tinvoice
  */
-export type Tinvoice = Document & IinvoiceRelatedRef & { dueDate: Date };
+export type Tinvoice = Document & IinvoiceRelatedRef & { dueDate: Date } & IcompanyIdAsObjectId;
 
 const invoiceSchema: Schema<Tinvoice> = new Schema({
   ...withUrIdAndCompanySchemaObj,
-  invoiceRelated: { type: String },
+  invoiceRelated: { type: Schema.Types.ObjectId },
   dueDate: { type: Date }
 }, { timestamps: true, collection: 'invoices' });
 
@@ -64,8 +66,8 @@ export const invoiceSelect = invoiceselect;
  */
 export const createInvoiceModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
   createExpireDocIndex(invoiceSchema);
-  if (!isStockDbConnected) {
-    await connectStockDatabase(dbUrl, dbOptions);
+  if (!isDbConnected) {
+    await connectDatabase(dbUrl, dbOptions);
   }
 
   if (main) {

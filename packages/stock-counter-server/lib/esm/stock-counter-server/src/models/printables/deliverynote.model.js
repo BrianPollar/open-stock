@@ -1,10 +1,9 @@
-import { createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
+import { connectDatabase, createExpireDocIndex, isDbConnected, mainConnection, mainConnectionLean, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
 import { Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 const deliveryNoteSchema = new Schema({
     ...withUrIdAndCompanySchemaObj,
-    invoiceRelated: { type: String, unique: true }
+    invoiceRelated: { type: Schema.Types.ObjectId, unique: true }
 }, { timestamps: true, collection: 'deliverynotes' });
 // Apply the uniqueValidator plugin to deliveryNoteSchema.
 deliveryNoteSchema.plugin(uniqueValidator);
@@ -42,8 +41,8 @@ export const deliveryNoteSelect = deliveryNoteselect;
  */
 export const createDeliveryNoteModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     createExpireDocIndex(deliveryNoteSchema);
-    if (!isStockDbConnected) {
-        await connectStockDatabase(dbUrl, dbOptions);
+    if (!isDbConnected) {
+        await connectDatabase(dbUrl, dbOptions);
     }
     if (main) {
         deliveryNoteMain = mainConnection

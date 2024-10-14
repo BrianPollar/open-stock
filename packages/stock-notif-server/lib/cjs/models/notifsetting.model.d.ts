@@ -3,6 +3,7 @@
  * @packageDocumentation
  */
 /// <reference types="mongoose/types/document" />
+/// <reference types="mongoose/types/schematypes" />
 /// <reference types="mongoose/types/models" />
 /// <reference types="mongoose/types/aggregate" />
 /// <reference types="mongoose/types/callback" />
@@ -29,12 +30,14 @@
 /// <reference types="mongoose/types/virtuals" />
 /// <reference types="mongoose/types/inferschematype" />
 import { InotifSetting } from '@open-stock/stock-universal';
-import { ConnectOptions, Document, Model } from 'mongoose';
+import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 /**
  * Represents the type for a notification setting.
  * Extends the Document interface and the InotifSetting interface.
  */
-export type TnotifSetting = Document & InotifSetting;
+export type TnotifSetting = Document & Omit<InotifSetting, 'companyId'> & {
+    companyId: Schema.Types.ObjectId;
+};
 /**
  * Represents the main notification setting model.
  */

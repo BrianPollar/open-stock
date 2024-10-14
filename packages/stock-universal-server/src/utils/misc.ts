@@ -26,6 +26,7 @@ export const generateCustomIdFromObjectId = (objectId: string | ObjectId, lastUr
   return last4 + '-' + increment;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const generateUrId = async(model: Model<any>, length = 10) => {
   const urId = nanoid(length);
 

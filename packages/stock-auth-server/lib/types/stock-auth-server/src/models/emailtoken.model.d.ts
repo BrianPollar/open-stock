@@ -1,4 +1,5 @@
 /// <reference types="mongoose/types/document" />
+/// <reference types="mongoose/types/schematypes" />
 /// <reference types="mongoose/types/models" />
 /// <reference types="mongoose/types/aggregate" />
 /// <reference types="mongoose/types/callback" />
@@ -24,7 +25,7 @@
 /// <reference types="mongoose/types/validation" />
 /// <reference types="mongoose/types/virtuals" />
 /// <reference types="mongoose/types/inferschematype" />
-import { ConnectOptions, Document, Model } from 'mongoose';
+import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 /**
  * Represents an email token.
  */
@@ -32,7 +33,7 @@ export interface IEmailtoken extends Document {
     /**
      * The ID of the user associated with the token.
      */
-    userId: string;
+    userId: string | Schema.Types.ObjectId;
     /**
      * The token value.
      */

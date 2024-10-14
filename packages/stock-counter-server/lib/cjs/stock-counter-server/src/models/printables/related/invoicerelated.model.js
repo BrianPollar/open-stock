@@ -3,50 +3,88 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createInvoiceRelatedModel = exports.invoiceRelatedSelect = exports.invoiceRelatedLean = exports.invoiceRelatedMain = void 0;
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const mongoose_1 = require("mongoose");
-const database_1 = require("../../../utils/database");
-/**
- * Represents the schema for the invoice related model.
- * @typedef {Object} TinvoiceRelated
- * @property {string} creationType - The type of creation.
- * @property {number} estimateId - The ID of the estimate.
- * @property {number} invoiceId - The ID of the invoice.
- * @property {string} billingUser - The user who is being billed.
- * @property {string} billingUserId - The ID of the user who is being billed.
- * @property {Array} items - The items in the invoice.
- * @property {Date} fromDate - The start date of the invoice.
- * @property {Date} toDate - The end date of the invoice.
- * @property {string} status - The status of the invoice.
- * @property {string} stage - The stage of the invoice.
- * @property {number} cost - The cost of the invoice.
- * @property {number} tax - The tax of the invoice.
- * @property {number} balanceDue - The balance due on the invoice.
- * @property {number} subTotal - The subtotal of the invoice.
- * @property {number} total - The total of the invoice.
- * @property {Array} payments - The payments made on the invoice.
- */
+const itemsSchema = new mongoose_1.Schema({
+    item: { type: mongoose_1.Schema.Types.ObjectId },
+    itemName: { type: String, minlength: [3, 'cannot be less than 3'], maxlength: [150, 'cannot be more than 150'] },
+    itemPhoto: { type: String },
+    quantity: { type: Number, min: [1, 'cannot be less than 1'] },
+    rate: { type: Number, min: [1, 'cannot be less than 1'] },
+    amount: { type: Number, min: [1, 'cannot be less than 1'] },
+    currency: { type: String }
+});
 const invoiceRelatedSchema = new mongoose_1.Schema({
     ...stock_universal_server_1.withUrIdAndCompanySchemaObj,
-    creationType: { type: String },
+    creationType: {
+        type: String,
+        validator: checkCreationType,
+        message: props => `${props.value} is invalid phone!`
+    },
     estimateId: { type: Number },
     invoiceId: { type: Number },
     billingUser: { type: String },
-    billingUserId: { type: String },
-    items: [],
+    billingUserId: { type: mongoose_1.Schema.Types.ObjectId },
+    items: [itemsSchema],
     fromDate: { type: Date },
-    toDate: { type: Date },
-    status: { type: String },
-    stage: { type: String },
-    cost: { type: Number },
-    tax: { type: Number },
-    balanceDue: { type: Number },
-    subTotal: { type: Number },
-    total: { type: Number },
-    payments: [],
+    toDate: {
+        type: Date,
+        validator: checkToDate,
+        message: props => `${props.value} is invalid, it must be less than from date!`
+    },
+    status: {
+        type: String,
+        validator: checkStatus,
+        message: props => `${props.value} is invalid phone!`
+    },
+    stage: {
+        type: String,
+        validator: checkStage,
+        message: props => `${props.value} is invalid phone!`
+    },
+    cost: {
+        type: Number,
+        min: [0, 'cannot be less than 0!']
+    },
+    tax: {
+        type: Number,
+        min: [0, 'cannot be less than 0!']
+    },
+    balanceDue: {
+        type: Number,
+        min: [0, 'cannot be less than 0!']
+    },
+    subTotal: {
+        type: Number,
+        min: [0, 'cannot be less than 0!']
+    },
+    total: {
+        type: Number,
+        min: [0, 'cannot be less than 0!']
+    },
+    payments: [mongoose_1.Schema.Types.ObjectId],
     payType: { type: String, index: true },
     ecommerceSale: { type: Boolean, index: true, default: false },
-    ecommerceSalePercentage: { type: Number, index: true, default: 0 },
+    ecommerceSalePercentage: {
+        type: Number,
+        min: [0, 'cannot be less than 0!'],
+        max: [100, 'cannot be greater than 100!']
+    },
     currency: { type: String, default: 'USD' }
 }, { timestamps: true, collection: 'invoicerelateds' });
+function checkCreationType(creationType) {
+    return creationType === 'estimate' || creationType === 'invoice' ||
+        creationType === 'deliverynote' || creationType === 'receipt';
+}
+function checkToDate(toDate) {
+    return toDate < this.fromDate;
+}
+function checkStatus(status) {
+    return status === 'paid' || status === 'pending' ||
+        status === 'overdue' || status === 'draft' ||
+        status === 'unpaid' || status === 'cancelled';
+}
+function checkStage(stage) {
+    return stage === 'estimate' || stage === 'invoice' || stage === 'deliverynote' || stage === 'receipt';
+}
 invoiceRelatedSchema.pre('updateOne', function (next) {
     return (0, stock_universal_server_1.preUpdateDocExpire)(this, next);
 });
@@ -93,15 +131,15 @@ exports.invoiceRelatedSelect = invoiceRelatedselect;
  */
 const createInvoiceRelatedModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     (0, stock_universal_server_1.createExpireDocIndex)(invoiceRelatedSchema);
-    if (!database_1.isStockDbConnected) {
-        await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
+    if (!stock_universal_server_1.isDbConnected) {
+        await (0, stock_universal_server_1.connectDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.invoiceRelatedMain = database_1.mainConnection
+        exports.invoiceRelatedMain = stock_universal_server_1.mainConnection
             .model('invoiceRelated', invoiceRelatedSchema);
     }
     if (lean) {
-        exports.invoiceRelatedLean = database_1.mainConnectionLean
+        exports.invoiceRelatedLean = stock_universal_server_1.mainConnectionLean
             .model('invoiceRelated', invoiceRelatedSchema);
     }
 };

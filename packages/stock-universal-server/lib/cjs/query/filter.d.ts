@@ -8,9 +8,11 @@ import { IcustomRequest } from '@open-stock/stock-universal';
    * @returns {object} The filter to use in the query.
    */
 export declare const makePredomFilter: (req: any) => {
-    $or: {
+    $or: ({
         isDeleted: boolean;
-    }[];
+    } | {
+        isDeleted: null;
+    })[];
 };
 /**
    * Makes a filter to be used in a query. The filter is as follows:

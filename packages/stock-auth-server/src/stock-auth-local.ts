@@ -1,5 +1,5 @@
 
-/** The  connectAuthDatabase  function connects to the authentication database by creating the required models. */
+/** The  connectDatabase  function connects to the authentication database by creating the required models. */
 import { ConnectOptions } from 'mongoose';
 import { createCompanyModel } from './models/company.model';
 import { createEmailtokenModel } from './models/emailtoken.model';
@@ -34,7 +34,7 @@ export const createStockAuthServerLocals = (config: IStockAuthServerConfig) => {
  * @param {string} databaseUrl - The URL of the authentication database.
  * @returns {Promise<void>}
  */
-export const connectAuthDatabase = async(databaseUrl: string, dbOptions?: ConnectOptions): Promise<void> => {
+export const connectDatabase = async(databaseUrl: string, dbOptions?: ConnectOptions): Promise<void> => {
   await createEmailtokenModel(databaseUrl, dbOptions);
   await createUserModel(databaseUrl, dbOptions);
   await createCompanyModel(databaseUrl, dbOptions);

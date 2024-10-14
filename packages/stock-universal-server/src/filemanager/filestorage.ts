@@ -1,37 +1,10 @@
 import { IcustomRequest, makeRandomString } from '@open-stock/stock-universal';
 import { Request } from 'express';
-import * as fs from 'fs';
 import { mkdir } from 'fs-extra';
 import multer from 'multer';
 import * as path from 'path';
-import * as tracer from 'tracer';
 import { stockUniversalConfig } from '../stock-universal-local';
-
-// This function creates a fileStorageLogger named `controllers/FileStorage`.
-const fileStorageLogger = tracer.colorConsole({
-  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-  dateformat: 'HH:MM:ss.L',
-  transport(data) {
-    // eslint-disable-next-line no-console
-    console.log(data.output);
-    const logDir = path.join(process.cwd() + '/openstockLog/');
-
-    fs.mkdir(logDir, { recursive: true }, (err) => {
-      if (err) {
-        if (err) {
-          // eslint-disable-next-line no-console
-          console.log('data.output err ', err);
-        }
-      }
-    });
-    fs.appendFile(logDir + '/universal-server.log', data.rawoutput + '\n', err => {
-      if (err) {
-        // eslint-disable-next-line no-console
-        console.log('raw.output err ', err);
-      }
-    });
-  }
-});
+import { mainLogger } from '../utils/back-logger';
 
 /**
  * Represents an extended interface for handling Multer requests.
@@ -67,7 +40,10 @@ export const multerFileds: multer.Field[] = [
 const rudimentaryStorage = multer.diskStorage({
 
   // This function gets the directory for the file based on its MIME type.
-  destination(req: IcustomRequest<never, unknown>, file, cb) {
+  destination(req: IcustomRequest<any, unknown>, file, cb) {
+    if (!req.user) {
+      return cb(new Error('user not authenticated'), '');
+    }
     const { companyId } = req.user;
 
 
@@ -78,7 +54,7 @@ const rudimentaryStorage = multer.diskStorage({
 
     const mimeType = file.mimetype;
 
-    fileStorageLogger.debug('rudimentaryStorage - mimeType: ', mimeType);
+    mainLogger.debug('rudimentaryStorage - mimeType: ', mimeType);
     let storageDir: string;
 
     switch (mimeType) {
@@ -92,17 +68,17 @@ const rudimentaryStorage = multer.diskStorage({
         storageDir = path.join(`${videoDirectory}`);
         break;
       default:
-        fileStorageLogger.error(`rudimentaryStorage 
+        mainLogger.error(`rudimentaryStorage 
         access tried with invalid mimetype,
           ${mimeType}`);
 
         return cb(new Error('mimetype not allowed'), '');
     }
     // const dir = path.join(`${lConfig.openphotoDirectory}`);
-    fileStorageLogger.debug(`multer rudimentaryStorage dir : ${storageDir}`);
+    mainLogger.debug(`multer rudimentaryStorage dir : ${storageDir}`);
     mkdir(storageDir, { recursive: true }, (err) => {
       if (err) {
-        fileStorageLogger.error(`multer 
+        mainLogger.error(`multer 
               rudimentaryStorage fse.mkdir error: ${err}`);
       }
       cb(null, storageDir);
@@ -129,7 +105,7 @@ const rudimentaryStorage = multer.diskStorage({
         extName = '.mp4';
         break;
       default:
-        fileStorageLogger.error(`rudimentaryStorage 
+        mainLogger.error(`rudimentaryStorage 
         access tried with invalid mimetype,
           ${mimeType}`);
 

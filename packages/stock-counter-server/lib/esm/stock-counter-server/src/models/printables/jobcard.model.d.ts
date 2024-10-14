@@ -23,11 +23,12 @@
 /// <reference types="mongoose/types/virtuals" />
 /// <reference types="mongoose/types/inferschematype" />
 import { IjobCard } from '@open-stock/stock-universal';
+import { IcompanyIdAsObjectId } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model } from 'mongoose';
 /**
  * Represents a job card document.
  */
-export type TjobCard = Document & IjobCard;
+export type TjobCard = Document & IjobCard & IcompanyIdAsObjectId;
 /**
  * Represents the main job card model.
  */

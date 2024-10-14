@@ -34,8 +34,8 @@ exports.trackEditSelect = trackEditselect;
  */
 const createTrackEditModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     trackEditSchema.index({ expireDocAfter: 1 }, { expireAfterSeconds: stock_universal_local_1.stockUniversalConfig.expireDocAfterSeconds });
-    if (!database_1.isUniversalDbConnected) {
-        await (0, stock_universal_local_1.connectUniversalDatabase)(dbUrl, dbOptions);
+    if (!database_1.isDbConnected) {
+        await (0, database_1.connectDatabase)(dbUrl, dbOptions);
     }
     if (main) {
         exports.trackEditMain = database_1.mainConnection

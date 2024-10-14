@@ -11,7 +11,7 @@ export const globalSchemaObj = {
 
 export const withCompanySchemaObj = {
   ...globalSchemaObj,
-  companyId: { type: Schema.ObjectId, index: true } as unknown as {type: StringConstructor; index: boolean}
+  companyId: { type: Schema.Types.ObjectId, index: true } as unknown as {type: Schema.Types.ObjectId; index: boolean}
 };
 
 export const withUrIdAndCompanySchemaObj = {

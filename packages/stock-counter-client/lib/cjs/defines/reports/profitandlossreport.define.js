@@ -43,9 +43,9 @@ class ProfitAndLossReport extends stock_universal_1.DatabaseAuto {
             profitandlossreports: profitandlossreports.data.map((val) => new ProfitAndLossReport(val))
         };
     }
-    static async getOne(urId) {
+    static async getOne(urIdOr_id) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makeGet(`/profitandlossreport/one/${urId}`);
+            .makeGet(`/profitandlossreport/one/${urIdOr_id}`);
         const profitandlossreport = await (0, rxjs_1.lastValueFrom)(observer$);
         return new ProfitAndLossReport(profitandlossreport);
     }

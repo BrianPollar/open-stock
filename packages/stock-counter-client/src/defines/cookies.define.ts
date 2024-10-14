@@ -193,7 +193,7 @@ export class Cookies {
     }
     const observer$ = StockCounterClient.ehttp
       .makeGet<IcartInterface[]>('/cookies/appendtocart');
-    const response = await lastValueFrom(observer$) ;
+    const response = await lastValueFrom(observer$);
 
     return response;
   }
@@ -210,7 +210,7 @@ export class Cookies {
     }
     const observer$ = StockCounterClient.ehttp
       .makeGet<Item[]>('/cookies/appendtorecent');
-    const response = await lastValueFrom(observer$) ;
+    const response = await lastValueFrom(observer$);
 
     return response;
   }
@@ -227,7 +227,7 @@ export class Cookies {
     }
     const observer$ = StockCounterClient.ehttp
       .makeGet<Item[]>('/cookies/appendtowishlist');
-    const response = await lastValueFrom(observer$) ;
+    const response = await lastValueFrom(observer$);
 
     return response;
   }
@@ -245,7 +245,7 @@ export class Cookies {
     }
     const observer$ = StockCounterClient.ehttp
       .makeGet<Item[]>('/cookies/appendtorecent');
-    const response = await lastValueFrom(observer$) ;
+    const response = await lastValueFrom(observer$);
 
     return response;
   }

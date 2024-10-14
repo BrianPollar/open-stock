@@ -1,11 +1,16 @@
-import { createExpireDocIndex, globalSchemaObj, globalSelectObj, preUpdateDocExpire } from '@open-stock/stock-universal-server';
+import { connectDatabase, createExpireDocIndex, globalSchemaObj, globalSelectObj, isDbConnected, mainConnection, mainConnectionLean, preUpdateDocExpire } from '@open-stock/stock-universal-server';
 import { Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../../utils/database';
 const userWalletSchema = new Schema({
     ...globalSchemaObj,
-    user: { type: String, required: [true, 'cannot be empty.'], index: true },
-    amount: { type: Number, required: [true, 'cannot be empty.'], index: true },
-    type: { type: String }
+    user: { type: Schema.Types.ObjectId, required: [true, 'cannot be empty.'], index: true },
+    accountBalance: {
+        type: Number,
+        required: [true, 'cannot be empty.'],
+        index: true,
+        default: 0,
+        min: [0, 'cannot be less than 0.']
+    },
+    currency: { type: String }
 }, { timestamps: true, collection: 'userwallets' });
 userWalletSchema.pre('updateOne', function (next) {
     return preUpdateDocExpire(this, next);
@@ -16,8 +21,8 @@ userWalletSchema.pre('updateMany', function (next) {
 const userWalletselect = {
     ...globalSelectObj,
     user: 1,
-    amount: 1,
-    type: 1
+    accountBalance: 1,
+    currency: 1
 };
 /**
  * Represents the main Mongoose model for the user wallet.
@@ -39,8 +44,8 @@ export const userWalletSelect = userWalletselect;
  */
 export const createUserWalletModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     createExpireDocIndex(userWalletSchema);
-    if (!isStockDbConnected) {
-        await connectStockDatabase(dbUrl, dbOptions);
+    if (!isDbConnected) {
+        await connectDatabase(dbUrl, dbOptions);
     }
     if (main) {
         userWalletMain = mainConnection

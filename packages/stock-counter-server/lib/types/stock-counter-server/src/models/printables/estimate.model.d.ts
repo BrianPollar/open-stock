@@ -23,11 +23,12 @@
 /// <reference types="mongoose/types/virtuals" />
 /// <reference types="mongoose/types/inferschematype" />
 import { IinvoiceRelatedRef } from '@open-stock/stock-universal';
+import { IcompanyIdAsObjectId } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model } from 'mongoose';
 /**
  * Represents a testimate, which is a document related to an invoice.
  */
-export type Testimate = Document & IinvoiceRelatedRef;
+export type Testimate = Document & IinvoiceRelatedRef & IcompanyIdAsObjectId;
 /**
  * Represents the main estimate model.
  */

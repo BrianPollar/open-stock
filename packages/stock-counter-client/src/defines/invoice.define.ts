@@ -95,9 +95,9 @@ export class Invoice
         .map(val => new Invoice(val)) };
   }
 
-  static async getOne(urId: string) {
+  static async getOne(urIdOr_id: string) {
     const observer$ = StockCounterClient.ehttp
-      .makeGet<Required<Iinvoice>>(`/invoice/one/${urId}`);
+      .makeGet<Required<Iinvoice>>(`/invoice/one/${urIdOr_id}`);
     const invoice = await lastValueFrom(observer$);
 
     return new Invoice(invoice);
@@ -121,6 +121,13 @@ export class Invoice
     vals.invoice._id = this._id;
     const observer$ = StockCounterClient.ehttp
       .makePut<Isuccess>('/invoice/update', vals);
+
+    return lastValueFrom(observer$);
+  }
+
+  remove() {
+    const observer$ = StockCounterClient.ehttp
+      .makeDelete<Isuccess>(`/invoice/delete/one/${this._id}`);
 
     return lastValueFrom(observer$);
   }

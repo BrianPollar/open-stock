@@ -545,7 +545,7 @@ export const registerSearchParams = async(
   const found = await userBehaviourMain.findOne(filter);
 
   if (!found) {
-    const useBehaviour: IuserBehaviour = {
+    const useBehaviour: Partial<IuserBehaviour> = {
       user: userId,
       userCookieId,
       recents: [],
@@ -588,7 +588,7 @@ export const registerCart = async(item: string, userCookieId: string, userId?: s
   const found = await userBehaviourMain.findOne(filter);
 
   if (!found) {
-    const useBehaviour: IuserBehaviour = {
+    const useBehaviour: Partial<IuserBehaviour> = {
       user: userId,
       userCookieId,
       recents: [],
@@ -630,7 +630,7 @@ export const registerRecents = async(item: string, userCookieId: string, userId?
   const found = await userBehaviourMain.findOne(filter);
 
   if (!found) {
-    const useBehaviour: IuserBehaviour = {
+    const useBehaviour: Partial<IuserBehaviour> = {
       user: userId,
       userCookieId,
       recents: [item],
@@ -652,7 +652,7 @@ export const registerRecents = async(item: string, userCookieId: string, userId?
 
   const foundItem = await itemMain.findOne({ _id: item });
 
-  if (foundItem) {
+  if (foundItem && foundItem.timesViewed) {
     foundItem.timesViewed += 1;
     await foundItem.save();
   }
@@ -683,7 +683,7 @@ export const registerWishList = async(item: string, userCookieId: string, userId
   const found = await userBehaviourMain.findOne(filter);
 
   if (!found) {
-    const useBehaviour: IuserBehaviour = {
+    const useBehaviour: Partial<IuserBehaviour> = {
       user: userId,
       userCookieId,
       recents: [],
@@ -727,7 +727,7 @@ export const registerCompareList = async(item: string, userCookieId: string, use
   let found = await userBehaviourMain.findOne(filter);
 
   if (!found) {
-    const useBehaviour: IuserBehaviour = {
+    const useBehaviour: Partial<IuserBehaviour> = {
       user: userId,
       userCookieId,
       recents: [],
@@ -755,7 +755,7 @@ export const registerCompareList = async(item: string, userCookieId: string, use
    * @param useBehaviour - The user behaviour data to save.
    * @returns The newly created user behaviour document.
    */
-export const createUserBehaour = async(useBehaviour: IuserBehaviour) => {
+export const createUserBehaour = async(useBehaviour: Partial<IuserBehaviour>) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   useBehaviour.expireAt = Date.now() as any;
   const behaviour = new userBehaviourMain(useBehaviour);

@@ -29,9 +29,9 @@ export class Estimate extends InvoiceRelatedWithReceipt {
                 .map(val => new Estimate(val))
         };
     }
-    static async getOne(urId) {
+    static async getOne(urIdOr_id) {
         const observer$ = StockCounterClient.ehttp
-            .makeGet(`/estimate/one/${urId}`);
+            .makeGet(`/estimate/one/${urIdOr_id}`);
         const estimate = await lastValueFrom(observer$);
         return new Estimate(estimate);
     }
@@ -48,6 +48,11 @@ export class Estimate extends InvoiceRelatedWithReceipt {
     updatePdt(vals) {
         const observer$ = StockCounterClient.ehttp
             .makePut('/estimate/updatepdt', { items: vals, _id: this._id });
+        return lastValueFrom(observer$);
+    }
+    remove() {
+        const observer$ = StockCounterClient.ehttp
+            .makeDelete(`/estimate/delete/one/${this._id}`);
         return lastValueFrom(observer$);
     }
 }

@@ -36,9 +36,9 @@ export class TaxReport extends DatabaseAuto {
             taxreports: taxreports.data.map((val) => new TaxReport(val))
         };
     }
-    static async getOne(urId) {
+    static async getOne(urIdOr_id) {
         const observer$ = StockCounterClient.ehttp
-            .makeGet(`/taxreport/one/${urId}`);
+            .makeGet(`/taxreport/one/${urIdOr_id}`);
         const taxreport = await lastValueFrom(observer$);
         return new TaxReport(taxreport);
     }

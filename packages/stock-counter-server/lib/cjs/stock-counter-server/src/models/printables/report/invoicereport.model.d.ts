@@ -23,11 +23,12 @@
 /// <reference types="mongoose/types/virtuals" />
 /// <reference types="mongoose/types/inferschematype" />
 import { IinvoicesReport } from '@open-stock/stock-universal';
+import { IcompanyIdAsObjectId } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model } from 'mongoose';
 /**
  * Represents a TinvoicesReport, which is a document that combines the properties of a Document and IinvoicesReport.
  */
-export type TinvoicesReport = Document & IinvoicesReport;
+export type TinvoicesReport = Document & IinvoicesReport & IcompanyIdAsObjectId;
 /**
  * Represents the main invoice report.
  */

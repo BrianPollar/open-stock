@@ -1,24 +1,28 @@
 import { IinvoicesReport } from '@open-stock/stock-universal';
 import {
-  createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj
+  IcompanyIdAsObjectId,
+  connectDatabase,
+  createExpireDocIndex,
+  isDbConnected, mainConnection, mainConnectionLean,
+  preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj
 } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import {
-  connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean
-} from '../../../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 
 /**
  * Represents a TinvoicesReport, which is a document that combines the properties of a Document and IinvoicesReport.
  */
-export type TinvoicesReport = Document & IinvoicesReport;
+export type TinvoicesReport = Document & IinvoicesReport & IcompanyIdAsObjectId;
 
 /** Schema definition for invoicesReport */
 const invoicesReportSchema: Schema<TinvoicesReport> = new Schema({
   ...withUrIdAndCompanySchemaObj,
-  totalAmount: { type: Number },
+  totalAmount: {
+    type: Number,
+    min: [0, 'cannot be less than 0.']
+  },
   date: { type: Date },
-  invoices: [],
+  invoices: [Schema.Types.ObjectId],
   currency: { type: String, default: 'USD' }
 }, { timestamps: true, collection: 'invoicesreports' });
 
@@ -66,8 +70,8 @@ export const invoicesReportSelect = invoicesReportselect;
  */
 export const createInvoicesReportModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
   createExpireDocIndex(invoicesReportSchema);
-  if (!isStockDbConnected) {
-    await connectStockDatabase(dbUrl, dbOptions);
+  if (!isDbConnected) {
+    await connectDatabase(dbUrl, dbOptions);
   }
 
   if (main) {

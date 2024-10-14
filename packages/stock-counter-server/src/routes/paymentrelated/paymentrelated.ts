@@ -11,11 +11,9 @@ import {
   TnotifType
 } from '@open-stock/stock-universal';
 import {
-  addParentToLocals, generateUrId, stringifyMongooseErr, verifyObjectId, verifyObjectIds
+  addParentToLocals, generateUrId, handleMongooseErr, verifyObjectId, verifyObjectIds
 } from '@open-stock/stock-universal-server';
-import * as fs from 'fs';
-import path from 'path';
-import * as tracer from 'tracer';
+import { Error } from 'mongoose';
 import { orderMain } from '../../models/order.model';
 import { paymentMain } from '../../models/payment.model';
 import { paymentRelatedLean, paymentRelatedMain } from '../../models/printables/paymentrelated/paymentrelated.model';
@@ -28,31 +26,6 @@ import {
   updateInvoiceRelatedPayments
 } from '../printables/related/invoicerelated';
 
-/** Logger for PaymentRelated routes */
-const paymentRelatedLogger = tracer.colorConsole({
-  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-  dateformat: 'HH:MM:ss.L',
-  transport(data) {
-    // eslint-disable-next-line no-console
-    console.log(data.output);
-    const logDir = path.join(process.cwd() + '/openstockLog/');
-
-    fs.mkdir(logDir, { recursive: true }, (err) => {
-      if (err) {
-        if (err) {
-          // eslint-disable-next-line no-console
-          console.log('data.output err ', err);
-        }
-      }
-    });
-    fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
-      if (err) {
-        // eslint-disable-next-line no-console
-        console.log('raw.output err ', err);
-      }
-    });
-  }
-});
 
 /**
  * Updates the payment related information.
@@ -73,49 +46,43 @@ export const updatePaymentRelated = async(
   }
 
   const related = await paymentRelatedMain
-    .findByIdAndUpdate(paymentRelated.paymentRelated);
+    .findById(paymentRelated.paymentRelated);
 
   if (!related) {
     return { success: true, status: 200 };
   }
-  // related.items = paymentRelated.items || related.items;
-  related['orderDate'] = paymentRelated.orderDate || related['orderDate'];
-  related['paymentDate'] = paymentRelated.paymentDate || related['paymentDate'];
-  // related.payments = paymentRelated.payments || related.payments;
-  related['billingAddress'] = paymentRelated.billingAddress || related['billingAddress'];
-  related['shippingAddress'] = paymentRelated.shippingAddress || related['shippingAddress'];
-  // related.tax = paymentRelated.tax || related.tax;
-  related['currency'] = paymentRelated.currency || related['currency'];
-  // related.user = paymentRelated.user || related.user;
-  related['isBurgain'] = paymentRelated.isBurgain || related['isBurgain'];
-  related['shipping'] = paymentRelated.shipping || related['shipping'];
-  related['manuallyAdded'] = paymentRelated.manuallyAdded || related['manuallyAdded'];
-  related['paymentMethod'] = paymentRelated.paymentMethod || related['paymentMethod'];
-  // related.status = paymentRelated.status || related.status;
 
-  let errResponse: Isuccess;
-  const saved = await related.save()
-    .catch(err => {
-      paymentRelatedLogger.debug('updatePaymentRelated - err: ', err);
-      errResponse = {
-        status: 403,
-        success: false
-      };
-      if (err && err.errors) {
-        errResponse.err = stringifyMongooseErr(err.errors);
-      } else {
-        errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-      }
 
-      return errResponse;
-    });
+  const updateRes = await paymentRelatedMain.updateOne({
+    _id: paymentRelated.paymentRelated
+  }, {
+    $set: {
+      // related.items = paymentRelated.items || related.items;
+      orderDate: paymentRelated.orderDate || related['orderDate'],
+      paymentDate: paymentRelated.paymentDate || related['paymentDate'],
+      // related.payments = paymentRelated.payments || related.payments;
+      billingAddress: paymentRelated.billingAddress || related['billingAddress'],
+      shippingAddress: paymentRelated.shippingAddress || related['shippingAddress'],
+      // related.tax = paymentRelated.tax || related.tax;
+      currency: paymentRelated.currency || related['currency'],
+      // related.user = paymentRelated.user || related.user;
+      isBurgain: paymentRelated.isBurgain || related['isBurgain'],
+      shipping: paymentRelated.shipping || related['shipping'],
+      manuallyAdded: paymentRelated.manuallyAdded || related['manuallyAdded'],
+      paymentMethod: paymentRelated.paymentMethod || related['paymentMethod'],
+      orderDeliveryCode: paymentRelated.orderDeliveryCode || related['orderDeliveryCode']
+      // related.status = paymentRelated.status || related.status;
+    }
+  })
+    .catch((err: Error) => err);
 
-  if (errResponse) {
+  if (updateRes instanceof Error) {
+    const errResponse = handleMongooseErr(updateRes);
+
     return errResponse;
-  } else {
-    return { success: true, status: 200, _id: (saved as { _id: string })._id };
   }
+
+  return { success: true, status: 200, _id: related._id };
 };
 
 /**
@@ -147,30 +114,19 @@ export const relegatePaymentRelatedCreation = async(
   if (!found || paymentRelated.creationType === 'solo') {
     paymentRelated.urId = await generateUrId(paymentRelatedMain);
 
-    let errResponse: Isuccess;
     const newPayRelated = new paymentRelatedMain(paymentRelated);
-    const saved = await newPayRelated.save().catch(err => {
-      errResponse = {
-        success: false,
-        status: 403
-      };
-      if (err && err.errors) {
-        errResponse.err = stringifyMongooseErr(err.errors);
-      } else {
-        errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-      }
+    const savedRes = await newPayRelated.save().catch((err: Error) => err);
 
-      return err;
-    });
+    if (savedRes instanceof Error) {
+      const errResponse = handleMongooseErr(savedRes);
 
-    if (saved && saved._id) {
-      addParentToLocals(res, saved._id, 'paymentrelateds', 'makeTrackEdit');
-    }
-
-    if (errResponse) {
       return errResponse;
     }
+
+    if (savedRes && savedRes._id) {
+      addParentToLocals(res, savedRes._id, 'paymentrelateds', 'makeTrackEdit');
+    }
+
 
     // const relatedId = await relegateInvRelatedCreation(invoiceRelated, extraNotifDesc, true);
 
@@ -239,7 +195,7 @@ export const relegatePaymentRelatedCreation = async(
       });
     }
 
-    return { success: true, status: 200, _id: (saved as {_id: string})._id };
+    return { success: true, status: 200, _id: (savedRes as {_id: string})._id };
 
     /** return {
       paymentRelated: saved._id as string
@@ -274,9 +230,9 @@ export const makePaymentRelatedPdct = (
   meta
 ): IpaymentRelated => ({
 
-  _id: meta._id,
+  // _id: meta._id,
   // createdAt: meta.createdAt,
-  updatedAt: meta.updatedAt,
+  // updatedAt: meta.updatedAt,
   paymentRelated: paymentRelated._id,
   urId: paymentRelated.urId,
   // items: paymentRelated.items,
@@ -286,7 +242,7 @@ export const makePaymentRelatedPdct = (
   billingAddress: paymentRelated.billingAddress,
   shippingAddress: paymentRelated.shippingAddress,
   // tax: paymentRelated.tax,
-  currency: paymentRelated.currency,
+  // currency: paymentRelated.currency,
   // user: paymentRelated.user,
   isBurgain: paymentRelated.isBurgain,
   shipping: paymentRelated.shipping,
@@ -377,8 +333,6 @@ export const deleteAllPayOrderLinked = async(
   }
 };
 
-// .catch(err => {});
-
 export const makePaymentInstall = async(
   res,
   receipt: Ireceipt,
@@ -396,31 +350,19 @@ export const makePaymentInstall = async(
       }
     }
     receipt.companyId = companyId;
-    let errResponse: Isuccess;
 
     receipt.invoiceRelated = relatedId;
     const newInstal = new receiptMain(receipt);
-    const savedPinstall = await newInstal.save().catch(err => {
-      errResponse = {
-        success: false,
-        status: 403
-      };
-      if (err && err.errors) {
-        errResponse.err = stringifyMongooseErr(err.errors);
-      } else {
-        errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-      }
+    const savedPinstall = await newInstal.save().catch((err: Error) => err);
 
-      return err;
-    });
+    if (savedPinstall instanceof Error) {
+      const errResponse = handleMongooseErr(savedPinstall);
+
+      return errResponse;
+    }
 
     if (savedPinstall && savedPinstall._id) {
       addParentToLocals(res, savedPinstall._id, 'receipts', 'makeTrackEdit');
-    }
-
-    if (errResponse) {
-      return errResponse;
     }
 
     await updateInvoiceRelatedPayments(savedPinstall as unknown as Ireceipt);
@@ -442,6 +384,9 @@ export const notifyAllOnDueDate = async() => {
     .gte('toDate', now)
     .lean();
   const all = withDueDate.map(async(inv) => {
+    if (!inv.companyId) {
+      return false;
+    }
     const stn = await getCurrentNotificationSettings(inv.companyId);
 
     if (!stn.success) {
@@ -457,21 +402,23 @@ export const notifyAllOnDueDate = async() => {
         title
       }];
 
-      const notification: Imainnotification = {
-        actions,
-        userId: inv.billingUserId,
-        title,
-        body: 'This is to remind you that, You are late on a product payment',
-        icon: '',
-        notifType: 'users',
-        // photo: string;
-        expireAt: '200000'
-      };
+      if (inv.billingUserId) {
+        const notification: Imainnotification = {
+          actions,
+          userId: inv.billingUserId,
+          title,
+          body: 'This is to remind you that, You are late on a product payment',
+          icon: '',
+          notifType: 'users',
+          // photo: string;
+          expireAt: '200000'
+        };
 
-      await createNotifications({
-        notification,
-        filters: null
-      });
+        await createNotifications({
+          notification,
+          filters: null
+        });
+      }
       const billingUser = await userLean.findOne({ _id: inv.billingUserId }).lean().select({ email: 1 });
 
       if (!billingUser) {

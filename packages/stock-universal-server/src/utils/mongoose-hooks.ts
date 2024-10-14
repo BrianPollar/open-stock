@@ -58,7 +58,7 @@ export const preSavePassword = (password: string): Promise<Isuccess & { hash?: s
         return;
       });
     });
-  }) ;
+  });
 };
 
 /*

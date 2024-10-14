@@ -2,50 +2,33 @@
 
 import {
   Icompany, IcustomRequest,
-  IdataArrayResponse, IdeleteOne, IsubscriptionPackage, Iuser
+  IdataArrayResponse, IdeleteOne, IfilterAggResponse, IfilterProps, IsubscriptionPackage, Iuser
 } from '@open-stock/stock-universal';
 import {
-  addParentToLocals, makePredomFilter,
-  offsetLimitRelegator, requireAuth, roleAuthorisation, verifyObjectId, verifyObjectIds
+  addParentToLocals,
+  constructFiltersFromBody,
+  handleMongooseErr,
+  lookupFacet,
+  lookupTrackEdit,
+  lookupTrackView,
+  mainLogger, makePredomFilter,
+  offsetLimitRelegator,
+  requireAuth,
+  roleAuthorisation,
+  verifyObjectId,
+  verifyObjectIds
 } from '@open-stock/stock-universal-server';
 import express from 'express';
-import * as fs from 'fs';
-import path from 'path';
+import { Error } from 'mongoose';
 import { IpayDetails } from 'pesapal3';
-import * as tracer from 'tracer';
 import { companyLean } from '../../models/company.model';
 import {
   TcompanySubscription, companySubscriptionLean, companySubscriptionMain
 } from '../../models/subscriptions/company-subscription.model';
+import { TsubscriptionPackage } from '../../models/subscriptions/subscription-package.model';
 import { userLean } from '../../models/user.model';
 import { pesapalPaymentInstance } from '../../stock-auth-server';
 import { requireActiveCompany } from '../company-auth';
-
-/** Logger for companySubscription routes */
-const companySubscriptionRoutesLogger = tracer.colorConsole({
-  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-  dateformat: 'HH:MM:ss.L',
-  transport(data) {
-    // eslint-disable-next-line no-console
-    console.log(data.output);
-    const logDir = path.join(process.cwd() + '/openstockLog/');
-
-    fs.mkdir(logDir, { recursive: true }, (err) => {
-      if (err) {
-        if (err) {
-          // eslint-disable-next-line no-console
-          console.log('data.output err ', err);
-        }
-      }
-    });
-    fs.appendFile(logDir + '/auth-server.log', data.rawoutput + '\n', err => {
-      if (err) {
-        // eslint-disable-next-line no-console
-        console.log('raw.output err ', err);
-      }
-    });
-  }
-});
 
 /**
  * Fires the Pesapal relegator to initiate a payment for a company subscription.
@@ -57,18 +40,18 @@ const companySubscriptionRoutesLogger = tracer.colorConsole({
  * @returns An object with the success status and the Pesapal order response, or an error object if the operation fails.
  */
 const firePesapalRelegator = async(
-  subctn: Partial<IsubscriptionPackage>,
+  subctn: TsubscriptionPackage,
   savedSub: TcompanySubscription,
   company: Icompany,
   currUser: Iuser
 ) => {
-  companySubscriptionRoutesLogger.info('Firing Pesapal payment for subscription');
+  mainLogger.info('Firing Pesapal payment for subscription');
   const payDetails = {
     id: savedSub._id.toString(),
     currency: 'USD',
     amount: subctn.ammount,
     description: 'Complete payments for subscription ,' + subctn.name,
-    callback_url: pesapalPaymentInstance.config.pesapalCallbackUrl,
+    callback_url: pesapalPaymentInstance.config.pesapalCallbackUrl, // TODO add proper callback url,
     cancellation_url: '',
     notification_id: '',
     billing_address: {
@@ -92,26 +75,24 @@ const firePesapalRelegator = async(
     'Complete product payment'
   );
 
-  companySubscriptionRoutesLogger.debug('firePesapalRelegator::Pesapal payment failed', response);
+  mainLogger.debug('firePesapalRelegator::Pesapal payment failed', response);
 
-  if (!response.success) {
+  if (!response.success || !response.pesaPalOrderRes) {
     return { success: false, err: response.err };
   }
-  const companySub = await companySubscriptionMain.findByIdAndUpdate(savedSub._id);
 
-  companySub.pesaPalorderTrackingId =
-    response.pesaPalOrderRes.order_tracking_id;
-  let savedErr: string;
+  const updateRes = await companySubscriptionMain.updateOne({
+    _id: savedSub._id
+  }, {
+    $set: {
+      pesaPalorderTrackingId: response.pesaPalOrderRes.order_tracking_id
+    }
+  }).catch((err: Error) => err);
 
-  await companySub.save().catch((err) => {
-    companySubscriptionRoutesLogger.error('save error', err);
-    savedErr = err;
+  if (updateRes instanceof Error) {
+    const errResponse = handleMongooseErr(updateRes);
 
-    return null;
-  });
-
-  if (savedErr) {
-    return { success: false };
+    return { success: errResponse.success, err: errResponse.err };
   }
 
   return {
@@ -148,6 +129,9 @@ export const getDays = (duration: number) => {
     case 12:
       response = 12 * 30;
       break;
+    default:
+      response = 30;
+      break;
   }
 
   return response;
@@ -164,9 +148,11 @@ companySubscriptionRoutes.post(
   requireActiveCompany,
   roleAuthorisation('subscriptions', 'create'),
   async(req: IcustomRequest<never, Partial<IsubscriptionPackage>>, res) => {
-    companySubscriptionRoutesLogger.info('making companySubscriptionRoutes');
+    mainLogger.info('making companySubscriptionRoutes');
+    if (!req.user) {
+      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const { companyId } = req.user;
-
 
     const subscriptionPackage = req.body;
     let response;
@@ -179,7 +165,11 @@ companySubscriptionRoutes.post(
 
     const startDate = new Date();
     const now = new Date();
-    const endDate = now.setDate(now.getDate() + getDays(subscriptionPackage.duration));
+    let endDate = Date.now();
+
+    if (subscriptionPackage.duration) {
+      endDate = now.setDate(now.getDate() + getDays(subscriptionPackage.duration));
+    }
 
     const companySubObj = {
       name: subscriptionPackage.name,
@@ -196,31 +186,24 @@ companySubscriptionRoutes.post(
     };
 
     const newCompSub = new companySubscriptionMain(companySubObj);
-    let savedErr: string;
-    const savedSub = await newCompSub.save().catch(err => {
-      companySubscriptionRoutesLogger.error('save error', err);
-      savedErr = err;
+    const savedSub = await newCompSub.save().catch((err: Error) => err);
 
-      return null;
-    });
+    if (savedSub instanceof Error) {
+      const errResponse = handleMongooseErr(savedSub);
 
-    companySubscriptionRoutesLogger.debug(`newCompSub id - ${savedSub?._id}, savedErr - ${savedErr}`);
+      return res.status(errResponse.status).send(errResponse);
+    }
 
     if (savedSub && savedSub._id) {
       addParentToLocals(res, savedSub._id, companySubscriptionMain.collection.collectionName, 'makeTrackEdit');
     }
 
-
-    if (savedErr) {
-      return res.status(500).send({ success: false });
-    }
-
-    companySubscriptionRoutesLogger.info('companyId-', companyId);
+    mainLogger.info('companyId-', companyId);
     if (companyId !== 'superAdmin') {
       const company = await companyLean.findById(companyId).lean();
 
       if (!company) {
-        companySubscriptionRoutesLogger.info('did not find company');
+        mainLogger.info('did not find company');
         await companySubscriptionMain.deleteOne({ _id: savedSub._id });
 
 
@@ -229,13 +212,13 @@ companySubscriptionRoutes.post(
       const currUser = await userLean.findOne({ _id: company.owner }).lean();
 
       if (!currUser) {
-        companySubscriptionRoutesLogger.info('did not find user');
+        mainLogger.info('did not find user');
         await companySubscriptionMain.deleteOne({ _id: savedSub._id });
 
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
       }
-      response = await firePesapalRelegator(subscriptionPackage, savedSub, company, currUser);
-      companySubscriptionRoutesLogger.debug('firePesapalRelegator::response', response);
+      response = await firePesapalRelegator(newCompSub, savedSub, company, currUser);
+      mainLogger.debug('firePesapalRelegator::response', response);
 
       if (!response.success) {
         await companySubscriptionMain.deleteOne({ _id: savedSub._id });
@@ -252,8 +235,12 @@ companySubscriptionRoutes.get(
   '/all/:offset/:limit',
   requireAuth,
   async(req: IcustomRequest<{ offset: string; limit: string}, null>, res) => {
-    companySubscriptionRoutesLogger.info('getall');
+    mainLogger.info('getall');
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
+
+    if (!req.user) {
+      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const { companyId } = req.user;
     let query;
 
@@ -283,13 +270,61 @@ companySubscriptionRoutes.get(
   }
 );
 
+
+companySubscriptionRoutes.post(
+  '/filter',
+  requireAuth,
+  async(req: IcustomRequest<never, IfilterProps>, res) => {
+    const { propSort, returnEmptyArr } = req.body;
+    const { offset, limit } = offsetLimitRelegator(req.body.offset, req.body.limit);
+    const filter = constructFiltersFromBody(req);
+
+    const aggCursor = companySubscriptionLean
+      .aggregate<IfilterAggResponse<TcompanySubscription>>([
+        {
+          $match: {
+            $and: [
+              // { status: 'pending' },
+              ...filter
+            ]
+          }
+        },
+        ...lookupTrackEdit(),
+        ...lookupTrackView(),
+        ...lookupFacet(offset, limit, propSort, returnEmptyArr)
+      ]);
+    const dataArr: IfilterAggResponse<TcompanySubscription>[] = [];
+
+    for await (const data of aggCursor) {
+      dataArr.push(data);
+    }
+
+    const all = dataArr[0]?.data || [];
+    const count = dataArr[0]?.total?.count || 0;
+
+    const response: IdataArrayResponse<TcompanySubscription> = {
+      count,
+      data: all
+    };
+
+    for (const val of all) {
+      addParentToLocals(res, val._id, companySubscriptionLean.collection.collectionName, 'trackDataView');
+    }
+
+    return res.status(200).send(response);
+  }
+);
+
 companySubscriptionRoutes.put(
   '/delete/one',
   requireAuth,
   requireActiveCompany,
   roleAuthorisation('subscriptions', 'delete'),
   async(req: IcustomRequest<never, IdeleteOne>, res) => {
-    companySubscriptionRoutesLogger.info('deleteone');
+    mainLogger.info('deleteone');
+    if (!req.user) {
+      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const { _id } = req.body;
     const { companyId } = req.user;
 
@@ -302,15 +337,18 @@ companySubscriptionRoutes.put(
 
     // const deleted = await companySubscriptionMain.findOneAndDelete({ _id, });
 
-    const deleted = await companySubscriptionMain
-      .updateOne({ _id }, { $set: { isDeleted: true } });
+    const updateRes = await companySubscriptionMain
+      .updateOne({ _id }, { $set: { isDeleted: true } })
+      .catch((err: Error) => err);
 
-    if (Boolean(deleted)) {
-      addParentToLocals(res, _id, companySubscriptionMain.collection.collectionName, 'trackDataDelete');
+    if (updateRes instanceof Error) {
+      const errResponse = handleMongooseErr(updateRes);
 
-      return res.status(200).send({ success: Boolean(deleted) });
-    } else {
-      return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
+      return res.status(errResponse.status).send(errResponse);
     }
+
+    addParentToLocals(res, _id, companySubscriptionMain.collection.collectionName, 'trackDataDelete');
+
+    return res.status(200).send({ success: true });
   }
 );

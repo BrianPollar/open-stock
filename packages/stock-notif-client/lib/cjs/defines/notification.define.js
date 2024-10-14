@@ -67,7 +67,7 @@ class NotificationMain {
   
      * @returns A promise that resolves to the number of unviewed notifications.
      */
-    static getUnviewedLength(companyId) {
+    static getUnviewedLength() {
         const observer$ = stock_notif_client_1.StockNotifClient.ehttp.makeGet('/notifn/unviewedlength');
         return (0, rxjs_1.lastValueFrom)(observer$);
     }
@@ -76,7 +76,7 @@ class NotificationMain {
   
      * @returns A promise that resolves to the success status of the operation.
      */
-    static clearAll(companyId) {
+    static clearAll() {
         const observer$ = stock_notif_client_1.StockNotifClient.ehttp.makePost('/notifn/clearall', {});
         return (0, rxjs_1.lastValueFrom)(observer$);
     }
@@ -85,7 +85,7 @@ class NotificationMain {
   
      * @returns A promise that resolves to the success status of the operation.
      */
-    async updateViewed(companyId) {
+    async updateViewed() {
         const observer$ = stock_notif_client_1.StockNotifClient.ehttp.makePost('/notifn/updateviewed', { id: this._id });
         const response = await (0, rxjs_1.lastValueFrom)(observer$);
         return response;
@@ -123,7 +123,7 @@ class NotifSetting {
   
      * @returns A promise that resolves to an array of NotifSetting instances.
      */
-    static async getNotificationsSetting(companyId) {
+    static async getNotificationsSetting() {
         const observer$ = stock_notif_client_1.StockNotifClient.ehttp.makeGet('/notifn/getstn');
         const stn = await (0, rxjs_1.lastValueFrom)(observer$);
         return stn.map(val => new NotifSetting(val));

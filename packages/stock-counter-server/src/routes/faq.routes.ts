@@ -2,47 +2,21 @@
 import { requireActiveCompany } from '@open-stock/stock-auth-server';
 import {
   IcustomRequest, IdataArrayResponse,
-  Ifaq, IfilterAggResponse, IfilterProps, Isuccess
+  Ifaq, IfilterAggResponse, IfilterProps
 } from '@open-stock/stock-universal';
 import {
-  addParentToLocals, constructFiltersFromBody,
+  addParentToLocals,
+  constructFiltersFromBody,
   generateUrId,
-  lookupSubFieldInvoiceRelatedFilter, makePredomFilter,
-  offsetLimitRelegator, requireAuth, roleAuthorisation,
-  stringifyMongooseErr, verifyObjectIds
+  handleMongooseErr,
+  lookupFacet,
+  lookupTrackEdit, lookupTrackView, makePredomFilter,
+  offsetLimitRelegator, requireAuth, roleAuthorisation, verifyObjectId, verifyObjectIds
 } from '@open-stock/stock-universal-server';
 import express from 'express';
-import * as fs from 'fs';
-import path from 'path';
-import * as tracer from 'tracer';
+import { Error } from 'mongoose';
 import { Tfaq, faqLean, faqMain } from '../models/faq.model';
 import { faqanswerLean, faqanswerMain } from '../models/faqanswer.model';
-
-/** Logger for faqRoutes */
-const faqRoutesLogger = tracer.colorConsole({
-  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-  dateformat: 'HH:MM:ss.L',
-  transport(data) {
-    // eslint-disable-next-line no-console
-    console.log(data.output);
-    const logDir = path.join(process.cwd() + '/openstockLog/');
-
-    fs.mkdir(logDir, { recursive: true }, (err) => {
-      if (err) {
-        if (err) {
-          // eslint-disable-next-line no-console
-          console.log('data.output err ', err);
-        }
-      }
-    });
-    fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
-      if (err) {
-        // eslint-disable-next-line no-console
-        console.log('raw.output err ', err);
-      }
-    });
-  }
-});
 
 /**
  * Router for FAQ routes.
@@ -54,51 +28,31 @@ faqRoutes.post('/add', async(req: IcustomRequest<never, Ifaq>, res) => {
 
   faq.urId = await generateUrId(faqMain);
   const newFaq = new faqMain(faq);
-  let errResponse: Isuccess;
-  const saved = await newFaq.save()
-    .catch(err => {
-      faqRoutesLogger.error('create - err: ', err);
-      errResponse = {
-        success: false,
-        status: 403
-      };
-      if (err && err.errors) {
-        errResponse.err = stringifyMongooseErr(err.errors);
-      } else {
-        errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-      }
 
-      return err;
-    });
+  const savedRes = await newFaq.save()
+    .catch((err: Error) => err);
 
-  if (errResponse) {
-    return res.status(403).send(errResponse);
+  if (savedRes instanceof Error) {
+    const errResponse = handleMongooseErr(savedRes);
+
+    return res.status(errResponse.status).send(errResponse);
   }
 
-  if (saved && saved._id) {
-    addParentToLocals(res, saved._id, faqMain.collection.collectionName, 'makeTrackEdit');
-  }
+  addParentToLocals(res, savedRes._id, faqMain.collection.collectionName, 'makeTrackEdit');
 
-  return res.status(200).send({ success: Boolean(saved) });
+  return res.status(200).send({ success: true });
 });
 
 faqRoutes.get(
-  '/one/:_id',
-  async(req: IcustomRequest<{ _id: string }, null>, res) => {
-    const { _id } = req.params;
+  '/one/:urIdOr_id',
+  async(req: IcustomRequest<{ urIdOr_id: string }, null>, res) => {
+    const { urIdOr_id } = req.params;
     // const { companyId } = req.user;
 
-    const _ids = [_id];
-    const filter = { _id };
+    const filterwithId = verifyObjectId(urIdOr_id) ? { _id: urIdOr_id } : { urId: urIdOr_id };
 
-    const isValid = verifyObjectIds(_ids);
-
-    if (!isValid) {
-      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
     const faq = await faqLean
-      .findOne({ ...filter, ...makePredomFilter(req) })
+      .findOne({ ...filterwithId, ...makePredomFilter(req) })
       .lean();
 
     if (!faq) {
@@ -142,12 +96,23 @@ faqRoutes.post(
   requireActiveCompany,
   roleAuthorisation('receipts', 'read'),
   async(req: IcustomRequest<never, IfilterProps>, res) => {
-    const { propSort } = req.body;
+    const { propSort, returnEmptyArr } = req.body;
     const { offset, limit } = offsetLimitRelegator(req.body.offset, req.body.limit);
+    const filter = constructFiltersFromBody(req);
 
     const aggCursor = faqLean
       .aggregate<IfilterAggResponse<Tfaq>>([
-        ...lookupSubFieldInvoiceRelatedFilter(constructFiltersFromBody(req), propSort, offset, limit)
+        {
+          $match: {
+            $and: [
+            // { status: 'pending' },
+              ...filter
+            ]
+          }
+        },
+        ...lookupTrackEdit(),
+        ...lookupTrackView(),
+        ...lookupFacet(offset, limit, propSort, returnEmptyArr)
       ]);
     const dataArr: IfilterAggResponse<Tfaq>[] = [];
 
@@ -177,6 +142,9 @@ faqRoutes.delete(
   requireAuth,
   requireActiveCompany,
   async(req: IcustomRequest<never, unknown>, res) => {
+    if (!req.user) {
+      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const { _id } = req.params;
     const { companyId } = req.user;
     // const { companyId } = req.user;
@@ -190,15 +158,18 @@ faqRoutes.delete(
       return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
 
-    const deleted = await faqMain.findOneAndDelete(filter);
+    const deleteRes = await faqMain
+      .findOneAndDelete(filter).catch((err: Error) => err);
 
-    if (Boolean(deleted)) {
-      addParentToLocals(res, _id, faqMain.collection.collectionName, 'trackDataDelete');
+    if (deleteRes instanceof Error) {
+      const errResponse = handleMongooseErr(deleteRes);
 
-      return res.status(200).send({ success: Boolean(deleted) });
-    } else {
-      return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
+      return res.status(errResponse.status).send(errResponse);
     }
+
+    addParentToLocals(res, _id, faqMain.collection.collectionName, 'trackDataDelete');
+
+    return res.status(200).send({ success: true });
   }
 );
 
@@ -208,6 +179,9 @@ faqRoutes.post(
   requireActiveCompany,
   roleAuthorisation('faqs', 'create'),
   async(req: IcustomRequest<never, { faq: Ifaq}>, res) => {
+    if (!req.user) {
+      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const faq = req.body.faq;
     const { companyId } = req.user;
 
@@ -215,29 +189,17 @@ faqRoutes.post(
 
     faq.urId = await generateUrId(faqanswerMain);
     const newFaqAns = new faqanswerMain(faq);
-    let errResponse: Isuccess;
-    const saved = await newFaqAns.save()
-      .catch(err => {
-        faqRoutesLogger.error('createans - err: ', err);
-        errResponse = {
-          success: false,
-          status: 403
-        };
-        if (err && err.errors) {
-          errResponse.err = stringifyMongooseErr(err.errors);
-        } else {
-          errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-        }
 
-        return err;
-      });
+    const savedRes = await newFaqAns.save()
+      .catch((err: Error) => err);
 
-    if (errResponse) {
-      return res.status(403).send(errResponse);
+    if (savedRes instanceof Error) {
+      const errResponse = handleMongooseErr(savedRes);
+
+      return res.status(errResponse.status).send(errResponse);
     }
 
-    return res.status(200).send({ success: Boolean(saved) });
+    return res.status(200).send({ success: true });
   }
 );
 
@@ -263,17 +225,15 @@ faqRoutes.delete(
       return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
 
-    const deleted = await faqanswerMain.findOneAndDelete({ _id })
-      .catch(err => {
-        faqRoutesLogger.error('deleteoneans - err: ', err);
+    const deleteRes = await faqanswerMain.findOneAndDelete({ _id })
+      .catch((err: Error) => err);
 
-        return null;
-      });
+    if (deleteRes instanceof Error) {
+      const errResponse = handleMongooseErr(deleteRes);
 
-    if (Boolean(deleted)) {
-      return res.status(200).send({ success: Boolean(deleted) });
-    } else {
-      return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
+      return res.status(errResponse.status).send(errResponse);
     }
+
+    return res.status(200).send({ success: true });
   }
 );

@@ -5,36 +5,10 @@ const tslib_1 = require("tslib");
 const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
-const fs = tslib_1.__importStar(require("fs"));
-const path_1 = tslib_1.__importDefault(require("path"));
-const tracer = tslib_1.__importStar(require("tracer"));
+const mongoose_1 = require("mongoose");
 const expense_model_1 = require("../../../models/expense.model");
 const payment_model_1 = require("../../../models/payment.model");
 const profitandlossreport_model_1 = require("../../../models/printables/report/profitandlossreport.model");
-/** Logger for the profit and loss report routes */
-const profitAndLossReportRoutesLogger = tracer.colorConsole({
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-        // eslint-disable-next-line no-console
-        console.log(data.output);
-        const logDir = path_1.default.join(process.cwd() + '/openstockLog/');
-        fs.mkdir(logDir, { recursive: true }, (err) => {
-            if (err) {
-                if (err) {
-                    // eslint-disable-next-line no-console
-                    console.log('data.output err ', err);
-                }
-            }
-        });
-        fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
-            if (err) {
-                // eslint-disable-next-line no-console
-                console.log('raw.output err ', err);
-            }
-        });
-    }
-});
 /**
  * Router for profit and loss report.
  */
@@ -50,36 +24,21 @@ exports.profitAndLossReportRoutes.post('/add', stock_universal_server_1.requireA
     profitAndLossReport.companyId = filter.companyId;
     profitAndLossReport.urId = await (0, stock_universal_server_1.generateUrId)(profitandlossreport_model_1.profitandlossReportMain);
     const newProfitAndLossReport = new profitandlossreport_model_1.profitandlossReportMain(profitAndLossReport);
-    let errResponse;
-    const saved = await newProfitAndLossReport.save()
-        .catch(err => {
-        profitAndLossReportRoutesLogger.error('create - err: ', err);
-        errResponse = {
-            success: false,
-            status: 403
-        };
-        if (err && err.errors) {
-            errResponse.err = (0, stock_universal_server_1.stringifyMongooseErr)(err.errors);
-        }
-        else {
-            errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-        }
-        return err;
-    });
-    if (errResponse) {
-        return res.status(403).send(errResponse);
+    const savedRes = await newProfitAndLossReport.save()
+        .catch((err) => err);
+    if (savedRes instanceof mongoose_1.Error) {
+        const errResponse = (0, stock_universal_server_1.handleMongooseErr)(savedRes);
+        return res.status(errResponse.status).send(errResponse);
     }
-    if (saved && saved._id) {
-        (0, stock_universal_server_1.addParentToLocals)(res, saved._id, profitandlossreport_model_1.profitandlossReportLean.collection.collectionName, 'makeTrackEdit');
-    }
+    (0, stock_universal_server_1.addParentToLocals)(res, savedRes._id, profitandlossreport_model_1.profitandlossReportLean.collection.collectionName, 'makeTrackEdit');
     return res.status(200).send({ success: true });
 });
-exports.profitAndLossReportRoutes.get('/one/:urId', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'read'), async (req, res) => {
-    const { urId } = req.params;
+exports.profitAndLossReportRoutes.get('/one/:urIdOr_id', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'read'), async (req, res) => {
+    const { urIdOr_id } = req.params;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
+    const filterwithId = (0, stock_universal_server_1.verifyObjectId)(urIdOr_id) ? { _id: urIdOr_id } : { urId: urIdOr_id };
     const profitAndLossReport = await profitandlossreport_model_1.profitandlossReportLean
-        .findOne({ urId, ...filter })
+        .findOne({ ...filterwithId, ...filter })
         .lean()
         .populate({ path: 'expenses', model: expense_model_1.expenseLean })
         .populate({ path: 'payments', model: payment_model_1.paymentLean });
@@ -115,17 +74,16 @@ exports.profitAndLossReportRoutes.delete('/delete/one/:_id', stock_universal_ser
     const { _id } = req.params;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     // const deleted = await profitandlossReportMain.findOneAndDelete({ _id, ...filter });
-    const deleted = await profitandlossreport_model_1.profitandlossReportMain.updateOne({ _id, ...filter }, { $set: { isDeleted: true } });
-    if (Boolean(deleted)) {
-        (0, stock_universal_server_1.addParentToLocals)(res, _id, profitandlossreport_model_1.profitandlossReportLean.collection.collectionName, 'trackDataDelete');
-        return res.status(200).send({ success: Boolean(deleted) });
+    const updateRes = await profitandlossreport_model_1.profitandlossReportMain.updateOne({ _id, ...filter }, { $set: { isDeleted: true } })
+        .catch((err) => err);
+    if (updateRes instanceof mongoose_1.Error) {
+        const errResponse = (0, stock_universal_server_1.handleMongooseErr)(updateRes);
+        return res.status(errResponse.status).send(errResponse);
     }
-    else {
-        return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
-    }
+    (0, stock_universal_server_1.addParentToLocals)(res, _id, profitandlossreport_model_1.profitandlossReportLean.collection.collectionName, 'trackDataDelete');
+    return res.status(200).send({ success: true });
 });
 exports.profitAndLossReportRoutes.post('/filter', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'read'), async (req, res) => {
-    const { searchterm, searchKey } = req.body;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.body.offset, req.body.limit);
     /*
@@ -144,13 +102,13 @@ exports.profitAndLossReportRoutes.post('/filter', stock_universal_server_1.requi
   */
     const all = await Promise.all([
         profitandlossreport_model_1.profitandlossReportLean
-            .find({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
+            .find({ ...filter })
             .skip(offset)
             .limit(limit)
             .lean()
             .populate({ path: 'expenses', model: expense_model_1.expenseLean })
             .populate({ path: 'payments', model: payment_model_1.paymentLean }),
-        profitandlossreport_model_1.profitandlossReportLean.countDocuments({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
+        profitandlossreport_model_1.profitandlossReportLean.countDocuments({ ...filter })
     ]);
     const response = {
         count: all[1],
@@ -164,31 +122,18 @@ exports.profitAndLossReportRoutes.post('/filter', stock_universal_server_1.requi
 exports.profitAndLossReportRoutes.put('/delete/many', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('reports', 'delete'), async (req, res) => {
     const { _ids } = req.body;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
-    /* const deleted = await profitandlossReportMain
-    .deleteMany({ ...filter, _id: { $in: _ids } })
-    .catch(err => {
-      profitAndLossReportRoutesLogger.debug('deletemany - err', err);
-
-      return null;
-    }); */
-    const deleted = await profitandlossreport_model_1.profitandlossReportMain
+    const updateRes = await profitandlossreport_model_1.profitandlossReportMain
         .updateMany({ ...filter, _id: { $in: _ids } }, {
         $set: { isDeleted: true }
     })
-        .catch(err => {
-        profitAndLossReportRoutesLogger.debug('deletemany - err', err);
-        return null;
-    });
-    if (Boolean(deleted)) {
-        for (const val of _ids) {
-            (0, stock_universal_server_1.addParentToLocals)(res, val, profitandlossreport_model_1.profitandlossReportLean.collection.collectionName, 'trackDataDelete');
-        }
-        return res.status(200).send({ success: Boolean(deleted) });
+        .catch((err) => err);
+    if (updateRes instanceof mongoose_1.Error) {
+        const errResponse = (0, stock_universal_server_1.handleMongooseErr)(updateRes);
+        return res.status(errResponse.status).send(errResponse);
     }
-    else {
-        return res.status(404).send({
-            success: Boolean(deleted), err: 'could not delete selected items, try again in a while'
-        });
+    for (const val of _ids) {
+        (0, stock_universal_server_1.addParentToLocals)(res, val, profitandlossreport_model_1.profitandlossReportLean.collection.collectionName, 'trackDataDelete');
     }
+    return res.status(200).send({ success: true });
 });
 //# sourceMappingURL=profitandlossreport.routes.js.map

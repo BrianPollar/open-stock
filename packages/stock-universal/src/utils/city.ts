@@ -1,5 +1,5 @@
 // This file imports the `Icity` interface from the `general.interface` file.
-import { Icity } from '../interfaces/general.interface';
+import { Icity } from '../types/general-types';
 
 // This export variable defines an array of cities.
 

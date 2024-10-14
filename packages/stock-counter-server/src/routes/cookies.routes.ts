@@ -2,41 +2,12 @@
 
 import { populateCompany, populatePhotos } from '@open-stock/stock-auth-server';
 import { IcustomRequest, makeRandomString } from '@open-stock/stock-universal';
-import { verifyObjectId } from '@open-stock/stock-universal-server';
+import { mainLogger, verifyObjectId } from '@open-stock/stock-universal-server';
 import express from 'express';
-import * as fs from 'fs';
-import path from 'path';
-import * as tracer from 'tracer';
 import { itemLean } from '../models/item.model';
 import {
   makeCartCookie, makeCompareListCookie, makeRecentCookie, makeSettingsCookie, makeWishListCookie
 } from '../utils/cookies';
-
-/** Logger for the cookiesRoutes module */
-const cookiesRoutesLogger = tracer.colorConsole({
-  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-  dateformat: 'HH:MM:ss.L',
-  transport(data) {
-    // eslint-disable-next-line no-console
-    console.log(data.output);
-    const logDir = path.join(process.cwd() + '/openstockLog/');
-
-    fs.mkdir(logDir, { recursive: true }, (err) => {
-      if (err) {
-        if (err) {
-          // eslint-disable-next-line no-console
-          console.log('data.output err ', err);
-        }
-      }
-    });
-    fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
-      if (err) {
-        // eslint-disable-next-line no-console
-        console.log('raw.output err ', err);
-      }
-    });
-  }
-});
 
 /**
  * Express router for cookies routes.
@@ -58,7 +29,7 @@ cookiesRoutes.get('/getsettings/:userId', (req: IcustomRequest<never, any>, res,
 
     return next();
   }
-  cookiesRoutesLogger.info('getsettings - stnCookie: ', stnCookie);
+  mainLogger.info('getsettings - stnCookie: ', stnCookie);
 
   return res.send(stnCookie);
 }, makeSettingsCookie);
@@ -74,7 +45,7 @@ cookiesRoutes.put('/updatesettings/:userId', (req: IcustomRequest<never, { setti
   };
 
   req.body.stnCookie = stnCookie;
-  cookiesRoutesLogger.info('updatesettings - stnCookie: ', stnCookie);
+  mainLogger.info('updatesettings - stnCookie: ', stnCookie);
 
   return next();
 }, makeSettingsCookie);
@@ -91,7 +62,7 @@ cookiesRoutes.put(
     cartCookie.push({ cartItemId, totalCostwithNoShipping });
     res.clearCookie('cart');
     req.body.cartCookie = cartCookie;
-    cookiesRoutesLogger.info('addcartitem - cartCookie: ', cartCookie);
+    mainLogger.info('addcartitem - cartCookie: ', cartCookie);
 
     return next();
   },
@@ -113,7 +84,7 @@ cookiesRoutes.put('/addrecentitem/:userId', (req: IcustomRequest<never, { recent
   recentCookie.push(recentItemId);
   res.clearCookie('recent');
   req.body.recentCookie = recentCookie;
-  cookiesRoutesLogger.info('addrecentitem - recentCookie: ', recentCookie);
+  mainLogger.info('addrecentitem - recentCookie: ', recentCookie);
 
   return next();
 }, makeRecentCookie);
@@ -136,7 +107,7 @@ cookiesRoutes.put(
     wishListCookie.push(wishListItemId);
     res.clearCookie('wishList');
     req.body.wishListCookie = wishListCookie;
-    cookiesRoutesLogger.info('addwishlistitem - wishListCookie: ', wishListCookie);
+    mainLogger.info('addwishlistitem - wishListCookie: ', wishListCookie);
 
     return next();
   },
@@ -161,7 +132,7 @@ cookiesRoutes.put(
     compareListCookie.push(compareLisItemId);
     res.clearCookie('compareList');
     req.body.compareListCookie = compareListCookie;
-    cookiesRoutesLogger.info('addcompareListitem - compareListCookie: ', compareListCookie);
+    mainLogger.info('addcompareListitem - compareListCookie: ', compareListCookie);
 
     return next();
   },
@@ -183,7 +154,7 @@ cookiesRoutes.put('/deletecartitem/:_id', (req: IcustomRequest<{ _id: string}, {
   cartCookie = cartCookie.filter(c => c !== cartItemId);
   res.clearCookie('cart');
   req.body.cartCookie = cartCookie;
-  cookiesRoutesLogger.info('deletecartitem - cartCookie', cartCookie);
+  mainLogger.info('deletecartitem - cartCookie', cartCookie);
 
   return next();
 }, makeCartCookie);
@@ -204,7 +175,7 @@ cookiesRoutes.put('/deletewishlistitem/:_id', (req: IcustomRequest<{ _id: string
   wishListCookie = wishListCookie.filter(c => c !== wishListItemId);
   res.clearCookie('wishList');
   req.body.wishListCookie = wishListCookie;
-  cookiesRoutesLogger.info('deletewishlistitem - wishListCookie', wishListCookie);
+  mainLogger.info('deletewishlistitem - wishListCookie', wishListCookie);
 
   return next();
 }, makeWishListCookie);
@@ -226,7 +197,7 @@ cookiesRoutes.put(
     compareListCookie = compareListCookie.filter(c => c !== compareLisItemId);
     res.clearCookie('compareList');
     req.body.compareListCookie = compareListCookie;
-    cookiesRoutesLogger.info('deletecomparelistitem - compareListCookie', compareListCookie);
+    mainLogger.info('deletecomparelistitem - compareListCookie', compareListCookie);
 
     return next();
   },
@@ -254,7 +225,7 @@ cookiesRoutes.put('/clearcomparelist', (req: IcustomRequest<never, unknown>, res
 cookiesRoutes.get('/appendtocart', async(req: IcustomRequest<never, null>, res) => {
   const cartCookie: {cartItemId: string; totalCostwithNoShipping: number}[] = req.signedCookies.cart;
 
-  cookiesRoutesLogger.info('appendtocart - cartCookie: ', cartCookie);
+  mainLogger.info('appendtocart - cartCookie: ', cartCookie);
   const modified = cartCookie?.map(c => c.cartItemId);
 
   if (modified && modified.length > 0) {
@@ -288,7 +259,7 @@ cookiesRoutes.get('/appendtocart', async(req: IcustomRequest<never, null>, res) 
 cookiesRoutes.get('/appendtorecent', async(req: IcustomRequest<never, null>, res) => {
   const recentCookie = req.signedCookies['recent'];
 
-  cookiesRoutesLogger.info('appendtorecent - recentCookie: ', recentCookie);
+  mainLogger.info('appendtorecent - recentCookie: ', recentCookie);
   if (recentCookie && recentCookie.length > 0) {
     for (const id of recentCookie) {
       const isValid = verifyObjectId(id);
@@ -314,7 +285,7 @@ cookiesRoutes.get('/appendtorecent', async(req: IcustomRequest<never, null>, res
 cookiesRoutes.get('/appendtowishlist', async(req: IcustomRequest<never, null>, res) => {
   const wishListCookie = req.signedCookies['wishList'];
 
-  cookiesRoutesLogger.info('appendtowishlist - recentCookie: ', wishListCookie);
+  mainLogger.info('appendtowishlist - recentCookie: ', wishListCookie);
   if (wishListCookie && wishListCookie.length > 0) {
     for (const id of wishListCookie) {
       const isValid = verifyObjectId(id);
@@ -339,7 +310,7 @@ cookiesRoutes.get('/appendtowishlist', async(req: IcustomRequest<never, null>, r
 cookiesRoutes.get('/appendtocomparelist', async(req: IcustomRequest<never, null>, res) => {
   const compareListCookie = req.signedCookies['compareList'];
 
-  cookiesRoutesLogger.info('appendtocomparelist - recentCookie: ', compareListCookie);
+  mainLogger.info('appendtocomparelist - recentCookie: ', compareListCookie);
   if (compareListCookie && compareListCookie.length > 0) {
     for (const id of compareListCookie) {
       const isValid = verifyObjectId(id);

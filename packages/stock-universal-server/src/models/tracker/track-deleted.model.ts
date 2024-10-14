@@ -1,7 +1,7 @@
 import { ItrackDeleted } from '@open-stock/stock-universal';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import { connectUniversalDatabase, stockUniversalConfig } from '../../stock-universal-local';
-import { isUniversalDbConnected, mainConnection, mainConnectionLean } from '../../utils/database';
+import { stockUniversalConfig } from '../../stock-universal-local';
+import { connectDatabase, isDbConnected, mainConnection, mainConnectionLean } from '../../utils/database';
 
 export type TtrackDeleted = Document & ItrackDeleted;
 
@@ -48,17 +48,17 @@ export const createTrackDeletedModel = async(dbUrl: string, dbOptions?: ConnectO
     { expireDocAfter: 1 },
     { expireAfterSeconds: stockUniversalConfig.expireDocAfterSeconds }
   );
-  if (!isUniversalDbConnected) {
-    await connectUniversalDatabase(dbUrl, dbOptions);
+  if (!isDbConnected) {
+    await connectDatabase(dbUrl, dbOptions);
   }
 
   if (main) {
     trackDeletedMain = mainConnection
-      .model('TrackDeleted', trackDeletedSchema) as Model<TtrackDeleted>;
+      .model<TtrackDeleted>('TrackDeleted', trackDeletedSchema);
   }
 
   if (lean) {
     trackDeletedLean = mainConnectionLean
-      .model('TrackDeleted', trackDeletedSchema) as Model<TtrackDeleted>;
+      .model<TtrackDeleted>('TrackDeleted', trackDeletedSchema);
   }
 };

@@ -39,14 +39,14 @@ export declare class Item extends DatabaseAuto {
         count: number;
         items: Item[];
     }>;
-    static getOne(urId: string): Promise<Item>;
+    static getOne(urIdOr_id: string): Promise<Item>;
     static add(vals: Partial<Iitem>, files: Ifile[], ecomerceCompat?: boolean): Promise<IsubscriptionFeatureState>;
-    static removeMany(url: string, vals: IdeleteMany): Promise<Isuccess>;
+    static removeMany(vals: IdeleteMany): Promise<Isuccess>;
     update(vals: Partial<Iitem>, files?: Ifile[]): Promise<Isuccess>;
     addSponsored(sponsored: Isponsored, item: Item): Promise<Isuccess>;
     updateSponsored(sponsored: Isponsored): Promise<Isuccess>;
     removeSponsored(itemId: string): Promise<Isuccess>;
-    getSponsored(): Promise<void[]>;
+    getSponsored(): Promise<(Isponsored | undefined)[]>;
     like(userId: string): Promise<Isuccess>;
     unLike(userId: string): Promise<Isuccess>;
     remove(): Promise<Isuccess>;

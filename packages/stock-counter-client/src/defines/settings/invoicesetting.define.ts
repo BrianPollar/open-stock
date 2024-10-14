@@ -58,9 +58,9 @@ export class InvoiceSettings
     };
   }
 
-  static async getOne(_id: string): Promise<InvoiceSettings> {
+  static async getOne(id: string): Promise<InvoiceSettings> {
     const observer$ = StockCounterClient.ehttp
-      .makeGet<IinvoiceSetting>(`/invoicesettings/one/${_id}`);
+      .makeGet<IinvoiceSetting>(`/invoicesettings/one/${id}`);
     const invoiceSetting = await lastValueFrom(observer$);
 
     return new InvoiceSettings(invoiceSetting);
@@ -150,9 +150,11 @@ export class InvoiceSettings
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     if (deleted.success) {
       if (where === 'signature') {
-        this.generalSettings.defaultDigitalSignature = null;
+        // eslint-disable-next-line no-undefined
+        this.generalSettings.defaultDigitalSignature = undefined;
       } else {
-        this.generalSettings.defaultDigitalStamp = null;
+        // eslint-disable-next-line no-undefined
+        this.generalSettings.defaultDigitalStamp = undefined;
       }
     }
 

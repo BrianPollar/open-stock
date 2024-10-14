@@ -1,7 +1,7 @@
+import { connectDatabase, isDbConnected, mainConnection, mainConnectionLean } from '@open-stock/stock-universal-server';
 import { Schema } from 'mongoose';
-import { connectAuthDatabase, isAuthDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 const loginAtempsSchema = new Schema({
-    userId: { type: String, index: true },
+    userId: { type: Schema.Types.ObjectId, index: true },
     ip: { type: String, index: true },
     successful: { type: Boolean, default: true }
 }, { timestamps: true, collection: 'loginatempts' });
@@ -21,8 +21,8 @@ export let loginAtemptsLean;
  * @param lean Whether to create the lean connection model.
  */
 export const createLoginAtemptsModel = async (dbUrl, dbOptions, main = true, lean = true) => {
-    if (!isAuthDbConnected) {
-        await connectAuthDatabase(dbUrl, dbOptions);
+    if (!isDbConnected) {
+        await connectDatabase(dbUrl, dbOptions);
     }
     if (main) {
         loginAtempts = mainConnection

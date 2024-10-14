@@ -3,12 +3,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createItemDecoyModel = exports.itemDecoySelect = exports.itemDecoyLean = exports.itemDecoyMain = void 0;
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const mongoose_1 = require("mongoose");
-const database_1 = require("../utils/database");
 const uniqueValidator = require('mongoose-unique-validator');
 const itemDecoySchema = new mongoose_1.Schema({
     ...stock_universal_server_1.withUrIdAndCompanySchemaObj,
     type: { type: String },
-    items: []
+    items: [mongoose_1.Schema.Types.ObjectId]
 }, { timestamps: true, collection: 'itemdecoys' });
 // Apply the uniqueValidator plugin to userSchema.
 itemDecoySchema.plugin(uniqueValidator);
@@ -39,15 +38,15 @@ exports.itemDecoySelect = itemDecoyselect;
  */
 const createItemDecoyModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     (0, stock_universal_server_1.createExpireDocIndex)(itemDecoySchema);
-    if (!database_1.isStockDbConnected) {
-        await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
+    if (!stock_universal_server_1.isDbConnected) {
+        await (0, stock_universal_server_1.connectDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.itemDecoyMain = database_1.mainConnection
+        exports.itemDecoyMain = stock_universal_server_1.mainConnection
             .model('ItemDecoy', itemDecoySchema);
     }
     if (lean) {
-        exports.itemDecoyLean = database_1.mainConnectionLean
+        exports.itemDecoyLean = stock_universal_server_1.mainConnectionLean
             .model('ItemDecoy', itemDecoySchema);
     }
 };

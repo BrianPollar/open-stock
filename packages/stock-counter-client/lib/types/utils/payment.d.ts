@@ -6,7 +6,7 @@ import { DeliveryCity } from '../defines/delivery.define';
  */
 export declare class PaymentController {
     /** The current delivery city */
-    currentCity: DeliveryCity;
+    currentCity?: DeliveryCity;
     constructor();
     /**
      * Calculates the total cost or shipping cost based on the parameters provided.

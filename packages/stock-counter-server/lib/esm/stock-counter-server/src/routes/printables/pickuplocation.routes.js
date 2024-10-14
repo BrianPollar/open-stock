@@ -1,36 +1,8 @@
 import { requireActiveCompany } from '@open-stock/stock-auth-server';
-import { addParentToLocals, lookupLimit, lookupOffset, lookupSort, lookupTrackEdit, lookupTrackView, makeCompanyBasedQuery, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr } from '@open-stock/stock-universal-server';
+import { addParentToLocals, handleMongooseErr, lookupFacet, lookupTrackEdit, lookupTrackView, makeCompanyBasedQuery, offsetLimitRelegator, requireAuth, roleAuthorisation } from '@open-stock/stock-universal-server';
 import express from 'express';
-import * as fs from 'fs';
-import path from 'path';
-import * as tracer from 'tracer';
+import { Error } from 'mongoose';
 import { pickupLocationLean, pickupLocationMain } from '../../models/printables/pickuplocation.model';
-/**
- * Logger for pickup location routes
- */
-const pickupLocationRoutesLogger = tracer.colorConsole({
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-        // eslint-disable-next-line no-console
-        console.log(data.output);
-        const logDir = path.join(process.cwd() + '/openstockLog/');
-        fs.mkdir(logDir, { recursive: true }, (err) => {
-            if (err) {
-                if (err) {
-                    // eslint-disable-next-line no-console
-                    console.log('data.output err ', err);
-                }
-            }
-        });
-        fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
-            if (err) {
-                // eslint-disable-next-line no-console
-                console.log('raw.output err ', err);
-            }
-        });
-    }
-});
 /**
  * Express router for pickup location routes
  */
@@ -40,30 +12,14 @@ pickupLocationRoutes.post('/add', requireAuth, requireActiveCompany, roleAuthori
     const { filter } = makeCompanyBasedQuery(req);
     pickupLocation.companyId = filter.companyId;
     const newPickupLocation = new pickupLocationMain(pickupLocation);
-    let errResponse;
-    const saved = await newPickupLocation.save()
-        .catch(err => {
-        pickupLocationRoutesLogger.error('create - err: ', err);
-        errResponse = {
-            success: false,
-            status: 403
-        };
-        if (err && err.errors) {
-            errResponse.err = stringifyMongooseErr(err.errors);
-        }
-        else {
-            errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-        }
-        return err;
-    });
-    if (errResponse) {
-        return res.status(403).send(errResponse);
+    const savedRes = await newPickupLocation.save()
+        .catch((err) => err);
+    if (savedRes instanceof Error) {
+        const errResponse = handleMongooseErr(savedRes);
+        return res.status(errResponse.status).send(errResponse);
     }
-    if (saved && saved._id) {
-        addParentToLocals(res, saved._id, pickupLocationMain.collection.collectionName, 'makeTrackEdit');
-    }
-    return res.status(200).send({ success: Boolean(saved) });
+    addParentToLocals(res, savedRes._id, pickupLocationMain.collection.collectionName, 'makeTrackEdit');
+    return res.status(200).send({ success: true });
 });
 pickupLocationRoutes.put('/update', requireAuth, requireActiveCompany, roleAuthorisation('deliveryCitys', 'update'), async (req, res) => {
     const updatedPickupLocation = req.body;
@@ -75,8 +31,7 @@ pickupLocationRoutes.put('/update', requireAuth, requireActiveCompany, roleAutho
     if (!pickupLocation) {
         return res.status(404).send({ success: false });
     }
-    let errResponse;
-    const updated = await pickupLocationMain.updateOne({
+    const updateRes = await pickupLocationMain.updateOne({
         _id: updatedPickupLocation._id, ...filter
     }, {
         $set: {
@@ -85,26 +40,13 @@ pickupLocationRoutes.put('/update', requireAuth, requireActiveCompany, roleAutho
             isDeleted: updatedPickupLocation.isDeleted || pickupLocation.isDeleted
         }
     })
-        .catch(err => {
-        pickupLocationRoutesLogger.error('update - err: ', err);
-        errResponse = {
-            success: false,
-            status: 403
-        };
-        if (err && err.errors) {
-            errResponse.err = stringifyMongooseErr(err.errors);
-        }
-        else {
-            errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-        }
-        return errResponse;
-    });
-    if (errResponse) {
-        return res.status(403).send(errResponse);
+        .catch((err) => err);
+    if (updateRes instanceof Error) {
+        const errResponse = handleMongooseErr(updateRes);
+        return res.status(errResponse.status).send(errResponse);
     }
     addParentToLocals(res, pickupLocation._id, pickupLocationMain.collection.collectionName, 'makeTrackEdit');
-    return res.status(200).send({ success: Boolean(updated) });
+    return res.status(200).send({ success: true });
 });
 pickupLocationRoutes.get('/one/:_id', requireAuth, requireActiveCompany, roleAuthorisation('deliveryCitys', 'read'), async (req, res) => {
     const { _id } = req.params;
@@ -142,17 +84,17 @@ pickupLocationRoutes.delete('/delete/one/:_id', requireAuth, requireActiveCompan
     const { _id } = req.params;
     const { filter } = makeCompanyBasedQuery(req);
     // const deleted = await pickupLocationMain.findOneAndDelete({ _id, ...filter });
-    const deleted = await pickupLocationMain.updateOne({ _id, ...filter }, { $set: { isDeleted: true } });
-    if (Boolean(deleted)) {
-        addParentToLocals(res, _id, pickupLocationMain.collection.collectionName, 'trackDataDelete');
-        return res.status(200).send({ success: Boolean(deleted) });
+    const updateRes = await pickupLocationMain.updateOne({ _id, ...filter }, { $set: { isDeleted: true } })
+        .catch((err) => err);
+    if (updateRes instanceof Error) {
+        const errResponse = handleMongooseErr(updateRes);
+        return res.status(errResponse.status).send(errResponse);
     }
-    else {
-        return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
-    }
+    addParentToLocals(res, _id, pickupLocationMain.collection.collectionName, 'trackDataDelete');
+    return res.status(200).send({ success: true });
 });
 pickupLocationRoutes.post('/filter', requireAuth, requireActiveCompany, roleAuthorisation('deliveryCitys', 'read'), async (req, res) => {
-    const { propSort } = req.body;
+    const { propSort, returnEmptyArr } = req.body;
     const { filter } = makeCompanyBasedQuery(req);
     const { offset, limit } = offsetLimitRelegator(req.body.offset, req.body.limit);
     const aggCursor = pickupLocationLean.aggregate([
@@ -166,18 +108,7 @@ pickupLocationRoutes.post('/filter', requireAuth, requireActiveCompany, roleAuth
         },
         ...lookupTrackEdit(),
         ...lookupTrackView(),
-        {
-            $facet: {
-                data: [...lookupSort(propSort), ...lookupOffset(offset), ...lookupLimit(limit)],
-                total: [{ $count: 'count' }]
-            }
-        },
-        {
-            $unwind: {
-                path: '$total',
-                preserveNullAndEmptyArrays: true
-            }
-        }
+        ...lookupFacet(offset, limit, propSort, returnEmptyArr)
     ]);
     const dataArr = [];
     for await (const data of aggCursor) {
@@ -197,31 +128,18 @@ pickupLocationRoutes.post('/filter', requireAuth, requireActiveCompany, roleAuth
 pickupLocationRoutes.put('/delete/many', requireAuth, requireActiveCompany, roleAuthorisation('deliveryCitys', 'delete'), async (req, res) => {
     const { _ids } = req.body;
     const { filter } = makeCompanyBasedQuery(req);
-    /* const deleted = await pickupLocationMain
-    .deleteMany({ _id: { $in: _ids }, ...filter })
-    .catch(err => {
-      pickupLocationRoutesLogger.error('deletemany - err: ', err);
-
-      return null;
-    }); */
-    const deleted = await pickupLocationMain
+    const updateRes = await pickupLocationMain
         .updateMany({ _id: { $in: _ids }, ...filter }, {
         $set: { isDeleted: true }
     })
-        .catch(err => {
-        pickupLocationRoutesLogger.error('deletemany - err: ', err);
-        return null;
-    });
-    if (Boolean(deleted)) {
-        for (const val of _ids) {
-            addParentToLocals(res, val, pickupLocationMain.collection.collectionName, 'trackDataDelete');
-        }
-        return res.status(200).send({ success: Boolean(deleted) });
+        .catch((err) => err);
+    if (updateRes instanceof Error) {
+        const errResponse = handleMongooseErr(updateRes);
+        return res.status(errResponse.status).send(errResponse);
     }
-    else {
-        return res.status(404).send({
-            success: Boolean(deleted), err: 'could not delete selected items, try again in a while'
-        });
+    for (const val of _ids) {
+        addParentToLocals(res, val, pickupLocationMain.collection.collectionName, 'trackDataDelete');
     }
+    return res.status(200).send({ success: true });
 });
 //# sourceMappingURL=pickuplocation.routes.js.map

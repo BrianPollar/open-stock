@@ -1,17 +1,34 @@
-import { createExpireDocIndex, withCompanySchemaObj, withCompanySelectObj } from '@open-stock/stock-universal-server';
+import { connectDatabase, createExpireDocIndex, isDbConnected, mainConnectionLean, withCompanySchemaObj, withCompanySelectObj } from '@open-stock/stock-universal-server';
 import { Schema } from 'mongoose';
-import { connectAuthDatabase, isAuthDbConnected, mainConnectionLean } from '../../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 /** company subscription schema */
 const companySubscriptionSchema = new Schema({
     ...withCompanySchemaObj,
-    name: { type: String },
-    ammount: { type: Number },
-    duration: { type: Number },
+    name: {
+        type: String,
+        minlength: [3, 'alteat 3 charaters needed'],
+        maxlength: [50, 'cannot be more than 50 characters']
+    },
+    ammount: {
+        type: Number,
+        required: [true, 'cannot be empty.'],
+        min: [0, 'cannot be less than 0.']
+    },
+    duration: {
+        type: Number,
+        required: [true, 'cannot be empty.'],
+        min: [0, 'cannot be less than 0.']
+    },
     active: { type: Boolean, default: false },
     // subscriprionId: { type: String },
     startDate: { type: Date, required: [true, 'cannot be empty.'], index: true },
-    endDate: { type: Date, required: [true, 'cannot be empty.'], index: true },
+    endDate: {
+        type: Date,
+        required: [true, 'cannot be empty.'],
+        index: true,
+        validator: checkEndDate,
+        message: props => `${props.value} is invalid, must be greater than start date!`
+    },
     pesaPalorderTrackingId: { type: String, inddex: true },
     status: { type: String },
     features: []
@@ -19,6 +36,9 @@ const companySubscriptionSchema = new Schema({
 companySubscriptionSchema.index({ endDate: -1 });
 // Apply the uniqueValidator plugin to companySubscriptionSchema.
 companySubscriptionSchema.plugin(uniqueValidator);
+function checkEndDate(value) {
+    return new Date(value) > new Date(this.startDate);
+}
 /** Primary selection object for FAQ */
 const companySubscriptionselect = {
     ...withCompanySelectObj,
@@ -54,8 +74,8 @@ export const companySubscriptionSelect = companySubscriptionselect;
  */
 export const createCompanySubscription = async (dbUrl, dbOptions, main = true, lean = true) => {
     createExpireDocIndex(companySubscriptionSchema);
-    if (!isAuthDbConnected) {
-        await connectAuthDatabase(dbUrl, dbOptions);
+    if (!isDbConnected) {
+        await connectDatabase(dbUrl, dbOptions);
     }
     if (main) {
         companySubscriptionMain = mainConnectionLean

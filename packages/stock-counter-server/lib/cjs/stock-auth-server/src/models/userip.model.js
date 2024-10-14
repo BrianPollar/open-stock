@@ -1,11 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createUseripModel = exports.useripLean = exports.userip = void 0;
+const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const mongoose_1 = require("mongoose");
-const database_1 = require("../utils/database");
 const uniqueValidator = require('mongoose-unique-validator');
 const useripSchema = new mongoose_1.Schema({
-    userOrCompanayId: { type: String },
+    userOrCompanayId: { type: mongoose_1.Schema.Types.ObjectId },
     greenIps: [],
     redIps: [],
     unverifiedIps: [],
@@ -21,15 +21,15 @@ useripSchema.plugin(uniqueValidator);
  * @param lean Whether to create the lean email token model.
  */
 const createUseripModel = async (dbUrl, dbOptions, main = true, lean = true) => {
-    if (!database_1.isAuthDbConnected) {
-        await (0, database_1.connectAuthDatabase)(dbUrl, dbOptions);
+    if (!stock_universal_server_1.isDbConnected) {
+        await (0, stock_universal_server_1.connectDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.userip = database_1.mainConnection
+        exports.userip = stock_universal_server_1.mainConnection
             .model('userip', useripSchema);
     }
     if (lean) {
-        exports.useripLean = database_1.mainConnectionLean
+        exports.useripLean = stock_universal_server_1.mainConnectionLean
             .model('userip', useripSchema);
     }
 };

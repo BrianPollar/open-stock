@@ -27,9 +27,9 @@ export class ItemDecoy extends DatabaseAuto {
             decoys: decoys.data.map(val => new ItemDecoy(val))
         };
     }
-    static async getOne(_id) {
+    static async getOne(urIdOr_id) {
         const observer$ = StockCounterClient.ehttp
-            .makeGet(`/itemdecoy/one/${_id}`);
+            .makeGet(`/itemdecoy/one/${urIdOr_id}`);
         const decoy = await lastValueFrom(observer$);
         return new ItemDecoy(decoy);
     }

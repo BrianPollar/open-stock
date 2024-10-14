@@ -1,5 +1,8 @@
+import {
+  connectDatabase, isDbConnected,
+  mainConnection, mainConnectionLean
+} from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import { connectAuthDatabase, isAuthDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 
 const uniqueValidator = require('mongoose-unique-validator');
 
@@ -12,7 +15,7 @@ extends Document {
   /**
    * The ID of the user associated with the token.
    */
-  userId: string;
+  userId: string | Schema.Types.ObjectId;
 
   /**
    * The token value.
@@ -31,7 +34,7 @@ extends Document {
 }
 
 const emailtokenSchema: Schema<IEmailtoken> = new Schema<IEmailtoken>({
-  userId: { type: String },
+  userId: { type: Schema.Types.ObjectId },
   token: { type: String, unique: true }
 }, { timestamps: true, collection: 'emailtokens' });
 
@@ -57,8 +60,8 @@ export let emailtokenLean: Model<IEmailtoken>;
  * @param lean Whether to create the lean email token model.
  */
 export const createEmailtokenModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
-  if (!isAuthDbConnected) {
-    await connectAuthDatabase(dbUrl, dbOptions);
+  if (!isDbConnected) {
+    await connectDatabase(dbUrl, dbOptions);
   }
 
   if (main) {

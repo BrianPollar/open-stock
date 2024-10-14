@@ -3,18 +3,27 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createStaffModel = exports.staffSelect = exports.staffLean = exports.staffMain = void 0;
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const mongoose_1 = require("mongoose");
-const database_1 = require("../../utils/database");
 const uniqueValidator = require('mongoose-unique-validator');
 /** Defines the schema for the staff model. */
 const staffSchema = new mongoose_1.Schema({
     ...stock_universal_server_1.withUrIdAndCompanySchemaObj,
-    user: { type: mongoose_1.Types.ObjectId, unique: true, required: [true, 'cannot be empty.'], index: true },
+    user: { type: mongoose_1.Schema.Types.ObjectId, unique: true, required: [true, 'cannot be empty.'], index: true },
     startDate: { type: Date },
-    endDate: { type: Date },
+    endDate: {
+        type: Date,
+        validator: checkEndDate,
+        message: props => `${props.value} is invalid, endDate cannot be less than startDate!`
+    },
     occupation: { type: String },
     employmentType: { type: String },
-    salary: {}
+    salary: {
+        employmentType: { type: String },
+        salary: { type: String }
+    }
 }, { timestamps: true, collection: 'staffs' });
+function checkEndDate(endDate) {
+    return new Date(endDate) > new Date(this.startDate);
+}
 staffSchema.pre('updateOne', function (next) {
     return (0, stock_universal_server_1.preUpdateDocExpire)(this, next);
 });
@@ -47,15 +56,15 @@ exports.staffSelect = staffselect;
  */
 const createStaffModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     (0, stock_universal_server_1.createExpireDocIndex)(staffSchema);
-    if (!database_1.isStockDbConnected) {
-        await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
+    if (!stock_universal_server_1.isDbConnected) {
+        await (0, stock_universal_server_1.connectDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.staffMain = database_1.mainConnection
+        exports.staffMain = stock_universal_server_1.mainConnection
             .model('Staff', staffSchema);
     }
     if (lean) {
-        exports.staffLean = database_1.mainConnectionLean
+        exports.staffLean = stock_universal_server_1.mainConnectionLean
             .model('Staff', staffSchema);
     }
 };

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.applyBlockDateSelect = exports.transformNoInvId = exports.openBoxFn = exports.deleteManyInvoicesFn = exports.toggleSelectionFn = exports.deleteInvoiceFn = exports.markInvStatusAsFn = exports.determineLikedFn = exports.unLikeFn = exports.likeFn = exports.makeInvoiceRelated = exports.makePaymentRelated = exports.transformUrId = exports.transformInvoice = exports.transformEstimateId = exports.transformFaqToNameOrImage = void 0;
+exports.applyBlockDateSelect = exports.transformNoInvId = exports.openBoxFn = exports.deleteManyInvoicesFn = exports.toggleSelectionFn = exports.deleteInvoiceFn = exports.markInvStatusAsFn = exports.determineLikedFn = exports.unLikeFn = exports.likeFn = exports.makeInvoiceRelated = exports.makePaymentRelated = exports.makeDatabaseAutoAndUrId = exports.transformUrId = exports.transformInvoice = exports.transformEstimateId = exports.transformFaqToNameOrImage = void 0;
 const stock_universal_1 = require("@open-stock/stock-universal");
 const invoice_define_1 = require("../defines/invoice.define");
 const receipt_define_1 = require("../defines/receipt.define");
@@ -52,9 +52,6 @@ exports.transformFaqToNameOrImage = transformFaqToNameOrImage;
 const transformEstimateId = (id) => {
     const logger = new stock_universal_1.LoggerController();
     logger.debug('EstimateIdPipe:transform:: - id: ', id);
-    if (!id) {
-        return;
-    }
     const len = id.toString().length;
     const start = '#EST-';
     switch (len) {
@@ -66,6 +63,8 @@ const transformEstimateId = (id) => {
             return start + '00' + id;
         case 1:
             return start + '000' + id;
+        default:
+            return start + '0000' + id;
     }
 };
 exports.transformEstimateId = transformEstimateId;
@@ -77,9 +76,6 @@ exports.transformEstimateId = transformEstimateId;
 const transformInvoice = (id) => {
     const logger = new stock_universal_1.LoggerController();
     logger.debug('InvoiceIdPipe:transform:: - id: ', id);
-    if (!id) {
-        return;
-    }
     const len = id.toString().length;
     const start = '#INV-';
     switch (len) {
@@ -91,6 +87,8 @@ const transformInvoice = (id) => {
             return start + '00' + id;
         case 1:
             return start + '000' + id;
+        default:
+            return start + '0000' + id;
     }
 };
 exports.transformInvoice = transformInvoice;
@@ -120,6 +118,15 @@ const transformUrId = (id, where) => {
     }
 };
 exports.transformUrId = transformUrId;
+const makeDatabaseAutoAndUrId = (data) => {
+    return {
+        _id: data._id,
+        createdAt: data.createdAt,
+        updatedAt: data.updatedAt,
+        urId: data.urId
+    };
+};
+exports.makeDatabaseAutoAndUrId = makeDatabaseAutoAndUrId;
 /**
  * Creates a payment-related object based on the provided data.
  * @param data - The data object containing order or payment information.
@@ -127,6 +134,7 @@ exports.transformUrId = transformUrId;
  */
 const makePaymentRelated = (data) => {
     return {
+        urId: data.urId,
         paymentRelated: data.paymentRelated,
         // creationType: data.creationType,
         orderDate: data.orderDate,
@@ -134,7 +142,7 @@ const makePaymentRelated = (data) => {
         billingAddress: data.billingAddress,
         shippingAddress: data.shippingAddress,
         // tax: data.tax,
-        currency: data.currency,
+        // currency: data.currency,
         isBurgain: data.isBurgain,
         shipping: data.shipping,
         manuallyAdded: data.manuallyAdded,
@@ -171,7 +179,8 @@ const makeInvoiceRelated = (data) => {
         balanceDue: data.balanceDue,
         subTotal: data.subTotal,
         total: data.total,
-        currency: data.currency
+        currency: data.currency,
+        ...(0, exports.makeDatabaseAutoAndUrId)(data)
     };
     return (data instanceof receipt_define_1.Receipt) ? related : { ...related, payments: data.payments };
 };
@@ -184,16 +193,11 @@ exports.makeInvoiceRelated = makeInvoiceRelated;
  * @returns A promise that resolves to an object indicating the success of the operation.
  */
 const likeFn = (currentUser, item) => {
-    const logger = new stock_universal_1.LoggerController();
     if (!currentUser) {
         return { success: false };
     }
     return item
-        .like(currentUser._id)
-        .catch(err => {
-        logger.debug(':like:: - err ', err);
-        return { success: false };
-    });
+        .like(currentUser._id);
 };
 exports.likeFn = likeFn;
 /**
@@ -204,16 +208,11 @@ exports.likeFn = likeFn;
  * @returns A promise that resolves to an object indicating the success of the unlike operation.
  */
 const unLikeFn = (currentUser, item) => {
-    const logger = new stock_universal_1.LoggerController();
     if (!currentUser) {
         return { success: false };
     }
     return item
-        .unLike(currentUser._id)
-        .catch(err => {
-        logger.debug(':unLike:: - err ', err);
-        return { success: false };
-    });
+        .unLike(currentUser._id);
 };
 exports.unLikeFn = unLikeFn;
 /**
@@ -224,7 +223,7 @@ exports.unLikeFn = unLikeFn;
  * @returns A boolean value indicating whether the item is liked by the current user.
  */
 const determineLikedFn = (item, currentUser) => {
-    if (currentUser &&
+    if (currentUser && item.likes &&
         item.likes.includes(currentUser._id)) {
         return true;
     }
@@ -290,7 +289,6 @@ exports.toggleSelectionFn = toggleSelectionFn;
  * @returns A promise that resolves to an object indicating the success of the deletion.
  */
 const deleteManyInvoicesFn = (invoices, selections) => {
-    const logger = new stock_universal_1.LoggerController();
     const val = {
         _ids: invoices
             .filter(val => selections.includes(val._id))
@@ -299,11 +297,7 @@ const deleteManyInvoicesFn = (invoices, selections) => {
         })
     };
     return invoice_define_1.Invoice
-        .removeMany(val)
-        .catch(err => {
-        logger.error('InvoicesListComponent:deleteMany:: - err ', err);
-        return { success: false };
-    });
+        .removeMany(val);
 };
 exports.deleteManyInvoicesFn = deleteManyInvoicesFn;
 /**

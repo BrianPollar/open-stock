@@ -3,14 +3,22 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createDeliverycityModel = exports.deliverycitySelect = exports.deliverycityLean = exports.deliverycityMain = void 0;
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const mongoose_1 = require("mongoose");
-const database_1 = require("../utils/database");
 const uniqueValidator = require('mongoose-unique-validator');
 const deliverycitySchema = new mongoose_1.Schema({
     ...stock_universal_server_1.withCompanySchemaObj,
     name: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
-    shippingCost: { type: Number, required: [true, 'cannot be empty.'] },
+    shippingCost: {
+        type: Number,
+        required: [true, 'cannot be empty.'],
+        min: [0, 'cannot be less than 0.']
+    },
     currency: { type: String, required: [true, 'cannot be empty.'] },
-    deliversInDays: { type: Number, required: [true, 'cannot be empty.'] }
+    deliversInDays: {
+        type: Number,
+        required: [true, 'cannot be empty.'],
+        min: [0, 'cannot be less than 0.'],
+        max: [150, 'cannot be greater than 30.']
+    }
 }, { timestamps: true, collection: 'deliverycities' });
 deliverycitySchema.pre('updateOne', function (next) {
     return (0, stock_universal_server_1.preUpdateDocExpire)(this, next);
@@ -42,15 +50,15 @@ exports.deliverycitySelect = deliverycityselect;
  */
 const createDeliverycityModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     (0, stock_universal_server_1.createExpireDocIndex)(deliverycitySchema);
-    if (!database_1.isStockDbConnected) {
-        await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
+    if (!stock_universal_server_1.isDbConnected) {
+        await (0, stock_universal_server_1.connectDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.deliverycityMain = database_1.mainConnection
+        exports.deliverycityMain = stock_universal_server_1.mainConnection
             .model('Deliverycity', deliverycitySchema);
     }
     if (lean) {
-        exports.deliverycityLean = database_1.mainConnectionLean
+        exports.deliverycityLean = stock_universal_server_1.mainConnectionLean
             .model('Deliverycity', deliverycitySchema);
     }
 };

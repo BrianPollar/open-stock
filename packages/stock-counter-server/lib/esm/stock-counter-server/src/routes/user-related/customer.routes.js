@@ -1,36 +1,9 @@
 import { addUser, determineUserToRemove, determineUsersToRemove, populateTrackEdit, populateTrackView, removeManyUsers, removeOneUser, requireActiveCompany, requireCanUseFeature, requireUpdateSubscriptionRecord, updateUserBulk } from '@open-stock/stock-auth-server';
-import { addParentToLocals, appendBody, constructFiltersFromBody, generateUrId, lookupSubFieldUserFilter, makeCompanyBasedQuery, offsetLimitRelegator, requireAuth, roleAuthorisation, saveMetaToDb, stringifyMongooseErr, uploadFiles, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { addParentToLocals, appendBody, constructFiltersFromBody, generateUrId, handleMongooseErr, lookupSubFieldUserFilter, makeCompanyBasedQuery, offsetLimitRelegator, requireAuth, roleAuthorisation, saveMetaToDb, uploadFiles, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
-import * as fs from 'fs';
-import path from 'path';
-import * as tracer from 'tracer';
 import { invoiceRelatedLean } from '../../models/printables/related/invoicerelated.model';
 import { customerLean, customerMain } from '../../models/user-related/customer.model';
 import { populateUser } from '../../utils/query';
-/** Logger for customer routes */
-const customerRoutesLogger = tracer.colorConsole({
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-        // eslint-disable-next-line no-console
-        console.log(data.output);
-        const logDir = path.join(process.cwd() + '/openstockLog/');
-        fs.mkdir(logDir, { recursive: true }, (err) => {
-            if (err) {
-                if (err) {
-                    // eslint-disable-next-line no-console
-                    console.log('data.output err ', err);
-                }
-            }
-        });
-        fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
-            if (err) {
-                // eslint-disable-next-line no-console
-                console.log('raw.output err ', err);
-            }
-        });
-    }
-});
 /**
    * Adds a new customer to the database.
    * @function
@@ -42,13 +15,20 @@ const customerRoutesLogger = tracer.colorConsole({
    * @returns {Promise} - Promise representing the saved customer
    */
 export const addCustomer = async (req, res, next) => {
+    if (!req.user || !req.body.user || !req.body.customer || !req.body.user._id) {
+        return res.status(401).send({ success: false, err: 'unauthorised' });
+    }
     const { filter } = makeCompanyBasedQuery(req);
     const { customer, user } = req.body;
-    customer.user = user._id;
+    if (user._id) {
+        customer.user = user._id;
+    }
+    else {
+        return res.status(401).send({ success: false, err: 'unauthorised' });
+    }
     customer.companyId = filter.companyId;
     customer.urId = await generateUrId(customerMain);
     const newCustomer = new customerMain(customer);
-    let errResponse;
     /**
      * Saves a new customer to the database.
      * @function
@@ -57,28 +37,13 @@ export const addCustomer = async (req, res, next) => {
      * @param {Customer} newCustomer - The new customer to be saved.
      * @returns {Promise} - Promise representing the saved customer
      */
-    const saved = await newCustomer.save()
-        .catch(err => {
-        customerRoutesLogger.error('create - err: ', err);
-        errResponse = {
-            success: false,
-            status: 403
-        };
-        if (err && err.errors) {
-            errResponse.err = stringifyMongooseErr(err.errors);
-        }
-        else {
-            errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-        }
-        return err;
-    });
-    if (errResponse) {
-        return res.status(403).send(errResponse);
+    const savedRes = await newCustomer.save()
+        .catch((err) => err);
+    if (savedRes instanceof Error) {
+        const errResponse = handleMongooseErr(savedRes);
+        return res.status(errResponse.status).send(errResponse);
     }
-    if (saved && saved._id) {
-        addParentToLocals(res, saved._id, customerMain.collection.collectionName, 'makeTrackEdit');
-    }
+    addParentToLocals(res, savedRes._id, customerMain.collection.collectionName, 'makeTrackEdit');
     return next();
 };
 /**
@@ -101,8 +66,7 @@ export const updateCustomer = async (req, res) => {
     if (!customer) {
         return res.status(404).send({ success: false });
     }
-    let errResponse;
-    const updated = await customerMain.updateOne({
+    const updateRes = await customerMain.updateOne({
         _id: updatedCustomer._id, ...filter
     }, {
         $set: {
@@ -113,26 +77,13 @@ export const updateCustomer = async (req, res) => {
             isDeleted: updatedCustomer.isDeleted || customer.isDeleted
         }
     })
-        .catch(err => {
-        customerRoutesLogger.error('update - err: ', err);
-        errResponse = {
-            success: false,
-            status: 403
-        };
-        if (err && err.errors) {
-            errResponse.err = stringifyMongooseErr(err.errors);
-        }
-        else {
-            errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-        }
-        return errResponse;
-    });
-    if (errResponse) {
-        return res.status(403).send(errResponse);
+        .catch((err) => err);
+    if (updateRes instanceof Error) {
+        const errResponse = handleMongooseErr(updateRes);
+        return res.status(errResponse.status).send(errResponse);
     }
     addParentToLocals(res, customer._id, customerMain.collection.collectionName, 'makeTrackEdit');
-    return res.status(200).send({ success: Boolean(updated) });
+    return res.status(200).send({ success: true });
 };
 /**
  * Router for handling customer-related routes.
@@ -141,7 +92,10 @@ export const customerRoutes = express.Router();
 customerRoutes.post('/add', requireAuth, requireActiveCompany, requireCanUseFeature('customer'), roleAuthorisation('users', 'create'), addUser, addCustomer, requireUpdateSubscriptionRecord('customer'));
 customerRoutes.post('/add/img', requireAuth, requireActiveCompany, requireCanUseFeature('customer'), roleAuthorisation('users', 'create'), uploadFiles, appendBody, saveMetaToDb, addUser, addCustomer, requireUpdateSubscriptionRecord('customer'));
 customerRoutes.post('/one', requireAuth, requireActiveCompany, roleAuthorisation('customers', 'read'), async (req, res) => {
-    const { _id, userId } = req.body;
+    const { _id, userId, urId, companyId } = req.body;
+    if (!_id && !userId && !urId) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const { filter } = makeCompanyBasedQuery(req);
     let filter2 = {};
     if (_id) {
@@ -151,15 +105,18 @@ customerRoutes.post('/one', requireAuth, requireActiveCompany, roleAuthorisation
         }
         filter2 = { ...filter2, _id };
     }
-    /* if (companyId) {
-    filter = { ...filter, ...filter };
-  } */
     if (userId) {
         const isValid = verifyObjectIds([userId]);
         if (!isValid) {
             return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
         }
         filter2 = { ...filter2, user: userId };
+    }
+    if (urId) {
+        filter2 = { ...filter2, urId };
+    }
+    if (companyId) {
+        filter2 = { ...filter2, companyId };
     }
     const customer = await customerLean
         .findOne({ ...filter2, ...filter })
@@ -193,11 +150,11 @@ customerRoutes.get('/all/:offset/:limit', requireAuth, requireActiveCompany, rol
     return res.status(200).send(response);
 });
 customerRoutes.post('/filter', requireAuth, requireActiveCompany, roleAuthorisation('customers', 'read'), async (req, res) => {
-    const { propSort } = req.body;
+    const { propSort, returnEmptyArr } = req.body;
     const { offset, limit } = offsetLimitRelegator(req.body.offset, req.body.limit);
     const aggCursor = customerLean
         .aggregate([
-        ...lookupSubFieldUserFilter(constructFiltersFromBody(req), propSort, offset, limit)
+        ...lookupSubFieldUserFilter(constructFiltersFromBody(req), offset, limit, propSort, returnEmptyArr)
     ]);
     const dataArr = [];
     for await (const data of aggCursor) {
@@ -225,15 +182,15 @@ customerRoutes.put('/delete/one', requireAuth, requireActiveCompany, roleAuthori
     const { _id } = req.body;
     const { filter } = makeCompanyBasedQuery(req);
     // const deleted = await customerMain.findOneAndDelete({ _id, ...filter });
-    const deleted = await customerMain
-        .updateOne({ _id, ...filter }, { $set: { isDeleted: true } }, { $set: { isDeleted: true } });
-    if (Boolean(deleted)) {
-        addParentToLocals(res, _id, customerMain.collection.collectionName, 'trackDataDelete');
-        return res.status(200).send({ success: Boolean(deleted) });
+    const updateRes = await customerMain
+        .updateOne({ _id, ...filter }, { $set: { isDeleted: true } }, { $set: { isDeleted: true } })
+        .catch((err) => err);
+    if (updateRes instanceof Error) {
+        const errResponse = handleMongooseErr(updateRes);
+        return res.status(errResponse.status).send(errResponse);
     }
-    else {
-        return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
-    }
+    addParentToLocals(res, _id, customerMain.collection.collectionName, 'trackDataDelete');
+    return res.status(200).send({ success: true });
 });
 customerRoutes.put('/delete/many', requireAuth, requireActiveCompany, roleAuthorisation('customers', 'delete'), determineUsersToRemove(customerLean, [{
         model: invoiceRelatedLean,
@@ -242,31 +199,17 @@ customerRoutes.put('/delete/many', requireAuth, requireActiveCompany, roleAuthor
     }]), removeManyUsers, async (req, res) => {
     const { _ids } = req.body;
     const { filter } = makeCompanyBasedQuery(req);
-    /* const deleted = await customerMain
-    .deleteMany({ ...filter, _id: { $in: _ids } })
-    .catch(err => {
-      customerRoutesLogger.error('deletemany - err: ', err);
-
-      return null;
-    }); */
-    const deleted = await customerMain
+    const updateRes = await customerMain
         .updateMany({ ...filter, _id: { $in: _ids } }, {
         $set: { isDeleted: true }
-    })
-        .catch(err => {
-        customerRoutesLogger.error('deletemany - err: ', err);
-        return null;
-    });
-    if (Boolean(deleted)) {
-        for (const val of _ids) {
-            addParentToLocals(res, val, customerMain.collection.collectionName, 'trackDataDelete');
-        }
-        return res.status(200).send({ success: Boolean(deleted) });
+    }).catch((err) => res);
+    if (updateRes instanceof Error) {
+        const errResponse = handleMongooseErr(updateRes);
+        return res.status(errResponse.status).send(errResponse);
     }
-    else {
-        return res.status(404).send({
-            success: Boolean(deleted), err: 'could not delete selected items, try again in a while'
-        });
+    for (const val of _ids) {
+        addParentToLocals(res, val, customerMain.collection.collectionName, 'trackDataDelete');
     }
+    return res.status(200).send({ success: true });
 });
 //# sourceMappingURL=customer.routes.js.map

@@ -1,9 +1,12 @@
 import { IcurrencyProp, ItrackStamp } from '@open-stock/stock-universal';
 import {
-  createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj
+  IcompanyIdAsObjectId,
+  connectDatabase,
+  createExpireDocIndex,
+  isDbConnected, mainConnection, mainConnectionLean,
+  preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj
 } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 
 /**
@@ -34,16 +37,27 @@ export type TitemOffer = Document & ItrackStamp & IcurrencyProp & {
 
   /** The amount of the offer. */
   ammount: number;
-};
+} & IcompanyIdAsObjectId;
 
 const itemOfferSchema: Schema<TitemOffer> = new Schema({
   ...withUrIdAndCompanySchemaObj,
-  items: [],
+  items: [Schema.Types.ObjectId],
   expireAt: { type: Date },
   type: { type: String },
-  header: { type: String },
-  subHeader: { type: String },
-  ammount: { type: Number },
+  header: {
+    type: String,
+    minLength: [1, 'cannot be less than 1.'],
+    maxLength: [150, 'cannot be more than 150.']
+  },
+  subHeader: {
+    type: String,
+    minLength: [1, 'cannot be less than 1.'],
+    maxLength: [150, 'cannot be more than 150.']
+  },
+  ammount: {
+    type: Number,
+    min: [0, 'cannot be less than 0.']
+  },
   currency: { type: String, default: 'USD' }
 }, { timestamps: true, collection: 'itemoffers' });
 
@@ -102,8 +116,8 @@ export const itemOfferSelect = itemOfferselect;
  */
 export const createItemOfferModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
   createExpireDocIndex(itemOfferSchema);
-  if (!isStockDbConnected) {
-    await connectStockDatabase(dbUrl, dbOptions);
+  if (!isDbConnected) {
+    await connectDatabase(dbUrl, dbOptions);
   }
 
   if (main) {

@@ -1,4 +1,4 @@
-import { IvalidatorResult } from '../interfaces/validators.interface';
+import { IvalidatorResult } from '../types/validators-types';
 
 /**
  * Validates if two passwords match.

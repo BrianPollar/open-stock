@@ -19,8 +19,9 @@
  * @requires @open-stock/stock-universal
  * @requires @open-stock/stock-universal-server
  */
-import { offsetLimitRelegator, requireAuth, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { handleMongooseErr, offsetLimitRelegator, requireAuth, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
+import { Error } from 'mongoose';
 import { mainnotificationLean, mainnotificationMain } from '../models/mainnotification.model';
 import { notifSettingLean, notifSettingMain } from '../models/notifsetting.model';
 import { subscriptionLean, subscriptionMain } from '../models/subscriptions.model';
@@ -30,6 +31,9 @@ import { createNotifStn, updateNotifnViewed } from '../utils/notifications';
  */
 export const notifnRoutes = express.Router();
 notifnRoutes.get('/getmynotifn/:offset/:limit', requireAuth, async (req, res) => {
+    if (!req.user) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     const { userId } = req.user;
     const { companyId } = req.user;
@@ -53,6 +57,9 @@ notifnRoutes.get('/getmynotifn/:offset/:limit', requireAuth, async (req, res) =>
     return res.status(200).send(response);
 });
 notifnRoutes.get('/getmyavailnotifn/:offset/:limit', requireAuth, async (req, res) => {
+    if (!req.user) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     const { companyId } = req.user;
     const isValid = verifyObjectId(companyId);
@@ -75,6 +82,9 @@ notifnRoutes.get('/getmyavailnotifn/:offset/:limit', requireAuth, async (req, re
     return res.status(200).send(response);
 });
 notifnRoutes.get('/one/:_id', requireAuth, async (req, res) => {
+    if (!req.user) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const { companyId } = req.user;
     const { _id } = req.params;
     const isValid = verifyObjectIds([_id, companyId]);
@@ -91,6 +101,9 @@ notifnRoutes.get('/one/:_id', requireAuth, async (req, res) => {
     return res.status(200).send(notifs);
 });
 notifnRoutes.delete('/delete/one/:_id', requireAuth, async (req, res) => {
+    if (!req.user) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const _id = req.params._id;
     const { companyId } = req.user;
     const isValid = verifyObjectIds([_id, companyId]);
@@ -98,16 +111,19 @@ notifnRoutes.delete('/delete/one/:_id', requireAuth, async (req, res) => {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     // const deleted = await mainnotificationMain.findOneAndRemove({ _id, });
-    const deleted = await mainnotificationMain
-        .updateOne({ _id }, { $set: { isDeleted: true } });
-    if (Boolean(deleted)) {
-        return res.status(200).send({ success: Boolean(deleted) });
+    const updateRes = await mainnotificationMain
+        .updateOne({ _id }, { $set: { isDeleted: true } })
+        .catch((err) => err);
+    if (updateRes instanceof Error) {
+        const errResponse = handleMongooseErr(updateRes);
+        return res.status(errResponse.status).send(errResponse);
     }
-    else {
-        return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
-    }
+    return res.status(200).send({ success: true });
 });
 notifnRoutes.post('/subscription', requireAuth, async (req, res) => {
+    if (!req.user) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const { companyId } = req.user;
     const { userId, permissions } = req.user;
     const isValid = verifyObjectIds([companyId]);
@@ -133,27 +149,17 @@ notifnRoutes.post('/subscription', requireAuth, async (req, res) => {
         };
         sub = new subscriptionMain(newSub);
     }
-    let errResponse;
-    await sub.save().catch(err => {
-        errResponse = {
-            success: false,
-            status: 403
-        };
-        if (err && err.errors) {
-            errResponse.err = stringifyMongooseErr(err.errors);
-        }
-        else {
-            errResponse.err = `we are having problems connecting to our databases, 
-      try again in a while`;
-        }
-        return err;
-    });
-    if (errResponse) {
+    const savedRes = await sub.save().catch((err) => err);
+    if (savedRes instanceof Error) {
+        const errResponse = handleMongooseErr(savedRes);
         return res.status(403).send(errResponse);
     }
     return res.status(200).send({ success: true });
 });
 notifnRoutes.post('/updateviewed', requireAuth, async (req, res) => {
+    if (!req.user) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const user = req.user;
     const { companyId } = req.user;
     const { _id } = req.body;
@@ -165,6 +171,9 @@ notifnRoutes.post('/updateviewed', requireAuth, async (req, res) => {
     return res.status(200).send({ success: true });
 });
 notifnRoutes.get('/unviewedlength', requireAuth, async (req, res) => {
+    if (!req.user) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const { companyId } = req.user;
     const isValid = verifyObjectId(companyId);
     if (!isValid) {
@@ -192,47 +201,41 @@ notifnRoutes.get('/unviewedlength', requireAuth, async (req, res) => {
     return res.status(200).send({ count: notifsCount });
 });
 notifnRoutes.put('/clearall', requireAuth, async (req, res) => {
-    const { companyId } = req.user;
-    //
-    //
-    const { userId } = req.user;
-    const all = await mainnotificationLean.find({
+    if (!req.user) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
+    const { companyId, userId } = req.user;
+    const notifis = await mainnotificationLean.find({
         userId, active: true, companyId
     });
-    const promises = all.map(async (val) => {
+    const promises = notifis.map(async (val) => {
         val.active = false;
-        let error;
-        const saved = await val.save().catch(err => {
-            error = err;
-            return null;
-        });
-        if (error) {
+        const savedRes = await val.save().catch((err) => err);
+        if (savedRes instanceof Error) {
+            const error = handleMongooseErr(savedRes);
             return new Promise((resolve, reject) => reject(error));
         }
         else {
-            return new Promise(resolve => resolve({ success: Boolean(saved) }));
+            return new Promise(resolve => resolve({ success: true }));
         }
     });
-    let errResponse;
-    await Promise.all(promises).catch(() => {
-        errResponse = {
-            success: false,
-            status: 403,
-            err: 'could clear all notifications, try again in a while'
-        };
-    });
-    if (errResponse) {
+    const all = await Promise.all(promises).catch((err) => err);
+    if (all instanceof Error) {
+        const errResponse = handleMongooseErr(all);
         return res.status(403).send(errResponse);
     }
     return res.status(200).send({ success: true });
 });
 // settings
 notifnRoutes.post('/createstn', async (req, res) => {
+    if (!req.user) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const { stn } = req.body;
     const { companyId } = req.user;
     stn.companyId = companyId;
     const response = await createNotifStn(stn);
-    return res.status(response.status).send({ success: response.success });
+    return res.status(response.status || response.success ? 200 : 403).send({ success: response.success });
 });
 notifnRoutes.put('/updatestn', async (req, res) => {
     const { stn } = req.body;
@@ -241,40 +244,33 @@ notifnRoutes.put('/updatestn', async (req, res) => {
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
-    const notifStn = await notifSettingMain.findById(_id);
+    const notifStn = await notifSettingMain.findById(_id).lean();
     if (!notifStn) {
         return res.status(404).send({ success: false });
     }
-    notifStn['invoices'] = stn.invoices || notifStn['invoices'];
-    notifStn['payments'] = stn.payments || notifStn['payments'];
-    notifStn['orders'] = stn.orders || notifStn['orders'];
-    notifStn['jobCards'] = stn.jobCards || notifStn['jobCards'];
-    notifStn['users'] = stn.users || notifStn['users'];
-    let errResponse;
-    await notifStn.save().catch(err => {
-        errResponse = {
-            success: false,
-            status: 403
-        };
-        if (err && err.errors) {
-            errResponse.err = stringifyMongooseErr(err.errors);
+    const savedRes = await notifSettingMain.updateOne({
+        _id
+    }, {
+        $set: {
+            invoices: stn.invoices || notifStn.invoices,
+            payments: stn.payments || notifStn.payments,
+            orders: stn.orders || notifStn.orders,
+            jobCards: stn.jobCards || notifStn.jobCards,
+            users: stn.users || notifStn.users
         }
-        else {
-            errResponse.err = `we are having problems connecting to our databases, 
-      try again in a while`;
-        }
-        return errResponse;
-    });
-    if (errResponse) {
+    }).catch((err) => err);
+    if (savedRes instanceof Error) {
+        const errResponse = handleMongooseErr(savedRes);
         return res.status(403).send(errResponse);
     }
     return res.status(200).send({ success: true });
 });
 // settings
 notifnRoutes.post('/getstn', requireAuth, async (req, res) => {
+    if (!req.user) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const { companyId } = req.user;
-    //
-    //
     const stns = await notifSettingLean
         .find({ companyId })
         .lean();

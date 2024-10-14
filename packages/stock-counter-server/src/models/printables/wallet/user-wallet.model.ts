@@ -1,9 +1,11 @@
 import { IuserWallet } from '@open-stock/stock-universal';
 import {
-  createExpireDocIndex, globalSchemaObj, globalSelectObj, preUpdateDocExpire
+  connectDatabase,
+  createExpireDocIndex, globalSchemaObj, globalSelectObj,
+  isDbConnected, mainConnection, mainConnectionLean,
+  preUpdateDocExpire
 } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../../utils/database';
 
 /**
  * Represents the Mongoose document type for a user wallet.
@@ -11,11 +13,17 @@ import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectio
  */
 export type TuserWallet = Document & IuserWallet;
 
-const userWalletSchema: Schema = new Schema({
+const userWalletSchema: Schema<TuserWallet> = new Schema({
   ...globalSchemaObj,
-  user: { type: String, required: [true, 'cannot be empty.'], index: true },
-  amount: { type: Number, required: [true, 'cannot be empty.'], index: true },
-  type: { type: String }
+  user: { type: Schema.Types.ObjectId, required: [true, 'cannot be empty.'], index: true },
+  accountBalance: {
+    type: Number,
+    required: [true, 'cannot be empty.'],
+    index: true,
+    default: 0,
+    min: [0, 'cannot be less than 0.']
+  },
+  currency: { type: String }
 }, { timestamps: true, collection: 'userwallets' });
 
 userWalletSchema.pre('updateOne', function(next) {
@@ -29,8 +37,8 @@ userWalletSchema.pre('updateMany', function(next) {
 const userWalletselect = {
   ...globalSelectObj,
   user: 1,
-  amount: 1,
-  type: 1
+  accountBalance: 1,
+  currency: 1
 };
 
 /**
@@ -56,8 +64,8 @@ export const userWalletSelect = userWalletselect;
  */
 export const createUserWalletModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
   createExpireDocIndex(userWalletSchema);
-  if (!isStockDbConnected) {
-    await connectStockDatabase(dbUrl, dbOptions);
+  if (!isDbConnected) {
+    await connectDatabase(dbUrl, dbOptions);
   }
 
   if (main) {

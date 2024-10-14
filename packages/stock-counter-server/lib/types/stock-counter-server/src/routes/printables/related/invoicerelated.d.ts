@@ -15,22 +15,15 @@ export declare const updateInvoiceRelated: (res: any, invoiceRelated: Required<I
 export declare const relegateInvRelatedCreation: (res: any, invoiceRelated: Required<IinvoiceRelated>, companyId: string, extraNotifDesc: string, bypassNotif?: boolean) => Promise<Isuccess & {
     _id?: string;
 }>;
-export declare const makeInvoiceRelatedPdct: (invoiceRelated: Required<IinvoiceRelated>, user: Iuser, createdAt?: Date, extras?: {}) => IinvoiceRelated;
+export declare const makeInvoiceRelatedPdct: (invoiceRelated: Required<IinvoiceRelated>, user: Iuser, createdAt?: Date, extras?: object) => IinvoiceRelated;
 export declare const deleteManyInvoiceRelated: (_ids: string[], companyId: string) => Promise<{
+    success: boolean;
+    status: number;
+    err: string;
+} | {
     success: boolean;
     statu: number;
     err: string;
-    status?: undefined;
-} | {
-    success: boolean;
-    status: number;
-    statu?: undefined;
-    err?: undefined;
-} | {
-    success: boolean;
-    status: number;
-    err: string;
-    statu?: undefined;
 }>;
 /**
  * Deletes all linked documents based on the provided parameters.

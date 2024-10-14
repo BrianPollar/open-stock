@@ -79,9 +79,9 @@ export class Item extends DatabaseAuto {
         .map(val => new Item(val as Iitem)) };
   }
 
-  static async getOne(urId: string) {
+  static async getOne(urIdOr_id: string) {
     const observer$ = StockCounterClient.ehttp
-      .makeGet<Iitem>(`/item/one/${urId}`);
+      .makeGet<Iitem>(`/item/one/${urIdOr_id}`);
     const item = await lastValueFrom(observer$);
 
     return new Item(item);
@@ -105,7 +105,7 @@ export class Item extends DatabaseAuto {
           body
         );
 
-      added = await lastValueFrom(observer$) ;
+      added = await lastValueFrom(observer$);
     } else {
       const observer$ = StockCounterClient.ehttp
         .makePost<IsubscriptionFeatureState>('/item/add', body);
@@ -116,12 +116,9 @@ export class Item extends DatabaseAuto {
     return added;
   }
 
-  static removeMany(
-    url: string,
-    vals: IdeleteMany
-  ) {
+  static removeMany(vals: IdeleteMany) {
     const observer$ = StockCounterClient.ehttp
-      .makePut<Isuccess>(`${url}`, vals);
+      .makePut<Isuccess>('item/delete/many', vals);
 
     return lastValueFrom(observer$);
   }
@@ -180,7 +177,7 @@ export class Item extends DatabaseAuto {
       .makePut<Isuccess>(`/item/sponsored/update/${this._id}`, sponsored);
     const updated = await lastValueFrom(observer$);
 
-    if (updated.success) {
+    if (updated.success && this.sponsored) {
       const found = this.sponsored
         .find(val => val.item === sponsored.item);
 
@@ -197,7 +194,7 @@ export class Item extends DatabaseAuto {
       .makeDelete<Isuccess>(`/item/sponsored/delete/${this._id}/${itemId}`);
     const deleted = await lastValueFrom(observer$);
 
-    if (deleted.success) {
+    if (deleted.success && this.sponsored) {
       const found = this.sponsored.find(sponsd => (sponsd.item as unknown as Item)._id === itemId);
 
       if (found) {
@@ -211,18 +208,33 @@ export class Item extends DatabaseAuto {
   }
 
   async getSponsored() {
-    const mappedIds = this.sponsored.map(val =>(val.item as unknown as Item)._id || val.item);
+    const mappedIds = this.sponsored ? this.sponsored.map(val =>(val.item as unknown as Item)._id || val.item) : [];
     const observer$ = StockCounterClient.ehttp
       .makePost<IdataArrayResponse<Iitem>>('/item/sponsored/get', { _ids: mappedIds || [] });
     const items = await lastValueFrom(observer$);
 
+    if (!this.sponsored) {
+      this.sponsored = [];
+    }
+
     return this.sponsored
       .map(sponsrd => {
-        sponsrd.item = new Item(items
-          .data
-          .find(val => {
-            return (val as Item)._id === (sponsrd.item as unknown as Item)._id || sponsrd.item;
-          })) as unknown as Iitem;
+        if (sponsrd.item &&
+          items.data && items.data.length > 0 && typeof sponsrd.item !== 'string' && sponsrd.item._id) {
+          const foundItem = items.data.find(val => {
+            if (typeof sponsrd.item === 'string') {
+              return val._id === sponsrd.item;
+            } else {
+              return val._id === sponsrd.item._id;
+            }
+          });
+
+          if (foundItem) {
+            sponsrd.item = new Item(foundItem) as unknown as Iitem;
+          }
+
+          return sponsrd;
+        }
       });
   }
 
@@ -231,8 +243,15 @@ export class Item extends DatabaseAuto {
       .makePut<Isuccess>(`/item/like/${this._id}`, {});
     const updated = await lastValueFrom(observer$);
 
+    if (!this.likes) {
+      this.likes = [];
+    }
+
     this.likes.push(userId);
-    this.likesCount++;
+
+    if (this.likesCount) {
+      this.likesCount++;
+    }
 
     return updated;
   }
@@ -242,18 +261,20 @@ export class Item extends DatabaseAuto {
       .makePut<Isuccess>(`/item/unlike/${this._id}`, {});
     const updated = await lastValueFrom(observer$);
 
-    this.likes = this.likes.filter(val => val !== userId);
-    this.likesCount--;
+    if (this.likes) {
+      this.likes = this.likes.filter(val => val !== userId);
+    }
+
+    if (this.likesCount) {
+      this.likesCount--;
+    }
 
     return updated;
   }
 
   remove() {
-    const filesWithDir = this.photos
-      .map(val => ({ filename: val }));
-
     const observer$ = StockCounterClient.ehttp
-      .makePut<Isuccess>(`/item/delete/one/${this._id}`, { filesWithDir });
+      .makePut<Isuccess>(`/item/delete/one/${this._id}`, { });
 
     return lastValueFrom(observer$);
   }
@@ -265,9 +286,12 @@ export class Item extends DatabaseAuto {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     const toStrings = filesWithDir.map(val => val._id);
 
-    this.photos = this.photos.filter(val => !toStrings.includes(val._id));
+    if (this.photos) {
+      this.photos = this.photos.filter(val => !toStrings.includes(val._id));
+    }
     if (this.video && toStrings.includes(this.video._id)) {
-      this.video = null;
+      // eslint-disable-next-line no-undefined
+      this.video = undefined;
     }
 
     return deleted;
@@ -279,7 +303,7 @@ export class Item extends DatabaseAuto {
    */
   appndPdctCtror(data: Iitem) {
     this.urId = data.urId;
-    this.companyId = data.companyId || this.companyId;
+    this.companyId = data.companyId.toString() || this.companyId;
     this.numbersInstock = data.numbersInstock || this.numbersInstock;
     this.name = data.name || this.name;
     this.brand = data.brand || this.brand;
@@ -296,7 +320,6 @@ export class Item extends DatabaseAuto {
     this.inventoryMeta = data.inventoryMeta || this.inventoryMeta;
 
     this.urId = data.urId;
-    this.companyId = data.companyId || this.companyId;
     this._id = data._id || this._id;
     this.numbersInstock = data.numbersInstock || this.numbersInstock;
     this.name = data.name || this.name;

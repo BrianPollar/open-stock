@@ -23,6 +23,13 @@
     "module": "es2020",
     "moduleResolution": "node",
     "esModuleInterop": true,
+    // new
+    "strictNullChecks": true,
+    // "noImplicitThis": true,
+    "noUnusedLocals": true,
+    // "noUnusedParameters": true,
+    "strictFunctionTypes": true,
+    // "strictPropertyInitialization": true,
   },
   "exclude": [
     "node_modules",

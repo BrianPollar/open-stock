@@ -1,4 +1,4 @@
-import { Iaddress, Ibilling, IcreateOrder, IdeleteCredentialsPayRel, IfilterProps, Ipayment, IpaymentRelated, Isuccess, IupdatePay, TpaymentMethod } from '@open-stock/stock-universal';
+import { Iaddress, Ibilling, IcreateOrder, IdeleteMany, IfilterProps, Ipayment, IpaymentRelated, Isuccess, IupdatePay, TpaymentMethod } from '@open-stock/stock-universal';
 import { InvoiceRelatedWithReceipt } from './invoice.define';
 export declare class PaymentRelated extends InvoiceRelatedWithReceipt {
     paymentRelated: string;
@@ -14,6 +14,7 @@ export declare class PaymentRelated extends InvoiceRelatedWithReceipt {
     shipping: number;
     manuallyAdded: boolean;
     paymentMethod: TpaymentMethod;
+    orderDeliveryCode: string;
     constructor(data: Required<IpaymentRelated>);
 }
 export declare class Payment extends PaymentRelated {
@@ -28,8 +29,8 @@ export declare class Payment extends PaymentRelated {
         count: number;
         payments: Payment[];
     }>;
-    static getOne(_id: string): Promise<Payment>;
-    static removeMany(credentials: IdeleteCredentialsPayRel[]): Promise<Isuccess>;
+    static getOne(id: string): Promise<Payment>;
+    static removeMany(vals: IdeleteMany): Promise<Isuccess>;
     update(vals: IupdatePay): Promise<Isuccess>;
     remove(): Promise<Isuccess>;
 }

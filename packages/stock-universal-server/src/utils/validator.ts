@@ -3,7 +3,7 @@ import { NextFunction, Response } from 'express';
 import { validationResult } from 'express-validator';
 
 
-export const returnOnValidationErrors = (req: IcustomRequest<never, unknown>, res: Response, next: NextFunction) => {
+export const returnOnErrors = (req: IcustomRequest<never, unknown>, res: Response, next: NextFunction) => {
   const errors = validationResult(req);
 
   if (errors.isEmpty()) {

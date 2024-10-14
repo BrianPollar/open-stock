@@ -39,12 +39,12 @@ export declare const globalSchemaObj: {
     };
     expireDocAfter: {
         type: DateConstructor;
-        default: any;
+        default: null;
     };
 };
 export declare const withCompanySchemaObj: {
     companyId: {
-        type: StringConstructor;
+        type: Schema.Types.ObjectId;
         index: boolean;
     };
     trackEdit: {
@@ -62,7 +62,7 @@ export declare const withCompanySchemaObj: {
     };
     expireDocAfter: {
         type: DateConstructor;
-        default: any;
+        default: null;
     };
 };
 export declare const withUrIdAndCompanySchemaObj: {
@@ -72,7 +72,7 @@ export declare const withUrIdAndCompanySchemaObj: {
         index: boolean;
     };
     companyId: {
-        type: StringConstructor;
+        type: Schema.Types.ObjectId;
         index: boolean;
     };
     trackEdit: {
@@ -90,7 +90,7 @@ export declare const withUrIdAndCompanySchemaObj: {
     };
     expireDocAfter: {
         type: DateConstructor;
-        default: any;
+        default: null;
     };
 };
 export declare const withUrIdSchemaObj: {
@@ -114,7 +114,7 @@ export declare const withUrIdSchemaObj: {
     };
     expireDocAfter: {
         type: DateConstructor;
-        default: any;
+        default: null;
     };
 };
 export declare const globalSelectObj: {
@@ -155,7 +155,7 @@ export declare const withUrIdSelectObj: {
     };
     expireDocAfter: {
         type: DateConstructor;
-        default: any;
+        default: null;
     };
 };
 /**

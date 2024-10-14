@@ -19,6 +19,7 @@ export const generateCustomIdFromObjectId = (objectId, lastUrId) => {
     increment++;
     return last4 + '-' + increment;
 };
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const generateUrId = async (model, length = 10) => {
     const urId = nanoid(length);
     const found = await model.findOne({ urId }).sort({ urId: -1 });

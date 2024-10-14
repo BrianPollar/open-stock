@@ -7,7 +7,7 @@ import express, { NextFunction, Response } from 'express';
    * @param {NextFunction} next - The Express next function.
    * @returns {Promise<void>} - A promise that resolves when the middleware has finished.
    */
-export declare const addStaff: (req: IcustomRequest<never, IeditStaff>, res: Response, next: NextFunction) => Promise<void | express.Response<any, Record<string, any>>>;
+export declare const addStaff: (req: IcustomRequest<never, Partial<IeditStaff>>, res: Response, next: NextFunction) => Promise<void | express.Response<any, Record<string, any>>>;
 /**
    * Updates a staff member.
    * @param req - The Express request object.

@@ -20,7 +20,7 @@ export declare class ItemOffer extends DatabaseAuto {
         count: number;
         offers: ItemOffer[];
     }>;
-    static getOne(_id: string): Promise<ItemOffer>;
+    static getOne(urIdOr_id: string): Promise<ItemOffer>;
     static add(itemoffer: {
         items: string[] | Item[];
         expireAt: Date;

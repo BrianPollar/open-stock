@@ -1,35 +1,9 @@
 import { requireActiveCompany } from '@open-stock/stock-auth-server';
-import { addParentToLocals, generateUrId, makeCompanyBasedQuery, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr } from '@open-stock/stock-universal-server';
+import { addParentToLocals, generateUrId, handleMongooseErr, makeCompanyBasedQuery, offsetLimitRelegator, requireAuth, roleAuthorisation, verifyObjectId } from '@open-stock/stock-universal-server';
 import express from 'express';
-import * as fs from 'fs';
-import path from 'path';
-import * as tracer from 'tracer';
+import { Error } from 'mongoose';
 import { expenseLean } from '../../../models/expense.model';
 import { expenseReportLean, expenseReportMain } from '../../../models/printables/report/expenesreport.model';
-/** Logger for expense report routes */
-const expenseReportRoutesLogger = tracer.colorConsole({
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-        // eslint-disable-next-line no-console
-        console.log(data.output);
-        const logDir = path.join(process.cwd() + '/openstockLog/');
-        fs.mkdir(logDir, { recursive: true }, (err) => {
-            if (err) {
-                if (err) {
-                    // eslint-disable-next-line no-console
-                    console.log('data.output err ', err);
-                }
-            }
-        });
-        fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
-            if (err) {
-                // eslint-disable-next-line no-console
-                console.log('raw.output err ', err);
-            }
-        });
-    }
-});
 /**
  * Expense report routes.
  */
@@ -40,34 +14,22 @@ expenseReportRoutes.post('/add', requireAuth, requireActiveCompany, roleAuthoris
     expenseReport.companyId = filter.companyId;
     expenseReport.urId = await generateUrId(expenseReportMain);
     const newExpenseReport = new expenseReportMain(expenseReport);
-    let errResponse;
-    const saved = await newExpenseReport.save().catch(err => {
-        errResponse = {
-            success: false,
-            status: 403
-        };
-        if (err && err.errors) {
-            errResponse.err = stringifyMongooseErr(err.errors);
-        }
-        else {
-            errResponse.err = `we are having problems connecting to our databases, 
-      try again in a while`;
-        }
-        return err;
-    });
-    if (saved && saved._id) {
-        addParentToLocals(res, saved._id, expenseReportLean.collection.collectionName, 'makeTrackEdit');
+    const savedRes = await newExpenseReport.save().catch((err) => err);
+    if (savedRes instanceof Error) {
+        const errResponse = handleMongooseErr(savedRes);
+        return res.status(errResponse.status).send(errResponse);
     }
-    if (errResponse) {
-        return res.status(403).send(errResponse);
+    if (savedRes && savedRes._id) {
+        addParentToLocals(res, savedRes._id, expenseReportLean.collection.collectionName, 'makeTrackEdit');
     }
     return res.status(200).send({ success: true });
 });
-expenseReportRoutes.get('/one/:urId', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'read'), async (req, res) => {
-    const { urId } = req.params;
+expenseReportRoutes.get('/one/:urIdOr_id', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'read'), async (req, res) => {
+    const { urIdOr_id } = req.params;
     const { filter } = makeCompanyBasedQuery(req);
+    const filterwithId = verifyObjectId(urIdOr_id) ? { _id: urIdOr_id } : { urId: urIdOr_id };
     const expenseReport = await expenseReportLean
-        .findOne({ urId, ...filter })
+        .findOne({ ...filterwithId, ...filter })
         .lean()
         .populate({ path: 'expenses', model: expenseLean });
     if (!expenseReport) {
@@ -105,17 +67,16 @@ expenseReportRoutes.delete('/delete/one/:_id', requireAuth, requireActiveCompany
     const { _id } = req.params;
     const { filter } = makeCompanyBasedQuery(req);
     // const deleted = await expenseReportMain.findOneAndDelete({ _id, ...filter });
-    const deleted = await expenseReportMain.updateOne({ _id, ...filter }, { $set: { isDeleted: true } });
-    if (Boolean(deleted)) {
-        addParentToLocals(res, _id, expenseReportLean.collection.collectionName, 'trackDataDelete');
-        return res.status(200).send({ success: Boolean(deleted) });
+    const updateRes = await expenseReportMain.updateOne({ _id, ...filter }, { $set: { isDeleted: true } })
+        .catch((err) => err);
+    if (updateRes instanceof Error) {
+        const errResponse = handleMongooseErr(updateRes);
+        return res.status(errResponse.status).send(errResponse);
     }
-    else {
-        return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
-    }
+    addParentToLocals(res, _id, expenseReportLean.collection.collectionName, 'trackDataDelete');
+    return res.status(200).send({ success: true });
 });
 expenseReportRoutes.post('/filter', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'read'), async (req, res) => {
-    const { searchterm, searchKey } = req.body;
     const { filter } = makeCompanyBasedQuery(req);
     const { offset, limit } = offsetLimitRelegator(req.body.offset, req.body.limit);
     /* TODO const aggCursor = invoiceLean
@@ -133,12 +94,12 @@ expenseReportRoutes.post('/filter', requireAuth, requireActiveCompany, roleAutho
   */
     const all = await Promise.all([
         expenseReportLean
-            .find({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
+            .find({ ...filter })
             .lean()
             .skip(offset)
             .limit(limit)
             .populate({ path: 'expenses', model: expenseLean }),
-        expenseReportLean.countDocuments({ ...filter, [searchKey]: { $regex: searchterm, $options: 'i' } })
+        expenseReportLean.countDocuments({ ...filter })
     ]);
     const response = {
         count: all[1],
@@ -152,32 +113,18 @@ expenseReportRoutes.post('/filter', requireAuth, requireActiveCompany, roleAutho
 expenseReportRoutes.put('/delete/many', requireAuth, requireActiveCompany, roleAuthorisation('reports', 'delete'), async (req, res) => {
     const { _ids } = req.body;
     const { filter } = makeCompanyBasedQuery(req);
-    /* const deleted = await expenseReportMain
-    .deleteMany({ ...filter, _id: { $in: _ids } })
-    .catch(err => {
-      expenseReportRoutesLogger.error('deletemany - err: ', err);
-
-      return null;
-    }); */
-    const deleted = await expenseReportMain
+    const updateRes = await expenseReportMain
         .updateMany({ ...filter, _id: { $in: _ids } }, {
         $set: { isDeleted: true }
     })
-        .catch(err => {
-        expenseReportRoutesLogger.error('deletemany - err: ', err);
-        return null;
-    });
-    if (Boolean(deleted)) {
-        for (const val of _ids) {
-            addParentToLocals(res, val, expenseReportLean.collection.collectionName, 'trackDataDelete');
-        }
-        return res.status(200).send({ success: Boolean(deleted) });
+        .catch((err) => err);
+    if (updateRes instanceof Error) {
+        const errResponse = handleMongooseErr(updateRes);
+        return res.status(errResponse.status).send(errResponse);
     }
-    else {
-        return res.status(404).send({
-            success: Boolean(deleted),
-            err: 'could not delete selected items, try again in a while'
-        });
+    for (const val of _ids) {
+        addParentToLocals(res, val, expenseReportLean.collection.collectionName, 'trackDataDelete');
     }
+    return res.status(200).send({ success: true });
 });
 //# sourceMappingURL=expensereport.routes.js.map

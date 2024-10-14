@@ -1,22 +1,22 @@
 import { IcurrencyProp, ItrackStamp } from '@open-stock/stock-universal';
 import {
-  createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj
+  IcompanyIdAsObjectId,
+  connectDatabase,
+  createExpireDocIndex,
+  isDbConnected, mainConnection, mainConnectionLean,
+  preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj
 } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 
 /**
  * Represents a promotional code.
  */
 export interface Ipromocode
-extends Document, ItrackStamp, IcurrencyProp {
+extends Document, ItrackStamp, IcurrencyProp, IcompanyIdAsObjectId {
 
   /** The unique identifier of the user. */
   urId: string;
-
-  /** The user's company ID. */
-  companyId: string;
 
   /** The code of the promotional code. */
   code: string;
@@ -51,8 +51,12 @@ extends Document, ItrackStamp, IcurrencyProp {
 const promocodeSchema: Schema<Ipromocode> = new Schema({
   ...withUrIdAndCompanySchemaObj,
   code: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
-  items: [{ type: String, required: [true, 'cannot be empty.'] }],
-  amount: { type: Number, required: [true, 'cannot be empty.'] },
+  items: [{ type: Schema.Types.ObjectId, required: [true, 'cannot be empty.'] }],
+  amount: {
+    type: Number,
+    required: [true, 'cannot be empty.'],
+    min: [0, 'cannot be negative.']
+  },
   roomId: { type: String, required: [true, 'cannot be empty.'] },
   state: { type: String, default: 'virgin' },
   expireAt: { type: String },
@@ -114,8 +118,8 @@ export const promocodeSelect = promocodeselect;
  */
 export const createPromocodeModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
   createExpireDocIndex(promocodeSchema);
-  if (!isStockDbConnected) {
-    await connectStockDatabase(dbUrl, dbOptions);
+  if (!isDbConnected) {
+    await connectDatabase(dbUrl, dbOptions);
   }
 
   if (main) {

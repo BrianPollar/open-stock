@@ -5,35 +5,9 @@ const tslib_1 = require("tslib");
 const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
-const fs = tslib_1.__importStar(require("fs"));
-const path_1 = tslib_1.__importDefault(require("path"));
-const tracer = tslib_1.__importStar(require("tracer"));
+const mongoose_1 = require("mongoose");
 const invoicesettings_model_1 = require("../../../models/printables/settings/invoicesettings.model");
 const query_1 = require("../../../utils/query");
-/** Logger for invoice setting routes */
-const invoiceSettingRoutesLogger = tracer.colorConsole({
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-        // eslint-disable-next-line no-console
-        console.log(data.output);
-        const logDir = path_1.default.join(process.cwd() + '/openstockLog/');
-        fs.mkdir(logDir, { recursive: true }, (err) => {
-            if (err) {
-                if (err) {
-                    // eslint-disable-next-line no-console
-                    console.log('data.output err ', err);
-                }
-            }
-        });
-        fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
-            if (err) {
-                // eslint-disable-next-line no-console
-                console.log('raw.output err ', err);
-            }
-        });
-    }
-});
 /**
  * Router for invoice settings.
  */
@@ -59,29 +33,13 @@ exports.invoiceSettingRoutes.post('/add', stock_universal_server_1.requireAuth, 
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     invoiceSetting.companyId = filter.companyId;
     const newJobCard = new invoicesettings_model_1.invoiceSettingMain(invoiceSetting);
-    let errResponse;
-    const saved = await newJobCard.save()
-        .catch(err => {
-        invoiceSettingRoutesLogger.error('create - err: ', err);
-        errResponse = {
-            success: false,
-            status: 403
-        };
-        if (err && err.errors) {
-            errResponse.err = (0, stock_universal_server_1.stringifyMongooseErr)(err.errors);
-        }
-        else {
-            errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-        }
-        return err;
-    });
-    if (errResponse) {
-        return res.status(403).send(errResponse);
+    const savedRes = await newJobCard.save()
+        .catch((err) => err);
+    if (savedRes instanceof mongoose_1.Error) {
+        const errResponse = (0, stock_universal_server_1.handleMongooseErr)(savedRes);
+        return res.status(errResponse.status).send(errResponse);
     }
-    if (saved && saved._id) {
-        (0, stock_universal_server_1.addParentToLocals)(res, saved._id, invoicesettings_model_1.invoiceSettingLean.collection.collectionName, 'makeTrackEdit');
-    }
+    (0, stock_universal_server_1.addParentToLocals)(res, savedRes._id, invoicesettings_model_1.invoiceSettingLean.collection.collectionName, 'makeTrackEdit');
     return res.status(200).send({ success: true });
 });
 exports.invoiceSettingRoutes.post('/add/img', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('invoices', 'create'), stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.saveMetaToDb, async (req, res) => {
@@ -111,35 +69,19 @@ exports.invoiceSettingRoutes.post('/add/img', stock_universal_server_1.requireAu
         delete invoiceSetting.generalSettings.defaultDigitalStamp;
     }
     const newStn = new invoicesettings_model_1.invoiceSettingMain(invoiceSetting);
-    let errResponse;
-    const saved = await newStn.save()
-        .catch(err => {
-        invoiceSettingRoutesLogger.error('createimg - err: ', err);
-        errResponse = {
-            success: false,
-            status: 403
-        };
-        if (err && err.errors) {
-            errResponse.err = (0, stock_universal_server_1.stringifyMongooseErr)(err.errors);
-        }
-        else {
-            errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-        }
-        return err;
-    });
-    if (errResponse) {
-        return res.status(403).send(errResponse);
+    const savedRes = await newStn.save()
+        .catch((err) => err);
+    if (savedRes instanceof mongoose_1.Error) {
+        const errResponse = (0, stock_universal_server_1.handleMongooseErr)(savedRes);
+        return res.status(errResponse.status).send(errResponse);
     }
-    if (saved && saved._id) {
-        (0, stock_universal_server_1.addParentToLocals)(res, saved._id, invoicesettings_model_1.invoiceSettingLean.collection.collectionName, 'makeTrackEdit');
-    }
-    return res.status(200).send({ success: Boolean(saved) });
+    (0, stock_universal_server_1.addParentToLocals)(res, savedRes._id, invoicesettings_model_1.invoiceSettingLean.collection.collectionName, 'makeTrackEdit');
+    return res.status(200).send({ success: true });
 });
 exports.invoiceSettingRoutes.put('/update', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('invoices', 'update'), async (req, res) => {
     const updatedInvoiceSetting = req.body;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
-    invoiceSettingRoutesLogger.debug('updatedInvoiceSetting ', updatedInvoiceSetting);
+    stock_universal_server_1.mainLogger.debug('updatedInvoiceSetting ', updatedInvoiceSetting);
     updatedInvoiceSetting.companyId = filter.companyId;
     const { _id } = updatedInvoiceSetting;
     const invoiceSetting = await invoicesettings_model_1.invoiceSettingMain
@@ -162,34 +104,19 @@ exports.invoiceSettingRoutes.put('/update', stock_universal_server_1.requireAuth
     invoiceSetting.bankSettings = updatedInvoiceSetting.bankSettings || invoiceSetting.bankSettings;
     invoiceSetting.printDetails = updatedInvoiceSetting.printDetails || invoiceSetting.printDetails;
     invoiceSetting.isDeleted = updatedInvoiceSetting.isDeleted || invoiceSetting.isDeleted;
-    invoiceSettingRoutesLogger.debug('generalSettings', generalSettings);
-    let errResponse;
-    const updated = await invoicesettings_model_1.invoiceSettingMain.updateOne({ _id }, { $set: {
+    stock_universal_server_1.mainLogger.debug('generalSettings', generalSettings);
+    const updateRes = await invoicesettings_model_1.invoiceSettingMain.updateOne({ _id }, { $set: {
             generalSettings, taxSettings: invoiceSetting.taxSettings,
             bankSettings: invoiceSetting.bankSettings,
             printDetails: invoiceSetting.printDetails
         } })
-        .catch(err => {
-        invoiceSettingRoutesLogger.error('update - err: ', err);
-        errResponse = {
-            success: false,
-            status: 403
-        };
-        if (err && err.errors) {
-            errResponse.err = (0, stock_universal_server_1.stringifyMongooseErr)(err.errors);
-        }
-        else {
-            errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-        }
-        return errResponse;
-    });
-    invoiceSettingRoutesLogger.debug('updated ', updated);
-    if (errResponse) {
-        return res.status(403).send(errResponse);
+        .catch((err) => err);
+    if (updateRes instanceof mongoose_1.Error) {
+        const errResponse = (0, stock_universal_server_1.handleMongooseErr)(updateRes);
+        return res.status(errResponse.status).send(errResponse);
     }
     (0, stock_universal_server_1.addParentToLocals)(res, invoiceSetting._id, invoicesettings_model_1.invoiceSettingLean.collection.collectionName, 'makeTrackEdit');
-    return res.status(200).send({ success: Boolean(updated) });
+    return res.status(200).send({ success: true });
 });
 exports.invoiceSettingRoutes.post('/update/img', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.saveMetaToDb, async (req, res) => {
     const updatedInvoiceSetting = req.body.invoicesettings;
@@ -203,11 +130,14 @@ exports.invoiceSettingRoutes.post('/update/img', stock_universal_server_1.requir
           model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
         */
         .lean();
+    if (!found) {
+        return res.status(404).send({ success: false });
+    }
     const invoiceSetting = await invoicesettings_model_1.invoiceSettingMain
         .findOne({ _id, ...filter })
         .lean();
-    invoiceSettingRoutesLogger.debug('all new Files', req.body.newPhotos);
-    invoiceSettingRoutesLogger.info('found ', found);
+    stock_universal_server_1.mainLogger.debug('all new Files', req.body.newPhotos);
+    stock_universal_server_1.mainLogger.info('found ', found);
     if (!invoiceSetting) {
         return res.status(404).send({ success: false });
     }
@@ -215,8 +145,8 @@ exports.invoiceSettingRoutes.post('/update/img', stock_universal_server_1.requir
     if (!invoiceSetting.generalSettings) {
         invoiceSetting.generalSettings = {};
     }
-    invoiceSettingRoutesLogger.debug('updatedInvoiceSetting ', updatedInvoiceSetting);
-    invoiceSettingRoutesLogger.error('settings newPhotos', req.body.newPhotos);
+    stock_universal_server_1.mainLogger.debug('updatedInvoiceSetting ', updatedInvoiceSetting);
+    stock_universal_server_1.mainLogger.error('settings newPhotos', req.body.newPhotos);
     if (req.body.newPhotos) {
         if (updatedInvoiceSetting.generalSettings.defaultDigitalSignature === 'true' &&
             updatedInvoiceSetting.generalSettings.defaultDigitalStamp === 'true') {
@@ -253,51 +183,36 @@ exports.invoiceSettingRoutes.post('/update/img', stock_universal_server_1.requir
         generalSettings.defaultDueTime = updatedInvoiceSetting.generalSettings.defaultDueTime;
     }
     // add signature and stamp if are valid object _ids
-    invoiceSettingRoutesLogger.info('b4 verify updatedInvoiceSetting', updatedInvoiceSetting.generalSettings);
-    invoiceSettingRoutesLogger
+    stock_universal_server_1.mainLogger.info('b4 verify updatedInvoiceSetting', updatedInvoiceSetting.generalSettings);
+    stock_universal_server_1.mainLogger
         .info('ALLL IN verify', (0, stock_universal_server_1.verifyObjectId)(updatedInvoiceSetting.generalSettings.defaultDigitalSignature));
     if ((0, stock_universal_server_1.verifyObjectId)(updatedInvoiceSetting.generalSettings.defaultDigitalSignature)) {
-        invoiceSettingRoutesLogger
+        stock_universal_server_1.mainLogger
             .info('passed signature', updatedInvoiceSetting.generalSettings.defaultDigitalSignature);
         generalSettings.defaultDigitalSignature = updatedInvoiceSetting.generalSettings.defaultDigitalSignature;
     }
     if ((0, stock_universal_server_1.verifyObjectId)(updatedInvoiceSetting.generalSettings.defaultDigitalStamp)) {
-        invoiceSettingRoutesLogger.info('passed stamp ', updatedInvoiceSetting.generalSettings.defaultDigitalStamp);
+        stock_universal_server_1.mainLogger.info('passed stamp ', updatedInvoiceSetting.generalSettings.defaultDigitalStamp);
         generalSettings.defaultDigitalStamp = updatedInvoiceSetting.generalSettings.defaultDigitalStamp;
     }
     invoiceSetting.generalSettings = generalSettings;
     invoiceSetting.taxSettings = updatedInvoiceSetting.taxSettings || invoiceSetting.taxSettings;
     invoiceSetting.bankSettings = updatedInvoiceSetting.bankSettings || invoiceSetting.bankSettings;
     invoiceSetting.printDetails = updatedInvoiceSetting.printDetails || invoiceSetting.printDetails;
-    invoiceSettingRoutesLogger.debug('generalSettings b4 update', generalSettings);
-    invoiceSettingRoutesLogger.info('get the repeat ', invoiceSetting.generalSettings);
-    let errResponse;
-    const updated = await invoicesettings_model_1.invoiceSettingMain.updateOne({ _id }, { $set: {
+    stock_universal_server_1.mainLogger.debug('generalSettings b4 update', generalSettings);
+    stock_universal_server_1.mainLogger.info('get the repeat ', invoiceSetting.generalSettings);
+    const updateRes = await invoicesettings_model_1.invoiceSettingMain.updateOne({ _id }, { $set: {
             generalSettings, taxSettings: invoiceSetting.taxSettings,
             bankSettings: invoiceSetting.bankSettings,
             printDetails: invoiceSetting.printDetails
         } })
-        .catch(err => {
-        invoiceSettingRoutesLogger.error('updateimg - err: ', err);
-        errResponse = {
-            success: false,
-            status: 403
-        };
-        if (err && err.errors) {
-            errResponse.err = (0, stock_universal_server_1.stringifyMongooseErr)(err.errors);
-        }
-        else {
-            errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-        }
-        return errResponse;
-    });
-    if (errResponse) {
-        return res.status(403).send(errResponse);
+        .catch((err) => err);
+    if (updateRes instanceof mongoose_1.Error) {
+        const errResponse = (0, stock_universal_server_1.handleMongooseErr)(updateRes);
+        return res.status(errResponse.status).send(errResponse);
     }
     (0, stock_universal_server_1.addParentToLocals)(res, found._id, invoicesettings_model_1.invoiceSettingLean.collection.collectionName, 'makeTrackEdit');
-    invoiceSettingRoutesLogger.debug('updated', updated);
-    return res.status(200).send({ success: Boolean(updated) });
+    return res.status(200).send({ success: true });
 });
 exports.invoiceSettingRoutes.get('/one/:_id', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('invoices', 'read'), async (req, res) => {
     const { _id } = req.params;
@@ -337,17 +252,17 @@ exports.invoiceSettingRoutes.delete('/delete/one/:_id', stock_universal_server_1
     const { _id } = req.params;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     // const deleted = await invoiceSettingMain.findOneAndDelete({ _id, ...filter });
-    const deleted = await invoicesettings_model_1.invoiceSettingMain.updateOne({ _id, ...filter }, { $set: { isDeleted: true } });
-    if (Boolean(deleted)) {
-        (0, stock_universal_server_1.addParentToLocals)(res, _id, invoicesettings_model_1.invoiceSettingLean.collection.collectionName, 'trackDataDelete');
-        return res.status(200).send({ success: Boolean(deleted) });
+    const updateRes = await invoicesettings_model_1.invoiceSettingMain.updateOne({ _id, ...filter }, { $set: { isDeleted: true } })
+        .catch((err) => err);
+    if (updateRes instanceof mongoose_1.Error) {
+        const errResponse = (0, stock_universal_server_1.handleMongooseErr)(updateRes);
+        return res.status(errResponse.status).send(errResponse);
     }
-    else {
-        return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
-    }
+    (0, stock_universal_server_1.addParentToLocals)(res, _id, invoicesettings_model_1.invoiceSettingLean.collection.collectionName, 'trackDataDelete');
+    return res.status(200).send({ success: true });
 });
 exports.invoiceSettingRoutes.post('/filter', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('invoices', 'read'), async (req, res) => {
-    const { propSort } = req.body;
+    const { propSort, returnEmptyArr } = req.body;
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.body.offset, req.body.limit);
     const filter = (0, stock_universal_server_1.constructFiltersFromBody)(req);
     const aggCursor = invoicesettings_model_1.invoiceSettingLean.aggregate([
@@ -361,18 +276,7 @@ exports.invoiceSettingRoutes.post('/filter', stock_universal_server_1.requireAut
         },
         ...(0, stock_universal_server_1.lookupTrackEdit)(),
         ...(0, stock_universal_server_1.lookupTrackView)(),
-        {
-            $facet: {
-                data: [...(0, stock_universal_server_1.lookupSort)(propSort), ...(0, stock_universal_server_1.lookupOffset)(offset), ...(0, stock_universal_server_1.lookupLimit)(limit)],
-                total: [{ $count: 'count' }]
-            }
-        },
-        {
-            $unwind: {
-                path: '$total',
-                preserveNullAndEmptyArrays: true
-            }
-        }
+        ...(0, stock_universal_server_1.lookupFacet)(offset, limit, propSort, returnEmptyArr)
     ]);
     const dataArr = [];
     for await (const data of aggCursor) {
@@ -392,32 +296,18 @@ exports.invoiceSettingRoutes.post('/filter', stock_universal_server_1.requireAut
 exports.invoiceSettingRoutes.put('/delete/many', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('invoices', 'delete'), async (req, res) => {
     const { _ids } = req.body;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
-    /* const deleted = await invoiceSettingMain
-    .deleteMany({ ...filter, _id: { $in: _ids } })
-    .catch(err => {
-      invoiceSettingRoutesLogger.error('deletemany - err: ', err);
-
-      return null;
-    }); */
-    const deleted = await invoicesettings_model_1.invoiceSettingMain
+    const updateRes = await invoicesettings_model_1.invoiceSettingMain
         .updateMany({ ...filter, _id: { $in: _ids } }, {
         $set: { isDeleted: true }
-    })
-        .catch(err => {
-        invoiceSettingRoutesLogger.error('deletemany - err: ', err);
-        return null;
-    });
-    if (Boolean(deleted)) {
-        for (const val of _ids) {
-            (0, stock_universal_server_1.addParentToLocals)(res, val, invoicesettings_model_1.invoiceSettingLean.collection.collectionName, 'trackDataDelete');
-        }
-        return res.status(200).send({ success: Boolean(deleted) });
+    }).catch((err) => err);
+    if (updateRes instanceof mongoose_1.Error) {
+        const errResponse = (0, stock_universal_server_1.handleMongooseErr)(updateRes);
+        return res.status(errResponse.status).send(errResponse);
     }
-    else {
-        return res.status(404).send({
-            success: Boolean(deleted), err: 'could not delete selected items, try again in a while'
-        });
+    for (const val of _ids) {
+        (0, stock_universal_server_1.addParentToLocals)(res, val, invoicesettings_model_1.invoiceSettingLean.collection.collectionName, 'trackDataDelete');
     }
+    return res.status(200).send({ success: true });
 });
 exports.invoiceSettingRoutes.put('/delete/images', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('invoices', 'delete'), (0, stock_universal_server_1.deleteFiles)(true), async (req, res) => {
     const filesWithDir = req.body.filesWithDir;
@@ -440,29 +330,16 @@ exports.invoiceSettingRoutes.put('/delete/images', stock_universal_server_1.requ
     if (filesWithDirIds.includes(invoiceSetting.generalSettings.defaultDigitalStamp)) {
         delete invoiceSetting.generalSettings.defaultDigitalStamp;
     }
-    let errResponse;
-    await invoicesettings_model_1.invoiceSettingMain.updateOne({
+    const updateRes = await invoicesettings_model_1.invoiceSettingMain.updateOne({
         _id, ...filter
     }, {
         $set: {
             generalSettings: invoiceSetting.generalSettings
         }
-    }).catch(err => {
-        errResponse = {
-            success: false,
-            status: 403
-        };
-        if (err && err.errors) {
-            errResponse.err = (0, stock_universal_server_1.stringifyMongooseErr)(err.errors);
-        }
-        else {
-            errResponse.err = `we are having problems connecting to our databases, 
-      try again in a while`;
-        }
-        return errResponse;
-    });
-    if (errResponse) {
-        return res.status(403).send(errResponse);
+    }).catch((err) => err);
+    if (updateRes instanceof mongoose_1.Error) {
+        const errResponse = (0, stock_universal_server_1.handleMongooseErr)(updateRes);
+        return res.status(errResponse.status).send(errResponse);
     }
     (0, stock_universal_server_1.addParentToLocals)(res, invoiceSetting._id, invoicesettings_model_1.invoiceSettingLean.collection.collectionName, 'makeTrackEdit');
     return res.status(200).send({ success: true });

@@ -55,6 +55,9 @@ class InventoryController {
                 .find(val => val.name === stage);
             const foundCurrentStage = stagesNum
                 .find(val => val.name === currStage);
+            if (!foundEstStage || !foundCurrentStage) {
+                return false;
+            }
             return foundCurrentStage.pos <= foundEstStage.pos;
         }
     }

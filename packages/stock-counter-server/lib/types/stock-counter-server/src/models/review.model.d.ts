@@ -1,4 +1,5 @@
 /// <reference types="mongoose/types/document" />
+/// <reference types="mongoose/types/schematypes" />
 /// <reference types="mongoose/types/models" />
 /// <reference types="mongoose/types/aggregate" />
 /// <reference types="mongoose/types/callback" />
@@ -15,7 +16,6 @@
 /// <reference types="mongoose/types/populate" />
 /// <reference types="mongoose/types/query" />
 /// <reference types="mongoose/types/schemaoptions" />
-/// <reference types="mongoose/types/schematypes" />
 /// <reference types="mongoose/types/session" />
 /// <reference types="mongoose/types/types" />
 /// <reference types="mongoose/types/utility" />
@@ -23,13 +23,16 @@
 /// <reference types="mongoose/types/virtuals" />
 /// <reference types="mongoose/types/inferschematype" />
 import { IreviewMain } from '@open-stock/stock-universal';
-import { ConnectOptions, Document, Model } from 'mongoose';
+import { IcompanyIdAsObjectId } from '@open-stock/stock-universal-server';
+import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 /**
  * Represents a review document with additional properties from IreviewMain.
  * @typeparam TDocument - The type of the document.
  * @typeparam TMain - The type of the main review.
  */
-export type Treview = Document & IreviewMain;
+export type Treview = Document & Omit<IreviewMain, 'companyId' | 'itemId'> & IcompanyIdAsObjectId & {
+    itemId: Schema.Types.ObjectId;
+};
 /**
  * Represents the main review model.
  */

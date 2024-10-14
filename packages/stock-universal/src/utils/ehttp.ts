@@ -4,7 +4,7 @@ import { Observable, map, retry } from 'rxjs';
 // This file imports the `Axios` module.
 import Axios from 'axios-observable';
 // This file imports the `LoggerController` class from the `logger.controller` file.
-import { LoggerController } from './logger';
+import { LoggerController } from './front-logger';
 
 // This interface defines the properties of a file.
 

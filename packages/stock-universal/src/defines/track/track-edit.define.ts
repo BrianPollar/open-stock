@@ -1,7 +1,7 @@
 import { lastValueFrom } from 'rxjs';
-import { ItrackEdit, Iuser, IuserActionTrack } from '../../interfaces/general.interface';
-import { IdataArrayResponse, Isuccess } from '../../interfaces/return.interface';
 import { StockUniversal } from '../../stock-universal';
+import { ItrackEdit, Iuser, IuserActionTrack } from '../../types/general-types';
+import { IdataArrayResponse, Isuccess } from '../../types/return-types';
 import { DatabaseAuto } from '../base/base.define';
 import { IparentData } from './track-view.define';
 

@@ -23,8 +23,9 @@
 /// <reference types="mongoose/types/virtuals" />
 /// <reference types="mongoose/types/inferschematype" />
 import { IcompanySubscription } from '@open-stock/stock-universal';
+import { IcompanyIdAsObjectId } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model } from 'mongoose';
-export type TcompanySubscription = Document & IcompanySubscription;
+export type TcompanySubscription = Document & Omit<IcompanySubscription, 'companyId'> & IcompanyIdAsObjectId;
 /**
  * Represents the main company subscription model.
  */

@@ -2,53 +2,48 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import { companyMain } from '@open-stock/stock-auth-server';
 import { createNotifications, makeNotfnBody } from '@open-stock/stock-notif-server';
-import { stringifyMongooseErr, verifyObjectId } from '@open-stock/stock-universal-server';
-import * as fs from 'fs';
-import path from 'path';
-import * as tracer from 'tracer';
+import { handleMongooseErr, mainLogger, verifyObjectId } from '@open-stock/stock-universal-server';
+import { Error } from 'mongoose';
 import { orderMain } from '../models/order.model';
 import { paymentMain } from '../models/payment.model';
 import { invoiceMain } from '../models/printables/invoice.model';
 import { paymentRelatedMain } from '../models/printables/paymentrelated/paymentrelated.model';
 import { receiptMain } from '../models/printables/receipt.model';
 import { invoiceRelatedMain } from '../models/printables/related/invoicerelated.model';
+import { userWalletLean, userWalletMain } from '../models/printables/wallet/user-wallet.model';
 import { promocodeLean, promocodeMain } from '../models/promocode.model';
 import { makePaymentInstall, relegatePaymentRelatedCreation } from '../routes/paymentrelated/paymentrelated';
 import { saveInvoice } from '../routes/printables/invoice.routes';
 import { pesapalPaymentInstance } from '../stock-counter-server';
-/** Logger for the payment controller */
-const paymentControllerLogger = tracer.colorConsole({
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-        // eslint-disable-next-line no-console
-        console.log(data.output);
-        const logDir = path.join(process.cwd() + '/openstockLog/');
-        fs.mkdir(logDir, { recursive: true }, (err) => {
-            if (err) {
-                if (err) {
-                    // eslint-disable-next-line no-console
-                    console.log('data.output err ', err);
-                }
-            }
-        });
-        fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
-            if (err) {
-                // eslint-disable-next-line no-console
-                console.log('raw.output err ', err);
-            }
-        });
-    }
-});
 export const payOnDelivery = (res, paymentRelated, invoiceRelated, order, payment, userId, companyId) => {
     order.status = 'pending';
     return appendAll(res, paymentRelated, invoiceRelated, order, payment, userId, companyId, false);
 };
+export const payWithWallet = async (res, paymentRelated, invoiceRelated, order, payment, userId, companyId) => {
+    const userWallet = await userWalletLean.findOne({ user: userId }).lean();
+    if (!userWallet) {
+        return { success: false, status: 403, err: 'Insufficient Balance' };
+    }
+    if (userWallet.accountBalance < invoiceRelated.total) {
+        return { success: false, status: 403, err: 'Insufficient Balance' };
+    }
+    order.status = 'paid';
+    const updateRes = await userWalletMain
+        .updateOne({ user: userId }, { $inc: { accountBalance: -invoiceRelated.total } })
+        .catch((err) => err);
+    if (updateRes instanceof Error) {
+        return { success: false, status: 500, err: 'Could not update user wallet' };
+    }
+    if (updateRes.modifiedCount === 0) {
+        return { success: false, status: 500, err: 'Could not update user wallet' };
+    }
+    return appendAll(res, paymentRelated, invoiceRelated, order, payment, userId, companyId, true);
+};
 const appendAll = async (res, paymentRelated, invoiceRelated, order, payment, userId, companyId, paid = true) => {
-    paymentControllerLogger.debug('appendAll - userId:', userId);
+    mainLogger.debug('appendAll - userId:', userId);
     const saved = await addOrder(res, paymentRelated, invoiceRelated, order, userId, companyId);
-    paymentControllerLogger.error('appendAll - saved:', saved);
-    if (saved.success) {
+    mainLogger.error('appendAll - saved:', saved);
+    if (saved.success && saved.orderId) {
         payment.order = saved.orderId;
         payment.paymentRelated = saved.paymentRelated;
         payment.invoiceRelated = saved.invoiceRelated;
@@ -68,11 +63,11 @@ const appendAll = async (res, paymentRelated, invoiceRelated, order, payment, us
     }
 };
 const addOrder = async (res, paymentRelated, invoiceRelated, order, userId, companyId) => {
-    paymentControllerLogger.info('addOrder');
+    mainLogger.info('addOrder');
     const extraNotifDesc = 'New Order';
     paymentRelated.orderStatus = 'pending';
     const paymentRelatedId = await relegatePaymentRelatedCreation(res, paymentRelated, invoiceRelated, 'order', extraNotifDesc, companyId);
-    paymentControllerLogger.error('addOrder - paymentRelatedId', paymentRelatedId);
+    mainLogger.error('addOrder - paymentRelatedId', paymentRelatedId);
     if (!paymentRelatedId.success) {
         return { success: false, status: 403, paymentRelated: paymentRelatedId._id };
     }
@@ -85,35 +80,19 @@ const addOrder = async (res, paymentRelated, invoiceRelated, order, userId, comp
     invoiceRelated.payments.length = 0;
     invoiceRelated.payments = [];
     const invoiceRelatedId = await saveInvoice(res, invoice, invoiceRelated, companyId);
-    paymentControllerLogger.error('invoiceRelatedId', invoiceRelatedId);
+    mainLogger.error('invoiceRelatedId', invoiceRelatedId);
     if (!invoiceRelatedId.success) {
         return { success: false, status: 403, invoiceRelated: invoiceRelatedId._id };
     }
     order.invoiceRelated = invoiceRelatedId._id;
-    if (payments && payments.length) {
+    if (payments && payments.length && invoiceRelatedId._id) {
         await makePaymentInstall(res, payments[0], invoiceRelatedId._id, companyId, 'solo');
     }
-    let errResponse;
     const newOrder = new orderMain(order);
-    const withId = await newOrder.save().catch(err => {
-        errResponse = {
-            success: false,
-            status: 403
-        };
-        if (err && err.errors) {
-            errResponse.err = stringifyMongooseErr(err.errors);
-        }
-        else {
-            errResponse.err = `we are having problems connecting to our databases, 
-      try again in a while`;
-        }
+    const savedRes = await newOrder.save().catch((err) => err);
+    if (savedRes instanceof Error) {
+        const errResponse = handleMongooseErr(savedRes);
         return errResponse;
-    });
-    if (errResponse) {
-        return {
-            status: 403,
-            ...errResponse
-        };
     }
     const title = 'New Order';
     const notifnBody = 'Request for item made';
@@ -122,11 +101,11 @@ const addOrder = async (res, paymentRelated, invoiceRelated, order, userId, comp
             action: 'view',
             title: 'See Order',
             operation: '',
-            url: `order/${withId._id}`
+            url: `order/${savedRes._id}`
         }
     ];
     const body = {
-        notification: makeNotfnBody(userId, title, notifnBody, 'orders', actions, withId._id),
+        notification: makeNotfnBody(userId, title, notifnBody, 'orders', actions, savedRes._id),
         filters: {
             orders: true
         }
@@ -136,7 +115,7 @@ const addOrder = async (res, paymentRelated, invoiceRelated, order, userId, comp
     return {
         success: true,
         status: 200,
-        orderId: withId._id,
+        orderId: savedRes._id,
         paymentRelated: (order).paymentRelated,
         invoiceRelated: invoiceRelatedId._id
     };
@@ -148,28 +127,12 @@ const addOrder = async (res, paymentRelated, invoiceRelated, order, userId, comp
  * @param paid - Whether the payment has been made
  */
 const addPayment = async (payment, userId, paid = false) => {
-    paymentControllerLogger.info('addPayment');
-    let errResponse;
+    mainLogger.info('addPayment');
     const newProd = new paymentMain(payment);
-    const withId = await newProd.save().catch(err => {
-        errResponse = {
-            success: false,
-            status: 403
-        };
-        if (err && err.errors) {
-            errResponse.err = stringifyMongooseErr(err.errors);
-        }
-        else {
-            errResponse.err = `we are having problems connecting to our databases, 
-      try again in a while`;
-        }
+    const savedRes = await newProd.save().catch((err) => err);
+    if (savedRes instanceof Error) {
+        const errResponse = handleMongooseErr(savedRes);
         return errResponse;
-    });
-    if (errResponse) {
-        return {
-            status: 403,
-            ...errResponse
-        };
     }
     if (paid) {
         const title = 'New Payment';
@@ -179,11 +142,11 @@ const addPayment = async (payment, userId, paid = false) => {
                 action: 'view',
                 title: 'See Payment',
                 operation: '',
-                url: `payment/${withId._id}`
+                url: `payment/${savedRes._id}`
             }
         ];
         const body = {
-            notification: makeNotfnBody(userId, title, notifnBody, 'payments', actions, withId._id),
+            notification: makeNotfnBody(userId, title, notifnBody, 'payments', actions, savedRes._id),
             filters: {
                 orders: true
             }
@@ -210,7 +173,7 @@ const addPayment = async (payment, userId, paid = false) => {
 export const paymentMethodDelegator = async (res, paymentRelated, invoiceRelated, type, order, payment, userId, companyId, burgain, payType = 'nonSubscription') => {
     paymentRelated.payType = payType;
     invoiceRelated.payType = payType;
-    paymentControllerLogger.debug('paymentMethodDelegator: type - ', type);
+    mainLogger.debug('paymentMethodDelegator: type - ', type);
     if (burgain.state) {
         const bgainCode = await promocodeLean
             .findOne({
@@ -219,31 +182,14 @@ export const paymentMethodDelegator = async (res, paymentRelated, invoiceRelated
             items: order.items
         }).lean();
         if (bgainCode) {
-            let errResponse;
-            await promocodeMain.updateOne({
+            const updateRes = await promocodeMain.updateOne({
                 code: burgain.code,
                 state: 'virgin',
                 items: order.items
-            }, { $set: { state: 'inOperation' } }).catch(err => {
-                errResponse = {
-                    success: false,
-                    status: 403
-                };
-                if (err && err.errors) {
-                    errResponse.err = stringifyMongooseErr(err.errors);
-                }
-                else {
-                    errResponse.err = `we are having problems connecting to our databases, 
-          try again in a while`;
-                }
+            }, { $set: { state: 'inOperation' } }).catch((err) => err);
+            if (updateRes instanceof Error) {
+                const errResponse = handleMongooseErr(updateRes);
                 return errResponse;
-            });
-            if (errResponse) {
-                return {
-                    success: false,
-                    status: 403,
-                    errmsg: errResponse.err
-                };
             }
             invoiceRelated.payments[0].amount = bgainCode.amount;
             invoiceRelated.payments[0].amount = bgainCode.amount;
@@ -259,11 +205,15 @@ export const paymentMethodDelegator = async (res, paymentRelated, invoiceRelated
             response = await relegatePesapalPayment(res, paymentRelated, invoiceRelated, type, order, payment, userId, companyId);
             break;
         }
+        case 'wallet': {
+            response = await payWithWallet(res, paymentRelated, invoiceRelated, order, payment, userId, companyId);
+            break;
+        }
         default:
             response = await payOnDelivery(res, paymentRelated, invoiceRelated, order, payment, userId, companyId);
             break;
     }
-    paymentControllerLogger.debug('paymentMethodDelegator - response', response);
+    mainLogger.debug('paymentMethodDelegator - response', response);
     if (burgain.state) {
         const bgainCode = await promocodeLean
             .findOne({
@@ -285,22 +235,13 @@ export const paymentMethodDelegator = async (res, paymentRelated, invoiceRelated
                 items: order.items
             }, {
                 $set: { state }
-            }).catch(err => {
-                if (err && err.errors) {
-                    response.err = stringifyMongooseErr(err.errors);
-                }
-                else {
-                    response.err = `we are having problems connecting to our databases, 
-          try again in a while`;
-                }
-                return response;
-            });
+            }).catch((err) => err);
         }
     }
     return response;
 };
 export const relegatePesapalPayment = async (res, paymentRelated, invoiceRelated, type, order, payment, userId, companyId) => {
-    paymentControllerLogger.debug('relegatePesapalPayment', paymentRelated);
+    mainLogger.debug('relegatePesapalPayment', paymentRelated);
     const isValidCompanyId = verifyObjectId(paymentRelated.companyId);
     if (isValidCompanyId) {
         const company = await companyMain.findById(paymentRelated.companyId);
@@ -309,6 +250,9 @@ export const relegatePesapalPayment = async (res, paymentRelated, invoiceRelated
         }
     }
     const appended = await appendAll(res, paymentRelated, invoiceRelated, order, payment, userId, companyId);
+    if (!appended.paymentRelated) {
+        return { success: false, status: 403, errmsg: 'could not complete transaction' };
+    }
     const payDetails = {
         id: appended.paymentRelated.toString(),
         currency: paymentRelated.currency || 'UGX',
@@ -333,9 +277,9 @@ export const relegatePesapalPayment = async (res, paymentRelated, invoiceRelated
             zip_code: paymentRelated.shippingAddress.zipcode.toString()
         }
     };
-    paymentControllerLogger.debug('b4 pesapalPaymentInstance.submitOrder', appended.paymentRelated.toString());
+    mainLogger.debug('b4 pesapalPaymentInstance.submitOrder', appended.paymentRelated.toString());
     const response = await pesapalPaymentInstance.submitOrder(payDetails, appended.paymentRelated.toString(), 'Complete product payment');
-    if (!response.success) {
+    if (!response.success || !response.pesaPalOrderRes?.order_tracking_id) {
         const deteils = {
             paymentRelated: appended.paymentRelated,
             invoiceRelated: appended.invoiceRelated,
@@ -344,35 +288,19 @@ export const relegatePesapalPayment = async (res, paymentRelated, invoiceRelated
         await deleteCreatedDocsOnFailure(deteils);
         return response;
     }
-    paymentControllerLogger.debug('pesapalPaymentInstance.submitOrder', response);
+    mainLogger.debug('pesapalPaymentInstance.submitOrder', response);
     const isValid = verifyObjectId(appended.paymentRelated.toString());
     if (!isValid) {
         return { success: false, status: 401, pesapalOrderRes: null, paymentRelated: null };
     }
     const related = await paymentRelatedMain.findById(appended.paymentRelated.toString());
-    paymentControllerLogger.info('after paymentRelatedMain.findById');
+    mainLogger.info('after paymentRelatedMain.findById');
     if (related) {
         related.pesaPalorderTrackingId = response.pesaPalOrderRes.order_tracking_id;
-        let errResponse;
-        await related.save().catch(err => {
-            errResponse = {
-                success: false,
-                status: 403
-            };
-            if (err && err.errors) {
-                errResponse.err = stringifyMongooseErr(err.errors);
-            }
-            else {
-                errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-            }
+        const saveRes = await related.save().catch((err) => err);
+        if (saveRes instanceof Error) {
+            const errResponse = handleMongooseErr(saveRes);
             return errResponse;
-        });
-        if (errResponse) {
-            return {
-                status: 403,
-                ...errResponse
-            };
         }
     }
     return {

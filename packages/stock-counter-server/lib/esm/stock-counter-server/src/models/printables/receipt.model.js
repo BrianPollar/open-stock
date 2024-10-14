@@ -1,14 +1,19 @@
-import { createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
+import { connectDatabase, createExpireDocIndex, isDbConnected, mainConnection, mainConnectionLean, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
 import { Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 const receiptSchema = new Schema({
     ...withUrIdAndCompanySchemaObj,
-    invoiceRelated: { type: String },
-    ammountRcievd: { type: Number },
+    invoiceRelated: { type: Schema.Types.ObjectId },
+    ammountRcievd: {
+        type: Number,
+        min: [0, 'cannot be less than 0.']
+    },
     paymentMode: { type: String },
     type: { type: String },
-    amount: { type: Number },
+    amount: {
+        type: Number,
+        min: [0, 'cannot be less than 0.']
+    },
     date: { type: Date }
 }, { timestamps: true, collection: 'receipts' });
 receiptSchema.pre('updateOne', function (next) {
@@ -52,8 +57,8 @@ export const receiptSelect = receiptselect;
  */
 export const createReceiptModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     createExpireDocIndex(receiptSchema);
-    if (!isStockDbConnected) {
-        await connectStockDatabase(dbUrl, dbOptions);
+    if (!isDbConnected) {
+        await connectDatabase(dbUrl, dbOptions);
     }
     if (main) {
         receiptMain = mainConnection

@@ -11,10 +11,11 @@ class Order extends payment_define_1.PaymentRelated {
         this.paymentMethod = data.paymentMethod;
         this.deliveryDate = data.deliveryDate;
         this.status = data.status;
+        this.orderStatus = data.orderStatus;
     }
-    static async removeMany(credentials) {
+    static async removeMany(vals) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makePut('/order/delete/many', { credentials });
+            .makePut('/order/delete/many', vals);
         const deleted = await (0, rxjs_1.lastValueFrom)(observer$);
         return deleted;
     }
@@ -36,9 +37,9 @@ class Order extends payment_define_1.PaymentRelated {
             orders: orders.data.map(val => new Order(val))
         };
     }
-    static async getOne(_id) {
+    static async getOne(id) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makeGet(`/order/one/${_id}`);
+            .makeGet(`/order/one/${id}`);
         const order = await (0, rxjs_1.lastValueFrom)(observer$);
         return new Order(order);
     }
@@ -59,7 +60,12 @@ class Order extends payment_define_1.PaymentRelated {
     }
     updateDeliveryStatus(status) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makePut(`/appendDelivery/${this._id}/${status}`, {});
+            .makePut(`/order/appendDelivery/${this._id}/${status}`, {});
+        return (0, rxjs_1.lastValueFrom)(observer$);
+    }
+    remove() {
+        const observer$ = stock_counter_client_1.StockCounterClient.ehttp
+            .makeDelete(`/order/delete/one/${this._id}`);
         return (0, rxjs_1.lastValueFrom)(observer$);
     }
 }

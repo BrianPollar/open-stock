@@ -1,6 +1,8 @@
 import {
   IcreateOrder,
-  IdataArrayResponse, IdeleteCredentialsPayRel, IfilterProps, ImakeOrder,
+  IdataArrayResponse,
+  IdeleteMany, IfilterProps,
+  ImakeOrder,
   Iorder, Isuccess,
   IupdateOrder,
   TorderStatus
@@ -12,6 +14,7 @@ import { PaymentRelated } from './payment.define';
 export class Order extends PaymentRelated {
   price: number;
   deliveryDate: Date;
+  orderStatus: TorderStatus;
 
   constructor(data: Required<Iorder>) {
     super(data);
@@ -19,11 +22,12 @@ export class Order extends PaymentRelated {
     this.paymentMethod = data.paymentMethod;
     this.deliveryDate = data.deliveryDate;
     this.status = data.status ;
+    this.orderStatus = data.orderStatus;
   }
 
-  static async removeMany(credentials: IdeleteCredentialsPayRel[]) {
+  static async removeMany(vals: IdeleteMany) {
     const observer$ = StockCounterClient.ehttp
-      .makePut<Isuccess>('/order/delete/many', { credentials });
+      .makePut<Isuccess>('/order/delete/many', vals);
     const deleted = await lastValueFrom(observer$);
 
     return deleted;
@@ -49,9 +53,9 @@ export class Order extends PaymentRelated {
       orders: orders.data.map(val => new Order(val)) };
   }
 
-  static async getOne(_id: string) {
+  static async getOne(id: string) {
     const observer$ = StockCounterClient.ehttp
-      .makeGet<Required<Iorder>>(`/order/one/${_id}`);
+      .makeGet<Required<Iorder>>(`/order/one/${id}`);
     const order = await lastValueFrom(observer$);
 
     return new Order(order);
@@ -80,7 +84,14 @@ export class Order extends PaymentRelated {
 
   updateDeliveryStatus(status: TorderStatus) {
     const observer$ = StockCounterClient.ehttp
-      .makePut<Isuccess>(`/appendDelivery/${this._id}/${status}`, {});
+      .makePut<Isuccess>(`/order/appendDelivery/${this._id}/${status}`, {});
+
+    return lastValueFrom(observer$);
+  }
+
+  remove() {
+    const observer$ = StockCounterClient.ehttp
+      .makeDelete<Isuccess>(`/order/delete/one/${this._id}`);
 
     return lastValueFrom(observer$);
   }

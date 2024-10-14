@@ -5,6 +5,7 @@ export interface IpayResponse extends Isuccess {
     pesaPalorderTrackingId?: string;
 }
 export declare const payOnDelivery: (res: any, paymentRelated: Required<IpaymentRelated>, invoiceRelated: Required<IinvoiceRelated>, order: Iorder, payment: Ipayment, userId: string, companyId: string) => Promise<Isuccess>;
+export declare const payWithWallet: (res: any, paymentRelated: Required<IpaymentRelated>, invoiceRelated: Required<IinvoiceRelated>, order: Iorder, payment: Ipayment, userId: string, companyId: string) => Promise<Isuccess>;
 /**
    * Handles payments based on the payment method.
    * @param res - The response object.
@@ -26,11 +27,28 @@ export declare const paymentMethodDelegator: (res: any, paymentRelated: Required
     status?: number;
     errmsg?: string;
 }>;
-export declare const relegatePesapalPayment: (res: any, paymentRelated: Required<IpaymentRelated>, invoiceRelated: Required<IinvoiceRelated>, type: string, order: Iorder, payment: Ipayment, userId: string, companyId: string) => Promise<import("pesapal3").IsubmitOrderRes | {
+export declare const relegatePesapalPayment: (res: any, paymentRelated: Required<IpaymentRelated>, invoiceRelated: Required<IinvoiceRelated>, type: string, order: Iorder, payment: Ipayment, userId: string, companyId: string) => Promise<{
+    success: boolean;
+    status: number;
+    err: string;
+} | import("pesapal3").IsubmitOrderRes | {
+    success: boolean;
+    status: number;
+    errmsg: string;
+    pesapalOrderRes?: undefined;
+    paymentRelated?: undefined;
+} | {
+    success: boolean;
+    status: number;
+    pesapalOrderRes: null;
+    paymentRelated: null;
+    errmsg?: undefined;
+} | {
     success: boolean;
     status: number;
     pesapalOrderRes: import("pesapal3").IorderResponse;
     paymentRelated: string;
+    errmsg?: undefined;
 }>;
 /**
    * Tracks the status of a payment.
@@ -42,5 +60,5 @@ export declare const trackOrder: (refereceId: string) => Promise<{
     orderStatus?: undefined;
 } | {
     success: boolean;
-    orderStatus: import("@open-stock/stock-universal").TorderStatus;
+    orderStatus: import("@open-stock/stock-universal").TorderStatus | undefined;
 }>;

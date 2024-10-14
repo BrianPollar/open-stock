@@ -2,8 +2,6 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 // ID// 659298550876-3b56rhd1tusthh4a92v7ehteo0phiic0.apps.googleusercontent.com
 // SECRET // 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
-import * as fs from 'fs';
-import * as tracer from 'tracer';
 // import { nodemailer } from 'nodemailer';
 // const nodemailer = require('nodemailer');
 import { sendMail } from '@open-stock/stock-notif-server';
@@ -11,47 +9,21 @@ import {
   Iauthresponse,
   IauthresponseObj,
   Iauthtoken,
+  Icompany,
   IcompanyPerm,
-  Isuccess,
   Iuser,
   Iuserperm,
   makeRandomString
 } from '@open-stock/stock-universal';
 import {
-  fileMetaLean, stockUniversalConfig, stringifyMongooseErr, verifyObjectId
+  fileMetaLean, handleMongooseErr, mainLogger, stockUniversalConfig, verifyObjectId
 } from '@open-stock/stock-universal-server';
 import * as jwt from 'jsonwebtoken';
-import { Document } from 'mongoose';
-import path from 'path';
+import { Document, Error } from 'mongoose';
 import { companyLean } from '../models/company.model';
 import { emailtoken } from '../models/emailtoken.model';
 import { companySubscriptionLean } from '../models/subscriptions/company-subscription.model';
 import { userLean } from '../models/user.model';
-
-const universialControllerLogger = tracer.colorConsole({
-  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-  dateformat: 'HH:MM:ss.L',
-  transport(data) {
-    // eslint-disable-next-line no-console
-    console.log(data.output);
-    const logDir = path.join(process.cwd() + '/openstockLog/');
-
-    fs.mkdir(logDir, { recursive: true }, (err) => {
-      if (err) {
-        if (err) {
-          // eslint-disable-next-line no-console
-          console.log('data.output err ', err);
-        }
-      }
-    });
-    fs.appendFile(logDir + '/auth-server.log', data.rawoutput + '\n', err => {
-      if (err) {
-        // eslint-disable-next-line no-console
-        console.log('raw.output err ', err);
-      }
-    });
-  }
-});
 
 /**
  * Generates a JWT token with the provided authentication configuration, expiry date, and JWT secret.
@@ -91,7 +63,7 @@ export const setUserInfo = (
     companyPermissions
   };
 
-  universialControllerLogger.info('setUserInfo - details: ', details);
+  mainLogger.info('setUserInfo - details: ', details);
 
   return details;
 };
@@ -115,7 +87,7 @@ export const makeUserReturnObject = async(foundUser): Promise<Iauthresponse> => 
     company.profilePic = (company.owner as any).photos[0];
   } */
 
-  universialControllerLogger.debug('found company: ', company);
+  mainLogger.debug('found company: ', company);
   let permissions: Iuserperm;
 
   if (company && company.owner === foundUser._id.toString()) {
@@ -150,12 +122,12 @@ export const makeUserReturnObject = async(foundUser): Promise<Iauthresponse> => 
     activeSubscription = subsctn;
   }
 
-  universialControllerLogger.debug('found foundUser: ', foundUser);
+  mainLogger.debug('found foundUser: ', foundUser);
 
   return {
     success: true,
     user: foundUser,
-    company,
+    company: company as Icompany,
     token,
     activeSubscription
   };
@@ -187,7 +159,7 @@ export const validatePhone = (
   return new Promise(resolve => {
     const postVerify = async function(err) {
       if (err) {
-        universialControllerLogger.error('postVerify - err: ', err);
+        mainLogger.error('postVerify - err: ', err);
         resolve({
           status: 401,
           response: {
@@ -220,8 +192,8 @@ export const validatePhone = (
           status: 200,
           response: responseObj
         });
-      }).catch(err => {
-        universialControllerLogger.error('save error', err);
+      }).catch((err: Error) => {
+        mainLogger.error('save error', err);
         resolve({
           status: 500,
           response: {
@@ -249,7 +221,7 @@ export const validatePhone = (
           response.err = `we are having problems connecting to our databases,
           try again in a while`;
         }
-        universialControllerLogger.error('postSave err: ', err);
+        mainLogger.error('postSave err: ', err);
         resolve({
           status: 403,
           response
@@ -280,7 +252,7 @@ export const validatePhone = (
 					message. Our bad - try to login.`;
         }
         if (err1) {
-          universialControllerLogger.debug('sendMessage - err1: ', err1);
+          mainLogger.debug('sendMessage - err1: ', err1);
           resolve({
             status: 200,
             response: {
@@ -320,7 +292,7 @@ export const validateEmail = async(
   verifycode: string,
   newPassword: string
 ): Promise<IauthresponseObj> => {
-  universialControllerLogger.info('validateEmail - %type: ', verificationMean);
+  mainLogger.info('validateEmail - %type: ', verificationMean);
   let msg: string;
 
   if (!foundUser) {
@@ -372,36 +344,25 @@ export const validateEmail = async(
     foundUser.password = newPassword;
   }
   msg = 'You are signed up successfully';
-  let status = 200;
-  const errResponse: Isuccess = {
-    success: false
-  };
+  const savedRes = await foundUser.save().catch((err: Error) => err);
 
-  await foundUser.save().catch(err => {
-    status = 403;
-    if (err && err.errors) {
-      errResponse.err = stringifyMongooseErr(err.errors);
-    } else {
-      errResponse.err = `we are having problems connecting to our databases, 
-      try again in a while`;
-    }
-  });
+  if (savedRes instanceof Error) {
+    const errResponse = handleMongooseErr(savedRes);
 
-  if (status === 403) {
     return {
-      status,
+      status: errResponse.status,
       response: errResponse
     };
-  } else {
-    const responseObj = await makeUserReturnObject(foundUser);
-
-    responseObj.msg = msg;
-
-    return {
-      status,
-      response: responseObj
-    };
   }
+
+  const responseObj = await makeUserReturnObject(foundUser);
+
+  responseObj.msg = msg;
+
+  return {
+    status: 200,
+    response: responseObj
+  };
 };
 
 /**
@@ -415,13 +376,13 @@ export const sendTokenPhone = (
 
   enableValidationSms = '1' // twilio enable sms validation
 ): Promise<Iauthresponse> => new Promise(resolve => {
-  universialControllerLogger.info('sendTokenPhone');
+  mainLogger.info('sendTokenPhone');
   let response: Iauthresponse;
 
   if (enableValidationSms === '1') {
     foundUser.sendAuthyToken(function(err) {
       if (err) {
-        universialControllerLogger.error('sendTokenPhone - err: ', err);
+        mainLogger.error('sendTokenPhone - err: ', err);
         response = {
           status: 403,
           success: false,
@@ -462,7 +423,7 @@ export const sendTokenEmail = (
   appOfficialName: string
   // link?: string
 ): Promise<Iauthresponse> => new Promise(resolve => {
-  universialControllerLogger.info('sendTokenEmail');
+  mainLogger.info('sendTokenEmail');
   let response: Iauthresponse = {
     success: false
   };
@@ -668,7 +629,7 @@ height: 100%;
     }
 
     sendMail(mailOptions).then(res => {
-      universialControllerLogger.info('message sent', res);
+      mainLogger.info('message sent', res);
       response = {
         status: 200,
         _id: foundUser._id,
@@ -680,7 +641,7 @@ height: 100%;
 
       return;
     }).catch(error => {
-      universialControllerLogger.error(
+      mainLogger.error(
         'email verication with token error',
         JSON.stringify(error)
       );
@@ -693,19 +654,12 @@ height: 100%;
 
       return;
     });
-  }).catch((err) => {
-    universialControllerLogger.error(`sendTokenEmail
-          token.save error, ${err}`);
-    const errResponse: Isuccess = {
-      success: false
-    };
+  }).catch((err: Error) => {
+    const errResponse = handleMongooseErr(err);
 
-    if (err && err.errors) {
-      errResponse.err = stringifyMongooseErr(err.errors);
-    } else {
-      errResponse.err = `we are having problems connecting to our databases, 
-            try again in a while`;
-    }
+    mainLogger.error(`sendTokenEmail
+          token.save error, ${err}`);
+
     resolve({
       status: 403,
       success: false,

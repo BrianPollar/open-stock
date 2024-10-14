@@ -1,7 +1,8 @@
 import {
   Iaddress, Ibilling,
   IcreateOrder,
-  IdataArrayResponse, IdeleteCredentialsPayRel,
+  IdataArrayResponse,
+  IdeleteMany,
   IfilterProps, Ipayment, IpaymentRelated, Isuccess,
   IupdatePay,
   TpaymentMethod
@@ -25,6 +26,7 @@ export class PaymentRelated
   shipping: number;
   manuallyAdded: boolean;
   paymentMethod: TpaymentMethod;
+  orderDeliveryCode: string;
 
   constructor(data: Required<IpaymentRelated>) {
     super(data);
@@ -43,6 +45,7 @@ export class PaymentRelated
     this.manuallyAdded = data.manuallyAdded;
     this.status = data.status;
     this.paymentMethod = data.paymentMethod;
+    this.orderDeliveryCode = data.orderDeliveryCode;
   }
 }
 
@@ -87,17 +90,17 @@ export class Payment extends PaymentRelated {
     };
   }
 
-  static async getOne(_id: string) {
+  static async getOne(id: string) {
     const observer$ = StockCounterClient.ehttp
-      .makeGet<Required<Ipayment>>(`/payment/one/${_id}`);
+      .makeGet<Required<Ipayment>>(`/payment/one/${id}`);
     const payment = await lastValueFrom(observer$);
 
     return new Payment(payment);
   }
 
-  static removeMany(credentials: IdeleteCredentialsPayRel[]) {
+  static removeMany(vals: IdeleteMany) {
     const observer$ = StockCounterClient.ehttp
-      .makePut<Isuccess>('/payment/delete/many', { credentials });
+      .makePut<Isuccess>('/payment/delete/many', vals);
 
     return lastValueFrom(observer$);
   }

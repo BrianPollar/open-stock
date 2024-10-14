@@ -1,12 +1,17 @@
-import { createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
+import { connectDatabase, createExpireDocIndex, isDbConnected, mainConnection, mainConnectionLean, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
 import { Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 const faqanswerSchema = new Schema({
     ...withUrIdAndCompanySchemaObj,
-    faq: { type: String, required: [true, 'cannot be empty.'], index: true },
-    userId: { type: String, required: [true, 'cannot be empty.'] },
-    ans: { type: String, required: [true, 'cannot be empty.'], index: true }
+    faq: { type: Schema.Types.ObjectId, required: [true, 'cannot be empty.'], index: true },
+    userId: { type: Schema.Types.ObjectId, required: [true, 'cannot be empty.'] },
+    ans: {
+        type: String,
+        required: [true, 'cannot be empty.'],
+        index: true,
+        minlength: [10, 'cannot be less than 10.'],
+        maxlength: [3000, 'cannot be more than 3000.']
+    }
 }, { timestamps: true, collection: 'faqanswers' });
 faqanswerSchema.pre('updateOne', function (next) {
     return preUpdateDocExpire(this, next);
@@ -46,8 +51,8 @@ export const faqanswerSelect = faqanswerselect;
  */
 export const createFaqanswerModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     createExpireDocIndex(faqanswerSchema);
-    if (!isStockDbConnected) {
-        await connectStockDatabase(dbUrl, dbOptions);
+    if (!isDbConnected) {
+        await connectDatabase(dbUrl, dbOptions);
     }
     if (main) {
         faqanswerMain = mainConnection

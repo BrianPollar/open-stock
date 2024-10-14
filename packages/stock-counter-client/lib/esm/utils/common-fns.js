@@ -48,9 +48,6 @@ export const transformFaqToNameOrImage = (faq, type) => {
 export const transformEstimateId = (id) => {
     const logger = new LoggerController();
     logger.debug('EstimateIdPipe:transform:: - id: ', id);
-    if (!id) {
-        return;
-    }
     const len = id.toString().length;
     const start = '#EST-';
     switch (len) {
@@ -62,6 +59,8 @@ export const transformEstimateId = (id) => {
             return start + '00' + id;
         case 1:
             return start + '000' + id;
+        default:
+            return start + '0000' + id;
     }
 };
 /**
@@ -72,9 +71,6 @@ export const transformEstimateId = (id) => {
 export const transformInvoice = (id) => {
     const logger = new LoggerController();
     logger.debug('InvoiceIdPipe:transform:: - id: ', id);
-    if (!id) {
-        return;
-    }
     const len = id.toString().length;
     const start = '#INV-';
     switch (len) {
@@ -86,6 +82,8 @@ export const transformInvoice = (id) => {
             return start + '00' + id;
         case 1:
             return start + '000' + id;
+        default:
+            return start + '0000' + id;
     }
 };
 /**
@@ -113,6 +111,14 @@ export const transformUrId = (id, where) => {
             return start + id;
     }
 };
+export const makeDatabaseAutoAndUrId = (data) => {
+    return {
+        _id: data._id,
+        createdAt: data.createdAt,
+        updatedAt: data.updatedAt,
+        urId: data.urId
+    };
+};
 /**
  * Creates a payment-related object based on the provided data.
  * @param data - The data object containing order or payment information.
@@ -120,6 +126,7 @@ export const transformUrId = (id, where) => {
  */
 export const makePaymentRelated = (data) => {
     return {
+        urId: data.urId,
         paymentRelated: data.paymentRelated,
         // creationType: data.creationType,
         orderDate: data.orderDate,
@@ -127,7 +134,7 @@ export const makePaymentRelated = (data) => {
         billingAddress: data.billingAddress,
         shippingAddress: data.shippingAddress,
         // tax: data.tax,
-        currency: data.currency,
+        // currency: data.currency,
         isBurgain: data.isBurgain,
         shipping: data.shipping,
         manuallyAdded: data.manuallyAdded,
@@ -163,7 +170,8 @@ export const makeInvoiceRelated = (data) => {
         balanceDue: data.balanceDue,
         subTotal: data.subTotal,
         total: data.total,
-        currency: data.currency
+        currency: data.currency,
+        ...makeDatabaseAutoAndUrId(data)
     };
     return (data instanceof Receipt) ? related : { ...related, payments: data.payments };
 };
@@ -175,16 +183,11 @@ export const makeInvoiceRelated = (data) => {
  * @returns A promise that resolves to an object indicating the success of the operation.
  */
 export const likeFn = (currentUser, item) => {
-    const logger = new LoggerController();
     if (!currentUser) {
         return { success: false };
     }
     return item
-        .like(currentUser._id)
-        .catch(err => {
-        logger.debug(':like:: - err ', err);
-        return { success: false };
-    });
+        .like(currentUser._id);
 };
 /**
  * Unlike the item for the current user.
@@ -194,16 +197,11 @@ export const likeFn = (currentUser, item) => {
  * @returns A promise that resolves to an object indicating the success of the unlike operation.
  */
 export const unLikeFn = (currentUser, item) => {
-    const logger = new LoggerController();
     if (!currentUser) {
         return { success: false };
     }
     return item
-        .unLike(currentUser._id)
-        .catch(err => {
-        logger.debug(':unLike:: - err ', err);
-        return { success: false };
-    });
+        .unLike(currentUser._id);
 };
 /**
  * Determines whether the given item is liked by the current user.
@@ -213,7 +211,7 @@ export const unLikeFn = (currentUser, item) => {
  * @returns A boolean value indicating whether the item is liked by the current user.
  */
 export const determineLikedFn = (item, currentUser) => {
-    if (currentUser &&
+    if (currentUser && item.likes &&
         item.likes.includes(currentUser._id)) {
         return true;
     }
@@ -275,7 +273,6 @@ export const toggleSelectionFn = (id, selections) => {
  * @returns A promise that resolves to an object indicating the success of the deletion.
  */
 export const deleteManyInvoicesFn = (invoices, selections) => {
-    const logger = new LoggerController();
     const val = {
         _ids: invoices
             .filter(val => selections.includes(val._id))
@@ -284,11 +281,7 @@ export const deleteManyInvoicesFn = (invoices, selections) => {
         })
     };
     return Invoice
-        .removeMany(val)
-        .catch(err => {
-        logger.error('InvoicesListComponent:deleteMany:: - err ', err);
-        return { success: false };
-    });
+        .removeMany(val);
 };
 /**
  * Opens or closes a box based on the provided value.

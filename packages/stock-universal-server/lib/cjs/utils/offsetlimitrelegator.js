@@ -26,6 +26,7 @@ const offsetLimitRelegator = (offset, limit) => {
         // If the offset is 0, then set it to 0.
         offset: (!numOffset || numOffset === 0) ? 0 : numOffset,
         // If the limit is 0, then set it to 10000.
+        // TODO this will cause an error if the limit is greater than 10000 find an option
         limit: (!numLimit || numLimit === 0) ? 10000 : numLimit
     };
 };

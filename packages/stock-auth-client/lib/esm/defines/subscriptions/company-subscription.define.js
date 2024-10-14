@@ -22,6 +22,16 @@ export class CompanySubscription extends DatabaseAuto {
                 .map((val) => new CompanySubscription(val))
         };
     }
+    static async filterAll(filterProps) {
+        const observer$ = StockAuthClient.ehttp
+            .makePost('/companysubscription/filter', filterProps);
+        const companysubscriptions = await lastValueFrom(observer$);
+        return {
+            count: companysubscriptions.count,
+            companysubscriptions: companysubscriptions.data
+                .map((val) => new CompanySubscription(val))
+        };
+    }
     static subscribe(subscriptionPackage) {
         // eslint-disable-next-line @typescript-eslint/naming-convention
         const observer$ = StockAuthClient.ehttp.makePost('/companysubscription/subscribe', subscriptionPackage);

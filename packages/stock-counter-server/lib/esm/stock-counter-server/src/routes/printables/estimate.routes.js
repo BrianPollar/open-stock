@@ -1,37 +1,11 @@
 import { populateTrackEdit, populateTrackView, requireActiveCompany, requireCanUseFeature, requireUpdateSubscriptionRecord } from '@open-stock/stock-auth-server';
-import { addParentToLocals, constructFiltersFromBody, generateUrId, lookupSubFieldInvoiceRelatedFilter, makeCompanyBasedQuery, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr } from '@open-stock/stock-universal-server';
+import { addParentToLocals, constructFiltersFromBody, generateUrId, handleMongooseErr, lookupSubFieldInvoiceRelatedFilter, makeCompanyBasedQuery, offsetLimitRelegator, requireAuth, roleAuthorisation, verifyObjectId } from '@open-stock/stock-universal-server';
 import express from 'express';
-import * as fs from 'fs';
-import path from 'path';
-import * as tracer from 'tracer';
+import { Error } from 'mongoose';
 import { estimateLean, estimateMain } from '../../models/printables/estimate.model';
 import { invoiceRelatedMain } from '../../models/printables/related/invoicerelated.model';
 import { populateInvoiceRelated } from '../../utils/query';
 import { deleteAllLinked, makeInvoiceRelatedPdct, relegateInvRelatedCreation } from './related/invoicerelated';
-/** Logger for estimate routes */
-const estimateRoutesogger = tracer.colorConsole({
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-        // eslint-disable-next-line no-console
-        console.log(data.output);
-        const logDir = path.join(process.cwd() + '/openstockLog/');
-        fs.mkdir(logDir, { recursive: true }, (err) => {
-            if (err) {
-                if (err) {
-                    // eslint-disable-next-line no-console
-                    console.log('data.output err ', err);
-                }
-            }
-        });
-        fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
-            if (err) {
-                // eslint-disable-next-line no-console
-                console.log('raw.output err ', err);
-            }
-        });
-    }
-});
 /**
  * Generates a new estimate ID by finding the highest existing estimate ID and incrementing it by 1.
  * @returns The new estimate ID.
@@ -55,20 +29,16 @@ export const updateEstimateUniv = async (res, estimateId, stage, companyId) => {
     if (!estimate) {
         return false;
     }
-    let savedErr;
-    await estimateMain.updateOne({
+    const updateRes = await estimateMain.updateOne({
         estimateId, companyId
     }, {
         $set: {
             stage
             // invoiceId: invoiceId || (estimate as IinvoiceRelated).invoiceId // TODO
         }
-    }).catch(err => {
-        estimateRoutesogger.error('save error', err);
-        savedErr = err;
-        return null;
-    });
-    if (savedErr) {
+    }).catch((err) => err);
+    if (updateRes instanceof Error) {
+        handleMongooseErr(updateRes);
         return false;
     }
     addParentToLocals(res, estimate._id, estimateLean.collection.collectionName, 'makeTrackEdit');
@@ -86,46 +56,31 @@ estimateRoutes.post('/add', requireAuth, requireActiveCompany, requireCanUseFeat
     const extraNotifDesc = 'Newly created estimate';
     const invoiceRelatedRes = await relegateInvRelatedCreation(res, invoiceRelated, filter.companyId, extraNotifDesc);
     if (!invoiceRelatedRes.success) {
-        return res.status(invoiceRelatedRes.status).send(invoiceRelatedRes);
+        return res.status(invoiceRelatedRes.status || 403).send(invoiceRelatedRes);
     }
     estimate.invoiceRelated = invoiceRelatedRes._id;
     const newEstimate = new estimateMain(estimate);
-    let errResponse;
     /**
    * Saves a new estimate and returns a response object.
    * @param {Estimate} newEstimate - The new estimate to be saved.
    * @returns {Promise<{success: boolean, status: number, err?: string}>} - A promise that
    * resolves to an object with success, status, and err properties.
    */
-    const saved = await newEstimate.save()
-        .catch(err => {
-        estimateRoutesogger.error('create - err: ', err);
-        errResponse = {
-            success: false,
-            status: 403
-        };
-        if (err && err.errors) {
-            errResponse.err = stringifyMongooseErr(err.errors);
-        }
-        else {
-            errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-        }
-        return err;
-    });
-    if (errResponse) {
-        return res.status(403).send(errResponse);
+    const savedRes = await newEstimate.save()
+        .catch((err) => err);
+    if (savedRes instanceof Error) {
+        const errResponse = handleMongooseErr(savedRes);
+        return res.status(errResponse.status).send(errResponse);
     }
-    if (saved && saved._id) {
-        addParentToLocals(res, saved._id, estimateLean.collection.collectionName, 'makeTrackEdit');
-    }
+    addParentToLocals(res, savedRes._id, estimateLean.collection.collectionName, 'makeTrackEdit');
     return next();
 }, requireUpdateSubscriptionRecord('quotation'));
-estimateRoutes.get('/one/:urId', requireAuth, requireActiveCompany, roleAuthorisation('estimates', 'read'), async (req, res) => {
-    const { urId } = req.params;
+estimateRoutes.get('/one/:urIdOr_id', requireAuth, requireActiveCompany, roleAuthorisation('estimates', 'read'), async (req, res) => {
+    const { urIdOr_id } = req.params;
     const { filter } = makeCompanyBasedQuery(req);
+    const filterwithId = verifyObjectId(urIdOr_id) ? { _id: urIdOr_id } : { urId: urIdOr_id };
     const estimate = await estimateLean
-        .findOne({ urId, ...filter })
+        .findOne({ ...filterwithId, ...filter })
         .lean()
         .populate([populateInvoiceRelated(), populateTrackEdit(), populateTrackView()]);
     if (!estimate || !estimate.invoiceRelated) {
@@ -152,7 +107,9 @@ estimateRoutes.get('/all/:offset/:limit', requireAuth, requireActiveCompany, rol
     ]);
     const returned = all[0]
         .filter(val => val && val.invoiceRelated)
-        .map(val => makeInvoiceRelatedPdct(val.invoiceRelated, val.invoiceRelated?.billingUserId, null, {
+        .map(val => makeInvoiceRelatedPdct(val.invoiceRelated, val.invoiceRelated?.billingUserId, 
+    // eslint-disable-next-line no-undefined
+    undefined, {
         _id: val._id
     }));
     const response = {
@@ -171,21 +128,20 @@ estimateRoutes.put('/delete/one', requireAuth, requireActiveCompany, roleAuthori
     if (!found) {
         return res.status(404).send({ success: false, err: 'not found' });
     }
-    const deleted = await deleteAllLinked(found.invoiceRelated, 'estimate', filter.companyId);
-    if (Boolean(deleted)) {
-        addParentToLocals(res, _id, estimateLean.collection.collectionName, 'trackDataDelete');
-        return res.status(200).send({ success: Boolean(deleted) });
+    const updateRes = await deleteAllLinked(found.invoiceRelated, 'estimate', filter.companyId);
+    if (updateRes instanceof Error) {
+        const errResponse = handleMongooseErr(updateRes);
+        return res.status(errResponse.status).send(errResponse);
     }
-    else {
-        return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
-    }
+    addParentToLocals(res, _id, estimateLean.collection.collectionName, 'trackDataDelete');
+    return res.status(200).send({ success: true });
 });
 estimateRoutes.post('/filter', requireAuth, requireActiveCompany, roleAuthorisation('estimates', 'read'), async (req, res) => {
-    const { propSort } = req.body;
+    const { propSort, returnEmptyArr } = req.body;
     const { offset, limit } = offsetLimitRelegator(req.body.offset, req.body.limit);
     const aggCursor = estimateLean
         .aggregate([
-        ...lookupSubFieldInvoiceRelatedFilter(constructFiltersFromBody(req), propSort, offset, limit)
+        ...lookupSubFieldInvoiceRelatedFilter(constructFiltersFromBody(req), offset, limit, propSort, returnEmptyArr)
     ]);
     const dataArr = [];
     for await (const data of aggCursor) {
@@ -214,10 +170,10 @@ estimateRoutes.put('/delete/many', requireAuth, requireActiveCompany, roleAuthor
         if (found) {
             await deleteAllLinked(found.invoiceRelated, 'estimate', filter.companyId);
         }
-        return new Promise(resolve => resolve(found._id));
+        return new Promise(resolve => resolve(found?._id));
     });
     const filterdExist = await Promise.all(promises);
-    for (const val of filterdExist) {
+    for (const val of filterdExist.filter(value => value)) {
         addParentToLocals(res, val, estimateLean.collection.collectionName, 'trackDataDelete');
     }
     return res.status(200).send({ success: true });

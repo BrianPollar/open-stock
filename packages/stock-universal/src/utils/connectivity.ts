@@ -1,6 +1,6 @@
 import { Observable, Subject, fromEvent, merge, of } from 'rxjs';
 import { map, takeUntil } from 'rxjs/operators';
-import { LoggerController } from './logger';
+import { LoggerController } from './front-logger';
 import { WindowController } from './window';
 
 /**

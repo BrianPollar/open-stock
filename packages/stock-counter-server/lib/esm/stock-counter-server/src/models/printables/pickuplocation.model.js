@@ -1,11 +1,21 @@
-import { createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
+import { connectDatabase, createExpireDocIndex, isDbConnected, mainConnection, mainConnectionLean, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
 import { Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 const pickupLocationSchema = new Schema({
     ...withUrIdAndCompanySchemaObj,
-    name: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
-    contact: {}
+    name: {
+        type: String,
+        unique: true,
+        required: [true, 'cannot be empty.'],
+        index: true,
+        minlength: [3, 'cannot be less than 3.'],
+        maxlength: [150, 'cannot be more than 150.']
+    },
+    contact: {
+        name: { type: String },
+        phone: { type: String },
+        email: { type: String }
+    }
 }, { timestamps: true, collection: 'pickuplocations' });
 pickupLocationSchema.pre('updateOne', function (next) {
     return preUpdateDocExpire(this, next);
@@ -43,8 +53,8 @@ export const pickupLocationSelect = pickupLocationselect;
  */
 export const createPickupLocationModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     createExpireDocIndex(pickupLocationSchema);
-    if (!isStockDbConnected) {
-        await connectStockDatabase(dbUrl, dbOptions);
+    if (!isDbConnected) {
+        await connectDatabase(dbUrl, dbOptions);
     }
     if (main) {
         pickupLocationMain = mainConnection

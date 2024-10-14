@@ -7,7 +7,7 @@ export abstract class UserBase
   startDate: Date;
   endDate: Date;
   occupation: string;
-  readonly currency: string;
+  readonly currency?: string;
 
   constructor(data: {
     user: string | Iuser;

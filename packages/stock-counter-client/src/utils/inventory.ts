@@ -64,6 +64,10 @@ export class InventoryController {
       const foundCurrentStage = stagesNum
         .find(val => val.name === currStage);
 
+      if (!foundEstStage || !foundCurrentStage) {
+        return false;
+      }
+
       return foundCurrentStage.pos <= foundEstStage.pos;
     }
   }
@@ -173,7 +177,7 @@ export class InventoryController {
     return related
       .reduce((acc, val) => acc + val.items
         // eslint-disable-next-line max-len
-        .reduce((acc1, val1) => acc1 + (val.payments?.reduce((acc3, val3) => (this.getCompanyPercentageFromEcommerceSale(val3.amount, val.ecommerceSalePercentage) + acc3), 0) - this.findItem(val1.item, allItems)?.costMeta.costPrice || 0), 0), 0);
+        .reduce((acc1, val1) => acc1 + (val.payments?.reduce((acc3, val3) => (this.getCompanyPercentageFromEcommerceSale(val3.amount, val.ecommerceSalePercentage) + acc3), 0) - (this.findItem(val1.item, allItems) as Item)?.costMeta.costPrice || 0), 0), 0);
   }
 
   /**

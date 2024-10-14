@@ -1,34 +1,7 @@
 import { IenvironmentConfig } from '@open-stock/stock-universal';
-import * as fs from 'fs';
 import { access, mkdir } from 'fs-extra';
-import path from 'path';
-import * as tracer from 'tracer';
+import { mainLogger } from '../utils/back-logger';
 
-// This function creates a fileMangerLogger named `FileManger`.
-const fileMangerLogger = tracer.colorConsole({
-  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-  dateformat: 'HH:MM:ss.L',
-  transport(data) {
-    // eslint-disable-next-line no-console
-    console.log(data.output);
-    const logDir = path.join(process.cwd() + '/openstockLog/');
-
-    fs.mkdir(logDir, { recursive: true }, (err) => {
-      if (err) {
-        if (err) {
-          // eslint-disable-next-line no-console
-          console.log('data.output err ', err);
-        }
-      }
-    });
-    fs.appendFile(logDir + '/universal-server.log', data.rawoutput + '\n', err => {
-      if (err) {
-        // eslint-disable-next-line no-console
-        console.log('raw.output err ', err);
-      }
-    });
-  }
-});
 
 /**
  * Creates directories for an application.
@@ -90,7 +63,7 @@ export const checkDirectoryExists = (absolutepath: string, dir: string, casel?):
     }
 
     // Log the directory path.
-    fileMangerLogger.debug(
+    mainLogger.debug(
       'FileManager',
       `"checkDirectoryExists", ${myDir}`
     );
@@ -102,7 +75,7 @@ export const checkDirectoryExists = (absolutepath: string, dir: string, casel?):
         mkdir(myDir, function(mkdirErr) {
           // If there is an error creating the directory, then log it.
           if (mkdirErr) {
-            fileMangerLogger.error(
+            mainLogger.error(
               'FileManager',
               `"checkDirectoryExists 
                 fse.mkdir error", ${mkdirErr}`
@@ -114,7 +87,7 @@ export const checkDirectoryExists = (absolutepath: string, dir: string, casel?):
         });
       } else if (err) {
         // If there is an error accessing the directory, then log it.
-        fileMangerLogger.error(
+        mainLogger.error(
           'FileManager',
           `"checkDirectoryExists 
             fse.access error", ${err}`

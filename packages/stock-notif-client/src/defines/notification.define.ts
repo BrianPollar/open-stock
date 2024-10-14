@@ -13,7 +13,7 @@ import { StockNotifClient } from '../stock-notif-client';
 export class NotificationMain {
   /** The ID of the notification. */
 
-  _id: string;
+  _id?: string;
 
   /** An array of actions associated with the notification. */
   actions: Iactionwithall[];
@@ -31,16 +31,16 @@ export class NotificationMain {
   icon: string;
 
   /** The type of the notification. */
-  notifType: TnotifType;
+  notifType?: TnotifType;
 
   /** The ID of the invoker of the notification. */
-  notifInvokerId: string;
+  notifInvokerId?: string;
 
   /** The expiration date of the notification. */
-  expireAt: string;
+  expireAt?: string;
 
   /** The creation date of the notification. */
-  createdAt: string;
+  createdAt?: string;
 
   /**
    * Creates a new instance of NotificationMain.
@@ -106,7 +106,7 @@ export class NotificationMain {
 
    * @returns A promise that resolves to the number of unviewed notifications.
    */
-  static getUnviewedLength(companyId: string) {
+  static getUnviewedLength() {
     const observer$ = StockNotifClient.ehttp.makeGet<number>('/notifn/unviewedlength');
 
     return lastValueFrom(observer$);
@@ -117,10 +117,10 @@ export class NotificationMain {
 
    * @returns A promise that resolves to the success status of the operation.
    */
-  static clearAll(companyId: string) {
+  static clearAll() {
     const observer$ = StockNotifClient.ehttp.makePost<Isuccess>('/notifn/clearall', {});
 
-    return lastValueFrom(observer$) ;
+    return lastValueFrom(observer$);
   }
 
   /**
@@ -128,7 +128,7 @@ export class NotificationMain {
 
    * @returns A promise that resolves to the success status of the operation.
    */
-  async updateViewed(companyId: string) {
+  async updateViewed() {
     const observer$ = StockNotifClient.ehttp.makePost<Isuccess>('/notifn/updateviewed', { id: this._id });
     const response = await lastValueFrom(observer$);
 
@@ -184,7 +184,7 @@ export class NotifSetting {
 
    * @returns A promise that resolves to an array of NotifSetting instances.
    */
-  static async getNotificationsSetting(companyId: string) {
+  static async getNotificationsSetting() {
     const observer$ = StockNotifClient.ehttp.makeGet<InotifSetting[]>('/notifn/getstn');
     const stn = await lastValueFrom(observer$);
 

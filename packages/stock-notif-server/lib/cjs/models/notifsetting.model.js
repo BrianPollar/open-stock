@@ -5,11 +5,11 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createNotifStnModel = exports.notifSettingSelect = exports.notifSettingLean = exports.notifSettingMain = void 0;
+const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const mongoose_1 = require("mongoose");
-const database_1 = require("../utils/database");
 /** Schema definition for notification settings */
 const notifSettingSchema = new mongoose_1.Schema({
-    companyId: { type: String },
+    companyId: { type: mongoose_1.Schema.Types.ObjectId },
     invoices: { type: Boolean, default: true },
     payments: { type: Boolean, default: true },
     orders: { type: Boolean, default: true },
@@ -37,15 +37,15 @@ exports.notifSettingSelect = notifSettingselect;
  * @param {boolean} [lean=true] - Whether to create the lean connection.
  */
 const createNotifStnModel = async (dbUrl, dbOptions, main = true, lean = true) => {
-    if (!database_1.isNotifDbConnected) {
-        await (0, database_1.connectNotifDatabase)(dbUrl, dbOptions);
+    if (!stock_universal_server_1.isDbConnected) {
+        await (0, stock_universal_server_1.connectDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.notifSettingMain = database_1.mainConnection
+        exports.notifSettingMain = stock_universal_server_1.mainConnection
             .model('NotifSetting', notifSettingSchema);
     }
     if (lean) {
-        exports.notifSettingLean = database_1.mainConnectionLean
+        exports.notifSettingLean = stock_universal_server_1.mainConnectionLean
             .model('NotifSetting', notifSettingSchema);
     }
 };

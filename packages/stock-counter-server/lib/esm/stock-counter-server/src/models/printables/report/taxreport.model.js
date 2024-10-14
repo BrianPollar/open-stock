@@ -1,13 +1,15 @@
-import { createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
+import { connectDatabase, createExpireDocIndex, isDbConnected, mainConnection, mainConnectionLean, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
 import { Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 const taxReportSchema = new Schema({
     ...withUrIdAndCompanySchemaObj,
-    totalAmount: { type: Number },
+    totalAmount: {
+        type: Number,
+        min: [0, 'cannot be less than 0.']
+    },
     date: { type: Date },
-    estimates: [],
-    invoiceRelateds: [],
+    estimates: [Schema.Types.ObjectId],
+    invoiceRelateds: [Schema.Types.ObjectId],
     currency: { type: String, default: 'USD' }
 }, { timestamps: true, collection: 'taxreports' });
 // Apply the uniqueValidator plugin to taxReportSchema.
@@ -50,8 +52,8 @@ export const taxReportSelect = taxReportselect;
  */
 export const createTaxReportModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     createExpireDocIndex(taxReportSchema);
-    if (!isStockDbConnected) {
-        await connectStockDatabase(dbUrl, dbOptions);
+    if (!isDbConnected) {
+        await connectDatabase(dbUrl, dbOptions);
     }
     if (main) {
         taxReportMain = mainConnection

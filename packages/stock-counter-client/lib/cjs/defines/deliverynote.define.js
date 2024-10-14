@@ -30,9 +30,9 @@ class DeliveryNote extends invoice_define_1.InvoiceRelatedWithReceipt {
                 .map((val) => new DeliveryNote(val))
         };
     }
-    static async getOne(urId) {
+    static async getOne(urIdOr_id) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makeGet(`/deliverynote/one/${urId}`);
+            .makeGet(`/deliverynote/one/${urIdOr_id}`);
         const deliverynote = await (0, rxjs_1.lastValueFrom)(observer$);
         return new DeliveryNote(deliverynote);
     }
@@ -44,6 +44,11 @@ class DeliveryNote extends invoice_define_1.InvoiceRelatedWithReceipt {
     static removeMany(val) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
             .makePut('/deliverynote/delete/many', val); // TODO with IdeleteMany
+        return (0, rxjs_1.lastValueFrom)(observer$);
+    }
+    remove() {
+        const observer$ = stock_counter_client_1.StockCounterClient.ehttp
+            .makeDelete(`/deliverynote/delete/one/${this._id}`);
         return (0, rxjs_1.lastValueFrom)(observer$);
     }
 }

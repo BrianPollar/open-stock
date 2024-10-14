@@ -3,16 +3,36 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createFaqModel = exports.faqSelect = exports.faqLean = exports.faqMain = void 0;
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const mongoose_1 = require("mongoose");
-const database_1 = require("../utils/database");
 const uniqueValidator = require('mongoose-unique-validator');
 /** FAQ schema */
 const faqSchema = new mongoose_1.Schema({
     ...stock_universal_server_1.withUrIdAndCompanySchemaObj,
-    posterName: { type: String },
-    posterEmail: { type: String, required: [true, 'cannot be empty.'], index: true },
-    userId: { type: String },
-    qn: { type: String, required: [true, 'cannot be empty.'], index: true }
+    posterName: {
+        type: String,
+        minlength: [3, 'cannot be less than 3.'],
+        maxlength: [100, 'cannot be more than 100.']
+    },
+    posterEmail: {
+        type: String,
+        required: [true, 'cannot be empty.'],
+        index: true,
+        validator: checkEmail,
+        message: props => `${props.value} is invalid phone!`
+    },
+    userId: { type: mongoose_1.Schema.Types.ObjectId },
+    qn: {
+        type: String,
+        required: [true, 'cannot be empty.'],
+        index: true,
+        minlength: [10, 'cannot be less than 10.'],
+        maxlength: [400, 'cannot be more than 400.']
+    }
 }, { timestamps: true, collection: 'faqs' });
+function checkEmail(email) {
+    // eslint-disable-next-line max-len
+    const re = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+    return re.test(String(email).toLowerCase());
+}
 faqSchema.pre('updateOne', function (next) {
     return (0, stock_universal_server_1.preUpdateDocExpire)(this, next);
 });
@@ -42,15 +62,15 @@ exports.faqSelect = faqselect;
  */
 const createFaqModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     (0, stock_universal_server_1.createExpireDocIndex)(faqSchema);
-    if (!database_1.isStockDbConnected) {
-        await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
+    if (!stock_universal_server_1.isDbConnected) {
+        await (0, stock_universal_server_1.connectDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.faqMain = database_1.mainConnection
+        exports.faqMain = stock_universal_server_1.mainConnection
             .model('Faq', faqSchema);
     }
     if (lean) {
-        exports.faqLean = database_1.mainConnectionLean
+        exports.faqLean = stock_universal_server_1.mainConnectionLean
             .model('Faq', faqSchema);
     }
 };

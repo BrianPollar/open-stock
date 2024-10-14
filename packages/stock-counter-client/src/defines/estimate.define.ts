@@ -51,9 +51,9 @@ export class Estimate
     };
   }
 
-  static async getOne(urId: string) {
+  static async getOne(urIdOr_id: string) {
     const observer$ = StockCounterClient.ehttp
-      .makeGet<Required<Iestimate>>(`/estimate/one/${urId}`);
+      .makeGet<Required<Iestimate>>(`/estimate/one/${urIdOr_id}`);
     const estimate = await lastValueFrom(observer$);
 
     return new Estimate(estimate);
@@ -63,7 +63,7 @@ export class Estimate
     const observer$ = StockCounterClient.ehttp
       .makePost<IsubscriptionFeatureState>('/estimate/add', vals);
 
-    return lastValueFrom(observer$) ;
+    return lastValueFrom(observer$);
   }
 
   static removeMany(val: IdeleteMany) {
@@ -79,6 +79,13 @@ export class Estimate
         '/estimate/updatepdt',
         { items: vals, _id: this._id }
       );
+
+    return lastValueFrom(observer$);
+  }
+
+  remove() {
+    const observer$ = StockCounterClient.ehttp
+      .makeDelete<Isuccess>(`/estimate/delete/one/${this._id}`);
 
     return lastValueFrom(observer$);
   }

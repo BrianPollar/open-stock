@@ -28,6 +28,7 @@ export const makePredomFilter = (req) => {
    * @param {boolean} [usePramaId] (optional) Whether to use the companyIdParam as the queryId.
    * @returns {object} The filter to use in the query and whether the queryId is valid.
    */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const makeCompanyBasedQuery = (req, usePramaId = false) => {
     const { companyIdParam } = req.body || {};
     let queryId = companyIdParam;
@@ -53,6 +54,12 @@ export const makeCompanyBasedQuery = (req, usePramaId = false) => {
     else {
         filter = {
             ...makePredomFilter(req)
+        };
+    }
+    if (!queryId) {
+        return {
+            sucess: false,
+            filter
         };
     }
     return {

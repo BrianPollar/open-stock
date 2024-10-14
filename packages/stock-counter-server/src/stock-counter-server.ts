@@ -172,7 +172,7 @@ export const runStockCounterServer = async(
   );
   runAutoIntervaller();
 
-  return Promise.resolve({ stockCounterRouter });
+  return { stockCounterRouter };
 };
 
 /**

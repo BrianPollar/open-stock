@@ -10,7 +10,7 @@ import express, { NextFunction, Response } from 'express';
    * @param {NextFunction} next - The express next function.
    * @returns {Promise} - Promise representing the saved customer
    */
-export declare const addCustomer: (req: IcustomRequest<never, IeditCustomer>, res: Response, next: NextFunction) => Promise<void | express.Response<any, Record<string, any>>>;
+export declare const addCustomer: (req: IcustomRequest<never, Partial<IeditCustomer>>, res: Response, next: NextFunction) => Promise<void | express.Response<any, Record<string, any>>>;
 /**
    * Updates a customer by ID.
    * @name PUT /updateone

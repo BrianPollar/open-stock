@@ -4,7 +4,7 @@ export declare class Company extends DatabaseAuto {
     urId: string;
     name: string;
     displayName: string;
-    dateOfEst: string;
+    dateOfEst: Date;
     address: string;
     details: string;
     businessType: string;
@@ -15,6 +15,7 @@ export declare class Company extends DatabaseAuto {
     blocked: boolean;
     verified: boolean;
     owner: User | string;
+    logo: string;
     constructor(data: Icompany);
     static getAll(offset?: number, limit?: number): Promise<{
         count: number;
@@ -24,7 +25,7 @@ export declare class Company extends DatabaseAuto {
         count: number;
         companys: Company[];
     }>;
-    static getOne(_id: string): Promise<Company>;
+    static getOne(id: string): Promise<Company>;
     static add(vals: IeditCompany): Promise<Isuccess>;
     static deleteCompanys(vals: IdeleteMany): Promise<Isuccess>;
     update(vals: IeditCompany, files?: Ifile[]): Promise<Isuccess>;

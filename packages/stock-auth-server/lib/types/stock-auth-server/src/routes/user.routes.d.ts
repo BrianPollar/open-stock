@@ -42,7 +42,7 @@ interface IuserLinkedInMoreModels {
 export declare const determineUserToRemove: (model: Model<any>, linkedModels: ImodelsCred[]) => (req: IcustomRequest<never, {
     _id: string;
     userId: string;
-}>, res: Response, next: NextFunction) => Promise<express.Response<any, Record<string, any>>>;
+}>, res: Response, next: NextFunction) => Promise<express.Response<any, Record<string, any>> | undefined>;
 export declare const determineUsersToRemove: (model: Model<any>, linkedModels: ImodelsCred[]) => (req: IcustomRequest<never, {
     _ids: string[];
     userIds: string[];
@@ -58,24 +58,24 @@ export declare const signupFactorRelgator: (req: IcustomRequest<never, {
 }>, res: Response, next: NextFunction) => Promise<void | express.Response<any, Record<string, any>>>;
 export declare const userLoginRelegator: (req: Request, res: Response, next: NextFunction) => Promise<void | express.Response<any, Record<string, any>>>;
 export declare const addUser: (req: IcustomRequest<never, {
-    user: Iuser;
-    profilePic?: string;
-    coverPic?: string;
-    newPhotos?: string[];
-}>, res: Response, next: NextFunction) => Promise<void | express.Response<any, Record<string, any>>>;
-export declare const updateUserBulk: (req: IcustomRequest<never, {
-    user: Iuser;
+    user?: Iuser;
     profilePic?: string;
     coverPic?: string;
     newPhotos?: string[] | IfileMeta[];
-    profileOnly: string;
 }>, res: Response, next: NextFunction) => Promise<void | express.Response<any, Record<string, any>>>;
+export declare const updateUserBulk: (req: IcustomRequest<never, Partial<{
+    user?: Iuser;
+    profilePic?: string;
+    coverPic?: string;
+    newPhotos?: string[] | IfileMeta[];
+    profileOnly?: string;
+}>>, res: Response, next: NextFunction) => Promise<void | express.Response<any, Record<string, any>>>;
 export declare const removeOneUser: (req: IcustomRequest<never, {
-    _id: string;
-    userId: string;
+    _id?: string;
+    userId?: string;
 }>, res: Response, next: NextFunction) => Promise<void | express.Response<any, Record<string, any>>>;
 export declare const removeManyUsers: (req: IcustomRequest<never, {
     userIds?: string[];
-} & IdeleteMany>, res: Response, next: NextFunction) => Promise<express.Response<any, Record<string, any>>>;
+} & IdeleteMany>, res: Response, next: NextFunction) => Promise<express.Response<any, Record<string, any>> | undefined>;
 export declare const socialLogin: (provider: string) => (req: IcustomRequestSocial, res: any) => Promise<any>;
 export {};

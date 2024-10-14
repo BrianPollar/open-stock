@@ -1,4 +1,4 @@
-import { IvalidatorResult } from '../interfaces/validators.interface';
+import { IvalidatorResult } from '../types/validators-types';
 import { validateEmail } from './email-validator';
 import { validatePhone } from './phone-validator';
 

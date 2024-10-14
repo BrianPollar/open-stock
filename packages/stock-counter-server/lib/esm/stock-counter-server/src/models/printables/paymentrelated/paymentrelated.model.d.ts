@@ -51,6 +51,7 @@ export declare const paymentRelatedSelect: {
     paymentMethod: number;
     payType: number;
     orderStatus: number;
+    orderDeliveryCode: number;
     urId: number;
     companyId: number;
     trackEdit: number;

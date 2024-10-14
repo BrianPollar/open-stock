@@ -3,7 +3,7 @@ import { Expense } from '../expense.define';
 import { InvoiceRelatedWithReceipt } from '../invoice.define';
 export declare class ProfitAndLossReport extends DatabaseAuto {
     urId: string;
-    companyId: string;
+    companyId?: string;
     totalAmount: number;
     date: Date;
     expenses: Expense[];
@@ -22,7 +22,7 @@ export declare class ProfitAndLossReport extends DatabaseAuto {
         count: number;
         profitandlossreports: ProfitAndLossReport[];
     }>;
-    static getOne(urId: string): Promise<ProfitAndLossReport>;
+    static getOne(urIdOr_id: string): Promise<ProfitAndLossReport>;
     static add(vals: IprofitAndLossReport): Promise<Isuccess>;
     static removeMany(vals: IdeleteMany): Promise<Isuccess>;
     remove(): Promise<Isuccess>;

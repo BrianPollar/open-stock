@@ -26,7 +26,7 @@ export const createStockAuthServerLocals = (config) => {
  * @param {string} databaseUrl - The URL of the authentication database.
  * @returns {Promise<void>}
  */
-export const connectAuthDatabase = async (databaseUrl, dbOptions) => {
+export const connectDatabase = async (databaseUrl, dbOptions) => {
     await createEmailtokenModel(databaseUrl, dbOptions);
     await createUserModel(databaseUrl, dbOptions);
     await createCompanyModel(databaseUrl, dbOptions);

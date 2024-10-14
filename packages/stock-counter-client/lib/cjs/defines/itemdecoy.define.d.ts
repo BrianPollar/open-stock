@@ -17,7 +17,7 @@ export declare class ItemDecoy extends DatabaseAuto {
         count: number;
         decoys: ItemDecoy[];
     }>;
-    static getOne(_id: string): Promise<ItemDecoy>;
+    static getOne(urIdOr_id: string): Promise<ItemDecoy>;
     static add(how: 'automatic' | 'manual', itemdecoy: {
         itemId: string;
     } | {

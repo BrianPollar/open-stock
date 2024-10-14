@@ -23,15 +23,14 @@
 /// <reference types="mongoose/types/virtuals" />
 /// <reference types="mongoose/types/inferschematype" />
 import { IcurrencyProp, ItrackStamp } from '@open-stock/stock-universal';
+import { IcompanyIdAsObjectId } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model } from 'mongoose';
 /**
  * Represents a promotional code.
  */
-export interface Ipromocode extends Document, ItrackStamp, IcurrencyProp {
+export interface Ipromocode extends Document, ItrackStamp, IcurrencyProp, IcompanyIdAsObjectId {
     /** The unique identifier of the user. */
     urId: string;
-    /** The user's company ID. */
-    companyId: string;
     /** The code of the promotional code. */
     code: string;
     /** The amount associated with the promotional code. */

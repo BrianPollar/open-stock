@@ -1,6 +1,6 @@
 import { Subject, fromEvent, merge, of } from 'rxjs';
 import { map, takeUntil } from 'rxjs/operators';
-import { LoggerController } from './logger';
+import { LoggerController } from './front-logger';
 /**
  * Represents a controller for managing connectivity.
  */

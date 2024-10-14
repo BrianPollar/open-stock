@@ -1,11 +1,25 @@
-import { createExpireDocIndex, preUpdateDocExpire, withCompanySchemaObj, withCompanySelectObj } from '@open-stock/stock-universal-server';
+import { connectDatabase, createExpireDocIndex, isDbConnected, mainConnection, mainConnectionLean, preUpdateDocExpire, withCompanySchemaObj, withCompanySelectObj } from '@open-stock/stock-universal-server';
 import { Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../../utils/database';
 const invoiceSettingSchema = new Schema({
     ...withCompanySchemaObj,
-    generalSettings: {},
-    taxSettings: {},
-    bankSettings: {},
+    generalSettings: {
+        status: { type: String, enum: ['paid', 'pending', 'overdue', 'draft', 'unpaid', 'cancelled'] },
+        currency: { type: String },
+        amount: { type: String, minLength: [1, 'cannot be less than 1'] },
+        defaultDueTime: { type: String },
+        defaultDigitalSignature: { type: Schema.Types.ObjectId },
+        defaultDigitalStamp: { type: Schema.Types.ObjectId }
+    },
+    taxSettings: {
+        taxes: { type: Array }
+    },
+    bankSettings: {
+        enabled: { type: Boolean },
+        holderName: { type: String },
+        bankName: { type: String },
+        ifscCode: { type: String },
+        accountNumber: { type: String }
+    },
     printDetails: {}
 }, { timestamps: true, collection: 'invoicesettings' });
 invoiceSettingSchema.pre('updateOne', function (next) {
@@ -41,8 +55,8 @@ export const invoiceSettingSelect = invoiceSettingselect;
  */
 export const createInvoiceSettingModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     createExpireDocIndex(invoiceSettingSchema);
-    if (!isStockDbConnected) {
-        await connectStockDatabase(dbUrl, dbOptions);
+    if (!isDbConnected) {
+        await connectDatabase(dbUrl, dbOptions);
     }
     if (main) {
         invoiceSettingMain = mainConnection

@@ -3,12 +3,26 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createInvoiceSettingModel = exports.invoiceSettingSelect = exports.invoiceSettingLean = exports.invoiceSettingMain = void 0;
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const mongoose_1 = require("mongoose");
-const database_1 = require("../../../utils/database");
 const invoiceSettingSchema = new mongoose_1.Schema({
     ...stock_universal_server_1.withCompanySchemaObj,
-    generalSettings: {},
-    taxSettings: {},
-    bankSettings: {},
+    generalSettings: {
+        status: { type: String, enum: ['paid', 'pending', 'overdue', 'draft', 'unpaid', 'cancelled'] },
+        currency: { type: String },
+        amount: { type: String, minLength: [1, 'cannot be less than 1'] },
+        defaultDueTime: { type: String },
+        defaultDigitalSignature: { type: mongoose_1.Schema.Types.ObjectId },
+        defaultDigitalStamp: { type: mongoose_1.Schema.Types.ObjectId }
+    },
+    taxSettings: {
+        taxes: { type: Array }
+    },
+    bankSettings: {
+        enabled: { type: Boolean },
+        holderName: { type: String },
+        bankName: { type: String },
+        ifscCode: { type: String },
+        accountNumber: { type: String }
+    },
     printDetails: {}
 }, { timestamps: true, collection: 'invoicesettings' });
 invoiceSettingSchema.pre('updateOne', function (next) {
@@ -40,15 +54,15 @@ exports.invoiceSettingSelect = invoiceSettingselect;
  */
 const createInvoiceSettingModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     (0, stock_universal_server_1.createExpireDocIndex)(invoiceSettingSchema);
-    if (!database_1.isStockDbConnected) {
-        await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
+    if (!stock_universal_server_1.isDbConnected) {
+        await (0, stock_universal_server_1.connectDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.invoiceSettingMain = database_1.mainConnection
+        exports.invoiceSettingMain = stock_universal_server_1.mainConnection
             .model('InvoiceSetting', invoiceSettingSchema);
     }
     if (lean) {
-        exports.invoiceSettingLean = database_1.mainConnectionLean
+        exports.invoiceSettingLean = stock_universal_server_1.mainConnectionLean
             .model('invoiceSetting', invoiceSettingSchema);
     }
 };

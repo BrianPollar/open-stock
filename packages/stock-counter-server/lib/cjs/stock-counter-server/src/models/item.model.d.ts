@@ -23,16 +23,19 @@
 /// <reference types="mongoose/types/virtuals" />
 /// <reference types="mongoose/types/inferschematype" />
 import { Iitem } from '@open-stock/stock-universal';
+import { IcompanyIdAsObjectId } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model } from 'mongoose';
-export type TitemModel = Document & Iitem;
+export type Titem = Document & Iitem & IcompanyIdAsObjectId & {
+    model: string;
+};
 /**
  * Represents the main item model.
  */
-export declare let itemMain: Model<Iitem>;
+export declare let itemMain: Model<Titem>;
 /**
  * Represents the lean version of the item model.
  */
-export declare let itemLean: Model<Iitem>;
+export declare let itemLean: Model<Titem>;
 /**
  * Represents the item select function.
  */

@@ -4,9 +4,12 @@
  */
 
 import { Iactionwithall, TnotifType } from '@open-stock/stock-universal';
-import { createExpireDocIndex, globalSchemaObj } from '@open-stock/stock-universal-server';
+import {
+  connectDatabase,
+  createExpireDocIndex, globalSchemaObj,
+  isDbConnected, mainConnection, mainConnectionLean
+} from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import { connectNotifDatabase, isNotifDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 
 /** Interface for the main notification object. */
 export interface IMainnotification extends Document {
@@ -15,7 +18,7 @@ export interface IMainnotification extends Document {
   actions: Iactionwithall[];
 
   /** ID of the user who will receive the notification. */
-  userId: string;
+  userId: string | Schema.Types.ObjectId;
 
   /** Title of the notification. */
   title: string;
@@ -51,7 +54,7 @@ const mainnotificationSchema: Schema<IMainnotification> = new Schema({
     operation: { type: String },
     url: { type: String }
   }],
-  userId: { type: String, required: [true, 'cannot be empty.'], index: true },
+  userId: { type: Schema.Types.ObjectId, required: [true, 'cannot be empty.'], index: true },
   title: { type: String, required: [true, 'cannot be empty.'] },
   body: { type: String, required: [true, 'cannot be empty.'] },
   icon: { type: String },
@@ -70,20 +73,6 @@ mainnotificationSchema
     { expireAt: 1 },
     { expireAfterSeconds: 2628003 }
   );
-
-/** Primary selection object for the main notification object. */
-const mainNotifselect = {
-  actions: 1,
-  userId: 1,
-  title: 1,
-  body: 1,
-  icon: 1,
-  notifType: 1,
-  notifInvokerId: 1,
-  viewed: 1,
-  active: 1,
-  createdAt: 1
-};
 
 /**
  * Represents the main notification model.
@@ -104,8 +93,8 @@ export let mainnotificationLean: Model<IMainnotification>;
  */
 export const createNotificationsModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
   createExpireDocIndex(mainnotificationSchema);
-  if (!isNotifDbConnected) {
-    await connectNotifDatabase(dbUrl, dbOptions);
+  if (!isDbConnected) {
+    await connectDatabase(dbUrl, dbOptions);
   }
 
   if (main) {

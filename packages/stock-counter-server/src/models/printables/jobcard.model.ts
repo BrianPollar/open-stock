@@ -1,22 +1,38 @@
 import { IjobCard } from '@open-stock/stock-universal';
 import {
-  createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj
+  IcompanyIdAsObjectId,
+  connectDatabase,
+  createExpireDocIndex,
+  isDbConnected, mainConnection, mainConnectionLean,
+  preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj
 } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 
 /**
  * Represents a job card document.
  */
-export type TjobCard = Document & IjobCard;
+export type TjobCard = Document & IjobCard & IcompanyIdAsObjectId;
 
 const jobCardSchema: Schema<TjobCard> = new Schema({
   ...withUrIdAndCompanySchemaObj,
-  client: { },
-  machine: { },
-  problem: { },
-  cost: { type: Number }
+  client: {
+    userId: { type: Schema.Types.ObjectId },
+    name: { type: String },
+    phone: { type: String },
+    email: { type: String }
+  },
+  machine: {
+    name: { type: String },
+    model: { type: String },
+    serialNo: { type: String }
+  },
+  problem: {
+    reportedIssue: { type: String },
+    details: { type: String },
+    issueOnFirstLook: { type: String }
+  },
+  cost: { type: Number, min: [0, 'cannot be less than 0.'] }
 }, { timestamps: true, collection: 'jobcards' });
 
 jobCardSchema.pre('updateOne', function(next) {
@@ -66,8 +82,8 @@ export const jobCardSelect = jobCardselect;
  */
 export const createJobCardModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
   createExpireDocIndex(jobCardSchema);
-  if (!isStockDbConnected) {
-    await connectStockDatabase(dbUrl, dbOptions);
+  if (!isDbConnected) {
+    await connectDatabase(dbUrl, dbOptions);
   }
 
   if (main) {

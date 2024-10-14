@@ -1,6 +1,5 @@
-import { createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
+import { connectDatabase, createExpireDocIndex, isDbConnected, mainConnection, mainConnectionLean, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
 import { Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 /**
  * Defines the schema for the promocode model.
@@ -16,8 +15,12 @@ const uniqueValidator = require('mongoose-unique-validator');
 const promocodeSchema = new Schema({
     ...withUrIdAndCompanySchemaObj,
     code: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
-    items: [{ type: String, required: [true, 'cannot be empty.'] }],
-    amount: { type: Number, required: [true, 'cannot be empty.'] },
+    items: [{ type: Schema.Types.ObjectId, required: [true, 'cannot be empty.'] }],
+    amount: {
+        type: Number,
+        required: [true, 'cannot be empty.'],
+        min: [0, 'cannot be negative.']
+    },
     roomId: { type: String, required: [true, 'cannot be empty.'] },
     state: { type: String, default: 'virgin' },
     expireAt: { type: String },
@@ -66,8 +69,8 @@ export const promocodeSelect = promocodeselect;
  */
 export const createPromocodeModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     createExpireDocIndex(promocodeSchema);
-    if (!isStockDbConnected) {
-        await connectStockDatabase(dbUrl, dbOptions);
+    if (!isDbConnected) {
+        await connectDatabase(dbUrl, dbOptions);
     }
     if (main) {
         promocodeMain = mainConnection

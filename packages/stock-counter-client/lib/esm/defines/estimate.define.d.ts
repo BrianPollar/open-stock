@@ -13,8 +13,9 @@ export declare class Estimate extends InvoiceRelatedWithReceipt {
         count: number;
         estimates: Estimate[];
     }>;
-    static getOne(urId: string): Promise<Estimate>;
+    static getOne(urIdOr_id: string): Promise<Estimate>;
     static add(vals: IeditEstimate): Promise<IsubscriptionFeatureState>;
     static removeMany(val: IdeleteMany): Promise<Isuccess>;
     updatePdt(vals: IinvoiceRelated): Promise<Isuccess>;
+    remove(): Promise<Isuccess>;
 }

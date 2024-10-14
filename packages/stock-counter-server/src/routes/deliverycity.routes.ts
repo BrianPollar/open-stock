@@ -1,44 +1,15 @@
 
 import { requireActiveCompany } from '@open-stock/stock-auth-server';
-import { IcustomRequest, IdataArrayResponse, IdeleteMany, Isuccess } from '@open-stock/stock-universal';
+import { IcustomRequest, IdataArrayResponse, IdeleteMany } from '@open-stock/stock-universal';
 import {
   addParentToLocals, appendUserToReqIfTokenExist,
+  handleMongooseErr,
   makePredomFilter, offsetLimitRelegator, requireAuth,
-  roleAuthorisation, stringifyMongooseErr, verifyObjectIds
+  roleAuthorisation, verifyObjectId, verifyObjectIds
 } from '@open-stock/stock-universal-server';
 import express from 'express';
-import * as fs from 'fs';
-import path from 'path';
-import * as tracer from 'tracer';
+import { Error } from 'mongoose';
 import { Tdeliverycity, deliverycityLean, deliverycityMain } from '../models/deliverycity.model';
-
-/**
- * Logger for deliverycity routes
- */
-const deliverycityRoutesLogger = tracer.colorConsole({
-  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-  dateformat: 'HH:MM:ss.L',
-  transport(data) {
-    // eslint-disable-next-line no-console
-    console.log(data.output);
-    const logDir = path.join(process.cwd() + '/openstockLog/');
-
-    fs.mkdir(logDir, { recursive: true }, (err) => {
-      if (err) {
-        if (err) {
-          // eslint-disable-next-line no-console
-          console.log('data.output err ', err);
-        }
-      }
-    });
-    fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
-      if (err) {
-        // eslint-disable-next-line no-console
-        console.log('raw.output err ', err);
-      }
-    });
-  }
-});
 
 /**
  * Express router for deliverycity routes
@@ -53,43 +24,30 @@ deliverycityRoutes.post(
   async(req: IcustomRequest<never, { deliverycity }>, res) => {
     const deliverycity = req.body.deliverycity;
     const newDeliverycity = new deliverycityMain(deliverycity);
-    let errResponse: Isuccess;
-    const saved = await newDeliverycity.save()
-      .catch(err => {
-        deliverycityRoutesLogger.error('create - err: ', err);
-        errResponse = {
-          success: false,
-          status: 403
-        };
-        if (err && err.errors) {
-          errResponse.err = stringifyMongooseErr(err.errors);
-        } else {
-          errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-        }
 
-        return err;
-      });
+    const savedRes = await newDeliverycity.save()
+      .catch((err: Error) => err);
 
-    if (errResponse) {
-      return res.status(403).send(errResponse);
+    if (savedRes instanceof Error) {
+      const errResponse = handleMongooseErr(savedRes);
+
+      return res.status(errResponse.status).send(errResponse);
     }
 
-    if (saved && saved._id) {
-      addParentToLocals(res, saved._id, deliverycityMain.collection.collectionName, 'makeTrackEdit');
-    }
+    addParentToLocals(res, savedRes._id, deliverycityMain.collection.collectionName, 'makeTrackEdit');
 
-    return res.status(200).send({ success: Boolean(saved) });
+    return res.status(200).send({ success: true });
   }
 );
 
 deliverycityRoutes.get(
-  '/one/:_id',
+  '/one/:urIdOr_id',
   appendUserToReqIfTokenExist,
-  async(req: IcustomRequest<{ _id: string }, null>, res) => {
-    const { _id } = req.params;
+  async(req: IcustomRequest<{ urIdOr_id: string }, null>, res) => {
+    const { urIdOr_id } = req.params;
+    const filterwithId = verifyObjectId(urIdOr_id) ? { _id: urIdOr_id } : { urId: urIdOr_id };
     const deliverycity = await deliverycityLean
-      .findOne({ _id })
+      .findOne({ ...filterwithId })
       .lean();
 
     if (!deliverycity) {
@@ -148,8 +106,8 @@ deliverycityRoutes.put(
       return res.status(404).send({ success: false });
     }
 
-    let errResponse: Isuccess;
-    const updated = await deliverycityMain.updateOne({
+
+    const updateRes = await deliverycityMain.updateOne({
       _id: updatedCity._id
     }, {
       $set: {
@@ -160,29 +118,17 @@ deliverycityRoutes.put(
         isDeleted: updatedCity.isDeleted || deliverycity.isDeleted
       }
     })
-      .catch(err => {
-        deliverycityRoutesLogger.error('update - err: ', err);
-        errResponse = {
-          success: false,
-          status: 403
-        };
-        if (err && err.errors) {
-          errResponse.err = stringifyMongooseErr(err.errors);
-        } else {
-          errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-        }
+      .catch((err: Error) => err);
 
-        return errResponse;
-      });
+    if (updateRes instanceof Error) {
+      const errResponse = handleMongooseErr(updateRes);
 
-    if (errResponse) {
-      return res.status(403).send(errResponse);
+      return res.status(errResponse.status).send(errResponse);
     }
 
     addParentToLocals(res, updatedCity._id, deliverycityMain.collection.collectionName, 'makeTrackEdit');
 
-    return res.status(200).send({ success: Boolean(updated) });
+    return res.status(200).send({ success: true });
   }
 );
 
@@ -200,16 +146,19 @@ deliverycityRoutes.delete(
     }
 
     // const deleted = await deliverycityMain.findOneAndDelete({ _id });
-    const deleted = await deliverycityMain
-      .updateOne({ _id, ...makePredomFilter(req) }, { $set: { isDeleted: true } });
+    const updateRes = await deliverycityMain
+      .updateOne({ _id, ...makePredomFilter(req) }, { $set: { isDeleted: true } })
+      .catch((err: Error) => err);
 
-    if (Boolean(deleted)) {
-      addParentToLocals(res, _id, deliverycityMain.collection.collectionName, 'trackDataDelete');
+    if (updateRes instanceof Error) {
+      const errResponse = handleMongooseErr(updateRes);
 
-      return res.status(200).send({ success: Boolean(deleted) });
-    } else {
-      return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
+      return res.status(errResponse.status).send(errResponse);
     }
+
+    addParentToLocals(res, _id, deliverycityMain.collection.collectionName, 'trackDataDelete');
+
+    return res.status(200).send({ success: true });
   }
 );
 
@@ -226,33 +175,21 @@ deliverycityRoutes.put(
       return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
 
-    /* const deleted = await deliverycityMain
-    .deleteMany({ _id: { $in: _ids } })
-    .catch(err => {
-      deliverycityRoutesLogger.error('deletemany - err: ', err);
-
-      return null;
-    }); */
-
-    const deleted = await deliverycityMain
+    const updateRes = await deliverycityMain
       .updateMany({ _id: { $in: _ids } }, {
         $set: { isDeleted: true }
-      })
-      .catch(err => {
-        deliverycityRoutesLogger.error('deletemany - err: ', err);
+      }).catch((err: Error) => err);
 
-        return null;
-      });
+    if (updateRes instanceof Error) {
+      const errResponse = handleMongooseErr(updateRes);
 
-    if (Boolean(deleted)) {
-      for (const val of _ids) {
-        addParentToLocals(res, val, deliverycityMain.collection.collectionName, 'trackDataDelete');
-      }
-
-      return res.status(200).send({ success: Boolean(deleted) });
-    } else {
-      return res.status(404).send({
-        success: Boolean(deleted), err: 'could not delete selected items, try again in a while' });
+      return res.status(errResponse.status).send(errResponse);
     }
+
+    for (const val of _ids) {
+      addParentToLocals(res, val, deliverycityMain.collection.collectionName, 'trackDataDelete');
+    }
+
+    return res.status(200).send({ success: true });
   }
 );

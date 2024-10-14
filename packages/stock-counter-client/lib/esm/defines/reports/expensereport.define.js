@@ -32,9 +32,9 @@ export class ExpenseReport extends DatabaseAuto {
             expensereports: expensereports.data.map((val) => new ExpenseReport(val))
         };
     }
-    static async getOne(urId) {
+    static async getOne(urIdOr_id) {
         const observer$ = StockCounterClient.ehttp
-            .makeGet(`/expensereport/one/${urId}`);
+            .makeGet(`/expensereport/one/${urIdOr_id}`);
         const expensereport = await lastValueFrom(observer$);
         return new ExpenseReport(expensereport);
     }

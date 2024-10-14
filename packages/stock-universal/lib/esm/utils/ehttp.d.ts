@@ -1,6 +1,6 @@
 import { Observable } from 'rxjs';
 import Axios from 'axios-observable';
-import { LoggerController } from './logger';
+import { LoggerController } from './front-logger';
 export interface Ifile {
     filename?: string;
     revokableUrl?: string;

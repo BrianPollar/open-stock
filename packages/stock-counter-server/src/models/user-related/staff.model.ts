@@ -1,27 +1,42 @@
 import { Istaff } from '@open-stock/stock-universal';
 import {
-  createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj
+  IcompanyIdAsObjectId,
+  connectDatabase,
+  createExpireDocIndex,
+  isDbConnected, mainConnection, mainConnectionLean,
+  preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj
 } from '@open-stock/stock-universal-server';
-import { ConnectOptions, Document, Model, Schema, Types } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../utils/database';
+import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 const uniqueValidator = require('mongoose-unique-validator');
 
 /**
  * Represents a staff member.
  * @typedef {Document & Istaff} Tstaff
  */
-export type Tstaff = Document & Istaff;
+export type Tstaff = Document & Istaff & IcompanyIdAsObjectId;
 
 /** Defines the schema for the staff model. */
 const staffSchema: Schema<Tstaff> = new Schema({
   ...withUrIdAndCompanySchemaObj,
-  user: { type: Types.ObjectId, unique: true, required: [true, 'cannot be empty.'], index: true },
+  user: { type: Schema.Types.ObjectId, unique: true, required: [true, 'cannot be empty.'], index: true },
   startDate: { type: Date },
-  endDate: { type: Date },
+  endDate: {
+    type: Date,
+    validator: checkEndDate,
+    message: props => `${props.value} is invalid, endDate cannot be less than startDate!`
+  },
   occupation: { type: String },
   employmentType: { type: String },
-  salary: { }
+  salary: {
+    employmentType: { type: String },
+    salary: { type: String }
+  }
 }, { timestamps: true, collection: 'staffs' });
+
+function checkEndDate(endDate: Date) {
+  return new Date(endDate) > new Date(this.startDate);
+}
+
 
 staffSchema.pre('updateOne', function(next) {
   return preUpdateDocExpire(this, next);
@@ -71,8 +86,8 @@ export const staffSelect = staffselect;
  */
 export const createStaffModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
   createExpireDocIndex(staffSchema);
-  if (!isStockDbConnected) {
-    await connectStockDatabase(dbUrl, dbOptions);
+  if (!isDbConnected) {
+    await connectDatabase(dbUrl, dbOptions);
   }
 
   if (main) {

@@ -12,7 +12,8 @@ export declare class DeliveryNote extends InvoiceRelatedWithReceipt {
         count: number;
         deliverynotes: DeliveryNote[];
     }>;
-    static getOne(urId: string): Promise<DeliveryNote>;
+    static getOne(urIdOr_id: string): Promise<DeliveryNote>;
     static add(invoiceRelated: IinvoiceRelated): Promise<IsubscriptionFeatureState>;
     static removeMany(val: IdeleteMany): Promise<Isuccess>;
+    remove(): Promise<Isuccess>;
 }

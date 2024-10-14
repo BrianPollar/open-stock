@@ -25,6 +25,7 @@ const generateCustomIdFromObjectId = (objectId, lastUrId) => {
     return last4 + '-' + increment;
 };
 exports.generateCustomIdFromObjectId = generateCustomIdFromObjectId;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const generateUrId = async (model, length = 10) => {
     const urId = (0, nanoid_1.nanoid)(length);
     const found = await model.findOne({ urId }).sort({ urId: -1 });

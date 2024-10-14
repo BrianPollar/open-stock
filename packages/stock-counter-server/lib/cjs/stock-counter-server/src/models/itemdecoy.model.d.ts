@@ -23,6 +23,7 @@
 /// <reference types="mongoose/types/virtuals" />
 /// <reference types="mongoose/types/inferschematype" />
 import { ItrackStamp } from '@open-stock/stock-universal';
+import { IcompanyIdAsObjectId } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model } from 'mongoose';
 /** model type for itemDecoy by */
 /**
@@ -46,7 +47,7 @@ export type TitemDecoy = Document & ItrackStamp & {
      * The list of items associated with the decoy.
      */
     items: string[];
-};
+} & IcompanyIdAsObjectId;
 /**
  * Represents the main item decoy model.
  */

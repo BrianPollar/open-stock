@@ -3,13 +3,18 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createFaqanswerModel = exports.faqanswerSelect = exports.faqanswerLean = exports.faqanswerMain = void 0;
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const mongoose_1 = require("mongoose");
-const database_1 = require("../utils/database");
 const uniqueValidator = require('mongoose-unique-validator');
 const faqanswerSchema = new mongoose_1.Schema({
     ...stock_universal_server_1.withUrIdAndCompanySchemaObj,
-    faq: { type: String, required: [true, 'cannot be empty.'], index: true },
-    userId: { type: String, required: [true, 'cannot be empty.'] },
-    ans: { type: String, required: [true, 'cannot be empty.'], index: true }
+    faq: { type: mongoose_1.Schema.Types.ObjectId, required: [true, 'cannot be empty.'], index: true },
+    userId: { type: mongoose_1.Schema.Types.ObjectId, required: [true, 'cannot be empty.'] },
+    ans: {
+        type: String,
+        required: [true, 'cannot be empty.'],
+        index: true,
+        minlength: [10, 'cannot be less than 10.'],
+        maxlength: [3000, 'cannot be more than 3000.']
+    }
 }, { timestamps: true, collection: 'faqanswers' });
 faqanswerSchema.pre('updateOne', function (next) {
     return (0, stock_universal_server_1.preUpdateDocExpire)(this, next);
@@ -41,15 +46,15 @@ exports.faqanswerSelect = faqanswerselect;
  */
 const createFaqanswerModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     (0, stock_universal_server_1.createExpireDocIndex)(faqanswerSchema);
-    if (!database_1.isStockDbConnected) {
-        await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
+    if (!stock_universal_server_1.isDbConnected) {
+        await (0, stock_universal_server_1.connectDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.faqanswerMain = database_1.mainConnection
+        exports.faqanswerMain = stock_universal_server_1.mainConnection
             .model('Faqanswer', faqanswerSchema);
     }
     if (lean) {
-        exports.faqanswerLean = database_1.mainConnectionLean
+        exports.faqanswerLean = stock_universal_server_1.mainConnectionLean
             .model('Faqanswer', faqanswerSchema);
     }
 };

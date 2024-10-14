@@ -1,5 +1,5 @@
 import { Observable, Subject } from 'rxjs';
-import { LoggerController } from './logger';
+import { LoggerController } from './front-logger';
 import { WindowController } from './window';
 /**
  * Represents a controller for managing connectivity.

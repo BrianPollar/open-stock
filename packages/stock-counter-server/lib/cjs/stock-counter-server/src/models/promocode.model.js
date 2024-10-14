@@ -3,7 +3,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createPromocodeModel = exports.promocodeSelect = exports.promocodeLean = exports.promocodeMain = void 0;
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const mongoose_1 = require("mongoose");
-const database_1 = require("../utils/database");
 const uniqueValidator = require('mongoose-unique-validator');
 /**
  * Defines the schema for the promocode model.
@@ -19,8 +18,12 @@ const uniqueValidator = require('mongoose-unique-validator');
 const promocodeSchema = new mongoose_1.Schema({
     ...stock_universal_server_1.withUrIdAndCompanySchemaObj,
     code: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
-    items: [{ type: String, required: [true, 'cannot be empty.'] }],
-    amount: { type: Number, required: [true, 'cannot be empty.'] },
+    items: [{ type: mongoose_1.Schema.Types.ObjectId, required: [true, 'cannot be empty.'] }],
+    amount: {
+        type: Number,
+        required: [true, 'cannot be empty.'],
+        min: [0, 'cannot be negative.']
+    },
     roomId: { type: String, required: [true, 'cannot be empty.'] },
     state: { type: String, default: 'virgin' },
     expireAt: { type: String },
@@ -61,15 +64,15 @@ exports.promocodeSelect = promocodeselect;
  */
 const createPromocodeModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     (0, stock_universal_server_1.createExpireDocIndex)(promocodeSchema);
-    if (!database_1.isStockDbConnected) {
-        await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
+    if (!stock_universal_server_1.isDbConnected) {
+        await (0, stock_universal_server_1.connectDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.promocodeMain = database_1.mainConnection
+        exports.promocodeMain = stock_universal_server_1.mainConnection
             .model('promocode', promocodeSchema);
     }
     if (lean) {
-        exports.promocodeLean = database_1.mainConnectionLean
+        exports.promocodeLean = stock_universal_server_1.mainConnectionLean
             .model('promocode', promocodeSchema);
     }
 };

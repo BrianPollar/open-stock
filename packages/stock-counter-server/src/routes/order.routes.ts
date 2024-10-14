@@ -1,6 +1,7 @@
 import {
   appendUserToReqIfTokenExist, constructFiltersFromBody,
-  generateUrId, lookupSubFieldInvoiceRelatedFilter,
+  generateUrId, handleMongooseErr, lookupSubFieldInvoiceRelatedFilter,
+  mainLogger,
   makePredomFilter
 } from '@open-stock/stock-universal-server';
 
@@ -18,19 +19,15 @@ import {
   IinvoiceRelated,
   Iorder,
   Ipayment,
-  IpaymentRelated,
-  Isuccess, Iuser
+  IpaymentRelated, Iuser
 } from '@open-stock/stock-universal';
 import {
   addParentToLocals, makeCompanyBasedQuery,
-  offsetLimitRelegator, requireAuth, roleAuthorisation,
-  stringifyMongooseErr, verifyObjectId,
+  offsetLimitRelegator, requireAuth, roleAuthorisation, verifyObjectId,
   verifyObjectIds
 } from '@open-stock/stock-universal-server';
 import express from 'express';
-import * as fs from 'fs';
-import path from 'path';
-import * as tracer from 'tracer';
+import { Error } from 'mongoose';
 import { Torder, orderLean, orderMain } from '../models/order.model';
 import { paymentMethodDelegator, trackOrder } from '../utils/payment';
 import { populateInvoiceRelated, populatePaymentRelated } from '../utils/query';
@@ -41,32 +38,6 @@ import {
   updatePaymentRelated
 } from './paymentrelated/paymentrelated';
 import { relegateInvRelatedCreation } from './printables/related/invoicerelated';
-
-/** Logger for order routes */
-const orderRoutesLogger = tracer.colorConsole({
-  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-  dateformat: 'HH:MM:ss.L',
-  transport(data) {
-    // eslint-disable-next-line no-console
-    console.log(data.output);
-    const logDir = path.join(process.cwd() + '/openstockLog/');
-
-    fs.mkdir(logDir, { recursive: true }, (err) => {
-      if (err) {
-        if (err) {
-          // eslint-disable-next-line no-console
-          console.log('data.output err ', err);
-        }
-      }
-    });
-    fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
-      if (err) {
-        // eslint-disable-next-line no-console
-        console.log('raw.output err ', err);
-      }
-    });
-  }
-});
 
 /**
  * Express router for handling order routes.
@@ -80,11 +51,11 @@ orderRoutes.post(
     order: Iorder;
     payment: Ipayment;
     bagainCred;
-    paymentRelated: Required<IpaymentRelated>;
-    invoiceRelated: Required<IinvoiceRelated>;
+    paymentRelated: Partial<IpaymentRelated>;
+    invoiceRelated: Partial<IinvoiceRelated>;
     userObj: Partial<Iuser>; }>, res) => {
     const { order, payment, bagainCred, paymentRelated, invoiceRelated, userObj } = req.body;
-    const companyId = order.companyId;
+    const companyId = order.companyId || '';
 
     order.companyId = companyId;
     payment.companyId = companyId;
@@ -100,17 +71,16 @@ orderRoutes.post(
       } else {
         userObj.urId = await generateUrId(user);
         const newUser = new user(userObj);
-        let savedErr: string;
 
-        userDoc = await newUser.save().catch(err => {
-          orderRoutesLogger.error('save error', err);
-          savedErr = err;
+        const saveRes = await newUser.save().catch((err: Error) => err);
 
-          return null;
-        });
-        if (savedErr) {
-          return res.status(500).send({ success: false });
+        if (saveRes instanceof Error) {
+          const errResponse = handleMongooseErr(saveRes);
+
+          return res.status(errResponse.status).send(errResponse);
         }
+
+        userDoc = saveRes;
 
         if (userDoc && userDoc._id) {
           addParentToLocals(res, userDoc._id, user.collection.collectionName, 'makeTrackEdit');
@@ -135,8 +105,8 @@ orderRoutes.post(
     invoiceRelated.billingUserPhoto = (typeof userDoc.profilePic === 'string') ? userDoc.profilePic : (userDoc.profilePic)?.url;
     const done = await paymentMethodDelegator(
       res,
-      paymentRelated,
-      invoiceRelated,
+      paymentRelated as Required<IpaymentRelated>,
+      invoiceRelated as Required<IinvoiceRelated>,
       order.paymentMethod,
       order,
       payment,
@@ -145,7 +115,7 @@ orderRoutes.post(
       bagainCred
     );
 
-    return res.status(done.status).send({ success: done.success, data: done });
+    return res.status(done.status || 403).send({ success: done.success, data: done });
   }
 );
 
@@ -156,7 +126,10 @@ orderRoutes.post(
     order: Iorder; payment: Ipayment;
     bagainCred; paymentRelated: Required<IpaymentRelated>;
     invoiceRelated: Required<IinvoiceRelated>; userObj: Partial<Iuser>; }>, res) => {
-  // const { userId } = req.user;
+    if (!req.user) {
+      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
+    // const { userId } = req.user;
     const { companyId } = req.user;
 
     const { order, payment, bagainCred, paymentRelated, invoiceRelated } = req.body;
@@ -178,7 +151,7 @@ orderRoutes.post(
       'subscription'
     );
 
-    return res.status(done.status).send({ success: done.success, data: done });
+    return res.status(done.status || 403).send({ success: done.success, data: done });
   }
 );
 
@@ -189,6 +162,9 @@ orderRoutes.post(
     order: Iorder; payment: Ipayment;
     paymentRelated: Required<IpaymentRelated>;
     invoiceRelated: Required<IinvoiceRelated>; userObj: Partial<Iuser>; }>, res) => {
+    if (!req.user) {
+      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const { order, paymentRelated, invoiceRelated } = req.body;
     const { companyId } = req.user;
 
@@ -205,47 +181,33 @@ orderRoutes.post(
       companyId
     );
 
-    orderRoutesLogger.debug('Order route - paymentRelatedRes', paymentRelatedRes);
+    mainLogger.debug('Order route - paymentRelatedRes', paymentRelatedRes);
     if (!paymentRelatedRes.success) {
       return res.status(paymentRelatedRes.status || 403).send(paymentRelatedRes);
     }
     order.paymentRelated = paymentRelatedRes._id;
     const invoiceRelatedRes = await relegateInvRelatedCreation(res, invoiceRelated, companyId, extraNotifDesc, true);
 
-    orderRoutesLogger.debug('Order route - invoiceRelatedRes', invoiceRelatedRes);
+    mainLogger.debug('Order route - invoiceRelatedRes', invoiceRelatedRes);
     if (!invoiceRelatedRes.success) {
       return res.status(invoiceRelatedRes.status || 403).send(invoiceRelatedRes);
     }
     order.invoiceRelated = invoiceRelatedRes._id;
 
     const newOrder = new orderMain(order);
-    let errResponse: Isuccess;
-    const saved = await newOrder.save()
-      .catch(err => {
-        orderRoutesLogger.error('create - err: ', err);
-        errResponse = {
-          success: false,
-          status: 403
-        };
-        if (err && err.errors) {
-          errResponse.err = stringifyMongooseErr(err.errors);
-        } else {
-          errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-        }
 
-        return err;
-      });
+    const savedRes = await newOrder.save()
+      .catch((err: Error) => err);
 
-    if (errResponse) {
-      return res.status(403).send(errResponse);
+    if (savedRes instanceof Error) {
+      const errResponse = handleMongooseErr(savedRes);
+
+      return res.status(errResponse.status).send(errResponse);
     }
 
-    if (saved && saved._id) {
-      addParentToLocals(res, saved._id, orderMain.collection.collectionName, 'makeTrackEdit');
-    }
+    addParentToLocals(res, savedRes._id, orderMain.collection.collectionName, 'makeTrackEdit');
 
-    return res.status(200).send({ success: Boolean(saved) });
+    return res.status(200).send({ success: true });
   }
 );
 
@@ -275,8 +237,8 @@ orderRoutes.put(
     }
 
     await updatePaymentRelated(paymentRelated, filter.companyId);
-    let errResponse: Isuccess;
-    const updated = await orderMain.updateOne({
+
+    const updateRes = await orderMain.updateOne({
       _id, filter
     }, {
       $set: {
@@ -284,29 +246,17 @@ orderRoutes.put(
         isDeleted: updatedOrder.isDeleted || order.isDeleted
       }
     })
-      .catch(err => {
-        orderRoutesLogger.error('update - err: ', err);
-        errResponse = {
-          success: false,
-          status: 403
-        };
-        if (err && err.errors) {
-          errResponse.err = stringifyMongooseErr(err.errors);
-        } else {
-          errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-        }
+      .catch((err: Error) => err);
 
-        return errResponse;
-      });
+    if (updateRes instanceof Error) {
+      const errResponse = handleMongooseErr(updateRes);
 
-    if (errResponse) {
-      return res.status(403).send(errResponse);
+      return res.status(errResponse.status).send(errResponse);
     }
 
     addParentToLocals(res, _id, orderMain.collection.collectionName, 'makeTrackEdit');
 
-    return res.status(200).send({ success: Boolean(updated) });
+    return res.status(200).send({ success: true });
   }
 );
 
@@ -377,6 +327,9 @@ orderRoutes.get(
   '/getmyorders/:offset/:limit',
   requireAuth,
   async(req: IcustomRequest<never, null>, res) => {
+    if (!req.user) {
+      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const { userId } = req.user;
     const isValid = verifyObjectId(userId);
 
@@ -429,12 +382,12 @@ orderRoutes.put(
     );
 
     // await orderMain.findByIdAndDelete(id);
-    if (Boolean(deleted)) {
+    if (deleted?.success) {
       addParentToLocals(res, _id, orderMain.collection.collectionName, 'trackDataDelete');
 
-      return res.status(200).send({ success: Boolean(deleted) });
+      return res.status(200).send({ success: true });
     } else {
-      return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
+      return res.status(405).send({ success: false, err: 'could not find item to remove' });
     }
   }
 );
@@ -461,31 +414,20 @@ orderRoutes.put(
     if (!order) {
       return res.status(404).send({ success: false });
     }
-    let errResponse: Isuccess;
 
-    await orderMain.updateOne({
+
+    const updateRes = await orderMain.updateOne({
       _id: orderId, ...filter
     }, {
       $set: {
 
       }
-    }).catch(err => {
-      errResponse = {
-        success: false,
-        status: 403
-      };
-      if (err && err.errors) {
-        errResponse.err = stringifyMongooseErr(err.errors);
-      } else {
-        errResponse.err = `we are having problems connecting to our databases, 
-      try again in a while`;
-      }
+    }).catch((err: Error) => err);
 
-      return errResponse;
-    });
+    if (updateRes instanceof Error) {
+      const errResponse = handleMongooseErr(updateRes);
 
-    if (errResponse) {
-      return res.status(403).send(errResponse);
+      return res.status(errResponse.status).send(errResponse);
     }
 
     addParentToLocals(res, order._id, orderMain.collection.collectionName, 'makeTrackEdit');
@@ -500,12 +442,12 @@ orderRoutes.post(
   requireActiveCompany,
   roleAuthorisation('orders', 'read'),
   async(req: IcustomRequest<never, IfilterProps>, res) => {
-    const { propSort } = req.body;
+    const { propSort, returnEmptyArr } = req.body;
     const { offset, limit } = offsetLimitRelegator(req.body.offset, req.body.limit);
 
     const aggCursor = orderLean
       .aggregate<IfilterAggResponse<Torder>>([
-        ...lookupSubFieldInvoiceRelatedFilter(constructFiltersFromBody(req), propSort, offset, limit)
+        ...lookupSubFieldInvoiceRelatedFilter(constructFiltersFromBody(req), offset, limit, propSort, returnEmptyArr)
       ]);
     const dataArr: IfilterAggResponse<Torder>[] = [];
 
@@ -559,12 +501,12 @@ orderRoutes.put(
           );
         }
 
-        return new Promise(resolve => resolve(found._id));
+        return new Promise(resolve => resolve(found?._id));
       });
 
     const filterdExist = await Promise.all(promises) as string[];
 
-    for (const val of filterdExist) {
+    for (const val of filterdExist.filter(value => value)) {
       addParentToLocals(res, val, orderMain.collection.collectionName, 'trackDataDelete');
     }
 

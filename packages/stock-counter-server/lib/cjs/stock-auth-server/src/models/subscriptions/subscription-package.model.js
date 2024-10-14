@@ -3,7 +3,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createSubscriptionPackageModel = exports.subscriptionPackageSelect = exports.subscriptionPackageLean = exports.subscriptionPackageMain = void 0;
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const mongoose_1 = require("mongoose");
-const database_1 = require("../../utils/database");
 const uniqueValidator = require('mongoose-unique-validator');
 /** subscription package schema */
 const subscriptionPackageSchema = new mongoose_1.Schema({
@@ -38,15 +37,15 @@ exports.subscriptionPackageSelect = subscriptionPackageselect;
  */
 const createSubscriptionPackageModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     (0, stock_universal_server_1.createExpireDocIndex)(subscriptionPackageSchema);
-    if (!database_1.isAuthDbConnected) {
-        await (0, database_1.connectAuthDatabase)(dbUrl, dbOptions);
+    if (!stock_universal_server_1.isDbConnected) {
+        await (0, stock_universal_server_1.connectDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.subscriptionPackageMain = database_1.mainConnection
+        exports.subscriptionPackageMain = stock_universal_server_1.mainConnection
             .model('SubscriptionPackage', subscriptionPackageSchema);
     }
     if (lean) {
-        exports.subscriptionPackageLean = database_1.mainConnectionLean
+        exports.subscriptionPackageLean = stock_universal_server_1.mainConnectionLean
             .model('SubscriptionPackage', subscriptionPackageSchema);
     }
 };

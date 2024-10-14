@@ -1,8 +1,8 @@
+import { connectDatabase, isDbConnected, mainConnection, mainConnectionLean } from '@open-stock/stock-universal-server';
 import { Schema } from 'mongoose';
-import { connectAuthDatabase, isAuthDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 const emailtokenSchema = new Schema({
-    userId: { type: String },
+    userId: { type: Schema.Types.ObjectId },
     token: { type: String, unique: true }
 }, { timestamps: true, collection: 'emailtokens' });
 // Apply the uniqueValidator plugin to emailtokenSchema.
@@ -23,8 +23,8 @@ export let emailtokenLean;
  * @param lean Whether to create the lean email token model.
  */
 export const createEmailtokenModel = async (dbUrl, dbOptions, main = true, lean = true) => {
-    if (!isAuthDbConnected) {
-        await connectAuthDatabase(dbUrl, dbOptions);
+    if (!isDbConnected) {
+        await connectDatabase(dbUrl, dbOptions);
     }
     if (main) {
         emailtoken = mainConnection

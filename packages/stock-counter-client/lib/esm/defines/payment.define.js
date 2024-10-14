@@ -19,6 +19,7 @@ export class PaymentRelated extends InvoiceRelatedWithReceipt {
         this.manuallyAdded = data.manuallyAdded;
         this.status = data.status;
         this.paymentMethod = data.paymentMethod;
+        this.orderDeliveryCode = data.orderDeliveryCode;
     }
 }
 export class Payment extends PaymentRelated {
@@ -49,15 +50,15 @@ export class Payment extends PaymentRelated {
             payments: payments.data.map(val => new Payment(val))
         };
     }
-    static async getOne(_id) {
+    static async getOne(id) {
         const observer$ = StockCounterClient.ehttp
-            .makeGet(`/payment/one/${_id}`);
+            .makeGet(`/payment/one/${id}`);
         const payment = await lastValueFrom(observer$);
         return new Payment(payment);
     }
-    static removeMany(credentials) {
+    static removeMany(vals) {
         const observer$ = StockCounterClient.ehttp
-            .makePut('/payment/delete/many', { credentials });
+            .makePut('/payment/delete/many', vals);
         return lastValueFrom(observer$);
     }
     update(vals) {

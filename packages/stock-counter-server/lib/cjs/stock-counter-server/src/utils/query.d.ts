@@ -44,10 +44,10 @@ export declare const populatePayments: () => {
     model: import("mongoose").Model<import("../models/printables/receipt.model").Treceipt, {}, {}, {}, import("mongoose").Document<unknown, {}, import("../models/printables/receipt.model").Treceipt> & import("mongoose").Document<any, any, any> & import("@open-stock/stock-universal").IinvoiceRelatedRef & {
         ammountRcievd: number;
         paymentMode: string;
-        type: string;
+        type: import("@open-stock/stock-universal").TreceiptType;
         date: Date;
         amount: number;
-    } & {
+    } & import("@open-stock/stock-universal-server").IcompanyIdAsObjectId & {
         _id: import("mongoose").Types.ObjectId;
     }, any>;
 };
@@ -61,7 +61,7 @@ export declare const populatePayments: () => {
    */
 export declare const populateInvoiceRelated: (returnItemPhotos?: boolean) => {
     path: string;
-    model: import("mongoose").Model<import("../models/printables/related/invoicerelated.model").TinvoiceRelated, {}, {}, {}, import("mongoose").Document<unknown, {}, import("../models/printables/related/invoicerelated.model").TinvoiceRelated> & import("mongoose").Document<any, any, any> & import("@open-stock/stock-universal").IinvoiceRelated & {
+    model: import("mongoose").Model<import("../models/printables/related/invoicerelated.model").TinvoiceRelated, {}, {}, {}, import("mongoose").Document<unknown, {}, import("../models/printables/related/invoicerelated.model").TinvoiceRelated> & import("mongoose").Document<any, any, any> & import("@open-stock/stock-universal").IinvoiceRelated & import("@open-stock/stock-universal-server").IcompanyIdAsObjectId & {
         _id: import("mongoose").Types.ObjectId;
     }, any>;
     populate: ({
@@ -75,23 +75,27 @@ export declare const populateInvoiceRelated: (returnItemPhotos?: boolean) => {
         model: import("mongoose").Model<import("../models/printables/receipt.model").Treceipt, {}, {}, {}, import("mongoose").Document<unknown, {}, import("../models/printables/receipt.model").Treceipt> & import("mongoose").Document<any, any, any> & import("@open-stock/stock-universal").IinvoiceRelatedRef & {
             ammountRcievd: number;
             paymentMode: string;
-            type: string;
+            type: import("@open-stock/stock-universal").TreceiptType;
             date: Date;
             amount: number;
-        } & {
+        } & import("@open-stock/stock-universal-server").IcompanyIdAsObjectId & {
             _id: import("mongoose").Types.ObjectId;
         }, any>;
         populate?: undefined;
     } | {
         path: string;
-        model: import("mongoose").Model<import("@open-stock/stock-universal").Iitem, {}, {}, {}, import("mongoose").Document<unknown, {}, import("@open-stock/stock-universal").Iitem> & import("@open-stock/stock-universal").Iitem & Required<{
-            _id: string;
-        }>, any>;
+        model: import("mongoose").Model<import("../models/item.model").Titem, {}, {}, {}, import("mongoose").Document<unknown, {}, import("../models/item.model").Titem> & import("mongoose").Document<any, any, any> & import("@open-stock/stock-universal").Iitem & import("@open-stock/stock-universal-server").IcompanyIdAsObjectId & {
+            model: string;
+        } & {
+            _id: import("mongoose").Types.ObjectId;
+        }, any>;
         populate: {
             path: string;
-            model: import("mongoose").Model<import("@open-stock/stock-universal").IfileMeta, {}, {}, {}, import("mongoose").Document<unknown, {}, import("@open-stock/stock-universal").IfileMeta> & import("@open-stock/stock-universal").IfileMeta & Required<{
-                _id: string;
-            }>, any>;
+            model: import("mongoose").Model<import("@open-stock/stock-universal-server").TfileMeta, {}, {}, {}, import("mongoose").Document<unknown, {}, import("@open-stock/stock-universal-server").TfileMeta> & import("mongoose").Document<any, any, any> & import("@open-stock/stock-universal").IfileMeta & {
+                expireDocAfter: Date;
+            } & {
+                _id: import("mongoose").Types.ObjectId;
+            }, any>;
             transform: (doc: any) => {
                 _id: any;
                 url: any;
@@ -106,7 +110,7 @@ export declare const populateInvoiceRelated: (returnItemPhotos?: boolean) => {
  */
 export declare const populateExpenses: () => {
     path: string;
-    model: import("mongoose").Model<import("../models/expense.model").Texpense, {}, {}, {}, import("mongoose").Document<unknown, {}, import("../models/expense.model").Texpense> & import("mongoose").Document<any, any, any> & import("@open-stock/stock-universal").Iexpense & {
+    model: import("mongoose").Model<import("../models/expense.model").Texpense, {}, {}, {}, import("mongoose").Document<unknown, {}, import("../models/expense.model").Texpense> & import("mongoose").Document<any, any, any> & import("@open-stock/stock-universal").Iexpense & import("@open-stock/stock-universal-server").IcompanyIdAsObjectId & {
         _id: import("mongoose").Types.ObjectId;
     }, any>;
 };
@@ -117,7 +121,7 @@ export declare const populateExpenses: () => {
  */
 export declare const populateEstimates: () => {
     path: string;
-    model: import("mongoose").Model<import("../models/printables/estimate.model").Testimate, {}, {}, {}, import("mongoose").Document<unknown, {}, import("../models/printables/estimate.model").Testimate> & import("mongoose").Document<any, any, any> & import("@open-stock/stock-universal").IinvoiceRelatedRef & {
+    model: import("mongoose").Model<import("../models/printables/estimate.model").Testimate, {}, {}, {}, import("mongoose").Document<unknown, {}, import("../models/printables/estimate.model").Testimate> & import("mongoose").Document<any, any, any> & import("@open-stock/stock-universal").IinvoiceRelatedRef & import("@open-stock/stock-universal-server").IcompanyIdAsObjectId & {
         _id: import("mongoose").Types.ObjectId;
     }, any>;
 };
@@ -129,9 +133,11 @@ export declare const populateEstimates: () => {
  */
 export declare const populateSignature: () => {
     path: string;
-    model: import("mongoose").Model<import("@open-stock/stock-universal").IfileMeta, {}, {}, {}, import("mongoose").Document<unknown, {}, import("@open-stock/stock-universal").IfileMeta> & import("@open-stock/stock-universal").IfileMeta & Required<{
-        _id: string;
-    }>, any>;
+    model: import("mongoose").Model<import("@open-stock/stock-universal-server").TfileMeta, {}, {}, {}, import("mongoose").Document<unknown, {}, import("@open-stock/stock-universal-server").TfileMeta> & import("mongoose").Document<any, any, any> & import("@open-stock/stock-universal").IfileMeta & {
+        expireDocAfter: Date;
+    } & {
+        _id: import("mongoose").Types.ObjectId;
+    }, any>;
     transform: (doc: any) => {
         _id: any;
         url: any;
@@ -145,9 +151,11 @@ export declare const populateSignature: () => {
  */
 export declare const populateStamp: () => {
     path: string;
-    model: import("mongoose").Model<import("@open-stock/stock-universal").IfileMeta, {}, {}, {}, import("mongoose").Document<unknown, {}, import("@open-stock/stock-universal").IfileMeta> & import("@open-stock/stock-universal").IfileMeta & Required<{
-        _id: string;
-    }>, any>;
+    model: import("mongoose").Model<import("@open-stock/stock-universal-server").TfileMeta, {}, {}, {}, import("mongoose").Document<unknown, {}, import("@open-stock/stock-universal-server").TfileMeta> & import("mongoose").Document<any, any, any> & import("@open-stock/stock-universal").IfileMeta & {
+        expireDocAfter: Date;
+    } & {
+        _id: import("mongoose").Types.ObjectId;
+    }, any>;
     transform: (doc: any) => {
         _id: any;
         url: any;
@@ -166,9 +174,11 @@ export declare const populateUser: () => {
     }, any>;
     populate: {
         path: string;
-        model: import("mongoose").Model<import("@open-stock/stock-universal").IfileMeta, {}, {}, {}, import("mongoose").Document<unknown, {}, import("@open-stock/stock-universal").IfileMeta> & import("@open-stock/stock-universal").IfileMeta & Required<{
-            _id: string;
-        }>, any>;
+        model: import("mongoose").Model<import("@open-stock/stock-universal-server").TfileMeta, {}, {}, {}, import("mongoose").Document<unknown, {}, import("@open-stock/stock-universal-server").TfileMeta> & import("mongoose").Document<any, any, any> & import("@open-stock/stock-universal").IfileMeta & {
+            expireDocAfter: Date;
+        } & {
+            _id: import("mongoose").Types.ObjectId;
+        }, any>;
         transform: (doc: any) => {
             _id: any;
             url: any;
@@ -183,14 +193,18 @@ export declare const populateUser: () => {
    */
 export declare const populateItems: () => {
     path: string;
-    model: import("mongoose").Model<import("@open-stock/stock-universal").Iitem, {}, {}, {}, import("mongoose").Document<unknown, {}, import("@open-stock/stock-universal").Iitem> & import("@open-stock/stock-universal").Iitem & Required<{
-        _id: string;
-    }>, any>;
+    model: import("mongoose").Model<import("../models/item.model").Titem, {}, {}, {}, import("mongoose").Document<unknown, {}, import("../models/item.model").Titem> & import("mongoose").Document<any, any, any> & import("@open-stock/stock-universal").Iitem & import("@open-stock/stock-universal-server").IcompanyIdAsObjectId & {
+        model: string;
+    } & {
+        _id: import("mongoose").Types.ObjectId;
+    }, any>;
     populate: {
         path: string;
-        model: import("mongoose").Model<import("@open-stock/stock-universal").IfileMeta, {}, {}, {}, import("mongoose").Document<unknown, {}, import("@open-stock/stock-universal").IfileMeta> & import("@open-stock/stock-universal").IfileMeta & Required<{
-            _id: string;
-        }>, any>;
+        model: import("mongoose").Model<import("@open-stock/stock-universal-server").TfileMeta, {}, {}, {}, import("mongoose").Document<unknown, {}, import("@open-stock/stock-universal-server").TfileMeta> & import("mongoose").Document<any, any, any> & import("@open-stock/stock-universal").IfileMeta & {
+            expireDocAfter: Date;
+        } & {
+            _id: import("mongoose").Types.ObjectId;
+        }, any>;
         transform: (doc: any) => {
             _id: any;
             url: any;
@@ -205,14 +219,18 @@ export declare const populateItems: () => {
    */
 export declare const populatePaymentRelated: () => {
     path: string;
-    model: import("mongoose").Model<import("@open-stock/stock-universal").Iitem, {}, {}, {}, import("mongoose").Document<unknown, {}, import("@open-stock/stock-universal").Iitem> & import("@open-stock/stock-universal").Iitem & Required<{
-        _id: string;
-    }>, any>;
+    model: import("mongoose").Model<import("../models/item.model").Titem, {}, {}, {}, import("mongoose").Document<unknown, {}, import("../models/item.model").Titem> & import("mongoose").Document<any, any, any> & import("@open-stock/stock-universal").Iitem & import("@open-stock/stock-universal-server").IcompanyIdAsObjectId & {
+        model: string;
+    } & {
+        _id: import("mongoose").Types.ObjectId;
+    }, any>;
     populate: ({
         path: string;
-        model: import("mongoose").Model<import("@open-stock/stock-universal").Iitem, {}, {}, {}, import("mongoose").Document<unknown, {}, import("@open-stock/stock-universal").Iitem> & import("@open-stock/stock-universal").Iitem & Required<{
-            _id: string;
-        }>, any>;
+        model: import("mongoose").Model<import("../models/item.model").Titem, {}, {}, {}, import("mongoose").Document<unknown, {}, import("../models/item.model").Titem> & import("mongoose").Document<any, any, any> & import("@open-stock/stock-universal").Iitem & import("@open-stock/stock-universal-server").IcompanyIdAsObjectId & {
+            model: string;
+        } & {
+            _id: import("mongoose").Types.ObjectId;
+        }, any>;
         select?: undefined;
     } | {
         path: string;

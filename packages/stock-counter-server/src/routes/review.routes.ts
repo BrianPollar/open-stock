@@ -1,51 +1,28 @@
 import {
-  constructFiltersFromBody, lookupLimit, lookupOffset, lookupSort,
-  lookupTrackEdit, lookupTrackView, makePredomFilter, requireAuth, roleAuthorisation
+  addParentToLocals,
+  constructFiltersFromBody,
+  handleMongooseErr,
+  lookupTrackEdit,
+  lookupTrackView,
+  makePredomFilter,
+  requireAuth,
+  roleAuthorisation,
+  verifyObjectId
 } from '@open-stock/stock-universal-server';
 
 import { requireActiveCompany } from '@open-stock/stock-auth-server';
 import {
-  IcustomRequest, IdataArrayResponse, IfilterAggResponse, IfilterProps, IreviewMain, Isuccess
+  IcustomRequest, IdataArrayResponse, IfilterAggResponse, IfilterProps, IreviewMain
 } from '@open-stock/stock-universal';
 import {
-  addParentToLocals,
   generateUrId,
-  offsetLimitRelegator, stringifyMongooseErr
+  lookupFacet,
+  offsetLimitRelegator
 } from '@open-stock/stock-universal-server';
 import express from 'express';
-import * as fs from 'fs';
-import path from 'path';
-import * as tracer from 'tracer';
 import { Treview, reviewLean, reviewMain } from '../models/review.model';
 import { addReview, removeReview } from './item.routes';
 
-/**
- * Logger for review routes
- */
-const reviewRoutesLogger = tracer.colorConsole({
-  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-  dateformat: 'HH:MM:ss.L',
-  transport(data) {
-    // eslint-disable-next-line no-console
-    console.log(data.output);
-    const logDir = path.join(process.cwd() + '/openstockLog/');
-
-    fs.mkdir(logDir, { recursive: true }, (err) => {
-      if (err) {
-        if (err) {
-          // eslint-disable-next-line no-console
-          console.log('data.output err ', err);
-        }
-      }
-    });
-    fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
-      if (err) {
-        // eslint-disable-next-line no-console
-        console.log('raw.output err ', err);
-      }
-    });
-  }
-});
 
 /**
  * Express router for review routes
@@ -59,40 +36,28 @@ reviewRoutes.post('/add', async(req: IcustomRequest<never, IreviewMain>, res, ne
 
   review.urId = await generateUrId(reviewMain);
   const newReview = new reviewMain(review);
-  let errResponse: Isuccess;
 
-  const saved = await newReview.save()
-    .catch(err => {
-      reviewRoutesLogger.error('create - err: ', err);
-      errResponse = {
-        success: false,
-        status: 403
-      };
-      if (err && err.errors) {
-        errResponse.err = stringifyMongooseErr(err.errors);
-      } else {
-        errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-      }
 
-      return err;
-    });
+  const savedRes = await newReview.save()
+    .catch((err: Error) => err);
 
-  if (errResponse) {
-    return res.status(403).send(errResponse);
+  if (savedRes instanceof Error) {
+    const errResponse = handleMongooseErr(savedRes);
+
+    return res.status(errResponse.status).send(errResponse);
   }
 
-  if (saved && saved._id) {
-    addParentToLocals(res, saved._id, reviewMain.collection.collectionName, 'makeTrackEdit');
-  }
+  addParentToLocals(res, savedRes._id, reviewMain.collection.collectionName, 'makeTrackEdit');
 
   return next();
 }, addReview);
 
-reviewRoutes.get('/one/:_id', async(req: IcustomRequest<{ _id: string }, null>, res) => {
-  const { _id } = req.params;
+reviewRoutes.get('/one/:urIdOr_id', async(req: IcustomRequest<{ urIdOr_id: string }, null>, res) => {
+  const { urIdOr_id } = req.params;
+  const filterwithId = verifyObjectId(urIdOr_id) ? { _id: urIdOr_id } : { urId: urIdOr_id };
+
   const review = await reviewLean
-    .findOne({ _id, ...makePredomFilter(req) })
+    .findOne({ ...filterwithId, ...makePredomFilter(req) })
     .lean();
 
   if (!review) {
@@ -135,7 +100,7 @@ reviewRoutes.post(
   requireActiveCompany,
   roleAuthorisation('items', 'read'),
   async(req: IcustomRequest<never, IfilterProps>, res) => {
-    const { propSort } = req.body;
+    const { propSort, returnEmptyArr } = req.body;
     const { offset, limit } = offsetLimitRelegator(req.body.offset, req.body.limit);
     const filter = constructFiltersFromBody(req);
 
@@ -150,18 +115,7 @@ reviewRoutes.post(
       },
       ...lookupTrackEdit(),
       ...lookupTrackView(),
-      {
-        $facet: {
-          data: [...lookupSort(propSort), ...lookupOffset(offset), ...lookupLimit(limit)],
-          total: [{ $count: 'count' }]
-        }
-      },
-      {
-        $unwind: {
-          path: '$total',
-          preserveNullAndEmptyArrays: true
-        }
-      }
+      ...lookupFacet(offset, limit, propSort, returnEmptyArr)
     ]);
     const dataArr: IfilterAggResponse<Treview>[] = [];
 
@@ -201,15 +155,18 @@ reviewRoutes.delete(
     const { _id } = req.params;
 
     // const deleted = await reviewMain.findOneAndDelete({ _id });
-    const deleted = await reviewMain.updateOne({ _id }, { $set: { isDeleted: true } });
+    const updateRes = await reviewMain.updateOne({ _id }, { $set: { isDeleted: true } })
+      .catch((err: Error) => err);
 
-    if (Boolean(deleted)) {
-      addParentToLocals(res, _id, reviewMain.collection.collectionName, 'trackDataDelete');
+    if (updateRes instanceof Error) {
+      const errResponse = handleMongooseErr(updateRes);
 
-      return next();
-    } else {
-      return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
+      return res.status(errResponse.status).send(errResponse);
     }
+
+    addParentToLocals(res, _id, reviewMain.collection.collectionName, 'trackDataDelete');
+
+    return next();
   },
   removeReview
 );

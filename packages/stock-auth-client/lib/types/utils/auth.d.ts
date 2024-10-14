@@ -8,7 +8,7 @@ export declare class AuthController {
      * It makes a GET request to the '/user/authexpress' endpoint and returns the response.
      * @returns A promise that resolves to the response from the server.
      */
-    authenticateJwt(): Promise<void>;
+    authenticateJwt(): Promise<Iauthresponse>;
     googleLogin(): Promise<Iauthresponse>;
     facebookLogin(): Promise<Iauthresponse>;
     login<T = 'eUser'>(userInfo: {
@@ -41,13 +41,4 @@ export declare class AuthController {
         verificationMean?: 'link' | 'code';
         password?: string;
     }): Promise<Iauthresponse>;
-    /**
-     * The socialLogin() method is used for social login.
-     * It takes a userInfo object containing the social login information.
-     * It makes a POST request to the '/user/sociallogin' endpoint with the social login details and
-     * returns the response as a promise of type Iauthresponse.
-     * @param userInfo An object containing the social login information.
-     * @returns A promise that resolves to the response from the server.
-     */
-    socialLogin(userInfo: any): Promise<Iauthresponse>;
 }

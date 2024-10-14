@@ -1,36 +1,10 @@
 import { populateTrackEdit, populateTrackView, requireActiveCompany, requireCanUseFeature, requireUpdateSubscriptionRecord } from '@open-stock/stock-auth-server';
-import { addParentToLocals, appendUserToReqIfTokenExist, constructFiltersFromBody, generateUrId, lookupSubFieldItemsRelatedFilter, makeCompanyBasedQuery, makePredomFilter, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectId, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { addParentToLocals, appendUserToReqIfTokenExist, constructFiltersFromBody, generateUrId, handleMongooseErr, lookupSubFieldItemsRelatedFilter, makeCompanyBasedQuery, makePredomFilter, offsetLimitRelegator, requireAuth, roleAuthorisation, verifyObjectId } from '@open-stock/stock-universal-server';
 import express from 'express';
-import * as fs from 'fs';
-import path from 'path';
-import * as tracer from 'tracer';
+import { Error } from 'mongoose';
 import { itemLean } from '../models/item.model';
 import { itemDecoyLean, itemDecoyMain } from '../models/itemdecoy.model';
 import { populateItems } from '../utils/query';
-/** Logger for item decoy routes */
-const itemDecoyRoutesLogger = tracer.colorConsole({
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-        // eslint-disable-next-line no-console
-        console.log(data.output);
-        const logDir = path.join(process.cwd() + '/openstockLog/');
-        fs.mkdir(logDir, { recursive: true }, (err) => {
-            if (err) {
-                if (err) {
-                    // eslint-disable-next-line no-console
-                    console.log('data.output err ', err);
-                }
-            }
-        });
-        fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
-            if (err) {
-                // eslint-disable-next-line no-console
-                console.log('raw.output err ', err);
-            }
-        });
-    }
-});
 /**
  * Router for item decoy routes.
  */
@@ -83,32 +57,13 @@ itemDecoyRoutes.post('/add/:how', requireAuth, requireActiveCompany, requireCanU
     }
     // Save the new decoy to the database
     const newDecoy = new itemDecoyMain(decoy);
-    let errResponse;
-    const saved = await newDecoy.save()
-        .catch(err => {
-        itemDecoyRoutesLogger.error('create - err: ', err);
-        errResponse = {
-            success: false,
-            status: 403
-        };
-        if (err && err.errors) {
-            errResponse.err = stringifyMongooseErr(err.errors);
-        }
-        else {
-            errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-        }
-        return err;
-    });
-    if (errResponse) {
-        return res.status(403).send(errResponse);
+    const savedRes = await newDecoy.save()
+        .catch((err) => err);
+    if (savedRes instanceof Error) {
+        const errResponse = handleMongooseErr(savedRes);
+        return res.status(errResponse.status).send(errResponse);
     }
-    if (saved && saved._id) {
-        addParentToLocals(res, saved._id, itemDecoyMain.collection.collectionName, 'makeTrackEdit');
-    }
-    if (!Boolean(saved)) {
-        return res.status(403).send('unknown error');
-    }
+    addParentToLocals(res, savedRes._id, itemDecoyMain.collection.collectionName, 'makeTrackEdit');
     return next();
 }, requireUpdateSubscriptionRecord('decoy'));
 itemDecoyRoutes.get('/all/:offset/:limit', appendUserToReqIfTokenExist, async (req, res) => {
@@ -133,11 +88,11 @@ itemDecoyRoutes.get('/all/:offset/:limit', appendUserToReqIfTokenExist, async (r
     return res.status(200).send(response);
 });
 itemDecoyRoutes.post('/filter', requireAuth, requireActiveCompany, roleAuthorisation('decoys', 'read'), async (req, res) => {
-    const { propSort } = req.body;
+    const { propSort, returnEmptyArr } = req.body;
     const { offset, limit } = offsetLimitRelegator(req.body.offset, req.body.limit);
     const aggCursor = itemDecoyLean
         .aggregate([
-        ...lookupSubFieldItemsRelatedFilter(constructFiltersFromBody(req), propSort, offset, limit)
+        ...lookupSubFieldItemsRelatedFilter(constructFiltersFromBody(req), offset, limit, propSort, returnEmptyArr)
     ]);
     const dataArr = [];
     for await (const data of aggCursor) {
@@ -154,15 +109,11 @@ itemDecoyRoutes.post('/filter', requireAuth, requireActiveCompany, roleAuthorisa
     }
     return res.status(200).send(response);
 });
-itemDecoyRoutes.get('/one/:_id', appendUserToReqIfTokenExist, async (req, res) => {
-    const { _id } = req.params;
-    const _ids = [_id];
-    const isValid = verifyObjectIds(_ids);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+itemDecoyRoutes.get('/one/:urIdOr_id', appendUserToReqIfTokenExist, async (req, res) => {
+    const { urIdOr_id } = req.params;
+    const filterwithId = verifyObjectId(urIdOr_id) ? { _id: urIdOr_id } : { urId: urIdOr_id };
     const decoy = await itemDecoyLean
-        .findOne({ _id, ...makePredomFilter(req) })
+        .findOne({ ...filterwithId, ...makePredomFilter(req) })
         .populate([populateItems(), populateTrackEdit(), populateTrackView()])
         .lean();
     if (!decoy) {
@@ -175,43 +126,30 @@ itemDecoyRoutes.delete('/delete/one/:_id', requireAuth, requireActiveCompany, ro
     const { _id } = req.params;
     const { filter } = makeCompanyBasedQuery(req);
     // const deleted = await itemDecoyMain.findOneAndDelete({ _id, });
-    const deleted = await itemDecoyMain.updateOne({ _id, ...filter }, { $set: { isDeleted: true } });
-    if (Boolean(deleted)) {
-        addParentToLocals(res, _id, itemDecoyMain.collection.collectionName, 'trackDataDelete');
-        return res.status(200).send({ success: Boolean(deleted) });
+    const updateRes = await itemDecoyMain.updateOne({ _id, ...filter }, { $set: { isDeleted: true } })
+        .catch((err) => err);
+    if (updateRes instanceof Error) {
+        const errResponse = handleMongooseErr(updateRes);
+        return res.status(errResponse.status).send(errResponse);
     }
-    else {
-        return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
-    }
+    addParentToLocals(res, _id, itemDecoyMain.collection.collectionName, 'trackDataDelete');
+    return res.status(200).send({ success: true });
 });
 itemDecoyRoutes.put('/delete/many', requireAuth, requireActiveCompany, roleAuthorisation('decoys', 'delete'), async (req, res) => {
     const { _ids } = req.body;
     const { filter } = makeCompanyBasedQuery(req);
-    /* const deleted = await itemDecoyMain
-    .deleteMany({ _id: { $in: _ids }, })
-    .catch(err => {
-      itemDecoyRoutesLogger.error('deletemany - err: ', err);
-
-      return null;
-    }); */
-    const deleted = await itemDecoyMain
+    const updateRes = await itemDecoyMain
         .updateMany({ _id: { $in: _ids }, ...filter }, {
         $set: { isDeleted: true }
     })
-        .catch(err => {
-        itemDecoyRoutesLogger.error('deletemany - err: ', err);
-        return null;
-    });
-    if (Boolean(deleted)) {
-        for (const val of _ids) {
-            addParentToLocals(res, val, itemDecoyMain.collection.collectionName, 'trackDataDelete');
-        }
-        return res.status(200).send({ success: Boolean(deleted) });
+        .catch((err) => err);
+    if (updateRes instanceof Error) {
+        const errResponse = handleMongooseErr(updateRes);
+        return res.status(errResponse.status).send(errResponse);
     }
-    else {
-        return res.status(404).send({
-            success: Boolean(deleted), err: 'could not delete selected items, try again in a while'
-        });
+    for (const val of _ids) {
+        addParentToLocals(res, val, itemDecoyMain.collection.collectionName, 'trackDataDelete');
     }
+    return res.status(200).send({ success: true });
 });
 //# sourceMappingURL=itemdecoy.routes.js.map

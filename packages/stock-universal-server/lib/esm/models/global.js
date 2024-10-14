@@ -9,7 +9,7 @@ export const globalSchemaObj = {
 };
 export const withCompanySchemaObj = {
     ...globalSchemaObj,
-    companyId: { type: Schema.ObjectId, index: true }
+    companyId: { type: Schema.Types.ObjectId, index: true }
 };
 export const withUrIdAndCompanySchemaObj = {
     ...withCompanySchemaObj,

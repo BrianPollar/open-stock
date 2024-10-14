@@ -5,35 +5,9 @@ const tslib_1 = require("tslib");
 const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
-const fs = tslib_1.__importStar(require("fs"));
-const path_1 = tslib_1.__importDefault(require("path"));
-const tracer = tslib_1.__importStar(require("tracer"));
+const mongoose_1 = require("mongoose");
 const faq_model_1 = require("../models/faq.model");
 const faqanswer_model_1 = require("../models/faqanswer.model");
-/** Logger for faqRoutes */
-const faqRoutesLogger = tracer.colorConsole({
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-        // eslint-disable-next-line no-console
-        console.log(data.output);
-        const logDir = path_1.default.join(process.cwd() + '/openstockLog/');
-        fs.mkdir(logDir, { recursive: true }, (err) => {
-            if (err) {
-                if (err) {
-                    // eslint-disable-next-line no-console
-                    console.log('data.output err ', err);
-                }
-            }
-        });
-        fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
-            if (err) {
-                // eslint-disable-next-line no-console
-                console.log('raw.output err ', err);
-            }
-        });
-    }
-});
 /**
  * Router for FAQ routes.
  */
@@ -42,42 +16,21 @@ exports.faqRoutes.post('/add', async (req, res) => {
     const faq = req.body;
     faq.urId = await (0, stock_universal_server_1.generateUrId)(faq_model_1.faqMain);
     const newFaq = new faq_model_1.faqMain(faq);
-    let errResponse;
-    const saved = await newFaq.save()
-        .catch(err => {
-        faqRoutesLogger.error('create - err: ', err);
-        errResponse = {
-            success: false,
-            status: 403
-        };
-        if (err && err.errors) {
-            errResponse.err = (0, stock_universal_server_1.stringifyMongooseErr)(err.errors);
-        }
-        else {
-            errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-        }
-        return err;
-    });
-    if (errResponse) {
-        return res.status(403).send(errResponse);
+    const savedRes = await newFaq.save()
+        .catch((err) => err);
+    if (savedRes instanceof mongoose_1.Error) {
+        const errResponse = (0, stock_universal_server_1.handleMongooseErr)(savedRes);
+        return res.status(errResponse.status).send(errResponse);
     }
-    if (saved && saved._id) {
-        (0, stock_universal_server_1.addParentToLocals)(res, saved._id, faq_model_1.faqMain.collection.collectionName, 'makeTrackEdit');
-    }
-    return res.status(200).send({ success: Boolean(saved) });
+    (0, stock_universal_server_1.addParentToLocals)(res, savedRes._id, faq_model_1.faqMain.collection.collectionName, 'makeTrackEdit');
+    return res.status(200).send({ success: true });
 });
-exports.faqRoutes.get('/one/:_id', async (req, res) => {
-    const { _id } = req.params;
+exports.faqRoutes.get('/one/:urIdOr_id', async (req, res) => {
+    const { urIdOr_id } = req.params;
     // const { companyId } = req.user;
-    const _ids = [_id];
-    const filter = { _id };
-    const isValid = (0, stock_universal_server_1.verifyObjectIds)(_ids);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+    const filterwithId = (0, stock_universal_server_1.verifyObjectId)(urIdOr_id) ? { _id: urIdOr_id } : { urId: urIdOr_id };
     const faq = await faq_model_1.faqLean
-        .findOne({ ...filter, ...(0, stock_universal_server_1.makePredomFilter)(req) })
+        .findOne({ ...filterwithId, ...(0, stock_universal_server_1.makePredomFilter)(req) })
         .lean();
     if (!faq) {
         return res.status(404).send({ success: false, err: 'not found' });
@@ -105,11 +58,22 @@ exports.faqRoutes.get('/all/:offset/:limit', async (req, res) => {
     return res.status(200).send(response);
 });
 exports.faqRoutes.post('/filter', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('receipts', 'read'), async (req, res) => {
-    const { propSort } = req.body;
+    const { propSort, returnEmptyArr } = req.body;
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.body.offset, req.body.limit);
+    const filter = (0, stock_universal_server_1.constructFiltersFromBody)(req);
     const aggCursor = faq_model_1.faqLean
         .aggregate([
-        ...(0, stock_universal_server_1.lookupSubFieldInvoiceRelatedFilter)((0, stock_universal_server_1.constructFiltersFromBody)(req), propSort, offset, limit)
+        {
+            $match: {
+                $and: [
+                    // { status: 'pending' },
+                    ...filter
+                ]
+            }
+        },
+        ...(0, stock_universal_server_1.lookupTrackEdit)(),
+        ...(0, stock_universal_server_1.lookupTrackView)(),
+        ...(0, stock_universal_server_1.lookupFacet)(offset, limit, propSort, returnEmptyArr)
     ]);
     const dataArr = [];
     for await (const data of aggCursor) {
@@ -128,6 +92,9 @@ exports.faqRoutes.post('/filter', stock_universal_server_1.requireAuth, stock_au
     return res.status(200).send(response);
 });
 exports.faqRoutes.delete('/delete/one/:_id', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, async (req, res) => {
+    if (!req.user) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const { _id } = req.params;
     const { companyId } = req.user;
     // const { companyId } = req.user;
@@ -137,42 +104,31 @@ exports.faqRoutes.delete('/delete/one/:_id', stock_universal_server_1.requireAut
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
-    const deleted = await faq_model_1.faqMain.findOneAndDelete(filter);
-    if (Boolean(deleted)) {
-        (0, stock_universal_server_1.addParentToLocals)(res, _id, faq_model_1.faqMain.collection.collectionName, 'trackDataDelete');
-        return res.status(200).send({ success: Boolean(deleted) });
+    const deleteRes = await faq_model_1.faqMain
+        .findOneAndDelete(filter).catch((err) => err);
+    if (deleteRes instanceof mongoose_1.Error) {
+        const errResponse = (0, stock_universal_server_1.handleMongooseErr)(deleteRes);
+        return res.status(errResponse.status).send(errResponse);
     }
-    else {
-        return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
-    }
+    (0, stock_universal_server_1.addParentToLocals)(res, _id, faq_model_1.faqMain.collection.collectionName, 'trackDataDelete');
+    return res.status(200).send({ success: true });
 });
 exports.faqRoutes.post('/createans', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('faqs', 'create'), async (req, res) => {
+    if (!req.user) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const faq = req.body.faq;
     const { companyId } = req.user;
     faq.companyId = companyId;
     faq.urId = await (0, stock_universal_server_1.generateUrId)(faqanswer_model_1.faqanswerMain);
     const newFaqAns = new faqanswer_model_1.faqanswerMain(faq);
-    let errResponse;
-    const saved = await newFaqAns.save()
-        .catch(err => {
-        faqRoutesLogger.error('createans - err: ', err);
-        errResponse = {
-            success: false,
-            status: 403
-        };
-        if (err && err.errors) {
-            errResponse.err = (0, stock_universal_server_1.stringifyMongooseErr)(err.errors);
-        }
-        else {
-            errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-        }
-        return err;
-    });
-    if (errResponse) {
-        return res.status(403).send(errResponse);
+    const savedRes = await newFaqAns.save()
+        .catch((err) => err);
+    if (savedRes instanceof mongoose_1.Error) {
+        const errResponse = (0, stock_universal_server_1.handleMongooseErr)(savedRes);
+        return res.status(errResponse.status).send(errResponse);
     }
-    return res.status(200).send({ success: Boolean(saved) });
+    return res.status(200).send({ success: true });
 });
 exports.faqRoutes.get('/getallans/:faqId', async (req, res) => {
     const faqsAns = await faqanswer_model_1.faqanswerLean
@@ -186,16 +142,12 @@ exports.faqRoutes.delete('/deleteoneans/:_id', stock_universal_server_1.requireA
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
-    const deleted = await faqanswer_model_1.faqanswerMain.findOneAndDelete({ _id })
-        .catch(err => {
-        faqRoutesLogger.error('deleteoneans - err: ', err);
-        return null;
-    });
-    if (Boolean(deleted)) {
-        return res.status(200).send({ success: Boolean(deleted) });
+    const deleteRes = await faqanswer_model_1.faqanswerMain.findOneAndDelete({ _id })
+        .catch((err) => err);
+    if (deleteRes instanceof mongoose_1.Error) {
+        const errResponse = (0, stock_universal_server_1.handleMongooseErr)(deleteRes);
+        return res.status(errResponse.status).send(errResponse);
     }
-    else {
-        return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
-    }
+    return res.status(200).send({ success: true });
 });
 //# sourceMappingURL=faq.routes.js.map

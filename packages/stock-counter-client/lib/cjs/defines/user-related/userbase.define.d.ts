@@ -5,7 +5,7 @@ export declare abstract class UserBase extends DatabaseAuto {
     startDate: Date;
     endDate: Date;
     occupation: string;
-    readonly currency: string;
+    readonly currency?: string;
     constructor(data: {
         user: string | Iuser;
         startDate: string;

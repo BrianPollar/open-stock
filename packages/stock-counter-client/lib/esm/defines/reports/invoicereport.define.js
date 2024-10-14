@@ -32,9 +32,9 @@ export class InvoiceReport extends DatabaseAuto {
             invoicesreports: invoicesreports.data.map((val) => new InvoiceReport(val))
         };
     }
-    static async getOne(urId) {
+    static async getOne(urIdOr_id) {
         const observer$ = StockCounterClient.ehttp
-            .makeGet(`/invoicesreport/one/${urId}`);
+            .makeGet(`/invoicesreport/one/${urIdOr_id}`);
         const invoicesreport = await lastValueFrom(observer$);
         return new InvoiceReport(invoicesreport);
     }

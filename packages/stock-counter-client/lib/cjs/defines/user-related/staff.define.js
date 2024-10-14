@@ -82,9 +82,9 @@ class Staff extends userbase_define_1.UserBase {
         }
         return updated;
     }
-    remove(val) {
+    remove() {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makePut('/staff/delete/one', val);
+            .makePut('/staff/delete/one', { _id: this._id });
         return (0, rxjs_1.lastValueFrom)(observer$);
     }
 }

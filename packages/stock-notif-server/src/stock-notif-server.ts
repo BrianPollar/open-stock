@@ -64,7 +64,7 @@ export const runStockNotificationServer = async(config: IstockNotifServerConfig)
   stockNotifRouter.use('/notifn', notifnRoutes);
   stockNotifRouter.use('/mailsender', mailSenderRoutes);
 
-  return Promise.resolve({ stockNotifRouter, notificationSettings });
+  return { stockNotifRouter, notificationSettings };
 };
 
 /**

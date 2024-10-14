@@ -38,9 +38,9 @@ export class ItemDecoy
       decoys: decoys.data.map(val => new ItemDecoy(val)) };
   }
 
-  static async getOne(_id: string) {
+  static async getOne(urIdOr_id: string) {
     const observer$ = StockCounterClient.ehttp
-      .makeGet<IitemDecoy>(`/itemdecoy/one/${_id}`);
+      .makeGet<IitemDecoy>(`/itemdecoy/one/${urIdOr_id}`);
     const decoy = await lastValueFrom(observer$);
 
     return new ItemDecoy(decoy);

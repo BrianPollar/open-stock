@@ -39,9 +39,9 @@ class TaxReport extends stock_universal_1.DatabaseAuto {
             taxreports: taxreports.data.map((val) => new TaxReport(val))
         };
     }
-    static async getOne(urId) {
+    static async getOne(urIdOr_id) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makeGet(`/taxreport/one/${urId}`);
+            .makeGet(`/taxreport/one/${urIdOr_id}`);
         const taxreport = await (0, rxjs_1.lastValueFrom)(observer$);
         return new TaxReport(taxreport);
     }

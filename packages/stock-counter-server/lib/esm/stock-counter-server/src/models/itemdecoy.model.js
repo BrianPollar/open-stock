@@ -1,11 +1,10 @@
-import { createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
+import { connectDatabase, createExpireDocIndex, isDbConnected, mainConnection, mainConnectionLean, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
 import { Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 const itemDecoySchema = new Schema({
     ...withUrIdAndCompanySchemaObj,
     type: { type: String },
-    items: []
+    items: [Schema.Types.ObjectId]
 }, { timestamps: true, collection: 'itemdecoys' });
 // Apply the uniqueValidator plugin to userSchema.
 itemDecoySchema.plugin(uniqueValidator);
@@ -44,8 +43,8 @@ export const itemDecoySelect = itemDecoyselect;
  */
 export const createItemDecoyModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     createExpireDocIndex(itemDecoySchema);
-    if (!isStockDbConnected) {
-        await connectStockDatabase(dbUrl, dbOptions);
+    if (!isDbConnected) {
+        await connectDatabase(dbUrl, dbOptions);
     }
     if (main) {
         itemDecoyMain = mainConnection

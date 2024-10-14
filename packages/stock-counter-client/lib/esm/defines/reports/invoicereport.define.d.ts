@@ -2,7 +2,7 @@ import { DatabaseAuto, IdeleteMany, IfilterProps, IinvoicesReport, Isuccess } fr
 import { Invoice } from '../invoice.define';
 export declare class InvoiceReport extends DatabaseAuto {
     urId: string;
-    companyId: string;
+    companyId?: string;
     totalAmount: number;
     date: Date;
     invoices: Invoice[];
@@ -16,7 +16,7 @@ export declare class InvoiceReport extends DatabaseAuto {
         count: number;
         invoicesreports: InvoiceReport[];
     }>;
-    static getOne(urId: string): Promise<InvoiceReport>;
+    static getOne(urIdOr_id: string): Promise<InvoiceReport>;
     static add(vals: IinvoicesReport): Promise<Isuccess>;
     static removeMany(vals: IdeleteMany): Promise<Isuccess>;
     remove(): Promise<Isuccess>;

@@ -1,5 +1,9 @@
+import {
+  connectDatabase,
+  isDbConnected, mainConnection,
+  mainConnectionLean
+} from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import { connectAuthDatabase, isAuthDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 
 const uniqueValidator = require('mongoose-unique-validator');
 
@@ -12,7 +16,7 @@ extends Document {
   /**
    * The ID of the user or company.
    */
-  userOrCompanayId: string;
+  userOrCompanayId: string | Schema.Types.ObjectId;
 
   /**
    * List of green IPs.
@@ -46,7 +50,7 @@ extends Document {
 }
 
 const useripSchema: Schema<IUserip> = new Schema<IUserip>({
-  userOrCompanayId: { type: String },
+  userOrCompanayId: { type: Schema.Types.ObjectId },
   greenIps: [],
   redIps: [],
   unverifiedIps: [],
@@ -75,8 +79,8 @@ export let useripLean: Model<IUserip>;
  * @param lean Whether to create the lean email token model.
  */
 export const createUseripModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
-  if (!isAuthDbConnected) {
-    await connectAuthDatabase(dbUrl, dbOptions);
+  if (!isDbConnected) {
+    await connectDatabase(dbUrl, dbOptions);
   }
 
   if (main) {

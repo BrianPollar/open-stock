@@ -1,56 +1,29 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.connectUniversalDatabase = exports.isUniversalDbConnected = exports.mainConnectionLean = exports.mainConnection = void 0;
-const tslib_1 = require("tslib");
-const fs = tslib_1.__importStar(require("fs"));
-const path_1 = tslib_1.__importDefault(require("path"));
-const tracer = tslib_1.__importStar(require("tracer"));
+exports.connectDatabase = exports.isDbConnected = exports.mainConnectionLean = exports.mainConnection = void 0;
+const back_logger_1 = require("./back-logger");
 const connections_1 = require("./connections");
-/** The  dbConnectionsLogger  is a logger instance used for logging database connection-related messages. */
-const dbConnectionsLogger = tracer.colorConsole({
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-        // eslint-disable-next-line no-console
-        console.log(data.output);
-        const logDir = path_1.default.join(process.cwd() + '/openstockLog/');
-        fs.mkdir(logDir, { recursive: true }, (err) => {
-            if (err) {
-                if (err) {
-                    // eslint-disable-next-line no-console
-                    console.log('data.output err ', err);
-                }
-            }
-        });
-        fs.appendFile(logDir + '/universal-server.log', data.rawoutput + '\n', err => {
-            if (err) {
-                // eslint-disable-next-line no-console
-                console.log('raw.output err ', err);
-            }
-        });
-    }
-});
-/**  The  isUniversalDbConnected  variable is a flag to indicate whether the authentication database is connected. */
-exports.isUniversalDbConnected = false;
+/**  The  isDbConnected  variable is a flag to indicate whether the authentication database is connected. */
+exports.isDbConnected = false;
 /**
- * The  connectUniversalDatabase  function is an asynchronous
+ * The  connectDatabase  function is an asynchronous
  * function that connects to the authentication database using the provided database configuration URL.
  * It first checks if the authentication database is already connected, and if so, it returns early.
  * Otherwise, it creates two new connections ( mainConnection
  * and  mainConnectionLean ) using the  makeNewConnection  function.
- * Once the connections are established, it sets the  isUniversalDbConnected  flag to  true .
+ * Once the connections are established, it sets the  isDbConnected  flag to  true .
  *
  * @param databaseConfigUrl - The URL of the database configuration.
  */
-const connectUniversalDatabase = async (databaseConfigUrl, dbOptions) => {
-    if (exports.isUniversalDbConnected) {
+const connectDatabase = async (databaseConfigUrl, dbOptions) => {
+    if (exports.isDbConnected) {
         return;
     }
     exports.mainConnection = await (0, connections_1.makeNewConnection)(databaseConfigUrl, dbOptions);
     exports.mainConnectionLean = await (0, connections_1.makeNewConnection)(databaseConfigUrl, dbOptions);
-    exports.isUniversalDbConnected = true;
+    exports.isDbConnected = true;
 };
-exports.connectUniversalDatabase = connectUniversalDatabase;
+exports.connectDatabase = connectDatabase;
 /**
  * The  process.on('SIGINT', ...)  block is used to handle
  * the SIGINT signal, which is sent when the user presses Ctrl+C to terminate the process.
@@ -61,20 +34,20 @@ exports.connectUniversalDatabase = connectUniversalDatabase;
  * indicating that the connections have been disconnected and exits the process with a status code of 0.
  */
 process.on('SIGINT', () => {
-    dbConnectionsLogger.info('PROCESS EXIT :: now disconnecting mongoose');
+    back_logger_1.mainLogger.info('PROCESS EXIT :: now disconnecting mongoose');
     (async () => {
         const closed = await Promise.all([
             exports.mainConnection.close(),
             // lean
             exports.mainConnectionLean.close()
         ]).catch(err => {
-            dbConnectionsLogger.error(`MONGODB EXIT ::
+            back_logger_1.mainLogger.error(`MONGODB EXIT ::
         Mongoose default connection failed to close
         with error, ${err}`);
         });
         if (closed) {
-            exports.isUniversalDbConnected = true;
-            dbConnectionsLogger.info(`MONGODB EXIT ::
+            exports.isDbConnected = true;
+            back_logger_1.mainLogger.info(`MONGODB EXIT ::
         Mongoose default connection
         disconnected through app termination`);
             process.exit(0);

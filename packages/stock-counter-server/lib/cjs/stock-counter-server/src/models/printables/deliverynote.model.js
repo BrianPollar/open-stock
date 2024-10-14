@@ -3,11 +3,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createDeliveryNoteModel = exports.deliveryNoteSelect = exports.deliveryNoteLean = exports.deliveryNoteMain = void 0;
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const mongoose_1 = require("mongoose");
-const database_1 = require("../../utils/database");
 const uniqueValidator = require('mongoose-unique-validator');
 const deliveryNoteSchema = new mongoose_1.Schema({
     ...stock_universal_server_1.withUrIdAndCompanySchemaObj,
-    invoiceRelated: { type: String, unique: true }
+    invoiceRelated: { type: mongoose_1.Schema.Types.ObjectId, unique: true }
 }, { timestamps: true, collection: 'deliverynotes' });
 // Apply the uniqueValidator plugin to deliveryNoteSchema.
 deliveryNoteSchema.plugin(uniqueValidator);
@@ -37,15 +36,15 @@ exports.deliveryNoteSelect = deliveryNoteselect;
  */
 const createDeliveryNoteModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     (0, stock_universal_server_1.createExpireDocIndex)(deliveryNoteSchema);
-    if (!database_1.isStockDbConnected) {
-        await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
+    if (!stock_universal_server_1.isDbConnected) {
+        await (0, stock_universal_server_1.connectDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.deliveryNoteMain = database_1.mainConnection
+        exports.deliveryNoteMain = stock_universal_server_1.mainConnection
             .model('DeliveryNote', deliveryNoteSchema);
     }
     if (lean) {
-        exports.deliveryNoteLean = database_1.mainConnectionLean
+        exports.deliveryNoteLean = stock_universal_server_1.mainConnectionLean
             .model('DeliveryNote', deliveryNoteSchema);
     }
 };

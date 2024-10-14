@@ -1,10 +1,13 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-type-arguments */
-import { IinvoiceRelatedRef } from '@open-stock/stock-universal';
+import { IinvoiceRelatedRef, TreceiptType } from '@open-stock/stock-universal';
 import {
-  createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj
+  IcompanyIdAsObjectId,
+  connectDatabase,
+  createExpireDocIndex,
+  isDbConnected, mainConnection, mainConnectionLean,
+  preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj
 } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 
 /**
@@ -25,7 +28,7 @@ export type Treceipt = Document & IinvoiceRelatedRef & {
   /**
    * The type of receipt.
    */
-  type: string;
+  type: TreceiptType;
 
   /**
    * The date of the receipt.
@@ -36,15 +39,21 @@ export type Treceipt = Document & IinvoiceRelatedRef & {
    * The total amount.
    */
   amount: number;
-};
+} & IcompanyIdAsObjectId;
 
 const receiptSchema: Schema<Treceipt> = new Schema({
   ...withUrIdAndCompanySchemaObj,
-  invoiceRelated: { type: String },
-  ammountRcievd: { type: Number },
+  invoiceRelated: { type: Schema.Types.ObjectId },
+  ammountRcievd: {
+    type: Number,
+    min: [0, 'cannot be less than 0.']
+  },
   paymentMode: { type: String },
   type: { type: String },
-  amount: { type: Number },
+  amount: {
+    type: Number,
+    min: [0, 'cannot be less than 0.']
+  },
   date: { type: Date }
 }, { timestamps: true, collection: 'receipts' });
 
@@ -98,8 +107,8 @@ export const receiptSelect = receiptselect;
  */
 export const createReceiptModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
   createExpireDocIndex(receiptSchema);
-  if (!isStockDbConnected) {
-    await connectStockDatabase(dbUrl, dbOptions);
+  if (!isDbConnected) {
+    await connectDatabase(dbUrl, dbOptions);
   }
 
   if (main) {

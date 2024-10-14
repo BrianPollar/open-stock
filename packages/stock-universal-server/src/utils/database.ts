@@ -1,59 +1,31 @@
-import * as fs from 'fs';
 import { ConnectOptions, Connection } from 'mongoose';
-import path from 'path';
-import * as tracer from 'tracer';
+import { mainLogger } from './back-logger';
 import { makeNewConnection } from './connections';
-
-/** The  dbConnectionsLogger  is a logger instance used for logging database connection-related messages. */
-const dbConnectionsLogger = tracer.colorConsole({
-  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-  dateformat: 'HH:MM:ss.L',
-  transport(data) {
-    // eslint-disable-next-line no-console
-    console.log(data.output);
-    const logDir = path.join(process.cwd() + '/openstockLog/');
-
-    fs.mkdir(logDir, { recursive: true }, (err) => {
-      if (err) {
-        if (err) {
-          // eslint-disable-next-line no-console
-          console.log('data.output err ', err);
-        }
-      }
-    });
-    fs.appendFile(logDir + '/universal-server.log', data.rawoutput + '\n', err => {
-      if (err) {
-        // eslint-disable-next-line no-console
-        console.log('raw.output err ', err);
-      }
-    });
-  }
-});
 
 /** The  mainConnection  and  mainConnectionLean  variables are used to store the main connections to the database */
 export let mainConnection: Connection;
 export let mainConnectionLean: Connection;
 
-/**  The  isUniversalDbConnected  variable is a flag to indicate whether the authentication database is connected. */
-export let isUniversalDbConnected = false;
+/**  The  isDbConnected  variable is a flag to indicate whether the authentication database is connected. */
+export let isDbConnected = false;
 
 /**
- * The  connectUniversalDatabase  function is an asynchronous
+ * The  connectDatabase  function is an asynchronous
  * function that connects to the authentication database using the provided database configuration URL.
  * It first checks if the authentication database is already connected, and if so, it returns early.
  * Otherwise, it creates two new connections ( mainConnection
  * and  mainConnectionLean ) using the  makeNewConnection  function.
- * Once the connections are established, it sets the  isUniversalDbConnected  flag to  true .
+ * Once the connections are established, it sets the  isDbConnected  flag to  true .
  *
  * @param databaseConfigUrl - The URL of the database configuration.
  */
-export const connectUniversalDatabase = async(databaseConfigUrl: string, dbOptions?: ConnectOptions) => {
-  if (isUniversalDbConnected) {
+export const connectDatabase = async(databaseConfigUrl: string, dbOptions?: ConnectOptions) => {
+  if (isDbConnected) {
     return;
   }
   mainConnection = await makeNewConnection(databaseConfigUrl, dbOptions);
   mainConnectionLean = await makeNewConnection(databaseConfigUrl, dbOptions);
-  isUniversalDbConnected = true;
+  isDbConnected = true;
 };
 
 /**
@@ -66,7 +38,7 @@ export const connectUniversalDatabase = async(databaseConfigUrl: string, dbOptio
  * indicating that the connections have been disconnected and exits the process with a status code of 0.
  */
 process.on('SIGINT', () => {
-  dbConnectionsLogger.info('PROCESS EXIT :: now disconnecting mongoose');
+  mainLogger.info('PROCESS EXIT :: now disconnecting mongoose');
   (async() => {
     const closed = await Promise.all([
       mainConnection.close(),
@@ -74,14 +46,14 @@ process.on('SIGINT', () => {
       // lean
       mainConnectionLean.close()
     ]).catch(err => {
-      dbConnectionsLogger.error(`MONGODB EXIT ::
+      mainLogger.error(`MONGODB EXIT ::
         Mongoose default connection failed to close
         with error, ${err}`);
     });
 
     if (closed) {
-      isUniversalDbConnected = true;
-      dbConnectionsLogger.info(`MONGODB EXIT ::
+      isDbConnected = true;
+      mainLogger.info(`MONGODB EXIT ::
         Mongoose default connection
         disconnected through app termination`);
       process.exit(0);

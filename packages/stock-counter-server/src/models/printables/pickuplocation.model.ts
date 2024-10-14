@@ -1,22 +1,36 @@
 import { IpickupLocation } from '@open-stock/stock-universal';
 import {
-  createExpireDocIndex, preUpdateDocExpire,
+  IcompanyIdAsObjectId,
+  connectDatabase,
+  createExpireDocIndex,
+  isDbConnected, mainConnection, mainConnectionLean,
+  preUpdateDocExpire,
   withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj
 } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 
 /**
  * Represents a pickup location.
  * @typedef {Document & IpickupLocation} TpickupLocation
  */
-export type TpickupLocation = Document & IpickupLocation;
+export type TpickupLocation = Document & IpickupLocation & IcompanyIdAsObjectId;
 
 const pickupLocationSchema: Schema<TpickupLocation> = new Schema({
   ...withUrIdAndCompanySchemaObj,
-  name: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
-  contact: {}
+  name: {
+    type: String,
+    unique: true,
+    required: [true, 'cannot be empty.'],
+    index: true,
+    minlength: [3, 'cannot be less than 3.'],
+    maxlength: [150, 'cannot be more than 150.']
+  },
+  contact: {
+    name: { type: String },
+    phone: { type: String },
+    email: { type: String }
+  }
 }, { timestamps: true, collection: 'pickuplocations' });
 
 pickupLocationSchema.pre('updateOne', function(next) {
@@ -63,8 +77,8 @@ export const pickupLocationSelect = pickupLocationselect;
  */
 export const createPickupLocationModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
   createExpireDocIndex(pickupLocationSchema);
-  if (!isStockDbConnected) {
-    await connectStockDatabase(dbUrl, dbOptions);
+  if (!isDbConnected) {
+    await connectDatabase(dbUrl, dbOptions);
   }
 
   if (main) {

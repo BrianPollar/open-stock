@@ -47,9 +47,9 @@ export class Review extends DatabaseAuto {
         const count = await lastValueFrom(observer$);
         return count;
     }
-    static async getOne(_id) {
+    static async getOne(urIdOr_id) {
         const observer$ = StockCounterClient.ehttp
-            .makeGet(`/review/one/${_id}`);
+            .makeGet(`/review/one/${urIdOr_id}`);
         const review = await lastValueFrom(observer$);
         return new Review(review);
     }

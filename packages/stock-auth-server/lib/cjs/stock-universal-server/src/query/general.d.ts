@@ -120,7 +120,7 @@ export declare const lookupPayments: () => {
         localField: string;
         foreignField: string;
         as: string;
-        pipeline: any[];
+        pipeline: never[];
     };
 }[];
 /**
@@ -150,7 +150,7 @@ export declare const lookupInvoiceRelated: () => ({
                 localField: string;
                 foreignField: string;
                 as: string;
-                pipeline: any[];
+                pipeline: never[];
             };
         })[];
     };
@@ -219,15 +219,16 @@ export declare const lookupOffset: (offset: number) => {
 export declare const lookupLimit: (limit: number) => {
     $limit: number;
 }[];
-export declare const lookupSort: (sort: IpropSort[]) => {
+export declare const lookupSort: (sort?: IpropSort) => {
     $sort: {
         [key: string]: 1 | -1;
     };
 }[];
-export declare const lookupSubFieldInvoiceRelatedFilter: (filter: IpropFilter[], sort: IpropSort[], offset: number, limit: number) => PipelineStage[];
-export declare const lookupSubFieldPaymentRelatedFilter: (filter: IpropFilter[], sort: IpropSort[], offset: number, limit: number) => PipelineStage[];
-export declare const lookupSubFieldUserFilter: (filter: IpropFilter[], sort: IpropSort[], offset: number, limit: number) => PipelineStage[];
-export declare const lookupSubFieldItemsRelatedFilter: (filter: IpropFilter[], sort: IpropSort[], offset: number, limit: number) => PipelineStage[];
+export declare const lookupSubFieldInvoiceRelatedFilter: (filter: IpropFilter[], offset: number, limit: number, sort?: IpropSort, returnEmptyArr?: boolean) => PipelineStage[];
+export declare const lookupSubFieldPaymentRelatedFilter: (filter: IpropFilter[], offset: number, limit: number, sort?: IpropSort, returnEmptyArr?: boolean) => PipelineStage[];
+export declare const lookupSubFieldUserFilter: (filter: IpropFilter[], offset: number, limit: number, sort?: IpropSort, returnEmptyArr?: boolean) => PipelineStage[];
+export declare const lookupSubFieldItemsRelatedFilter: (filter: IpropFilter[], offset: number, limit: number, sort?: IpropSort, returnEmptyArr?: boolean) => PipelineStage[];
+export declare const lookupFacet: (offset: number, limit: number, propSort?: IpropSort, returnEmptyArr?: boolean) => PipelineStage[];
 export declare const lookupTrackEdit: () => ({
     $addFields: {
         trackEdit: {

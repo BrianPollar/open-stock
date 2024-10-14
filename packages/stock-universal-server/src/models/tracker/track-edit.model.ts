@@ -1,7 +1,7 @@
 import { ItrackEdit } from '@open-stock/stock-universal';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import { connectUniversalDatabase, stockUniversalConfig } from '../../stock-universal-local';
-import { isUniversalDbConnected, mainConnection, mainConnectionLean } from '../../utils/database';
+import { stockUniversalConfig } from '../../stock-universal-local';
+import { connectDatabase, isDbConnected, mainConnection, mainConnectionLean } from '../../utils/database';
 
 export type TtrackEdit = Document & ItrackEdit;
 
@@ -51,17 +51,17 @@ export const createTrackEditModel = async(dbUrl: string, dbOptions?: ConnectOpti
     { expireDocAfter: 1 },
     { expireAfterSeconds: stockUniversalConfig.expireDocAfterSeconds }
   );
-  if (!isUniversalDbConnected) {
-    await connectUniversalDatabase(dbUrl, dbOptions);
+  if (!isDbConnected) {
+    await connectDatabase(dbUrl, dbOptions);
   }
 
   if (main) {
     trackEditMain = mainConnection
-      .model('TrackEdit', trackEditSchema) as Model<TtrackEdit>;
+      .model<TtrackEdit>('TrackEdit', trackEditSchema);
   }
 
   if (lean) {
     trackEditLean = mainConnectionLean
-      .model('TrackEdit', trackEditSchema) as Model<TtrackEdit>;
+      .model<TtrackEdit>('TrackEdit', trackEditSchema);
   }
 };

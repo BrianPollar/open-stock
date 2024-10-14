@@ -79,9 +79,9 @@ export class Staff extends UserBase {
         }
         return updated;
     }
-    remove(val) {
+    remove() {
         const observer$ = StockCounterClient.ehttp
-            .makePut('/staff/delete/one', val);
+            .makePut('/staff/delete/one', { _id: this._id });
         return lastValueFrom(observer$);
     }
 }

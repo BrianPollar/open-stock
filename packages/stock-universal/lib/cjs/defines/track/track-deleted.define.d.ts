@@ -1,10 +1,10 @@
-import { ItrackDeleted } from '../../interfaces/general.interface';
-import { Isuccess } from '../../interfaces/return.interface';
+import { ItrackDeleted } from '../../types/general-types';
+import { Isuccess } from '../../types/return-types';
 import { DatabaseAuto } from '../base/base.define';
 import { IparentData } from './track-view.define';
 export declare class TrackDeleted extends DatabaseAuto {
     parent: string | IparentData;
-    deletedAt: string;
+    deletedAt?: string;
     constructor(data: ItrackDeleted);
     /**
      * Get all trackDeleteds, paginated.

@@ -1,11 +1,10 @@
-import { createExpireDocIndex, preUpdateDocExpire } from '@open-stock/stock-universal-server';
+import { connectDatabase, createExpireDocIndex, isDbConnected, mainConnection, mainConnectionLean, preUpdateDocExpire } from '@open-stock/stock-universal-server';
 import { Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 const paymentSchema = new Schema({
-    companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
-    paymentRelated: { type: String, unique: true },
-    invoiceRelated: { type: String, unique: true },
+    companyId: { type: Schema.Types.ObjectId, required: [true, 'cannot be empty.'], index: true },
+    paymentRelated: { type: Schema.Types.ObjectId, unique: true },
+    invoiceRelated: { type: Schema.Types.ObjectId, unique: true },
     order: { type: String }
 }, { timestamps: true, collection: 'payments' });
 // Apply the uniqueValidator plugin to paymentSchema.
@@ -46,8 +45,8 @@ export const paymentSelect = paymentselect;
  */
 export const createPaymentModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     createExpireDocIndex(paymentSchema);
-    if (!isStockDbConnected) {
-        await connectStockDatabase(dbUrl, dbOptions);
+    if (!isDbConnected) {
+        await connectDatabase(dbUrl, dbOptions);
     }
     if (main) {
         paymentMain = mainConnection

@@ -28,8 +28,8 @@ class Company extends stock_universal_1.DatabaseAuto {
             companys: companys.data.map(val => new Company(val))
         };
     }
-    static async getOne(_id) {
-        const observer$ = stock_auth_client_1.StockAuthClient.ehttp.makeGet(`/company/one/${_id}`);
+    static async getOne(id) {
+        const observer$ = stock_auth_client_1.StockAuthClient.ehttp.makeGet(`/company/one/${id}`);
         const company = await (0, rxjs_1.lastValueFrom)(observer$);
         return new Company(company);
     }
@@ -81,6 +81,7 @@ class Company extends stock_universal_1.DatabaseAuto {
             this.verified = data.verified || this.verified;
             this.address = data.address || this.address;
             this.owner = typeof data.owner === 'object' ? new user_define_1.User(data.owner) : data.owner;
+            this.logo = typeof data.owner === 'object' && data.owner.photos ? data.owner.photos[0].url : '';
         }
     }
 }

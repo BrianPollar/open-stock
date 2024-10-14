@@ -1,38 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.makeCompareListCookie = exports.makeWishListCookie = exports.makeRecentCookie = exports.makeCartCookie = exports.makeSettingsCookie = exports.makeTourerCookie = void 0;
-const tslib_1 = require("tslib");
-const fs = tslib_1.__importStar(require("fs"));
-const path_1 = tslib_1.__importDefault(require("path"));
-const tracer = tslib_1.__importStar(require("tracer"));
+const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const user_behavoiur_1 = require("./user-behavoiur");
-/** Logger for the cookie service */
-const cookieServiceLogger = tracer.colorConsole({
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-        // eslint-disable-next-line no-console
-        console.log(data.output);
-        const logDir = path_1.default.join(process.cwd() + '/openstockLog/');
-        fs.mkdir(logDir, { recursive: true }, (err) => {
-            if (err) {
-                if (err) {
-                    // eslint-disable-next-line no-console
-                    console.log('data.output err ', err);
-                }
-            }
-        });
-        fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
-            if (err) {
-                // eslint-disable-next-line no-console
-                console.log('raw.output err ', err);
-            }
-        });
-    }
-});
 const makeTourerCookie = (req, res, next) => {
     const tourer = req.body.tourer;
-    cookieServiceLogger.info('Tourer cookie - tourer: ', tourer);
+    stock_universal_server_1.mainLogger.info('Tourer cookie - tourer: ', tourer);
     res.cookie('tourer', tourer, {
         // maxAge: 5000,
         // expires works the same as the maxAge
@@ -46,7 +19,7 @@ const makeTourerCookie = (req, res, next) => {
 exports.makeTourerCookie = makeTourerCookie;
 const makeSettingsCookie = (req, res) => {
     const stnCookie = req.body.stnCookie;
-    cookieServiceLogger.info('Setting cookie - stnCookie: ', stnCookie);
+    stock_universal_server_1.mainLogger.info('Setting cookie - stnCookie: ', stnCookie);
     if (!stnCookie.cartEnabled) {
         res.clearCookie('cart');
     }
@@ -71,7 +44,7 @@ const makeCartCookie = async (req, res) => {
     const stnCookie = req.signedCookies['settings'];
     await (0, user_behavoiur_1.registerCart)(cartItemId, stnCookie.userCookieId, userId);
     const cartCookie = req.body.cartCookie;
-    cookieServiceLogger.info('Cart cookie - cartCookie: ', cartCookie);
+    stock_universal_server_1.mainLogger.info('Cart cookie - cartCookie: ', cartCookie);
     res.cookie('cart', cartCookie, {
         // maxAge: 5000,
         // expires works the same as the maxAge
@@ -90,7 +63,7 @@ const makeRecentCookie = async (req, res) => {
     const stnCookie = req.signedCookies['settings'];
     const recentItemId = req.body.recentItemId;
     await (0, user_behavoiur_1.registerRecents)(recentItemId, stnCookie.userCookieId, userId);
-    cookieServiceLogger.info('Recent Cookie - recentCookie: ', recentCookie);
+    stock_universal_server_1.mainLogger.info('Recent Cookie - recentCookie: ', recentCookie);
     res.cookie('recent', recentCookie, {
         // maxAge: 5000,
         // expires works the same as the maxAge
@@ -109,7 +82,7 @@ const makeWishListCookie = async (req, res) => {
     const stnCookie = req.signedCookies['settings'];
     const wishListItemId = req.body.wishListItemId;
     await (0, user_behavoiur_1.registerWishList)(wishListItemId, stnCookie.userCookieId, userId);
-    cookieServiceLogger.info('WishListCookie Cookie - wishListCookie: ', wishListCookie);
+    stock_universal_server_1.mainLogger.info('WishListCookie Cookie - wishListCookie: ', wishListCookie);
     res.cookie('wishList', wishListCookie, {
         // maxAge: 5000,
         // expires works the same as the maxAge
@@ -128,7 +101,7 @@ const makeCompareListCookie = async (req, res) => {
     const stnCookie = req.signedCookies['settings'];
     const compareLisItemId = req.body.compareLisItemId;
     await (0, user_behavoiur_1.registerCompareList)(compareLisItemId, stnCookie.userCookieId, userId);
-    cookieServiceLogger.info('CompareListCookie Cookie - compareListCookie: ', compareListCookie);
+    stock_universal_server_1.mainLogger.info('CompareListCookie Cookie - compareListCookie: ', compareListCookie);
     res.cookie('compareList', compareListCookie, {
         // maxAge: 5000,
         // expires works the same as the maxAge

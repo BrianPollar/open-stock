@@ -1,13 +1,21 @@
-import { createExpireDocIndex, preUpdateDocExpire, withCompanySchemaObj, withCompanySelectObj } from '@open-stock/stock-universal-server';
+import { connectDatabase, createExpireDocIndex, isDbConnected, mainConnection, mainConnectionLean, preUpdateDocExpire, withCompanySchemaObj, withCompanySelectObj } from '@open-stock/stock-universal-server';
 import { Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 const deliverycitySchema = new Schema({
     ...withCompanySchemaObj,
     name: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
-    shippingCost: { type: Number, required: [true, 'cannot be empty.'] },
+    shippingCost: {
+        type: Number,
+        required: [true, 'cannot be empty.'],
+        min: [0, 'cannot be less than 0.']
+    },
     currency: { type: String, required: [true, 'cannot be empty.'] },
-    deliversInDays: { type: Number, required: [true, 'cannot be empty.'] }
+    deliversInDays: {
+        type: Number,
+        required: [true, 'cannot be empty.'],
+        min: [0, 'cannot be less than 0.'],
+        max: [150, 'cannot be greater than 30.']
+    }
 }, { timestamps: true, collection: 'deliverycities' });
 deliverycitySchema.pre('updateOne', function (next) {
     return preUpdateDocExpire(this, next);
@@ -47,8 +55,8 @@ export const deliverycitySelect = deliverycityselect;
  */
 export const createDeliverycityModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     createExpireDocIndex(deliverycitySchema);
-    if (!isStockDbConnected) {
-        await connectStockDatabase(dbUrl, dbOptions);
+    if (!isDbConnected) {
+        await connectDatabase(dbUrl, dbOptions);
     }
     if (main) {
         deliverycityMain = mainConnection

@@ -1,7 +1,11 @@
 import { IinvoiceRelated, IpaymentRelated } from '@open-stock/stock-universal';
-import { createExpireDocIndex, preUpdateDocExpire } from '@open-stock/stock-universal-server';
+import {
+  connectDatabase,
+  createExpireDocIndex,
+  isDbConnected, mainConnection, mainConnectionLean,
+  preUpdateDocExpire
+} from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, ObjectId, Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 
 /**
@@ -16,9 +20,9 @@ export type Torder = Document & {
 };
 
 const orderSchema: Schema<Torder> = new Schema({
-  companyId: { type: Schema.ObjectId, required: [true, 'cannot be empty.'], index: true },
-  paymentRelated: { type: String, unique: true },
-  invoiceRelated: { type: String, unique: true },
+  companyId: { type: Schema.Types.ObjectId, required: [true, 'cannot be empty.'], index: true },
+  paymentRelated: { type: Schema.Types.ObjectId, unique: true },
+  invoiceRelated: { type: Schema.Types.ObjectId, unique: true },
   deliveryDate: { type: Date, required: [true, 'cannot be empty.'], index: true }
 }, { timestamps: true, collection: 'orders' });
 
@@ -68,8 +72,8 @@ export const orderSelect = orderselect;
  */
 export const createOrderModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
   createExpireDocIndex(orderSchema);
-  if (!isStockDbConnected) {
-    await connectStockDatabase(dbUrl, dbOptions);
+  if (!isDbConnected) {
+    await connectDatabase(dbUrl, dbOptions);
   }
 
   if (main) {

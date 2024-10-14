@@ -23,9 +23,10 @@
 /// <reference types="mongoose/types/virtuals" />
 /// <reference types="mongoose/types/inferschematype" />
 import { IinvoiceSetting } from '@open-stock/stock-universal';
+import { IcompanyIdAsObjectId } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model } from 'mongoose';
 /** model type for invoiceSetting by */
-export type TinvoiceSetting = Document & IinvoiceSetting;
+export type TinvoiceSetting = Document & IinvoiceSetting & IcompanyIdAsObjectId;
 /** main connection for invoices Operations */
 export declare let invoiceSettingMain: Model<TinvoiceSetting>;
 /** lean connection for invoices Operations */

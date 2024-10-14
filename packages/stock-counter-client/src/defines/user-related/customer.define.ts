@@ -2,9 +2,7 @@ import {
   Iaddress,
   Icustomer,
   IdataArrayResponse,
-  IdeleteMany,
-  IdeleteOne,
-  IeditCustomer,
+  IdeleteMany, IeditCustomer,
   Ifile, IfilterProps,
   IsubscriptionFeatureState,
   Isuccess
@@ -17,6 +15,7 @@ interface IgetOneFilter {
   _id?: string;
   userId?: string;
   companyId?: string;
+  urId?: string;
 }
 
 export class Customer
@@ -108,9 +107,9 @@ export class Customer
     return updated;
   }
 
-  remove(val: IdeleteOne) {
+  remove() {
     const observer$ = StockCounterClient.ehttp
-      .makePut<Isuccess>('/customer/delete/one', val);
+      .makePut<Isuccess>('/customer/delete/one', { _id: this._id });
 
     return lastValueFrom(observer$);
   }

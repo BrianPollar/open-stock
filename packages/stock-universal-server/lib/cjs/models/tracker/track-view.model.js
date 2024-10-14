@@ -30,8 +30,8 @@ exports.trackViewSelect = trackViewselect;
  */
 const createTrackViewModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     trackViewSchema.index({ expireDocAfter: 1 }, { expireAfterSeconds: stock_universal_local_1.stockUniversalConfig.expireDocAfterSeconds });
-    if (!database_1.isUniversalDbConnected) {
-        await (0, stock_universal_local_1.connectUniversalDatabase)(dbUrl, dbOptions);
+    if (!database_1.isDbConnected) {
+        await (0, database_1.connectDatabase)(dbUrl, dbOptions);
     }
     if (main) {
         exports.trackViewMain = database_1.mainConnection

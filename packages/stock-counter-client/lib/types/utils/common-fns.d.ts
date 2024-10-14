@@ -1,5 +1,5 @@
 import { User } from '@open-stock/stock-auth-client';
-import { IinvoiceRelated, IpaymentRelated, TinvoiceStatus } from '@open-stock/stock-universal';
+import { IdatabaseAuto, IinvoiceRelated, IpaymentRelated, TinvoiceStatus } from '@open-stock/stock-universal';
 import { DeliveryNote } from '../defines/deliverynote.define';
 import { Estimate } from '../defines/estimate.define';
 import { Faq } from '../defines/faq.define';
@@ -35,6 +35,14 @@ export declare const transformInvoice: (id: number) => string;
  * @returns The transformed ID.
  */
 export declare const transformUrId: (id: string, where: string) => string;
+export declare const makeDatabaseAutoAndUrId: (data: IdatabaseAuto & {
+    urId: string;
+}) => {
+    _id: string;
+    createdAt: Date;
+    updatedAt: Date;
+    urId: string;
+};
 /**
  * Creates a payment-related object based on the provided data.
  * @param data - The data object containing order or payment information.
@@ -54,9 +62,7 @@ export declare const makeInvoiceRelated: (data: DeliveryNote | Estimate | Invoic
  * @param item - The item to be liked.
  * @returns A promise that resolves to an object indicating the success of the operation.
  */
-export declare const likeFn: (currentUser: User, item: Item) => Promise<import("@open-stock/stock-universal").Isuccess | {
-    success: boolean;
-}> | {
+export declare const likeFn: (currentUser: User, item: Item) => Promise<import("@open-stock/stock-universal").Isuccess> | {
     success: boolean;
 };
 /**
@@ -66,9 +72,7 @@ export declare const likeFn: (currentUser: User, item: Item) => Promise<import("
  * @param item - The item to unlike.
  * @returns A promise that resolves to an object indicating the success of the unlike operation.
  */
-export declare const unLikeFn: (currentUser: User, item: Item) => Promise<import("@open-stock/stock-universal").Isuccess | {
-    success: boolean;
-}> | {
+export declare const unLikeFn: (currentUser: User, item: Item) => Promise<import("@open-stock/stock-universal").Isuccess> | {
     success: boolean;
 };
 /**
@@ -109,9 +113,7 @@ export declare const toggleSelectionFn: (id: string, selections: string[]) => vo
  * @param selections - An array of invoice IDs to be deleted.
  * @returns A promise that resolves to an object indicating the success of the deletion.
  */
-export declare const deleteManyInvoicesFn: (invoices: Invoice[], selections: string[]) => Promise<import("@open-stock/stock-universal").Isuccess | {
-    success: boolean;
-}>;
+export declare const deleteManyInvoicesFn: (invoices: Invoice[], selections: string[]) => Promise<import("@open-stock/stock-universal").Isuccess>;
 /**
  * Opens or closes a box based on the provided value.
  * @param val - The value to open or close the box with.
@@ -131,4 +133,4 @@ export declare const transformNoInvId: (val: number, suffix: string) => string;
  * @param where The condition to apply the filter.
  * @returns The filtered array of data.
  */
-export declare const applyBlockDateSelect: (data: (Estimate | Invoice | DeliveryNote | Receipt | Item)[], where: string) => (Item | Receipt | Invoice | DeliveryNote | Estimate)[];
+export declare const applyBlockDateSelect: (data: (Estimate | Invoice | DeliveryNote | Receipt | Item)[], where: string) => (Item | Receipt | Invoice | DeliveryNote | Estimate)[] | undefined;

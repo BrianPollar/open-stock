@@ -3,6 +3,7 @@
  * @packageDocumentation
  */
 /// <reference types="mongoose/types/document" />
+/// <reference types="mongoose/types/schematypes" />
 /// <reference types="mongoose/types/models" />
 /// <reference types="mongoose/types/aggregate" />
 /// <reference types="mongoose/types/callback" />
@@ -29,13 +30,13 @@
 /// <reference types="mongoose/types/virtuals" />
 /// <reference types="mongoose/types/inferschematype" />
 import { Iactionwithall, TnotifType } from '@open-stock/stock-universal';
-import { ConnectOptions, Document, Model } from 'mongoose';
+import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 /** Interface for the main notification object. */
 export interface IMainnotification extends Document {
     /** Actions to be taken for the notification. */
     actions: Iactionwithall[];
     /** ID of the user who will receive the notification. */
-    userId: string;
+    userId: string | Schema.Types.ObjectId;
     /** Title of the notification. */
     title: string;
     /** Body of the notification. */

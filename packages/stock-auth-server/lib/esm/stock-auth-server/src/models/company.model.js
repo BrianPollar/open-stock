@@ -1,6 +1,5 @@
-import { createExpireDocIndex, globalSchemaObj, globalSelectObj, preUpdateDocExpire } from '@open-stock/stock-universal-server';
+import { connectDatabase, createExpireDocIndex, globalSchemaObj, globalSelectObj, isDbConnected, mainConnection, mainConnectionLean, preUpdateDocExpire } from '@open-stock/stock-universal-server';
 import { Schema } from 'mongoose';
-import { connectAuthDatabase, isAuthDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 // Create authenticated Authy and Twilio API clients
 // const authy = require('authy')(config.authyKey);
 // const twilioClient = require('twilio')(config.accountSid, config.authToken);
@@ -9,21 +8,46 @@ export const companySchema = new Schema({
     ...globalSchemaObj,
     trackDeleted: { type: Schema.ObjectId },
     urId: { type: String, required: [true, 'cannot be empty.'], index: true },
-    name: { type: String, required: [true, 'cannot be empty.'], index: true },
-    displayName: { type: String, required: [true, 'cannot be empty.'], index: true },
-    dateOfEst: { type: String, index: true },
+    name: { type: String,
+        required: [true, 'cannot be empty.'],
+        index: true,
+        minlength: [3, 'more than 3 characters required.'],
+        maxlength: [90, 'less than 90 characters required.']
+    },
+    displayName: {
+        type: String, required: [true, 'cannot be empty.'],
+        index: true,
+        minlength: [3, 'more than 3 characters required.'],
+        maxlength: [90, 'less than 90 characters required.']
+    },
+    dateOfEst: {
+        type: Date,
+        index: true
+    },
     left: { type: Boolean, default: false },
-    dateLeft: { type: Date },
+    dateLeft: { type: Date,
+        validate: {
+            validator: validateDateLeft,
+            message: props => `${props.value} is less than date of establishment!`
+        }
+    },
     details: { type: String },
     address: { type: String },
     companyDispNameFormat: { type: String },
     businessType: { type: String },
-    websiteAddress: { type: String },
+    websiteAddress: { type: String,
+        validate: {
+            validator(v) {
+                return /^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&'\(\)\*\+,;=.]+$/.test(v);
+            },
+            message: props => `${props.value} is not a valid web address!`
+        }
+    },
     blocked: { type: Boolean, default: false },
     verified: { type: Boolean, default: false },
     expireAt: { type: String },
     blockedReasons: {},
-    owner: { type: String } // user
+    owner: { type: Schema.Types.ObjectId } // user
 }, { timestamps: true, collection: 'companies' });
 companySchema.index({ createdAt: -1 });
 companySchema.index({ expireAt: 1 }, { expireAfterSeconds: 2628003 });
@@ -33,39 +57,11 @@ companySchema.pre('updateOne', function (next) {
 companySchema.pre('updateMany', function (next) {
     return preUpdateDocExpire(this, next);
 });
+function validateDateLeft(v) {
+    return (new Date(v) > new Date(this.createdAt)) && (new Date(v) > new Date(this.dateOfEst));
+}
 // Apply the uniqueValidator plugin to companySchema.
 companySchema.plugin(uniqueValidator);
-companySchema.methods['toAuthJSON'] = function () {
-    return {
-        urId: this.urId,
-        name: this.name,
-        displayName: this.displayName,
-        dateOfEst: this.dateOfEst,
-        salutation: this.salutation,
-        details: this.details,
-        companyDispNameFormat: this.companyDispNameFormat,
-        businessType: this.businessType,
-        photos: this.photos,
-        blockedReasons: this.blockedReasons
-    };
-};
-companySchema.methods['toProfileJSONFor'] = function () {
-    return {
-        urId: this.urId,
-        name: this.name,
-        displayName: this.displayName,
-        dateOfEst: this.dateOfEst,
-        details: this.details,
-        companyDispNameFormat: this.companyDispNameFormat,
-        businessType: this.businessType,
-        profilepic: this.profilepic,
-        profileCoverPic: this.profileCoverPic,
-        createdAt: this.createdAt,
-        websiteAddress: this.websiteAddress,
-        photos: this.photos,
-        blockedReasons: this.blockedReasons
-    };
-};
 const companyAuthselect = {
     ...globalSelectObj,
     name: 1,
@@ -127,8 +123,8 @@ export const companyAboutSelect = companyaboutSelect;
  */
 export const createCompanyModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     createExpireDocIndex(companySchema);
-    if (!isAuthDbConnected) {
-        await connectAuthDatabase(dbUrl, dbOptions);
+    if (!isDbConnected) {
+        await connectDatabase(dbUrl, dbOptions);
     }
     if (main) {
         companyMain = mainConnection

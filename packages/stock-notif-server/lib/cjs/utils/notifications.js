@@ -3,9 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createNotifStn = exports.createNotifications = exports.makeNotfnBody = exports.updateNotifnViewed = exports.createPayload = exports.createNotifSetting = exports.constructMailService = exports.sendMail = exports.constructMail = exports.verifyAuthyToken = exports.sendSms = exports.sendToken = exports.determineUserHasMail = void 0;
 const tslib_1 = require("tslib");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
-const fs = tslib_1.__importStar(require("fs"));
-const path_1 = tslib_1.__importDefault(require("path"));
-const tracer = tslib_1.__importStar(require("tracer"));
+const mongoose_1 = require("mongoose");
 const webPush = tslib_1.__importStar(require("web-push"));
 const mainnotification_model_1 = require("../models/mainnotification.model");
 const notifsetting_model_1 = require("../models/notifsetting.model");
@@ -13,29 +11,6 @@ const stock_notif_local_1 = require("../stock-notif-local");
 // const sgMail = require('@sendgrid/mail');
 // import * as sgMail from '@sendgrid/mail';
 const sgMail = require('@sendgrid/mail');
-const notificationsControllerLogger = tracer.colorConsole({
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-        // eslint-disable-next-line no-console
-        console.log(data.output);
-        const logDir = path_1.default.join(process.cwd() + '/openstockLog/');
-        fs.mkdir(logDir, { recursive: true }, (err) => {
-            if (err) {
-                if (err) {
-                    // eslint-disable-next-line no-console
-                    console.log('data.output err ', err);
-                }
-            }
-        });
-        fs.appendFile(logDir + '/notif-server.log', data.rawoutput + '\n', err => {
-            if (err) {
-                // eslint-disable-next-line no-console
-                console.log('raw.output err ', err);
-            }
-        });
-    }
-});
 /**
  * Determines whether a user has an email address.
  * @param user - The user object.
@@ -115,7 +90,7 @@ exports.determineUserHasMail = determineUserHasMail;
       });
   });
 }; */
-const sendToken = (phone, countryCode, message) => {
+const sendToken = (phone, countryCode) => {
     return new Promise((resolve, reject) => {
         stock_notif_local_1.notificationSettings.twilioClient.verify.v2.services(stock_notif_local_1.notificationSettings.twilioVerificationSid)
             .verifications
@@ -181,13 +156,13 @@ const verifyAuthyToken = (phone, countryCode, code) => {
         stock_notif_local_1.notificationSettings.twilioClient.verify.v2.services(stock_notif_local_1.notificationSettings.twilioVerificationSid)
             .verificationChecks
             .create({ to: `${countryCode + phone.toString()}`, code: `${code}` })
-            .then(verification_check => {
-            notificationsControllerLogger.debug('verification_check', verification_check);
-            if (verification_check.status === 'approved') {
-                resolve(verification_check.status);
+            .then(verificationCheck => {
+            stock_universal_server_1.mainLogger.debug('verificationCheck', verificationCheck);
+            if (verificationCheck.status === 'approved') {
+                resolve(verificationCheck.status);
             }
             else {
-                reject(verification_check.status);
+                reject(verificationCheck.status);
             }
         }).catch(err => {
             reject(err);
@@ -232,10 +207,10 @@ const sendMail = (mailOptions) => {
             .send(mailOptions)
             .then((response) => {
             stock_notif_local_1.notificationSettings.emailDispatches++;
-            notificationsControllerLogger.info('message sent', response);
+            stock_universal_server_1.mainLogger.info('message sent', response);
             resolve({ response });
         }, error => {
-            notificationsControllerLogger.error('email verication with token error', JSON.stringify(error));
+            stock_universal_server_1.mainLogger.error('email verication with token error', JSON.stringify(error));
             reject(error);
         });
     });
@@ -249,8 +224,8 @@ exports.sendMail = sendMail;
  */
 const constructMailService = (sendGridApiKey, publicKey, privateKey) => {
     sgMail.setApiKey(sendGridApiKey);
-    // notificationsControllerLogger.info(generateVAPIDKeys()); // generate key
-    // notificationsControllerLogger.info('those keys are', notifConfig);
+    // mainLogger.info(generateVAPIDKeys()); // generate key
+    // mainLogger.info('those keys are', notifConfig);
     const vapidKeys = {
         publicKey,
         privateKey
@@ -277,23 +252,12 @@ exports.constructMailService = constructMailService;
  * @returns A promise that resolves to an object indicating the success status and HTTP status code.
  */
 const createNotifSetting = async (stn) => {
-    let errResponse;
     const notifMain = new notifsetting_model_1.notifSettingMain(stn);
-    await notifMain.save().catch(err => {
-        const errResponse = {
-            success: false,
-            status: 403
-        };
-        if (err && err.errors) {
-            errResponse.err = (0, stock_universal_server_1.stringifyMongooseErr)(err.errors);
-        }
-        else {
-            errResponse.err = `we are having problems connecting to our databases, 
-      try again in a while`;
-        }
-        return errResponse;
+    const savedRes = await notifMain.save().catch((err) => {
+        return err;
     });
-    if (errResponse) {
+    if (savedRes instanceof mongoose_1.Error) {
+        const errResponse = (0, stock_universal_server_1.handleMongooseErr)(savedRes);
         return errResponse;
     }
     return { success: true, status: 200 };
@@ -338,7 +302,7 @@ const createPayload = (title, body, icon, actions = [
             }
         }
     };
-    notificationsControllerLogger.debug('createPayload - payload: ', payload);
+    stock_universal_server_1.mainLogger.debug('createPayload - payload: ', payload);
     return payload;
 };
 exports.createPayload = createPayload;
@@ -349,10 +313,11 @@ exports.createPayload = createPayload;
  * @returns A boolean indicating whether the update was successful.
  */
 const updateNotifnViewed = async (user, _id) => {
-    notificationsControllerLogger.info('updateNotifnViewed - user: ', user);
+    stock_universal_server_1.mainLogger.info('updateNotifnViewed - user: ', user);
     const { userId } = user;
     await mainnotification_model_1.mainnotificationMain
-        .updateOne({ _id }, { $push: { viewed: userId } });
+        .updateOne({ _id }, { $push: { viewed: userId } })
+        .catch((err) => err);
     return true;
 };
 exports.updateNotifnViewed = updateNotifnViewed;
@@ -384,15 +349,15 @@ const makeNotfnBody = (userId, title, body, notifType, actions, notifInvokerId) 
         buyer: false,
         viewed: []
     };
-    notificationsControllerLogger.debug('makeNotfnBody - notification', notification);
+    stock_universal_server_1.mainLogger.debug('makeNotfnBody - notification', notification);
     return notification;
 };
 exports.makeNotfnBody = makeNotfnBody;
 const createNotifications = async (data) => {
     const newNotifn = new mainnotification_model_1.mainnotificationMain(data.notification);
-    await newNotifn.save().catch(err => {
+    await newNotifn.save().catch((err) => {
         if (err) {
-            notificationsControllerLogger.error('save Error', err);
+            stock_universal_server_1.mainLogger.error('save Error', err);
         }
     });
     return true;
@@ -400,22 +365,11 @@ const createNotifications = async (data) => {
 exports.createNotifications = createNotifications;
 const createNotifStn = async (stn) => {
     const notifMain = new notifsetting_model_1.notifSettingMain(stn);
-    let errResponse;
-    await notifMain.save().catch(err => {
-        errResponse = {
-            success: false,
-            status: 403
-        };
-        if (err && err.errors) {
-            errResponse.err = (0, stock_universal_server_1.stringifyMongooseErr)(err.errors);
-        }
-        else {
-            errResponse.err = `we are having problems connecting to our databases, 
-      try again in a while`;
-        }
-        return errResponse;
+    const savedRes = await notifMain.save().catch((err) => {
+        return err;
     });
-    if (errResponse) {
+    if (savedRes instanceof mongoose_1.Error) {
+        const errResponse = (0, stock_universal_server_1.handleMongooseErr)(savedRes);
         return errResponse;
     }
     return {

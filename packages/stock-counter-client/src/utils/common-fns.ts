@@ -1,5 +1,6 @@
 import { User } from '@open-stock/stock-auth-client';
 import {
+  IdatabaseAuto,
   IdeleteMany, Iinvoice,
   IinvoiceRelated, IpaymentRelated, ItrackEdit, ItrackView, LoggerController, TinvoiceStatus
 } from '@open-stock/stock-universal';
@@ -63,9 +64,6 @@ export const transformEstimateId = (id: number): string => {
   const logger = new LoggerController();
 
   logger.debug('EstimateIdPipe:transform:: - id: ', id);
-  if (!id) {
-    return;
-  }
   const len = id.toString().length;
   const start = '#EST-';
 
@@ -78,6 +76,8 @@ export const transformEstimateId = (id: number): string => {
       return start + '00' + id;
     case 1:
       return start + '000' + id;
+    default:
+      return start + '0000' + id;
   }
 };
 
@@ -90,9 +90,6 @@ export const transformInvoice = (id: number): string => {
   const logger = new LoggerController();
 
   logger.debug('InvoiceIdPipe:transform:: - id: ', id);
-  if (!id) {
-    return;
-  }
   const len = id.toString().length;
   const start = '#INV-';
 
@@ -105,6 +102,8 @@ export const transformInvoice = (id: number): string => {
       return start + '00' + id;
     case 1:
       return start + '000' + id;
+    default:
+      return start + '0000' + id;
   }
 };
 
@@ -139,6 +138,15 @@ export const transformUrId = (
   }
 };
 
+export const makeDatabaseAutoAndUrId = (data: IdatabaseAuto & { urId: string }) => {
+  return {
+    _id: data._id,
+    createdAt: data.createdAt,
+    updatedAt: data.updatedAt,
+    urId: data.urId
+  };
+};
+
 /**
  * Creates a payment-related object based on the provided data.
  * @param data - The data object containing order or payment information.
@@ -146,6 +154,7 @@ export const transformUrId = (
  */
 export const makePaymentRelated = (data: Order | Payment): IpaymentRelated => {
   return {
+    urId: data.urId,
     paymentRelated: data.paymentRelated,
     // creationType: data.creationType,
     orderDate: data.orderDate,
@@ -153,7 +162,7 @@ export const makePaymentRelated = (data: Order | Payment): IpaymentRelated => {
     billingAddress: data.billingAddress,
     shippingAddress: data.shippingAddress,
     // tax: data.tax,
-    currency: data.currency,
+    // currency: data.currency,
     isBurgain: data.isBurgain,
     shipping: data.shipping,
     manuallyAdded: data.manuallyAdded,
@@ -191,7 +200,8 @@ export const makeInvoiceRelated = (data: DeliveryNote |
     balanceDue: data.balanceDue,
     subTotal: data.subTotal,
     total: data.total,
-    currency: data.currency
+    currency: data.currency,
+    ...makeDatabaseAutoAndUrId(data)
   };
 
   return (data instanceof Receipt) ? related : { ...related, payments: (data as DeliveryNote).payments };
@@ -208,19 +218,12 @@ export const likeFn = (
   currentUser: User,
   item: Item
 ) => {
-  const logger = new LoggerController();
-
   if (!currentUser) {
     return { success: false };
   }
 
   return item
-    .like(currentUser._id)
-    .catch(err => {
-      logger.debug(':like:: - err ', err);
-
-      return { success: false };
-    });
+    .like(currentUser._id);
 };
 
 /**
@@ -234,19 +237,12 @@ export const unLikeFn = (
   currentUser: User,
   item: Item
 ) => {
-  const logger = new LoggerController();
-
   if (!currentUser) {
     return { success: false };
   }
 
   return item
-    .unLike(currentUser._id)
-    .catch(err => {
-      logger.debug(':unLike:: - err ', err);
-
-      return { success: false };
-    });
+    .unLike(currentUser._id);
 };
 
 /**
@@ -257,7 +253,7 @@ export const unLikeFn = (
  * @returns A boolean value indicating whether the item is liked by the current user.
  */
 export const determineLikedFn = (item: Item, currentUser: User): boolean => {
-  if (currentUser &&
+  if (currentUser && item.likes &&
     item.likes.includes(currentUser._id)) {
     return true;
   } else {
@@ -333,7 +329,6 @@ export const deleteManyInvoicesFn = (
   invoices: Invoice[],
   selections: string[]
 ) => {
-  const logger = new LoggerController();
   const val: IdeleteMany = {
     _ids: invoices
       .filter(val => selections.includes(val._id))
@@ -343,12 +338,7 @@ export const deleteManyInvoicesFn = (
   };
 
   return Invoice
-    .removeMany(val)
-    .catch(err => {
-      logger.error('InvoicesListComponent:deleteMany:: - err ', err);
-
-      return { success: false };
-    });
+    .removeMany(val);
 };
 
 /**

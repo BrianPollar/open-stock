@@ -9,49 +9,21 @@ import {
   IcustomRequest, IdataArrayResponse,
   IdeleteMany,
   IeditStaff,
-  IfilterAggResponse, IfilterProps, Isuccess
+  IfilterAggResponse, IfilterProps
 } from '@open-stock/stock-universal';
 import {
   addParentToLocals,
   appendBody, constructFiltersFromBody,
   generateUrId,
+  handleMongooseErr,
   lookupSubFieldUserFilter, makeCompanyBasedQuery, offsetLimitRelegator,
   requireAuth,
-  roleAuthorisation, saveMetaToDb,
-  stringifyMongooseErr, uploadFiles, verifyObjectIds
+  roleAuthorisation, saveMetaToDb, uploadFiles, verifyObjectIds
 } from '@open-stock/stock-universal-server';
 import express, { NextFunction, Response } from 'express';
-import * as fs from 'fs';
-import path from 'path';
-import * as tracer from 'tracer';
 import { invoiceRelatedLean } from '../../models/printables/related/invoicerelated.model';
 import { Tstaff, staffLean, staffMain } from '../../models/user-related/staff.model';
 import { populateUser } from '../../utils/query';
-
-const staffRoutesLogger = tracer.colorConsole({
-  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-  dateformat: 'HH:MM:ss.L',
-  transport(data) {
-    // eslint-disable-next-line no-console
-    console.log(data.output);
-    const logDir = path.join(process.cwd() + '/openstockLog/');
-
-    fs.mkdir(logDir, { recursive: true }, (err) => {
-      if (err) {
-        if (err) {
-          // eslint-disable-next-line no-console
-          console.log('data.output err ', err);
-        }
-      }
-    });
-    fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
-      if (err) {
-        // eslint-disable-next-line no-console
-        console.log('raw.output err ', err);
-      }
-    });
-  }
-});
 
 /**
    * Adds a new staff member to the database.
@@ -61,45 +33,39 @@ const staffRoutesLogger = tracer.colorConsole({
    * @returns {Promise<void>} - A promise that resolves when the middleware has finished.
    */
 export const addStaff = async(
-  req: IcustomRequest<never, IeditStaff>,
+  req: IcustomRequest<never, Partial<IeditStaff>>,
   res: Response,
   next: NextFunction
 ) => {
+  if (!req.user || !req.body.user || !req.body.staff || !req.body.user._id) {
+    return res.status(401).send({ success: false, err: 'unauthorised' });
+  }
   const { filter } = makeCompanyBasedQuery(req);
   const { staff, user } = req.body;
 
-  staff.user = user._id;
+  if (user._id) {
+    staff.user = user._id;
+  } else {
+    return res.status(401).send({ success: false, err: 'unauthorised' });
+  }
+
   staff.companyId = filter.companyId;
 
   staff.urId = await generateUrId(staffMain);
 
   const newStaff = new staffMain(staff);
-  let errResponse: Isuccess;
 
-  const saved = await newStaff.save()
-    .catch(err => {
-      staffRoutesLogger.error('create - err: ', err);
-      errResponse = {
-        success: false,
-        status: 403
-      };
-      if (err && err.errors) {
-        errResponse.err = stringifyMongooseErr(err.errors);
-      } else {
-        errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-      }
 
-      return err;
-    });
+  const savedRes = await newStaff.save()
+    .catch((err: Error) => err);
 
-  if (errResponse) {
-    return res.status(403).send(errResponse);
+  if (savedRes instanceof Error) {
+    const errResponse = handleMongooseErr(savedRes);
+
+    return res.status(errResponse.status).send(errResponse);
   }
 
-  if (saved && saved._id) {
-    addParentToLocals(res, saved._id, staffMain.collection.collectionName, 'makeTrackEdit');
-  }
+  addParentToLocals(res, savedRes._id, staffMain.collection.collectionName, 'makeTrackEdit');
 
   return next();
 };
@@ -111,6 +77,9 @@ export const addStaff = async(
    * @returns {Promise<void>} - A promise that resolves when the middleware has finished.
    */
 export const updateStaff = async(req: IcustomRequest<never, IeditStaff & { profileOnly?: string }>, res) => {
+  if (!req.user) {
+    return res.status(401).send({ success: false, err: 'unauthorised' });
+  }
   const updatedStaff = req.body.staff;
   const { filter } = makeCompanyBasedQuery(req);
 
@@ -129,8 +98,8 @@ export const updateStaff = async(req: IcustomRequest<never, IeditStaff & { profi
   if (!staff) {
     return res.status(404).send({ success: false });
   }
-  let errResponse: Isuccess;
-  const updated = await staffMain.updateOne({ ...filter2, ...filter }, { $set: {
+
+  const updateRes = await staffMain.updateOne({ ...filter2, ...filter }, { $set: {
     startDate: updatedStaff.startDate || staff.startDate,
     endDate: updatedStaff.endDate || staff.endDate,
     occupation: updatedStaff.occupation || staff.occupation,
@@ -138,29 +107,17 @@ export const updateStaff = async(req: IcustomRequest<never, IeditStaff & { profi
     salary: updatedStaff.salary || staff.salary,
     isDeleted: updatedStaff.isDeleted || staff.isDeleted
   } })
-    .catch(err => {
-      staffRoutesLogger.error('update - err: ', err);
-      errResponse = {
-        success: false,
-        status: 403
-      };
-      if (err && err.errors) {
-        errResponse.err = stringifyMongooseErr(err.errors);
-      } else {
-        errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-      }
+    .catch((err: Error) => err);
 
-      return errResponse;
-    });
+  if (updateRes instanceof Error) {
+    const errResponse = handleMongooseErr(updateRes);
 
-  if (errResponse) {
-    return res.status(403).send(errResponse);
+    return res.status(errResponse.status).send(errResponse);
   }
 
   addParentToLocals(res, staff._id, staffMain.collection.collectionName, 'makeTrackEdit');
 
-  return res.status(200).send({ success: Boolean(updated) });
+  return res.status(200).send({ success: true });
 };
 
 /**
@@ -198,8 +155,16 @@ staffRoutes.post(
   requireAuth,
   requireActiveCompany,
   roleAuthorisation('staffs', 'read', true),
-  async(req: IcustomRequest<never, { _id: string; userId: string; profileOnly?: string}>, res) => {
-    const { _id, userId } = req.body;
+  async(req: IcustomRequest<never, {
+    _id?: string; userId?: string; urId: string; companyId?: string; profileOnly?: string; }>, res) => {
+    if (!req.user) {
+      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
+    const { _id, userId, urId, companyId } = req.body;
+
+    if (!_id && !userId && !urId) {
+      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const { filter } = makeCompanyBasedQuery(req);
     let filter2 = {};
 
@@ -229,6 +194,15 @@ staffRoutes.post(
 
       filter2 = { user: userId };
     }
+
+    if (urId) {
+      filter2 = { ...filter2, urId };
+    }
+
+    if (companyId) {
+      filter2 = { ...filter2, companyId };
+    }
+
     const staff = await staffLean
       .findOne({ ...filter2, ...filter })
       .populate([populateUser(), populateTrackEdit(), populateTrackView()])
@@ -311,12 +285,12 @@ staffRoutes.post(
   requireActiveCompany,
   roleAuthorisation('staffs', 'read'),
   async(req: IcustomRequest<never, IfilterProps>, res) => {
-    const { propSort } = req.body;
+    const { propSort, returnEmptyArr } = req.body;
     const { offset, limit } = offsetLimitRelegator(req.body.offset, req.body.limit);
 
     const aggCursor = staffLean
       .aggregate<IfilterAggResponse<Tstaff>>([
-        ...lookupSubFieldUserFilter(constructFiltersFromBody(req), propSort, offset, limit)
+        ...lookupSubFieldUserFilter(constructFiltersFromBody(req), offset, limit, propSort, returnEmptyArr)
       ]);
     const dataArr: IfilterAggResponse<Tstaff>[] = [];
 
@@ -377,15 +351,18 @@ staffRoutes.put(
     const { _id } = req.body;
     const { filter } = makeCompanyBasedQuery(req);
 
-    const deleted = await staffMain.updateOne({ _id, ...filter }, { $set: { isDeleted: true } });
+    const updateRes = await staffMain.updateOne({ _id, ...filter }, { $set: { isDeleted: true } })
+      .catch((err: Error) => err);
 
-    if (Boolean(deleted)) {
-      addParentToLocals(res, _id, staffMain.collection.collectionName, 'trackDataDelete');
+    if (updateRes instanceof Error) {
+      const errResponse = handleMongooseErr(updateRes);
 
-      return res.status(200).send({ success: Boolean(deleted) });
-    } else {
-      return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
+      return res.status(errResponse.status).send(errResponse);
     }
+
+    addParentToLocals(res, _id, staffMain.collection.collectionName, 'trackDataDelete');
+
+    return res.status(200).send({ success: true });
   }
 );
 
@@ -404,34 +381,22 @@ staffRoutes.put(
     const { _ids } = req.body;
     const { filter } = makeCompanyBasedQuery(req);
 
-    /* const deleted = await staffMain
-    .deleteMany({ _id: { $in: _ids }, ...filter })
-    .catch(err => {
-      staffRoutesLogger.error('deletemany - err: ', err);
-
-      return null;
-    }); */
-
-    const deleted = await staffMain
+    const updateRes = await staffMain
       .updateMany({ _id: { $in: _ids }, ...filter }, {
         $set: { isDeleted: true }
-      })
-      .catch(err => {
-        staffRoutesLogger.error('deletemany - err: ', err);
+      }).catch((err: Error) => err);
 
-        return null;
-      });
+    if (updateRes instanceof Error) {
+      const errResponse = handleMongooseErr(updateRes);
 
-    if (Boolean(deleted)) {
-      for (const val of _ids) {
-        addParentToLocals(res, val, staffMain.collection.collectionName, 'trackDataDelete');
-      }
-
-      return res.status(200).send({ success: Boolean(deleted) });
-    } else {
-      return res.status(404).send({
-        success: Boolean(deleted), err: 'could not delete selected items, try again in a while' });
+      return res.status(errResponse.status).send(errResponse);
     }
+
+    for (const val of _ids) {
+      addParentToLocals(res, val, staffMain.collection.collectionName, 'trackDataDelete');
+    }
+
+    return res.status(200).send({ success: true });
   }
 );
 

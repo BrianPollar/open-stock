@@ -1,23 +1,26 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-type-arguments */
 import { IinvoiceRelatedRef } from '@open-stock/stock-universal';
 import {
-  createExpireDocIndex, preUpdateDocExpire,
+  IcompanyIdAsObjectId,
+  connectDatabase,
+  createExpireDocIndex,
+  isDbConnected, mainConnection, mainConnectionLean,
+  preUpdateDocExpire,
   withUrIdAndCompanySchemaObj,
   withUrIdAndCompanySelectObj
 } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 
 /**
  * Represents a delivery note.
  * @typedef {Document & IurId & IinvoiceRelatedRef} TdeliveryNote
  */
-export type TdeliveryNote = Document & IinvoiceRelatedRef;
+export type TdeliveryNote = Document & IinvoiceRelatedRef & IcompanyIdAsObjectId;
 
 const deliveryNoteSchema: Schema<TdeliveryNote> = new Schema({
   ...withUrIdAndCompanySchemaObj,
-  invoiceRelated: { type: String, unique: true }
+  invoiceRelated: { type: Schema.Types.ObjectId, unique: true }
 }, { timestamps: true, collection: 'deliverynotes' });
 
 // Apply the uniqueValidator plugin to deliveryNoteSchema.
@@ -65,8 +68,8 @@ export const deliveryNoteSelect = deliveryNoteselect;
  */
 export const createDeliveryNoteModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
   createExpireDocIndex(deliveryNoteSchema);
-  if (!isStockDbConnected) {
-    await connectStockDatabase(dbUrl, dbOptions);
+  if (!isDbConnected) {
+    await connectDatabase(dbUrl, dbOptions);
   }
 
   if (main) {

@@ -27,9 +27,9 @@ export class DeliveryNote extends InvoiceRelatedWithReceipt {
                 .map((val) => new DeliveryNote(val))
         };
     }
-    static async getOne(urId) {
+    static async getOne(urIdOr_id) {
         const observer$ = StockCounterClient.ehttp
-            .makeGet(`/deliverynote/one/${urId}`);
+            .makeGet(`/deliverynote/one/${urIdOr_id}`);
         const deliverynote = await lastValueFrom(observer$);
         return new DeliveryNote(deliverynote);
     }
@@ -41,6 +41,11 @@ export class DeliveryNote extends InvoiceRelatedWithReceipt {
     static removeMany(val) {
         const observer$ = StockCounterClient.ehttp
             .makePut('/deliverynote/delete/many', val); // TODO with IdeleteMany
+        return lastValueFrom(observer$);
+    }
+    remove() {
+        const observer$ = StockCounterClient.ehttp
+            .makeDelete(`/deliverynote/delete/one/${this._id}`);
         return lastValueFrom(observer$);
     }
 }

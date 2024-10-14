@@ -1,42 +1,110 @@
 import { Iitem } from '@open-stock/stock-universal';
 import {
-  createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj
+  IcompanyIdAsObjectId,
+  connectDatabase,
+  createExpireDocIndex,
+  isDbConnected, mainConnection, mainConnectionLean,
+  preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj
 } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 
-export type TitemModel = Document & Iitem;
+export type Titem = Document & Iitem & IcompanyIdAsObjectId & { model: string };
 
-const itemSchema: Schema = new Schema({
+const itemSchema: Schema<Titem> = new Schema({
   ...withUrIdAndCompanySchemaObj,
   numbersInstock: { type: Number, required: [true, 'cannot be empty.'], index: true },
-  name: { type: String, required: [true, 'cannot be empty.'], index: true },
+  name: {
+    type: String,
+    required: [true, 'cannot be empty.'],
+    index: true,
+    minLength: [3, 'cannot be less than 3.'],
+    maxLength: [350, 'cannot be more than 50.']
+  },
   category: { type: String },
   subCategory: { type: String },
   state: { type: String },
   photos: [],
   video: { type: String },
   colors: [],
-  model: { type: String },
-  origin: { type: String },
-  anyKnownProblems: { type: String },
+
+  /* TODO model: {
+    type: String,
+    minLength: [1, 'cannot be less than 1.'],
+    maxLength: [150, 'cannot be more than 150.']
+  }, */
+  origin: {
+    type: String,
+    minLength: [1, 'cannot be less than 1.'],
+    maxLength: [150, 'cannot be more than 150.']
+  },
+  anyKnownProblems: {
+    type: String,
+    minLength: [3, 'cannot be less than 3.'],
+    maxLength: [350, 'cannot be more than 350.']
+  },
   costMeta: { },
-  description: { type: String },
-  numberBought: { type: Number, default: 0 },
-  sponsored: [{ type: String }],
-  buyerGuarantee: { type: String },
+  description: {
+    type: String,
+    minLength: [3, 'cannot be less than 1.']
+  },
+  numberBought: {
+    type: Number,
+    default: 0,
+    min: [0, 'cannot be less than 0.']
+  },
+  sponsored: [String],
+  buyerGuarantee: {
+    type: String,
+    minLength: [1, 'cannot be less than 1.'],
+    maxLength: [150, 'cannot be more than 50.']
+  },
   reviewedBy: [],
-  reviewCount: { type: Number, default: 0, index: true },
-  reviewWeight: { type: Number, default: 0 },
-  reviewRatingsTotal: { type: Number, default: 0, index: true },
+  reviewCount: {
+    type: Number,
+    default: 0,
+    index: true,
+    min: [0, 'cannot be less than 0.']
+  },
+  reviewWeight: {
+    type: Number,
+    default: 0,
+    min: [0, 'cannot be less than 0.']
+  },
+  reviewRatingsTotal: {
+    type: Number,
+    default: 0,
+    index: true,
+    min: [0, 'cannot be less than 0.']
+  },
   likes: [],
   likesCount: { type: Number, default: 0, index: true },
-  timesViewed: { type: Number, default: 0, index: true },
-  inventoryMeta: [],
-  brand: { type: String },
+  timesViewed: {
+    type: Number,
+    default: 0,
+    index: true,
+    min: [0, 'cannot be less than 0.']
+  },
+  inventoryMeta: [
+    {
+      date: { type: Date },
+      quantity: { type: Number },
+      cost: { type: Number },
+      currency: { type: String }
+    }
+  ],
+  brand: {
+    type: String,
+    minLength: [1, 'cannot be less than 1.'],
+    maxLength: [150, 'cannot be more than 150.']
+  },
   ecomerceCompat: { type: Boolean, default: false },
-  soldCount: { type: Number, default: 0, index: true } // TODO update fields related to this
+  soldCount: {
+    type: Number,
+    default: 0,
+    index: true,
+    min: [0, 'cannot be less than 0.']
+  } // TODO update fields related to this
 
 }, { timestamps: true, collection: 'items' });
 
@@ -92,12 +160,12 @@ const itemselect = {
 /**
  * Represents the main item model.
  */
-export let itemMain: Model<Iitem>;
+export let itemMain: Model<Titem>;
 
 /**
  * Represents the lean version of the item model.
  */
-export let itemLean: Model<Iitem>;
+export let itemLean: Model<Titem>;
 
 /**
  * Represents the item select function.
@@ -112,17 +180,17 @@ export const itemSelect = itemselect;
  */
 export const createItemModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
   createExpireDocIndex(itemSchema);
-  if (!isStockDbConnected) {
-    await connectStockDatabase(dbUrl, dbOptions);
+  if (!isDbConnected) {
+    await connectDatabase(dbUrl, dbOptions);
   }
 
   if (main) {
     itemMain = mainConnection
-      .model<Iitem>('Item', itemSchema);
+      .model<Titem>('Item', itemSchema);
   }
 
   if (lean) {
     itemLean = mainConnectionLean
-      .model<Iitem>('Item', itemSchema);
+      .model<Titem>('Item', itemSchema);
   }
 };

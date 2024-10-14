@@ -3,18 +3,35 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createCompanySubscription = exports.companySubscriptionSelect = exports.companySubscriptionLean = exports.companySubscriptionMain = void 0;
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const mongoose_1 = require("mongoose");
-const database_1 = require("../../utils/database");
 const uniqueValidator = require('mongoose-unique-validator');
 /** company subscription schema */
 const companySubscriptionSchema = new mongoose_1.Schema({
     ...stock_universal_server_1.withCompanySchemaObj,
-    name: { type: String },
-    ammount: { type: Number },
-    duration: { type: Number },
+    name: {
+        type: String,
+        minlength: [3, 'alteat 3 charaters needed'],
+        maxlength: [50, 'cannot be more than 50 characters']
+    },
+    ammount: {
+        type: Number,
+        required: [true, 'cannot be empty.'],
+        min: [0, 'cannot be less than 0.']
+    },
+    duration: {
+        type: Number,
+        required: [true, 'cannot be empty.'],
+        min: [0, 'cannot be less than 0.']
+    },
     active: { type: Boolean, default: false },
     // subscriprionId: { type: String },
     startDate: { type: Date, required: [true, 'cannot be empty.'], index: true },
-    endDate: { type: Date, required: [true, 'cannot be empty.'], index: true },
+    endDate: {
+        type: Date,
+        required: [true, 'cannot be empty.'],
+        index: true,
+        validator: checkEndDate,
+        message: props => `${props.value} is invalid, must be greater than start date!`
+    },
     pesaPalorderTrackingId: { type: String, inddex: true },
     status: { type: String },
     features: []
@@ -22,6 +39,9 @@ const companySubscriptionSchema = new mongoose_1.Schema({
 companySubscriptionSchema.index({ endDate: -1 });
 // Apply the uniqueValidator plugin to companySubscriptionSchema.
 companySubscriptionSchema.plugin(uniqueValidator);
+function checkEndDate(value) {
+    return new Date(value) > new Date(this.startDate);
+}
 /** Primary selection object for FAQ */
 const companySubscriptionselect = {
     ...stock_universal_server_1.withCompanySelectObj,
@@ -49,15 +69,15 @@ exports.companySubscriptionSelect = companySubscriptionselect;
  */
 const createCompanySubscription = async (dbUrl, dbOptions, main = true, lean = true) => {
     (0, stock_universal_server_1.createExpireDocIndex)(companySubscriptionSchema);
-    if (!database_1.isAuthDbConnected) {
-        await (0, database_1.connectAuthDatabase)(dbUrl, dbOptions);
+    if (!stock_universal_server_1.isDbConnected) {
+        await (0, stock_universal_server_1.connectDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.companySubscriptionMain = database_1.mainConnectionLean
+        exports.companySubscriptionMain = stock_universal_server_1.mainConnectionLean
             .model('CompanySubscription', companySubscriptionSchema);
     }
     if (lean) {
-        exports.companySubscriptionLean = database_1.mainConnectionLean
+        exports.companySubscriptionLean = stock_universal_server_1.mainConnectionLean
             .model('CompanySubscription', companySubscriptionSchema);
     }
 };

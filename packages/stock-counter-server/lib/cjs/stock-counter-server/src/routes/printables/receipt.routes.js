@@ -1,14 +1,4 @@
 "use strict";
-/**
- * Defines the routes for creating, retrieving, updating and deleting receipts.
- * @remarks
- * This file contains the following routes:
- * - POST /create - creates a new receipt
- * - GET /one/:urId - retrieves a single receipt by its unique identifier (urId)
- * - GET /all/:offset/:limit - retrieves all receipts with pagination
- * - PUT /delete/one - deletes a single receipt and its related documents
- * - POST /filter/:offset/:limit - searches for receipts based on a search term and key
- */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.receiptRoutes = void 0;
 const tslib_1 = require("tslib");
@@ -16,39 +6,11 @@ const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
 // import { paymentInstallsLean } from '../../models/printables/paymentrelated/paymentsinstalls.model';
 const stock_auth_server_1 = require("@open-stock/stock-auth-server");
-const fs = tslib_1.__importStar(require("fs"));
-const path_1 = tslib_1.__importDefault(require("path"));
-const tracer = tslib_1.__importStar(require("tracer"));
+const mongoose_1 = require("mongoose");
 const receipt_model_1 = require("../../models/printables/receipt.model");
 const query_1 = require("../../utils/query");
 const paymentrelated_1 = require("../paymentrelated/paymentrelated");
 const invoicerelated_1 = require("./related/invoicerelated");
-/**
- * Logger for pickup location routes
- */
-const receiptRoutesLogger = tracer.colorConsole({
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-        // eslint-disable-next-line no-console
-        console.log(data.output);
-        const logDir = path_1.default.join(process.cwd() + '/openstockLog/');
-        fs.mkdir(logDir, { recursive: true }, (err) => {
-            if (err) {
-                if (err) {
-                    // eslint-disable-next-line no-console
-                    console.log('data.output err ', err);
-                }
-            }
-        });
-        fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
-            if (err) {
-                // eslint-disable-next-line no-console
-                console.log('raw.output err ', err);
-            }
-        });
-    }
-});
 /**
  * Router for handling receipt routes.
  */
@@ -61,14 +23,14 @@ exports.receiptRoutes.post('/add', stock_universal_server_1.requireAuth, stock_a
     receipt.urId = await (0, stock_universal_server_1.generateUrId)(receipt_model_1.receiptMain);
     const extraNotifDesc = 'Newly created receipt';
     const invoiceRelatedRes = await (0, invoicerelated_1.relegateInvRelatedCreation)(res, invoiceRelated, filter.companyId, extraNotifDesc);
-    if (!invoiceRelatedRes.success) {
-        return res.status(invoiceRelatedRes.status).send(invoiceRelatedRes);
+    if (!invoiceRelatedRes.success || !invoiceRelatedRes._id) {
+        return res.status(invoiceRelatedRes.status || 403).send(invoiceRelatedRes);
     }
     receipt.invoiceRelated = invoiceRelatedRes._id;
     await (0, paymentrelated_1.makePaymentInstall)(res, receipt, invoiceRelatedRes._id, filter.companyId, invoiceRelated.creationType);
     // const newReceipt = new receiptMain(receipt);
-    /* let errResponse: Isuccess;
-  const saved = await newReceipt.save()
+    /*
+  const savedRes = await newReceipt.save()
     .catch(err => {
       receiptRoutesLogger.error('create - err: ', err);
       errResponse = {
@@ -90,11 +52,12 @@ exports.receiptRoutes.post('/add', stock_universal_server_1.requireAuth, stock_a
   await updateInvoiceRelated(invoiceRelated); */
     return next();
 }, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('receipt'));
-exports.receiptRoutes.get('/one/:urId', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('receipts', 'read'), async (req, res) => {
-    const { urId } = req.params;
+exports.receiptRoutes.get('/one/:urIdOr_id', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('receipts', 'read'), async (req, res) => {
+    const { urIdOr_id } = req.params;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
+    const filterwithId = (0, stock_universal_server_1.verifyObjectId)(urIdOr_id) ? { _id: urIdOr_id } : { urId: urIdOr_id };
     const receipt = await receipt_model_1.receiptLean
-        .findOne({ urId, ...filter })
+        .findOne({ ...filterwithId, ...filter })
         .lean()
         .populate([(0, query_1.populateInvoiceRelated)(), (0, stock_auth_server_1.populateTrackEdit)(), (0, stock_auth_server_1.populateTrackView)()]);
     if (!receipt || !receipt.invoiceRelated) {
@@ -146,21 +109,20 @@ exports.receiptRoutes.put('/delete/one', stock_universal_server_1.requireAuth, s
     if (!found) {
         return res.status(404).send({ success: false, err: 'not found' });
     }
-    const deleted = await (0, invoicerelated_1.deleteAllLinked)(found.invoiceRelated, 'receipt', filter.companyId);
-    if (Boolean(deleted)) {
-        (0, stock_universal_server_1.addParentToLocals)(res, _id, receipt_model_1.receiptLean.collection.collectionName, 'trackDataDelete');
-        return res.status(200).send({ success: Boolean(deleted) });
+    const updateRes = await (0, invoicerelated_1.deleteAllLinked)(found.invoiceRelated, 'receipt', filter.companyId);
+    if (updateRes instanceof mongoose_1.Error) {
+        const errResponse = (0, stock_universal_server_1.handleMongooseErr)(updateRes);
+        return res.status(errResponse.status).send(errResponse);
     }
-    else {
-        return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
-    }
+    (0, stock_universal_server_1.addParentToLocals)(res, _id, receipt_model_1.receiptLean.collection.collectionName, 'trackDataDelete');
+    return res.status(200).send({ success: true });
 });
 exports.receiptRoutes.post('/filter', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('receipts', 'read'), async (req, res) => {
-    const { propSort } = req.body;
+    const { propSort, returnEmptyArr } = req.body;
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.body.offset, req.body.limit);
     const aggCursor = receipt_model_1.receiptLean
         .aggregate([
-        ...(0, stock_universal_server_1.lookupSubFieldInvoiceRelatedFilter)((0, stock_universal_server_1.constructFiltersFromBody)(req), propSort, offset, limit)
+        ...(0, stock_universal_server_1.lookupSubFieldInvoiceRelatedFilter)((0, stock_universal_server_1.constructFiltersFromBody)(req), offset, limit, propSort, returnEmptyArr)
     ]);
     const dataArr = [];
     for await (const data of aggCursor) {
@@ -189,21 +151,17 @@ exports.receiptRoutes.put('/update', stock_universal_server_1.requireAuth, stock
     if (!found) {
         return res.status(404).send({ success: false, status: 404, err: 'not found' });
     }
-    let savedErr;
-    await receipt_model_1.receiptMain.updateOne({
+    const updateRes = await receipt_model_1.receiptMain.updateOne({
         _id: updatedReceipt._id, ...filter
     }, {
         $set: {
             paymentMode: updatedReceipt.paymentMode || found.paymentMode,
             isDeleted: updatedReceipt.isDeleted || found.isDeleted
         }
-    }).catch(err => {
-        receiptRoutesLogger.error('save error', err);
-        savedErr = err;
-        return null;
-    });
-    if (savedErr) {
-        return res.status(500).send({ success: false });
+    }).catch((err) => err);
+    if (updateRes instanceof mongoose_1.Error) {
+        const errResponse = (0, stock_universal_server_1.handleMongooseErr)(updateRes);
+        return res.status(errResponse.status).send(errResponse);
     }
     (0, stock_universal_server_1.addParentToLocals)(res, found._id, receipt_model_1.receiptLean.collection.collectionName, 'makeTrackEdit');
     await (0, invoicerelated_1.updateInvoiceRelated)(res, invoiceRelated);
@@ -218,10 +176,10 @@ exports.receiptRoutes.put('/delete/many', stock_universal_server_1.requireAuth, 
         if (found) {
             await (0, invoicerelated_1.deleteAllLinked)(found.invoiceRelated, 'receipt', filter.companyId);
         }
-        return new Promise(resolve => resolve(found._id));
+        return new Promise(resolve => resolve(found?._id));
     });
     const filterdExist = await Promise.all(promises);
-    for (const val of filterdExist) {
+    for (const val of filterdExist.filter(value => value)) {
         (0, stock_universal_server_1.addParentToLocals)(res, val, receipt_model_1.receiptLean.collection.collectionName, 'trackDataDelete');
     }
     return res.status(200).send({ success: true });

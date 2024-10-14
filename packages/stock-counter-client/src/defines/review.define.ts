@@ -7,13 +7,13 @@ import { StockCounterClient } from '../stock-counter-client';
 
 export class Review extends DatabaseAuto {
   urId: string;
-  companyId: string;
-  image: string;
+  companyId?: string;
+  image?: string;
   name: string;
   email: string;
   comment: string;
   rating: number;
-  images: string[];
+  images?: string[];
   userId: User | string;
   itemId: string;
 
@@ -30,7 +30,7 @@ export class Review extends DatabaseAuto {
     if (data.userId) {
       this.userId = new User(data.userId as Iuser);
     } else {
-      this.userId = data.userId as string;
+      this.userId = data.userId ;
     }
     this.itemId = data.itemId;
   }
@@ -70,9 +70,9 @@ export class Review extends DatabaseAuto {
     return count;
   }
 
-  static async getOne(_id: string) {
+  static async getOne(urIdOr_id: string) {
     const observer$ = StockCounterClient.ehttp
-      .makeGet<IreviewMain>(`/review/one/${_id}`);
+      .makeGet<IreviewMain>(`/review/one/${urIdOr_id}`);
     const review = await lastValueFrom(observer$);
 
     return new Review(review);

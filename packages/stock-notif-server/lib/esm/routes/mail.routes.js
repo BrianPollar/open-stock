@@ -1,32 +1,6 @@
+import { mainLogger } from '@open-stock/stock-universal-server';
 import express from 'express';
-import * as fs from 'fs';
-import path from 'path';
-import * as tracer from 'tracer';
 import { sendMail } from '../utils/notifications';
-/** Logger for mailPackage routes */
-const mailPackageRoutesLogger = tracer.colorConsole({
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-        // eslint-disable-next-line no-console
-        console.log(data.output);
-        const logDir = path.join(process.cwd() + '/openstockLog/');
-        fs.mkdir(logDir, { recursive: true }, (err) => {
-            if (err) {
-                if (err) {
-                    // eslint-disable-next-line no-console
-                    console.log('data.output err ', err);
-                }
-            }
-        });
-        fs.appendFile(logDir + '/notif-server.log', data.rawoutput + '\n', err => {
-            if (err) {
-                // eslint-disable-next-line no-console
-                console.log('raw.output err ', err);
-            }
-        });
-    }
-});
 /**
  * Sends a verification email to the specified email with a token.
  * @param emailFrom - The email address of the sender.
@@ -36,7 +10,7 @@ const mailPackageRoutesLogger = tracer.colorConsole({
  * @returns A Promise that resolves to a boolean indicating whether the email was successfully sent.
  */
 export const sendRandomEmail = (emailFrom, emailTo, subject, message) => new Promise(resolve => {
-    mailPackageRoutesLogger.info('sendTokenEmail');
+    mainLogger.info('sendTokenEmail');
     const mailOptions = {
         from: emailFrom,
         to: emailTo,
@@ -120,11 +94,11 @@ height: 100%;
 </html>`
     };
     sendMail(mailOptions).then(res => {
-        mailPackageRoutesLogger.info('message sent', res);
+        mainLogger.info('message sent', res);
         resolve(true);
         return;
     }).catch(error => {
-        mailPackageRoutesLogger.error('email verication with token error', JSON.stringify(error));
+        mainLogger.error('email verication with token error', JSON.stringify(error));
         resolve(false);
         return;
     });

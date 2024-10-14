@@ -3,49 +3,24 @@ import {
   IcustomRequest, IdataArrayResponse,
   IdeleteMany,
   IfileMeta, IfilterAggResponse,
-  IfilterProps, IinvoiceSetting, IinvoiceSettingsGeneral, Isuccess
+  IfilterProps, IinvoiceSetting, IinvoiceSettingsGeneral
 } from '@open-stock/stock-universal';
 import {
   addParentToLocals, appendBody,
   constructFiltersFromBody, deleteAllFiles, deleteFiles,
-  lookupLimit, lookupOffset, lookupSort, lookupTrackEdit, lookupTrackView,
+  handleMongooseErr,
+  lookupFacet,
+  lookupTrackEdit, lookupTrackView,
+  mainLogger,
   makeCompanyBasedQuery, offsetLimitRelegator, requireAuth, roleAuthorisation,
-  saveMetaToDb, stringifyMongooseErr, uploadFiles, verifyObjectId
+  saveMetaToDb, uploadFiles, verifyObjectId
 } from '@open-stock/stock-universal-server';
 import express from 'express';
-import * as fs from 'fs';
-import path from 'path';
-import * as tracer from 'tracer';
+import { Error } from 'mongoose';
 import {
   TinvoiceSetting, invoiceSettingLean, invoiceSettingMain
 } from '../../../models/printables/settings/invoicesettings.model';
 import { populateSignature, populateStamp } from '../../../utils/query';
-
-/** Logger for invoice setting routes */
-const invoiceSettingRoutesLogger = tracer.colorConsole({
-  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-  dateformat: 'HH:MM:ss.L',
-  transport(data) {
-    // eslint-disable-next-line no-console
-    console.log(data.output);
-    const logDir = path.join(process.cwd() + '/openstockLog/');
-
-    fs.mkdir(logDir, { recursive: true }, (err) => {
-      if (err) {
-        if (err) {
-          // eslint-disable-next-line no-console
-          console.log('data.output err ', err);
-        }
-      }
-    });
-    fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
-      if (err) {
-        // eslint-disable-next-line no-console
-        console.log('raw.output err ', err);
-      }
-    });
-  }
-});
 
 /**
  * Router for invoice settings.
@@ -81,32 +56,18 @@ invoiceSettingRoutes.post(
 
     invoiceSetting.companyId = filter.companyId;
     const newJobCard = new invoiceSettingMain(invoiceSetting);
-    let errResponse: Isuccess;
 
-    const saved = await newJobCard.save()
-      .catch(err => {
-        invoiceSettingRoutesLogger.error('create - err: ', err);
-        errResponse = {
-          success: false,
-          status: 403
-        };
-        if (err && err.errors) {
-          errResponse.err = stringifyMongooseErr(err.errors);
-        } else {
-          errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-        }
 
-        return err;
-      });
+    const savedRes = await newJobCard.save()
+      .catch((err: Error) => err);
 
-    if (errResponse) {
-      return res.status(403).send(errResponse);
+    if (savedRes instanceof Error) {
+      const errResponse = handleMongooseErr(savedRes);
+
+      return res.status(errResponse.status).send(errResponse);
     }
 
-    if (saved && saved._id) {
-      addParentToLocals(res, saved._id, invoiceSettingLean.collection.collectionName, 'makeTrackEdit');
-    }
+    addParentToLocals(res, savedRes._id, invoiceSettingLean.collection.collectionName, 'makeTrackEdit');
 
     return res.status(200).send({ success: true });
   }
@@ -152,33 +113,19 @@ invoiceSettingRoutes.post(
     }
 
     const newStn = new invoiceSettingMain(invoiceSetting);
-    let errResponse: Isuccess;
-    const saved = await newStn.save()
-      .catch(err => {
-        invoiceSettingRoutesLogger.error('createimg - err: ', err);
-        errResponse = {
-          success: false,
-          status: 403
-        };
-        if (err && err.errors) {
-          errResponse.err = stringifyMongooseErr(err.errors);
-        } else {
-          errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-        }
 
-        return err;
-      });
+    const savedRes = await newStn.save()
+      .catch((err: Error) => err);
 
-    if (errResponse) {
-      return res.status(403).send(errResponse);
+    if (savedRes instanceof Error) {
+      const errResponse = handleMongooseErr(savedRes);
+
+      return res.status(errResponse.status).send(errResponse);
     }
 
-    if (saved && saved._id) {
-      addParentToLocals(res, saved._id, invoiceSettingLean.collection.collectionName, 'makeTrackEdit');
-    }
+    addParentToLocals(res, savedRes._id, invoiceSettingLean.collection.collectionName, 'makeTrackEdit');
 
-    return res.status(200).send({ success: Boolean(saved) });
+    return res.status(200).send({ success: true });
   }
 );
 
@@ -191,7 +138,7 @@ invoiceSettingRoutes.put(
     const updatedInvoiceSetting = req.body;
     const { filter } = makeCompanyBasedQuery(req);
 
-    invoiceSettingRoutesLogger.debug('updatedInvoiceSetting ', updatedInvoiceSetting);
+    mainLogger.debug('updatedInvoiceSetting ', updatedInvoiceSetting);
 
     updatedInvoiceSetting.companyId = filter.companyId;
 
@@ -224,40 +171,26 @@ invoiceSettingRoutes.put(
     invoiceSetting.printDetails = updatedInvoiceSetting.printDetails || invoiceSetting.printDetails;
     invoiceSetting.isDeleted = updatedInvoiceSetting.isDeleted || invoiceSetting.isDeleted;
 
-    invoiceSettingRoutesLogger.debug('generalSettings', generalSettings);
-    let errResponse: Isuccess;
+    mainLogger.debug('generalSettings', generalSettings);
 
-    const updated = await invoiceSettingMain.updateOne({ _id }, { $set: {
+
+    const updateRes = await invoiceSettingMain.updateOne({ _id }, { $set: {
       generalSettings, taxSettings: invoiceSetting.taxSettings,
       bankSettings: invoiceSetting.bankSettings,
       printDetails: invoiceSetting.printDetails
     } })
-      .catch(err => {
-        invoiceSettingRoutesLogger.error('update - err: ', err);
-        errResponse = {
-          success: false,
-          status: 403
-        };
-        if (err && err.errors) {
-          errResponse.err = stringifyMongooseErr(err.errors);
-        } else {
-          errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-        }
-
-        return errResponse;
-      });
-
-    invoiceSettingRoutesLogger.debug('updated ', updated);
+      .catch((err: Error) => err);
 
 
-    if (errResponse) {
-      return res.status(403).send(errResponse);
+    if (updateRes instanceof Error) {
+      const errResponse = handleMongooseErr(updateRes);
+
+      return res.status(errResponse.status).send(errResponse);
     }
 
     addParentToLocals(res, invoiceSetting._id, invoiceSettingLean.collection.collectionName, 'makeTrackEdit');
 
-    return res.status(200).send({ success: Boolean(updated) });
+    return res.status(200).send({ success: true });
   }
 );
 
@@ -285,13 +218,17 @@ invoiceSettingRoutes.post(
       model: fileMetaLean, transform: (doc) => ({ _id: doc._id, url: doc.url }) })
     */
       .lean();
+
+    if (!found) {
+      return res.status(404).send({ success: false });
+    }
     const invoiceSetting = await invoiceSettingMain
       .findOne({ _id, ...filter })
       .lean();
 
-    invoiceSettingRoutesLogger.debug('all new Files', req.body.newPhotos);
+    mainLogger.debug('all new Files', req.body.newPhotos);
 
-    invoiceSettingRoutesLogger.info('found ', found);
+    mainLogger.info('found ', found);
 
     if (!invoiceSetting) {
       return res.status(404).send({ success: false });
@@ -302,9 +239,9 @@ invoiceSettingRoutes.post(
       invoiceSetting.generalSettings = {} as IinvoiceSettingsGeneral;
     }
 
-    invoiceSettingRoutesLogger.debug('updatedInvoiceSetting ', updatedInvoiceSetting);
+    mainLogger.debug('updatedInvoiceSetting ', updatedInvoiceSetting);
 
-    invoiceSettingRoutesLogger.error('settings newPhotos', req.body.newPhotos);
+    mainLogger.error('settings newPhotos', req.body.newPhotos);
 
     if (req.body.newPhotos) {
       if (updatedInvoiceSetting.generalSettings.defaultDigitalSignature === 'true' &&
@@ -347,16 +284,16 @@ invoiceSettingRoutes.post(
     }
 
     // add signature and stamp if are valid object _ids
-    invoiceSettingRoutesLogger.info('b4 verify updatedInvoiceSetting', updatedInvoiceSetting.generalSettings);
-    invoiceSettingRoutesLogger
+    mainLogger.info('b4 verify updatedInvoiceSetting', updatedInvoiceSetting.generalSettings);
+    mainLogger
       .info('ALLL IN verify', verifyObjectId(updatedInvoiceSetting.generalSettings.defaultDigitalSignature as string));
     if (verifyObjectId(updatedInvoiceSetting.generalSettings.defaultDigitalSignature as string)) {
-      invoiceSettingRoutesLogger
+      mainLogger
         .info('passed signature', updatedInvoiceSetting.generalSettings.defaultDigitalSignature as string);
       generalSettings.defaultDigitalSignature = updatedInvoiceSetting.generalSettings.defaultDigitalSignature;
     }
     if (verifyObjectId(updatedInvoiceSetting.generalSettings.defaultDigitalStamp as string)) {
-      invoiceSettingRoutesLogger.info('passed stamp ', updatedInvoiceSetting.generalSettings.defaultDigitalStamp);
+      mainLogger.info('passed stamp ', updatedInvoiceSetting.generalSettings.defaultDigitalStamp);
       generalSettings.defaultDigitalStamp = updatedInvoiceSetting.generalSettings.defaultDigitalStamp;
     }
 
@@ -365,40 +302,26 @@ invoiceSettingRoutes.post(
     invoiceSetting.bankSettings = updatedInvoiceSetting.bankSettings || invoiceSetting.bankSettings;
     invoiceSetting.printDetails = updatedInvoiceSetting.printDetails || invoiceSetting.printDetails;
 
-    invoiceSettingRoutesLogger.debug('generalSettings b4 update', generalSettings);
-    invoiceSettingRoutesLogger.info('get the repeat ', invoiceSetting.generalSettings);
-    let errResponse: Isuccess;
+    mainLogger.debug('generalSettings b4 update', generalSettings);
+    mainLogger.info('get the repeat ', invoiceSetting.generalSettings);
 
-    const updated = await invoiceSettingMain.updateOne({ _id }, { $set: {
+
+    const updateRes = await invoiceSettingMain.updateOne({ _id }, { $set: {
       generalSettings, taxSettings: invoiceSetting.taxSettings,
       bankSettings: invoiceSetting.bankSettings,
       printDetails: invoiceSetting.printDetails
     } })
-      .catch(err => {
-        invoiceSettingRoutesLogger.error('updateimg - err: ', err);
-        errResponse = {
-          success: false,
-          status: 403
-        };
-        if (err && err.errors) {
-          errResponse.err = stringifyMongooseErr(err.errors);
-        } else {
-          errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-        }
+      .catch((err: Error) => err);
 
-        return errResponse;
-      });
+    if (updateRes instanceof Error) {
+      const errResponse = handleMongooseErr(updateRes);
 
-    if (errResponse) {
-      return res.status(403).send(errResponse);
+      return res.status(errResponse.status).send(errResponse);
     }
 
     addParentToLocals(res, found._id, invoiceSettingLean.collection.collectionName, 'makeTrackEdit');
 
-    invoiceSettingRoutesLogger.debug('updated', updated);
-
-    return res.status(200).send({ success: Boolean(updated) });
+    return res.status(200).send({ success: true });
   }
 );
 
@@ -466,15 +389,18 @@ invoiceSettingRoutes.delete(
     const { filter } = makeCompanyBasedQuery(req);
 
     // const deleted = await invoiceSettingMain.findOneAndDelete({ _id, ...filter });
-    const deleted = await invoiceSettingMain.updateOne({ _id, ...filter }, { $set: { isDeleted: true } });
+    const updateRes = await invoiceSettingMain.updateOne({ _id, ...filter }, { $set: { isDeleted: true } })
+      .catch((err: Error) => err);
 
-    if (Boolean(deleted)) {
-      addParentToLocals(res, _id, invoiceSettingLean.collection.collectionName, 'trackDataDelete');
+    if (updateRes instanceof Error) {
+      const errResponse = handleMongooseErr(updateRes);
 
-      return res.status(200).send({ success: Boolean(deleted) });
-    } else {
-      return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
+      return res.status(errResponse.status).send(errResponse);
     }
+
+    addParentToLocals(res, _id, invoiceSettingLean.collection.collectionName, 'trackDataDelete');
+
+    return res.status(200).send({ success: true });
   }
 );
 
@@ -484,7 +410,7 @@ invoiceSettingRoutes.post(
   requireActiveCompany,
   roleAuthorisation('invoices', 'read'),
   async(req: IcustomRequest<never, IfilterProps>, res) => {
-    const { propSort } = req.body;
+    const { propSort, returnEmptyArr } = req.body;
     const { offset, limit } = offsetLimitRelegator(req.body.offset, req.body.limit);
 
     const filter = constructFiltersFromBody(req);
@@ -500,18 +426,7 @@ invoiceSettingRoutes.post(
       },
       ...lookupTrackEdit(),
       ...lookupTrackView(),
-      {
-        $facet: {
-          data: [...lookupSort(propSort), ...lookupOffset(offset), ...lookupLimit(limit)],
-          total: [{ $count: 'count' }]
-        }
-      },
-      {
-        $unwind: {
-          path: '$total',
-          preserveNullAndEmptyArrays: true
-        }
-      }
+      ...lookupFacet(offset, limit, propSort, returnEmptyArr)
     ]);
     const dataArr: IfilterAggResponse<TinvoiceSetting>[] = [];
 
@@ -544,34 +459,22 @@ invoiceSettingRoutes.put(
     const { _ids } = req.body;
     const { filter } = makeCompanyBasedQuery(req);
 
-    /* const deleted = await invoiceSettingMain
-    .deleteMany({ ...filter, _id: { $in: _ids } })
-    .catch(err => {
-      invoiceSettingRoutesLogger.error('deletemany - err: ', err);
-
-      return null;
-    }); */
-
-    const deleted = await invoiceSettingMain
+    const updateRes = await invoiceSettingMain
       .updateMany({ ...filter, _id: { $in: _ids } }, {
         $set: { isDeleted: true }
-      })
-      .catch(err => {
-        invoiceSettingRoutesLogger.error('deletemany - err: ', err);
+      }).catch((err: Error) => err);
 
-        return null;
-      });
+    if (updateRes instanceof Error) {
+      const errResponse = handleMongooseErr(updateRes);
 
-    if (Boolean(deleted)) {
-      for (const val of _ids) {
-        addParentToLocals(res, val, invoiceSettingLean.collection.collectionName, 'trackDataDelete');
-      }
-
-      return res.status(200).send({ success: Boolean(deleted) });
-    } else {
-      return res.status(404).send({
-        success: Boolean(deleted), err: 'could not delete selected items, try again in a while' });
+      return res.status(errResponse.status).send(errResponse);
     }
+
+    for (const val of _ids) {
+      addParentToLocals(res, val, invoiceSettingLean.collection.collectionName, 'trackDataDelete');
+    }
+
+    return res.status(200).send({ success: true });
   }
 );
 
@@ -610,32 +513,20 @@ invoiceSettingRoutes.put(
       delete invoiceSetting.generalSettings.defaultDigitalStamp;
     }
 
-    let errResponse: Isuccess;
 
-    await invoiceSettingMain.updateOne({
+    const updateRes = await invoiceSettingMain.updateOne({
       _id, ...filter
     }, {
       $set: {
         generalSettings: invoiceSetting.generalSettings
 
       }
-    }).catch(err => {
-      errResponse = {
-        success: false,
-        status: 403
-      };
-      if (err && err.errors) {
-        errResponse.err = stringifyMongooseErr(err.errors);
-      } else {
-        errResponse.err = `we are having problems connecting to our databases, 
-      try again in a while`;
-      }
+    }).catch((err: Error) => err);
 
-      return errResponse;
-    });
+    if (updateRes instanceof Error) {
+      const errResponse = handleMongooseErr(updateRes);
 
-    if (errResponse) {
-      return res.status(403).send(errResponse);
+      return res.status(errResponse.status).send(errResponse);
     }
 
     addParentToLocals(res, invoiceSetting._id, invoiceSettingLean.collection.collectionName, 'makeTrackEdit');

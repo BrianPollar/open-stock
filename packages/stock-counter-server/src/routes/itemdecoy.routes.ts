@@ -4,49 +4,20 @@ import {
 import {
   IcustomRequest, IdataArrayResponse,
   IdeleteMany,
-  IfilterAggResponse, IfilterProps, Iitem, IitemDecoy, Isuccess
+  IfilterAggResponse, IfilterProps, IitemDecoy
 } from '@open-stock/stock-universal';
 import {
   addParentToLocals, appendUserToReqIfTokenExist, constructFiltersFromBody,
   generateUrId,
+  handleMongooseErr,
   lookupSubFieldItemsRelatedFilter, makeCompanyBasedQuery, makePredomFilter, offsetLimitRelegator, requireAuth,
-  roleAuthorisation, stringifyMongooseErr,
-  verifyObjectId,
-  verifyObjectIds
+  roleAuthorisation, verifyObjectId
 } from '@open-stock/stock-universal-server';
 import express from 'express';
-import * as fs from 'fs';
-import path from 'path';
-import * as tracer from 'tracer';
+import { Error } from 'mongoose';
 import { itemLean } from '../models/item.model';
 import { TitemDecoy, itemDecoyLean, itemDecoyMain } from '../models/itemdecoy.model';
 import { populateItems } from '../utils/query';
-
-/** Logger for item decoy routes */
-const itemDecoyRoutesLogger = tracer.colorConsole({
-  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-  dateformat: 'HH:MM:ss.L',
-  transport(data) {
-    // eslint-disable-next-line no-console
-    console.log(data.output);
-    const logDir = path.join(process.cwd() + '/openstockLog/');
-
-    fs.mkdir(logDir, { recursive: true }, (err) => {
-      if (err) {
-        if (err) {
-          // eslint-disable-next-line no-console
-          console.log('data.output err ', err);
-        }
-      }
-    });
-    fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
-      if (err) {
-        // eslint-disable-next-line no-console
-        console.log('raw.output err ', err);
-      }
-    });
-  }
-});
 
 /**
  * Router for item decoy routes.
@@ -78,7 +49,7 @@ itemDecoyRoutes.post(
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
       }
 
-      const found: Iitem = await itemLean.findById(itemdecoy.items[0])
+      const found = await itemLean.findById(itemdecoy.items[0])
         .lean();
 
       if (!found) {
@@ -117,35 +88,17 @@ itemDecoyRoutes.post(
 
     // Save the new decoy to the database
     const newDecoy = new itemDecoyMain(decoy);
-    let errResponse: Isuccess;
-    const saved = await newDecoy.save()
-      .catch(err => {
-        itemDecoyRoutesLogger.error('create - err: ', err);
-        errResponse = {
-          success: false,
-          status: 403
-        };
-        if (err && err.errors) {
-          errResponse.err = stringifyMongooseErr(err.errors);
-        } else {
-          errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-        }
 
-        return err;
-      });
+    const savedRes = await newDecoy.save()
+      .catch((err: Error) => err);
 
-    if (errResponse) {
-      return res.status(403).send(errResponse);
+    if (savedRes instanceof Error) {
+      const errResponse = handleMongooseErr(savedRes);
+
+      return res.status(errResponse.status).send(errResponse);
     }
 
-    if (saved && saved._id) {
-      addParentToLocals(res, saved._id, itemDecoyMain.collection.collectionName, 'makeTrackEdit');
-    }
-
-    if (!Boolean(saved)) {
-      return res.status(403).send('unknown error');
-    }
+    addParentToLocals(res, savedRes._id, itemDecoyMain.collection.collectionName, 'makeTrackEdit');
 
     return next();
   },
@@ -187,12 +140,12 @@ itemDecoyRoutes.post(
   requireActiveCompany,
   roleAuthorisation('decoys', 'read'),
   async(req: IcustomRequest<never, IfilterProps>, res) => {
-    const { propSort } = req.body;
+    const { propSort, returnEmptyArr } = req.body;
     const { offset, limit } = offsetLimitRelegator(req.body.offset, req.body.limit);
 
     const aggCursor = itemDecoyLean
       .aggregate<IfilterAggResponse<TitemDecoy>>([
-        ...lookupSubFieldItemsRelatedFilter(constructFiltersFromBody(req), propSort, offset, limit)
+        ...lookupSubFieldItemsRelatedFilter(constructFiltersFromBody(req), offset, limit, propSort, returnEmptyArr)
       ]);
     const dataArr: IfilterAggResponse<TitemDecoy>[] = [];
 
@@ -217,19 +170,14 @@ itemDecoyRoutes.post(
 );
 
 itemDecoyRoutes.get(
-  '/one/:_id',
+  '/one/:urIdOr_id',
   appendUserToReqIfTokenExist,
-  async(req: IcustomRequest<{ _id: string }, null>, res) => {
-    const { _id } = req.params;
-    const _ids = [_id];
+  async(req: IcustomRequest<{ urIdOr_id: string }, null>, res) => {
+    const { urIdOr_id } = req.params;
+    const filterwithId = verifyObjectId(urIdOr_id) ? { _id: urIdOr_id } : { urId: urIdOr_id };
 
-    const isValid = verifyObjectIds(_ids);
-
-    if (!isValid) {
-      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
     const decoy = await itemDecoyLean
-      .findOne({ _id, ...makePredomFilter(req) })
+      .findOne({ ...filterwithId, ...makePredomFilter(req) })
       .populate([populateItems(), populateTrackEdit(), populateTrackView()])
       .lean();
 
@@ -253,15 +201,18 @@ itemDecoyRoutes.delete(
     const { filter } = makeCompanyBasedQuery(req);
 
     // const deleted = await itemDecoyMain.findOneAndDelete({ _id, });
-    const deleted = await itemDecoyMain.updateOne({ _id, ...filter }, { $set: { isDeleted: true } });
+    const updateRes = await itemDecoyMain.updateOne({ _id, ...filter }, { $set: { isDeleted: true } })
+      .catch((err: Error) => err);
 
-    if (Boolean(deleted)) {
-      addParentToLocals(res, _id, itemDecoyMain.collection.collectionName, 'trackDataDelete');
+    if (updateRes instanceof Error) {
+      const errResponse = handleMongooseErr(updateRes);
 
-      return res.status(200).send({ success: Boolean(deleted) });
-    } else {
-      return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
+      return res.status(errResponse.status).send(errResponse);
     }
+
+    addParentToLocals(res, _id, itemDecoyMain.collection.collectionName, 'trackDataDelete');
+
+    return res.status(200).send({ success: true });
   }
 );
 
@@ -274,33 +225,22 @@ itemDecoyRoutes.put(
     const { _ids } = req.body;
     const { filter } = makeCompanyBasedQuery(req);
 
-    /* const deleted = await itemDecoyMain
-    .deleteMany({ _id: { $in: _ids }, })
-    .catch(err => {
-      itemDecoyRoutesLogger.error('deletemany - err: ', err);
-
-      return null;
-    }); */
-
-    const deleted = await itemDecoyMain
+    const updateRes = await itemDecoyMain
       .updateMany({ _id: { $in: _ids }, ...filter }, {
         $set: { isDeleted: true }
       })
-      .catch(err => {
-        itemDecoyRoutesLogger.error('deletemany - err: ', err);
+      .catch((err: Error) => err);
 
-        return null;
-      });
+    if (updateRes instanceof Error) {
+      const errResponse = handleMongooseErr(updateRes);
 
-    if (Boolean(deleted)) {
-      for (const val of _ids) {
-        addParentToLocals(res, val, itemDecoyMain.collection.collectionName, 'trackDataDelete');
-      }
-
-      return res.status(200).send({ success: Boolean(deleted) });
-    } else {
-      return res.status(404).send({
-        success: Boolean(deleted), err: 'could not delete selected items, try again in a while' });
+      return res.status(errResponse.status).send(errResponse);
     }
+
+    for (const val of _ids) {
+      addParentToLocals(res, val, itemDecoyMain.collection.collectionName, 'trackDataDelete');
+    }
+
+    return res.status(200).send({ success: true });
   }
 );

@@ -23,12 +23,13 @@
 /// <reference types="mongoose/types/virtuals" />
 /// <reference types="mongoose/types/inferschematype" />
 import { IinvoiceRelatedRef } from '@open-stock/stock-universal';
+import { IcompanyIdAsObjectId } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model } from 'mongoose';
 /**
  * Represents a delivery note.
  * @typedef {Document & IurId & IinvoiceRelatedRef} TdeliveryNote
  */
-export type TdeliveryNote = Document & IinvoiceRelatedRef;
+export type TdeliveryNote = Document & IinvoiceRelatedRef & IcompanyIdAsObjectId;
 /**
  * Represents the main delivery note model.
  */

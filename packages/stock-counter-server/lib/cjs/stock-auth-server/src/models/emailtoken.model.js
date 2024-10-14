@@ -1,11 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createEmailtokenModel = exports.emailtokenLean = exports.emailtoken = void 0;
+const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const mongoose_1 = require("mongoose");
-const database_1 = require("../utils/database");
 const uniqueValidator = require('mongoose-unique-validator');
 const emailtokenSchema = new mongoose_1.Schema({
-    userId: { type: String },
+    userId: { type: mongoose_1.Schema.Types.ObjectId },
     token: { type: String, unique: true }
 }, { timestamps: true, collection: 'emailtokens' });
 // Apply the uniqueValidator plugin to emailtokenSchema.
@@ -18,15 +18,15 @@ emailtokenSchema.plugin(uniqueValidator);
  * @param lean Whether to create the lean email token model.
  */
 const createEmailtokenModel = async (dbUrl, dbOptions, main = true, lean = true) => {
-    if (!database_1.isAuthDbConnected) {
-        await (0, database_1.connectAuthDatabase)(dbUrl, dbOptions);
+    if (!stock_universal_server_1.isDbConnected) {
+        await (0, stock_universal_server_1.connectDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.emailtoken = database_1.mainConnection
+        exports.emailtoken = stock_universal_server_1.mainConnection
             .model('emailtoken', emailtokenSchema);
     }
     if (lean) {
-        exports.emailtokenLean = database_1.mainConnectionLean
+        exports.emailtokenLean = stock_universal_server_1.mainConnectionLean
             .model('emailtoken', emailtokenSchema);
     }
 };

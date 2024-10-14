@@ -1,6 +1,6 @@
 import {
   DatabaseAuto, IcompanySubscription,
-  IdataArrayResponse, IdeleteOne, IsubscriptionFeature,
+  IdataArrayResponse, IdeleteOne, IfilterProps, IsubscriptionFeature,
   IsubscriptionPackage, Isuccess, TsubscriptionDurVal
 } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
@@ -33,6 +33,17 @@ export class CompanySubscription
   ) {
     const observer$ = StockAuthClient.ehttp
       .makeGet<IdataArrayResponse<IcompanySubscription>>(`/companysubscription/all/${offset}/${limit}`);
+    const companysubscriptions = await lastValueFrom(observer$);
+
+    return {
+      count: companysubscriptions.count,
+      companysubscriptions: companysubscriptions.data
+        .map((val) => new CompanySubscription(val)) };
+  }
+
+  static async filterAll(filterProps: IfilterProps) {
+    const observer$ = StockAuthClient.ehttp
+      .makePost<IdataArrayResponse<IcompanySubscription>>('/companysubscription/filter', filterProps);
     const companysubscriptions = await lastValueFrom(observer$);
 
     return {

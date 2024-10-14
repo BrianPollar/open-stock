@@ -1,4 +1,5 @@
 /// <reference types="mongoose/types/document" />
+/// <reference types="mongoose/types/schematypes" />
 /// <reference types="mongoose/types/models" />
 /// <reference types="mongoose/types/aggregate" />
 /// <reference types="mongoose/types/callback" />
@@ -15,7 +16,6 @@
 /// <reference types="mongoose/types/populate" />
 /// <reference types="mongoose/types/query" />
 /// <reference types="mongoose/types/schemaoptions" />
-/// <reference types="mongoose/types/schematypes" />
 /// <reference types="mongoose/types/session" />
 /// <reference types="mongoose/types/types" />
 /// <reference types="mongoose/types/utility" />
@@ -23,12 +23,15 @@
 /// <reference types="mongoose/types/virtuals" />
 /// <reference types="mongoose/types/inferschematype" />
 import { Ifaqanswer } from '@open-stock/stock-universal';
-import { ConnectOptions, Document, Model } from 'mongoose';
+import { IcompanyIdAsObjectId } from '@open-stock/stock-universal-server';
+import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 /**
  * Represents a FAQ answer document.
  * Extends the Document interface and the Ifaqanswer interface.
  */
-export type Tfaqanswer = Document & Ifaqanswer;
+export type Tfaqanswer = Document & Omit<Ifaqanswer, 'faq'> & IcompanyIdAsObjectId & {
+    faq: Schema.Types.ObjectId;
+};
 /**
  * The main faqanswer model.
  */

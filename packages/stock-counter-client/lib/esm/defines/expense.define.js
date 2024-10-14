@@ -35,9 +35,9 @@ export class Expense extends DatabaseAuto {
             expenses: expenses.data.map((val) => new Expense(val))
         };
     }
-    static async getOne(urId) {
+    static async getOne(urIdOr_id) {
         const observer$ = StockCounterClient.ehttp
-            .makeGet(`/expense/one/${urId}`);
+            .makeGet(`/expense/one/${urIdOr_id}`);
         const expense = await lastValueFrom(observer$);
         return new Expense(expense);
     }

@@ -1,35 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.checkDirectoryExists = exports.createDirectories = void 0;
-const tslib_1 = require("tslib");
-const fs = tslib_1.__importStar(require("fs"));
 const fs_extra_1 = require("fs-extra");
-const path_1 = tslib_1.__importDefault(require("path"));
-const tracer = tslib_1.__importStar(require("tracer"));
-// This function creates a fileMangerLogger named `FileManger`.
-const fileMangerLogger = tracer.colorConsole({
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-        // eslint-disable-next-line no-console
-        console.log(data.output);
-        const logDir = path_1.default.join(process.cwd() + '/openstockLog/');
-        fs.mkdir(logDir, { recursive: true }, (err) => {
-            if (err) {
-                if (err) {
-                    // eslint-disable-next-line no-console
-                    console.log('data.output err ', err);
-                }
-            }
-        });
-        fs.appendFile(logDir + '/universal-server.log', data.rawoutput + '\n', err => {
-            if (err) {
-                // eslint-disable-next-line no-console
-                console.log('raw.output err ', err);
-            }
-        });
-    }
-});
+const back_logger_1 = require("../utils/back-logger");
 /**
  * Creates directories for an application.
  * @param appName - The name of the application.
@@ -84,7 +57,7 @@ const checkDirectoryExists = (absolutepath, dir, casel) => {
             myDir = absolutepath + '/' + dir;
         }
         // Log the directory path.
-        fileMangerLogger.debug('FileManager', `"checkDirectoryExists", ${myDir}`);
+        back_logger_1.mainLogger.debug('FileManager', `"checkDirectoryExists", ${myDir}`);
         // Check if the directory exists.
         (0, fs_extra_1.access)(myDir, function (err) {
             // If the directory does not exist, then create it.
@@ -92,7 +65,7 @@ const checkDirectoryExists = (absolutepath, dir, casel) => {
                 (0, fs_extra_1.mkdir)(myDir, function (mkdirErr) {
                     // If there is an error creating the directory, then log it.
                     if (mkdirErr) {
-                        fileMangerLogger.error('FileManager', `"checkDirectoryExists 
+                        back_logger_1.mainLogger.error('FileManager', `"checkDirectoryExists 
                 fse.mkdir error", ${mkdirErr}`);
                     }
                     // Resolve the promise with the string `created`.
@@ -101,7 +74,7 @@ const checkDirectoryExists = (absolutepath, dir, casel) => {
             }
             else if (err) {
                 // If there is an error accessing the directory, then log it.
-                fileMangerLogger.error('FileManager', `"checkDirectoryExists 
+                back_logger_1.mainLogger.error('FileManager', `"checkDirectoryExists 
             fse.access error", ${err}`);
                 // Resolve the promise with the string `someError`.
                 resolve('someError');

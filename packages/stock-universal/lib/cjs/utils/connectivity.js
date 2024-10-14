@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ConnectivityController = void 0;
 const rxjs_1 = require("rxjs");
 const operators_1 = require("rxjs/operators");
-const logger_1 = require("./logger");
+const front_logger_1 = require("./front-logger");
 /**
  * Represents a controller for managing connectivity.
  */
@@ -11,7 +11,7 @@ class ConnectivityController {
     constructor(windowCtrl) {
         this.windowCtrl = windowCtrl;
         this.destroyed$ = new rxjs_1.Subject();
-        this.logger = new logger_1.LoggerController();
+        this.logger = new front_logger_1.LoggerController();
     }
     /**
      * Starts listening for online/offline events and updates the `online$` observable accordingly.

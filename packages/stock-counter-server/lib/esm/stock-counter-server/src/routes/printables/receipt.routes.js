@@ -1,50 +1,12 @@
-/**
- * Defines the routes for creating, retrieving, updating and deleting receipts.
- * @remarks
- * This file contains the following routes:
- * - POST /create - creates a new receipt
- * - GET /one/:urId - retrieves a single receipt by its unique identifier (urId)
- * - GET /all/:offset/:limit - retrieves all receipts with pagination
- * - PUT /delete/one - deletes a single receipt and its related documents
- * - POST /filter/:offset/:limit - searches for receipts based on a search term and key
- */
-import { addParentToLocals, constructFiltersFromBody, generateUrId, lookupSubFieldInvoiceRelatedFilter, makeCompanyBasedQuery, offsetLimitRelegator, requireAuth, roleAuthorisation } from '@open-stock/stock-universal-server';
+import { addParentToLocals, constructFiltersFromBody, generateUrId, handleMongooseErr, lookupSubFieldInvoiceRelatedFilter, makeCompanyBasedQuery, offsetLimitRelegator, requireAuth, roleAuthorisation, verifyObjectId } from '@open-stock/stock-universal-server';
 import express from 'express';
 // import { paymentInstallsLean } from '../../models/printables/paymentrelated/paymentsinstalls.model';
 import { populateTrackEdit, populateTrackView, requireActiveCompany, requireCanUseFeature, requireUpdateSubscriptionRecord } from '@open-stock/stock-auth-server';
-import * as fs from 'fs';
-import path from 'path';
-import * as tracer from 'tracer';
+import { Error } from 'mongoose';
 import { receiptLean, receiptMain } from '../../models/printables/receipt.model';
 import { populateInvoiceRelated } from '../../utils/query';
 import { makePaymentInstall } from '../paymentrelated/paymentrelated';
 import { deleteAllLinked, makeInvoiceRelatedPdct, relegateInvRelatedCreation, updateInvoiceRelated } from './related/invoicerelated';
-/**
- * Logger for pickup location routes
- */
-const receiptRoutesLogger = tracer.colorConsole({
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-        // eslint-disable-next-line no-console
-        console.log(data.output);
-        const logDir = path.join(process.cwd() + '/openstockLog/');
-        fs.mkdir(logDir, { recursive: true }, (err) => {
-            if (err) {
-                if (err) {
-                    // eslint-disable-next-line no-console
-                    console.log('data.output err ', err);
-                }
-            }
-        });
-        fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
-            if (err) {
-                // eslint-disable-next-line no-console
-                console.log('raw.output err ', err);
-            }
-        });
-    }
-});
 /**
  * Router for handling receipt routes.
  */
@@ -57,14 +19,14 @@ receiptRoutes.post('/add', requireAuth, requireActiveCompany, requireCanUseFeatu
     receipt.urId = await generateUrId(receiptMain);
     const extraNotifDesc = 'Newly created receipt';
     const invoiceRelatedRes = await relegateInvRelatedCreation(res, invoiceRelated, filter.companyId, extraNotifDesc);
-    if (!invoiceRelatedRes.success) {
-        return res.status(invoiceRelatedRes.status).send(invoiceRelatedRes);
+    if (!invoiceRelatedRes.success || !invoiceRelatedRes._id) {
+        return res.status(invoiceRelatedRes.status || 403).send(invoiceRelatedRes);
     }
     receipt.invoiceRelated = invoiceRelatedRes._id;
     await makePaymentInstall(res, receipt, invoiceRelatedRes._id, filter.companyId, invoiceRelated.creationType);
     // const newReceipt = new receiptMain(receipt);
-    /* let errResponse: Isuccess;
-  const saved = await newReceipt.save()
+    /*
+  const savedRes = await newReceipt.save()
     .catch(err => {
       receiptRoutesLogger.error('create - err: ', err);
       errResponse = {
@@ -86,11 +48,12 @@ receiptRoutes.post('/add', requireAuth, requireActiveCompany, requireCanUseFeatu
   await updateInvoiceRelated(invoiceRelated); */
     return next();
 }, requireUpdateSubscriptionRecord('receipt'));
-receiptRoutes.get('/one/:urId', requireAuth, requireActiveCompany, roleAuthorisation('receipts', 'read'), async (req, res) => {
-    const { urId } = req.params;
+receiptRoutes.get('/one/:urIdOr_id', requireAuth, requireActiveCompany, roleAuthorisation('receipts', 'read'), async (req, res) => {
+    const { urIdOr_id } = req.params;
     const { filter } = makeCompanyBasedQuery(req);
+    const filterwithId = verifyObjectId(urIdOr_id) ? { _id: urIdOr_id } : { urId: urIdOr_id };
     const receipt = await receiptLean
-        .findOne({ urId, ...filter })
+        .findOne({ ...filterwithId, ...filter })
         .lean()
         .populate([populateInvoiceRelated(), populateTrackEdit(), populateTrackView()]);
     if (!receipt || !receipt.invoiceRelated) {
@@ -142,21 +105,20 @@ receiptRoutes.put('/delete/one', requireAuth, requireActiveCompany, roleAuthoris
     if (!found) {
         return res.status(404).send({ success: false, err: 'not found' });
     }
-    const deleted = await deleteAllLinked(found.invoiceRelated, 'receipt', filter.companyId);
-    if (Boolean(deleted)) {
-        addParentToLocals(res, _id, receiptLean.collection.collectionName, 'trackDataDelete');
-        return res.status(200).send({ success: Boolean(deleted) });
+    const updateRes = await deleteAllLinked(found.invoiceRelated, 'receipt', filter.companyId);
+    if (updateRes instanceof Error) {
+        const errResponse = handleMongooseErr(updateRes);
+        return res.status(errResponse.status).send(errResponse);
     }
-    else {
-        return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
-    }
+    addParentToLocals(res, _id, receiptLean.collection.collectionName, 'trackDataDelete');
+    return res.status(200).send({ success: true });
 });
 receiptRoutes.post('/filter', requireAuth, requireActiveCompany, roleAuthorisation('receipts', 'read'), async (req, res) => {
-    const { propSort } = req.body;
+    const { propSort, returnEmptyArr } = req.body;
     const { offset, limit } = offsetLimitRelegator(req.body.offset, req.body.limit);
     const aggCursor = receiptLean
         .aggregate([
-        ...lookupSubFieldInvoiceRelatedFilter(constructFiltersFromBody(req), propSort, offset, limit)
+        ...lookupSubFieldInvoiceRelatedFilter(constructFiltersFromBody(req), offset, limit, propSort, returnEmptyArr)
     ]);
     const dataArr = [];
     for await (const data of aggCursor) {
@@ -185,21 +147,17 @@ receiptRoutes.put('/update', requireAuth, requireActiveCompany, roleAuthorisatio
     if (!found) {
         return res.status(404).send({ success: false, status: 404, err: 'not found' });
     }
-    let savedErr;
-    await receiptMain.updateOne({
+    const updateRes = await receiptMain.updateOne({
         _id: updatedReceipt._id, ...filter
     }, {
         $set: {
             paymentMode: updatedReceipt.paymentMode || found.paymentMode,
             isDeleted: updatedReceipt.isDeleted || found.isDeleted
         }
-    }).catch(err => {
-        receiptRoutesLogger.error('save error', err);
-        savedErr = err;
-        return null;
-    });
-    if (savedErr) {
-        return res.status(500).send({ success: false });
+    }).catch((err) => err);
+    if (updateRes instanceof Error) {
+        const errResponse = handleMongooseErr(updateRes);
+        return res.status(errResponse.status).send(errResponse);
     }
     addParentToLocals(res, found._id, receiptLean.collection.collectionName, 'makeTrackEdit');
     await updateInvoiceRelated(res, invoiceRelated);
@@ -214,10 +172,10 @@ receiptRoutes.put('/delete/many', requireAuth, requireActiveCompany, roleAuthori
         if (found) {
             await deleteAllLinked(found.invoiceRelated, 'receipt', filter.companyId);
         }
-        return new Promise(resolve => resolve(found._id));
+        return new Promise(resolve => resolve(found?._id));
     });
     const filterdExist = await Promise.all(promises);
-    for (const val of filterdExist) {
+    for (const val of filterdExist.filter(value => value)) {
         addParentToLocals(res, val, receiptLean.collection.collectionName, 'trackDataDelete');
     }
     return res.status(200).send({ success: true });

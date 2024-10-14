@@ -3,16 +3,26 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createItemOfferModel = exports.itemOfferSelect = exports.itemOfferLean = exports.itemOfferMain = void 0;
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const mongoose_1 = require("mongoose");
-const database_1 = require("../utils/database");
 const uniqueValidator = require('mongoose-unique-validator');
 const itemOfferSchema = new mongoose_1.Schema({
     ...stock_universal_server_1.withUrIdAndCompanySchemaObj,
-    items: [],
+    items: [mongoose_1.Schema.Types.ObjectId],
     expireAt: { type: Date },
     type: { type: String },
-    header: { type: String },
-    subHeader: { type: String },
-    ammount: { type: Number },
+    header: {
+        type: String,
+        minLength: [1, 'cannot be less than 1.'],
+        maxLength: [150, 'cannot be more than 150.']
+    },
+    subHeader: {
+        type: String,
+        minLength: [1, 'cannot be less than 1.'],
+        maxLength: [150, 'cannot be more than 150.']
+    },
+    ammount: {
+        type: Number,
+        min: [0, 'cannot be less than 0.']
+    },
     currency: { type: String, default: 'USD' }
 }, { timestamps: true, collection: 'itemoffers' });
 itemOfferSchema.index({ expireAt: 1 }, { expireAfterSeconds: 2628003 });
@@ -50,15 +60,15 @@ exports.itemOfferSelect = itemOfferselect;
  */
 const createItemOfferModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     (0, stock_universal_server_1.createExpireDocIndex)(itemOfferSchema);
-    if (!database_1.isStockDbConnected) {
-        await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
+    if (!stock_universal_server_1.isDbConnected) {
+        await (0, stock_universal_server_1.connectDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.itemOfferMain = database_1.mainConnection
+        exports.itemOfferMain = stock_universal_server_1.mainConnection
             .model('ItemOffer', itemOfferSchema);
     }
     if (lean) {
-        exports.itemOfferLean = database_1.mainConnectionLean
+        exports.itemOfferLean = stock_universal_server_1.mainConnectionLean
             .model('ItemOffer', itemOfferSchema);
     }
 };

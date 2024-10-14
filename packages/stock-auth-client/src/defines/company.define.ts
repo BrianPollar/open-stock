@@ -5,7 +5,7 @@ import {
   Icompany, IdataArrayResponse,
   IdeleteMany,
   IdeleteOne,
-  IeditCompany, Ifile, IfilterProps, Isuccess
+  IeditCompany, Ifile, IfileMeta, IfilterProps, Isuccess
 } from '@open-stock/stock-universal';
 import { lastValueFrom } from 'rxjs';
 import { StockAuthClient } from '../stock-auth-client';
@@ -16,7 +16,7 @@ export class Company
   urId: string;
   name: string;
   displayName: string;
-  dateOfEst: string;
+  dateOfEst: Date;
   address: string;
   details: string;
   businessType: string;
@@ -27,6 +27,7 @@ export class Company
   blocked: boolean;
   verified: boolean;
   owner: User | string;
+  logo: string;
 
   constructor(data: Icompany) {
     super(data);
@@ -55,8 +56,8 @@ export class Company
     };
   }
 
-  static async getOne(_id: string) {
-    const observer$ = StockAuthClient.ehttp.makeGet<Icompany>(`/company/one/${_id}`);
+  static async getOne(id: string) {
+    const observer$ = StockAuthClient.ehttp.makeGet<Icompany>(`/company/one/${id}`);
     const company = await lastValueFrom(observer$);
 
     return new Company(company);
@@ -127,6 +128,7 @@ export class Company
       this.verified = data.verified || this.verified;
       this.address = data.address || this.address;
       this.owner = typeof data.owner === 'object' ? new User(data.owner) : data.owner;
+      this.logo = typeof data.owner === 'object' && data.owner.photos ? (data.owner.photos[0] as IfileMeta).url : '';
     }
   }
 }

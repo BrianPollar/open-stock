@@ -3,7 +3,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createReviewModel = exports.reviewSelect = exports.reviewLean = exports.reviewMain = void 0;
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const mongoose_1 = require("mongoose");
-const database_1 = require("../utils/database");
 const uniqueValidator = require('mongoose-unique-validator');
 /**
  * Defines the schema for a review object.
@@ -20,16 +19,35 @@ const uniqueValidator = require('mongoose-unique-validator');
  */
 const reviewSchema = new mongoose_1.Schema({
     urId: { type: String },
-    companyId: { type: String, required: [true, 'cannot be empty.'], index: true },
+    companyId: { type: mongoose_1.Schema.Types.ObjectId, required: [true, 'cannot be empty.'], index: true },
     image: { type: String },
     name: { type: String, required: [true, 'cannot be empty.'], index: true },
-    email: { type: String },
-    comment: { type: String, required: [true, 'cannot be empty.'], index: true },
-    rating: { type: Number }, // upto 10
-    images: [],
-    userId: { type: String },
-    itemId: { type: String }
+    email: {
+        type: String,
+        validator: checkEmail,
+        message: props => `${props.value} is invalid phone!`
+    },
+    comment: {
+        type: String,
+        required: [true, 'cannot be empty.'],
+        index: true,
+        minLength: [1, 'cannot be less than 1.'],
+        maxLength: [350, 'cannot be more than 350.']
+    },
+    rating: {
+        type: Number,
+        min: [0, 'cannot be less than 0.'],
+        max: [10, 'cannot be more than 10.']
+    }, // upto 10
+    images: [String],
+    userId: { type: mongoose_1.Schema.Types.ObjectId },
+    itemId: { type: mongoose_1.Schema.Types.ObjectId }
 }, { timestamps: true, collection: 'reviews' });
+function checkEmail(email) {
+    // eslint-disable-next-line max-len
+    const re = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+    return re.test(email);
+}
 // Apply the uniqueValidator plugin to reviewSchema.
 reviewSchema.plugin(uniqueValidator);
 reviewSchema.pre('updateOne', function (next) {
@@ -64,15 +82,15 @@ exports.reviewSelect = reviewselect;
  * @param lean Indicates whether to create the lean connection model.
  */
 const createReviewModel = async (dbUrl, dbOptions, main = true, lean = true) => {
-    if (!database_1.isStockDbConnected) {
-        await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
+    if (!stock_universal_server_1.isDbConnected) {
+        await (0, stock_universal_server_1.connectDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.reviewMain = database_1.mainConnection
+        exports.reviewMain = stock_universal_server_1.mainConnection
             .model('Review', reviewSchema);
     }
     if (lean) {
-        exports.reviewLean = database_1.mainConnectionLean
+        exports.reviewLean = stock_universal_server_1.mainConnectionLean
             .model('Review', reviewSchema);
     }
 };

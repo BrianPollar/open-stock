@@ -5,34 +5,8 @@ const tslib_1 = require("tslib");
 const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
-const fs = tslib_1.__importStar(require("fs"));
-const path_1 = tslib_1.__importDefault(require("path"));
-const tracer = tslib_1.__importStar(require("tracer"));
+const mongoose_1 = require("mongoose");
 const expense_model_1 = require("../models/expense.model");
-/** Logger for expense routes */
-const expenseRoutesLogger = tracer.colorConsole({
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-        // eslint-disable-next-line no-console
-        console.log(data.output);
-        const logDir = path_1.default.join(process.cwd() + '/openstockLog/');
-        fs.mkdir(logDir, { recursive: true }, (err) => {
-            if (err) {
-                if (err) {
-                    // eslint-disable-next-line no-console
-                    console.log('data.output err ', err);
-                }
-            }
-        });
-        fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
-            if (err) {
-                // eslint-disable-next-line no-console
-                console.log('raw.output err ', err);
-            }
-        });
-    }
-});
 /**
  * Router for handling expense routes.
  */
@@ -43,32 +17,13 @@ exports.expenseRoutes.post('/add', stock_universal_server_1.requireAuth, stock_a
     expense.companyId = filter.companyId;
     expense.urId = await (0, stock_universal_server_1.generateUrId)(expense_model_1.expenseMain);
     const newExpense = new expense_model_1.expenseMain(expense);
-    let errResponse;
-    const saved = await newExpense.save()
-        .catch(err => {
-        expenseRoutesLogger.error('create - err: ', err);
-        errResponse = {
-            success: false,
-            status: 403
-        };
-        if (err && err.errors) {
-            errResponse.err = (0, stock_universal_server_1.stringifyMongooseErr)(err.errors);
-        }
-        else {
-            errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-        }
-        return err;
-    });
-    if (errResponse) {
-        return res.status(403).send(errResponse);
+    const savedRes = await newExpense.save()
+        .catch((err) => err);
+    if (savedRes instanceof mongoose_1.Error) {
+        const errResponse = (0, stock_universal_server_1.handleMongooseErr)(savedRes);
+        return res.status(errResponse.status).send(errResponse);
     }
-    if (saved && saved._id) {
-        (0, stock_universal_server_1.addParentToLocals)(res, saved._id, expense_model_1.expenseMain.collection.collectionName, 'makeTrackEdit');
-    }
-    if (!Boolean(saved)) {
-        return res.status(403).send('unknown error occered');
-    }
+    (0, stock_universal_server_1.addParentToLocals)(res, savedRes._id, expense_model_1.expenseMain.collection.collectionName, 'makeTrackEdit');
     return next();
 }, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('expense'));
 exports.expenseRoutes.put('/update', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('expenses', 'update'), async (req, res) => {
@@ -81,8 +36,7 @@ exports.expenseRoutes.put('/update', stock_universal_server_1.requireAuth, stock
     if (!expense) {
         return res.status(404).send({ success: false });
     }
-    let errResponse;
-    const updated = await expense_model_1.expenseMain.updateOne({
+    const updateRes = await expense_model_1.expenseMain.updateOne({
         _id: updatedExpense._id, ...filter
     }, {
         $set: {
@@ -95,32 +49,20 @@ exports.expenseRoutes.put('/update', stock_universal_server_1.requireAuth, stock
             isDeleted: updatedExpense.isDeleted || expense.isDeleted
         }
     })
-        .catch(err => {
-        expenseRoutesLogger.error('update - err: ', err);
-        errResponse = {
-            success: false,
-            status: 403
-        };
-        if (err && err.errors) {
-            errResponse.err = (0, stock_universal_server_1.stringifyMongooseErr)(err.errors);
-        }
-        else {
-            errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-        }
-        return errResponse;
-    });
-    if (errResponse) {
-        return res.status(403).send(errResponse);
+        .catch((err) => err);
+    if (updateRes instanceof mongoose_1.Error) {
+        const errResponse = (0, stock_universal_server_1.handleMongooseErr)(updateRes);
+        return res.status(errResponse.status).send(errResponse);
     }
     (0, stock_universal_server_1.addParentToLocals)(res, updatedExpense._id, expense_model_1.expenseMain.collection.collectionName, 'makeTrackEdit');
-    return res.status(200).send({ success: Boolean(updated) });
+    return res.status(200).send({ success: true });
 });
-exports.expenseRoutes.get('/one/:_id', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('expenses', 'read'), async (req, res) => {
-    const { _id } = req.params;
+exports.expenseRoutes.get('/one/:urIdOr_id', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('expenses', 'read'), async (req, res) => {
+    const { urIdOr_id } = req.params;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
+    const filterwithId = (0, stock_universal_server_1.verifyObjectId)(urIdOr_id) ? { _id: urIdOr_id } : { urId: urIdOr_id };
     const expense = await expense_model_1.expenseLean
-        .findOne({ _id, ...filter })
+        .findOne({ ...filterwithId, ...filter })
         .lean();
     if (!expense) {
         return res.status(404).send({ success: false, err: 'not found' });
@@ -152,17 +94,17 @@ exports.expenseRoutes.delete('/delete/one/:_id', stock_universal_server_1.requir
     const { _id } = req.params;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     // const deleted = await expenseMain.findOneAndDelete({ _id, companyId });
-    const deleted = await expense_model_1.expenseMain.updateOne({ _id, ...filter }, { $set: { isDeleted: true } });
-    if (Boolean(deleted)) {
-        (0, stock_universal_server_1.addParentToLocals)(res, _id, expense_model_1.expenseMain.collection.collectionName, 'trackDataDelete');
-        return res.status(200).send({ success: Boolean(deleted) });
+    const updateRes = await expense_model_1.expenseMain.updateOne({ _id, ...filter }, { $set: { isDeleted: true } })
+        .catch((err) => err);
+    if (updateRes instanceof mongoose_1.Error) {
+        const errResponse = (0, stock_universal_server_1.handleMongooseErr)(updateRes);
+        return res.status(errResponse.status).send(errResponse);
     }
-    else {
-        return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
-    }
+    (0, stock_universal_server_1.addParentToLocals)(res, _id, expense_model_1.expenseMain.collection.collectionName, 'trackDataDelete');
+    return res.status(200).send({ success: true });
 });
 exports.expenseRoutes.post('/filter', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('expenses', 'read'), async (req, res) => {
-    const { propSort } = req.body;
+    const { propSort, returnEmptyArr } = req.body;
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.body.offset, req.body.limit);
     const filter = (0, stock_universal_server_1.constructFiltersFromBody)(req);
     const aggCursor = expense_model_1.expenseLean.aggregate([
@@ -176,18 +118,7 @@ exports.expenseRoutes.post('/filter', stock_universal_server_1.requireAuth, stoc
         },
         ...(0, stock_universal_server_1.lookupTrackEdit)(),
         ...(0, stock_universal_server_1.lookupTrackView)(),
-        {
-            $facet: {
-                data: [...(0, stock_universal_server_1.lookupSort)(propSort), ...(0, stock_universal_server_1.lookupOffset)(offset), ...(0, stock_universal_server_1.lookupLimit)(limit)],
-                total: [{ $count: 'count' }]
-            }
-        },
-        {
-            $unwind: {
-                path: '$total',
-                preserveNullAndEmptyArrays: true
-            }
-        }
+        ...(0, stock_universal_server_1.lookupFacet)(offset, limit, propSort, returnEmptyArr)
     ]);
     const dataArr = [];
     for await (const data of aggCursor) {
@@ -211,31 +142,18 @@ exports.expenseRoutes.put('/delete/many', stock_universal_server_1.requireAuth, 
     if (!isValid) {
         return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
-    /* const deleted = await expenseMain
-    .deleteMany({ _id: { $in: _ids }, companyId })
-    .catch(err => {
-      expenseRoutesLogger.error('deletemany - err: ', err);
-
-      return null;
-    }); */
-    const deleted = await expense_model_1.expenseMain
+    const updateRes = await expense_model_1.expenseMain
         .updateMany({ _id: { $in: _ids }, ...filter }, {
         $set: { isDeleted: true }
     })
-        .catch(err => {
-        expenseRoutesLogger.error('deletemany - err: ', err);
-        return null;
-    });
-    if (Boolean(deleted)) {
-        for (const val of _ids) {
-            (0, stock_universal_server_1.addParentToLocals)(res, val, expense_model_1.expenseMain.collection.collectionName, 'trackDataDelete');
-        }
-        return res.status(200).send({ success: Boolean(deleted) });
+        .catch((err) => err);
+    if (updateRes instanceof mongoose_1.Error) {
+        const errResponse = (0, stock_universal_server_1.handleMongooseErr)(updateRes);
+        return res.status(errResponse.status).send(errResponse);
     }
-    else {
-        return res.status(404).send({
-            success: Boolean(deleted), err: 'could not delete selected items, try again in a while'
-        });
+    for (const val of _ids) {
+        (0, stock_universal_server_1.addParentToLocals)(res, val, expense_model_1.expenseMain.collection.collectionName, 'trackDataDelete');
     }
+    return res.status(200).send({ success: true });
 });
 //# sourceMappingURL=expense.routes.js.map

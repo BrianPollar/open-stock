@@ -7,7 +7,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createNotificationsModel = exports.mainnotificationLean = exports.mainnotificationMain = void 0;
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const mongoose_1 = require("mongoose");
-const database_1 = require("../utils/database");
 /** Mongoose schema for the main notification object. */
 const mainnotificationSchema = new mongoose_1.Schema({
     ...stock_universal_server_1.globalSchemaObj,
@@ -17,7 +16,7 @@ const mainnotificationSchema = new mongoose_1.Schema({
             operation: { type: String },
             url: { type: String }
         }],
-    userId: { type: String, required: [true, 'cannot be empty.'], index: true },
+    userId: { type: mongoose_1.Schema.Types.ObjectId, required: [true, 'cannot be empty.'], index: true },
     title: { type: String, required: [true, 'cannot be empty.'] },
     body: { type: String, required: [true, 'cannot be empty.'] },
     icon: { type: String },
@@ -31,19 +30,6 @@ mainnotificationSchema.index({ createdAt: -1 });
 /** Index for the expiration time of the notification. */
 mainnotificationSchema
     .index({ expireAt: 1 }, { expireAfterSeconds: 2628003 });
-/** Primary selection object for the main notification object. */
-const mainNotifselect = {
-    actions: 1,
-    userId: 1,
-    title: 1,
-    body: 1,
-    icon: 1,
-    notifType: 1,
-    notifInvokerId: 1,
-    viewed: 1,
-    active: 1,
-    createdAt: 1
-};
 /**
  * Creates the Mongoose models for the main notification object.
  * @param dbUrl The URL of the database to connect to.
@@ -53,15 +39,15 @@ const mainNotifselect = {
  */
 const createNotificationsModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     (0, stock_universal_server_1.createExpireDocIndex)(mainnotificationSchema);
-    if (!database_1.isNotifDbConnected) {
-        await (0, database_1.connectNotifDatabase)(dbUrl, dbOptions);
+    if (!stock_universal_server_1.isDbConnected) {
+        await (0, stock_universal_server_1.connectDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.mainnotificationMain = database_1.mainConnection
+        exports.mainnotificationMain = stock_universal_server_1.mainConnection
             .model('Mainnotification', mainnotificationSchema);
     }
     if (lean) {
-        exports.mainnotificationLean = database_1.mainConnectionLean
+        exports.mainnotificationLean = stock_universal_server_1.mainConnectionLean
             .model('Mainnotification', mainnotificationSchema);
     }
 };

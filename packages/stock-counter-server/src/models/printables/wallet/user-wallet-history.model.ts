@@ -8,10 +8,12 @@
  */
 import { IwalletHistory } from '@open-stock/stock-universal';
 import {
-  createExpireDocIndex, globalSchemaObj, globalSelectObj, preUpdateDocExpire
+  connectDatabase,
+  createExpireDocIndex, globalSchemaObj, globalSelectObj,
+  isDbConnected, mainConnection, mainConnectionLean,
+  preUpdateDocExpire
 } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../../utils/database';
 
 /**
  * Represents the type of a user behaviour document in the database.
@@ -21,10 +23,10 @@ import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectio
 
 export type TuserWalletHistory = Document & IwalletHistory;
 
-const userWalletHistorySchema: Schema = new Schema({
+const userWalletHistorySchema: Schema<TuserWalletHistory> = new Schema({
   ...globalSchemaObj,
-  wallet: { type: String, index: true },
-  amount: { type: String, required: [true, 'cannot be empty.'], index: true },
+  wallet: { type: Schema.Types.ObjectId, index: true },
+  amount: { type: Number, required: [true, 'cannot be empty.'], index: true },
   type: { type: String, required: [true, 'cannot be empty.'], index: true }
 }, { timestamps: true, collection: 'userwallethistories' });
 
@@ -73,8 +75,8 @@ export const createUserWalletHistoryModel = async(
   lean = true
 ) => {
   createExpireDocIndex(userWalletHistorySchema);
-  if (!isStockDbConnected) {
-    await connectStockDatabase(dbUrl, dbOptions);
+  if (!isDbConnected) {
+    await connectDatabase(dbUrl, dbOptions);
   }
 
   if (main) {

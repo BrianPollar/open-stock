@@ -25,8 +25,8 @@ export class Company extends DatabaseAuto {
             companys: companys.data.map(val => new Company(val))
         };
     }
-    static async getOne(_id) {
-        const observer$ = StockAuthClient.ehttp.makeGet(`/company/one/${_id}`);
+    static async getOne(id) {
+        const observer$ = StockAuthClient.ehttp.makeGet(`/company/one/${id}`);
         const company = await lastValueFrom(observer$);
         return new Company(company);
     }
@@ -78,6 +78,7 @@ export class Company extends DatabaseAuto {
             this.verified = data.verified || this.verified;
             this.address = data.address || this.address;
             this.owner = typeof data.owner === 'object' ? new User(data.owner) : data.owner;
+            this.logo = typeof data.owner === 'object' && data.owner.photos ? data.owner.photos[0].url : '';
         }
     }
 }

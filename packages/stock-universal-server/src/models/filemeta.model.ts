@@ -1,12 +1,14 @@
 import { IfileMeta } from '@open-stock/stock-universal';
-import { ConnectOptions, Model, Schema } from 'mongoose';
+import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 import {
-  connectUniversalDatabase, isUniversalDbConnected, mainConnection, mainConnectionLean
+  connectDatabase, isDbConnected, mainConnection, mainConnectionLean
 } from '../utils/database';
 
 const uniqueValidator = require('mongoose-unique-validator');
 
-const fileMetaSchema: Schema<IfileMeta & { expireDocAfter }> = new Schema({
+export type TfileMeta = Document & IfileMeta & { expireDocAfter: Date };
+
+const fileMetaSchema: Schema<TfileMeta> = new Schema({
   trackEdit: { type: Schema.ObjectId },
   trackView: { type: Schema.ObjectId },
   isDeleted: { type: Boolean, default: false },
@@ -31,12 +33,12 @@ fileMetaSchema.plugin(uniqueValidator);
 /**
  * Represents the fileMeta model.
  */
-export let fileMeta: Model<IfileMeta>;
+export let fileMeta: Model<TfileMeta>;
 
 /**
  * Represents the fileMetaLean variable.
  */
-export let fileMetaLean: Model<IfileMeta>;
+export let fileMetaLean: Model<TfileMeta>;
 
 /**
  * Creates an file meta model with the given database URL, main flag, and lean flag.
@@ -46,17 +48,17 @@ export let fileMetaLean: Model<IfileMeta>;
  * @param lean Whether to create the lean email token model.
  */
 export const createFileMetaModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
-  if (!isUniversalDbConnected) {
-    await connectUniversalDatabase(dbUrl, dbOptions);
+  if (!isDbConnected) {
+    await connectDatabase(dbUrl, dbOptions);
   }
 
   if (main) {
     fileMeta = mainConnection
-      .model<IfileMeta>('FileMeta', fileMetaSchema);
+      .model<TfileMeta>('FileMeta', fileMetaSchema);
   }
 
   if (lean) {
     fileMetaLean = mainConnectionLean
-      .model<IfileMeta>('FileMeta', fileMetaSchema);
+      .model<TfileMeta>('FileMeta', fileMetaSchema);
   }
 };

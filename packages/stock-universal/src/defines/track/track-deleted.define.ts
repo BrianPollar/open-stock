@@ -1,14 +1,14 @@
 import { lastValueFrom } from 'rxjs';
-import { ItrackDeleted } from '../../interfaces/general.interface';
-import { IdataArrayResponse, Isuccess } from '../../interfaces/return.interface';
 import { StockUniversal } from '../../stock-universal';
+import { ItrackDeleted } from '../../types/general-types';
+import { IdataArrayResponse, Isuccess } from '../../types/return-types';
 import { DatabaseAuto } from '../base/base.define';
 import { IparentData } from './track-view.define';
 
 export class TrackDeleted
   extends DatabaseAuto {
   parent: string | IparentData;
-  deletedAt: string;
+  deletedAt?: string;
 
   constructor(data: ItrackDeleted) {
     super(data);

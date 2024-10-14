@@ -1,35 +1,7 @@
 import { IcustomRequest } from '@open-stock/stock-universal';
+import { mainLogger } from '@open-stock/stock-universal-server';
 import { NextFunction, Response } from 'express';
-import * as fs from 'fs';
-import path from 'path';
-import * as tracer from 'tracer';
 import { registerCart, registerCompareList, registerRecents, registerWishList } from './user-behavoiur';
-
-/** Logger for the cookie service */
-const cookieServiceLogger = tracer.colorConsole({
-  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-  dateformat: 'HH:MM:ss.L',
-  transport(data) {
-    // eslint-disable-next-line no-console
-    console.log(data.output);
-    const logDir = path.join(process.cwd() + '/openstockLog/');
-
-    fs.mkdir(logDir, { recursive: true }, (err) => {
-      if (err) {
-        if (err) {
-          // eslint-disable-next-line no-console
-          console.log('data.output err ', err);
-        }
-      }
-    });
-    fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
-      if (err) {
-        // eslint-disable-next-line no-console
-        console.log('raw.output err ', err);
-      }
-    });
-  }
-});
 
 export const makeTourerCookie = (
   req: IcustomRequest<never, { tourer}>,
@@ -38,7 +10,7 @@ export const makeTourerCookie = (
 ) => {
   const tourer = req.body.tourer;
 
-  cookieServiceLogger.info('Tourer cookie - tourer: ', tourer);
+  mainLogger.info('Tourer cookie - tourer: ', tourer);
   res.cookie('tourer', tourer, {
     // maxAge: 5000,
     // expires works the same as the maxAge
@@ -57,7 +29,7 @@ export const makeSettingsCookie = (
 ) => {
   const stnCookie = req.body.stnCookie;
 
-  cookieServiceLogger.info('Setting cookie - stnCookie: ', stnCookie);
+  mainLogger.info('Setting cookie - stnCookie: ', stnCookie);
   if (!stnCookie.cartEnabled) {
     res.clearCookie('cart');
   }
@@ -89,7 +61,7 @@ export const makeCartCookie = async(
   await registerCart(cartItemId, stnCookie.userCookieId, userId);
   const cartCookie = req.body.cartCookie;
 
-  cookieServiceLogger.info('Cart cookie - cartCookie: ', cartCookie);
+  mainLogger.info('Cart cookie - cartCookie: ', cartCookie);
   res.cookie('cart', cartCookie, {
     // maxAge: 5000,
     // expires works the same as the maxAge
@@ -113,7 +85,7 @@ export const makeRecentCookie = async(
   const recentItemId = req.body.recentItemId;
 
   await registerRecents(recentItemId, stnCookie.userCookieId, userId);
-  cookieServiceLogger.info('Recent Cookie - recentCookie: ', recentCookie);
+  mainLogger.info('Recent Cookie - recentCookie: ', recentCookie);
   res.cookie('recent', recentCookie, {
     // maxAge: 5000,
     // expires works the same as the maxAge
@@ -137,7 +109,7 @@ export const makeWishListCookie = async(
   const wishListItemId = req.body.wishListItemId;
 
   await registerWishList(wishListItemId, stnCookie.userCookieId, userId);
-  cookieServiceLogger.info('WishListCookie Cookie - wishListCookie: ', wishListCookie);
+  mainLogger.info('WishListCookie Cookie - wishListCookie: ', wishListCookie);
   res.cookie('wishList', wishListCookie, {
     // maxAge: 5000,
     // expires works the same as the maxAge
@@ -161,7 +133,7 @@ export const makeCompareListCookie = async(
   const compareLisItemId = req.body.compareLisItemId;
 
   await registerCompareList(compareLisItemId, stnCookie.userCookieId, userId);
-  cookieServiceLogger.info('CompareListCookie Cookie - compareListCookie: ', compareListCookie);
+  mainLogger.info('CompareListCookie Cookie - compareListCookie: ', compareListCookie);
   res.cookie('compareList', compareListCookie, {
     // maxAge: 5000,
     // expires works the same as the maxAge

@@ -1,41 +1,15 @@
 import {
-  Iauthresponse, IauthresponseObj, IcustomRequest, Isuccess, Iuser, Iuserperm
+  Iauthresponse, IauthresponseObj, IcustomRequest, Iuser, Iuserperm
 } from '@open-stock/stock-universal';
-import { generateUrId, stringifyMongooseErr, verifyObjectIds } from '@open-stock/stock-universal-server';
-import * as fs from 'fs';
-import { Document } from 'mongoose';
-import path from 'path';
-import * as tracer from 'tracer';
+import {
+  generateUrId, handleMongooseErr, mainLogger, verifyObjectIds
+} from '@open-stock/stock-universal-server';
+import { Document, Error } from 'mongoose';
 import { loginAtempts } from '../models/loginattemps.model';
 import { user } from '../models/user.model';
 import { userip } from '../models/userip.model';
 import { stockAuthConfig } from '../stock-auth-local';
 import { sendTokenEmail, sendTokenPhone, validateEmail, validatePhone } from './universial';
-
-const authControllerLogger = tracer.colorConsole({
-  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-  dateformat: 'HH:MM:ss.L',
-  transport(data) {
-    // eslint-disable-next-line no-console
-    console.log(data.output);
-    const logDir = path.join(process.cwd() + '/openstockLog/');
-
-    fs.mkdir(logDir, { recursive: true }, (err) => {
-      if (err) {
-        if (err) {
-          // eslint-disable-next-line no-console
-          console.log('data.output err ', err);
-        }
-      }
-    });
-    fs.appendFile(logDir + '/auth-server.log', data.rawoutput + '\n', err => {
-      if (err) {
-        // eslint-disable-next-line no-console
-        console.log('raw.output err ', err);
-      }
-    });
-  }
-});
 
 /**
  * Compares the provided password with the password in the foundUser object.
@@ -55,7 +29,7 @@ const comparePassword = (foundUser, passwd: string, isPhone: boolean): Promise<{
       let nowRes = 'wrong account or password';
 
       if (err) {
-        authControllerLogger.error('user has wrong password', err);
+        mainLogger.error('user has wrong password', err);
         attemptSuccess = false;
         if (isPhone) {
           nowRes = `phone number and
@@ -96,7 +70,7 @@ export const checkIpAndAttempt = async(
   if (!foundUser?.password || !foundUser?.verified) {
     return next();
   }
-  const ip = req.headers['x-forwarded-for'].toString() || req.socket.remoteAddress;
+  const ip = req.headers['x-forwarded-for']?.toString() || req.socket.remoteAddress;
   const userOrCompanayId = foundUser._id;
 
   let foundIpModel = await userip.findOne({ userOrCompanayId }).select({
@@ -110,25 +84,22 @@ export const checkIpAndAttempt = async(
       userOrCompanayId,
       greenIps: [ip]
     });
-    let savedErr: string;
 
-    await foundIpModel.save().catch(err => {
-      authControllerLogger.error('save error', err);
-      savedErr = err;
+    const savedRes = await foundIpModel.save().catch((err: Error) => err);
 
-      return null;
-    });
+    if (savedRes instanceof Error) {
+      const errResponse = handleMongooseErr(savedRes);
 
-    if (savedErr) {
-      return res.status(500).send({ success: false });
+      return res.status(errResponse.status).send(errResponse);
     }
+
     // TODO
     /* const response: Iauthresponse = {
       success: false,
       err: 'Account does not exist!'
     }; */
     // return res.status(401).send(response);
-  } else if (foundIpModel) {
+  } else if (foundIpModel && ip) {
     const containsRedIp = foundIpModel.redIps.includes(ip);
     const containsGreenIp = foundIpModel.greenIps.includes(ip);
 
@@ -196,16 +167,14 @@ export const checkIpAndAttempt = async(
   };
 
   const newAttemp = new loginAtempts(attempt);
-  let savedErr: string;
-  const lastAttempt = await newAttemp.save().catch(err => {
-    authControllerLogger.error('save error', err);
-    savedErr = err;
 
-    return null;
-  });
+  const lastAttemptRes = await newAttemp.save().catch((err: Error) => err);
 
-  if (savedErr) {
-    return res.status(500).send({ success: false });
+  // TODO
+  if (lastAttemptRes instanceof Error) {
+    const errResponse = handleMongooseErr(lastAttemptRes);
+
+    return res.status(errResponse.status).send(errResponse);
   }
 
   // const attempts = loginAtempts.find({ userId: foundUser._id });
@@ -221,11 +190,11 @@ export const checkIpAndAttempt = async(
 
   foundIpModel.blocked = {
     status: false,
-    loginAttemptRef: lastAttempt._id,
+    loginAttemptRef: lastAttemptRes._id,
     timesBlocked: 0
   };
-  await foundIpModel.save().catch(err => {
-    authControllerLogger.error('save err', err);
+  await foundIpModel.save().catch((err: Error) => {
+    mainLogger.error('save err', err);
 
     return;
   });
@@ -325,7 +294,7 @@ export const loginFactorRelgator = async(
   let query;
   let isPhone: boolean;
 
-  authControllerLogger.debug(`signup, 
+  mainLogger.debug(`signup, 
     emailPhone: ${emailPhone}`);
 
   if (isNaN(Number(emailPhone))) {
@@ -373,27 +342,12 @@ export const loginFactorRelgator = async(
     countryCode: +256
   });
 
-  let response: Isuccess;
+  const savedRes = await newUser.save().catch((err: Error) => err);
 
-  const saved = await newUser.save().catch(err => {
-    authControllerLogger.error(`mongosse registration 
-    validation error, ${err}`);
-    response = {
-      status: 403,
-      success: false
-    };
-    if (err && err.errors) {
-      response.err = stringifyMongooseErr(err.errors);
-    } else {
-      response.err = `we are having problems connecting to our databases, 
-      try again in a while`;
-    }
+  if (savedRes instanceof Error) {
+    const errResponse = handleMongooseErr(savedRes);
 
-    return err;
-  });
-
-  if (!response.success) {
-    return res.status(response.status).send(response);
+    return res.status(errResponse.status).send(errResponse);
   }
 
   let result: Iauthresponse;
@@ -401,16 +355,11 @@ export const loginFactorRelgator = async(
   const type = 'token';
 
   if (isPhone) {
-    result = await sendTokenPhone(saved);
+    result = await sendTokenPhone(savedRes);
   } else {
-    result = await sendTokenEmail(saved as unknown as Iuser, type, stockAuthConfig.localSettings.appOfficialName);
+    result = await sendTokenEmail(savedRes as unknown as Iuser, type, stockAuthConfig.localSettings.appOfficialName);
   }
 
-  if (!response.success) {
-    await user.deleteOne({ _id: saved._id });
-
-    return res.status(200).send(response);
-  }
   if (Boolean(result.success)) {
     return next();
   }
@@ -434,12 +383,12 @@ export const loginFactorRelgator = async(
 export const resetAccountFactory = async(
   req: IcustomRequest<never, {
     foundUser: Iuser & Document; _id: string; verifycode: string; how: string; password: string;
-   }>,
+  }>,
   res
 ) => {
   const { foundUser, _id, verifycode, how, password } = req.body;
 
-  authControllerLogger.debug(`resetpassword, 
+  mainLogger.debug(`resetpassword, 
     verifycode: ${verifycode}`);
   const isValid = verifyObjectIds([_id]);
 
@@ -483,7 +432,7 @@ export const recoverAccountFactory = async(
   const { appOfficialName } = stockAuthConfig.localSettings;
   const { foundUser, emailPhone, navRoute } = req.body;
 
-  authControllerLogger.debug(`recover, 
+  mainLogger.debug(`recover, 
     emailphone: ${emailPhone}`);
 
   let response: Iauthresponse = { success: false };
@@ -540,7 +489,7 @@ export const confirmAccountFactory = async(
 ) => {
   const { foundUser, _id, verifycode, useField, verificationMean, password } = req.body;
 
-  authControllerLogger.debug(`verify, verifycode: ${verifycode}, useField: ${useField}`);
+  mainLogger.debug(`verify, verifycode: ${verifycode}, useField: ${useField}`);
   const isValid = verifyObjectIds([_id]);
 
   if (!isValid) {
@@ -559,7 +508,7 @@ export const confirmAccountFactory = async(
   } else {
     response = await validateEmail(
       foundUser,
-      verificationMean,
+      verificationMean || 'code',
       verifycode,
       password
     );

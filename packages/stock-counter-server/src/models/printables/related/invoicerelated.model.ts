@@ -1,59 +1,108 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-type-arguments */
-import { IinvoiceRelated } from '@open-stock/stock-universal';
+import { IinvoiceRelated, IinvoiceRelatedPdct } from '@open-stock/stock-universal';
 import {
-  createExpireDocIndex, preUpdateDocExpire, withCompanySelectObj,
+  IcompanyIdAsObjectId,
+  connectDatabase,
+  createExpireDocIndex,
+  isDbConnected, mainConnection, mainConnectionLean,
+  preUpdateDocExpire, withCompanySelectObj,
   withUrIdAndCompanySchemaObj
 } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../../utils/database';
 // const uniqueValidator = require('mongoose-unique-validator');
 
 /** model interface for invoiceRelated by */
-export type TinvoiceRelated = Document & IinvoiceRelated;
+export type TinvoiceRelated = Document & IinvoiceRelated & IcompanyIdAsObjectId;
 
-/**
- * Represents the schema for the invoice related model.
- * @typedef {Object} TinvoiceRelated
- * @property {string} creationType - The type of creation.
- * @property {number} estimateId - The ID of the estimate.
- * @property {number} invoiceId - The ID of the invoice.
- * @property {string} billingUser - The user who is being billed.
- * @property {string} billingUserId - The ID of the user who is being billed.
- * @property {Array} items - The items in the invoice.
- * @property {Date} fromDate - The start date of the invoice.
- * @property {Date} toDate - The end date of the invoice.
- * @property {string} status - The status of the invoice.
- * @property {string} stage - The stage of the invoice.
- * @property {number} cost - The cost of the invoice.
- * @property {number} tax - The tax of the invoice.
- * @property {number} balanceDue - The balance due on the invoice.
- * @property {number} subTotal - The subtotal of the invoice.
- * @property {number} total - The total of the invoice.
- * @property {Array} payments - The payments made on the invoice.
- */
+type TitemsSchema = Document & Omit<IinvoiceRelatedPdct, 'item'> & { item: Schema.Types.ObjectId };
+
+const itemsSchema: Schema<TitemsSchema> = new Schema<TitemsSchema>({
+  item: { type: Schema.Types.ObjectId },
+  itemName: { type: String, minlength: [3, 'cannot be less than 3'], maxlength: [150, 'cannot be more than 150'] },
+  itemPhoto: { type: String },
+  quantity: { type: Number, min: [1, 'cannot be less than 1'] },
+  rate: { type: Number, min: [1, 'cannot be less than 1'] },
+  amount: { type: Number, min: [1, 'cannot be less than 1'] },
+  currency: { type: String }
+});
+
 const invoiceRelatedSchema: Schema<TinvoiceRelated> = new Schema({
   ...withUrIdAndCompanySchemaObj,
-  creationType: { type: String },
+  creationType: {
+    type: String,
+    validator: checkCreationType,
+    message: props => `${props.value} is invalid phone!`
+  },
   estimateId: { type: Number },
   invoiceId: { type: Number },
   billingUser: { type: String },
-  billingUserId: { type: String },
-  items: [],
+  billingUserId: { type: Schema.Types.ObjectId },
+  items: [itemsSchema],
   fromDate: { type: Date },
-  toDate: { type: Date },
-  status: { type: String },
-  stage: { type: String },
-  cost: { type: Number },
-  tax: { type: Number },
-  balanceDue: { type: Number },
-  subTotal: { type: Number },
-  total: { type: Number },
-  payments: [],
+  toDate: {
+    type: Date,
+    validator: checkToDate,
+    message: props => `${props.value} is invalid, it must be less than from date!`
+  },
+  status: {
+    type: String,
+    validator: checkStatus,
+    message: props => `${props.value} is invalid phone!`
+  },
+  stage: {
+    type: String,
+    validator: checkStage,
+    message: props => `${props.value} is invalid phone!`
+  },
+  cost: {
+    type: Number,
+    min: [0, 'cannot be less than 0!']
+  },
+  tax: {
+    type: Number,
+    min: [0, 'cannot be less than 0!']
+  },
+  balanceDue: {
+    type: Number,
+    min: [0, 'cannot be less than 0!']
+  },
+  subTotal: {
+    type: Number,
+    min: [0, 'cannot be less than 0!']
+  },
+  total: {
+    type: Number,
+    min: [0, 'cannot be less than 0!']
+  },
+  payments: [Schema.Types.ObjectId],
   payType: { type: String, index: true },
   ecommerceSale: { type: Boolean, index: true, default: false },
-  ecommerceSalePercentage: { type: Number, index: true, default: 0 },
+  ecommerceSalePercentage: {
+    type: Number,
+    min: [0, 'cannot be less than 0!'],
+    max: [100, 'cannot be greater than 100!']
+  },
   currency: { type: String, default: 'USD' }
 }, { timestamps: true, collection: 'invoicerelateds' });
+
+function checkCreationType(creationType: string) {
+  return creationType === 'estimate' || creationType === 'invoice' ||
+  creationType === 'deliverynote' || creationType === 'receipt';
+}
+
+function checkToDate(toDate: Date) {
+  return toDate < this.fromDate;
+}
+
+function checkStatus(status: string) {
+  return status === 'paid' || status === 'pending' ||
+  status === 'overdue' || status === 'draft' ||
+  status === 'unpaid' || status === 'cancelled';
+}
+
+function checkStage(stage: string) {
+  return stage === 'estimate' || stage === 'invoice' || stage === 'deliverynote' || stage === 'receipt';
+}
 
 invoiceRelatedSchema.pre('updateOne', function(next) {
   return preUpdateDocExpire(this, next);
@@ -116,8 +165,8 @@ export const invoiceRelatedSelect = invoiceRelatedselect;
  */
 export const createInvoiceRelatedModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
   createExpireDocIndex(invoiceRelatedSchema);
-  if (!isStockDbConnected) {
-    await connectStockDatabase(dbUrl, dbOptions);
+  if (!isDbConnected) {
+    await connectDatabase(dbUrl, dbOptions);
   }
 
   if (main) {

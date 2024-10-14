@@ -1,4 +1,4 @@
-import { ImodelLimit, IsubscriptionFeature, IsubscriptionPackage } from '../interfaces/general.interface';
+import { ImodelLimit, IsubscriptionFeature, IsubscriptionPackage } from '../types/general-types';
 /**
  * Array of inventory statuses.
  */
@@ -50,6 +50,6 @@ export declare const productState: ({
     value: string;
     refurbished?: undefined;
 })[];
-export declare const subscriptionPackages: IsubscriptionPackage[];
+export declare const subscriptionPackages: Partial<IsubscriptionPackage>[];
 export declare const moduleSubVolume: IsubscriptionFeature[];
 export declare const modelLimitSelect: ImodelLimit[];

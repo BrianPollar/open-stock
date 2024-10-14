@@ -23,6 +23,7 @@ import { createTaxReportModel } from './models/printables/report/taxreport.model
 import { createInvoiceSettingModel } from './models/printables/settings/invoicesettings.model';
 import { createUserWalletHistoryModel } from './models/printables/wallet/user-wallet-history.model';
 import { createUserWalletModel } from './models/printables/wallet/user-wallet.model';
+import { createWaitingWalletPaytModel } from './models/printables/wallet/waiting-wallet-pay.model';
 import { createPromocodeModel } from './models/promocode.model';
 import { createReviewModel } from './models/review.model';
 import { createCustomerModel } from './models/user-related/customer.model';
@@ -84,7 +85,8 @@ export const connectStockCounterDatabase = (databaseUrl, dbOptions) => {
         createReviewModel(databaseUrl, dbOptions),
         createUserBehaviourModel(databaseUrl, dbOptions),
         createUserWalletModel(databaseUrl, dbOptions),
-        createUserWalletHistoryModel(databaseUrl, dbOptions)
+        createUserWalletHistoryModel(databaseUrl, dbOptions),
+        createWaitingWalletPaytModel(databaseUrl, dbOptions)
     ]);
 };
 //# sourceMappingURL=stock-counter-local.js.map

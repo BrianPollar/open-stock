@@ -1,40 +1,12 @@
-import { Iauthtoken, IcustomRequest, TroleAuth, TroleAuthProp } from '@open-stock/stock-universal';
+import { Iauthtoken, IcustomRequest, IpermProp, TroleAuth, TroleAuthProp } from '@open-stock/stock-universal';
 import { NextFunction, Response } from 'express';
-import * as fs from 'fs';
 import * as jwt from 'jsonwebtoken';
-import path from 'path';
-import * as tracer from 'tracer';
 import { stockUniversalConfig } from '../stock-universal-local';
+import { mainLogger } from './back-logger';
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const GoogleStrategy = require('passport-google-oidc');
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const FacebookStrategy = require('passport-facebook');
-
-// This vat creates a passportLogger named `controllers/passport`.
-const passportLogger = tracer.colorConsole({
-  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-  dateformat: 'HH:MM:ss.L',
-  transport(data) {
-    // eslint-disable-next-line no-console
-    console.log(data.output);
-    const logDir = path.join(process.cwd() + '/openstockLog/');
-
-    fs.mkdir(logDir, { recursive: true }, (err) => {
-      if (err) {
-        if (err) {
-          // eslint-disable-next-line no-console
-          console.log('data.output err ', err);
-        }
-      }
-    });
-    fs.appendFile(logDir + '/universal-server.log', data.rawoutput + '\n', err => {
-      if (err) {
-        // eslint-disable-next-line no-console
-        console.log('raw.output err ', err);
-      }
-    });
-  }
-});
 
 // This var imports the `passport` module.
 const passport = require('passport');
@@ -73,7 +45,7 @@ export const runPassport = (jwtSecret, strategys?: IstrategyCred) => {
 
   // Create a new JWT strategy instance.
   const jwtLogin = new jwtStrategy(jwtOptions, (jwtPayload, done) => {
-    passportLogger.info('jwtLogin');
+    mainLogger.info('jwtLogin');
     done(null, jwtPayload);
   });
 
@@ -120,7 +92,7 @@ export const runPassport = (jwtSecret, strategys?: IstrategyCred) => {
  */
 export const roleAuthorisation = (nowRole: TroleAuth, permProp: TroleAuthProp, mayBeProfile?: boolean) => {
   // Log the role name.
-  passportLogger.info(`roleAuthorisation - role: ${nowRole}`);
+  mainLogger.info(`roleAuthorisation - role: ${nowRole}`);
 
   // Create a middleware function that checks the user's permissions.
   return (
@@ -131,16 +103,17 @@ export const roleAuthorisation = (nowRole: TroleAuth, permProp: TroleAuthProp, m
     next: NextFunction
   ) => {
     // Get the user's permissions from the request object.
+    if (!req.user) {
+      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const { permissions } = req.user;
 
     if (nowRole !== 'buyer' && permissions.companyAdminAccess) {
       return next();
     }
     // If the user has the required permission, then call the next middleware function.
-    if (permissions[nowRole] === true || permissions[nowRole] &&
-        permissions[nowRole][permProp] &&
-        permissions[nowRole][permProp] === true) {
-      passportLogger.debug('roleAuthorisation - permissions', permissions);
+    if (permissions[nowRole] === true || (permissions[nowRole] && (permissions[nowRole] as IpermProp)[permProp])) {
+      mainLogger.debug('roleAuthorisation - permissions', permissions);
 
       return next();
     } else if (mayBeProfile) {
@@ -149,7 +122,7 @@ export const roleAuthorisation = (nowRole: TroleAuth, permProp: TroleAuthProp, m
       return next();
     } else {
       // Otherwise, return a 401 Unauthorized error.
-      passportLogger.error(`roleAuthorisation - unauthorised to access: ${nowRole}`);
+      mainLogger.error(`roleAuthorisation - unauthorised to access: ${nowRole}`);
 
       return res.status(401)
         .send('unauthorised');

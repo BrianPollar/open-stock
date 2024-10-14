@@ -7,21 +7,16 @@ import {
   IcustomRequest, IdataArrayResponse,
   IdeleteMany,
   IdeleteOne,
-  IfilterAggResponse, IfilterProps, IinvoiceRelated,
-  Isuccess, Iuser
+  IfilterAggResponse, IfilterProps, IinvoiceRelated, Iuser
 } from '@open-stock/stock-universal';
 import {
-  addParentToLocals,
-  constructFiltersFromBody, generateUrId,
+  addParentToLocals, constructFiltersFromBody, generateUrId,
+  handleMongooseErr,
   lookupSubFieldInvoiceRelatedFilter, makeCompanyBasedQuery,
-  offsetLimitRelegator, requireAuth, roleAuthorisation,
-  stringifyMongooseErr
+  offsetLimitRelegator, requireAuth, roleAuthorisation, verifyObjectId
 } from '@open-stock/stock-universal-server';
 import express from 'express';
-import * as fs from 'fs';
 import { Promise } from 'mongoose';
-import path from 'path';
-import * as tracer from 'tracer';
 import { TdeliveryNote, deliveryNoteLean, deliveryNoteMain } from '../../models/printables/deliverynote.model';
 import { populateInvoiceRelated } from '../../utils/query';
 import {
@@ -29,32 +24,6 @@ import {
   relegateInvRelatedCreation,
   updateInvoiceRelated
 } from './related/invoicerelated';
-
-/** Logger for delivery note routes */
-const deliveryNoteRoutesLogger = tracer.colorConsole({
-  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-  dateformat: 'HH:MM:ss.L',
-  transport(data) {
-    // eslint-disable-next-line no-console
-    console.log(data.output);
-    const logDir = path.join(process.cwd() + '/openstockLog/');
-
-    fs.mkdir(logDir, { recursive: true }, (err) => {
-      if (err) {
-        if (err) {
-          // eslint-disable-next-line no-console
-          console.log('data.output err ', err);
-        }
-      }
-    });
-    fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
-      if (err) {
-        // eslint-disable-next-line no-console
-        console.log('raw.output err ', err);
-      }
-    });
-  }
-});
 
 /**
  * Express router for delivery note routes.
@@ -78,37 +47,23 @@ deliveryNoteRoutes.post(
     const extraNotifDesc = 'Newly generated delivery note';
     const invoiceRelatedRes = await relegateInvRelatedCreation(res, invoiceRelated, filter.companyId, extraNotifDesc);
 
-    if (!invoiceRelatedRes.success) {
+    if (!invoiceRelatedRes.success && invoiceRelatedRes.status) {
       return res.status(invoiceRelatedRes.status).send(invoiceRelatedRes);
     }
     deliveryNote.invoiceRelated = invoiceRelatedRes._id;
     const newDeliveryNote = new deliveryNoteMain(deliveryNote);
-    let errResponse: Isuccess;
 
-    const saved = await newDeliveryNote.save()
-      .catch(err => {
-        deliveryNoteRoutesLogger.error('create - err: ', err);
-        errResponse = {
-          success: false,
-          status: 403
-        };
-        if (err && err.errors) {
-          errResponse.err = stringifyMongooseErr(err.errors);
-        } else {
-          errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-        }
 
-        return err;
-      });
+    const savedRes = await newDeliveryNote.save()
+      .catch((err: Error) => err);
 
-    if (errResponse) {
-      return res.status(403).send(errResponse);
+    if (savedRes instanceof Error) {
+      const errResponse = handleMongooseErr(savedRes);
+
+      return res.status(errResponse.status).send(errResponse);
     }
 
-    if (saved && saved._id) {
-      addParentToLocals(res, saved._id, deliveryNoteLean.collection.collectionName, 'makeTrackEdit');
-    }
+    addParentToLocals(res, savedRes._id, deliveryNoteLean.collection.collectionName, 'makeTrackEdit');
 
     await updateInvoiceRelated(res, invoiceRelated);
 
@@ -118,15 +73,16 @@ deliveryNoteRoutes.post(
 );
 
 deliveryNoteRoutes.get(
-  '/one/:urId',
+  '/one/:urIdOr_id',
   requireAuth,
   requireActiveCompany,
   roleAuthorisation('deliveryNotes', 'read'),
-  async(req: IcustomRequest<{ urId: string }, null>, res) => {
-    const { urId } = req.params;
+  async(req: IcustomRequest<{ urIdOr_id: string }, null>, res) => {
+    const { urIdOr_id } = req.params;
     const { filter } = makeCompanyBasedQuery(req);
+    const filterwithId = verifyObjectId(urIdOr_id) ? { _id: urIdOr_id } : { urId: urIdOr_id };
     const deliveryNote = await deliveryNoteLean
-      .findOne({ urId, ...filter })
+      .findOne({ ...filterwithId, ...filter })
       .lean()
       .populate([populateInvoiceRelated(), populateTrackEdit(), populateTrackView()]);
 
@@ -206,15 +162,18 @@ deliveryNoteRoutes.put(
     if (!found) {
       return res.status(404).send({ success: false, err: 'not found' });
     }
-    const deleted = await deleteAllLinked(found.invoiceRelated as string, 'deliverynote', filter.companyId);
+    const updateRes = await deleteAllLinked(found.invoiceRelated as string, 'deliverynote', filter.companyId);
 
-    if (Boolean(deleted)) {
-      addParentToLocals(res, _id, deliveryNoteLean.collection.collectionName, 'trackDataDelete');
+    if (updateRes instanceof Error) {
+      const errResponse = handleMongooseErr(updateRes);
 
-      return res.status(200).send({ success: Boolean(deleted) });
-    } else {
-      return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
+      return res.status(errResponse.status).send(errResponse);
     }
+
+
+    addParentToLocals(res, _id, deliveryNoteLean.collection.collectionName, 'trackDataDelete');
+
+    return res.status(200).send({ success: true });
   }
 );
 
@@ -224,12 +183,12 @@ deliveryNoteRoutes.post(
   requireActiveCompany,
   roleAuthorisation('deliveryNotes', 'read'),
   async(req: IcustomRequest<never, IfilterProps>, res) => {
-    const { propSort } = req.body;
+    const { propSort, returnEmptyArr } = req.body;
     const { offset, limit } = offsetLimitRelegator(req.body.offset, req.body.limit);
 
     const aggCursor = deliveryNoteLean
       .aggregate<IfilterAggResponse<TdeliveryNote>>([
-        ...lookupSubFieldInvoiceRelatedFilter(constructFiltersFromBody(req), propSort, offset, limit)
+        ...lookupSubFieldInvoiceRelatedFilter(constructFiltersFromBody(req), offset, limit, propSort, returnEmptyArr)
       ]);
     const dataArr: IfilterAggResponse<TdeliveryNote>[] = [];
 
@@ -277,12 +236,12 @@ deliveryNoteRoutes.put(
           await deleteAllLinked(found.invoiceRelated as string, 'deliverynote', filter.companyId);
         }
 
-        return new Promise(resolve => resolve(found._id));
+        return new Promise(resolve => resolve(found?._id));
       });
 
     const filterdExist = await Promise.all(promises) as string[];
 
-    for (const val of filterdExist) {
+    for (const val of filterdExist.filter(value => value)) {
       addParentToLocals(res, val, deliveryNoteLean.collection.collectionName, 'trackDataDelete');
     }
 

@@ -3,14 +3,26 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createJobCardModel = exports.jobCardSelect = exports.jobCardLean = exports.jobCardMain = void 0;
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const mongoose_1 = require("mongoose");
-const database_1 = require("../../utils/database");
 const uniqueValidator = require('mongoose-unique-validator');
 const jobCardSchema = new mongoose_1.Schema({
     ...stock_universal_server_1.withUrIdAndCompanySchemaObj,
-    client: {},
-    machine: {},
-    problem: {},
-    cost: { type: Number }
+    client: {
+        userId: { type: mongoose_1.Schema.Types.ObjectId },
+        name: { type: String },
+        phone: { type: String },
+        email: { type: String }
+    },
+    machine: {
+        name: { type: String },
+        model: { type: String },
+        serialNo: { type: String }
+    },
+    problem: {
+        reportedIssue: { type: String },
+        details: { type: String },
+        issueOnFirstLook: { type: String }
+    },
+    cost: { type: Number, min: [0, 'cannot be less than 0.'] }
 }, { timestamps: true, collection: 'jobcards' });
 jobCardSchema.pre('updateOne', function (next) {
     return (0, stock_universal_server_1.preUpdateDocExpire)(this, next);
@@ -43,15 +55,15 @@ exports.jobCardSelect = jobCardselect;
  */
 const createJobCardModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     (0, stock_universal_server_1.createExpireDocIndex)(jobCardSchema);
-    if (!database_1.isStockDbConnected) {
-        await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
+    if (!stock_universal_server_1.isDbConnected) {
+        await (0, stock_universal_server_1.connectDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.jobCardMain = database_1.mainConnection
+        exports.jobCardMain = stock_universal_server_1.mainConnection
             .model('JobCard', jobCardSchema);
     }
     if (lean) {
-        exports.jobCardLean = database_1.mainConnectionLean
+        exports.jobCardLean = stock_universal_server_1.mainConnectionLean
             .model('JobCard', jobCardSchema);
     }
 };

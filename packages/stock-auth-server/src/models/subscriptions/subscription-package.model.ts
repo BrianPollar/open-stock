@@ -1,9 +1,11 @@
 import { IsubscriptionPackage } from '@open-stock/stock-universal';
-import { createExpireDocIndex, globalSchemaObj, globalSelectObj } from '@open-stock/stock-universal-server';
-import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 import {
-  connectAuthDatabase, isAuthDbConnected, mainConnection, mainConnectionLean
-} from '../../utils/database';
+  connectDatabase, createExpireDocIndex,
+  globalSchemaObj, globalSelectObj, isDbConnected,
+  mainConnection,
+  mainConnectionLean
+} from '@open-stock/stock-universal-server';
+import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 const uniqueValidator = require('mongoose-unique-validator');
 
 export type TsubscriptionPackage= Document & IsubscriptionPackage;
@@ -60,8 +62,8 @@ export const createSubscriptionPackageModel = async(
   lean = true
 ) => {
   createExpireDocIndex(subscriptionPackageSchema);
-  if (!isAuthDbConnected) {
-    await connectAuthDatabase(dbUrl, dbOptions);
+  if (!isDbConnected) {
+    await connectDatabase(dbUrl, dbOptions);
   }
 
   if (main) {

@@ -9,7 +9,7 @@ import { Invoice } from '../invoice.define';
 export class InvoiceReport
   extends DatabaseAuto {
   urId: string;
-  companyId: string;
+  companyId?: string;
   totalAmount: number;
   date: Date;
   invoices: Invoice[];
@@ -53,9 +53,9 @@ export class InvoiceReport
     };
   }
 
-  static async getOne(urId: string) {
+  static async getOne(urIdOr_id: string) {
     const observer$ = StockCounterClient.ehttp
-      .makeGet<IinvoicesReport>(`/invoicesreport/one/${urId}`);
+      .makeGet<IinvoicesReport>(`/invoicesreport/one/${urIdOr_id}`);
     const invoicesreport = await lastValueFrom(observer$);
 
     return new InvoiceReport(invoicesreport);

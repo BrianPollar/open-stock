@@ -5,36 +5,9 @@ const tslib_1 = require("tslib");
 const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
-const fs = tslib_1.__importStar(require("fs"));
-const path_1 = tslib_1.__importDefault(require("path"));
-const tracer = tslib_1.__importStar(require("tracer"));
 const invoicerelated_model_1 = require("../../../models/printables/related/invoicerelated.model");
 const query_1 = require("../../../utils/query");
 const invoicerelated_1 = require("./invoicerelated");
-/** Logger for file storage */
-const fileStorageLogger = tracer.colorConsole({
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-        // eslint-disable-next-line no-console
-        console.log(data.output);
-        const logDir = path_1.default.join(process.cwd() + '/openstockLog/');
-        fs.mkdir(logDir, { recursive: true }, (err) => {
-            if (err) {
-                if (err) {
-                    // eslint-disable-next-line no-console
-                    console.log('data.output err ', err);
-                }
-            }
-        });
-        fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
-            if (err) {
-                // eslint-disable-next-line no-console
-                console.log('raw.output err ', err);
-            }
-        });
-    }
-});
 /**
  * Router for handling invoice related routes.
  */
@@ -63,16 +36,12 @@ exports.invoiceRelateRoutes.get('/all/:offset/:limit', stock_universal_server_1.
             .skip(offset)
             .limit(limit)
             .lean()
-            .populate([(0, query_1.populateBillingUser)(), (0, query_1.populatePayments)(), (0, stock_auth_server_1.populateTrackEdit)(), (0, stock_auth_server_1.populateTrackView)()])
-            .catch(err => {
-            fileStorageLogger.error('getall - err: ', err);
-            return null;
-        }),
+            .populate([(0, query_1.populateBillingUser)(), (0, query_1.populatePayments)(), (0, stock_auth_server_1.populateTrackEdit)(), (0, stock_auth_server_1.populateTrackView)()]),
         invoicerelated_model_1.invoiceRelatedLean.countDocuments({ ...filter })
     ]);
     const response = {
         count: all[1],
-        data: null
+        data: []
     };
     if (all[0]) {
         const returned = all[0]
@@ -90,7 +59,7 @@ exports.invoiceRelateRoutes.get('/all/:offset/:limit', stock_universal_server_1.
     }
 });
 exports.invoiceRelateRoutes.post('/filter', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('invoices', 'read'), async (req, res) => {
-    const { propSort } = req.body;
+    const { propSort, returnEmptyArr } = req.body;
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.body.offset, req.body.limit);
     const filter = (0, stock_universal_server_1.constructFiltersFromBody)(req);
     const aggCursor = invoicerelated_model_1.invoiceRelatedLean.aggregate([
@@ -102,20 +71,10 @@ exports.invoiceRelateRoutes.post('/filter', stock_universal_server_1.requireAuth
                 ]
             }
         },
+        ...(0, stock_universal_server_1.lookupBillingUser)(),
         ...(0, stock_universal_server_1.lookupTrackEdit)(),
         ...(0, stock_universal_server_1.lookupTrackView)(),
-        {
-            $facet: {
-                data: [...(0, stock_universal_server_1.lookupSort)(propSort), ...(0, stock_universal_server_1.lookupOffset)(offset), ...(0, stock_universal_server_1.lookupLimit)(limit)],
-                total: [{ $count: 'count' }]
-            }
-        },
-        {
-            $unwind: {
-                path: '$total',
-                preserveNullAndEmptyArrays: true
-            }
-        }
+        ...(0, stock_universal_server_1.lookupFacet)(offset, limit, propSort, returnEmptyArr)
     ]);
     const dataArr = [];
     for await (const data of aggCursor) {
@@ -125,7 +84,7 @@ exports.invoiceRelateRoutes.post('/filter', stock_universal_server_1.requireAuth
     const count = dataArr[0]?.total?.count || 0;
     const response = {
         count,
-        data: null
+        data: []
     };
     if (all) {
         const returned = all
@@ -143,6 +102,9 @@ exports.invoiceRelateRoutes.post('/filter', stock_universal_server_1.requireAuth
     }
 });
 exports.invoiceRelateRoutes.put('/update', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('invoices', 'update'), async (req, res) => {
+    if (!req.user) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const { invoiceRelated } = req.body;
     const { companyId } = req.user;
     invoiceRelated.companyId = companyId;

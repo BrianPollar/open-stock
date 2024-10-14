@@ -1,6 +1,6 @@
 import { Schema } from 'mongoose';
-import { connectUniversalDatabase, stockUniversalConfig } from '../../stock-universal-local';
-import { isUniversalDbConnected, mainConnection, mainConnectionLean } from '../../utils/database';
+import { stockUniversalConfig } from '../../stock-universal-local';
+import { connectDatabase, isDbConnected, mainConnection, mainConnectionLean } from '../../utils/database';
 /** subscription package schema */
 const trackDeletedSchema = new Schema({
     parent: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
@@ -35,8 +35,8 @@ export const trackDeletedSelect = trackDeletedselect;
  */
 export const createTrackDeletedModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     trackDeletedSchema.index({ expireDocAfter: 1 }, { expireAfterSeconds: stockUniversalConfig.expireDocAfterSeconds });
-    if (!isUniversalDbConnected) {
-        await connectUniversalDatabase(dbUrl, dbOptions);
+    if (!isDbConnected) {
+        await connectDatabase(dbUrl, dbOptions);
     }
     if (main) {
         trackDeletedMain = mainConnection

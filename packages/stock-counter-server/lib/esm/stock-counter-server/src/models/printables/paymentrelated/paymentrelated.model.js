@@ -1,24 +1,6 @@
-import { createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
+import { connectDatabase, createExpireDocIndex, isDbConnected, mainConnection, mainConnectionLean, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
 import { Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
-/**
- * Payment Related Schema
- * @typedef {Object} PaymentRelatedSchema
- * @property {string} pesaPalorderTrackingId - PesaPal order tracking ID
- * @property {string} urId - Unique ID
- * @property {Date} orderDate - Order date
- * @property {Date} paymentDate - Payment date
- * @property {Object} billingAddress - Billing address
- * @property {Object} shippingAddress - Shipping address
- * @property {string} currency - Currency
- * @property {boolean} isBurgain - Is bargain
- * @property {number} shipping - Shipping
- * @property {boolean} manuallyAdded - Manually added
- * @property {string} paymentMethod - Payment method
- * @property {Date} createdAt - Timestamp of creation
- * @property {Date} updatedAt - Timestamp of last update
- */
 const paymentRelatedSchema = new Schema({
     ...withUrIdAndCompanySchemaObj,
     pesaPalorderTrackingId: { type: String },
@@ -36,9 +18,21 @@ const paymentRelatedSchema = new Schema({
     shipping: { type: Number },
     manuallyAdded: { type: Boolean, default: false },
     // status: { type: String, default: 'pending' },
-    paymentMethod: { type: String },
+    paymentMethod: {
+        type: String,
+        validator: checkPayMethod,
+        message: props => `${props.value} is invalid, payment method can be paypal, bank transfer, wallet, cash or pesapal!`
+    },
     payType: { type: String, index: true },
-    orderStatus: { type: String, index: true, default: 'pending' }
+    orderStatus: {
+        type: String,
+        index: true,
+        default: 'pending',
+        validator: checkPayOrderStatus,
+        message: props => `${props.value} is invalid, order status can be pending, 
+    paidNotDelivered, delivered, paidAndDelivered, processing or cancelled!`
+    },
+    orderDeliveryCode: { type: String }
 }, { timestamps: true, collection: 'paymentrelateds' });
 // Apply the uniqueValidator plugin to paymentRelatedSchema.
 paymentRelatedSchema.plugin(uniqueValidator);
@@ -48,6 +42,17 @@ paymentRelatedSchema.pre('updateOne', function (next) {
 paymentRelatedSchema.pre('updateMany', function (next) {
     return preUpdateDocExpire(this, next);
 });
+function checkPayMethod(val) {
+    return val === 'paypal' || val === 'bank transfer' || val === 'cash' || val === 'pesapal' || val === 'wallet';
+}
+function checkPayOrderStatus(val) {
+    return val === 'pending' ||
+        val === 'paidNotDelivered' ||
+        val === 'delivered' ||
+        val === 'paidAndDelivered' ||
+        val === 'processing' ||
+        val === 'cancelled';
+}
 /** primary selection object
  * for paymentRelated
  */
@@ -68,7 +73,8 @@ const paymentRelatedselect = {
     // status: 1,
     paymentMethod: 1,
     payType: 1,
-    orderStatus: 1
+    orderStatus: 1,
+    orderDeliveryCode: 1
 };
 /**
  * Represents the main payment related model.
@@ -90,8 +96,8 @@ export const paymentRelatedSelect = paymentRelatedselect;
  */
 export const createPaymentRelatedModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     createExpireDocIndex(paymentRelatedSchema);
-    if (!isStockDbConnected) {
-        await connectStockDatabase(dbUrl, dbOptions);
+    if (!isDbConnected) {
+        await connectDatabase(dbUrl, dbOptions);
     }
     if (main) {
         paymentRelatedMain = mainConnection

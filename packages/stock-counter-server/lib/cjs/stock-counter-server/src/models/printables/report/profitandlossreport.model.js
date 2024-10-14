@@ -3,14 +3,16 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createProfitandlossReportModel = exports.profitandlossReportSelect = exports.profitandlossReportLean = exports.profitandlossReportMain = void 0;
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const mongoose_1 = require("mongoose");
-const database_1 = require("../../../utils/database");
 const uniqueValidator = require('mongoose-unique-validator');
 const profitandlossReportSchema = new mongoose_1.Schema({
     ...stock_universal_server_1.withUrIdAndCompanySchemaObj,
-    totalAmount: { type: Number },
+    totalAmount: {
+        type: Number,
+        min: [0, 'cannot be less than 0.']
+    },
     date: { type: Date },
-    expenses: [],
-    invoiceRelateds: [],
+    expenses: [mongoose_1.Schema.Types.ObjectId],
+    invoiceRelateds: [mongoose_1.Schema.Types.ObjectId],
     currency: { type: String, default: 'USD' }
 }, { timestamps: true, collection: 'profitandlossreports' });
 // Apply the uniqueValidator plugin to profitandlossReportSchema.
@@ -44,15 +46,15 @@ exports.profitandlossReportSelect = profitandlossReportselect;
  */
 const createProfitandlossReportModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     (0, stock_universal_server_1.createExpireDocIndex)(profitandlossReportSchema);
-    if (!database_1.isStockDbConnected) {
-        await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
+    if (!stock_universal_server_1.isDbConnected) {
+        await (0, stock_universal_server_1.connectDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.profitandlossReportMain = database_1.mainConnection
+        exports.profitandlossReportMain = stock_universal_server_1.mainConnection
             .model('profitandlossReport', profitandlossReportSchema);
     }
     if (lean) {
-        exports.profitandlossReportLean = database_1.mainConnectionLean
+        exports.profitandlossReportLean = stock_universal_server_1.mainConnectionLean
             .model('profitandlossReport', profitandlossReportSchema);
     }
 };

@@ -1,19 +1,22 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-type-arguments */
 import { IinvoiceRelatedRef } from '@open-stock/stock-universal';
 import {
-  createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj
+  IcompanyIdAsObjectId,
+  connectDatabase,
+  createExpireDocIndex,
+  isDbConnected, mainConnection, mainConnectionLean,
+  preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj
 } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../utils/database';
 
 /**
  * Represents a testimate, which is a document related to an invoice.
  */
-export type Testimate = Document & IinvoiceRelatedRef;
+export type Testimate = Document & IinvoiceRelatedRef & IcompanyIdAsObjectId;
 
 const estimateSchema: Schema<Testimate> = new Schema({
   ...withUrIdAndCompanySchemaObj,
-  invoiceRelated: { type: String }
+  invoiceRelated: { type: Schema.Types.ObjectId }
 }, { timestamps: true, collection: 'estimates' });
 
 estimateSchema.pre('updateOne', function(next) {
@@ -56,8 +59,8 @@ export const estimateSelect = estimateselect;
  */
 export const createEstimateModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
   createExpireDocIndex(estimateSchema);
-  if (!isStockDbConnected) {
-    await connectStockDatabase(dbUrl, dbOptions);
+  if (!isDbConnected) {
+    await connectDatabase(dbUrl, dbOptions);
   }
 
   if (main) {

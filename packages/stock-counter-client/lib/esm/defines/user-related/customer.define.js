@@ -69,9 +69,9 @@ export class Customer extends UserBase {
         }
         return updated;
     }
-    remove(val) {
+    remove() {
         const observer$ = StockCounterClient.ehttp
-            .makePut('/customer/delete/one', val);
+            .makePut('/customer/delete/one', { _id: this._id });
         return lastValueFrom(observer$);
     }
 }

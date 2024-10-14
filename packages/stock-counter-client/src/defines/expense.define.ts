@@ -11,7 +11,7 @@ import { Item } from './item.define';
 export class Expense
   extends DatabaseAuto {
   urId: string;
-  companyId: string;
+  companyId?: string;
   name: string;
   person: string;
   cost: number;
@@ -58,9 +58,9 @@ export class Expense
     };
   }
 
-  static async getOne(urId: string) {
+  static async getOne(urIdOr_id: string) {
     const observer$ = StockCounterClient.ehttp
-      .makeGet<Iexpense>(`/expense/one/${urId}`);
+      .makeGet<Iexpense>(`/expense/one/${urIdOr_id}`);
     const expense = await lastValueFrom(observer$);
 
     return new Expense(expense);
@@ -70,7 +70,7 @@ export class Expense
     const observer$ = StockCounterClient.ehttp
       .makePost<IsubscriptionFeatureState>('/expense/add', vals);
 
-    return lastValueFrom(observer$) ;
+    return lastValueFrom(observer$);
   }
 
   static removeMany(vals: IdeleteMany) {

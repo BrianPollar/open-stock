@@ -1,15 +1,18 @@
-import { createExpireDocIndex, globalSchemaObj, globalSelectObj, preUpdateDocExpire } from '@open-stock/stock-universal-server';
+import { connectDatabase, createExpireDocIndex, globalSchemaObj, globalSelectObj, isDbConnected, mainConnection, mainConnectionLean, preUpdateDocExpire } from '@open-stock/stock-universal-server';
 import { Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../utils/database';
 const userBehaviourSchema = new Schema({
     ...globalSchemaObj,
-    user: { type: String, index: true },
+    user: { type: Schema.Types.ObjectId, index: true },
     userCookieId: { type: String, required: [true, 'cannot be empty.'], index: true },
-    recents: [],
-    cart: [],
-    wishList: [],
-    compareList: [],
-    searchTerms: [],
+    recents: [Schema.Types.ObjectId],
+    cart: [Schema.Types.ObjectId],
+    wishList: [Schema.Types.ObjectId],
+    compareList: [Schema.Types.ObjectId],
+    searchTerms: [{
+            term: { type: String },
+            filter: { type: String }
+        }
+    ],
     expireAt: { type: String }
 }, { timestamps: true, collection: 'userbehaviours' });
 userBehaviourSchema.index({ expireAt: 1 }, { expireAfterSeconds: 7.884e+6 }); // expire After 3 months
@@ -51,8 +54,8 @@ export const userBehaviourSelect = userBehaviourselect;
  */
 export const createUserBehaviourModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     createExpireDocIndex(userBehaviourSchema);
-    if (!isStockDbConnected) {
-        await connectStockDatabase(dbUrl, dbOptions);
+    if (!isDbConnected) {
+        await connectDatabase(dbUrl, dbOptions);
     }
     if (main) {
         userBehaviourMain = mainConnection

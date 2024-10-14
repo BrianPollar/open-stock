@@ -7,27 +7,34 @@
  */
 import { IuserBehaviour } from '@open-stock/stock-universal';
 import {
-  createExpireDocIndex, globalSchemaObj, globalSelectObj, preUpdateDocExpire
+  IcompanyIdAsObjectId,
+  connectDatabase,
+  createExpireDocIndex, globalSchemaObj, globalSelectObj,
+  isDbConnected, mainConnection, mainConnectionLean,
+  preUpdateDocExpire
 } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../utils/database';
 
 /**
  * Represents the type of a user behaviour document in the database.
  * This type extends the `Document` type from Mongoose and the `IuserBehaviour` interface,
  * which likely defines the shape of a user behaviour document.
  */
-export type TuserBehaviour = Document & IuserBehaviour;
+export type TuserBehaviour = Document & IuserBehaviour & IcompanyIdAsObjectId;
 
 const userBehaviourSchema: Schema = new Schema({
   ...globalSchemaObj,
-  user: { type: String, index: true },
+  user: { type: Schema.Types.ObjectId, index: true },
   userCookieId: { type: String, required: [true, 'cannot be empty.'], index: true },
-  recents: [],
-  cart: [],
-  wishList: [],
-  compareList: [],
-  searchTerms: [],
+  recents: [Schema.Types.ObjectId],
+  cart: [Schema.Types.ObjectId],
+  wishList: [Schema.Types.ObjectId],
+  compareList: [Schema.Types.ObjectId],
+  searchTerms: [{
+    term: { type: String },
+    filter: { type: String }
+  }
+  ],
   expireAt: { type: String }
 }, { timestamps: true, collection: 'userbehaviours' });
 
@@ -81,8 +88,8 @@ export const userBehaviourSelect = userBehaviourselect;
  */
 export const createUserBehaviourModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
   createExpireDocIndex(userBehaviourSchema);
-  if (!isStockDbConnected) {
-    await connectStockDatabase(dbUrl, dbOptions);
+  if (!isDbConnected) {
+    await connectDatabase(dbUrl, dbOptions);
   }
 
   if (main) {

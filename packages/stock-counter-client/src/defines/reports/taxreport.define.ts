@@ -11,7 +11,7 @@ import { InvoiceRelatedWithReceipt } from '../invoice.define';
 export class TaxReport
   extends DatabaseAuto {
   urId: string;
-  companyId: string;
+  companyId?: string;
   totalAmount: number;
   date: Date;
   estimates: Estimate[];
@@ -59,9 +59,9 @@ export class TaxReport
     };
   }
 
-  static async getOne(urId: string) {
+  static async getOne(urIdOr_id: string) {
     const observer$ = StockCounterClient.ehttp
-      .makeGet<ItaxReport>(`/taxreport/one/${urId}`);
+      .makeGet<ItaxReport>(`/taxreport/one/${urIdOr_id}`);
     const taxreport = await lastValueFrom(observer$);
 
     return new TaxReport(taxreport);

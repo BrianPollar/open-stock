@@ -15,10 +15,8 @@ import {
   Iuser,
   TnotifType
 } from '@open-stock/stock-universal';
-import { stringifyMongooseErr } from '@open-stock/stock-universal-server';
-import * as fs from 'fs';
-import path from 'path';
-import * as tracer from 'tracer';
+import { handleMongooseErr, mainLogger } from '@open-stock/stock-universal-server';
+import { Error } from 'mongoose';
 import * as webPush from 'web-push';
 import { mainnotificationMain } from '../models/mainnotification.model';
 import { notifSettingMain } from '../models/notifsetting.model';
@@ -26,32 +24,6 @@ import { notificationSettings } from '../stock-notif-local';
 // const sgMail = require('@sendgrid/mail');
 // import * as sgMail from '@sendgrid/mail';
 const sgMail = require('@sendgrid/mail');
-
-
-const notificationsControllerLogger = tracer.colorConsole({
-  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-  dateformat: 'HH:MM:ss.L',
-  transport(data) {
-    // eslint-disable-next-line no-console
-    console.log(data.output);
-    const logDir = path.join(process.cwd() + '/openstockLog/');
-
-    fs.mkdir(logDir, { recursive: true }, (err) => {
-      if (err) {
-        if (err) {
-          // eslint-disable-next-line no-console
-          console.log('data.output err ', err);
-        }
-      }
-    });
-    fs.appendFile(logDir + '/notif-server.log', data.rawoutput + '\n', err => {
-      if (err) {
-        // eslint-disable-next-line no-console
-        console.log('raw.output err ', err);
-      }
-    });
-  }
-});
 
 /**
  * Determines whether a user has an email address.
@@ -136,8 +108,7 @@ export const determineUserHasMail = (user: Iuser) => {
 }; */
 export const sendToken = (
   phone: string,
-  countryCode: string,
-  message: string
+  countryCode: string
 ) => {
   return new Promise((resolve, reject) => {
     notificationSettings.twilioClient.verify.v2.services(notificationSettings.twilioVerificationSid)
@@ -212,12 +183,12 @@ export const verifyAuthyToken = (phone: string, countryCode: string, code: strin
       .verificationChecks
       .create({ to: `${countryCode + phone.toString()}`, code: `${code}` })
 
-      .then(verification_check => {
-        notificationsControllerLogger.debug('verification_check', verification_check);
-        if (verification_check.status === 'approved') {
-          resolve(verification_check.status);
+      .then(verificationCheck => {
+        mainLogger.debug('verificationCheck', verificationCheck);
+        if (verificationCheck.status === 'approved') {
+          resolve(verificationCheck.status);
         } else {
-          reject(verification_check.status);
+          reject(verificationCheck.status);
         }
       }).catch(err => {
         reject(err);
@@ -271,10 +242,10 @@ export const sendMail = (mailOptions) => {
       .send(mailOptions)
       .then((response) => {
         notificationSettings.emailDispatches++;
-        notificationsControllerLogger.info('message sent', response);
+        mainLogger.info('message sent', response);
         resolve({ response });
       }, error => {
-        notificationsControllerLogger.error(
+        mainLogger.error(
           'email verication with token error',
           JSON.stringify(error)
         );
@@ -297,8 +268,8 @@ export const constructMailService = (
 ) => {
   sgMail.setApiKey(sendGridApiKey);
 
-  // notificationsControllerLogger.info(generateVAPIDKeys()); // generate key
-  // notificationsControllerLogger.info('those keys are', notifConfig);
+  // mainLogger.info(generateVAPIDKeys()); // generate key
+  // mainLogger.info('those keys are', notifConfig);
 
   const vapidKeys = {
     publicKey,
@@ -332,26 +303,15 @@ export const constructMailService = (
  * @returns A promise that resolves to an object indicating the success status and HTTP status code.
  */
 export const createNotifSetting = async(stn): Promise<Isuccess> => {
-  let errResponse: Isuccess;
   const notifMain = new notifSettingMain(stn);
 
-  await notifMain.save().catch(err => {
-    const errResponse: Isuccess = {
-      success: false,
-      status: 403
-    };
-
-    if (err && err.errors) {
-      errResponse.err = stringifyMongooseErr(err.errors);
-    } else {
-      errResponse.err = `we are having problems connecting to our databases, 
-      try again in a while`;
-    }
-
-    return errResponse;
+  const savedRes = await notifMain.save().catch((err: Error) => {
+    return err;
   });
 
-  if (errResponse) {
+  if (savedRes instanceof Error) {
+    const errResponse = handleMongooseErr(savedRes);
+
     return errResponse;
   }
 
@@ -403,7 +363,7 @@ export const createPayload = (
     }
   };
 
-  notificationsControllerLogger.debug('createPayload - payload: ', payload);
+  mainLogger.debug('createPayload - payload: ', payload);
 
   return payload;
 };
@@ -415,11 +375,12 @@ export const createPayload = (
  * @returns A boolean indicating whether the update was successful.
  */
 export const updateNotifnViewed = async(user: Iauthtoken, _id: string) => {
-  notificationsControllerLogger.info('updateNotifnViewed - user: ', user);
+  mainLogger.info('updateNotifnViewed - user: ', user);
   const { userId } = user;
 
   await mainnotificationMain
-    .updateOne({ _id }, { $push: { viewed: userId } });
+    .updateOne({ _id }, { $push: { viewed: userId } })
+    .catch((err: Error) => err);
 
   return true;
 };
@@ -460,7 +421,7 @@ export const makeNotfnBody = (
     viewed: []
   } as Imainnotification;
 
-  notificationsControllerLogger.debug('makeNotfnBody - notification', notification);
+  mainLogger.debug('makeNotfnBody - notification', notification);
 
   return notification;
 };
@@ -469,9 +430,9 @@ export const makeNotfnBody = (
 export const createNotifications = async(data: {notification: Imainnotification; filters}) => {
   const newNotifn = new mainnotificationMain(data.notification);
 
-  await newNotifn.save().catch(err => {
+  await newNotifn.save().catch((err: Error) => {
     if (err) {
-      notificationsControllerLogger.error('save Error', err);
+      mainLogger.error('save Error', err);
     }
   });
 
@@ -481,24 +442,13 @@ export const createNotifications = async(data: {notification: Imainnotification;
 export const createNotifStn = async(stn: InotifSetting): Promise<Isuccess> => {
   const notifMain = new notifSettingMain(stn);
 
-  let errResponse: Isuccess;
-
-  await notifMain.save().catch(err => {
-    errResponse = {
-      success: false,
-      status: 403
-    };
-    if (err && err.errors) {
-      errResponse.err = stringifyMongooseErr(err.errors);
-    } else {
-      errResponse.err = `we are having problems connecting to our databases, 
-      try again in a while`;
-    }
-
-    return errResponse;
+  const savedRes = await notifMain.save().catch((err: Error) => {
+    return err;
   });
 
-  if (errResponse) {
+  if (savedRes instanceof Error) {
+    const errResponse = handleMongooseErr(savedRes);
+
     return errResponse;
   }
 

@@ -3,16 +3,19 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createUserBehaviourModel = exports.userBehaviourSelect = exports.userBehaviourLean = exports.userBehaviourMain = void 0;
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const mongoose_1 = require("mongoose");
-const database_1 = require("../../utils/database");
 const userBehaviourSchema = new mongoose_1.Schema({
     ...stock_universal_server_1.globalSchemaObj,
-    user: { type: String, index: true },
+    user: { type: mongoose_1.Schema.Types.ObjectId, index: true },
     userCookieId: { type: String, required: [true, 'cannot be empty.'], index: true },
-    recents: [],
-    cart: [],
-    wishList: [],
-    compareList: [],
-    searchTerms: [],
+    recents: [mongoose_1.Schema.Types.ObjectId],
+    cart: [mongoose_1.Schema.Types.ObjectId],
+    wishList: [mongoose_1.Schema.Types.ObjectId],
+    compareList: [mongoose_1.Schema.Types.ObjectId],
+    searchTerms: [{
+            term: { type: String },
+            filter: { type: String }
+        }
+    ],
     expireAt: { type: String }
 }, { timestamps: true, collection: 'userbehaviours' });
 userBehaviourSchema.index({ expireAt: 1 }, { expireAfterSeconds: 7.884e+6 }); // expire After 3 months
@@ -41,15 +44,15 @@ exports.userBehaviourSelect = userBehaviourselect;
  */
 const createUserBehaviourModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     (0, stock_universal_server_1.createExpireDocIndex)(userBehaviourSchema);
-    if (!database_1.isStockDbConnected) {
-        await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
+    if (!stock_universal_server_1.isDbConnected) {
+        await (0, stock_universal_server_1.connectDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.userBehaviourMain = database_1.mainConnection
+        exports.userBehaviourMain = stock_universal_server_1.mainConnection
             .model('UserBehaviour', userBehaviourSchema);
     }
     if (lean) {
-        exports.userBehaviourLean = database_1.mainConnectionLean
+        exports.userBehaviourLean = stock_universal_server_1.mainConnectionLean
             .model('UserBehaviour', userBehaviourSchema);
     }
 };

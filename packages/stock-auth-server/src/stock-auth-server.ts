@@ -8,7 +8,7 @@ import { companySubscriptionRoutes } from './routes/subscriptions/company-subscr
 import { superAdminRoutes } from './routes/superadmin.routes';
 import { userAuthRoutes } from './routes/user.routes';
 import {
-  connectAuthDatabase, createStockAuthServerLocals, isStockAuthServerRunning, stockAuthConfig
+  connectDatabase, createStockAuthServerLocals, isStockAuthServerRunning, stockAuthConfig
 } from './stock-auth-local';
 
 /**
@@ -87,7 +87,7 @@ export const runStockAuthServer = async(
   pesapalPaymentInstance = paymentInstance;
   createStockAuthServerLocals(config);
   // connect models
-  await connectAuthDatabase(config.databaseConfig.url, config.databaseConfig.dbOptions);
+  await connectDatabase(config.databaseConfig.url, config.databaseConfig.dbOptions);
   runPassport(stockUniversalConfig.authSecrets.jwtSecret, config.socialAuthStrategys);
   const stockAuthRouter = express.Router();
 
@@ -96,7 +96,7 @@ export const runStockAuthServer = async(
   stockAuthRouter.use('/companysubscription', companySubscriptionRoutes);
   stockAuthRouter.use('/admin', superAdminRoutes);
 
-  return Promise.resolve({ stockAuthRouter });
+  return { stockAuthRouter };
 };
 
 /**

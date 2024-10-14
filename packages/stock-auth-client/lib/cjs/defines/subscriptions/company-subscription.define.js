@@ -25,6 +25,16 @@ class CompanySubscription extends stock_universal_1.DatabaseAuto {
                 .map((val) => new CompanySubscription(val))
         };
     }
+    static async filterAll(filterProps) {
+        const observer$ = stock_auth_client_1.StockAuthClient.ehttp
+            .makePost('/companysubscription/filter', filterProps);
+        const companysubscriptions = await (0, rxjs_1.lastValueFrom)(observer$);
+        return {
+            count: companysubscriptions.count,
+            companysubscriptions: companysubscriptions.data
+                .map((val) => new CompanySubscription(val))
+        };
+    }
     static subscribe(subscriptionPackage) {
         // eslint-disable-next-line @typescript-eslint/naming-convention
         const observer$ = stock_auth_client_1.StockAuthClient.ehttp.makePost('/companysubscription/subscribe', subscriptionPackage);

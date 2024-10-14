@@ -6,51 +6,24 @@ import {
 import {
   IcustomRequest, IdataArrayResponse,
   IdeleteMany,
-  IfileMeta, IfilterAggResponse, IfilterProps, Iitem, IreqHasPhotos, Isponsored, Isuccess, Iuser
+  IfileMeta, IfilterAggResponse, IfilterProps, Iitem, IreqHasPhotos, Isponsored, Iuser
 } from '@open-stock/stock-universal';
 import {
-  addParentToLocals,
-  appendBody, appendUserToReqIfTokenExist,
+  addParentToLocals, appendBody, appendUserToReqIfTokenExist,
   constructFiltersFromBody, deleteAllFiles, deleteFiles, fileMetaLean,
   generateUrId,
-  lookupLimit, lookupOffset, lookupSort, lookupTrackEdit, lookupTrackView,
-  makeCompanyBasedQuery, makePredomFilter, offsetLimitRelegator, requireAuth,
-  roleAuthorisation, saveMetaToDb, stringifyMongooseErr, uploadFiles, verifyObjectId, verifyObjectIds
+  handleMongooseErr,
+  lookupFacet,
+  lookupPhotos,
+  lookupTrackEdit, lookupTrackView, makeCompanyBasedQuery, makePredomFilter, offsetLimitRelegator, requireAuth,
+  roleAuthorisation, saveMetaToDb, uploadFiles, verifyObjectId, verifyObjectIds
 } from '@open-stock/stock-universal-server';
 import express, { Request, Response } from 'express';
-import * as fs from 'fs';
-import path from 'path';
-import * as tracer from 'tracer';
+import { Error } from 'mongoose';
 import { itemLean, itemMain } from '../models/item.model';
 import { itemDecoyMain } from '../models/itemdecoy.model';
 import { itemOfferMain } from '../models/itemoffer.model';
 import { getDecoyFromBehaviour, registerSearchParams, todaysRecomendation } from '../utils/user-behavoiur';
-
-/** The logger for the item routes */
-const itemRoutesLogger = tracer.colorConsole({
-  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-  dateformat: 'HH:MM:ss.L',
-  transport(data) {
-    // eslint-disable-next-line no-console
-    console.log(data.output);
-    const logDir = path.join(process.cwd() + '/openstockLog/');
-
-    fs.mkdir(logDir, { recursive: true }, (err) => {
-      if (err) {
-        if (err) {
-          // eslint-disable-next-line no-console
-          console.log('data.output err ', err);
-        }
-      }
-    });
-    fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
-      if (err) {
-        // eslint-disable-next-line no-console
-        console.log('raw.output err ', err);
-      }
-    });
-  }
-});
 
 /**
  * Express router for item routes.
@@ -65,41 +38,48 @@ export const addReview = async(req: Request, res: Response): Promise<Response> =
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const item = await itemMain
-    .findByIdAndUpdate(itemId);
+    .findById(itemId);
 
   if (!item) {
     return res.status(404).send({ success: false });
   }
-  item.reviewedBy.push(userId || 'tourer');
-  item.reviewCount++;
-  item.reviewRatingsTotal += req.body.review.rating;
-  item.reviewWeight = item.reviewRatingsTotal / item.reviewedBy.length; // <= 10
-  let errResponse: Isuccess;
-  const saved = await item.save()
-    .catch(err => {
-      itemRoutesLogger.error('addReview - err: ', err);
-      errResponse = {
-        success: false,
-        status: 403
-      };
-      if (err && err.errors) {
-        errResponse.err = stringifyMongooseErr(err.errors);
-      } else {
-        errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-      }
+  item.reviewedBy?.push(userId || 'tourer');
+  let reviewCount = 0;
 
-      return errResponse;
-    });
+  if (item.reviewCount) {
+    reviewCount = ++item.reviewCount;
+  }
+  const reviewRatingsTotal = item.reviewRatingsTotal + req.body.review.rating;
+  let reviewWeight = 0;
 
-  if (errResponse) {
-    return res.status(403).send(errResponse);
+  if (reviewRatingsTotal && item.reviewedBy?.length) {
+    reviewWeight = reviewRatingsTotal / item.reviewedBy.length; // <= 10
   }
 
-  return res.status(200).send({ success: Boolean(saved) });
+  const updateRes = await itemMain.updateOne({
+    _id: itemId
+  }, {
+    $set: {
+      reviewedBy: item.reviewedBy,
+      reviewCount,
+      reviewRatingsTotal,
+      reviewWeight
+    }
+  }).catch((err: Error) => err);
+
+  if (updateRes instanceof Error) {
+    const errResponse = handleMongooseErr(updateRes);
+
+    return res.status(errResponse.status).send(errResponse);
+  }
+
+  return res.status(200).send({ success: true });
 };
 
 export const removeReview = async(req: IcustomRequest<never, { user: Iuser }>, res: Response): Promise<Response> => {
+  if (!req.user) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   const { userId } = req.user;
   const { filter } = makeCompanyBasedQuery(req);
   const { itemId, rating } = req.params;
@@ -110,43 +90,51 @@ export const removeReview = async(req: IcustomRequest<never, { user: Iuser }>, r
   }
 
   const item = await itemMain
-    .findOneAndUpdate({ _id: itemId, ...filter });
+    .findOne({ _id: itemId, ...filter });
 
   if (!item) {
     return res.status(404).send({ success: false });
   }
-  const found = item.reviewedBy
-    .find(val => val === userId || 'tourer');
+  const found = item.reviewedBy?.find(val => val === userId || 'tourer');
 
   if (!found) {
     return res.status(404).send({ success: false });
   }
-  const indexOf = item.reviewedBy
-    .indexOf(found);
+  const indexOf = (item.reviewedBy || []).indexOf(found);
 
-  item.reviewedBy.splice(indexOf);
-  item.reviewCount--;
-  item.reviewRatingsTotal -= parseInt(rating, 10);
-  item.reviewWeight = item.reviewRatingsTotal / item.reviewedBy.length;
-  let errResponse: Isuccess;
+  const reviewedBy = item.reviewedBy?.splice(indexOf);
+  let reviewCount = 0;
 
-  await item.save().catch(err => {
-    errResponse = {
-      success: false,
-      status: 403
-    };
-    if (err && err.errors) {
-      errResponse.err = stringifyMongooseErr(err.errors);
-    } else {
-      errResponse.err = `we are having problems connecting to our databases, 
-      try again in a while`;
+  if (item.reviewCount) {
+    reviewCount = --item.reviewCount;
+  }
+  let reviewRatingsTotal = 0;
+
+  if (item.reviewRatingsTotal) {
+    reviewRatingsTotal = item.reviewRatingsTotal - parseInt(rating, 10);
+  }
+  let reviewWeight = 0;
+
+  if (reviewRatingsTotal && item.reviewedBy?.length) {
+    reviewWeight = reviewRatingsTotal / item.reviewedBy.length;
+  }
+
+
+  const updateRes = await itemMain.updateOne({
+    _id: itemId, ...filter
+  }, {
+    $set: {
+      reviewedBy,
+      reviewCount,
+      reviewRatingsTotal,
+      reviewWeight
     }
+  }).catch((err: Error) => err);
 
-    return errResponse;
-  });
+  if (updateRes instanceof Error) {
+    const errResponse = handleMongooseErr(updateRes);
 
-  if (errResponse) {
-    return res.status(403).send(errResponse);
+    return res.status(errResponse.status).send(errResponse);
   }
 
   return res.status(200).send({ success: true });
@@ -158,7 +146,7 @@ itemRoutes.post(
   requireActiveCompany,
   requireCanUseFeature('item'),
   roleAuthorisation('items', 'create'),
-  async(req: IcustomRequest<never, { item: Iitem }>, res, next): Promise<Response> => {
+  async(req: IcustomRequest<never, { item: Iitem }>, res, next) => {
     const { item } = req.body;
     const { filter } = makeCompanyBasedQuery(req);
 
@@ -166,35 +154,17 @@ itemRoutes.post(
 
     item.urId = await generateUrId(itemMain);
     const newProd = new itemMain(item);
-    let errResponse: Isuccess;
-    const saved = await newProd.save()
-      .catch(err => {
-        itemRoutesLogger.error('create - err: ', err);
-        errResponse = {
-          success: false,
-          status: 403
-        };
-        if (err && err.errors) {
-          errResponse.err = stringifyMongooseErr(err.errors);
-        } else {
-          errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-        }
 
-        return err;
-      });
+    const savedRes = await newProd.save()
+      .catch((err: Error) => err);
 
-    if (errResponse) {
-      return res.status(403).send(errResponse);
+    if (savedRes instanceof Error) {
+      const errResponse = handleMongooseErr(savedRes);
+
+      return res.status(errResponse.status).send(errResponse);
     }
 
-    if (saved && saved._id) {
-      addParentToLocals(res, saved._id, itemMain.collection.collectionName, 'makeTrackEdit');
-    }
-
-    if (!Boolean(saved)) {
-      return res.status(403).send('unknown error');
-    }
+    addParentToLocals(res, savedRes._id, itemMain.collection.collectionName, 'makeTrackEdit');
 
     next();
   },
@@ -211,7 +181,7 @@ itemRoutes.post(
   appendBody,
   saveMetaToDb,
   async(req: IcustomRequest<never, {
-    item: Iitem; newVideos: IfileMeta;} & IreqHasPhotos>, res, next): Promise<Response> => {
+    item: Iitem; newVideos: IfileMeta;} & IreqHasPhotos>, res, next) => {
     const item = req.body.item;
     const { filter } = makeCompanyBasedQuery(req);
 
@@ -228,37 +198,19 @@ itemRoutes.post(
       item.video = parsed.newVideos[0];
     }
     const newProd = new itemMain(item);
-    let errResponse: Isuccess;
-    const saved = await newProd.save()
-      .catch(err => {
-        itemRoutesLogger.error('create - err: ', err);
-        errResponse = {
-          success: false,
-          status: 403
-        };
-        if (err && err.errors) {
-          errResponse.err = stringifyMongooseErr(err.errors);
-        } else {
-          errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-        }
 
-        return err;
-      });
+    const savedRes = await newProd.save()
+      .catch((err: Error) => err);
 
-    if (errResponse) {
-      return res.status(403).send(errResponse);
+    if (savedRes instanceof Error) {
+      const errResponse = handleMongooseErr(savedRes);
+
+      return res.status(errResponse.status).send(errResponse);
     }
 
-    if (saved && saved._id) {
-      addParentToLocals(res, saved._id, itemMain.collection.collectionName, 'makeTrackEdit');
-    }
+    addParentToLocals(res, savedRes._id, itemMain.collection.collectionName, 'makeTrackEdit');
 
-    if (!Boolean(saved)) {
-      return res.status(403).send('unknown error');
-    }
-
-    next();
+    return next();
   },
   requireUpdateSubscriptionRecord('item')
 );
@@ -293,7 +245,7 @@ itemRoutes.put(
       item.urId = await generateUrId(itemMain);
     }
 
-    delete updatedProduct._id;
+    // delete updatedProduct._id;
 
     const keys = Object.keys(updatedProduct);
 
@@ -302,29 +254,17 @@ itemRoutes.put(
         item[key] = updatedProduct[key] || item[key];
       }
     });
-    let errResponse: Isuccess;
-    const updated = await item.save()
-      .catch(err => {
-        itemRoutesLogger.error('update - err: ', err);
-        errResponse = {
-          success: false,
-          status: 403
-        };
-        if (err && err.errors) {
-          errResponse.err = stringifyMongooseErr(err.errors);
-        } else {
-          errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-        }
 
-        return errResponse;
-      });
+    const updateRes = await item.save()
+      .catch((err: Error) => err);
 
-    if (errResponse) {
-      return res.status(403).send(errResponse);
+    if (updateRes instanceof Error) {
+      const errResponse = handleMongooseErr(updateRes);
+
+      return res.status(errResponse.status).send(errResponse);
     }
 
-    return res.status(200).send({ success: Boolean(updated) });
+    return res.status(200).send({ success: true });
   }
 );
 
@@ -374,42 +314,33 @@ itemRoutes.post(
       item.video = parsed.newVideos[0];
     }
 
-    delete updatedProduct._id;
+    // delete updatedProduct._id;
 
     const keys = Object.keys(updatedProduct);
 
     keys.forEach(key => {
-      if (item[key]) {
+      if (item[key] && key !== '_id') {
         item[key] = updatedProduct[key] || item[key];
       }
     });
-    let errResponse: Isuccess;
-    const updated = await item.save()
-      .catch(err => {
-        itemRoutesLogger.error('updateimg - err: ', err);
-        errResponse = {
-          success: false,
-          status: 403
-        };
-        if (err && err.errors) {
-          errResponse.err = stringifyMongooseErr(err.errors);
-        } else {
-          errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-        }
 
-        return errResponse;
-      });
+    const updateRes = await item.save()
+      .catch((err: Error) => err);
 
-    if (errResponse) {
-      return res.status(403).send(errResponse);
+    if (updateRes instanceof Error) {
+      const errResponse = handleMongooseErr(updateRes);
+
+      return res.status(errResponse.status).send(errResponse);
     }
 
-    return res.status(200).send({ success: Boolean(updated) });
+    return res.status(200).send({ success: true });
   }
 );
 
 itemRoutes.put('/like/:itemId', requireAuth, async(req: IcustomRequest<never, unknown>, res) => {
+  if (!req.user) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   const { filter } = makeCompanyBasedQuery(req);
   const { userId } = req.user;
   const { itemId } = req.params;
@@ -420,38 +351,42 @@ itemRoutes.put('/like/:itemId', requireAuth, async(req: IcustomRequest<never, un
   }
 
   const item = await itemMain
-    .findOneAndUpdate({ _id: itemId, ...filter });
+    .findOne({ _id: itemId, ...filter });
 
   if (!item) {
     return res.status(404).send({ success: false });
   }
-  item.likes.push(userId);
-  item.likesCount++;
-  let errResponse: Isuccess;
+  const likes = item.likes || [];
 
-  await item.save().catch(err => {
-    errResponse = {
-      success: false,
-      status: 403
-    };
-    if (err && err.errors) {
-      errResponse.err = stringifyMongooseErr(err.errors);
-    } else {
-      errResponse.err = `we are having problems connecting to our databases, 
-      try again in a while`;
+  likes.push(userId);
+
+  let likesCount = item.likesCount || 0;
+
+  likesCount++;
+
+
+  const updateRes = await itemMain.updateOne({
+    _id: itemId, ...filter
+  }, {
+    $set: {
+      likes,
+      likesCount
     }
+  }).catch((err: Error) => err);
 
-    return errResponse;
-  });
+  if (updateRes instanceof Error) {
+    const errResponse = handleMongooseErr(updateRes);
 
-  if (errResponse) {
-    return res.status(403).send(errResponse);
+    return res.status(errResponse.status).send(errResponse);
   }
 
   return res.status(200).send({ success: true });
 });
 
 itemRoutes.put('/unlike/:itemId', requireAuth, async(req: IcustomRequest<never, unknown>, res) => {
+  if (!req.user) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   const { companyId } = req.user;
   const { userId } = req.user;
   const { itemId } = req.params;
@@ -462,46 +397,46 @@ itemRoutes.put('/unlike/:itemId', requireAuth, async(req: IcustomRequest<never, 
   }
 
   const item = await itemMain
-    .findOneAndUpdate({ _id: itemId });
+    .findOne({ _id: itemId });
 
   if (!item) {
     return res.status(404).send({ success: false });
   }
-  item.likes = item.likes.filter(val => val !== userId);
-  item.likesCount--;
-  let errResponse: Isuccess;
+  let likes = item.likes || [];
 
-  await item.save().catch(err => {
-    errResponse = {
-      success: false,
-      status: 403
-    };
-    if (err && err.errors) {
-      errResponse.err = stringifyMongooseErr(err.errors);
-    } else {
-      errResponse.err = `we are having problems connecting to our databases, 
-      try again in a while`;
+  likes = likes.filter(val => val !== userId);
+
+  let likesCount = item.likesCount || 0;
+
+  likesCount--;
+
+  const updateRes = await itemMain.updateOne({
+    _id: itemId
+  }, {
+    $set: {
+      likes,
+      likesCount
     }
+  }).catch((err: Error) => err);
 
-    return errResponse;
-  });
+  if (updateRes instanceof Error) {
+    const errResponse = handleMongooseErr(updateRes);
 
-  if (errResponse) {
-    return res.status(403).send(errResponse);
+    return res.status(errResponse.status).send(errResponse);
   }
 
   return res.status(200).send({ success: true });
 });
 
 itemRoutes.get(
-  '/one/:urId',
+  '/one/:urIdOr_id',
   appendUserToReqIfTokenExist,
-  async(req: IcustomRequest<{ urId: string }, null>, res) => {
-    const { urId } = req.params;
-    const filter = { urId } as object;
+  async(req: IcustomRequest<{ urIdOr_id: string }, null>, res) => {
+    const { urIdOr_id } = req.params;
+    const filterwithId = verifyObjectId(urIdOr_id) ? { _id: urIdOr_id } : { urId: urIdOr_id };
 
     const item = await itemLean
-      .findOne({ ...filter })
+      .findOne({ ...filterwithId })
       .populate([populatePhotos(true), populateCompany()])
       .lean();
 
@@ -555,6 +490,9 @@ itemRoutes.get(
   '/gettodaysuggestions/:offset/:limit/:ecomerceCompat',
   appendUserToReqIfTokenExist,
   async(req: IcustomRequest<{ limit: string }, null>, res) => {
+    if (!req.user) {
+      return res.status(401).send({ success: false, err: 'unauthourised' });
+    }
     const { limit } = req.params;
     const { userId } = req.user;
     const stnCookie = req.signedCookies['settings'];
@@ -592,6 +530,9 @@ itemRoutes.get(
   '/getbehaviourdecoy/offset/limit/:ecomerceCompat',
   appendUserToReqIfTokenExist,
   async(req: IcustomRequest<never, null>, res) => {
+    if (!req.user) {
+      return res.status(401).send({ success: false, err: 'unauthourised' });
+    }
     const { userId } = req.user;
     const stnCookie = req.signedCookies['settings'];
     const { _ids } = await getDecoyFromBehaviour(stnCookie?.userCookieId, userId);
@@ -805,32 +746,28 @@ itemRoutes.put(
   async(req: IcustomRequest<{_id: string }, {sponsored: Isponsored}>, res) => {
     const { _id } = req.params;
     const { sponsored } = req.body;
-    const { filter } = makeCompanyBasedQuery(req);
-    const item = await itemMain.findByIdAndUpdate(_id);
+    const item = await itemMain.findById(_id);
 
     if (!item) {
       return res.status(404).send({ success: false });
     }
-    item.sponsored.push(sponsored);
-    let errResponse: Isuccess;
 
-    await item.save().catch(err => {
-      errResponse = {
-        success: false,
-        status: 403
-      };
-      if (err && err.errors) {
-        errResponse.err = stringifyMongooseErr(err.errors);
-      } else {
-        errResponse.err = `we are having problems connecting to our databases, 
-      try again in a while`;
+    const itemsonsored = item.sponsored || [];
+
+    itemsonsored.push(sponsored);
+
+    const updateRes = await itemMain.updateOne({
+      _id
+    }, {
+      $set: {
+        sponsored: itemsonsored
       }
+    }).catch((err: Error) => err);
 
-      return errResponse;
-    });
+    if (updateRes instanceof Error) {
+      const errResponse = handleMongooseErr(updateRes);
 
-    if (errResponse) {
-      return res.status(200).send({ success: true });
+      return res.status(errResponse.status).send(errResponse);
     }
 
     return res.status(200).send({ success: true });
@@ -847,37 +784,38 @@ itemRoutes.put(
     const { sponsored } = req.body;
     const { filter } = makeCompanyBasedQuery(req);
 
-    const item = await itemMain.findOneAndUpdate({ _id, ...filter });
+    const item = await itemMain.findOne({ _id, ...filter });
 
     if (!item) {
       return res.status(404).send({ success: false });
     }
-    const found = item.sponsored.find(val => val.item === sponsored.item);
+
+    const itemSponsored = item.sponsored || [];
+
+    const found = itemSponsored.find(val => val.item === sponsored.item);
 
     if (found) {
-      const indexOf = item.sponsored.indexOf(found);
+      const indexOf = itemSponsored.indexOf(found);
 
-      item.sponsored[indexOf] = sponsored;
-    }
-    let errResponse: Isuccess;
-
-    await item.save().catch(err => {
-      errResponse = {
-        success: false,
-        status: 403
-      };
-      if (err && err.errors) {
-        errResponse.err = stringifyMongooseErr(err.errors);
+      if (indexOf !== -1) {
+        itemSponsored[indexOf] = sponsored;
       } else {
-        errResponse.err = `we are having problems connecting to our databases, 
-      try again in a while`;
+        itemSponsored.push(sponsored);
       }
+    }
 
-      return errResponse;
-    });
+    const updateRes = await itemMain.updateOne({
+      _id, ...filter
+    }, {
+      $set: {
+        sponsored: item.sponsored
+      }
+    }).catch((err: Error) => err);
 
-    if (errResponse) {
-      return res.status(403).send(errResponse);
+    if (updateRes instanceof Error) {
+      const errResponse = handleMongooseErr(updateRes);
+
+      return res.status(errResponse.status).send(errResponse);
     }
 
     return res.status(200).send({ success: true });
@@ -892,38 +830,36 @@ itemRoutes.delete(
   async(req: IcustomRequest<{_id: string; spnsdId: string }, unknown>, res) => {
     const { _id, spnsdId } = req.params;
     const { filter } = makeCompanyBasedQuery(req);
-
-    const item = await itemMain.findOneAndUpdate({ _id, ...filter });
+    const item = await itemMain.findOne({ _id, ...filter });
 
     if (!item) {
       return res.status(404).send({ success: false });
     }
-    const found = item.sponsored.find(val => val.item === spnsdId);
+
+    const itemSponsored = item.sponsored || [];
+    const found = itemSponsored.find(val => val.item === spnsdId);
 
     if (found) {
-      const indexOf = item.sponsored.indexOf(found);
+      const indexOf = itemSponsored.indexOf(found);
 
-      item.sponsored.splice(indexOf, 1);
-    }
-    let errResponse: Isuccess;
-
-    await item.save().catch(err => {
-      errResponse = {
-        success: false,
-        status: 403
-      };
-      if (err && err.errors) {
-        errResponse.err = stringifyMongooseErr(err.errors);
-      } else {
-        errResponse.err = `we are having problems connecting to our databases, 
-      try again in a while`;
+      if (indexOf !== -1) {
+        itemSponsored.splice(indexOf, 1);
       }
+    }
 
-      return errResponse;
-    });
 
-    if (errResponse) {
-      return res.status(403).send(errResponse);
+    const updateRes = await itemMain.updateOne({
+      _id, ...filter
+    }, {
+      $set: {
+        sponsored: item.sponsored
+      }
+    }).catch((err: Error) => err);
+
+    if (updateRes instanceof Error) {
+      const errResponse = handleMongooseErr(updateRes);
+
+      return res.status(errResponse.status).send(errResponse);
     }
 
     return res.status(200).send({ success: true });
@@ -964,15 +900,18 @@ itemRoutes.put(
     }
 
     // const deleted = await itemMain.findOneAndDelete({ _id, ...filter });
-    const deleted = await itemMain.updateOne({ _id, ...filter }, { $set: { isDeleted: true } });
+    const updateRes = await itemMain.updateOne({ _id, ...filter }, { $set: { isDeleted: true } })
+      .catch((err: Error) => err);
 
-    if (Boolean(deleted)) {
-      addParentToLocals(res, _id, itemMain.collection.collectionName, 'trackDataDelete');
+    if (updateRes instanceof Error) {
+      const errResponse = handleMongooseErr(updateRes);
 
-      return res.status(200).send({ success: Boolean(deleted) });
-    } else {
-      return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
+      return res.status(errResponse.status).send(errResponse);
     }
+
+    addParentToLocals(res, _id, itemMain.collection.collectionName, 'trackDataDelete');
+
+    return res.status(200).send({ success: true });
   }
 );
 
@@ -994,7 +933,7 @@ itemRoutes.put(
     const { _id } = updatedProduct;
 
     const item = await itemMain
-      .findOneAndUpdate({ _id, ...filter });
+      .findOne({ _id, ...filter });
 
     if (!item) {
       return res.status(404).send({ success: false, err: 'item not found' });
@@ -1002,30 +941,31 @@ itemRoutes.put(
     const filesWithDirIds = filesWithDir.map(val => val._id);
     const photos = item.photos;
 
-    item.photos = photos
-      .filter((p: string) => !filesWithDirIds.includes(p)) as string[];
     if (item.video && filesWithDirIds.includes(item.video as string)) {
-      item.video = null;
+      // eslint-disable-next-line no-undefined
+      item.video = undefined;
     }
-    let errResponse: Isuccess;
 
-    await item.save().catch(err => {
-      errResponse = {
-        success: false,
-        status: 403
-      };
-      if (err && err.errors) {
-        errResponse.err = stringifyMongooseErr(err.errors);
-      } else {
-        errResponse.err = `we are having problems connecting to our databases, 
-      try again in a while`;
+
+    const updateRes = await itemMain.updateOne({
+      _id, ...filter
+    }, {
+      $set: {
+        photos: photos?.filter(p => {
+          if (typeof p === 'string') {
+            return !filesWithDirIds.includes(p);
+          } else {
+            return !filesWithDirIds.includes(p._id.toString());
+          }
+        }),
+        video: item.video
       }
+    }).catch((err: Error) => err);
 
-      return errResponse;
-    });
+    if (updateRes instanceof Error) {
+      const errResponse = handleMongooseErr(updateRes);
 
-    if (errResponse) {
-      return res.status(403).send(errResponse);
+      return res.status(errResponse.status).send(errResponse);
     }
 
     return res.status(200).send({ success: true });
@@ -1033,14 +973,26 @@ itemRoutes.put(
 );
 
 itemRoutes.post('/filter', appendUserToReqIfTokenExist, async(
-  req: IcustomRequest<null, IfilterProps>,
+  req: IcustomRequest<never, IfilterProps>,
   res
 ) => {
+  if (!req.user) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   const { userId } = req.user;
-  const { searchterm, propSort } = req.body;
+  const { searchterm, propSort, returnEmptyArr } = req.body;
+  let { propFilter } = req.body;
+
+  if (!propFilter || !propFilter.ecomerceCompat) {
+    if (!propFilter) {
+      propFilter = {};
+    }
+    propFilter.ecomerceCompat = true;
+  }
   const { offset, limit } = offsetLimitRelegator(req.body.offset, req.body.limit);
   const stnCookie = req.signedCookies['settings'];
   const filter = constructFiltersFromBody(req);
+
 
   if (searchterm && userId) {
     registerSearchParams(searchterm, '', stnCookie?.userCookieId, userId);
@@ -1055,20 +1007,10 @@ itemRoutes.post('/filter', appendUserToReqIfTokenExist, async(
         ]
       }
     },
+    ...lookupPhotos(),
     ...lookupTrackEdit(),
     ...lookupTrackView(),
-    {
-      $facet: {
-        data: [...lookupSort(propSort), ...lookupOffset(offset), ...lookupLimit(limit)],
-        total: [{ $count: 'count' }]
-      }
-    },
-    {
-      $unwind: {
-        path: '$total',
-        preserveNullAndEmptyArrays: true
-      }
-    }
+    ...lookupFacet(offset, limit, propSort, returnEmptyArr)
   ]);
 
   const dataArr: IfilterAggResponse<Iitem>[] = [];
@@ -1104,15 +1046,15 @@ itemRoutes.put(
     // TODO tarack ehe
     await itemOfferMain.updateOne({ ...filter, items: { $elemMatch: { $in: _ids } } }, {
       $set: { isDeleted: true }
-    });
+    }).catch((err: Error) => err);
     // also remove decoys
     /* await itemDecoyMain.deleteMany({  items: { $elemMatch: { $in: _ids } } }); */
     // TODO TARC
     await itemDecoyMain.updateOne({ ...filter, items: { $elemMatch: { $in: _ids } } }, {
       $set: { isDeleted: true }
-    });
+    }).catch((err: Error) => err);
 
-    let filesWithDir: IfileMeta[];
+    let filesWithDir: IfileMeta[] = [];
 
     const alltoDelete = await itemLean.find({ _id: { $in: _ids } })
       .populate([populatePhotos(true)])
@@ -1120,7 +1062,7 @@ itemRoutes.put(
       .lean();
 
     for (const user of alltoDelete) {
-      if (user.photos?.length > 0) {
+      if (user.photos && user.photos?.length > 0) {
         filesWithDir = [...filesWithDir, ...user.photos as IfileMeta[]];
       }
       if (user.video) {
@@ -1130,35 +1072,23 @@ itemRoutes.put(
 
     await deleteAllFiles(filesWithDir);
 
-    /* const deleted = await itemMain
-    .deleteMany({ _id: { $in: _ids } })
-    .catch(err => {
-      itemRoutesLogger.error('deletemany - err: ', err);
 
-      return null;
-    }); */
-
-
-    const deleted = await itemMain
+    const updateRes = await itemMain
       .updateMany({ _id: { $in: _ids } }, {
         $set: { isDeleted: true }
       })
-      .catch(err => {
-        itemRoutesLogger.error('deletemany - err: ', err);
+      .catch((err: Error) => err);
 
-        return null;
-      });
+    if (updateRes instanceof Error) {
+      const errResponse = handleMongooseErr(updateRes);
 
-    if (Boolean(deleted)) {
-      for (const val of _ids) {
-        addParentToLocals(res, val, itemMain.collection.collectionName, 'trackDataDelete');
-      }
-
-      return res.status(200).send({ success: Boolean(deleted) });
-    } else {
-      return res.status(404).send({
-        success: Boolean(deleted), err: 'could not delete selected items, try again in a while' });
+      return res.status(errResponse.status).send(errResponse);
     }
+    for (const val of _ids) {
+      addParentToLocals(res, val, itemMain.collection.collectionName, 'trackDataDelete');
+    }
+
+    return res.status(200).send({ success: true });
   }
 );
 

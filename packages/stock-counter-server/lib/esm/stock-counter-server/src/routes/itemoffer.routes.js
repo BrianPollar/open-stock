@@ -1,35 +1,9 @@
 import { populateTrackEdit, populateTrackView, requireActiveCompany, requireCanUseFeature, requireUpdateSubscriptionRecord } from '@open-stock/stock-auth-server';
-import { addParentToLocals, appendUserToReqIfTokenExist, constructFiltersFromBody, generateUrId, lookupSubFieldItemsRelatedFilter, makeCompanyBasedQuery, makePredomFilter, offsetLimitRelegator, requireAuth, roleAuthorisation, stringifyMongooseErr, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { addParentToLocals, appendUserToReqIfTokenExist, constructFiltersFromBody, generateUrId, handleMongooseErr, lookupSubFieldItemsRelatedFilter, makeCompanyBasedQuery, makePredomFilter, offsetLimitRelegator, requireAuth, roleAuthorisation, verifyObjectId } from '@open-stock/stock-universal-server';
 import express from 'express';
-import * as fs from 'fs';
-import path from 'path';
-import * as tracer from 'tracer';
+import { Error } from 'mongoose';
 import { itemOfferLean, itemOfferMain } from '../models/itemoffer.model';
 import { populateItems } from '../utils/query';
-/** Logger for item offer routes */
-const itemOfferRoutesLogger = tracer.colorConsole({
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-        // eslint-disable-next-line no-console
-        console.log(data.output);
-        const logDir = path.join(process.cwd() + '/openstockLog/');
-        fs.mkdir(logDir, { recursive: true }, (err) => {
-            if (err) {
-                if (err) {
-                    // eslint-disable-next-line no-console
-                    console.log('data.output err ', err);
-                }
-            }
-        });
-        fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
-            if (err) {
-                // eslint-disable-next-line no-console
-                console.log('raw.output err ', err);
-            }
-        });
-    }
-});
 /**
  * Router for item offers.
  */
@@ -40,39 +14,20 @@ itemOfferRoutes.post('/add', requireAuth, requireActiveCompany, requireCanUseFea
     itemoffer.companyId = filter.companyId;
     itemoffer.urId = await generateUrId(itemOfferMain);
     const newDecoy = new itemOfferMain(itemoffer);
-    let errResponse;
-    const saved = await newDecoy.save()
-        .catch(err => {
-        itemOfferRoutesLogger.error('create - err: ', err);
-        errResponse = {
-            success: false,
-            status: 403
-        };
-        if (err && err.errors) {
-            errResponse.err = stringifyMongooseErr(err.errors);
-        }
-        else {
-            errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-        }
-        return err;
-    });
-    if (errResponse) {
-        return res.status(403).send(errResponse);
+    const savedRes = await newDecoy.save()
+        .catch((err) => err);
+    if (savedRes instanceof Error) {
+        const errResponse = handleMongooseErr(savedRes);
+        return res.status(errResponse.status).send(errResponse);
     }
-    if (saved && saved._id) {
-        addParentToLocals(res, saved._id, itemOfferMain.collection.collectionName, 'makeTrackEdit');
-    }
-    if (Boolean(saved)) {
-        return res.status(403).send('unknown error');
-    }
+    addParentToLocals(res, savedRes._id, itemOfferMain.collection.collectionName, 'makeTrackEdit');
     return next();
 }, requireUpdateSubscriptionRecord('offer'));
 itemOfferRoutes.get('/all/:type/:offset/:limit', appendUserToReqIfTokenExist, async (req, res) => {
     const { type } = req.params;
     const query = {};
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
-    let filter;
+    let filter = {};
     if (type !== 'all') {
         filter = { type, ...query };
     }
@@ -95,11 +50,11 @@ itemOfferRoutes.get('/all/:type/:offset/:limit', appendUserToReqIfTokenExist, as
     return res.status(200).send(response);
 });
 itemOfferRoutes.post('/filter', requireAuth, requireActiveCompany, roleAuthorisation('offers', 'read'), async (req, res) => {
-    const { propSort } = req.body;
+    const { propSort, returnEmptyArr } = req.body;
     const { offset, limit } = offsetLimitRelegator(req.body.offset, req.body.limit);
     const aggCursor = itemOfferLean
         .aggregate([
-        ...lookupSubFieldItemsRelatedFilter(constructFiltersFromBody(req), propSort, offset, limit)
+        ...lookupSubFieldItemsRelatedFilter(constructFiltersFromBody(req), offset, limit, propSort, returnEmptyArr)
     ]);
     const dataArr = [];
     for await (const data of aggCursor) {
@@ -116,15 +71,11 @@ itemOfferRoutes.post('/filter', requireAuth, requireActiveCompany, roleAuthorisa
     }
     return res.status(200).send(response);
 });
-itemOfferRoutes.get('/one/:_id', appendUserToReqIfTokenExist, async (req, res) => {
-    const { _id } = req.params;
-    const _ids = [_id];
-    const isValid = verifyObjectIds(_ids);
-    if (!isValid) {
-        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-    }
+itemOfferRoutes.get('/one/:urIdOr_id', appendUserToReqIfTokenExist, async (req, res) => {
+    const { urIdOr_id } = req.params;
+    const filterwithId = verifyObjectId(urIdOr_id) ? { _id: urIdOr_id } : { urId: urIdOr_id };
     const offer = await itemOfferLean
-        .findOne({ _id, ...makePredomFilter(req) })
+        .findOne({ ...filterwithId, ...makePredomFilter(req) })
         .populate([populateItems(), populateTrackEdit(), populateTrackView()])
         .lean();
     if (!offer) {
@@ -137,43 +88,30 @@ itemOfferRoutes.delete('/delete/one/:_id', requireAuth, requireActiveCompany, ro
     const { _id } = req.params;
     const { filter } = makeCompanyBasedQuery(req);
     // const deleted = await itemOfferMain.findOneAndDelete({ _id, });
-    const deleted = await itemOfferMain.updateOne({ _id, ...filter }, { $set: { isDeleted: true } });
-    if (Boolean(deleted)) {
-        addParentToLocals(res, _id, itemOfferMain.collection.collectionName, 'trackDataDelete');
-        return res.status(200).send({ success: Boolean(deleted) });
+    const updateRes = await itemOfferMain.updateOne({ _id, ...filter }, { $set: { isDeleted: true } })
+        .catch((err) => err);
+    if (updateRes instanceof Error) {
+        const errResponse = handleMongooseErr(updateRes);
+        return res.status(errResponse.status).send(errResponse);
     }
-    else {
-        return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
-    }
+    addParentToLocals(res, _id, itemOfferMain.collection.collectionName, 'trackDataDelete');
+    return res.status(200).send({ success: true });
 });
 itemOfferRoutes.put('/delete/many', requireAuth, requireActiveCompany, roleAuthorisation('offers', 'delete'), async (req, res) => {
     const { _ids } = req.body;
     const { filter } = makeCompanyBasedQuery(req);
-    /* const deleted = await itemOfferMain
-    .deleteMany({ _id: { $in: _ids }, })
-    .catch(err => {
-      itemOfferRoutesLogger.error('deletemany - err: ', err);
-
-      return null;
-    }); */
-    const deleted = await itemOfferMain
+    const updateRes = await itemOfferMain
         .updateMany({ _id: { $in: _ids }, ...filter }, {
         $set: { isDeleted: true }
     })
-        .catch(err => {
-        itemOfferRoutesLogger.error('deletemany - err: ', err);
-        return null;
-    });
-    if (Boolean(deleted)) {
-        for (const val of _ids) {
-            addParentToLocals(res, val, itemOfferMain.collection.collectionName, 'trackDataDelete');
-        }
-        return res.status(200).send({ success: Boolean(deleted) });
+        .catch((err) => err);
+    if (updateRes instanceof Error) {
+        const errResponse = handleMongooseErr(updateRes);
+        return res.status(errResponse.status).send(errResponse);
     }
-    else {
-        return res.status(404).send({
-            success: Boolean(deleted), err: 'could not delete selected items, try again in a while'
-        });
+    for (const val of _ids) {
+        addParentToLocals(res, val, itemOfferMain.collection.collectionName, 'trackDataDelete');
     }
+    return res.status(200).send({ success: true });
 });
 //# sourceMappingURL=itemoffer.routes.js.map

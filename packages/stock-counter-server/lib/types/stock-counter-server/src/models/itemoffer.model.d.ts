@@ -23,6 +23,7 @@
 /// <reference types="mongoose/types/virtuals" />
 /// <reference types="mongoose/types/inferschematype" />
 import { IcurrencyProp, ItrackStamp } from '@open-stock/stock-universal';
+import { IcompanyIdAsObjectId } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model } from 'mongoose';
 /**
  * Represents an item offer.
@@ -44,7 +45,7 @@ export type TitemOffer = Document & ItrackStamp & IcurrencyProp & {
     subHeader: string;
     /** The amount of the offer. */
     ammount: number;
-};
+} & IcompanyIdAsObjectId;
 /**
  * Represents the main item offer model.
  */

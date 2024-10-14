@@ -2,58 +2,53 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable @typescript-eslint/naming-convention */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.trackOrder = exports.relegatePesapalPayment = exports.paymentMethodDelegator = exports.payOnDelivery = void 0;
-const tslib_1 = require("tslib");
+exports.trackOrder = exports.relegatePesapalPayment = exports.paymentMethodDelegator = exports.payWithWallet = exports.payOnDelivery = void 0;
 const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const stock_notif_server_1 = require("@open-stock/stock-notif-server");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
-const fs = tslib_1.__importStar(require("fs"));
-const path_1 = tslib_1.__importDefault(require("path"));
-const tracer = tslib_1.__importStar(require("tracer"));
+const mongoose_1 = require("mongoose");
 const order_model_1 = require("../models/order.model");
 const payment_model_1 = require("../models/payment.model");
 const invoice_model_1 = require("../models/printables/invoice.model");
 const paymentrelated_model_1 = require("../models/printables/paymentrelated/paymentrelated.model");
 const receipt_model_1 = require("../models/printables/receipt.model");
 const invoicerelated_model_1 = require("../models/printables/related/invoicerelated.model");
+const user_wallet_model_1 = require("../models/printables/wallet/user-wallet.model");
 const promocode_model_1 = require("../models/promocode.model");
 const paymentrelated_1 = require("../routes/paymentrelated/paymentrelated");
 const invoice_routes_1 = require("../routes/printables/invoice.routes");
 const stock_counter_server_1 = require("../stock-counter-server");
-/** Logger for the payment controller */
-const paymentControllerLogger = tracer.colorConsole({
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-        // eslint-disable-next-line no-console
-        console.log(data.output);
-        const logDir = path_1.default.join(process.cwd() + '/openstockLog/');
-        fs.mkdir(logDir, { recursive: true }, (err) => {
-            if (err) {
-                if (err) {
-                    // eslint-disable-next-line no-console
-                    console.log('data.output err ', err);
-                }
-            }
-        });
-        fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
-            if (err) {
-                // eslint-disable-next-line no-console
-                console.log('raw.output err ', err);
-            }
-        });
-    }
-});
 const payOnDelivery = (res, paymentRelated, invoiceRelated, order, payment, userId, companyId) => {
     order.status = 'pending';
     return appendAll(res, paymentRelated, invoiceRelated, order, payment, userId, companyId, false);
 };
 exports.payOnDelivery = payOnDelivery;
+const payWithWallet = async (res, paymentRelated, invoiceRelated, order, payment, userId, companyId) => {
+    const userWallet = await user_wallet_model_1.userWalletLean.findOne({ user: userId }).lean();
+    if (!userWallet) {
+        return { success: false, status: 403, err: 'Insufficient Balance' };
+    }
+    if (userWallet.accountBalance < invoiceRelated.total) {
+        return { success: false, status: 403, err: 'Insufficient Balance' };
+    }
+    order.status = 'paid';
+    const updateRes = await user_wallet_model_1.userWalletMain
+        .updateOne({ user: userId }, { $inc: { accountBalance: -invoiceRelated.total } })
+        .catch((err) => err);
+    if (updateRes instanceof mongoose_1.Error) {
+        return { success: false, status: 500, err: 'Could not update user wallet' };
+    }
+    if (updateRes.modifiedCount === 0) {
+        return { success: false, status: 500, err: 'Could not update user wallet' };
+    }
+    return appendAll(res, paymentRelated, invoiceRelated, order, payment, userId, companyId, true);
+};
+exports.payWithWallet = payWithWallet;
 const appendAll = async (res, paymentRelated, invoiceRelated, order, payment, userId, companyId, paid = true) => {
-    paymentControllerLogger.debug('appendAll - userId:', userId);
+    stock_universal_server_1.mainLogger.debug('appendAll - userId:', userId);
     const saved = await addOrder(res, paymentRelated, invoiceRelated, order, userId, companyId);
-    paymentControllerLogger.error('appendAll - saved:', saved);
-    if (saved.success) {
+    stock_universal_server_1.mainLogger.error('appendAll - saved:', saved);
+    if (saved.success && saved.orderId) {
         payment.order = saved.orderId;
         payment.paymentRelated = saved.paymentRelated;
         payment.invoiceRelated = saved.invoiceRelated;
@@ -73,11 +68,11 @@ const appendAll = async (res, paymentRelated, invoiceRelated, order, payment, us
     }
 };
 const addOrder = async (res, paymentRelated, invoiceRelated, order, userId, companyId) => {
-    paymentControllerLogger.info('addOrder');
+    stock_universal_server_1.mainLogger.info('addOrder');
     const extraNotifDesc = 'New Order';
     paymentRelated.orderStatus = 'pending';
     const paymentRelatedId = await (0, paymentrelated_1.relegatePaymentRelatedCreation)(res, paymentRelated, invoiceRelated, 'order', extraNotifDesc, companyId);
-    paymentControllerLogger.error('addOrder - paymentRelatedId', paymentRelatedId);
+    stock_universal_server_1.mainLogger.error('addOrder - paymentRelatedId', paymentRelatedId);
     if (!paymentRelatedId.success) {
         return { success: false, status: 403, paymentRelated: paymentRelatedId._id };
     }
@@ -90,35 +85,19 @@ const addOrder = async (res, paymentRelated, invoiceRelated, order, userId, comp
     invoiceRelated.payments.length = 0;
     invoiceRelated.payments = [];
     const invoiceRelatedId = await (0, invoice_routes_1.saveInvoice)(res, invoice, invoiceRelated, companyId);
-    paymentControllerLogger.error('invoiceRelatedId', invoiceRelatedId);
+    stock_universal_server_1.mainLogger.error('invoiceRelatedId', invoiceRelatedId);
     if (!invoiceRelatedId.success) {
         return { success: false, status: 403, invoiceRelated: invoiceRelatedId._id };
     }
     order.invoiceRelated = invoiceRelatedId._id;
-    if (payments && payments.length) {
+    if (payments && payments.length && invoiceRelatedId._id) {
         await (0, paymentrelated_1.makePaymentInstall)(res, payments[0], invoiceRelatedId._id, companyId, 'solo');
     }
-    let errResponse;
     const newOrder = new order_model_1.orderMain(order);
-    const withId = await newOrder.save().catch(err => {
-        errResponse = {
-            success: false,
-            status: 403
-        };
-        if (err && err.errors) {
-            errResponse.err = (0, stock_universal_server_1.stringifyMongooseErr)(err.errors);
-        }
-        else {
-            errResponse.err = `we are having problems connecting to our databases, 
-      try again in a while`;
-        }
+    const savedRes = await newOrder.save().catch((err) => err);
+    if (savedRes instanceof mongoose_1.Error) {
+        const errResponse = (0, stock_universal_server_1.handleMongooseErr)(savedRes);
         return errResponse;
-    });
-    if (errResponse) {
-        return {
-            status: 403,
-            ...errResponse
-        };
     }
     const title = 'New Order';
     const notifnBody = 'Request for item made';
@@ -127,11 +106,11 @@ const addOrder = async (res, paymentRelated, invoiceRelated, order, userId, comp
             action: 'view',
             title: 'See Order',
             operation: '',
-            url: `order/${withId._id}`
+            url: `order/${savedRes._id}`
         }
     ];
     const body = {
-        notification: (0, stock_notif_server_1.makeNotfnBody)(userId, title, notifnBody, 'orders', actions, withId._id),
+        notification: (0, stock_notif_server_1.makeNotfnBody)(userId, title, notifnBody, 'orders', actions, savedRes._id),
         filters: {
             orders: true
         }
@@ -141,7 +120,7 @@ const addOrder = async (res, paymentRelated, invoiceRelated, order, userId, comp
     return {
         success: true,
         status: 200,
-        orderId: withId._id,
+        orderId: savedRes._id,
         paymentRelated: (order).paymentRelated,
         invoiceRelated: invoiceRelatedId._id
     };
@@ -153,28 +132,12 @@ const addOrder = async (res, paymentRelated, invoiceRelated, order, userId, comp
  * @param paid - Whether the payment has been made
  */
 const addPayment = async (payment, userId, paid = false) => {
-    paymentControllerLogger.info('addPayment');
-    let errResponse;
+    stock_universal_server_1.mainLogger.info('addPayment');
     const newProd = new payment_model_1.paymentMain(payment);
-    const withId = await newProd.save().catch(err => {
-        errResponse = {
-            success: false,
-            status: 403
-        };
-        if (err && err.errors) {
-            errResponse.err = (0, stock_universal_server_1.stringifyMongooseErr)(err.errors);
-        }
-        else {
-            errResponse.err = `we are having problems connecting to our databases, 
-      try again in a while`;
-        }
+    const savedRes = await newProd.save().catch((err) => err);
+    if (savedRes instanceof mongoose_1.Error) {
+        const errResponse = (0, stock_universal_server_1.handleMongooseErr)(savedRes);
         return errResponse;
-    });
-    if (errResponse) {
-        return {
-            status: 403,
-            ...errResponse
-        };
     }
     if (paid) {
         const title = 'New Payment';
@@ -184,11 +147,11 @@ const addPayment = async (payment, userId, paid = false) => {
                 action: 'view',
                 title: 'See Payment',
                 operation: '',
-                url: `payment/${withId._id}`
+                url: `payment/${savedRes._id}`
             }
         ];
         const body = {
-            notification: (0, stock_notif_server_1.makeNotfnBody)(userId, title, notifnBody, 'payments', actions, withId._id),
+            notification: (0, stock_notif_server_1.makeNotfnBody)(userId, title, notifnBody, 'payments', actions, savedRes._id),
             filters: {
                 orders: true
             }
@@ -215,7 +178,7 @@ const addPayment = async (payment, userId, paid = false) => {
 const paymentMethodDelegator = async (res, paymentRelated, invoiceRelated, type, order, payment, userId, companyId, burgain, payType = 'nonSubscription') => {
     paymentRelated.payType = payType;
     invoiceRelated.payType = payType;
-    paymentControllerLogger.debug('paymentMethodDelegator: type - ', type);
+    stock_universal_server_1.mainLogger.debug('paymentMethodDelegator: type - ', type);
     if (burgain.state) {
         const bgainCode = await promocode_model_1.promocodeLean
             .findOne({
@@ -224,31 +187,14 @@ const paymentMethodDelegator = async (res, paymentRelated, invoiceRelated, type,
             items: order.items
         }).lean();
         if (bgainCode) {
-            let errResponse;
-            await promocode_model_1.promocodeMain.updateOne({
+            const updateRes = await promocode_model_1.promocodeMain.updateOne({
                 code: burgain.code,
                 state: 'virgin',
                 items: order.items
-            }, { $set: { state: 'inOperation' } }).catch(err => {
-                errResponse = {
-                    success: false,
-                    status: 403
-                };
-                if (err && err.errors) {
-                    errResponse.err = (0, stock_universal_server_1.stringifyMongooseErr)(err.errors);
-                }
-                else {
-                    errResponse.err = `we are having problems connecting to our databases, 
-          try again in a while`;
-                }
+            }, { $set: { state: 'inOperation' } }).catch((err) => err);
+            if (updateRes instanceof mongoose_1.Error) {
+                const errResponse = (0, stock_universal_server_1.handleMongooseErr)(updateRes);
                 return errResponse;
-            });
-            if (errResponse) {
-                return {
-                    success: false,
-                    status: 403,
-                    errmsg: errResponse.err
-                };
             }
             invoiceRelated.payments[0].amount = bgainCode.amount;
             invoiceRelated.payments[0].amount = bgainCode.amount;
@@ -264,11 +210,15 @@ const paymentMethodDelegator = async (res, paymentRelated, invoiceRelated, type,
             response = await (0, exports.relegatePesapalPayment)(res, paymentRelated, invoiceRelated, type, order, payment, userId, companyId);
             break;
         }
+        case 'wallet': {
+            response = await (0, exports.payWithWallet)(res, paymentRelated, invoiceRelated, order, payment, userId, companyId);
+            break;
+        }
         default:
             response = await (0, exports.payOnDelivery)(res, paymentRelated, invoiceRelated, order, payment, userId, companyId);
             break;
     }
-    paymentControllerLogger.debug('paymentMethodDelegator - response', response);
+    stock_universal_server_1.mainLogger.debug('paymentMethodDelegator - response', response);
     if (burgain.state) {
         const bgainCode = await promocode_model_1.promocodeLean
             .findOne({
@@ -290,23 +240,14 @@ const paymentMethodDelegator = async (res, paymentRelated, invoiceRelated, type,
                 items: order.items
             }, {
                 $set: { state }
-            }).catch(err => {
-                if (err && err.errors) {
-                    response.err = (0, stock_universal_server_1.stringifyMongooseErr)(err.errors);
-                }
-                else {
-                    response.err = `we are having problems connecting to our databases, 
-          try again in a while`;
-                }
-                return response;
-            });
+            }).catch((err) => err);
         }
     }
     return response;
 };
 exports.paymentMethodDelegator = paymentMethodDelegator;
 const relegatePesapalPayment = async (res, paymentRelated, invoiceRelated, type, order, payment, userId, companyId) => {
-    paymentControllerLogger.debug('relegatePesapalPayment', paymentRelated);
+    stock_universal_server_1.mainLogger.debug('relegatePesapalPayment', paymentRelated);
     const isValidCompanyId = (0, stock_universal_server_1.verifyObjectId)(paymentRelated.companyId);
     if (isValidCompanyId) {
         const company = await stock_auth_server_1.companyMain.findById(paymentRelated.companyId);
@@ -315,6 +256,9 @@ const relegatePesapalPayment = async (res, paymentRelated, invoiceRelated, type,
         }
     }
     const appended = await appendAll(res, paymentRelated, invoiceRelated, order, payment, userId, companyId);
+    if (!appended.paymentRelated) {
+        return { success: false, status: 403, errmsg: 'could not complete transaction' };
+    }
     const payDetails = {
         id: appended.paymentRelated.toString(),
         currency: paymentRelated.currency || 'UGX',
@@ -339,9 +283,9 @@ const relegatePesapalPayment = async (res, paymentRelated, invoiceRelated, type,
             zip_code: paymentRelated.shippingAddress.zipcode.toString()
         }
     };
-    paymentControllerLogger.debug('b4 pesapalPaymentInstance.submitOrder', appended.paymentRelated.toString());
+    stock_universal_server_1.mainLogger.debug('b4 pesapalPaymentInstance.submitOrder', appended.paymentRelated.toString());
     const response = await stock_counter_server_1.pesapalPaymentInstance.submitOrder(payDetails, appended.paymentRelated.toString(), 'Complete product payment');
-    if (!response.success) {
+    if (!response.success || !response.pesaPalOrderRes?.order_tracking_id) {
         const deteils = {
             paymentRelated: appended.paymentRelated,
             invoiceRelated: appended.invoiceRelated,
@@ -350,35 +294,19 @@ const relegatePesapalPayment = async (res, paymentRelated, invoiceRelated, type,
         await deleteCreatedDocsOnFailure(deteils);
         return response;
     }
-    paymentControllerLogger.debug('pesapalPaymentInstance.submitOrder', response);
+    stock_universal_server_1.mainLogger.debug('pesapalPaymentInstance.submitOrder', response);
     const isValid = (0, stock_universal_server_1.verifyObjectId)(appended.paymentRelated.toString());
     if (!isValid) {
         return { success: false, status: 401, pesapalOrderRes: null, paymentRelated: null };
     }
     const related = await paymentrelated_model_1.paymentRelatedMain.findById(appended.paymentRelated.toString());
-    paymentControllerLogger.info('after paymentRelatedMain.findById');
+    stock_universal_server_1.mainLogger.info('after paymentRelatedMain.findById');
     if (related) {
         related.pesaPalorderTrackingId = response.pesaPalOrderRes.order_tracking_id;
-        let errResponse;
-        await related.save().catch(err => {
-            errResponse = {
-                success: false,
-                status: 403
-            };
-            if (err && err.errors) {
-                errResponse.err = (0, stock_universal_server_1.stringifyMongooseErr)(err.errors);
-            }
-            else {
-                errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-            }
+        const saveRes = await related.save().catch((err) => err);
+        if (saveRes instanceof mongoose_1.Error) {
+            const errResponse = (0, stock_universal_server_1.handleMongooseErr)(saveRes);
             return errResponse;
-        });
-        if (errResponse) {
-            return {
-                status: 403,
-                ...errResponse
-            };
         }
     }
     return {

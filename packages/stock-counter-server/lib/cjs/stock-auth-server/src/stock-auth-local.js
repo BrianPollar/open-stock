@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.connectAuthDatabase = exports.createStockAuthServerLocals = exports.isStockAuthServerRunning = exports.stockAuthConfig = void 0;
+exports.connectDatabase = exports.createStockAuthServerLocals = exports.isStockAuthServerRunning = exports.stockAuthConfig = void 0;
 const company_model_1 = require("./models/company.model");
 const emailtoken_model_1 = require("./models/emailtoken.model");
 const company_subscription_model_1 = require("./models/subscriptions/company-subscription.model");
@@ -26,7 +26,7 @@ exports.createStockAuthServerLocals = createStockAuthServerLocals;
  * @param {string} databaseUrl - The URL of the authentication database.
  * @returns {Promise<void>}
  */
-const connectAuthDatabase = async (databaseUrl, dbOptions) => {
+const connectDatabase = async (databaseUrl, dbOptions) => {
     await (0, emailtoken_model_1.createEmailtokenModel)(databaseUrl, dbOptions);
     await (0, user_model_1.createUserModel)(databaseUrl, dbOptions);
     await (0, company_model_1.createCompanyModel)(databaseUrl, dbOptions);
@@ -35,5 +35,5 @@ const connectAuthDatabase = async (databaseUrl, dbOptions) => {
     await (0, company_subscription_model_1.createCompanySubscription)(databaseUrl, dbOptions);
     await (0, loginattemps_model_1.createLoginAtemptsModel)(databaseUrl, dbOptions);
 };
-exports.connectAuthDatabase = connectAuthDatabase;
+exports.connectDatabase = connectDatabase;
 //# sourceMappingURL=stock-auth-local.js.map

@@ -3,10 +3,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createEstimateModel = exports.estimateSelect = exports.estimateLean = exports.estimateMain = void 0;
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const mongoose_1 = require("mongoose");
-const database_1 = require("../../utils/database");
 const estimateSchema = new mongoose_1.Schema({
     ...stock_universal_server_1.withUrIdAndCompanySchemaObj,
-    invoiceRelated: { type: String }
+    invoiceRelated: { type: mongoose_1.Schema.Types.ObjectId }
 }, { timestamps: true, collection: 'estimates' });
 estimateSchema.pre('updateOne', function (next) {
     return (0, stock_universal_server_1.preUpdateDocExpire)(this, next);
@@ -33,15 +32,15 @@ exports.estimateSelect = estimateselect;
  */
 const createEstimateModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     (0, stock_universal_server_1.createExpireDocIndex)(estimateSchema);
-    if (!database_1.isStockDbConnected) {
-        await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
+    if (!stock_universal_server_1.isDbConnected) {
+        await (0, stock_universal_server_1.connectDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.estimateMain = database_1.mainConnection
+        exports.estimateMain = stock_universal_server_1.mainConnection
             .model('Estimate', estimateSchema);
     }
     if (lean) {
-        exports.estimateLean = database_1.mainConnectionLean
+        exports.estimateLean = stock_universal_server_1.mainConnectionLean
             .model('Estimate', estimateSchema);
     }
 };

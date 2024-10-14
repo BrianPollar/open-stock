@@ -1,4 +1,5 @@
 /// <reference types="mongoose/types/document" />
+/// <reference types="mongoose/types/schematypes" />
 /// <reference types="mongoose/types/models" />
 /// <reference types="mongoose/types/aggregate" />
 /// <reference types="mongoose/types/callback" />
@@ -24,7 +25,7 @@
 /// <reference types="mongoose/types/validation" />
 /// <reference types="mongoose/types/virtuals" />
 /// <reference types="mongoose/types/inferschematype" />
-import { ConnectOptions, Document, Model } from 'mongoose';
+import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 /**
  * Represents a user IP model.
  */
@@ -32,7 +33,7 @@ export interface IUserip extends Document {
     /**
      * The ID of the user or company.
      */
-    userOrCompanayId: string;
+    userOrCompanayId: string | Schema.Types.ObjectId;
     /**
      * List of green IPs.
      */

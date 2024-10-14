@@ -527,7 +527,7 @@ const registerRecents = async (item, userCookieId, userId) => {
     found.recents = recents;
     await found.save();
     const foundItem = await item_model_1.itemMain.findOne({ _id: item });
-    if (foundItem) {
+    if (foundItem && foundItem.timesViewed) {
         foundItem.timesViewed += 1;
         await foundItem.save();
     }

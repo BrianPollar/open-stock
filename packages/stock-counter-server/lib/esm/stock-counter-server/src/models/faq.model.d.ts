@@ -23,11 +23,12 @@
 /// <reference types="mongoose/types/virtuals" />
 /// <reference types="mongoose/types/inferschematype" />
 import { Ifaq } from '@open-stock/stock-universal';
+import { IcompanyIdAsObjectId } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model } from 'mongoose';
 /**
  * Represents a FAQ document in the database.
  */
-export type Tfaq = Document & Ifaq;
+export type Tfaq = Document & Ifaq & IcompanyIdAsObjectId;
 /**
  * Represents the main FAQ model.
  */

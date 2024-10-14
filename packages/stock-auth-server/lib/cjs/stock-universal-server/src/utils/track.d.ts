@@ -34,7 +34,7 @@ import { Types } from 'mongoose';
  * ield which is the id of the entity being edited.
  * @returns The saved track edit document.
  */
-export declare const createTrackEdit: (trackEdit: ItrackEdit) => Promise<import("mongoose").Document<unknown, {}, import("../models/tracker/track-edit.model").TtrackEdit> & import("mongoose").Document<any, any, any> & ItrackEdit & {
+export declare const createTrackEdit: (trackEdit: Partial<ItrackEdit>) => Promise<import("mongoose").Document<unknown, {}, import("../models/tracker/track-edit.model").TtrackEdit> & import("mongoose").Document<any, any, any> & ItrackEdit & {
     _id: Types.ObjectId;
 }>;
 /**
@@ -44,7 +44,7 @@ export declare const createTrackEdit: (trackEdit: ItrackEdit) => Promise<import(
  * field which is the id of the entity being viewed.
  * @returns The saved track view document.
  */
-export declare const createTrackView: (trackView: ItrackView) => Promise<import("mongoose").Document<unknown, {}, import("../models/tracker/track-view.model").TtrackView> & import("mongoose").Document<any, any, any> & ItrackView & {
+export declare const createTrackView: (trackView: Partial<ItrackView>) => Promise<import("mongoose").Document<unknown, {}, import("../models/tracker/track-view.model").TtrackView> & import("mongoose").Document<any, any, any> & ItrackView & {
     _id: Types.ObjectId;
 }>;
 /**
@@ -54,7 +54,7 @@ export declare const createTrackView: (trackView: ItrackView) => Promise<import(
  * field which is the id of the entity being deleted.
  * @returns The saved track deleted document.
  */
-export declare const createTrackDeleted: (trackDeleted: ItrackDeleted) => Promise<import("mongoose").Document<unknown, {}, import("../models/tracker/track-deleted.model").TtrackDeleted> & import("mongoose").Document<any, any, any> & ItrackDeleted & {
+export declare const createTrackDeleted: (trackDeleted: Partial<ItrackDeleted>) => Promise<import("mongoose").Document<unknown, {}, import("../models/tracker/track-deleted.model").TtrackDeleted> & import("mongoose").Document<any, any, any> & ItrackDeleted & {
     _id: Types.ObjectId;
 }>;
 export interface ItrackReturn extends Isuccess {
@@ -81,7 +81,7 @@ export declare const makeTrackEdit: (req: IcustomRequest<never, unknown>, parent
    * @param trackDataRestore - Whether the edit is a restore of a deleted document.
    * @returns An `ItrackEditReturn` object with the saved track edit data.
    */
-export declare const updateTrackEdit: (req: IcustomRequest<never, unknown>, parent: string, trackEdit: ItrackEdit, userId: string, trackDataRestore?: boolean) => Promise<ItrackEditReturn>;
+export declare const updateTrackEdit: (req: IcustomRequest<never, unknown>, parent: string, trackEdit: Partial<ItrackEdit>, userId: string, trackDataRestore?: boolean) => Promise<ItrackEditReturn>;
 /**
  * Deletes a track edit document from the database.
  *
@@ -159,7 +159,7 @@ export declare const getAllTrackView: (req: IcustomRequest<never, unknown>, res:
    * @param {ItrackDeleted} trackDeleted - track deleted data
    * @returns {Promise<DocumentType<ItrackDeleted>>} - the saved track deleted document
    */
-export declare const makeTrackDeleted: (trackDeleted: ItrackDeleted) => Promise<import("mongoose").Document<unknown, {}, import("../models/tracker/track-deleted.model").TtrackDeleted> & import("mongoose").Document<any, any, any> & ItrackDeleted & {
+export declare const makeTrackDeleted: (trackDeleted: Partial<ItrackDeleted>) => Promise<import("mongoose").Document<unknown, {}, import("../models/tracker/track-deleted.model").TtrackDeleted> & import("mongoose").Document<any, any, any> & ItrackDeleted & {
     _id: Types.ObjectId;
 }>;
 /**

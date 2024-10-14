@@ -2,11 +2,11 @@
  * @fileoverview This file contains the definition of the notification settings model.
  * @packageDocumentation
  */
+import { connectDatabase, isDbConnected, mainConnection, mainConnectionLean } from '@open-stock/stock-universal-server';
 import { Schema } from 'mongoose';
-import { connectNotifDatabase, isNotifDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 /** Schema definition for notification settings */
 const notifSettingSchema = new Schema({
-    companyId: { type: String },
+    companyId: { type: Schema.Types.ObjectId },
     invoices: { type: Boolean, default: true },
     payments: { type: Boolean, default: true },
     orders: { type: Boolean, default: true },
@@ -42,8 +42,8 @@ export const notifSettingSelect = notifSettingselect;
  * @param {boolean} [lean=true] - Whether to create the lean connection.
  */
 export const createNotifStnModel = async (dbUrl, dbOptions, main = true, lean = true) => {
-    if (!isNotifDbConnected) {
-        await connectNotifDatabase(dbUrl, dbOptions);
+    if (!isDbConnected) {
+        await connectDatabase(dbUrl, dbOptions);
     }
     if (main) {
         notifSettingMain = mainConnection

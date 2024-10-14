@@ -9,7 +9,7 @@ export declare class DeliveryCity extends DatabaseAuto {
         count: number;
         citys: DeliveryCity[];
     }>;
-    static getOne(_id: string): Promise<DeliveryCity>;
+    static getOne(urIdOr_id: string): Promise<DeliveryCity>;
     static add(deliverycity: Ideliverycity): Promise<Isuccess>;
     static removeMany(vals: IdeleteMany): Promise<Isuccess>;
     update(vals: Ideliverycity): Promise<Isuccess>;

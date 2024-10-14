@@ -1,9 +1,12 @@
 import { ItrackStamp } from '@open-stock/stock-universal';
 import {
-  createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj
+  IcompanyIdAsObjectId,
+  connectDatabase,
+  createExpireDocIndex,
+  isDbConnected, mainConnection, mainConnectionLean,
+  preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj
 } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 
 /** model type for itemDecoy by */
@@ -32,12 +35,12 @@ export type TitemDecoy = Document & ItrackStamp & {
    * The list of items associated with the decoy.
    */
   items: string[];
-};
+} & IcompanyIdAsObjectId;
 
 const itemDecoySchema: Schema<TitemDecoy> = new Schema({
   ...withUrIdAndCompanySchemaObj,
   type: { type: String },
-  items: []
+  items: [Schema.Types.ObjectId]
 }, { timestamps: true, collection: 'itemdecoys' });
 
 // Apply the uniqueValidator plugin to userSchema.
@@ -85,8 +88,8 @@ export const itemDecoySelect = itemDecoyselect;
  */
 export const createItemDecoyModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
   createExpireDocIndex(itemDecoySchema);
-  if (!isStockDbConnected) {
-    await connectStockDatabase(dbUrl, dbOptions);
+  if (!isDbConnected) {
+    await connectDatabase(dbUrl, dbOptions);
   }
 
   if (main) {

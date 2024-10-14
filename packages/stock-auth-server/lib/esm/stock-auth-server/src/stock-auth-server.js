@@ -5,7 +5,7 @@ import { companyRoutes } from './routes/company.routes';
 import { companySubscriptionRoutes } from './routes/subscriptions/company-subscription.routes';
 import { superAdminRoutes } from './routes/superadmin.routes';
 import { userAuthRoutes } from './routes/user.routes';
-import { connectAuthDatabase, createStockAuthServerLocals, isStockAuthServerRunning, stockAuthConfig } from './stock-auth-local';
+import { connectDatabase, createStockAuthServerLocals, isStockAuthServerRunning, stockAuthConfig } from './stock-auth-local';
 /**
  * The PesaPal payment instance for the server.
  */
@@ -30,14 +30,14 @@ export const runStockAuthServer = async (config, paymentInstance) => {
     pesapalPaymentInstance = paymentInstance;
     createStockAuthServerLocals(config);
     // connect models
-    await connectAuthDatabase(config.databaseConfig.url, config.databaseConfig.dbOptions);
+    await connectDatabase(config.databaseConfig.url, config.databaseConfig.dbOptions);
     runPassport(stockUniversalConfig.authSecrets.jwtSecret, config.socialAuthStrategys);
     const stockAuthRouter = express.Router();
     stockAuthRouter.use('/user', userAuthRoutes);
     stockAuthRouter.use('/company', companyRoutes);
     stockAuthRouter.use('/companysubscription', companySubscriptionRoutes);
     stockAuthRouter.use('/admin', superAdminRoutes);
-    return Promise.resolve({ stockAuthRouter });
+    return { stockAuthRouter };
 };
 /**
  * Checks if the stock authentication server is running.

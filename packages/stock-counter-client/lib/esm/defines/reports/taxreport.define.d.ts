@@ -3,7 +3,7 @@ import { Estimate } from '../estimate.define';
 import { InvoiceRelatedWithReceipt } from '../invoice.define';
 export declare class TaxReport extends DatabaseAuto {
     urId: string;
-    companyId: string;
+    companyId?: string;
     totalAmount: number;
     date: Date;
     estimates: Estimate[];
@@ -18,7 +18,7 @@ export declare class TaxReport extends DatabaseAuto {
         count: number;
         taxreports: TaxReport[];
     }>;
-    static getOne(urId: string): Promise<TaxReport>;
+    static getOne(urIdOr_id: string): Promise<TaxReport>;
     static add(vals: ItaxReport): Promise<Isuccess>;
     static removeMany(vals: IdeleteMany): Promise<Isuccess>;
     remove(): Promise<Isuccess>;

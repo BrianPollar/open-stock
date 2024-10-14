@@ -1,24 +1,53 @@
 import { Ifaq } from '@open-stock/stock-universal';
 import {
-  createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj
+  IcompanyIdAsObjectId,
+  connectDatabase,
+  createExpireDocIndex,
+  isDbConnected,
+  mainConnection,
+  mainConnectionLean,
+  preUpdateDocExpire,
+  withUrIdAndCompanySchemaObj,
+  withUrIdAndCompanySelectObj
 } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 
 /**
  * Represents a FAQ document in the database.
  */
-export type Tfaq = Document & Ifaq;
+export type Tfaq = Document & Ifaq & IcompanyIdAsObjectId;
 
 /** FAQ schema */
 const faqSchema: Schema<Tfaq> = new Schema({
   ...withUrIdAndCompanySchemaObj,
-  posterName: { type: String },
-  posterEmail: { type: String, required: [true, 'cannot be empty.'], index: true },
-  userId: { type: String },
-  qn: { type: String, required: [true, 'cannot be empty.'], index: true }
+  posterName: {
+    type: String,
+    minlength: [3, 'cannot be less than 3.'],
+    maxlength: [100, 'cannot be more than 100.']
+  },
+  posterEmail: {
+    type: String,
+    required: [true, 'cannot be empty.'],
+    index: true,
+    validator: checkEmail,
+    message: props => `${props.value} is invalid phone!` },
+  userId: { type: Schema.Types.ObjectId },
+  qn: {
+    type: String,
+    required: [true, 'cannot be empty.'],
+    index: true,
+    minlength: [10, 'cannot be less than 10.'],
+    maxlength: [400, 'cannot be more than 400.']
+  }
 }, { timestamps: true, collection: 'faqs' });
+
+function checkEmail(email: string) {
+  // eslint-disable-next-line max-len
+  const re = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+
+  return re.test(String(email).toLowerCase());
+}
 
 faqSchema.pre('updateOne', function(next) {
   return preUpdateDocExpire(this, next);
@@ -65,8 +94,8 @@ export const faqSelect = faqselect;
  */
 export const createFaqModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
   createExpireDocIndex(faqSchema);
-  if (!isStockDbConnected) {
-    await connectStockDatabase(dbUrl, dbOptions);
+  if (!isDbConnected) {
+    await connectDatabase(dbUrl, dbOptions);
   }
 
   if (main) {

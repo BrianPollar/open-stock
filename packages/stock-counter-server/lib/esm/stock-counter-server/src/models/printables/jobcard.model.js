@@ -1,13 +1,25 @@
-import { createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
+import { connectDatabase, createExpireDocIndex, isDbConnected, mainConnection, mainConnectionLean, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
 import { Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 const jobCardSchema = new Schema({
     ...withUrIdAndCompanySchemaObj,
-    client: {},
-    machine: {},
-    problem: {},
-    cost: { type: Number }
+    client: {
+        userId: { type: Schema.Types.ObjectId },
+        name: { type: String },
+        phone: { type: String },
+        email: { type: String }
+    },
+    machine: {
+        name: { type: String },
+        model: { type: String },
+        serialNo: { type: String }
+    },
+    problem: {
+        reportedIssue: { type: String },
+        details: { type: String },
+        issueOnFirstLook: { type: String }
+    },
+    cost: { type: Number, min: [0, 'cannot be less than 0.'] }
 }, { timestamps: true, collection: 'jobcards' });
 jobCardSchema.pre('updateOne', function (next) {
     return preUpdateDocExpire(this, next);
@@ -48,8 +60,8 @@ export const jobCardSelect = jobCardselect;
  */
 export const createJobCardModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     createExpireDocIndex(jobCardSchema);
-    if (!isStockDbConnected) {
-        await connectStockDatabase(dbUrl, dbOptions);
+    if (!isDbConnected) {
+        await connectDatabase(dbUrl, dbOptions);
     }
     if (main) {
         jobCardMain = mainConnection

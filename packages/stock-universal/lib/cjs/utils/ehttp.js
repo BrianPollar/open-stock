@@ -8,7 +8,7 @@ const rxjs_1 = require("rxjs");
 // This file imports the `Axios` module.
 const axios_observable_1 = tslib_1.__importDefault(require("axios-observable"));
 // This file imports the `LoggerController` class from the `logger.controller` file.
-const logger_1 = require("./logger");
+const front_logger_1 = require("./front-logger");
 // This class is a controller for handling HTTP requests.
 /**
  * A class that provides methods for making HTTP requests using Axios.
@@ -23,7 +23,7 @@ class EhttpController {
         /**
          * The logger for the class.
          */
-        this.logger = new logger_1.LoggerController();
+        this.logger = new front_logger_1.LoggerController();
     }
     /**
      * A method that appends a token to the headers of the Axios instance.

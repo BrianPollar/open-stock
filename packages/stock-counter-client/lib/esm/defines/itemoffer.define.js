@@ -34,9 +34,9 @@ export class ItemOffer extends DatabaseAuto {
             offers: offers.data.map((val) => new ItemOffer(val))
         };
     }
-    static async getOne(_id) {
+    static async getOne(urIdOr_id) {
         const observer$ = StockCounterClient.ehttp
-            .makeGet(`/itemoffer/one/${_id}`);
+            .makeGet(`/itemoffer/one/${urIdOr_id}`);
         const offer = await lastValueFrom(observer$);
         return new ItemOffer(offer);
     }

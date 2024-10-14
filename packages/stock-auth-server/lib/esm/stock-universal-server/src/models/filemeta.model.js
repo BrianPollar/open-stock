@@ -1,5 +1,5 @@
 import { Schema } from 'mongoose';
-import { connectUniversalDatabase, isUniversalDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
+import { connectDatabase, isDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 const fileMetaSchema = new Schema({
     trackEdit: { type: Schema.ObjectId },
@@ -36,8 +36,8 @@ export let fileMetaLean;
  * @param lean Whether to create the lean email token model.
  */
 export const createFileMetaModel = async (dbUrl, dbOptions, main = true, lean = true) => {
-    if (!isUniversalDbConnected) {
-        await connectUniversalDatabase(dbUrl, dbOptions);
+    if (!isDbConnected) {
+        await connectDatabase(dbUrl, dbOptions);
     }
     if (main) {
         fileMeta = mainConnection

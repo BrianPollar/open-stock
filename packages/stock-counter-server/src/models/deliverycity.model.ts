@@ -1,23 +1,36 @@
 import { Ideliverycity } from '@open-stock/stock-universal';
 import {
-  createExpireDocIndex, preUpdateDocExpire, withCompanySchemaObj, withCompanySelectObj
+  IcompanyIdAsObjectId,
+  connectDatabase,
+  createExpireDocIndex,
+  isDbConnected, mainConnection, mainConnectionLean,
+  preUpdateDocExpire, withCompanySchemaObj, withCompanySelectObj
 } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 
 /**
  * Represents a delivery city.
  * @typedef {Document & Ideliverycity} Tdeliverycity
  */
-export type Tdeliverycity = Document & Ideliverycity;
+export type Tdeliverycity = Document & Ideliverycity & IcompanyIdAsObjectId;
 
-const deliverycitySchema: Schema<Tdeliverycity> = new Schema({
+const deliverycitySchema: Schema<Tdeliverycity> = new Schema<Tdeliverycity>({
   ...withCompanySchemaObj,
   name: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
-  shippingCost: { type: Number, required: [true, 'cannot be empty.'] },
+  shippingCost: {
+    type: Number,
+    required: [true, 'cannot be empty.'],
+    min: [0, 'cannot be less than 0.']
+  },
   currency: { type: String, required: [true, 'cannot be empty.'] },
-  deliversInDays: { type: Number, required: [true, 'cannot be empty.'] }
+  deliversInDays: {
+    type: Number,
+    required: [true, 'cannot be empty.'],
+    min: [0, 'cannot be less than 0.'],
+    max: [150, 'cannot be greater than 30.']
+
+  }
 }, { timestamps: true, collection: 'deliverycities' });
 
 deliverycitySchema.pre('updateOne', function(next) {
@@ -66,8 +79,8 @@ export const deliverycitySelect = deliverycityselect;
  */
 export const createDeliverycityModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
   createExpireDocIndex(deliverycitySchema);
-  if (!isStockDbConnected) {
-    await connectStockDatabase(dbUrl, dbOptions);
+  if (!isDbConnected) {
+    await connectDatabase(dbUrl, dbOptions);
   }
 
   if (main) {

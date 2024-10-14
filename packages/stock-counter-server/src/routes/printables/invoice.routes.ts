@@ -7,21 +7,18 @@ import {
   IdeleteOne,
   IfilterAggResponse,
   IfilterProps, Iinvoice, IinvoiceRelated,
-  Ireceipt, Isuccess, Iuser, TestimateStage, TinvoiceType
+  Ireceipt, Isuccess, Iuser, TinvoiceType
 } from '@open-stock/stock-universal';
 import {
   addParentToLocals, constructFiltersFromBody,
-  generateUrId, lookupSubFieldInvoiceRelatedFilter,
+  generateUrId, handleMongooseErr, lookupSubFieldInvoiceRelatedFilter,
   makeCompanyBasedQuery, offsetLimitRelegator,
-  requireAuth, roleAuthorisation,
-  stringifyMongooseErr
+  requireAuth, roleAuthorisation, verifyObjectId
 } from '@open-stock/stock-universal-server';
 import express from 'express';
-import * as fs from 'fs';
-import path from 'path';
-import * as tracer from 'tracer';
+import { Error } from 'mongoose';
 import { Tinvoice, invoiceLean, invoiceMain } from '../../models/printables/invoice.model';
-import { Treceipt, receiptLean, receiptMain } from '../../models/printables/receipt.model';
+import { receiptLean } from '../../models/printables/receipt.model';
 import { invoiceRelatedMain } from '../../models/printables/related/invoicerelated.model';
 import { populateInvoiceRelated } from '../../utils/query';
 import { makePaymentInstall } from '../paymentrelated/paymentrelated';
@@ -30,32 +27,6 @@ import {
   makeInvoiceRelatedPdct,
   relegateInvRelatedCreation, updateInvoiceRelated
 } from './related/invoicerelated';
-
-/** Logger for invoice routes */
-const invoiceRoutesLogger = tracer.colorConsole({
-  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-  dateformat: 'HH:MM:ss.L',
-  transport(data) {
-    // eslint-disable-next-line no-console
-    console.log(data.output);
-    const logDir = path.join(process.cwd() + '/openstockLog/');
-
-    fs.mkdir(logDir, { recursive: true }, (err) => {
-      if (err) {
-        if (err) {
-          // eslint-disable-next-line no-console
-          console.log('data.output err ', err);
-        }
-      }
-    });
-    fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
-      if (err) {
-        // eslint-disable-next-line no-console
-        console.log('raw.output err ', err);
-      }
-    });
-  }
-});
 
 /**
  * Generates a new invoice ID based on the given query ID.
@@ -90,37 +61,23 @@ export const saveInvoice = async(
   invoice.invoiceRelated = relatedId._id;
   invoice.companyId = companyId;
   const newInvoice = new invoiceMain(invoice);
-  let errResponse: Isuccess;
-  const saved = await newInvoice.save()
-    .catch(err => {
-      invoiceRoutesLogger.error('create - err: ', err);
-      errResponse = {
-        success: false,
-        status: 403
-      };
-      if (err && err.errors) {
-        errResponse.err = stringifyMongooseErr(err.errors);
-      } else {
-        errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-      }
 
-      return err;
-    });
+  const savedRes = await newInvoice.save()
+    .catch((err: Error) => err);
 
-  if (errResponse) {
+  if (savedRes instanceof Error) {
+    const errResponse = handleMongooseErr(savedRes);
+
     return {
       ...errResponse
     };
   }
 
-  if (saved && saved._id) {
-    addParentToLocals(res, saved._id, invoiceLean.collection.collectionName, 'makeTrackEdit');
-  }
+  addParentToLocals(res, savedRes._id, invoiceLean.collection.collectionName, 'makeTrackEdit');
 
   // await updateInvoiceRelated(invoiceRelated); // !! WHY CALL THIS
 
-  return { success: true, status: 200, _id: (saved as {_id: string})._id, invoiceRelatedId: relatedId._id };
+  return { success: true, status: 200, _id: savedRes._id, invoiceRelatedId: relatedId._id };
 };
 
 /**
@@ -144,7 +101,7 @@ invoiceRoutes.post(
     const response = await saveInvoice(res, invoice, invoiceRelated, filter.companyId);
 
     if (!response.success) {
-      return res.status(response.status).send({ success: response.success });
+      return res.status(response.status || 403).send({ success: response.success });
     }
 
     return next();
@@ -175,8 +132,8 @@ invoiceRoutes.put(
     }
 
     await updateInvoiceRelated(res, invoiceRelated);
-    let errResponse: Isuccess;
-    const updated = await invoiceMain.updateOne({
+
+    const updateRes = await invoiceMain.updateOne({
       _id, ...filter
     }, {
       $set: {
@@ -184,42 +141,31 @@ invoiceRoutes.put(
         isDeleted: updatedInvoice.isDeleted || invoice.isDeleted
       }
     })
-      .catch(err => {
-        invoiceRoutesLogger.error('update - err: ', err);
-        errResponse = {
-          success: false,
-          status: 403
-        };
-        if (err && err.errors) {
-          errResponse.err = stringifyMongooseErr(err.errors);
-        } else {
-          errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-        }
+      .catch((err: Error) => err);
 
-        return errResponse;
-      });
+    if (updateRes instanceof Error) {
+      const errResponse = handleMongooseErr(updateRes);
 
-    if (errResponse) {
-      return res.status(403).send(errResponse);
+      return res.status(errResponse.status).send(errResponse);
     }
 
     addParentToLocals(res, invoice._id, invoiceLean.collection.collectionName, 'makeTrackEdit');
 
-    return res.status(200).send({ success: Boolean(updated) });
+    return res.status(200).send({ success: true });
   }
 );
 
 invoiceRoutes.get(
-  '/one/:urId',
+  '/one/:urIdOr_id',
   requireAuth,
   requireActiveCompany,
   roleAuthorisation('invoices', 'read'),
-  async(req: IcustomRequest<{ urId: string }, null>, res) => {
-    const { urId } = req.params;
+  async(req: IcustomRequest<{ urIdOr_id: string }, null>, res) => {
+    const { urIdOr_id } = req.params;
     const { filter } = makeCompanyBasedQuery(req);
+    const filterwithId = verifyObjectId(urIdOr_id) ? { _id: urIdOr_id } : { urId: urIdOr_id };
     const invoice = await invoiceLean
-      .findOne({ urId, ...filter })
+      .findOne({ ...filterwithId, ...filter })
       .lean()
       .populate([populateInvoiceRelated(), populateTrackEdit(), populateTrackView()]);
 
@@ -265,7 +211,8 @@ invoiceRoutes.get(
       .map(val => makeInvoiceRelatedPdct(
       val.invoiceRelated as Required<IinvoiceRelated>,
       (val.invoiceRelated as IinvoiceRelated)?.billingUserId as unknown as Iuser,
-      null,
+      // eslint-disable-next-line no-undefined
+      undefined,
       {
         _id: val._id
       }
@@ -296,15 +243,17 @@ invoiceRoutes.put(
     if (!found) {
       return res.status(404).send({ success: false, err: 'not found' });
     }
-    const deleted = await deleteAllLinked(found.invoiceRelated as string, 'invoice', filter.companyId);
+    const updateRes = await deleteAllLinked(found.invoiceRelated as string, 'invoice', filter.companyId);
 
-    if (Boolean(deleted)) {
-      addParentToLocals(res, _id, invoiceLean.collection.collectionName, 'trackDataDelete');
+    if (updateRes instanceof Error) {
+      const errResponse = handleMongooseErr(updateRes);
 
-      return res.status(200).send({ success: Boolean(deleted) });
-    } else {
-      return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
+      return res.status(errResponse.status).send(errResponse);
     }
+
+    addParentToLocals(res, _id, invoiceLean.collection.collectionName, 'trackDataDelete');
+
+    return res.status(200).send({ success: true });
   }
 );
 
@@ -314,12 +263,12 @@ invoiceRoutes.post(
   requireActiveCompany,
   roleAuthorisation('invoices', 'read'),
   async(req: IcustomRequest<never, IfilterProps>, res) => {
-    const { propSort } = req.body;
+    const { propSort, returnEmptyArr } = req.body;
     const { offset, limit } = offsetLimitRelegator(req.body.offset, req.body.limit);
 
     const aggCursor = invoiceLean
       .aggregate<IfilterAggResponse<Tinvoice>>([
-        ...lookupSubFieldInvoiceRelatedFilter(constructFiltersFromBody(req), propSort, offset, limit)
+        ...lookupSubFieldInvoiceRelatedFilter(constructFiltersFromBody(req), offset, limit, propSort, returnEmptyArr)
       ]);
     const dataArr: IfilterAggResponse<Tinvoice>[] = [];
 
@@ -367,12 +316,12 @@ invoiceRoutes.put(
           await deleteAllLinked(found.invoiceRelated as string, 'invoice', filter.companyId);
         }
 
-        return new Promise(resolve => resolve(found._id));
+        return new Promise(resolve => resolve(found?._id));
       });
 
     const filterdExist = await Promise.all(promises) as string[];
 
-    for (const val of filterdExist) {
+    for (const val of filterdExist.filter(value => value)) {
       addParentToLocals(res, val, invoiceLean.collection.collectionName, 'trackDataDelete');
     }
 
@@ -396,8 +345,8 @@ invoiceRoutes.post(
     pay.urId = await generateUrId(receiptLean);
 
     /* const newInvoicePaym = new receiptMain(pay);
-  let errResponse: Isuccess;
-  const saved = await newInvoicePaym.save().catch(err => {
+
+  const savedRes = await newInvoicePaym.save().catch(err => {
     errResponse = {
       success: false,
       status: 403
@@ -419,139 +368,5 @@ invoiceRoutes.post(
     await makePaymentInstall(res, pay as Ireceipt, pay.invoiceRelated, filter.companyId, pay.creationType);
 
     return res.status(200).send({ success: true });
-  }
-);
-
-// TODO remove define related caller
-/* invoiceRoutes.put(
-  '/updatepayment',
-  requireAuth,
-  requireActiveCompany, roleAuthorisation('invoices', 'update'), async(req: IcustomRequest<never, unknown>, res) => {
-  const pay = req.body;
-  const { companyId } = req.user;
-
-
-  pay.companyId = companyId;
-  const isValid = verifyObjectIds([pay._id, companyId]);
-  if (!isValid) {
-    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
-  }
-
-  await updateInvoiceRelated(invoiceRelated, companyId);
-
-  const foundPay = await receiptMain
-    .findByIdAndUpdate(pay._id);
-  if (!foundPay) {
-    return res.status(404).send({ success: false });
-  }
-  foundPay.amount = pay.amount || foundPay.amount;
-  let errResponse: Isuccess;
-  await foundPay.save().catch(err => {
-    errResponse = {
-      success: false,
-      status: 403
-    };
-    if (err && err.errors) {
-      errResponse.err = stringifyMongooseErr(err.errors);
-    } else {
-      errResponse.err = `we are having problems connecting to our databases,
-      try again in a while`;
-    }
-    return errResponse;
-  });
-
-  if (errResponse) {
-    return res.status(403).send(errResponse);
-  }
-
-  return res.status(200).send({ success: true });
-}); */
-
-// TODO remove this
-invoiceRoutes.get(
-  '/getonepayment/:urId',
-  requireAuth,
-  requireActiveCompany,
-  roleAuthorisation('invoices', 'read'),
-  async(req: IcustomRequest<never, null>, res) => {
-    const { urId } = req.params;
-    const { filter } = makeCompanyBasedQuery(req);
-    const invoicePay = await receiptLean
-      .findOne({ urId, ...filter })
-      .lean();
-
-    return res.status(200).send(invoicePay);
-  }
-);
-
-// TODO remove this
-invoiceRoutes.get(
-  '/getallpayments',
-  requireAuth,
-  requireActiveCompany,
-  roleAuthorisation('invoices', 'read'),
-  async(req: IcustomRequest<{ offset: string; limit: string }, null>, res) => {
-    const { filter } = makeCompanyBasedQuery(req);
-    const all = await Promise.all([
-      receiptLean
-        .find(filter)
-        .lean(),
-      receiptLean.countDocuments(filter)
-    ]);
-    const response: IdataArrayResponse<Treceipt> = {
-      count: all[1],
-      data: all[0]
-    };
-
-    return res.status(200).send(response);
-  }
-);
-
-
-// TODO remove this
-invoiceRoutes.put(
-  '/deleteonepayment',
-  requireAuth,
-  requireActiveCompany,
-  roleAuthorisation('invoices', 'delete'),
-  async(req: IcustomRequest<never, {
-     invoiceRelated: string; creationType: TinvoiceType; stage: TestimateStage;}>, res) => {
-    const { invoiceRelated } = req.body;
-    const { filter } = makeCompanyBasedQuery(req);
-    const deleted = await deleteAllLinked(invoiceRelated, 'invoice', filter.companyId);
-
-    if (Boolean(deleted)) {
-      return res.status(200).send({ success: Boolean(deleted) });
-    } else {
-      return res.status(404).send({ success: Boolean(deleted), err: 'could not find item to remove' });
-    }
-  }
-);
-
-// TODO remove this
-invoiceRoutes.put(
-  '/deletemanypayments',
-  requireAuth,
-  requireActiveCompany,
-  roleAuthorisation('invoices', 'delete'),
-  async(req: IcustomRequest<never, { _ids: string[]}>, res) => {
-    const { _ids } = req.body;
-    const { filter } = makeCompanyBasedQuery(req);
-
-    const deleted = await receiptMain
-      .deleteMany({ _id: { $in: _ids }, ...filter })
-      .catch(err => {
-        invoiceRoutesLogger.error('deletemanypayments - err: ', err);
-
-        return null;
-      });
-
-    if (Boolean(deleted)) {
-      return res.status(200).send({ success: Boolean(deleted) });
-    } else {
-      return res.status(404).send({
-        success: Boolean(deleted),
-        err: 'could not delete selected items, try again in a while' });
-    }
   }
 );

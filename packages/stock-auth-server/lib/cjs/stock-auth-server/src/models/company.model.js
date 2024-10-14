@@ -3,7 +3,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createCompanyModel = exports.companyAboutSelect = exports.companyAuthSelect = exports.companyLean = exports.companyMain = exports.companySchema = void 0;
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const mongoose_1 = require("mongoose");
-const database_1 = require("../utils/database");
 // Create authenticated Authy and Twilio API clients
 // const authy = require('authy')(config.authyKey);
 // const twilioClient = require('twilio')(config.accountSid, config.authToken);
@@ -12,21 +11,46 @@ exports.companySchema = new mongoose_1.Schema({
     ...stock_universal_server_1.globalSchemaObj,
     trackDeleted: { type: mongoose_1.Schema.ObjectId },
     urId: { type: String, required: [true, 'cannot be empty.'], index: true },
-    name: { type: String, required: [true, 'cannot be empty.'], index: true },
-    displayName: { type: String, required: [true, 'cannot be empty.'], index: true },
-    dateOfEst: { type: String, index: true },
+    name: { type: String,
+        required: [true, 'cannot be empty.'],
+        index: true,
+        minlength: [3, 'more than 3 characters required.'],
+        maxlength: [90, 'less than 90 characters required.']
+    },
+    displayName: {
+        type: String, required: [true, 'cannot be empty.'],
+        index: true,
+        minlength: [3, 'more than 3 characters required.'],
+        maxlength: [90, 'less than 90 characters required.']
+    },
+    dateOfEst: {
+        type: Date,
+        index: true
+    },
     left: { type: Boolean, default: false },
-    dateLeft: { type: Date },
+    dateLeft: { type: Date,
+        validate: {
+            validator: validateDateLeft,
+            message: props => `${props.value} is less than date of establishment!`
+        }
+    },
     details: { type: String },
     address: { type: String },
     companyDispNameFormat: { type: String },
     businessType: { type: String },
-    websiteAddress: { type: String },
+    websiteAddress: { type: String,
+        validate: {
+            validator(v) {
+                return /^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&'\(\)\*\+,;=.]+$/.test(v);
+            },
+            message: props => `${props.value} is not a valid web address!`
+        }
+    },
     blocked: { type: Boolean, default: false },
     verified: { type: Boolean, default: false },
     expireAt: { type: String },
     blockedReasons: {},
-    owner: { type: String } // user
+    owner: { type: mongoose_1.Schema.Types.ObjectId } // user
 }, { timestamps: true, collection: 'companies' });
 exports.companySchema.index({ createdAt: -1 });
 exports.companySchema.index({ expireAt: 1 }, { expireAfterSeconds: 2628003 });
@@ -36,39 +60,11 @@ exports.companySchema.pre('updateOne', function (next) {
 exports.companySchema.pre('updateMany', function (next) {
     return (0, stock_universal_server_1.preUpdateDocExpire)(this, next);
 });
+function validateDateLeft(v) {
+    return (new Date(v) > new Date(this.createdAt)) && (new Date(v) > new Date(this.dateOfEst));
+}
 // Apply the uniqueValidator plugin to companySchema.
 exports.companySchema.plugin(uniqueValidator);
-exports.companySchema.methods['toAuthJSON'] = function () {
-    return {
-        urId: this.urId,
-        name: this.name,
-        displayName: this.displayName,
-        dateOfEst: this.dateOfEst,
-        salutation: this.salutation,
-        details: this.details,
-        companyDispNameFormat: this.companyDispNameFormat,
-        businessType: this.businessType,
-        photos: this.photos,
-        blockedReasons: this.blockedReasons
-    };
-};
-exports.companySchema.methods['toProfileJSONFor'] = function () {
-    return {
-        urId: this.urId,
-        name: this.name,
-        displayName: this.displayName,
-        dateOfEst: this.dateOfEst,
-        details: this.details,
-        companyDispNameFormat: this.companyDispNameFormat,
-        businessType: this.businessType,
-        profilepic: this.profilepic,
-        profileCoverPic: this.profileCoverPic,
-        createdAt: this.createdAt,
-        websiteAddress: this.websiteAddress,
-        photos: this.photos,
-        blockedReasons: this.blockedReasons
-    };
-};
 const companyAuthselect = {
     ...stock_universal_server_1.globalSelectObj,
     name: 1,
@@ -122,15 +118,15 @@ exports.companyAboutSelect = companyaboutSelect;
  */
 const createCompanyModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     (0, stock_universal_server_1.createExpireDocIndex)(exports.companySchema);
-    if (!database_1.isAuthDbConnected) {
-        await (0, database_1.connectAuthDatabase)(dbUrl, dbOptions);
+    if (!stock_universal_server_1.isDbConnected) {
+        await (0, stock_universal_server_1.connectDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.companyMain = database_1.mainConnection
+        exports.companyMain = stock_universal_server_1.mainConnection
             .model('Company', exports.companySchema);
     }
     if (lean) {
-        exports.companyLean = database_1.mainConnectionLean
+        exports.companyLean = stock_universal_server_1.mainConnectionLean
             .model('Company', exports.companySchema);
     }
 };

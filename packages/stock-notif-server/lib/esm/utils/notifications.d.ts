@@ -20,7 +20,7 @@ export declare const determineUserHasMail: (user: Iuser) => boolean;
    * @param authyId - The user's Authy ID.
    * @returns A promise that resolves with the Authy token request response.
    */
-export declare const sendToken: (phone: string, countryCode: string, message: string) => Promise<unknown>;
+export declare const sendToken: (phone: string, countryCode: string) => Promise<unknown>;
 /**
    * Sends an SMS message using Twilio.
    * @param phone - The recipient's phone number.

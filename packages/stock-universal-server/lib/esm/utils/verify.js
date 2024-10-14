@@ -1,31 +1,5 @@
-import * as fs from 'fs';
 import { Types } from 'mongoose';
-import path from 'path';
-import * as tracer from 'tracer';
-// This function creates a verifyLogger named `constants/verify`.
-const verifyLogger = tracer.colorConsole({
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-        // eslint-disable-next-line no-console
-        console.log(data.output);
-        const logDir = path.join(process.cwd() + '/openstockLog/');
-        fs.mkdir(logDir, { recursive: true }, (err) => {
-            if (err) {
-                if (err) {
-                    // eslint-disable-next-line no-console
-                    console.log('data.output err ', err);
-                }
-            }
-        });
-        fs.appendFile(logDir + '/universal-server.log', data.rawoutput + '\n', err => {
-            if (err) {
-                // eslint-disable-next-line no-console
-                console.log('raw.output err ', err);
-            }
-        });
-    }
-});
+import { mainLogger } from './back-logger';
 // This function exports a function that verifies an ObjectID.
 //
 // **Parameters:**
@@ -42,21 +16,21 @@ const verifyLogger = tracer.colorConsole({
  */
 export const verifyObjectId = (val) => {
     // Log the `val` parameter.
-    verifyLogger.info('val for verifyObjectId', val);
+    mainLogger.info('val for verifyObjectId', val);
     if (!val) {
-        verifyLogger.info('no val');
+        mainLogger.info('no val');
         return false;
     }
     // Check if the `val` parameter is a valid ObjectID.
     const isValid = Types.ObjectId.isValid(val.toString());
     // Log the `isValid` variable.
-    verifyLogger.debug('isValid from verifyObjectId', isValid);
+    mainLogger.debug('isValid from verifyObjectId', isValid);
     // If the `val` parameter is not a valid ObjectID, then return `false`.
     if (!isValid) {
         return false;
     }
     // Create a new ObjectID from the `val` parameter.
-    const objectId = new Types.ObjectId(val);
+    const objectId = new Types.ObjectId(val.toString());
     // Check if the string representation of the new ObjectID is equal to the `val` parameter.
     return objectId.toString() === val;
 };
@@ -68,7 +42,7 @@ export const verifyObjectId = (val) => {
  */
 export const verifyObjectIds = (vals) => {
     const foundInvalid = vals.find(id => {
-        const isValid = verifyObjectId(id);
+        const isValid = verifyObjectId(id.toString());
         if (isValid) {
             return id;
         }

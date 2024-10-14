@@ -1,13 +1,15 @@
-import { createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
+import { connectDatabase, createExpireDocIndex, isDbConnected, mainConnection, mainConnectionLean, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj } from '@open-stock/stock-universal-server';
 import { Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 /** Schema definition for invoicesReport */
 const invoicesReportSchema = new Schema({
     ...withUrIdAndCompanySchemaObj,
-    totalAmount: { type: Number },
+    totalAmount: {
+        type: Number,
+        min: [0, 'cannot be less than 0.']
+    },
     date: { type: Date },
-    invoices: [],
+    invoices: [Schema.Types.ObjectId],
     currency: { type: String, default: 'USD' }
 }, { timestamps: true, collection: 'invoicesreports' });
 invoicesReportSchema.pre('updateOne', function (next) {
@@ -46,8 +48,8 @@ export const invoicesReportSelect = invoicesReportselect;
  */
 export const createInvoicesReportModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     createExpireDocIndex(invoicesReportSchema);
-    if (!isStockDbConnected) {
-        await connectStockDatabase(dbUrl, dbOptions);
+    if (!isDbConnected) {
+        await connectDatabase(dbUrl, dbOptions);
     }
     if (main) {
         invoicesReportMain = mainConnection

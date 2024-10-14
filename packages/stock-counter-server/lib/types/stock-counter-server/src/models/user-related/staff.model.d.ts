@@ -23,12 +23,13 @@
 /// <reference types="mongoose/types/virtuals" />
 /// <reference types="mongoose/types/inferschematype" />
 import { Istaff } from '@open-stock/stock-universal';
+import { IcompanyIdAsObjectId } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model } from 'mongoose';
 /**
  * Represents a staff member.
  * @typedef {Document & Istaff} Tstaff
  */
-export type Tstaff = Document & Istaff;
+export type Tstaff = Document & Istaff & IcompanyIdAsObjectId;
 /**
  * The main staff model.
  */

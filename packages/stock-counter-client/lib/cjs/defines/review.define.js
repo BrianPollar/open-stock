@@ -50,9 +50,9 @@ class Review extends stock_universal_1.DatabaseAuto {
         const count = await (0, rxjs_1.lastValueFrom)(observer$);
         return count;
     }
-    static async getOne(_id) {
+    static async getOne(urIdOr_id) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makeGet(`/review/one/${_id}`);
+            .makeGet(`/review/one/${urIdOr_id}`);
         const review = await (0, rxjs_1.lastValueFrom)(observer$);
         return new Review(review);
     }

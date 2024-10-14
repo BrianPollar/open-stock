@@ -35,9 +35,9 @@ class ExpenseReport extends stock_universal_1.DatabaseAuto {
             expensereports: expensereports.data.map((val) => new ExpenseReport(val))
         };
     }
-    static async getOne(urId) {
+    static async getOne(urIdOr_id) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makeGet(`/expensereport/one/${urId}`);
+            .makeGet(`/expensereport/one/${urIdOr_id}`);
         const expensereport = await (0, rxjs_1.lastValueFrom)(observer$);
         return new ExpenseReport(expensereport);
     }

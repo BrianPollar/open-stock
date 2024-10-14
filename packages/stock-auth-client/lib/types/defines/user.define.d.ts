@@ -20,7 +20,7 @@ export declare class User extends DatabaseAuto {
     permissions: Iuserperm;
     phone: number;
     amountDue: number;
-    readonly currency: string;
+    readonly currency?: string;
     manuallyAdded: boolean;
     online: boolean;
     salutation: string;
@@ -41,9 +41,9 @@ export declare class User extends DatabaseAuto {
     static getOne(urId: string): Promise<User>;
     static add(user: Partial<Iuser>, files?: Ifile[]): Promise<Isuccess>;
     static removeMany(vals: IdeleteMany): Promise<Isuccess>;
-    update(vals: Iuser, files?: Ifile[]): Promise<Isuccess>;
+    update(vals: Partial<Iuser>, files?: Ifile[]): Promise<Isuccess>;
     modifyPermissions(permissions: Iuserperm): Promise<Isuccess>;
     remove(): Promise<Isuccess>;
     removeImages(filesWithDir: IfileMeta[]): Promise<Isuccess>;
-    appendUpdate(data: Partial<Iuser>): void;
+    appendUpdate(data: Iuser): void;
 }

@@ -1,6 +1,6 @@
 import {
   Iauthresponse, Icompany, IcustomRequest, IcustomRequestSocial, IdataArrayResponse, IdeleteMany, IdeleteOne,
-  IfileMeta, IfilterAggResponse, IfilterProps, Isuccess, Iuser, Iuserperm,
+  IfileMeta, IfilterAggResponse, IfilterProps, IsubscriptionPackage, Iuser, Iuserperm,
   TuserType,
   makeRandomString,
   subscriptionPackages
@@ -13,27 +13,23 @@ import {
   deleteFiles,
   fileMetaLean,
   generateUrId,
-  lookupLimit,
-  lookupOffset,
-  lookupSort,
+  handleMongooseErr,
+  lookupFacet,
+  lookupPhotos,
   lookupTrackEdit,
   lookupTrackView,
-  makeCompanyBasedQuery,
+  mainLogger, makeCompanyBasedQuery,
   offsetLimitRelegator,
   requireAuth,
   roleAuthorisation,
-  saveMetaToDb,
-  stringifyMongooseErr, uploadFiles,
+  saveMetaToDb, uploadFiles,
   verifyObjectId,
   verifyObjectIds
 } from '@open-stock/stock-universal-server';
 import express, { NextFunction, Request, Response } from 'express';
-import * as fs from 'fs';
-import mongoose, { Model } from 'mongoose';
-import path from 'path';
-import * as tracer from 'tracer';
-import { companyLean, companyMain } from '../models/company.model';
-import { companySubscriptionMain } from '../models/subscriptions/company-subscription.model';
+import mongoose, { Error, Model } from 'mongoose';
+import { Tcompany, companyLean, companyMain } from '../models/company.model';
+import { TcompanySubscription, companySubscriptionMain } from '../models/subscriptions/company-subscription.model';
 import { Tuser, user, userAuthSelect, userLean } from '../models/user.model';
 import { stockAuthConfig } from '../stock-auth-local';
 import {
@@ -59,34 +55,6 @@ const passport = require('passport');
  * Router for authentication routes.
  */
 export const userAuthRoutes = express.Router();
-
-/**
- * Logger for authentication routes.
- */
-const authLogger = tracer.colorConsole({
-  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-  dateformat: 'HH:MM:ss.L',
-  transport(data) {
-    // eslint-disable-next-line no-console
-    console.log(data.output);
-    const logDir = path.join(process.cwd() + '/openstockLog/');
-
-    fs.mkdir(logDir, { recursive: true }, (err) => {
-      if (err) {
-        if (err) {
-          // eslint-disable-next-line no-console
-          console.log('data.output err ', err);
-        }
-      }
-    });
-    fs.appendFile(logDir + '/auth-server.log', data.rawoutput + '\n', err => {
-      if (err) {
-        // eslint-disable-next-line no-console
-        console.log('raw.output err ', err);
-      }
-    });
-  }
-});
 
 interface ImodelsCred {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -148,9 +116,11 @@ export const determineUsersToRemove = (
     const promises = manay.map(async(val) => {
       const canRemove = await canRemoveOneUser(val.user, linkedModels);
 
-      return Promise.resolve({ ...canRemove, ...val });
+      return new Promise(resolve => {
+        resolve({ ...canRemove, ...val });
+      });
     });
-    const all = await Promise.all(promises);
+    const all = await Promise.all(promises) as (IuserLinkedInMoreModels & {user: string; _id: string})[];
     const newIds = all.filter(val => val.success && val.user).map(val => val._id.toString());
     const newUserIds = all.filter(val => val.success).map(val => val.user);
 
@@ -176,7 +146,7 @@ export const canRemoveOneUser = async(
     if (found) {
       toReturnMsg = val.errMsg;
     } else {
-      toReturnMsg = null;
+      toReturnMsg = '';
     }
 
     return new Promise(resolve => resolve(toReturnMsg));
@@ -199,13 +169,14 @@ export const canRemoveOneUser = async(
   };
 };
 
+// eslint-disable-next-line max-statements
 export const signupFactorRelgator = async(
   req: IcustomRequest<never, {
     emailPhone: string; passwd: string; firstName: string; lastName: string; userType: TuserType; foundUser?: Iuser;}>,
   res: Response,
   next: NextFunction
 ) => {
-  authLogger.info('signupFactorRelgator');
+  mainLogger.info('signupFactorRelgator');
   const { emailPhone } = req.body;
   const userType: TuserType = req.body.userType || 'eUser';
   const passwd = req.body.passwd;
@@ -214,7 +185,7 @@ export const signupFactorRelgator = async(
   let query;
   let isPhone: boolean;
 
-  authLogger.debug(`signup, 
+  mainLogger.debug(`signup, 
     emailPhone: ${emailPhone}`);
 
   if (isNaN(Number(emailPhone))) {
@@ -256,11 +227,12 @@ export const signupFactorRelgator = async(
     return res.status(200).send(response);
   }
 
-
   let permissions: Iuserperm;
   const expireAt = Date.now();
-  let company;
-  let savedSub;
+  let company: Tcompany | Error;
+  let savedSub: TcompanySubscription | Error;
+  let companyId = '';
+  let companySubcripnId = '';
 
   if (userType === 'company') {
     const companyUrId = await generateUrId(companyMain);
@@ -276,24 +248,21 @@ export const signupFactorRelgator = async(
       expireAt,
       countryCode: '+256'
     });
-    let savedErr: string;
 
-    company = await newCompany.save().catch(err => {
-      authLogger.error('save error', err);
-      savedErr = err;
+    company = await newCompany.save().catch((err: Error) => err);
 
-      return err;
-    });
+    if (company instanceof Error) {
+      const errResponse = handleMongooseErr(company);
+
+      return res.status(errResponse.status).send(errResponse);
+    }
 
     if (company && company._id) {
+      companyId = company._id.toString();
       addParentToLocals(res, company._id, user.collection.collectionName, 'makeTrackEdit');
     }
 
-    if (savedErr) {
-      return res.status(500).send({ success: false });
-    }
-
-    const freePkg = subscriptionPackages[3];
+    const freePkg = subscriptionPackages[3] as Required<IsubscriptionPackage>;
     const startDate = new Date();
     const now = new Date();
     const endDate = now.setDate(now.getDate() + getDays(freePkg.duration));
@@ -309,14 +278,17 @@ export const signupFactorRelgator = async(
       features: freePkg.features
     });
 
-    savedSub = await newSub.save().catch(err => {
-      authLogger.error('save error', err);
-      savedErr = err;
+    savedSub = await newSub.save().catch((err: Error) => err);
 
-      return null;
-    });
-    if (savedErr) {
-      return res.status(500).send({ success: false });
+    if (savedSub instanceof Error) {
+      const errResponse = handleMongooseErr(savedSub);
+
+      return res.status(errResponse.status).send(errResponse);
+    }
+
+    if (savedSub && savedSub._id) {
+      companySubcripnId = savedSub._id.toString();
+      addParentToLocals(res, savedSub._id, user.collection.collectionName, 'makeTrackEdit');
     }
   } else {
     permissions = {
@@ -328,7 +300,7 @@ export const signupFactorRelgator = async(
   const urId = await generateUrId(user);
   const name = 'user ' + makeRandomString(11, 'letters');
   const newUser = new user({
-    companyId: company._id || null,
+    companyId,
     urId,
     fname: name,
     lname: name,
@@ -341,67 +313,50 @@ export const signupFactorRelgator = async(
     userType
   });
 
-  let response: Iauthresponse = {
-    success: true
-  };
+  const savedRes = await newUser.save().catch((err: Error) => err);
 
-  const saved = await newUser.save().catch(err => {
-    authLogger.error(`mongosse registration 
-    validation error, ${err}`);
-    response = {
-      status: 403,
-      success: false
-    };
-    if (err && err.errors) {
-      response.err = stringifyMongooseErr(err.errors);
-    } else {
-      response.err = `we are having problems connecting to our databases, 
-      try again in a while`;
-    }
+  if (savedRes instanceof Error) {
+    const errResponse = handleMongooseErr(savedRes);
 
-    return err;
-  });
-
-  if (!response.success) {
-    return res.status(response.status).send(response);
+    return res.status(errResponse.status).send(errResponse);
   }
 
-  if (savedSub && savedSub._id) {
-    addParentToLocals(res, savedSub._id, user.collection.collectionName, 'makeTrackEdit');
-  }
+  if (companyId) {
+    const companyUpdateRes = await companyMain.updateOne({
+      _id: companyId
+    }, {
+      $set: {
+        owner: savedRes._id
+      }
+    }).catch((err: Error) => err);
 
-  if (company) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    company.owner = (saved)._id;
-    let savedErr: string;
+    if (companyUpdateRes instanceof Error) {
+      const errResponse = handleMongooseErr(companyUpdateRes);
 
-    await company.save().catch(err => {
-      authLogger.error('save error', err);
-      savedErr = err;
-
-      return null;
-    });
-    if (savedErr) {
-      return res.status(500).send({ success: false });
+      return res.status(errResponse.status).send(errResponse);
     }
   }
 
   // note now is only token but build a counter later to make sure that the token and link methods are shared
   const type = 'token';
 
+  let response: Iauthresponse = {
+    success: false
+  };
+
   if (isPhone) {
-    response = await sendTokenPhone(saved);
+    response = await sendTokenPhone(savedRes);
   } else {
-    response = await sendTokenEmail(saved as unknown as Iuser, type, stockAuthConfig.localSettings.appOfficialName);
+    response = await sendTokenEmail(savedRes as unknown as Iuser, type, stockAuthConfig.localSettings.appOfficialName);
   }
 
   if (!response.success) {
-    await user.deleteOne({ _id: (saved)._id });
-    if (company) {
-      await companyMain.deleteOne({ _id: company._id });
+    await user.deleteOne({ _id: savedRes._id });
+    if (companyId) {
+      await companyMain.deleteOne({ _id: companyId });
     }
-    if (savedSub) {
-      await companySubscriptionMain.deleteOne({ _id: savedSub._id });
+    if (companySubcripnId) {
+      await companySubscriptionMain.deleteOne({ _id: companySubcripnId });
     }
 
     return res.status(200).send(response);
@@ -410,7 +365,7 @@ export const signupFactorRelgator = async(
     const toReturn: Iauthresponse = {
       success: true,
       msg: response.msg,
-      _id: (saved)._id
+      _id: savedRes._id
     };
 
     return res.status(200).send(toReturn);
@@ -424,7 +379,7 @@ export const signupFactorRelgator = async(
 };
 
 export const userLoginRelegator = async(req: Request, res: Response, next: NextFunction) => {
-  authLogger.info('userLoginRelegator');
+  mainLogger.info('userLoginRelegator');
   const { emailPhone, userType } = req.body;
   const { query } = determineIfIsPhoneAndMakeFilterObj(emailPhone);
   let { foundUser } = req.body;
@@ -446,7 +401,7 @@ export const userLoginRelegator = async(req: Request, res: Response, next: NextF
       .lean()
     // .select(userAuthSelect)
       .catch(err => {
-        authLogger.error(
+        mainLogger.error(
           'Find user projection err',
           err
         );
@@ -465,8 +420,8 @@ export const userLoginRelegator = async(req: Request, res: Response, next: NextF
 
   const responseObj = await makeUserReturnObject(foundUser);
 
+  responseObj.success = true;
   const nowResponse: Iauthresponse = {
-    success: true,
     ...responseObj
   };
 
@@ -474,11 +429,11 @@ export const userLoginRelegator = async(req: Request, res: Response, next: NextF
 };
 
 const reoveUploadedFiles = async(
-  parsed: { profilePic?: string; coverPic?: string; newPhotos?: string[] },
+  parsed: { profilePic?: string; coverPic?: string; newPhotos?: string[] | IfileMeta[] },
   directlyRemove: boolean
 ) => {
-  authLogger.info('reoveUploadedFiles');
-  let _ids = [];
+  mainLogger.info('reoveUploadedFiles');
+  let _ids: string[] = [];
 
   if (parsed.profilePic) {
     _ids.push(parsed.profilePic);
@@ -489,7 +444,15 @@ const reoveUploadedFiles = async(
   }
 
   if (parsed.newPhotos) {
-    _ids = [..._ids, ...parsed.newPhotos];
+    const newPhotos = parsed.newPhotos.map(val => {
+      if (typeof val === 'string') {
+        return val;
+      } else {
+        return val._id;
+      }
+    });
+
+    _ids = [..._ids, ...newPhotos];
   }
   if (_ids.length === 0) {
     return true;
@@ -506,11 +469,14 @@ const reoveUploadedFiles = async(
 
 export const addUser = async(
   req: IcustomRequest<never, {
-    user: Iuser; profilePic?: string; coverPic?: string; newPhotos?: string[];
+    user?: Iuser; profilePic?: string; coverPic?: string; newPhotos?: string[] | IfileMeta[];
   }>,
   res: Response, next: NextFunction
 ) => {
-  authLogger.info('adding user');
+  if (!req.body.user) {
+    return res.status(401).send({ success: false, err: 'unauthourised' });
+  }
+  mainLogger.info('adding user');
   const userData = req.body.user;
   const parsed = req.body;
 
@@ -550,47 +516,33 @@ export const addUser = async(
 
   userData.urId = await generateUrId(user);
   const newUser = new user(userData);
-  let status = 200;
-  let response: Iauthresponse = { success: true };
-  const savedUser = await newUser.save().catch((err) => {
-    status = 403;
-    const errResponse: Isuccess = {
-      success: false
-    };
+  const savedUserRes = await newUser.save().catch((err: Error) => err);
 
-    if (err && err.errors) {
-      errResponse.err = stringifyMongooseErr(err.errors);
-    } else {
-      errResponse.err = `we are having problems connecting to our databases, 
-      try again in a while`;
-    }
-    response = errResponse;
-  });
+  if (savedUserRes instanceof Error) {
+    const errResponse = handleMongooseErr(savedUserRes);
 
-  if (savedUser && savedUser._id) {
-    addParentToLocals(res, savedUser._id, user.collection.collectionName, 'makeTrackEdit');
+    return res.status(errResponse.status).send(errResponse);
   }
 
-  if (!response.err && savedUser) {
-    response = {
-      success: true,
-      _id: savedUser._id
-    };
-    req.body.user = savedUser;
-
-    return next();
+  if (savedUserRes && savedUserRes._id) {
+    addParentToLocals(res, savedUserRes._id, user.collection.collectionName, 'makeTrackEdit');
   }
 
-  return res.status(status).send(response);
+  req.body.user = savedUserRes;
+
+  return next();
 };
 
 export const updateUserBulk = async(
-  req: IcustomRequest<never, {
-    user: Iuser; profilePic?: string; coverPic?: string; newPhotos?: string[] | IfileMeta[]; profileOnly: string;
-  }>,
+  req: IcustomRequest<never, Partial<{
+    user?: Iuser; profilePic?: string; coverPic?: string; newPhotos?: string[] | IfileMeta[]; profileOnly?: string;
+  }>>,
   res: Response,
   next: NextFunction
 ) => {
+  if (!req.body.user || !req.user) {
+    return res.status(401).send({ success: false, err: 'unauthourised' });
+  }
   const updatedUser = req.body.user;
   const { filter } = makeCompanyBasedQuery(req);
 
@@ -648,7 +600,6 @@ export const updateUserBulk = async(
       foundUser.photos = [...oldPhotos, ...parsed.newPhotos] as string[];
     }
   }
-  delete updatedUser._id;
 
   const keys = Object.keys(updatedUser);
 
@@ -660,45 +611,36 @@ export const updateUserBulk = async(
       key !== 'email' &&
       key !== 'phone' &&
       key !== 'companyId' &&
-      key !== 'userType') {
+      key !== 'userType' &&
+      key !== '_id'
+    ) {
       foundUser[key] = updatedUser[key] || foundUser[key];
     }
   });
 
-  const status = 200;
-  let response: Iauthresponse = { success: true };
+  const savedUserRes = await foundUser.save().catch((err: Error) => err);
 
-  const savedUser = await foundUser.save().catch((err) => {
-    const errResponse: Isuccess = {
-      success: false
-    };
+  if (savedUserRes instanceof Error) {
+    const errResponse = handleMongooseErr(savedUserRes);
 
-    if (err && err.errors) {
-      errResponse.err = stringifyMongooseErr(err.errors);
-    } else {
-      errResponse.err = `we are having problems connecting to our databases, 
-      try again in a while`;
-    }
-    response = errResponse;
-
-    return err;
-  });
-
-  if (response.success) {
-    req.body.user = savedUser as Iuser;
-
-    return next();
+    return res.status(errResponse.status).send(errResponse);
   }
 
-  return res.status(status).send(response);
+  req.body.user = savedUserRes as Iuser;
+
+  return next();
 };
 
 export const removeOneUser = async(
-  req: IcustomRequest<never, { _id: string; userId: string }>,
+  req: IcustomRequest<never, { _id?: string; userId?: string }>,
   res: Response,
   next: NextFunction
 ) => {
   const _id = req.body.userId || req.body._id;
+
+  if (!_id) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
 
   const isValid = verifyObjectIds([_id]);
 
@@ -710,33 +652,43 @@ export const removeOneUser = async(
     .populate([populatePhotos() ])
     .lean();
 
+  if (!found) {
+    return res.status(404).send({ success: false, status: 404, err: 'not found' });
+  }
+
   if (found) {
     if (found.userType === 'eUser') {
       return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
-    const filesWithDir = found.photos.map(photo => (
-      {
-        _id: photo._id,
-        url: photo.url
-      }
-    ));
 
-    await deleteAllFiles(filesWithDir);
+    if (found.photos) {
+      const filesWithDir = found.photos.map(photo => (
+        {
+          _id: photo._id,
+          url: photo.url
+        }
+      )) as IfileMeta[];
+
+      await deleteAllFiles(filesWithDir);
+    }
   }
 
   /* const deleted = await user
     .findOneAndDelete({ _id, }); */
 
-  const deleted = await user
-    .updateOne({ _id }, { $set: { isDeleted: true } });
+  const updateRes = await user
+    .updateOne({ _id }, { $set: { isDeleted: true } })
+    .catch((err: Error) => err);
 
-  if (Boolean(deleted)) {
-    addParentToLocals(res, _id, user.collection.collectionName, 'makeTrackEdit');
+  if (updateRes instanceof Error) {
+    const errResponse = handleMongooseErr(updateRes);
 
-    return next();
-  } else {
-    return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
+    return res.status(errResponse.status).send(errResponse);
   }
+
+  addParentToLocals(res, _id, user.collection.collectionName, 'makeTrackEdit');
+
+  return next();
 };
 
 export const removeManyUsers = async(
@@ -744,14 +696,14 @@ export const removeManyUsers = async(
   res: Response,
   next: NextFunction
 ) => {
-  const ids = req.body?.userIds.length ? req.body.userIds : req.body._ids;
+  const ids = req.body?.userIds?.length ? req.body.userIds : req.body._ids;
   const isValid = verifyObjectIds([...ids]);
 
   if (!isValid) {
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
 
-  let filesWithDir: IfileMeta[];
+  let filesWithDir: IfileMeta[] = [];
   const alltoDelete = await user.find({ _id: { $in: ids } })
     .populate([
       populateProfilePic(true),
@@ -759,44 +711,36 @@ export const removeManyUsers = async(
     .lean();
 
   for (const user of alltoDelete) {
-    if (user.photos?.length > 0) {
+    if (user.photos && user.photos?.length > 0) {
       filesWithDir = [...filesWithDir, ...user.photos as IfileMeta[]];
     }
   }
 
   await deleteAllFiles(filesWithDir);
 
-  /* const deleted = await user
-      .deleteMany({  _id: { $in: newUserIds } })
-      .catch(err => {
-        localUserRoutesLogger.error('deletemany - err: ', err);
-
-        return null;
-      }); */
-
-  const deleted = await user
+  const updateRes = await user
     .updateMany({ _id: { $in: ids } }, {
       $set: { isDeleted: true }
     })
-    .catch(err => {
-      authLogger.error('deletemany - err: ', err);
+    .catch((err: Error) => err);
 
-      return null;
-    });
+  if (updateRes instanceof Error) {
+    const errResponse = handleMongooseErr(updateRes);
 
-
-  if (!Boolean(deleted)) {
-    return res.status(405).send({
-      success: Boolean(deleted), err: 'could not delete selected items, try again in a while' });
+    return res.status(errResponse.status).send(errResponse);
   }
+
   next();
 };
 
 export const socialLogin = (provider: string) => {
   return async(req: IcustomRequestSocial, res) => {
+    if (!req.user) {
+      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const userProp = req.user;
 
-    authLogger.debug(`sociallogin, 
+    mainLogger.debug(`sociallogin, 
     provider: ${provider}`);
 
     const foundUser = await user.findOne({ email: userProp.email });
@@ -815,89 +759,64 @@ export const socialLogin = (provider: string) => {
         verified: true,
         socialAuthFrameworks: [{ providerName: provider, id: userProp.id }],
         profilepic: {
-          url: userProp.photo as string
+          url: userProp.photo
         },
         countryCode: +256
       });
 
-      let errResponse: Isuccess;
+      const nUserRes = await newUser.save().catch((err: Error) => err);
 
-      const nUser = await newUser.save().catch(err => {
-        errResponse = {
-          success: false,
-          status: 403
-        };
-        if (err && err.errors) {
-          errResponse.err = stringifyMongooseErr(err.errors);
-        } else {
-          errResponse.err = `we are having problems connecting to our databases, 
-          try again in a while`;
-        }
+      if (nUserRes instanceof Error) {
+        const errResponse = handleMongooseErr(nUserRes);
 
-        return err;
+        return res.status(errResponse.status).send(errResponse);
+      }
+
+      if (nUserRes && nUserRes._id) {
+        addParentToLocals(res, nUserRes._id, user.collection.collectionName, 'makeTrackEdit');
+      }
+
+      return res.status(200).send({
+        success: true,
+        user: nUserRes.toAuthJSON()
       });
-
-      if (nUser && nUser._id) {
-        addParentToLocals(res, nUser._id, user.collection.collectionName, 'makeTrackEdit');
-      }
-
-      if (errResponse) {
-        return res.status(403).send(errResponse);
-      } else {
-        return res.status(200).send({
-          success: true,
-          user: nUser.toAuthJSON()
-        });
-      }
     } else {
-      const file: IfileMeta = {
+      /* TODO const file: Partial<IfileMeta> = {
         url: userProp.photo
       };
 
-      foundUser.profilePic = file;
+      foundUser.profilePic = file; */
+
       const socialAuthFrameworks = foundUser.socialAuthFrameworks;
-      const found = socialAuthFrameworks.find(saf => saf.providerName === 'google');
+      const found = socialAuthFrameworks?.find(saf => saf.providerName === 'google');
 
       if (!found) {
-        socialAuthFrameworks.push({ providerName: 'google', id: userProp.id });
+        socialAuthFrameworks?.push({ providerName: 'google', id: userProp.id });
       }
 
       foundUser.socialAuthFrameworks = socialAuthFrameworks;
-      let status = 200;
-      let response: Iauthresponse = { success: true };
+      const savedUserRes = await foundUser.save().catch((err: Error) => err);
 
-      await foundUser.save().catch(err => {
-        status = 403;
-        const errResponse: Isuccess = {
-          success: false
-        };
+      if (savedUserRes instanceof Error) {
+        const errResponse = handleMongooseErr(savedUserRes);
 
-        if (err && err.errors) {
-          errResponse.err = stringifyMongooseErr(err.errors);
-        } else {
-          errResponse.err = `we are having problems connecting to our databases, 
-          try again in a while`;
-        }
-        response = errResponse;
-
-        return err;
-      });
-
-      if (status === 200) {
-        response = {
-          success: true,
-          user: foundUser.toAuthJSON() as Iuser
-        };
-
-        return res.status(200).send(response);
-      } else {
-        return res.status(403).send(response);
+        return res.status(errResponse.status).send(errResponse);
       }
+
+      const response = {
+        success: true,
+        user: foundUser.toAuthJSON() as Iuser
+      };
+
+      return res.status(200).send(response);
     }
   };
 };
 
 userAuthRoutes.get('/authexpress2', requireAuth, async(req: IcustomRequest<never, null>, res) => {
+  if (!req.user) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   const { userId } = req.user;
   const isValid = verifyObjectId(userId);
 
@@ -913,13 +832,13 @@ userAuthRoutes.get('/authexpress2', requireAuth, async(req: IcustomRequest<never
     // .populate({ path: 'companyId', model: companyLean })
     .lean()
     .select(userAuthSelect)
-    .catch(err => {
-      authLogger.error(
-        'Find user projection err',
-        err
-      );
-      // return false;
-    });
+    .catch((err: Error) => err);
+
+  if (foundUser instanceof Error) {
+    const errResponse = handleMongooseErr(foundUser);
+
+    return res.status(errResponse.status).send(errResponse);
+  }
 
   if (!foundUser) {
     const response: Iauthresponse = {
@@ -930,7 +849,7 @@ userAuthRoutes.get('/authexpress2', requireAuth, async(req: IcustomRequest<never
     return res.status(401).send(response);
   }
 
-  if (foundUser.blocked.status === true) {
+  if (foundUser.blocked?.status === true) {
     const response: Iauthresponse = {
       success: false,
       err: `This Acccount has been blocked
@@ -943,8 +862,9 @@ userAuthRoutes.get('/authexpress2', requireAuth, async(req: IcustomRequest<never
 
   const responseObj = await makeUserReturnObject(foundUser);
 
+  responseObj.success = true;
+
   const nowResponse: Iauthresponse = {
-    success: true,
     ...responseObj
   };
 
@@ -969,7 +889,7 @@ userAuthRoutes.post('/login', async(
     filter2 = { userType: { $ne: 'customer' } };
   }
 
-  authLogger.debug(`login attempt,
+  mainLogger.debug(`login attempt,
     emailPhone: ${emailPhone}, userType: ${userType}`);
   const { query, isPhone } = determineIfIsPhoneAndMakeFilterObj(emailPhone);
   const foundUser = await user.findOne({ ...query, ...filter2 })
@@ -989,7 +909,10 @@ userAuthRoutes.post('/login', async(
 
 userAuthRoutes.get('/authexpress', requireAuth, async(req: IcustomRequest<never, null>, res, next) => {
   // req.body.from = 'user' // TODO;
-  authLogger.debug('authexpress');
+  mainLogger.debug('authexpress');
+  if (!req.user) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   const { userId } = req.user;
 
   const foundUser = await user.findOne({ _id: userId, ... { userType: { $ne: 'customer' }, verified: true } })
@@ -1021,10 +944,10 @@ userAuthRoutes.post(
 );
 
 userAuthRoutes
-  .post('/recover', async(req: IcustomRequest<never, { emailPhone: string; foundUser?: Iuser}>, res, next) => {
+  .post('/recover', async(req: IcustomRequest<never, { emailPhone: string; foundUser?: Tuser}>, res, next) => {
     const emailPhone = req.body.emailPhone;
 
-    authLogger.debug(`recover, 
+    mainLogger.debug(`recover, 
     emailphone: ${emailPhone}`);
     const { query } = determineIfIsPhoneAndMakeFilterObj(emailPhone);
 
@@ -1033,6 +956,9 @@ userAuthRoutes
         populateProfilePic(), populateProfileCoverPic(), populatePhotos(), populateTrackEdit(), populateTrackView()
       ]);
 
+    if (!foundUser) {
+      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     req.body.foundUser = foundUser;
 
     return next();
@@ -1041,10 +967,10 @@ userAuthRoutes
 userAuthRoutes.post(
   '/confirm',
   async(req: IcustomRequest<never, {
-    _id: string; verifycode: string; useField: 'email' | 'phone'; foundUser: Iuser;}>, res, next) => {
+    _id: string; verifycode: string; useField: 'email' | 'phone'; foundUser: Tuser;}>, res, next) => {
     const { _id, verifycode, useField } = req.body;
 
-    authLogger.debug(`verify, verifycode: ${verifycode}, useField: ${useField}`);
+    mainLogger.debug(`verify, verifycode: ${verifycode}, useField: ${useField}`);
     const isValid = verifyObjectIds([_id]);
 
     if (!isValid) {
@@ -1061,6 +987,10 @@ userAuthRoutes.post(
         populateProfilePic(), populateProfileCoverPic(), populatePhotos(), populateTrackEdit(), populateTrackView()
       ]);
 
+    if (!foundUser) {
+      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
+
     req.body.foundUser = foundUser;
 
     return next();
@@ -1070,10 +1000,10 @@ userAuthRoutes.post(
 
 userAuthRoutes.put(
   '/resetpaswd',
-  async(req: IcustomRequest<never, { _id: string; verifycode: string; foundUser: Iuser}>, res, next) => {
+  async(req: IcustomRequest<never, { _id: string; verifycode: string; foundUser: Tuser}>, res, next) => {
     const { _id, verifycode } = req.body;
 
-    authLogger.debug(`resetpassword, 
+    mainLogger.debug(`resetpassword, 
     verifycode: ${verifycode}`);
     const isValid = verifyObjectIds([_id]);
 
@@ -1091,6 +1021,10 @@ userAuthRoutes.put(
         populateProfilePic(), populateProfileCoverPic(), populatePhotos(), populateTrackEdit(), populateTrackView()
       ]);
 
+    if (!foundUser) {
+      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
+
     req.body.foundUser = foundUser;
 
     return next();
@@ -1103,6 +1037,9 @@ userAuthRoutes.post(
   requireAuth,
   roleAuthorisation('users', 'update'),
   async(req: IcustomRequest<{ userId: string }, unknown>, res) => {
+    if (!req.user) {
+      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const { userId } = req.params;
     const { companyId } = req.user;
 
@@ -1116,7 +1053,7 @@ userAuthRoutes.post(
     }
 
     const foundUser = await user
-      .findOneAndUpdate({ _id: userId });
+      .findOne({ _id: userId });
 
     if (!foundUser) {
       return res.status(401).send({
@@ -1125,7 +1062,20 @@ userAuthRoutes.post(
       });
     }
 
-    foundUser.verified = true;
+
+    const updateRes = await user.updateOne({
+      _id: userId
+    }, {
+      $set: {
+        verified: true
+      }
+    }).catch((err: Error) => err);
+
+    if (updateRes instanceof Error) {
+      const errResponse = handleMongooseErr(updateRes);
+
+      return res.status(errResponse.status).send(errResponse);
+    }
 
     return res.status(200).send({ success: true });
   }
@@ -1160,7 +1110,7 @@ userAuthRoutes.put(
     if (!isValid) {
       return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
-    authLogger.debug('updatepermissions');
+    mainLogger.debug('updatepermissions');
     const foundUser = await user
       .findById(_id);
 
@@ -1172,36 +1122,26 @@ userAuthRoutes.put(
     }
     foundUser.permissions = req.body || foundUser.permissions;
 
-    let status = 200;
-    let response: Isuccess = { success: true };
+    const savedRes = await foundUser.save().catch((err: Error) => err);
 
-    await foundUser.save().catch(err => {
-      status = 403;
-      const errResponse: Isuccess = {
-        success: false
-      };
+    if (savedRes instanceof Error) {
+      const errResponse = handleMongooseErr(savedRes);
 
-      if (err && err.errors) {
-        errResponse.err = stringifyMongooseErr(err.errors);
-      } else {
-        errResponse.err = `we are having problems connecting to our databases, 
-      try again in a while`;
-      }
-      response = errResponse;
-    });
+      return res.status(errResponse.status).send(errResponse);
+    }
 
-    return res.status(status).send(response);
+    return res.status(100).send({ success: true });
   }
 );
 
 userAuthRoutes.get(
-  '/one/:urId',
+  '/one/:urIdOr_id',
   requireAuth,
   roleAuthorisation('users', 'read'),
-  async(req: IcustomRequest<{ urId: string }, null>, res) => {
-    const { urId } = req.params;
+  async(req: IcustomRequest<{ urIdOr_id: string }, null>, res) => {
+    const { urIdOr_id } = req.params;
     const { filter } = makeCompanyBasedQuery(req);
-    // let companyId: string;
+    const filterwithId = verifyObjectId(urIdOr_id) ? { _id: urIdOr_id } : { urId: urIdOr_id };
 
     /* if (companyId === 'superAdmin' && companyIdParam !== 'undefined') {
     companyId = companyIdParam;
@@ -1216,7 +1156,7 @@ userAuthRoutes.get(
     }
   } */
     const oneUser = await userLean
-      .findOne({ urId, ...filter })
+      .findOne({ ...filterwithId, ...filter })
       .populate([
         populateProfilePic(), populateProfileCoverPic(), populatePhotos(), populateTrackEdit(), populateTrackView()
       ])
@@ -1252,7 +1192,7 @@ userAuthRoutes.get(
     const currOffset = offset === 0 ? 0 : offset;
     const currLimit = limit === 0 ? 1000 : limit;
 
-    authLogger.info('filter is ', filter);
+    mainLogger.info('filter is ', filter);
     const all = await Promise.all([
       userLean
         .find({ verified: true, userType: { $ne: 'company' }, ...filter })
@@ -1293,10 +1233,12 @@ userAuthRoutes.post(
   requireActiveCompany,
   roleAuthorisation('users', 'read'),
   async(req: IcustomRequest<never, IfilterProps>, res) => {
-    const { propSort } = req.body;
+    const { propSort, returnEmptyArr } = req.body;
     const { offset, limit } = offsetLimitRelegator(req.body.offset, req.body.limit);
 
     const filter = constructFiltersFromBody(req);
+
+    // TODO only admins can access verified users, blocked users
 
     const aggCursor = userLean.aggregate<IfilterAggResponse<Tuser>>([
       {
@@ -1307,20 +1249,10 @@ userAuthRoutes.post(
           ]
         }
       },
+      ...lookupPhotos(),
       ...lookupTrackEdit(),
       ...lookupTrackView(),
-      {
-        $facet: {
-          data: [...lookupSort(propSort), ...lookupOffset(offset), ...lookupLimit(limit)],
-          total: [{ $count: 'count' }]
-        }
-      },
-      {
-        $unwind: {
-          path: '$total',
-          preserveNullAndEmptyArrays: true
-        }
-      }
+      ...lookupFacet(offset, limit, propSort, returnEmptyArr)
     ]);
     const dataArr: IfilterAggResponse<Tuser>[] = [];
 
@@ -1421,6 +1353,9 @@ userAuthRoutes.put(
   roleAuthorisation('users', 'delete'),
   deleteFiles(true),
   async(req: IcustomRequest<never, { filesWithDir: IfileMeta[]; user: Partial<Iuser>}>, res) => {
+    if (!req.user) {
+      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const filesWithDir: IfileMeta[] = req.body.filesWithDir;
     const { companyId } = req.user;
 
@@ -1431,13 +1366,21 @@ userAuthRoutes.put(
     const updatedUser = req.body.user;
 
     const { _id } = updatedUser;
-    const isValid = verifyObjectIds([_id, companyId]);
+
+    if (_id) {
+      const isValid = verifyObjectIds([_id]);
+
+      if (!isValid) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+      }
+    }
+    const isValid = verifyObjectIds([companyId]);
 
     if (!isValid) {
       return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
     }
     const foundUser = await user
-      .findOneAndUpdate({ _id });
+      .findOne({ _id });
 
     if (!foundUser) {
       return res.status(404).send({ success: false, err: 'item not found' });
@@ -1446,29 +1389,26 @@ userAuthRoutes.put(
     const filesWithDirIds = filesWithDir
       .map(val => val._id);
 
-    foundUser.photos = photos
-      .filter((p: string) => !filesWithDirIds.includes(p)) as string[];
-    foundUser.profilePic = foundUser.photos.find(p => p === foundUser.profilePic);
-    foundUser.profileCoverPic = foundUser.photos.find(p => p === foundUser.profileCoverPic);
-    let errResponse: Isuccess;
-
-    await foundUser.save().catch(err => {
-      errResponse = {
-        success: false,
-        status: 403
-      };
-      if (err && err.errors) {
-        errResponse.err = stringifyMongooseErr(err.errors);
-      } else {
-        errResponse.err = `we are having problems connecting to our databases, 
-      try again in a while`;
+    const updateRes = await user.updateOne({
+      _id
+    }, {
+      $set: {
+        photos: photos?.filter((p) => {
+          if (typeof p === 'string') {
+            return !filesWithDirIds.includes(p);
+          } else {
+            return !filesWithDirIds.includes(p._id);
+          }
+        }),
+        profilePic: foundUser.photos?.find(p => p === foundUser.profilePic),
+        profileCoverPic: foundUser.photos?.find(p => p === foundUser.profileCoverPic)
       }
+    }).catch((err: Error) => err);
 
-      return errResponse;
-    });
+    if (updateRes instanceof Error) {
+      const errResponse = handleMongooseErr(updateRes);
 
-    if (errResponse) {
-      return res.status(403).send(errResponse);
+      return res.status(errResponse.status).send(errResponse);
     }
 
     return res.status(200).send({ success: true });

@@ -40,9 +40,9 @@ export class ProfitAndLossReport extends DatabaseAuto {
             profitandlossreports: profitandlossreports.data.map((val) => new ProfitAndLossReport(val))
         };
     }
-    static async getOne(urId) {
+    static async getOne(urIdOr_id) {
         const observer$ = StockCounterClient.ehttp
-            .makeGet(`/profitandlossreport/one/${urId}`);
+            .makeGet(`/profitandlossreport/one/${urIdOr_id}`);
         const profitandlossreport = await lastValueFrom(observer$);
         return new ProfitAndLossReport(profitandlossreport);
     }

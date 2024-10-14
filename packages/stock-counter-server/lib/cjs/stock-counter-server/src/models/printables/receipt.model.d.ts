@@ -22,7 +22,8 @@
 /// <reference types="mongoose/types/validation" />
 /// <reference types="mongoose/types/virtuals" />
 /// <reference types="mongoose/types/inferschematype" />
-import { IinvoiceRelatedRef } from '@open-stock/stock-universal';
+import { IinvoiceRelatedRef, TreceiptType } from '@open-stock/stock-universal';
+import { IcompanyIdAsObjectId } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model } from 'mongoose';
 /**
  * Represents a receipt document.
@@ -39,7 +40,7 @@ export type Treceipt = Document & IinvoiceRelatedRef & {
     /**
      * The type of receipt.
      */
-    type: string;
+    type: TreceiptType;
     /**
      * The date of the receipt.
      */
@@ -48,7 +49,7 @@ export type Treceipt = Document & IinvoiceRelatedRef & {
      * The total amount.
      */
     amount: number;
-};
+} & IcompanyIdAsObjectId;
 /**
  * Represents the main receipt model.
  */

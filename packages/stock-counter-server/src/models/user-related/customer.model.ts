@@ -1,25 +1,35 @@
 import { Icustomer } from '@open-stock/stock-universal';
 import {
-  createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj
+  IcompanyIdAsObjectId,
+  connectDatabase,
+  createExpireDocIndex,
+  isDbConnected, mainConnection, mainConnectionLean,
+  preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj
 } from '@open-stock/stock-universal-server';
-import { ConnectOptions, Document, Model, Schema, Types } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../utils/database';
+import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 const uniqueValidator = require('mongoose-unique-validator');
 
 /**
  * Represents a customer document in the database.
  */
-export type Tcustomer = Document & Icustomer;
+export type Tcustomer = Document & Icustomer & IcompanyIdAsObjectId;
 
 /** Defines the schema for the customer model. */
 const customerSchema: Schema<Tcustomer> = new Schema({
   ...withUrIdAndCompanySchemaObj,
-  user: { type: Types.ObjectId, unique: true, required: [true, 'cannot be empty.'], index: true },
+  user: { type: Schema.Types.ObjectId, unique: true, required: [true, 'cannot be empty.'], index: true },
   startDate: { type: Date },
-  endDate: { type: Date },
+  endDate: { type: Date,
+    validator: checkEndDate,
+    message: props => `${props.value} is invalid, must be greater than start date!`
+  },
   occupation: { type: String },
   otherAddresses: []
 }, { timestamps: true, collection: 'customers' });
+
+function checkEndDate(endDate: Date) {
+  return new Date(endDate) > new Date(this.startDate);
+}
 
 customerSchema.pre('updateOne', function(next) {
   return preUpdateDocExpire(this, next);
@@ -67,8 +77,8 @@ export const customerSelect = customerselect;
  */
 export const createCustomerModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
   createExpireDocIndex(customerSchema);
-  if (!isStockDbConnected) {
-    await connectStockDatabase(dbUrl, dbOptions);
+  if (!isDbConnected) {
+    await connectDatabase(dbUrl, dbOptions);
   }
 
   if (main) {

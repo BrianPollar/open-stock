@@ -86,7 +86,7 @@ const runStockCounterServer = async (config, paymentInstance) => {
     stockCounterRouter.use('/wallet', wallet_routes_1.walletRoutes);
     (0, stock_counter_local_1.createStockCounterServerLocals)(config.pesapalNotificationRedirectUrl, config.ecommerceRevenuePercentage);
     (0, exports.runAutoIntervaller)();
-    return Promise.resolve({ stockCounterRouter });
+    return { stockCounterRouter };
 };
 exports.runStockCounterServer = runStockCounterServer;
 /**

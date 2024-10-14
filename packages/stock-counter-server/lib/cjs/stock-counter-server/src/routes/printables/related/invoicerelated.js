@@ -1,13 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.transFormInvoiceRelatedOnStatus = exports.updateCustomerDueAmount = exports.getPaymentsTotal = exports.canMakeReceipt = exports.updateItemsInventory = exports.deleteAllLinked = exports.deleteManyInvoiceRelated = exports.makeInvoiceRelatedPdct = exports.relegateInvRelatedCreation = exports.updateInvoiceRelated = exports.updateInvoiceRelatedPayments = void 0;
-const tslib_1 = require("tslib");
 const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const stock_notif_server_1 = require("@open-stock/stock-notif-server");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
-const fs = tslib_1.__importStar(require("fs"));
-const path_1 = tslib_1.__importDefault(require("path"));
-const tracer = tslib_1.__importStar(require("tracer"));
+const mongoose_1 = require("mongoose");
 const item_model_1 = require("../../../models/item.model");
 const deliverynote_model_1 = require("../../../models/printables/deliverynote.model");
 const estimate_model_1 = require("../../../models/printables/estimate.model");
@@ -16,32 +13,6 @@ const receipt_model_1 = require("../../../models/printables/receipt.model");
 const invoicerelated_model_1 = require("../../../models/printables/related/invoicerelated.model");
 // import { pesapalNotifRedirectUrl } from '../../../stock-counter-local';
 /**
- * Logger for the 'InvoiceRelated' routes.
- */
-const invoiceRelatedLogger = tracer.colorConsole({
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-        // eslint-disable-next-line no-console
-        console.log(data.output);
-        const logDir = path_1.default.join(process.cwd() + '/openstockLog/');
-        fs.mkdir(logDir, { recursive: true }, (err) => {
-            if (err) {
-                if (err) {
-                    // eslint-disable-next-line no-console
-                    console.log('data.output err ', err);
-                }
-            }
-        });
-        fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
-            if (err) {
-                // eslint-disable-next-line no-console
-                console.log('raw.output err ', err);
-            }
-        });
-    }
-});
-/**
  * Updates the payments related to an invoice.
  *
  * @param payment - The payment object to be added.
@@ -49,49 +20,44 @@ const invoiceRelatedLogger = tracer.colorConsole({
  * @returns A promise that resolves to an object containing the success status and the ID of the saved payment.
  */
 const updateInvoiceRelatedPayments = async (payment) => {
+    if (!payment.invoiceRelated) {
+        return { success: false, status: 401, err: 'unauthourised' };
+    }
     const isValid = (0, stock_universal_server_1.verifyObjectId)(payment.invoiceRelated);
     if (!isValid) {
         return { success: false, status: 401, err: 'unauthourised' };
     }
     const related = await invoicerelated_model_1.invoiceRelatedMain
-        .findByIdAndUpdate(payment.invoiceRelated);
+        .findById(payment.invoiceRelated);
     if (!related) {
         return { success: false, err: 'invoice related not found' };
     }
     const payments = related.payments || [];
     payments.push(payment._id);
-    related.payments = payments;
     const total = await (0, exports.getPaymentsTotal)(related.payments);
     // if is not yet paid update neccesary fields
-    if (related.status !== 'paid' && total >= related.total) {
+    if (related.total && related.status !== 'paid' && total >= related.total) {
         await (0, exports.updateItemsInventory)(related);
-        await (0, exports.updateCustomerDueAmount)(related.billingUserId, related.total, true);
+        if (related.billingUserId) {
+            await (0, exports.updateCustomerDueAmount)(related.billingUserId, related.total, true);
+        }
         related.status = 'paid';
         related.balanceDue = 0;
     }
-    let errResponse;
-    const saved = await related.save()
-        .catch(err => {
-        invoiceRelatedLogger.error('updateInvoiceRelatedPayments - err: ', err);
-        errResponse = {
-            success: false,
-            status: 403
-        };
-        if (err && err.errors) {
-            errResponse.err = (0, stock_universal_server_1.stringifyMongooseErr)(err.errors);
+    const updateRes = await invoicerelated_model_1.invoiceRelatedMain.updateOne({
+        _id: payment.invoiceRelated
+    }, {
+        $set: {
+            payments,
+            status: related.status,
+            balanceDue: related.balanceDue
         }
-        else {
-            errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-        }
-        return errResponse;
-    });
-    if (errResponse) {
-        return errResponse;
+    }).catch((err) => err);
+    if (updateRes instanceof mongoose_1.Error) {
+        const errResponse = (0, stock_universal_server_1.handleMongooseErr)(updateRes);
+        return new Promise((resolve, reject) => reject(errResponse));
     }
-    else {
-        return { success: true, _id: saved._id };
-    }
+    return { success: true, _id: related._id };
 };
 exports.updateInvoiceRelatedPayments = updateInvoiceRelatedPayments;
 const updateInvoiceRelated = async (res, invoiceRelated) => {
@@ -113,8 +79,7 @@ const updateInvoiceRelated = async (res, invoiceRelated) => {
     invoiceRelated = (0, exports.transFormInvoiceRelatedOnStatus)(related, invoiceRelated);
     const oldTotal = related.total;
     const oldStatus = related.status;
-    let errResponse;
-    const saved = await invoicerelated_model_1.invoiceRelatedMain.updateOne({
+    const updateRes = await invoicerelated_model_1.invoiceRelatedMain.updateOne({
         _id: invoiceRelated.invoiceRelated
     }, {
         $set: {
@@ -137,44 +102,31 @@ const updateInvoiceRelated = async (res, invoiceRelated) => {
             currency: invoiceRelated.currency || related.currency
         }
     })
-        .catch(err => {
-        invoiceRelatedLogger.error('updateInvoiceRelated - err: ', err);
-        errResponse = {
-            success: false,
-            status: 403
-        };
-        if (err && err.errors) {
-            errResponse.err = (0, stock_universal_server_1.stringifyMongooseErr)(err.errors);
-        }
-        else {
-            errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-        }
-        return err;
-    });
-    if (errResponse) {
-        return errResponse;
+        .catch((err) => err);
+    if (updateRes instanceof mongoose_1.Error) {
+        const errResponse = (0, stock_universal_server_1.handleMongooseErr)(updateRes);
+        return new Promise((resolve, reject) => reject(errResponse));
     }
-    else {
-        const foundRelated = await invoicerelated_model_1.invoiceRelatedMain
-            .findById(invoiceRelated.invoiceRelated)
-            .lean();
-        if (oldStatus !== foundRelated.status && foundRelated.status === 'paid') {
-            await (0, exports.updateCustomerDueAmount)(foundRelated.billingUserId, oldTotal, true);
-            await (0, exports.updateItemsInventory)(foundRelated);
-        }
-        else if (foundRelated.status !== 'paid') {
-            await (0, exports.updateCustomerDueAmount)(foundRelated.billingUserId, oldTotal, true);
-            await (0, exports.updateCustomerDueAmount)(foundRelated
-                .billingUserId, foundRelated.total, false);
-        }
-        (0, stock_universal_server_1.addParentToLocals)(res, related._id, 'invoicerelateds', 'makeTrackEdit');
-        return { success: true, _id: saved._id };
+    const foundRelated = await invoicerelated_model_1.invoiceRelatedMain
+        .findById(invoiceRelated.invoiceRelated)
+        .lean();
+    if (!foundRelated || !foundRelated.billingUserId || !oldTotal) {
+        return { success: false, err: 'invoice related not found' };
     }
+    if (oldStatus !== foundRelated.status && foundRelated.status === 'paid') {
+        await (0, exports.updateCustomerDueAmount)(foundRelated.billingUserId, oldTotal, true);
+        await (0, exports.updateItemsInventory)(foundRelated);
+    }
+    else if (foundRelated.status !== 'paid' && foundRelated.total) {
+        await (0, exports.updateCustomerDueAmount)(foundRelated.billingUserId, oldTotal, true);
+        await (0, exports.updateCustomerDueAmount)(foundRelated.billingUserId, foundRelated.total, false);
+    }
+    (0, stock_universal_server_1.addParentToLocals)(res, related._id, 'invoicerelateds', 'makeTrackEdit');
+    return { success: true, _id: related._id };
 };
 exports.updateInvoiceRelated = updateInvoiceRelated;
 const relegateInvRelatedCreation = async (res, invoiceRelated, companyId, extraNotifDesc, bypassNotif = false) => {
-    invoiceRelatedLogger.debug('relegateInvRelatedCreation - invoiceRelated', invoiceRelated);
+    stock_universal_server_1.mainLogger.debug('relegateInvRelatedCreation - invoiceRelated', invoiceRelated);
     invoiceRelated.companyId = companyId;
     const isValid = (0, stock_universal_server_1.verifyObjectId)(invoiceRelated.invoiceRelated);
     let found;
@@ -184,29 +136,22 @@ const relegateInvRelatedCreation = async (res, invoiceRelated, companyId, extraN
     }
     if (!found || invoiceRelated.creationType === 'solo') {
         const newInvRelated = new invoicerelated_model_1.invoiceRelatedMain(invoiceRelated);
-        let errResponse;
-        const saved = await newInvRelated.save().catch(err => {
-            errResponse = {
-                success: false,
-                status: 403
-            };
-            if (err && err.errors) {
-                errResponse.err = (0, stock_universal_server_1.stringifyMongooseErr)(err.errors);
-            }
-            else {
-                errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-            }
-            return err;
-        });
-        if (saved && saved._id) {
-            (0, stock_universal_server_1.addParentToLocals)(res, saved._id, 'invoicerelateds', 'makeTrackEdit');
+        const savedRes = await newInvRelated.save().catch((err) => err);
+        if (savedRes instanceof mongoose_1.Error) {
+            const errResponse = (0, stock_universal_server_1.handleMongooseErr)(savedRes);
+            return new Promise((resolve, reject) => reject(errResponse));
         }
-        if (errResponse) {
-            return errResponse;
+        if (savedRes && savedRes._id) {
+            (0, stock_universal_server_1.addParentToLocals)(res, savedRes._id, 'invoicerelateds', 'makeTrackEdit');
+        }
+        if (!newInvRelated.billingUserId) {
+            return { success: false, err: 'billing user not found' };
+        }
+        if (!newInvRelated.total) {
+            return { success: false, err: 'total not found' };
         }
         await (0, exports.updateCustomerDueAmount)(newInvRelated.billingUserId, newInvRelated.total, false);
-        invoiceRelatedLogger.error('AFTER SAVE');
+        stock_universal_server_1.mainLogger.error('AFTER SAVE');
         let route;
         let title = '';
         let notifType;
@@ -265,7 +210,7 @@ const relegateInvRelatedCreation = async (res, invoiceRelated, companyId, extraN
                 filters: notifFilters
             });
         }
-        return { success: true, _id: saved._id };
+        return { success: true, _id: savedRes._id };
     }
     else {
         await (0, exports.updateInvoiceRelated)(res, invoiceRelated);
@@ -289,10 +234,14 @@ const makeInvoiceRelatedPdct = (invoiceRelated, user, createdAt, extras = {}) =>
                         user.lname + ' ' + user.fname : user.lname + ' ' + user.fname;
                     break;
                 case 'companyName':
-                    names = user.companyName;
+                    names = user.companyName || '';
                     break;
             }
         }
+    }
+    let updatedAt = invoiceRelated.updatedAt;
+    if (extras && extras.updatedAt) {
+        updatedAt = extras.updatedAt;
     }
     return {
         _id: invoiceRelated._id,
@@ -335,6 +284,7 @@ const makeInvoiceRelatedPdct = (invoiceRelated, user, createdAt, extras = {}) =>
         ecommerceSale: invoiceRelated.ecommerceSale,
         ecommerceSalePercentage: invoiceRelated.ecommerceSalePercentage,
         currency: invoiceRelated.currency,
+        updatedAt,
         ...extras
     };
 };
@@ -344,45 +294,25 @@ const deleteManyInvoiceRelated = async (_ids, companyId) => {
     if (!isValid) {
         return { success: false, statu: 401, err: 'unauthourised' };
     }
-    /* const deleted = await invoiceRelatedMain
-      .deleteMany({ _id: { $in: _ids }, companyId })
-      .catch(err => {
-        invoiceRelatedLogger.debug('deleteManyInvoiceRelated - err: ', err);
-  
-        return null;
-      }); */
-    const deleted = await invoicerelated_model_1.invoiceRelatedMain
+    const updateInvRelRes = await invoicerelated_model_1.invoiceRelatedMain
         .updateMany({ _id: { $in: _ids }, companyId }, {
         $set: { isDeleted: true }
     })
-        .catch(err => {
-        invoiceRelatedLogger.debug('deleteManyInvoiceRelated - err: ', err);
-        return null;
-    });
-    let deleted2 = true;
-    if (deleted) {
-        /* deleted2 = await receiptMain
-          .deleteMany({ invoiceRelated: { $in: _ids } })
-          .catch(err => {
-            invoiceRelatedLogger.error('deletemany Pinstalls - err: ', err);
-    
-            return null;
-          }); */
-        deleted2 = await receipt_model_1.receiptMain
-            .updateMany({ invoiceRelated: { $in: _ids } }, {
-            $set: { isDeleted: true }
-        })
-            .catch(err => {
-            invoiceRelatedLogger.error('deletemany Pinstalls - err: ', err);
-            return null;
-        });
+        .catch((err) => err);
+    if (updateInvRelRes instanceof mongoose_1.Error) {
+        const errResponse = (0, stock_universal_server_1.handleMongooseErr)(updateInvRelRes);
+        return errResponse;
     }
-    if (Boolean(deleted) && Boolean(deleted2)) {
-        return { success: true, status: 200 };
+    const updateRes = await receipt_model_1.receiptMain
+        .updateMany({ invoiceRelated: { $in: _ids } }, {
+        $set: { isDeleted: true }
+    })
+        .catch((err) => err);
+    if (updateRes instanceof mongoose_1.Error) {
+        const errResponse = (0, stock_universal_server_1.handleMongooseErr)(updateRes);
+        return errResponse;
     }
-    else {
-        return { success: false, status: 403, err: 'could not delete selected documents, try again in a while' };
-    }
+    return { success: false, status: 403, err: 'could not delete selected documents, try again in a while' };
 };
 exports.deleteManyInvoiceRelated = deleteManyInvoiceRelated;
 /**
@@ -403,7 +333,7 @@ const deleteAllLinked = async (invoiceRelated, from, companyId) => {
     if (invoiceRel.stage !== from) {
         return { success: false, err: 'cant make delete now, ' + invoiceRel.stage + 'is linked some where else' };
     }
-    let changedStage;
+    let changedStage = 'estimate';
     if (from === 'estimate') {
         /* await estimateMain.deleteOne({ invoiceRelated, companyId }); */
         await estimate_model_1.estimateMain.updateOne({ invoiceRelated, companyId }, {
@@ -492,7 +422,7 @@ const updateRelatedStage = async (_id, stage, companyId) => {
         _id, companyId
     }, {
         $set: { stage }
-    });
+    }).catch((err) => err);
     return true;
 };
 /**
@@ -515,7 +445,7 @@ const updateItemsInventory = async (related) => {
     else {
         relatedObj = related;
     }
-    const allPromises = relatedObj.items.map(async (item) => {
+    const allPromises = (relatedObj.items || []).map(async (item) => {
         const product = await item_model_1.itemMain.findOne({ _id: item });
         if (!product) {
             return false;
@@ -539,7 +469,7 @@ exports.updateItemsInventory = updateItemsInventory;
    */
 const canMakeReceipt = async (relatedId) => {
     const related = await invoicerelated_model_1.invoiceRelatedMain.findOne({ _id: relatedId });
-    if (!related) {
+    if (!related?.total) {
         return false;
     }
     const total = await (0, exports.getPaymentsTotal)(related.payments);
@@ -561,7 +491,9 @@ const getPaymentsTotal = async (payments) => {
         return paymentDoc;
     });
     const allPromises = await Promise.all(paymentsPromises);
-    return allPromises.reduce((total, payment) => total + payment.ammountRcievd, 0);
+    return allPromises
+        .filter(val => val !== null)
+        .reduce((total, payment) => total + payment.ammountRcievd, 0);
 };
 exports.getPaymentsTotal = getPaymentsTotal;
 /**
@@ -573,7 +505,7 @@ exports.getPaymentsTotal = getPaymentsTotal;
    */
 const updateCustomerDueAmount = async (userId, amount, reduce) => {
     const billingUser = await stock_auth_server_1.user.findOne({ _id: userId });
-    if (!billingUser) {
+    if (!billingUser || !billingUser.amountDue) {
         return false;
     }
     if (billingUser.amountDue > 0) {

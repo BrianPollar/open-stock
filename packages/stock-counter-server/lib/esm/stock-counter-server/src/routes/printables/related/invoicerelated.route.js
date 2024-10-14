@@ -1,36 +1,9 @@
 import { populateTrackEdit, populateTrackView, requireActiveCompany } from '@open-stock/stock-auth-server';
-import { addParentToLocals, constructFiltersFromBody, lookupLimit, lookupOffset, lookupSort, lookupTrackEdit, lookupTrackView, makeCompanyBasedQuery, offsetLimitRelegator, requireAuth, roleAuthorisation, verifyObjectIds } from '@open-stock/stock-universal-server';
+import { addParentToLocals, constructFiltersFromBody, lookupBillingUser, lookupFacet, lookupTrackEdit, lookupTrackView, makeCompanyBasedQuery, offsetLimitRelegator, requireAuth, roleAuthorisation, verifyObjectIds } from '@open-stock/stock-universal-server';
 import express from 'express';
-import * as fs from 'fs';
-import path from 'path';
-import * as tracer from 'tracer';
 import { invoiceRelatedLean } from '../../../models/printables/related/invoicerelated.model';
 import { populateBillingUser, populatePayments } from '../../../utils/query';
 import { makeInvoiceRelatedPdct, updateInvoiceRelated } from './invoicerelated';
-/** Logger for file storage */
-const fileStorageLogger = tracer.colorConsole({
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-        // eslint-disable-next-line no-console
-        console.log(data.output);
-        const logDir = path.join(process.cwd() + '/openstockLog/');
-        fs.mkdir(logDir, { recursive: true }, (err) => {
-            if (err) {
-                if (err) {
-                    // eslint-disable-next-line no-console
-                    console.log('data.output err ', err);
-                }
-            }
-        });
-        fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
-            if (err) {
-                // eslint-disable-next-line no-console
-                console.log('raw.output err ', err);
-            }
-        });
-    }
-});
 /**
  * Router for handling invoice related routes.
  */
@@ -59,16 +32,12 @@ invoiceRelateRoutes.get('/all/:offset/:limit', requireAuth, requireActiveCompany
             .skip(offset)
             .limit(limit)
             .lean()
-            .populate([populateBillingUser(), populatePayments(), populateTrackEdit(), populateTrackView()])
-            .catch(err => {
-            fileStorageLogger.error('getall - err: ', err);
-            return null;
-        }),
+            .populate([populateBillingUser(), populatePayments(), populateTrackEdit(), populateTrackView()]),
         invoiceRelatedLean.countDocuments({ ...filter })
     ]);
     const response = {
         count: all[1],
-        data: null
+        data: []
     };
     if (all[0]) {
         const returned = all[0]
@@ -86,7 +55,7 @@ invoiceRelateRoutes.get('/all/:offset/:limit', requireAuth, requireActiveCompany
     }
 });
 invoiceRelateRoutes.post('/filter', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'read'), async (req, res) => {
-    const { propSort } = req.body;
+    const { propSort, returnEmptyArr } = req.body;
     const { offset, limit } = offsetLimitRelegator(req.body.offset, req.body.limit);
     const filter = constructFiltersFromBody(req);
     const aggCursor = invoiceRelatedLean.aggregate([
@@ -98,20 +67,10 @@ invoiceRelateRoutes.post('/filter', requireAuth, requireActiveCompany, roleAutho
                 ]
             }
         },
+        ...lookupBillingUser(),
         ...lookupTrackEdit(),
         ...lookupTrackView(),
-        {
-            $facet: {
-                data: [...lookupSort(propSort), ...lookupOffset(offset), ...lookupLimit(limit)],
-                total: [{ $count: 'count' }]
-            }
-        },
-        {
-            $unwind: {
-                path: '$total',
-                preserveNullAndEmptyArrays: true
-            }
-        }
+        ...lookupFacet(offset, limit, propSort, returnEmptyArr)
     ]);
     const dataArr = [];
     for await (const data of aggCursor) {
@@ -121,7 +80,7 @@ invoiceRelateRoutes.post('/filter', requireAuth, requireActiveCompany, roleAutho
     const count = dataArr[0]?.total?.count || 0;
     const response = {
         count,
-        data: null
+        data: []
     };
     if (all) {
         const returned = all
@@ -139,6 +98,9 @@ invoiceRelateRoutes.post('/filter', requireAuth, requireActiveCompany, roleAutho
     }
 });
 invoiceRelateRoutes.put('/update', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'update'), async (req, res) => {
+    if (!req.user) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const { invoiceRelated } = req.body;
     const { companyId } = req.user;
     invoiceRelated.companyId = companyId;

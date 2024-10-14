@@ -5,36 +5,9 @@ const tslib_1 = require("tslib");
 const stock_auth_server_1 = require("@open-stock/stock-auth-server");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const express_1 = tslib_1.__importDefault(require("express"));
-const fs = tslib_1.__importStar(require("fs"));
-const path_1 = tslib_1.__importDefault(require("path"));
-const tracer = tslib_1.__importStar(require("tracer"));
 const invoicerelated_model_1 = require("../../models/printables/related/invoicerelated.model");
 const customer_model_1 = require("../../models/user-related/customer.model");
 const query_1 = require("../../utils/query");
-/** Logger for customer routes */
-const customerRoutesLogger = tracer.colorConsole({
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-        // eslint-disable-next-line no-console
-        console.log(data.output);
-        const logDir = path_1.default.join(process.cwd() + '/openstockLog/');
-        fs.mkdir(logDir, { recursive: true }, (err) => {
-            if (err) {
-                if (err) {
-                    // eslint-disable-next-line no-console
-                    console.log('data.output err ', err);
-                }
-            }
-        });
-        fs.appendFile(logDir + '/counter-server.log', data.rawoutput + '\n', err => {
-            if (err) {
-                // eslint-disable-next-line no-console
-                console.log('raw.output err ', err);
-            }
-        });
-    }
-});
 /**
    * Adds a new customer to the database.
    * @function
@@ -46,13 +19,20 @@ const customerRoutesLogger = tracer.colorConsole({
    * @returns {Promise} - Promise representing the saved customer
    */
 const addCustomer = async (req, res, next) => {
+    if (!req.user || !req.body.user || !req.body.customer || !req.body.user._id) {
+        return res.status(401).send({ success: false, err: 'unauthorised' });
+    }
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     const { customer, user } = req.body;
-    customer.user = user._id;
+    if (user._id) {
+        customer.user = user._id;
+    }
+    else {
+        return res.status(401).send({ success: false, err: 'unauthorised' });
+    }
     customer.companyId = filter.companyId;
     customer.urId = await (0, stock_universal_server_1.generateUrId)(customer_model_1.customerMain);
     const newCustomer = new customer_model_1.customerMain(customer);
-    let errResponse;
     /**
      * Saves a new customer to the database.
      * @function
@@ -61,28 +41,13 @@ const addCustomer = async (req, res, next) => {
      * @param {Customer} newCustomer - The new customer to be saved.
      * @returns {Promise} - Promise representing the saved customer
      */
-    const saved = await newCustomer.save()
-        .catch(err => {
-        customerRoutesLogger.error('create - err: ', err);
-        errResponse = {
-            success: false,
-            status: 403
-        };
-        if (err && err.errors) {
-            errResponse.err = (0, stock_universal_server_1.stringifyMongooseErr)(err.errors);
-        }
-        else {
-            errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-        }
-        return err;
-    });
-    if (errResponse) {
-        return res.status(403).send(errResponse);
+    const savedRes = await newCustomer.save()
+        .catch((err) => err);
+    if (savedRes instanceof Error) {
+        const errResponse = (0, stock_universal_server_1.handleMongooseErr)(savedRes);
+        return res.status(errResponse.status).send(errResponse);
     }
-    if (saved && saved._id) {
-        (0, stock_universal_server_1.addParentToLocals)(res, saved._id, customer_model_1.customerMain.collection.collectionName, 'makeTrackEdit');
-    }
+    (0, stock_universal_server_1.addParentToLocals)(res, savedRes._id, customer_model_1.customerMain.collection.collectionName, 'makeTrackEdit');
     return next();
 };
 exports.addCustomer = addCustomer;
@@ -106,8 +71,7 @@ const updateCustomer = async (req, res) => {
     if (!customer) {
         return res.status(404).send({ success: false });
     }
-    let errResponse;
-    const updated = await customer_model_1.customerMain.updateOne({
+    const updateRes = await customer_model_1.customerMain.updateOne({
         _id: updatedCustomer._id, ...filter
     }, {
         $set: {
@@ -118,26 +82,13 @@ const updateCustomer = async (req, res) => {
             isDeleted: updatedCustomer.isDeleted || customer.isDeleted
         }
     })
-        .catch(err => {
-        customerRoutesLogger.error('update - err: ', err);
-        errResponse = {
-            success: false,
-            status: 403
-        };
-        if (err && err.errors) {
-            errResponse.err = (0, stock_universal_server_1.stringifyMongooseErr)(err.errors);
-        }
-        else {
-            errResponse.err = `we are having problems connecting to our databases, 
-        try again in a while`;
-        }
-        return errResponse;
-    });
-    if (errResponse) {
-        return res.status(403).send(errResponse);
+        .catch((err) => err);
+    if (updateRes instanceof Error) {
+        const errResponse = (0, stock_universal_server_1.handleMongooseErr)(updateRes);
+        return res.status(errResponse.status).send(errResponse);
     }
     (0, stock_universal_server_1.addParentToLocals)(res, customer._id, customer_model_1.customerMain.collection.collectionName, 'makeTrackEdit');
-    return res.status(200).send({ success: Boolean(updated) });
+    return res.status(200).send({ success: true });
 };
 exports.updateCustomer = updateCustomer;
 /**
@@ -147,7 +98,10 @@ exports.customerRoutes = express_1.default.Router();
 exports.customerRoutes.post('/add', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_auth_server_1.requireCanUseFeature)('customer'), (0, stock_universal_server_1.roleAuthorisation)('users', 'create'), stock_auth_server_1.addUser, exports.addCustomer, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('customer'));
 exports.customerRoutes.post('/add/img', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_auth_server_1.requireCanUseFeature)('customer'), (0, stock_universal_server_1.roleAuthorisation)('users', 'create'), stock_universal_server_1.uploadFiles, stock_universal_server_1.appendBody, stock_universal_server_1.saveMetaToDb, stock_auth_server_1.addUser, exports.addCustomer, (0, stock_auth_server_1.requireUpdateSubscriptionRecord)('customer'));
 exports.customerRoutes.post('/one', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('customers', 'read'), async (req, res) => {
-    const { _id, userId } = req.body;
+    const { _id, userId, urId, companyId } = req.body;
+    if (!_id && !userId && !urId) {
+        return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     let filter2 = {};
     if (_id) {
@@ -157,15 +111,18 @@ exports.customerRoutes.post('/one', stock_universal_server_1.requireAuth, stock_
         }
         filter2 = { ...filter2, _id };
     }
-    /* if (companyId) {
-    filter = { ...filter, ...filter };
-  } */
     if (userId) {
         const isValid = (0, stock_universal_server_1.verifyObjectIds)([userId]);
         if (!isValid) {
             return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
         }
         filter2 = { ...filter2, user: userId };
+    }
+    if (urId) {
+        filter2 = { ...filter2, urId };
+    }
+    if (companyId) {
+        filter2 = { ...filter2, companyId };
     }
     const customer = await customer_model_1.customerLean
         .findOne({ ...filter2, ...filter })
@@ -199,11 +156,11 @@ exports.customerRoutes.get('/all/:offset/:limit', stock_universal_server_1.requi
     return res.status(200).send(response);
 });
 exports.customerRoutes.post('/filter', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('customers', 'read'), async (req, res) => {
-    const { propSort } = req.body;
+    const { propSort, returnEmptyArr } = req.body;
     const { offset, limit } = (0, stock_universal_server_1.offsetLimitRelegator)(req.body.offset, req.body.limit);
     const aggCursor = customer_model_1.customerLean
         .aggregate([
-        ...(0, stock_universal_server_1.lookupSubFieldUserFilter)((0, stock_universal_server_1.constructFiltersFromBody)(req), propSort, offset, limit)
+        ...(0, stock_universal_server_1.lookupSubFieldUserFilter)((0, stock_universal_server_1.constructFiltersFromBody)(req), offset, limit, propSort, returnEmptyArr)
     ]);
     const dataArr = [];
     for await (const data of aggCursor) {
@@ -231,15 +188,15 @@ exports.customerRoutes.put('/delete/one', stock_universal_server_1.requireAuth, 
     const { _id } = req.body;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
     // const deleted = await customerMain.findOneAndDelete({ _id, ...filter });
-    const deleted = await customer_model_1.customerMain
-        .updateOne({ _id, ...filter }, { $set: { isDeleted: true } }, { $set: { isDeleted: true } });
-    if (Boolean(deleted)) {
-        (0, stock_universal_server_1.addParentToLocals)(res, _id, customer_model_1.customerMain.collection.collectionName, 'trackDataDelete');
-        return res.status(200).send({ success: Boolean(deleted) });
+    const updateRes = await customer_model_1.customerMain
+        .updateOne({ _id, ...filter }, { $set: { isDeleted: true } }, { $set: { isDeleted: true } })
+        .catch((err) => err);
+    if (updateRes instanceof Error) {
+        const errResponse = (0, stock_universal_server_1.handleMongooseErr)(updateRes);
+        return res.status(errResponse.status).send(errResponse);
     }
-    else {
-        return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
-    }
+    (0, stock_universal_server_1.addParentToLocals)(res, _id, customer_model_1.customerMain.collection.collectionName, 'trackDataDelete');
+    return res.status(200).send({ success: true });
 });
 exports.customerRoutes.put('/delete/many', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('customers', 'delete'), (0, stock_auth_server_1.determineUsersToRemove)(customer_model_1.customerLean, [{
         model: invoicerelated_model_1.invoiceRelatedLean,
@@ -248,31 +205,17 @@ exports.customerRoutes.put('/delete/many', stock_universal_server_1.requireAuth,
     }]), stock_auth_server_1.removeManyUsers, async (req, res) => {
     const { _ids } = req.body;
     const { filter } = (0, stock_universal_server_1.makeCompanyBasedQuery)(req);
-    /* const deleted = await customerMain
-    .deleteMany({ ...filter, _id: { $in: _ids } })
-    .catch(err => {
-      customerRoutesLogger.error('deletemany - err: ', err);
-
-      return null;
-    }); */
-    const deleted = await customer_model_1.customerMain
+    const updateRes = await customer_model_1.customerMain
         .updateMany({ ...filter, _id: { $in: _ids } }, {
         $set: { isDeleted: true }
-    })
-        .catch(err => {
-        customerRoutesLogger.error('deletemany - err: ', err);
-        return null;
-    });
-    if (Boolean(deleted)) {
-        for (const val of _ids) {
-            (0, stock_universal_server_1.addParentToLocals)(res, val, customer_model_1.customerMain.collection.collectionName, 'trackDataDelete');
-        }
-        return res.status(200).send({ success: Boolean(deleted) });
+    }).catch((err) => res);
+    if (updateRes instanceof Error) {
+        const errResponse = (0, stock_universal_server_1.handleMongooseErr)(updateRes);
+        return res.status(errResponse.status).send(errResponse);
     }
-    else {
-        return res.status(404).send({
-            success: Boolean(deleted), err: 'could not delete selected items, try again in a while'
-        });
+    for (const val of _ids) {
+        (0, stock_universal_server_1.addParentToLocals)(res, val, customer_model_1.customerMain.collection.collectionName, 'trackDataDelete');
     }
+    return res.status(200).send({ success: true });
 });
 //# sourceMappingURL=customer.routes.js.map

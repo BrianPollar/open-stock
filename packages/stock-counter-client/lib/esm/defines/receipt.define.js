@@ -28,35 +28,9 @@ export class InvoiceRelated extends DatabaseAuto {
         this.ecommerceSalePercentage = data.ecommerceSalePercentage || 0;
         this.currency = data.currency;
     }
-    static async getInvoicePayments() {
-        const observer$ = StockCounterClient.ehttp
-            .makeGet('/invoice/getallpayments');
-        const invoicepays = await lastValueFrom(observer$);
-        return {
-            count: invoicepays.count,
-            invoicepays: invoicepays.data
-                .map(val => new Receipt(val))
-        };
-    }
-    static async getOneInvoicePayment(urId) {
-        const observer$ = StockCounterClient.ehttp
-            .makeGet(`/invoice/getonepayment/${urId}`);
-        const invoicepay = await lastValueFrom(observer$);
-        return new Receipt(invoicepay);
-    }
     static addInvoicePayment(payment) {
         const observer$ = StockCounterClient.ehttp
             .makePost('/invoice/createpayment', payment);
-        return lastValueFrom(observer$);
-    }
-    static deleteInvoicePayments(_ids) {
-        const observer$ = StockCounterClient.ehttp
-            .makePut('/invoice/deletemanypayments', { _ids });
-        return lastValueFrom(observer$);
-    }
-    static updateInvoicePayment(vals) {
-        const observer$ = StockCounterClient.ehttp
-            .makePost('/invoice/updatepayment', vals);
         return lastValueFrom(observer$);
     }
     static updateInvoiceRelated(invoiceRelated) {
@@ -96,9 +70,9 @@ export class Receipt extends InvoiceRelated {
                 .map(val => new Receipt(val))
         };
     }
-    static async getOne(urId) {
+    static async getOne(urIdOr_id) {
         const observer$ = StockCounterClient.ehttp
-            .makeGet(`/receipt/one/${urId}`);
+            .makeGet(`/receipt/one/${urIdOr_id}`);
         const receipt = await lastValueFrom(observer$);
         return new Receipt(receipt);
     }
@@ -116,6 +90,11 @@ export class Receipt extends InvoiceRelated {
         vals.receipt._id = this._id;
         const observer$ = StockCounterClient.ehttp
             .makePut('/receipt/update', vals);
+        return lastValueFrom(observer$);
+    }
+    remove() {
+        const observer$ = StockCounterClient.ehttp
+            .makeDelete(`/receipt/delete/one/${this._id}`);
         return lastValueFrom(observer$);
     }
 }

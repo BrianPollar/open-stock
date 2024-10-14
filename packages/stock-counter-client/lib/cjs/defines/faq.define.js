@@ -40,9 +40,9 @@ class Faq extends stock_universal_1.DatabaseAuto {
             faqs: faqs.data.map(val => new Faq(val))
         };
     }
-    static async getOne(_id) {
+    static async getOne(id) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makeGet(`/faq/one/${_id}`);
+            .makeGet(`/faq/one/${id}`);
         const faq = await (0, rxjs_1.lastValueFrom)(observer$);
         return new Faq(faq);
     }
@@ -97,9 +97,9 @@ class FaqAnswer extends stock_universal_1.DatabaseAuto {
             faqans: faqans.data.map(val => new FaqAnswer(val))
         };
     }
-    static async getOne(_id) {
+    static async getOne(urIdOr_id) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makeGet(`/faq/one/${_id}`);
+            .makeGet(`/faq/one/${urIdOr_id}`);
         const faqans = await (0, rxjs_1.lastValueFrom)(observer$);
         return new FaqAnswer(faqans);
     }

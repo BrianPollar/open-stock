@@ -22,7 +22,7 @@
 /// <reference types="mongoose/types/validation" />
 /// <reference types="mongoose/types/virtuals" />
 /// <reference types="mongoose/types/inferschematype" />
-/** The  connectAuthDatabase  function connects to the authentication database by creating the required models. */
+/** The  connectDatabase  function connects to the authentication database by creating the required models. */
 import { ConnectOptions } from 'mongoose';
 import { IStockAuthServerConfig } from './stock-auth-server';
 /**
@@ -43,4 +43,4 @@ export declare const createStockAuthServerLocals: (config: IStockAuthServerConfi
  * @param {string} databaseUrl - The URL of the authentication database.
  * @returns {Promise<void>}
  */
-export declare const connectAuthDatabase: (databaseUrl: string, dbOptions?: ConnectOptions) => Promise<void>;
+export declare const connectDatabase: (databaseUrl: string, dbOptions?: ConnectOptions) => Promise<void>;

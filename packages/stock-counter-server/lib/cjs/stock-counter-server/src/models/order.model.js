@@ -3,12 +3,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createOrderModel = exports.orderSelect = exports.orderLean = exports.orderMain = void 0;
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const mongoose_1 = require("mongoose");
-const database_1 = require("../utils/database");
 const uniqueValidator = require('mongoose-unique-validator');
 const orderSchema = new mongoose_1.Schema({
-    companyId: { type: mongoose_1.Schema.ObjectId, required: [true, 'cannot be empty.'], index: true },
-    paymentRelated: { type: String, unique: true },
-    invoiceRelated: { type: String, unique: true },
+    companyId: { type: mongoose_1.Schema.Types.ObjectId, required: [true, 'cannot be empty.'], index: true },
+    paymentRelated: { type: mongoose_1.Schema.Types.ObjectId, unique: true },
+    invoiceRelated: { type: mongoose_1.Schema.Types.ObjectId, unique: true },
     deliveryDate: { type: Date, required: [true, 'cannot be empty.'], index: true }
 }, { timestamps: true, collection: 'orders' });
 // Apply the uniqueValidator plugin to orderSchema.
@@ -41,15 +40,15 @@ exports.orderSelect = orderselect;
  */
 const createOrderModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     (0, stock_universal_server_1.createExpireDocIndex)(orderSchema);
-    if (!database_1.isStockDbConnected) {
-        await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
+    if (!stock_universal_server_1.isDbConnected) {
+        await (0, stock_universal_server_1.connectDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.orderMain = database_1.mainConnection
+        exports.orderMain = stock_universal_server_1.mainConnection
             .model('Order', orderSchema);
     }
     if (lean) {
-        exports.orderLean = database_1.mainConnectionLean
+        exports.orderLean = stock_universal_server_1.mainConnectionLean
             .model('Order', orderSchema);
     }
 };

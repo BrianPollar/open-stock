@@ -13,19 +13,14 @@ export declare const uploadFiles: (req: IcustomRequest<never, unknown>, res: Res
  * @param res - The response object.
  * @param next - The next middleware function.
  */
-export declare const appendBody: (req: IcustomRequest<never, {
-    data: string;
-}>, res: Response, next: NextFunction) => void | Response<any, Record<string, any>>;
+export declare const appendBody: (req: IcustomRequest<never, unknown>, res: Response, next: NextFunction) => void | Response<any, Record<string, any>>;
 /**
  * Saves the metadata to the database.
  * @param req - The request object.
  * @param res - The response object.
  * @param next - The next middleware function.
  */
-export declare const saveMetaToDb: (req: IcustomRequest<never, {
-    newPhotos: IfileMeta[] | string[];
-    thumbnail: IfileMeta;
-}>, res: Response, next: NextFunction) => Promise<void | Response<any, Record<string, any>>>;
+export declare const saveMetaToDb: (req: IcustomRequest<never, any>, res: Response, next: NextFunction) => Promise<void | Response<any, Record<string, any>>>;
 /**
  * Updates files in the file manager.
  * @param req - The request object.

@@ -23,11 +23,12 @@
 /// <reference types="mongoose/types/virtuals" />
 /// <reference types="mongoose/types/inferschematype" />
 import { ItaxReport } from '@open-stock/stock-universal';
+import { IcompanyIdAsObjectId } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model } from 'mongoose';
 /**
  * Represents a tax report.
  */
-export type TtaxReport = Document & ItaxReport;
+export type TtaxReport = Document & ItaxReport & IcompanyIdAsObjectId;
 /**
  * Represents the main tax report model.
  */

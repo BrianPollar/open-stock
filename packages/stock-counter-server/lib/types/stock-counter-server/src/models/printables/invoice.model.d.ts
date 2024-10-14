@@ -23,6 +23,7 @@
 /// <reference types="mongoose/types/virtuals" />
 /// <reference types="mongoose/types/inferschematype" />
 import { IinvoiceRelatedRef } from '@open-stock/stock-universal';
+import { IcompanyIdAsObjectId } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model } from 'mongoose';
 /**
  * Represents a printable invoice.
@@ -30,7 +31,7 @@ import { ConnectOptions, Document, Model } from 'mongoose';
  */
 export type Tinvoice = Document & IinvoiceRelatedRef & {
     dueDate: Date;
-};
+} & IcompanyIdAsObjectId;
 /**
  * Represents the main invoice model.
  */

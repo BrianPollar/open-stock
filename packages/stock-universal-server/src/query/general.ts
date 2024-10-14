@@ -266,19 +266,28 @@ export const lookupLimit = (limit: number) => {
 };
 
 
-export const lookupSort = (sort: IpropSort[]) => {
-  if (!sort || !sort.length) {
+export const lookupSort = (sort?: IpropSort) => {
+  if (!sort) {
     return [];
   }
 
-  const toObject = sort.reduce((acc, obj) => {
+  const keys = Object.keys(sort);
+  const toObject = keys.reduce((acc, obj) => {
+    const value = Object.values(sort)[0] === 'desc' ? -1 : 1;
+
+    acc[obj] = value;
+
+    return acc;
+  }, {} as { [key: string]: 1 | -1 });
+
+  /* const toObject = sort.reduce((acc, obj) => {
     const key0 = Object.keys(obj)[0];
     const value = Object.values(obj)[0] === 'desc' ? -1 : 1;
 
     acc[key0] = value;
 
     return acc;
-  }, {} as { [key: string]: 1 | -1 });
+  }, {} as { [key: string]: 1 | -1 }); */
 
   return [{
     $sort: toObject
@@ -288,9 +297,10 @@ export const lookupSort = (sort: IpropSort[]) => {
 // filters sub field based on $and
 export const lookupSubFieldInvoiceRelatedFilter = (
   filter: IpropFilter[],
-  sort: IpropSort[],
   offset: number,
-  limit: number
+  limit: number,
+  sort?: IpropSort,
+  returnEmptyArr = false
 ): PipelineStage[] => {
   return [
     {
@@ -345,26 +355,16 @@ export const lookupSubFieldInvoiceRelatedFilter = (
         invoiceRelated: { $arrayElemAt: ['$invoiceRelated', 0] }
       }
     },
-    {
-      $facet: {
-        data: [...lookupSort(sort), ...lookupOffset(offset), ...lookupLimit(limit)],
-        total: [{ $count: 'count' }]
-      }
-    },
-    {
-      $unwind: {
-        path: '$total',
-        preserveNullAndEmptyArrays: true
-      }
-    }
+    ...lookupFacet(offset, limit, sort, returnEmptyArr)
   ];
 };
 
 export const lookupSubFieldPaymentRelatedFilter = (
   filter: IpropFilter[],
-  sort: IpropSort[],
   offset: number,
-  limit: number
+  limit: number,
+  sort?: IpropSort,
+  returnEmptyArr = false
 ): PipelineStage[] => {
   return [
     {
@@ -418,27 +418,17 @@ export const lookupSubFieldPaymentRelatedFilter = (
         paymentRelated: { $arrayElemAt: ['$paymentRelated', 0] }
       }
     },
-    {
-      $facet: {
-        data: [...lookupSort(sort), ...lookupOffset(offset), ...lookupLimit(limit)],
-        total: [{ $count: 'count' }]
-      }
-    },
-    {
-      $unwind: {
-        path: '$total',
-        preserveNullAndEmptyArrays: true
-      }
-    }
+    ...lookupFacet(offset, limit, sort, returnEmptyArr)
   ];
 };
 
 
 export const lookupSubFieldUserFilter = (
   filter: IpropFilter[],
-  sort: IpropSort[],
   offset: number,
-  limit: number
+  limit: number,
+  sort?: IpropSort,
+  returnEmptyArr = false
 ): PipelineStage[] => {
   return [
     {
@@ -474,27 +464,17 @@ export const lookupSubFieldUserFilter = (
         user: { $arrayElemAt: ['$user', 0] }
       }
     },
-    {
-      $facet: {
-        data: [...lookupSort(sort), ...lookupOffset(offset), ...lookupLimit(limit)],
-        total: [{ $count: 'count' }]
-      }
-    },
-    {
-      $unwind: {
-        path: '$total',
-        preserveNullAndEmptyArrays: true
-      }
-    }
+    ...lookupFacet(offset, limit, sort, returnEmptyArr)
   ];
 };
 
 
 export const lookupSubFieldItemsRelatedFilter = (
   filter: IpropFilter[],
-  sort: IpropSort[],
   offset: number,
-  limit: number
+  limit: number,
+  sort?: IpropSort,
+  returnEmptyArr = false
 ): PipelineStage[] => {
   return [
     {
@@ -530,9 +510,21 @@ export const lookupSubFieldItemsRelatedFilter = (
         paymentRelated: { $arrayElemAt: ['$paymentRelated', 0] }
       }
     }, */
+    ...lookupFacet(offset, limit, sort, returnEmptyArr)
+  ];
+};
+
+
+export const lookupFacet = (
+  offset: number,
+  limit: number,
+  propSort?: IpropSort,
+  returnEmptyArr = false
+): PipelineStage[] => {
+  return [
     {
       $facet: {
-        data: [...lookupSort(sort), ...lookupOffset(offset), ...lookupLimit(limit)],
+        data: returnEmptyArr ? [] : [...lookupSort(propSort), ...lookupOffset(offset), ...lookupLimit(limit)],
         total: [{ $count: 'count' }]
       }
     },
@@ -639,11 +631,12 @@ db.items.aggregate<IfilterAggResponse<soth>>([
 
 
 export const constructFiltersFromBody = (
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   req: IcustomRequest<any, IfilterProps>,
   preferPredom = false,
   subProps?: string[]
 ) => {
-  const { searchterm, searchKey, propFilter, comparisonFilter } = req.body;
+  const { searchterm, searchKey, comparisonFilter, propFilter } = req.body;
   let filter;
 
   if (preferPredom) {
@@ -654,29 +647,65 @@ export const constructFiltersFromBody = (
     filter = prop.filter;
   }
 
-  const filteredPropFilter = propFilter.filter(val => subProps.includes(val.prop));
-
-  const filtererdComparisonFilters = comparisonFilter.filter(val => subProps.includes(val.name));
-
-  let filters3: any[] = [{ filter }];
+  let filters3: unknown[] = [{ filter }];
 
   if (searchterm && searchKey) {
-    filters3 = [ ...filters3, { [searchKey]: { $regex: searchterm, $options: 'i' } } ];
+    filters3 = [ { [searchKey]: { $regex: searchterm, $options: 'i' } }, ...filters3 ];
   }
 
-  if (filteredPropFilter && filteredPropFilter.length > 0) {
-    filters3 = [ ...filters3, ...filteredPropFilter ];
+  if (propFilter) {
+    const propFilterKeys = Object.keys(propFilter);
+
+    for (const key of propFilterKeys) {
+      if (subProps && !subProps.includes(key)) {
+        delete propFilter[key];
+      // check if the property value is of type array
+      } else if (Array.isArray(propFilter[key])) {
+        if (!propFilter[key] || (propFilter[key] as string[])?.length < 1) {
+          delete propFilter[key];
+        } else {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          propFilter[key] = { $in: propFilter[key] } as any;
+        }
+      }
+    }
+
+    if (propFilterKeys && propFilterKeys.length > 0) {
+      filters3 = [ propFilter, ...filters3 ];
+    }
   }
 
-  if (filtererdComparisonFilters && filtererdComparisonFilters.length > 0) {
-    const compFil = filtererdComparisonFilters.map(val => {
-      return {
-        [val.name]: { ['$' + val.direction]: val.value }
-      };
-    });
+  /* const comparisonFilterKeys = Object.keys(comparisonFilter);
 
-    filters3 = [ ...filters3, ...compFil ];
+  for (const key of comparisonFilterKeys) {
+    if (subProps && !subProps.includes(key)) {
+      delete comparisonFilter[key];
+    }
+  } */
+
+  // const filteredPropFilter = propFilter.filter(val => subProps.includes(val.prop));
+
+
+  if (comparisonFilter) {
+    const filtererdComparisonFilters = comparisonFilter
+      .filter(val => (subProps ? subProps
+        .includes(val.field) && filedValues.includes(val.operator) && val.fieldValue : true));
+
+
+    if (filtererdComparisonFilters && filtererdComparisonFilters.length > 0) {
+      const compFil = filtererdComparisonFilters.map(val => {
+        return {
+          [val.field]: { ['$' + val.operator]: val.fieldValue }
+        };
+      });
+
+      filters3 = [ ...compFil, ...filters3 ];
+    }
   }
 
-  return filters3;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return filters3 as any[];
 };
+
+
+const filedValues = ['eq', 'gt', 'gte', 'lt', 'lte'];

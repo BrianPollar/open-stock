@@ -23,12 +23,13 @@
 /// <reference types="mongoose/types/virtuals" />
 /// <reference types="mongoose/types/inferschematype" />
 import { IsalesReport } from '@open-stock/stock-universal';
+import { IcompanyIdAsObjectId } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model } from 'mongoose';
 /**
  * Represents a sales report.
  * @typedef {Document & IsalesReport} TsalesReport
  */
-export type TsalesReport = Document & IsalesReport;
+export type TsalesReport = Document & IsalesReport & IcompanyIdAsObjectId;
 /**
  * Represents the main sales report model.
  */

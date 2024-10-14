@@ -37,9 +37,9 @@ class ItemOffer extends stock_universal_1.DatabaseAuto {
             offers: offers.data.map((val) => new ItemOffer(val))
         };
     }
-    static async getOne(_id) {
+    static async getOne(urIdOr_id) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makeGet(`/itemoffer/one/${_id}`);
+            .makeGet(`/itemoffer/one/${urIdOr_id}`);
         const offer = await (0, rxjs_1.lastValueFrom)(observer$);
         return new ItemOffer(offer);
     }

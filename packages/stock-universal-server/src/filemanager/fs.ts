@@ -4,37 +4,13 @@ import { Config, removeBackground } from '@imgly/background-removal-node';
 import { IcustomRequest, IfileMeta } from '@open-stock/stock-universal';
 import { NextFunction, Response } from 'express';
 import * as fs from 'fs';
+import { Error } from 'mongoose';
 import multer from 'multer';
 import * as path from 'path';
-import * as tracer from 'tracer';
 import { fileMeta } from '../models/filemeta.model';
 import { stockUniversalConfig } from '../stock-universal-local';
+import { mainLogger } from '../utils/back-logger';
 import { IMulterRequest, multerFileds, upload } from './filestorage';
-
-const fsControllerLogger = tracer.colorConsole({
-  format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-  dateformat: 'HH:MM:ss.L',
-  transport(data) {
-    // eslint-disable-next-line no-console
-    console.log(data.output);
-    const logDir = path.join(process.cwd() + '/openstockLog/');
-
-    fs.mkdir(logDir, { recursive: true }, (err) => {
-      if (err) {
-        if (err) {
-          // eslint-disable-next-line no-console
-          console.log('data.output err ', err);
-        }
-      }
-    });
-    fs.appendFile(logDir + '/universal-server.log', data.rawoutput + '\n', err => {
-      if (err) {
-        // eslint-disable-next-line no-console
-        console.log('raw.output err ', err);
-      }
-    });
-  }
-});
 
 /**
  * Uploads files from the request to the server.
@@ -51,12 +27,12 @@ export const uploadFiles = (
 
   makeupload(req, res, function(err) {
     if (err instanceof multer.MulterError) {
-      fsControllerLogger.error('Multer UPLOAD ERROR', err);
+      mainLogger.error('Multer UPLOAD ERROR', err);
 
       return res.status(500).send({ success: false });
     } else if (err) {
       // An unknown error occurred when uploading.
-      fsControllerLogger.error('UNKWON UPLOAD ERROR', err);
+      mainLogger.error('UNKWON UPLOAD ERROR', err);
 
       return res.status(500).send({ success: false });
     }
@@ -72,12 +48,16 @@ export const uploadFiles = (
  * @param next - The next middleware function.
  */
 export const appendBody = (
-  req: IcustomRequest<never, {data: string}>,
+  req: IcustomRequest<never, unknown>,
   res: Response,
   next: NextFunction
 ) => {
   if (!req.files) {
     return res.status(404).send({ success: false });
+  }
+
+  if (!req.user) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
   const { companyId } = req.user;
 
@@ -85,12 +65,12 @@ export const appendBody = (
   const videoDirectory = path.join(stockUniversalConfig.envCfig.videoDirectory + '/' + companyId + '/');
   const photoDirectory = path.join(stockUniversalConfig.envCfig.photoDirectory + '/' + companyId + '/');
   const { userId } = req.user;
-  const parsed = JSON.parse(req.body.data);
-  const newPhotos: IfileMeta[] = [];
-  const newVideos: IfileMeta[] = [];
-  let thumbnail: IfileMeta;
-  let profilePic: IfileMeta;
-  let coverPic: IfileMeta;
+  const parsed = JSON.parse((req.body as { data: string }).data);
+  const newPhotos: Partial<IfileMeta>[] = [];
+  const newVideos: Partial<IfileMeta>[] = [];
+  let thumbnail: Partial<IfileMeta>;
+  let profilePic: Partial<IfileMeta>;
+  let coverPic: Partial<IfileMeta>;
 
   if ((req as IMulterRequest).files['profilePic']?.length) {
     profilePic = {
@@ -176,43 +156,46 @@ export const appendBody = (
  * @param next - The next middleware function.
  */
 export const saveMetaToDb = async(
-  req: IcustomRequest<never, {newPhotos: IfileMeta[] | string[]; thumbnail: IfileMeta}>,
+  req: IcustomRequest<never, any>,
   res: Response,
   next: NextFunction
 ) => {
-  const parsed = req.body;
+  const parsed: {newPhotos?: IfileMeta[] | string[]; thumbnail?: IfileMeta | string} = req.body;
 
   if (!parsed) {
     return next();
   }
   if (parsed.newPhotos) {
     const promises = (parsed.newPhotos as IfileMeta[])
-      // eslint-disable-next-line @typescript-eslint/no-misused-promises
-      .map((value: IfileMeta) => new Promise(async(resolve) => {
+      .map((value: IfileMeta) => new Promise(async(resolve, reject) => {
         const newFileMeta = new fileMeta(value);
-        let savedErr: string;
-        // await removeBg(value.url);
-        const newSaved = await newFileMeta.save().catch(err => {
-          fsControllerLogger.error('save error', err);
-          savedErr = err;
+        const newSaved = await newFileMeta.save().catch((err: Error) => {
+          mainLogger.error('save error', err);
 
-          return null;
+          reject(err);
         });
 
-        if (savedErr) {
-          return res.status(500).send({ success: false });
-        }
         resolve(newSaved);
       }));
 
-    parsed.newPhotos = await Promise.all(promises) as IfileMeta[];
+    const allResolved = await Promise.all(promises).catch(err => {
+      mainLogger.error('save error', err);
+
+      return null;
+    }) as IfileMeta[] | null;
+
+    if (!allResolved) {
+      return res.status(500).send({ success: false });
+    }
+
+    parsed.newPhotos = allResolved;
   }
 
   /* if (parsed.profilePic) {
     const newFileMeta = new fileMeta(parsed.profilePic);
     let savedErr: string;
     const newSaved = await newFileMeta.save().catch(err => {
-      fsControllerLogger.error('save error', err);
+      mainLogger.error('save error', err);
       savedErr = err;
       return null;
     });
@@ -227,7 +210,7 @@ export const saveMetaToDb = async(
     const newFileMeta = new fileMeta(parsed.profilePic);
     let savedErr: string;
     const newSaved = await newFileMeta.save().catch(err => {
-      fsControllerLogger.error('save error', err);
+      mainLogger.error('save error', err);
       savedErr = err;
       return null;
     });
@@ -240,23 +223,23 @@ export const saveMetaToDb = async(
 
   if (parsed.thumbnail) {
     const newFileMeta = new fileMeta(parsed.thumbnail);
-    let savedErr: string;
-    const newSaved = await newFileMeta.save().catch(err => {
-      fsControllerLogger.error('save error', err);
-      savedErr = err;
+    const newSaved = await newFileMeta.save().catch((err: Error) => {
+      mainLogger.error('save error', err);
 
-      return null;
+      return err;
     });
 
-    if (savedErr) {
+    if (newSaved instanceof Error) {
       return res.status(500).send({ success: false });
     }
+
     parsed.thumbnail = newSaved._id;
-    parsed.newPhotos.push(newSaved);
+    parsed.newPhotos?.push(newSaved);
   }
 
   if (parsed.newPhotos) {
-    const mappedParsedFiles = (parsed.newPhotos as IfileMeta[]).map((value: IfileMeta) => value._id.toString());
+    const mappedParsedFiles = (parsed.newPhotos).map((value: IfileMeta) => value._id?.toString())
+      .filter(value => value) ;
 
     parsed.newPhotos = mappedParsedFiles;
   }
@@ -280,12 +263,12 @@ export const updateFiles = (
 
   makeupload(req, res, function(err) {
     if (err instanceof multer.MulterError) {
-      fsControllerLogger.error('Multer UPLOAD ERROR', err);
+      mainLogger.error('Multer UPLOAD ERROR', err);
 
       return res.status(404).send({ success: false });
     } else if (err) {
       // An unknown error occurred when uploading.
-      fsControllerLogger.error('UNKWON UPLOAD ERROR', err);
+      mainLogger.error('UNKWON UPLOAD ERROR', err);
 
       return res.status(404).send({ success: false });
     }
@@ -312,14 +295,14 @@ export const deleteAllFiles = async(filesWithDir: IfileMeta[], directlyRemove = 
   if (filesWithDir && filesWithDir.length && directlyRemove) {
     const promises = filesWithDir
       .map((value/** : Ifilewithdir */) => new Promise(resolve => {
-        fsControllerLogger.debug('deleting file', value.url);
+        mainLogger.debug('deleting file', value.url);
         const absolutepath = stockUniversalConfig.envCfig.absolutepath;
         const nowpath = path
           .join(`${absolutepath}${value.url}`);
 
         fs.unlink(nowpath, (err) => {
           if (err) {
-            fsControllerLogger.error(
+            mainLogger.error(
               'error while deleting file',
               err
             );
@@ -369,7 +352,7 @@ export const getOneFile = (
 ) => {
   const { filename } = req.params;
 
-  fsControllerLogger.debug(`download, file: ${filename}`);
+  mainLogger.debug(`download, file: ${filename}`);
   const absolutepath = stockUniversalConfig.envCfig.absolutepath;
   const fileLocation = path.join(`${absolutepath}${filename}`, filename);
 
@@ -406,7 +389,7 @@ export const removeBg = (imageSrc: string) => {
 
           return;
         }
-        fsControllerLogger.debug('files saved');
+        mainLogger.debug('files saved');
         resolve(imageSrc);
       });
     });

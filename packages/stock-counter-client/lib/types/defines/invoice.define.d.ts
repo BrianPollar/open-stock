@@ -25,8 +25,9 @@ export declare class Invoice extends InvoiceRelatedWithReceipt {
         count: number;
         invoices: Invoice[];
     }>;
-    static getOne(urId: string): Promise<Invoice>;
+    static getOne(urIdOr_id: string): Promise<Invoice>;
     static add(vals: IeditInvoice): Promise<IsubscriptionFeatureState>;
     static removeMany(val: IdeleteMany): Promise<Isuccess>;
     update(vals: IeditInvoice): Promise<Isuccess>;
+    remove(): Promise<Isuccess>;
 }

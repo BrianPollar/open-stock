@@ -1,23 +1,30 @@
 import { IexpenseReport } from '@open-stock/stock-universal';
 import {
-  createExpireDocIndex, preUpdateDocExpire, withUrIdAndCompanySchemaObj, withUrIdAndCompanySelectObj
+  IcompanyIdAsObjectId,
+  connectDatabase,
+  createExpireDocIndex,
+  isDbConnected, mainConnection, mainConnectionLean,
+  preUpdateDocExpire, withUrIdAndCompanySchemaObj,
+  withUrIdAndCompanySelectObj
 } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model, Schema } from 'mongoose';
-import { connectStockDatabase, isStockDbConnected, mainConnection, mainConnectionLean } from '../../../utils/database';
 const uniqueValidator = require('mongoose-unique-validator');
 
 /**
  * Represents a type for an expense report.
  * Extends the Document interface and the IexpenseReport interface.
  */
-export type TexpenseReport = Document & IexpenseReport;
+export type TexpenseReport = Document & IexpenseReport & IcompanyIdAsObjectId;
 
 /** Mongoose schema for the expense report document. */
 const expenseReportSchema: Schema<TexpenseReport> = new Schema({
   ...withUrIdAndCompanySchemaObj,
-  totalAmount: { type: Number },
+  totalAmount: {
+    type: Number,
+    min: [0, 'cannot be less than 0.']
+  },
   date: { type: Date },
-  expenses: [],
+  expenses: [Schema.Types.ObjectId],
   currency: { type: String, default: 'USD' }
 }, { timestamps: true, collection: 'expensereports' });
 
@@ -64,8 +71,8 @@ export const expenseReportSelect = expenseReportselect;
  */
 export const createExpenseReportModel = async(dbUrl: string, dbOptions?: ConnectOptions, main = true, lean = true) => {
   createExpireDocIndex(expenseReportSchema);
-  if (!isStockDbConnected) {
-    await connectStockDatabase(dbUrl, dbOptions);
+  if (!isDbConnected) {
+    await connectDatabase(dbUrl, dbOptions);
   }
 
   if (main) {

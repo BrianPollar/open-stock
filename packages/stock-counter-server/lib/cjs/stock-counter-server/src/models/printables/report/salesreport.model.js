@@ -3,14 +3,16 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createSalesReportModel = exports.salesReportSelect = exports.salesReportLean = exports.salesReportMain = void 0;
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const mongoose_1 = require("mongoose");
-const database_1 = require("../../../utils/database");
 const uniqueValidator = require('mongoose-unique-validator');
 const salesReportSchema = new mongoose_1.Schema({
     ...stock_universal_server_1.withUrIdAndCompanySchemaObj,
-    totalAmount: { type: Number },
+    totalAmount: {
+        type: Number,
+        min: [0, 'cannot be less than 0.']
+    },
     date: { type: Date },
-    estimates: [],
-    invoiceRelateds: [],
+    estimates: [mongoose_1.Schema.Types.ObjectId],
+    invoiceRelateds: [mongoose_1.Schema.Types.ObjectId],
     currency: { type: String, default: 'USD' }
 }, { timestamps: true, collection: 'salesreports' });
 // Apply the uniqueValidator plugin to salesReportSchema.
@@ -45,15 +47,15 @@ exports.salesReportSelect = salesReportselect;
  */
 const createSalesReportModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     (0, stock_universal_server_1.createExpireDocIndex)(salesReportSchema);
-    if (!database_1.isStockDbConnected) {
-        await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
+    if (!stock_universal_server_1.isDbConnected) {
+        await (0, stock_universal_server_1.connectDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.salesReportMain = database_1.mainConnection
+        exports.salesReportMain = stock_universal_server_1.mainConnection
             .model('salesReport', salesReportSchema);
     }
     if (lean) {
-        exports.salesReportLean = database_1.mainConnectionLean
+        exports.salesReportLean = stock_universal_server_1.mainConnectionLean
             .model('salesReport', salesReportSchema);
     }
 };

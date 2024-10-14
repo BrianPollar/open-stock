@@ -26,14 +26,14 @@ const runStockAuthServer = async (config, paymentInstance) => {
     exports.pesapalPaymentInstance = paymentInstance;
     (0, stock_auth_local_1.createStockAuthServerLocals)(config);
     // connect models
-    await (0, stock_auth_local_1.connectAuthDatabase)(config.databaseConfig.url, config.databaseConfig.dbOptions);
+    await (0, stock_auth_local_1.connectDatabase)(config.databaseConfig.url, config.databaseConfig.dbOptions);
     (0, stock_universal_server_1.runPassport)(stock_universal_server_1.stockUniversalConfig.authSecrets.jwtSecret, config.socialAuthStrategys);
     const stockAuthRouter = express_1.default.Router();
     stockAuthRouter.use('/user', user_routes_1.userAuthRoutes);
     stockAuthRouter.use('/company', company_routes_1.companyRoutes);
     stockAuthRouter.use('/companysubscription', company_subscription_routes_1.companySubscriptionRoutes);
     stockAuthRouter.use('/admin', superadmin_routes_1.superAdminRoutes);
-    return Promise.resolve({ stockAuthRouter });
+    return { stockAuthRouter };
 };
 exports.runStockAuthServer = runStockAuthServer;
 /**

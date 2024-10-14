@@ -1,10 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createLoginAtemptsModel = exports.loginAtemptsLean = exports.loginAtempts = void 0;
+const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const mongoose_1 = require("mongoose");
-const database_1 = require("../utils/database");
 const loginAtempsSchema = new mongoose_1.Schema({
-    userId: { type: String, index: true },
+    userId: { type: mongoose_1.Schema.Types.ObjectId, index: true },
     ip: { type: String, index: true },
     successful: { type: Boolean, default: true }
 }, { timestamps: true, collection: 'loginatempts' });
@@ -16,15 +16,15 @@ const loginAtempsSchema = new mongoose_1.Schema({
  * @param lean Whether to create the lean connection model.
  */
 const createLoginAtemptsModel = async (dbUrl, dbOptions, main = true, lean = true) => {
-    if (!database_1.isAuthDbConnected) {
-        await (0, database_1.connectAuthDatabase)(dbUrl, dbOptions);
+    if (!stock_universal_server_1.isDbConnected) {
+        await (0, stock_universal_server_1.connectDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.loginAtempts = database_1.mainConnection
+        exports.loginAtempts = stock_universal_server_1.mainConnection
             .model('loginAtempts', loginAtempsSchema);
     }
     if (lean) {
-        exports.loginAtemptsLean = database_1.mainConnectionLean
+        exports.loginAtemptsLean = stock_universal_server_1.mainConnectionLean
             .model('loginAtempts', loginAtempsSchema);
     }
 };

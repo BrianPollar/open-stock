@@ -7,7 +7,6 @@ const stock_notif_server_1 = require("@open-stock/stock-notif-server");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const bcrypt_1 = tslib_1.__importDefault(require("bcrypt"));
 const mongoose_1 = require("mongoose");
-const database_1 = require("../utils/database");
 // Create authenticated Authy and Twilio API clients
 // const authy = require('authy')(config.authyKey);
 // const twilioClient = require('twilio')(config.accountSid, config.authToken);
@@ -47,23 +46,52 @@ const uniqueValidator = require('mongoose-unique-validator');
  */
 const userSchema = new mongoose_1.Schema({
     ...stock_universal_server_1.withUrIdAndCompanySchemaObj,
-    fname: { type: String, index: true },
-    lname: { type: String, index: true },
-    companyName: { type: String, index: true },
+    fname: {
+        type: String,
+        index: true,
+        minlength: [3, 'First name must be at least 3 characters'],
+        maxlength: [50, 'First name must be at most 50 characters']
+    },
+    lname: {
+        type: String,
+        index: true,
+        minlength: [3, 'Last name must be at least 3 characters'],
+        maxlength: [50, 'Last name must be at most 50 characters']
+    },
+    companyName: {
+        type: String,
+        index: true,
+        minlength: [3, 'Company name must be at least 3 characters'],
+        maxlength: [50, 'Company name must be at most 50 characters']
+    },
     salutation: { type: String },
     extraCompanyDetails: { type: String },
-    userDispNameFormat: { type: String, default: 'firstLast' },
+    userDispNameFormat: {
+        type: String,
+        default: 'firstLast',
+        enum: ['firstLast', 'lastFirst'],
+        validator: checkDispNameFormat,
+        message: props => `${props.value} is invalid display name format, must be 'firstLast' or 'lastFirst'!`
+    },
     address: [],
     billing: [],
     profilePic: { type: String },
     profileCoverPic: { type: String },
-    photos: [{ type: String }],
+    photos: [String],
     age: { type: String },
     gender: { type: String },
     admin: { type: Boolean, default: false },
     permissions: {},
-    email: { type: String },
-    phone: { type: Number },
+    email: {
+        type: String,
+        validator: checkEmail,
+        message: props => `${props.value} is invalid email!`
+    },
+    phone: {
+        type: Number,
+        validator: checkPhone,
+        message: props => `${props.value} is invalid phone!`
+    },
     expireAt: { type: String },
     verified: { type: Boolean, default: false },
     // authyId: { type: String },
@@ -75,6 +103,15 @@ const userSchema = new mongoose_1.Schema({
     userType: { type: String, default: 'eUser' }
 }, { timestamps: true, collection: 'users' });
 userSchema.index({ expireAt: 1 }, { expireAfterSeconds: 2628003 });
+function checkDispNameFormat(v) {
+    return (v === 'firstLast' || v === 'lastFirst');
+}
+function checkEmail(v) {
+    return /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(v);
+}
+function checkPhone(v) {
+    return /^\d+$/.test(v);
+}
 // Apply the uniqueValidator plugin to userSchema.
 userSchema.plugin(uniqueValidator);
 // dealing with hasing password
@@ -143,7 +180,7 @@ userSchema.methods['sendAuthyToken'] = function (cb) {
         this.phone,
         this.countryCode
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ).then((res: any) => {
+      ).then((res) => {
         this.authyId = res.user.id;
         this.save((err1, doc) => {
           if (err1 || !doc) {
@@ -155,7 +192,7 @@ userSchema.methods['sendAuthyToken'] = function (cb) {
       }).catch(err => cb.call(this, err));
     } else { */
     // Otherwise send token to a known user
-    (0, stock_notif_server_1.sendToken)(this.phone, this.countryCode, 'Your Verification Token Is').then((resp) => cb.call(this, null, resp)).catch(err => cb.call(this, err));
+    (0, stock_notif_server_1.sendToken)(this.phone, this.countryCode).then((resp) => cb.call(this, null, resp)).catch(err => cb.call(this, err));
     // }
 };
 // Test a 2FA token
@@ -286,15 +323,15 @@ exports.userAboutSelect = useraboutSelect;
  */
 const createUserModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     (0, stock_universal_server_1.createExpireDocIndex)(userSchema);
-    if (!database_1.isAuthDbConnected) {
-        await (0, database_1.connectAuthDatabase)(dbUrl, dbOptions);
+    if (!stock_universal_server_1.isDbConnected) {
+        await (0, stock_universal_server_1.connectDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.user = database_1.mainConnection
+        exports.user = stock_universal_server_1.mainConnection
             .model('User', userSchema);
     }
     if (lean) {
-        exports.userLean = database_1.mainConnectionLean
+        exports.userLean = stock_universal_server_1.mainConnectionLean
             .model('User', userSchema);
     }
 };

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.constructFiltersFromBody = exports.lookupTrackView = exports.lookupTrackEdit = exports.lookupSubFieldItemsRelatedFilter = exports.lookupSubFieldUserFilter = exports.lookupSubFieldPaymentRelatedFilter = exports.lookupSubFieldInvoiceRelatedFilter = exports.lookupSort = exports.lookupLimit = exports.lookupOffset = exports.matchAllFields = exports.lookupCoverPic = exports.lookupProfilePic = exports.lookupItems = exports.lookupBillingUser = exports.lookupPaymentRelated = exports.lookupInvoiceRelated = exports.lookupPayments = exports.lookupUser = exports.lookupPhotos = exports.matchUser = exports.matchCompany = void 0;
+exports.constructFiltersFromBody = exports.lookupTrackView = exports.lookupTrackEdit = exports.lookupFacet = exports.lookupSubFieldItemsRelatedFilter = exports.lookupSubFieldUserFilter = exports.lookupSubFieldPaymentRelatedFilter = exports.lookupSubFieldInvoiceRelatedFilter = exports.lookupSort = exports.lookupLimit = exports.lookupOffset = exports.matchAllFields = exports.lookupCoverPic = exports.lookupProfilePic = exports.lookupItems = exports.lookupBillingUser = exports.lookupPaymentRelated = exports.lookupInvoiceRelated = exports.lookupPayments = exports.lookupUser = exports.lookupPhotos = exports.matchUser = exports.matchCompany = void 0;
 const filter_1 = require("./filter");
 /**
    * Returns a MongoDB aggregation pipeline that adds a field "companyId" that is converted
@@ -259,22 +259,30 @@ const lookupLimit = (limit) => {
 };
 exports.lookupLimit = lookupLimit;
 const lookupSort = (sort) => {
-    if (!sort || !sort.length) {
+    if (!sort) {
         return [];
     }
-    const toObject = sort.reduce((acc, obj) => {
-        const key0 = Object.keys(obj)[0];
-        const value = Object.values(obj)[0] === 'desc' ? -1 : 1;
-        acc[key0] = value;
+    const keys = Object.keys(sort);
+    const toObject = keys.reduce((acc, obj) => {
+        const value = Object.values(sort)[0] === 'desc' ? -1 : 1;
+        acc[obj] = value;
         return acc;
     }, {});
+    /* const toObject = sort.reduce((acc, obj) => {
+      const key0 = Object.keys(obj)[0];
+      const value = Object.values(obj)[0] === 'desc' ? -1 : 1;
+  
+      acc[key0] = value;
+  
+      return acc;
+    }, {} as { [key: string]: 1 | -1 }); */
     return [{
             $sort: toObject
         }];
 };
 exports.lookupSort = lookupSort;
 // filters sub field based on $and
-const lookupSubFieldInvoiceRelatedFilter = (filter, sort, offset, limit) => {
+const lookupSubFieldInvoiceRelatedFilter = (filter, offset, limit, sort, returnEmptyArr = false) => {
     return [
         {
             $addFields: {
@@ -328,22 +336,11 @@ const lookupSubFieldInvoiceRelatedFilter = (filter, sort, offset, limit) => {
                 invoiceRelated: { $arrayElemAt: ['$invoiceRelated', 0] }
             }
         },
-        {
-            $facet: {
-                data: [...(0, exports.lookupSort)(sort), ...(0, exports.lookupOffset)(offset), ...(0, exports.lookupLimit)(limit)],
-                total: [{ $count: 'count' }]
-            }
-        },
-        {
-            $unwind: {
-                path: '$total',
-                preserveNullAndEmptyArrays: true
-            }
-        }
+        ...(0, exports.lookupFacet)(offset, limit, sort, returnEmptyArr)
     ];
 };
 exports.lookupSubFieldInvoiceRelatedFilter = lookupSubFieldInvoiceRelatedFilter;
-const lookupSubFieldPaymentRelatedFilter = (filter, sort, offset, limit) => {
+const lookupSubFieldPaymentRelatedFilter = (filter, offset, limit, sort, returnEmptyArr = false) => {
     return [
         {
             $addFields: {
@@ -396,22 +393,11 @@ const lookupSubFieldPaymentRelatedFilter = (filter, sort, offset, limit) => {
                 paymentRelated: { $arrayElemAt: ['$paymentRelated', 0] }
             }
         },
-        {
-            $facet: {
-                data: [...(0, exports.lookupSort)(sort), ...(0, exports.lookupOffset)(offset), ...(0, exports.lookupLimit)(limit)],
-                total: [{ $count: 'count' }]
-            }
-        },
-        {
-            $unwind: {
-                path: '$total',
-                preserveNullAndEmptyArrays: true
-            }
-        }
+        ...(0, exports.lookupFacet)(offset, limit, sort, returnEmptyArr)
     ];
 };
 exports.lookupSubFieldPaymentRelatedFilter = lookupSubFieldPaymentRelatedFilter;
-const lookupSubFieldUserFilter = (filter, sort, offset, limit) => {
+const lookupSubFieldUserFilter = (filter, offset, limit, sort, returnEmptyArr = false) => {
     return [
         {
             $addFields: {
@@ -446,22 +432,11 @@ const lookupSubFieldUserFilter = (filter, sort, offset, limit) => {
                 user: { $arrayElemAt: ['$user', 0] }
             }
         },
-        {
-            $facet: {
-                data: [...(0, exports.lookupSort)(sort), ...(0, exports.lookupOffset)(offset), ...(0, exports.lookupLimit)(limit)],
-                total: [{ $count: 'count' }]
-            }
-        },
-        {
-            $unwind: {
-                path: '$total',
-                preserveNullAndEmptyArrays: true
-            }
-        }
+        ...(0, exports.lookupFacet)(offset, limit, sort, returnEmptyArr)
     ];
 };
 exports.lookupSubFieldUserFilter = lookupSubFieldUserFilter;
-const lookupSubFieldItemsRelatedFilter = (filter, sort, offset, limit) => {
+const lookupSubFieldItemsRelatedFilter = (filter, offset, limit, sort, returnEmptyArr = false) => {
     return [
         {
             $addFields: {
@@ -495,9 +470,15 @@ const lookupSubFieldItemsRelatedFilter = (filter, sort, offset, limit) => {
             paymentRelated: { $arrayElemAt: ['$paymentRelated', 0] }
           }
         }, */
+        ...(0, exports.lookupFacet)(offset, limit, sort, returnEmptyArr)
+    ];
+};
+exports.lookupSubFieldItemsRelatedFilter = lookupSubFieldItemsRelatedFilter;
+const lookupFacet = (offset, limit, propSort, returnEmptyArr = false) => {
+    return [
         {
             $facet: {
-                data: [...(0, exports.lookupSort)(sort), ...(0, exports.lookupOffset)(offset), ...(0, exports.lookupLimit)(limit)],
+                data: returnEmptyArr ? [] : [...(0, exports.lookupSort)(propSort), ...(0, exports.lookupOffset)(offset), ...(0, exports.lookupLimit)(limit)],
                 total: [{ $count: 'count' }]
             }
         },
@@ -509,7 +490,7 @@ const lookupSubFieldItemsRelatedFilter = (filter, sort, offset, limit) => {
         }
     ];
 };
-exports.lookupSubFieldItemsRelatedFilter = lookupSubFieldItemsRelatedFilter;
+exports.lookupFacet = lookupFacet;
 const lookupTrackEdit = () => {
     return [
         {
@@ -601,8 +582,10 @@ db.items.aggregate<IfilterAggResponse<soth>>([
 ]);
 
 */
-const constructFiltersFromBody = (req, preferPredom = false, subProps) => {
-    const { searchterm, searchKey, propFilter, comparisonFilter } = req.body;
+const constructFiltersFromBody = (
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+req, preferPredom = false, subProps) => {
+    const { searchterm, searchKey, comparisonFilter, propFilter } = req.body;
     let filter;
     if (preferPredom) {
         filter = (0, filter_1.makePredomFilter)(req);
@@ -611,24 +594,55 @@ const constructFiltersFromBody = (req, preferPredom = false, subProps) => {
         const prop = (0, filter_1.makeCompanyBasedQuery)(req);
         filter = prop.filter;
     }
-    const filteredPropFilter = propFilter.filter(val => subProps.includes(val.prop));
-    const filtererdComparisonFilters = comparisonFilter.filter(val => subProps.includes(val.name));
     let filters3 = [{ filter }];
     if (searchterm && searchKey) {
-        filters3 = [...filters3, { [searchKey]: { $regex: searchterm, $options: 'i' } }];
+        filters3 = [{ [searchKey]: { $regex: searchterm, $options: 'i' } }, ...filters3];
     }
-    if (filteredPropFilter && filteredPropFilter.length > 0) {
-        filters3 = [...filters3, ...filteredPropFilter];
+    if (propFilter) {
+        const propFilterKeys = Object.keys(propFilter);
+        for (const key of propFilterKeys) {
+            if (subProps && !subProps.includes(key)) {
+                delete propFilter[key];
+                // check if the property value is of type array
+            }
+            else if (Array.isArray(propFilter[key])) {
+                if (!propFilter[key] || propFilter[key]?.length < 1) {
+                    delete propFilter[key];
+                }
+                else {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    propFilter[key] = { $in: propFilter[key] };
+                }
+            }
+        }
+        if (propFilterKeys && propFilterKeys.length > 0) {
+            filters3 = [propFilter, ...filters3];
+        }
     }
-    if (filtererdComparisonFilters && filtererdComparisonFilters.length > 0) {
-        const compFil = filtererdComparisonFilters.map(val => {
-            return {
-                [val.name]: { ['$' + val.direction]: val.value }
-            };
-        });
-        filters3 = [...filters3, ...compFil];
+    /* const comparisonFilterKeys = Object.keys(comparisonFilter);
+  
+    for (const key of comparisonFilterKeys) {
+      if (subProps && !subProps.includes(key)) {
+        delete comparisonFilter[key];
+      }
+    } */
+    // const filteredPropFilter = propFilter.filter(val => subProps.includes(val.prop));
+    if (comparisonFilter) {
+        const filtererdComparisonFilters = comparisonFilter
+            .filter(val => (subProps ? subProps
+            .includes(val.field) && filedValues.includes(val.operator) && val.fieldValue : true));
+        if (filtererdComparisonFilters && filtererdComparisonFilters.length > 0) {
+            const compFil = filtererdComparisonFilters.map(val => {
+                return {
+                    [val.field]: { ['$' + val.operator]: val.fieldValue }
+                };
+            });
+            filters3 = [...compFil, ...filters3];
+        }
     }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return filters3;
 };
 exports.constructFiltersFromBody = constructFiltersFromBody;
+const filedValues = ['eq', 'gt', 'gte', 'lt', 'lte'];
 //# sourceMappingURL=general.js.map

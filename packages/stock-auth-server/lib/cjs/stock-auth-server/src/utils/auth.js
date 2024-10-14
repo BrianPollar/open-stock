@@ -1,39 +1,13 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.confirmAccountFactory = exports.recoverAccountFactory = exports.resetAccountFactory = exports.loginFactorRelgator = exports.determineIfIsPhoneAndMakeFilterObj = exports.isInAdictionaryOnline = exports.isTooCommonPhrase = exports.checkIpAndAttempt = void 0;
-const tslib_1 = require("tslib");
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
-const fs = tslib_1.__importStar(require("fs"));
-const path_1 = tslib_1.__importDefault(require("path"));
-const tracer = tslib_1.__importStar(require("tracer"));
+const mongoose_1 = require("mongoose");
 const loginattemps_model_1 = require("../models/loginattemps.model");
 const user_model_1 = require("../models/user.model");
 const userip_model_1 = require("../models/userip.model");
 const stock_auth_local_1 = require("../stock-auth-local");
 const universial_1 = require("./universial");
-const authControllerLogger = tracer.colorConsole({
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-        // eslint-disable-next-line no-console
-        console.log(data.output);
-        const logDir = path_1.default.join(process.cwd() + '/openstockLog/');
-        fs.mkdir(logDir, { recursive: true }, (err) => {
-            if (err) {
-                if (err) {
-                    // eslint-disable-next-line no-console
-                    console.log('data.output err ', err);
-                }
-            }
-        });
-        fs.appendFile(logDir + '/auth-server.log', data.rawoutput + '\n', err => {
-            if (err) {
-                // eslint-disable-next-line no-console
-                console.log('raw.output err ', err);
-            }
-        });
-    }
-});
 /**
  * Compares the provided password with the password in the foundUser object.
  * @param foundUser - The user object found in the database.
@@ -51,7 +25,7 @@ const comparePassword = (foundUser, passwd, isPhone) => {
             let attemptSuccess = false;
             let nowRes = 'wrong account or password';
             if (err) {
-                authControllerLogger.error('user has wrong password', err);
+                stock_universal_server_1.mainLogger.error('user has wrong password', err);
                 attemptSuccess = false;
                 if (isPhone) {
                     nowRes = `phone number and
@@ -85,7 +59,7 @@ const checkIpAndAttempt = async (req, res, next) => {
     if (!foundUser?.password || !foundUser?.verified) {
         return next();
     }
-    const ip = req.headers['x-forwarded-for'].toString() || req.socket.remoteAddress;
+    const ip = req.headers['x-forwarded-for']?.toString() || req.socket.remoteAddress;
     const userOrCompanayId = foundUser._id;
     let foundIpModel = await userip_model_1.userip.findOne({ userOrCompanayId }).select({
         greenIps: 1,
@@ -97,14 +71,10 @@ const checkIpAndAttempt = async (req, res, next) => {
             userOrCompanayId,
             greenIps: [ip]
         });
-        let savedErr;
-        await foundIpModel.save().catch(err => {
-            authControllerLogger.error('save error', err);
-            savedErr = err;
-            return null;
-        });
-        if (savedErr) {
-            return res.status(500).send({ success: false });
+        const savedRes = await foundIpModel.save().catch((err) => err);
+        if (savedRes instanceof mongoose_1.Error) {
+            const errResponse = (0, stock_universal_server_1.handleMongooseErr)(savedRes);
+            return res.status(errResponse.status).send(errResponse);
         }
         // TODO
         /* const response: Iauthresponse = {
@@ -113,7 +83,7 @@ const checkIpAndAttempt = async (req, res, next) => {
         }; */
         // return res.status(401).send(response);
     }
-    else if (foundIpModel) {
+    else if (foundIpModel && ip) {
         const containsRedIp = foundIpModel.redIps.includes(ip);
         const containsGreenIp = foundIpModel.greenIps.includes(ip);
         if (containsRedIp) {
@@ -168,14 +138,11 @@ const checkIpAndAttempt = async (req, res, next) => {
         successful: attemptSuccess
     };
     const newAttemp = new loginattemps_model_1.loginAtempts(attempt);
-    let savedErr;
-    const lastAttempt = await newAttemp.save().catch(err => {
-        authControllerLogger.error('save error', err);
-        savedErr = err;
-        return null;
-    });
-    if (savedErr) {
-        return res.status(500).send({ success: false });
+    const lastAttemptRes = await newAttemp.save().catch((err) => err);
+    // TODO
+    if (lastAttemptRes instanceof mongoose_1.Error) {
+        const errResponse = (0, stock_universal_server_1.handleMongooseErr)(lastAttemptRes);
+        return res.status(errResponse.status).send(errResponse);
     }
     // const attempts = loginAtempts.find({ userId: foundUser._id });
     if (!attemptSuccess) {
@@ -187,11 +154,11 @@ const checkIpAndAttempt = async (req, res, next) => {
     }
     foundIpModel.blocked = {
         status: false,
-        loginAttemptRef: lastAttempt._id,
+        loginAttemptRef: lastAttemptRes._id,
         timesBlocked: 0
     };
-    await foundIpModel.save().catch(err => {
-        authControllerLogger.error('save err', err);
+    await foundIpModel.save().catch((err) => {
+        stock_universal_server_1.mainLogger.error('save err', err);
         return;
     });
     return next();
@@ -281,7 +248,7 @@ const loginFactorRelgator = async (req, res, next) => {
     let email;
     let query;
     let isPhone;
-    authControllerLogger.debug(`signup, 
+    stock_universal_server_1.mainLogger.debug(`signup, 
     emailPhone: ${emailPhone}`);
     if (isNaN(Number(emailPhone))) {
         query = {
@@ -323,38 +290,19 @@ const loginFactorRelgator = async (req, res, next) => {
         expireAt,
         countryCode: +256
     });
-    let response;
-    const saved = await newUser.save().catch(err => {
-        authControllerLogger.error(`mongosse registration 
-    validation error, ${err}`);
-        response = {
-            status: 403,
-            success: false
-        };
-        if (err && err.errors) {
-            response.err = (0, stock_universal_server_1.stringifyMongooseErr)(err.errors);
-        }
-        else {
-            response.err = `we are having problems connecting to our databases, 
-      try again in a while`;
-        }
-        return err;
-    });
-    if (!response.success) {
-        return res.status(response.status).send(response);
+    const savedRes = await newUser.save().catch((err) => err);
+    if (savedRes instanceof mongoose_1.Error) {
+        const errResponse = (0, stock_universal_server_1.handleMongooseErr)(savedRes);
+        return res.status(errResponse.status).send(errResponse);
     }
     let result;
     // note now is only token but build a counter later to make sur that the token and link methods are shared
     const type = 'token';
     if (isPhone) {
-        result = await (0, universial_1.sendTokenPhone)(saved);
+        result = await (0, universial_1.sendTokenPhone)(savedRes);
     }
     else {
-        result = await (0, universial_1.sendTokenEmail)(saved, type, stock_auth_local_1.stockAuthConfig.localSettings.appOfficialName);
-    }
-    if (!response.success) {
-        await user_model_1.user.deleteOne({ _id: saved._id });
-        return res.status(200).send(response);
+        result = await (0, universial_1.sendTokenEmail)(savedRes, type, stock_auth_local_1.stockAuthConfig.localSettings.appOfficialName);
     }
     if (Boolean(result.success)) {
         return next();
@@ -376,7 +324,7 @@ exports.loginFactorRelgator = loginFactorRelgator;
  */
 const resetAccountFactory = async (req, res) => {
     const { foundUser, _id, verifycode, how, password } = req.body;
-    authControllerLogger.debug(`resetpassword, 
+    stock_universal_server_1.mainLogger.debug(`resetpassword, 
     verifycode: ${verifycode}`);
     const isValid = (0, stock_universal_server_1.verifyObjectIds)([_id]);
     if (!isValid) {
@@ -407,7 +355,7 @@ exports.resetAccountFactory = resetAccountFactory;
 const recoverAccountFactory = async (req, res) => {
     const { appOfficialName } = stock_auth_local_1.stockAuthConfig.localSettings;
     const { foundUser, emailPhone, navRoute } = req.body;
-    authControllerLogger.debug(`recover, 
+    stock_universal_server_1.mainLogger.debug(`recover, 
     emailphone: ${emailPhone}`);
     let response = { success: false };
     if (!foundUser) {
@@ -448,7 +396,7 @@ exports.recoverAccountFactory = recoverAccountFactory;
  */
 const confirmAccountFactory = async (req, res) => {
     const { foundUser, _id, verifycode, useField, verificationMean, password } = req.body;
-    authControllerLogger.debug(`verify, verifycode: ${verifycode}, useField: ${useField}`);
+    stock_universal_server_1.mainLogger.debug(`verify, verifycode: ${verifycode}, useField: ${useField}`);
     const isValid = (0, stock_universal_server_1.verifyObjectIds)([_id]);
     if (!isValid) {
         return {
@@ -464,7 +412,7 @@ const confirmAccountFactory = async (req, res) => {
         response = await (0, universial_1.validatePhone)(foundUser, verifycode, password);
     }
     else {
-        response = await (0, universial_1.validateEmail)(foundUser, verificationMean, verifycode, password);
+        response = await (0, universial_1.validateEmail)(foundUser, verificationMean || 'code', verifycode, password);
     }
     /* const now = new Date();
     let filter;

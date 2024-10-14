@@ -37,9 +37,9 @@ export class Faq extends DatabaseAuto {
             faqs: faqs.data.map(val => new Faq(val))
         };
     }
-    static async getOne(_id) {
+    static async getOne(id) {
         const observer$ = StockCounterClient.ehttp
-            .makeGet(`/faq/one/${_id}`);
+            .makeGet(`/faq/one/${id}`);
         const faq = await lastValueFrom(observer$);
         return new Faq(faq);
     }
@@ -93,9 +93,9 @@ export class FaqAnswer extends DatabaseAuto {
             faqans: faqans.data.map(val => new FaqAnswer(val))
         };
     }
-    static async getOne(_id) {
+    static async getOne(urIdOr_id) {
         const observer$ = StockCounterClient.ehttp
-            .makeGet(`/faq/one/${_id}`);
+            .makeGet(`/faq/one/${urIdOr_id}`);
         const faqans = await lastValueFrom(observer$);
         return new FaqAnswer(faqans);
     }

@@ -3,12 +3,22 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createPickupLocationModel = exports.pickupLocationSelect = exports.pickupLocationLean = exports.pickupLocationMain = void 0;
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const mongoose_1 = require("mongoose");
-const database_1 = require("../../utils/database");
 const uniqueValidator = require('mongoose-unique-validator');
 const pickupLocationSchema = new mongoose_1.Schema({
     ...stock_universal_server_1.withUrIdAndCompanySchemaObj,
-    name: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
-    contact: {}
+    name: {
+        type: String,
+        unique: true,
+        required: [true, 'cannot be empty.'],
+        index: true,
+        minlength: [3, 'cannot be less than 3.'],
+        maxlength: [150, 'cannot be more than 150.']
+    },
+    contact: {
+        name: { type: String },
+        phone: { type: String },
+        email: { type: String }
+    }
 }, { timestamps: true, collection: 'pickuplocations' });
 pickupLocationSchema.pre('updateOne', function (next) {
     return (0, stock_universal_server_1.preUpdateDocExpire)(this, next);
@@ -38,15 +48,15 @@ exports.pickupLocationSelect = pickupLocationselect;
  */
 const createPickupLocationModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     (0, stock_universal_server_1.createExpireDocIndex)(pickupLocationSchema);
-    if (!database_1.isStockDbConnected) {
-        await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
+    if (!stock_universal_server_1.isDbConnected) {
+        await (0, stock_universal_server_1.connectDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.pickupLocationMain = database_1.mainConnection
+        exports.pickupLocationMain = stock_universal_server_1.mainConnection
             .model('PickupLocation', pickupLocationSchema);
     }
     if (lean) {
-        exports.pickupLocationLean = database_1.mainConnectionLean
+        exports.pickupLocationLean = stock_universal_server_1.mainConnectionLean
             .model('PickupLocation', pickupLocationSchema);
     }
 };

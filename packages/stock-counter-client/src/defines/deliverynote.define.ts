@@ -45,10 +45,10 @@ export class DeliveryNote
     };
   }
 
-  static async getOne(urId: string) {
+  static async getOne(urIdOr_id: string) {
     const observer$ = StockCounterClient.ehttp
-      .makeGet<IinvoiceRelated>(`/deliverynote/one/${urId}`);
-    const deliverynote = await lastValueFrom(observer$) ;
+      .makeGet<IinvoiceRelated>(`/deliverynote/one/${urIdOr_id}`);
+    const deliverynote = await lastValueFrom(observer$);
 
     return new DeliveryNote(deliverynote);
   }
@@ -63,6 +63,13 @@ export class DeliveryNote
   static removeMany(val: IdeleteMany) {
     const observer$ = StockCounterClient.ehttp
       .makePut<Isuccess>('/deliverynote/delete/many', val); // TODO with IdeleteMany
+
+    return lastValueFrom(observer$);
+  }
+
+  remove() {
+    const observer$ = StockCounterClient.ehttp
+      .makeDelete<Isuccess>(`/deliverynote/delete/one/${this._id}`);
 
     return lastValueFrom(observer$);
   }

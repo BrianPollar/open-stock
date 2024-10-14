@@ -30,13 +30,14 @@
  * main and lean connection models for the user behaviour data.
  */
 import { IuserBehaviour } from '@open-stock/stock-universal';
+import { IcompanyIdAsObjectId } from '@open-stock/stock-universal-server';
 import { ConnectOptions, Document, Model } from 'mongoose';
 /**
  * Represents the type of a user behaviour document in the database.
  * This type extends the `Document` type from Mongoose and the `IuserBehaviour` interface,
  * which likely defines the shape of a user behaviour document.
  */
-export type TuserBehaviour = Document & IuserBehaviour;
+export type TuserBehaviour = Document & IuserBehaviour & IcompanyIdAsObjectId;
 /**
  * Represents the main Mongoose model for the user behaviour
  * data, including recent activity, cart, wishlist, compare list, and search terms.

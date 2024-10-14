@@ -1,4 +1,4 @@
-import { IvalidatorResult } from '../interfaces/validators.interface';
+import { IvalidatorResult } from '../types/validators-types';
 /**
  * Validates an email or phone number.
  * If the value is not a number, it validates the email.

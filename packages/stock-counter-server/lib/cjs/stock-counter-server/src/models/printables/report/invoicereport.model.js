@@ -3,14 +3,16 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createInvoicesReportModel = exports.invoicesReportSelect = exports.invoicesReportLean = exports.invoicesReportMain = void 0;
 const stock_universal_server_1 = require("@open-stock/stock-universal-server");
 const mongoose_1 = require("mongoose");
-const database_1 = require("../../../utils/database");
 const uniqueValidator = require('mongoose-unique-validator');
 /** Schema definition for invoicesReport */
 const invoicesReportSchema = new mongoose_1.Schema({
     ...stock_universal_server_1.withUrIdAndCompanySchemaObj,
-    totalAmount: { type: Number },
+    totalAmount: {
+        type: Number,
+        min: [0, 'cannot be less than 0.']
+    },
     date: { type: Date },
-    invoices: [],
+    invoices: [mongoose_1.Schema.Types.ObjectId],
     currency: { type: String, default: 'USD' }
 }, { timestamps: true, collection: 'invoicesreports' });
 invoicesReportSchema.pre('updateOne', function (next) {
@@ -41,15 +43,15 @@ exports.invoicesReportSelect = invoicesReportselect;
  */
 const createInvoicesReportModel = async (dbUrl, dbOptions, main = true, lean = true) => {
     (0, stock_universal_server_1.createExpireDocIndex)(invoicesReportSchema);
-    if (!database_1.isStockDbConnected) {
-        await (0, database_1.connectStockDatabase)(dbUrl, dbOptions);
+    if (!stock_universal_server_1.isDbConnected) {
+        await (0, stock_universal_server_1.connectDatabase)(dbUrl, dbOptions);
     }
     if (main) {
-        exports.invoicesReportMain = database_1.mainConnection
+        exports.invoicesReportMain = stock_universal_server_1.mainConnection
             .model('invoicesReport', invoicesReportSchema);
     }
     if (lean) {
-        exports.invoicesReportLean = database_1.mainConnectionLean
+        exports.invoicesReportLean = stock_universal_server_1.mainConnectionLean
             .model('invoicesReport', invoicesReportSchema);
     }
 };

@@ -20,11 +20,13 @@
  * @requires @open-stock/stock-universal-server
  */
 
-import { IcustomRequest, IdataArrayResponse, Isuccess } from '@open-stock/stock-universal';
+import { IcustomRequest, IdataArrayResponse } from '@open-stock/stock-universal';
 import {
-  offsetLimitRelegator, requireAuth, stringifyMongooseErr, verifyObjectId, verifyObjectIds
+  handleMongooseErr,
+  offsetLimitRelegator, requireAuth, verifyObjectId, verifyObjectIds
 } from '@open-stock/stock-universal-server';
 import express from 'express';
+import { Error } from 'mongoose';
 import { IMainnotification, mainnotificationLean, mainnotificationMain } from '../models/mainnotification.model';
 import { notifSettingLean, notifSettingMain } from '../models/notifsetting.model';
 import { subscriptionLean, subscriptionMain } from '../models/subscriptions.model';
@@ -39,6 +41,9 @@ notifnRoutes.get(
   '/getmynotifn/:offset/:limit',
   requireAuth,
   async(req: IcustomRequest<{ offset: string; limit: string }, null>, res) => {
+    if (!req.user) {
+      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     const { userId } = req.user;
     const { companyId } = req.user;
@@ -71,6 +76,9 @@ notifnRoutes.get(
   '/getmyavailnotifn/:offset/:limit',
   requireAuth,
   async(req: IcustomRequest<{ offset: string; limit: string }, null>, res) => {
+    if (!req.user) {
+      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const { offset, limit } = offsetLimitRelegator(req.params.offset, req.params.limit);
     const { companyId } = req.user;
 
@@ -102,9 +110,10 @@ notifnRoutes.get(
   '/one/:_id',
   requireAuth,
   async(req: IcustomRequest<{ _id: string }, null>, res) => {
+    if (!req.user) {
+      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const { companyId } = req.user;
-
-
     const { _id } = req.params;
     const isValid = verifyObjectIds([_id, companyId]);
 
@@ -128,10 +137,11 @@ notifnRoutes.delete(
   '/delete/one/:_id',
   requireAuth,
   async(req: IcustomRequest<{ _id: string }, unknown>, res) => {
+    if (!req.user) {
+      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const _id = req.params._id;
     const { companyId } = req.user;
-
-
     const isValid = verifyObjectIds([_id, companyId]);
 
     if (!isValid) {
@@ -139,14 +149,17 @@ notifnRoutes.delete(
     }
 
     // const deleted = await mainnotificationMain.findOneAndRemove({ _id, });
-    const deleted = await mainnotificationMain
-      .updateOne({ _id }, { $set: { isDeleted: true } });
+    const updateRes = await mainnotificationMain
+      .updateOne({ _id }, { $set: { isDeleted: true } })
+      .catch((err: Error) => err);
 
-    if (Boolean(deleted)) {
-      return res.status(200).send({ success: Boolean(deleted) });
-    } else {
-      return res.status(405).send({ success: Boolean(deleted), err: 'could not find item to remove' });
+    if (updateRes instanceof Error) {
+      const errResponse = handleMongooseErr(updateRes);
+
+      return res.status(errResponse.status).send(errResponse);
     }
+
+    return res.status(200).send({ success: true });
   }
 );
 
@@ -154,9 +167,10 @@ notifnRoutes.post(
   '/subscription',
   requireAuth,
   async(req: IcustomRequest<never, { subscription }>, res) => {
+    if (!req.user) {
+      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const { companyId } = req.user;
-
-
     const { userId, permissions } = req.user;
     const isValid = verifyObjectIds([companyId]);
 
@@ -184,24 +198,11 @@ notifnRoutes.post(
       sub = new subscriptionMain(newSub);
     }
 
-    let errResponse: Isuccess;
+    const savedRes = await sub.save().catch((err: Error) => err);
 
-    await sub.save().catch(err => {
-      errResponse = {
-        success: false,
-        status: 403
-      };
-      if (err && err.errors) {
-        errResponse.err = stringifyMongooseErr(err.errors);
-      } else {
-        errResponse.err = `we are having problems connecting to our databases, 
-      try again in a while`;
-      }
+    if (savedRes instanceof Error) {
+      const errResponse = handleMongooseErr(savedRes);
 
-      return err;
-    });
-
-    if (errResponse) {
       return res.status(403).send(errResponse);
     }
 
@@ -213,10 +214,11 @@ notifnRoutes.post(
   '/updateviewed',
   requireAuth,
   async(req: IcustomRequest<never, { _id: string}>, res) => {
+    if (!req.user) {
+      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const user = req.user;
     const { companyId } = req.user;
-
-
     const { _id } = req.body;
     const isValid = verifyObjectIds([_id, companyId]);
 
@@ -233,9 +235,10 @@ notifnRoutes.get(
   '/unviewedlength',
   requireAuth,
   async(req: IcustomRequest<never, null>, res) => {
+    if (!req.user) {
+      return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+    }
     const { companyId } = req.user;
-
-
     const isValid = verifyObjectId(companyId);
 
     if (!isValid) {
@@ -267,42 +270,32 @@ notifnRoutes.get(
 );
 
 notifnRoutes.put('/clearall', requireAuth, async(req: IcustomRequest<never, unknown>, res) => {
-  const { companyId } = req.user;
-  //
-
-  //
-  const { userId } = req.user;
-
-  const all = await mainnotificationLean.find({
+  if (!req.user) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
+  const { companyId, userId } = req.user;
+  const notifis = await mainnotificationLean.find({
     userId, active: true, companyId
   });
-  const promises = all.map(async val => {
+  const promises = notifis.map(async val => {
     val.active = false;
-    let error;
-    const saved = await val.save().catch(err => {
-      error = err;
+    const savedRes = await val.save().catch((err: Error) => err);
 
-      return null;
-    });
+    if (savedRes instanceof Error) {
+      const error = handleMongooseErr(savedRes);
 
-    if (error) {
       return new Promise((resolve, reject) => reject(error));
     } else {
-      return new Promise(resolve => resolve({ success: Boolean(saved) }));
+      return new Promise(resolve => resolve({ success: true }));
     }
   });
 
-  let errResponse: Isuccess;
 
-  await Promise.all(promises).catch(() => {
-    errResponse = {
-      success: false,
-      status: 403,
-      err: 'could clear all notifications, try again in a while'
-    };
-  });
+  const all = await Promise.all(promises).catch((err: Error) => err);
 
-  if (errResponse) {
+  if (all instanceof Error) {
+    const errResponse = handleMongooseErr(all) ;
+
     return res.status(403).send(errResponse);
   }
 
@@ -312,13 +305,16 @@ notifnRoutes.put('/clearall', requireAuth, async(req: IcustomRequest<never, unkn
 
 // settings
 notifnRoutes.post('/createstn', async(req: IcustomRequest<never, { stn }>, res) => {
+  if (!req.user) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   const { stn } = req.body;
   const { companyId } = req.user;
 
   stn.companyId = companyId;
   const response = await createNotifStn(stn);
 
-  return res.status(response.status).send({ success: response.success });
+  return res.status(response.status || response.success ? 200 : 403).send({ success: response.success });
 });
 
 notifnRoutes.put('/updatestn', async(req: IcustomRequest<never, { stn }>, res) => {
@@ -330,35 +326,27 @@ notifnRoutes.put('/updatestn', async(req: IcustomRequest<never, { stn }>, res) =
     return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
   }
 
-  const notifStn = await notifSettingMain.findById(_id);
+  const notifStn = await notifSettingMain.findById(_id).lean();
 
   if (!notifStn) {
     return res.status(404).send({ success: false });
   }
-  notifStn['invoices'] = stn.invoices || notifStn['invoices'];
-  notifStn['payments'] = stn.payments || notifStn['payments'];
-  notifStn['orders'] = stn.orders || notifStn['orders'];
-  notifStn['jobCards'] = stn.jobCards || notifStn['jobCards'];
-  notifStn['users'] = stn.users || notifStn['users'];
 
-  let errResponse: Isuccess;
-
-  await notifStn.save().catch(err => {
-    errResponse = {
-      success: false,
-      status: 403
-    };
-    if (err && err.errors) {
-      errResponse.err = stringifyMongooseErr(err.errors);
-    } else {
-      errResponse.err = `we are having problems connecting to our databases, 
-      try again in a while`;
+  const savedRes = await notifSettingMain.updateOne({
+    _id
+  }, {
+    $set: {
+      invoices: stn.invoices || notifStn.invoices,
+      payments: stn.payments || notifStn.payments,
+      orders: stn.orders || notifStn.orders,
+      jobCards: stn.jobCards || notifStn.jobCards,
+      users: stn.users || notifStn.users
     }
+  }).catch((err: Error) => err);
 
-    return errResponse;
-  });
+  if (savedRes instanceof Error) {
+    const errResponse = handleMongooseErr(savedRes);
 
-  if (errResponse) {
     return res.status(403).send(errResponse);
   }
 
@@ -367,10 +355,11 @@ notifnRoutes.put('/updatestn', async(req: IcustomRequest<never, { stn }>, res) =
 
 // settings
 notifnRoutes.post('/getstn', requireAuth, async(req: IcustomRequest<never, unknown>, res) => {
+  if (!req.user) {
+    return res.status(401).send({ success: false, status: 401, err: 'unauthourised' });
+  }
   const { companyId } = req.user;
-  //
 
-  //
   const stns = await notifSettingLean
     .find({ companyId })
     .lean();

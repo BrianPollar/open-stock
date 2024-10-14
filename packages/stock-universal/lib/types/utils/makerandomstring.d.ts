@@ -1,4 +1,4 @@
-import { Tmkrandomstringhow } from '../types/union.types';
+import { Tmkrandomstringhow } from '../types/union-types';
 /**
  * Generates a random string of a specified length and type.
  * @param length - The length of the random string.

@@ -32,9 +32,9 @@ class Estimate extends invoice_define_1.InvoiceRelatedWithReceipt {
                 .map(val => new Estimate(val))
         };
     }
-    static async getOne(urId) {
+    static async getOne(urIdOr_id) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
-            .makeGet(`/estimate/one/${urId}`);
+            .makeGet(`/estimate/one/${urIdOr_id}`);
         const estimate = await (0, rxjs_1.lastValueFrom)(observer$);
         return new Estimate(estimate);
     }
@@ -51,6 +51,11 @@ class Estimate extends invoice_define_1.InvoiceRelatedWithReceipt {
     updatePdt(vals) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp
             .makePut('/estimate/updatepdt', { items: vals, _id: this._id });
+        return (0, rxjs_1.lastValueFrom)(observer$);
+    }
+    remove() {
+        const observer$ = stock_counter_client_1.StockCounterClient.ehttp
+            .makeDelete(`/estimate/delete/one/${this._id}`);
         return (0, rxjs_1.lastValueFrom)(observer$);
     }
 }

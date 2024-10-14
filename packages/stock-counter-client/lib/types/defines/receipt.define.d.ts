@@ -1,4 +1,4 @@
-import { DatabaseAuto, IdeleteMany, IeditReceipt, IfilterProps, IinvoiceRelated, IinvoiceRelatedPdct, Ireceipt, Isuccess, IupdateInvoicePayment, TestimateStage, TinvoiceStatus, TinvoiceType, TreceiptType } from '@open-stock/stock-universal';
+import { DatabaseAuto, IdeleteMany, IeditReceipt, IfilterProps, IinvoiceRelated, IinvoiceRelatedPdct, Ireceipt, Isuccess, TestimateStage, TinvoiceStatus, TinvoiceType, TreceiptType } from '@open-stock/stock-universal';
 export declare class InvoiceRelated extends DatabaseAuto {
     invoiceRelated: string;
     creationType: TinvoiceType;
@@ -23,14 +23,7 @@ export declare class InvoiceRelated extends DatabaseAuto {
     ecommerceSalePercentage: number;
     readonly currency: string;
     constructor(data: Required<IinvoiceRelated>);
-    static getInvoicePayments(): Promise<{
-        count: number;
-        invoicepays: Receipt[];
-    }>;
-    static getOneInvoicePayment(urId: string): Promise<Receipt>;
     static addInvoicePayment(payment: Ireceipt): Promise<Isuccess>;
-    static deleteInvoicePayments(_ids: string[]): Promise<Isuccess>;
-    static updateInvoicePayment(vals: IupdateInvoicePayment): Promise<Isuccess>;
     static updateInvoiceRelated(invoiceRelated: IinvoiceRelated): Promise<Isuccess>;
 }
 export declare class Receipt extends InvoiceRelated {
@@ -51,8 +44,9 @@ export declare class Receipt extends InvoiceRelated {
         count: number;
         receipts: Receipt[];
     }>;
-    static getOne(urId: string): Promise<Receipt>;
+    static getOne(urIdOr_id: string): Promise<Receipt>;
     static add(vals: IeditReceipt): Promise<Isuccess>;
     static removeMany(val: IdeleteMany): Promise<Isuccess>;
     update(vals: IeditReceipt): Promise<Isuccess>;
+    remove(): Promise<Isuccess>;
 }

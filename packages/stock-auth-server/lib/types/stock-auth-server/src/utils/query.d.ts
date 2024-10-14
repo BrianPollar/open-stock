@@ -1,6 +1,6 @@
 /// <reference types="mongoose/types/document" />
-/// <reference types="mongoose/types/models" />
 /// <reference types="mongoose/types/types" />
+/// <reference types="mongoose/types/models" />
 /// <reference types="mongoose/types/aggregate" />
 /// <reference types="mongoose/types/callback" />
 /// <reference types="mongoose/types/collection" />
@@ -33,18 +33,22 @@
    */
 export declare const populatePhotos: (urlOnly?: boolean) => {
     path: string;
-    model: import("mongoose").Model<import("@open-stock/stock-universal").IfileMeta, {}, {}, {}, import("mongoose").Document<unknown, {}, import("@open-stock/stock-universal").IfileMeta> & import("@open-stock/stock-universal").IfileMeta & Required<{
-        _id: string;
-    }>, any>;
+    model: import("mongoose").Model<import("@open-stock/stock-universal-server").TfileMeta, {}, {}, {}, import("mongoose").Document<unknown, {}, import("@open-stock/stock-universal-server").TfileMeta> & import("mongoose").Document<any, any, any> & import("@open-stock/stock-universal").IfileMeta & {
+        expireDocAfter: Date;
+    } & {
+        _id: import("mongoose").Types.ObjectId;
+    }, any>;
     transform: (doc: any) => {
         _id: any;
         url: any;
     };
 } | {
     path: string;
-    model: import("mongoose").Model<import("@open-stock/stock-universal").IfileMeta, {}, {}, {}, import("mongoose").Document<unknown, {}, import("@open-stock/stock-universal").IfileMeta> & import("@open-stock/stock-universal").IfileMeta & Required<{
-        _id: string;
-    }>, any>;
+    model: import("mongoose").Model<import("@open-stock/stock-universal-server").TfileMeta, {}, {}, {}, import("mongoose").Document<unknown, {}, import("@open-stock/stock-universal-server").TfileMeta> & import("mongoose").Document<any, any, any> & import("@open-stock/stock-universal").IfileMeta & {
+        expireDocAfter: Date;
+    } & {
+        _id: import("mongoose").Types.ObjectId;
+    }, any>;
     transform?: undefined;
 };
 /**
@@ -54,18 +58,22 @@ export declare const populatePhotos: (urlOnly?: boolean) => {
    */
 export declare const populateProfilePic: (urlOnly?: boolean) => {
     path: string;
-    model: import("mongoose").Model<import("@open-stock/stock-universal").IfileMeta, {}, {}, {}, import("mongoose").Document<unknown, {}, import("@open-stock/stock-universal").IfileMeta> & import("@open-stock/stock-universal").IfileMeta & Required<{
-        _id: string;
-    }>, any>;
+    model: import("mongoose").Model<import("@open-stock/stock-universal-server").TfileMeta, {}, {}, {}, import("mongoose").Document<unknown, {}, import("@open-stock/stock-universal-server").TfileMeta> & import("mongoose").Document<any, any, any> & import("@open-stock/stock-universal").IfileMeta & {
+        expireDocAfter: Date;
+    } & {
+        _id: import("mongoose").Types.ObjectId;
+    }, any>;
     transform: (doc: any) => {
         _id: any;
         url: any;
     };
 } | {
     path: string;
-    model: import("mongoose").Model<import("@open-stock/stock-universal").IfileMeta, {}, {}, {}, import("mongoose").Document<unknown, {}, import("@open-stock/stock-universal").IfileMeta> & import("@open-stock/stock-universal").IfileMeta & Required<{
-        _id: string;
-    }>, any>;
+    model: import("mongoose").Model<import("@open-stock/stock-universal-server").TfileMeta, {}, {}, {}, import("mongoose").Document<unknown, {}, import("@open-stock/stock-universal-server").TfileMeta> & import("mongoose").Document<any, any, any> & import("@open-stock/stock-universal").IfileMeta & {
+        expireDocAfter: Date;
+    } & {
+        _id: import("mongoose").Types.ObjectId;
+    }, any>;
     transform?: undefined;
 };
 /**
@@ -75,18 +83,22 @@ export declare const populateProfilePic: (urlOnly?: boolean) => {
    */
 export declare const populateProfileCoverPic: (urlOnly?: boolean) => {
     path: string;
-    model: import("mongoose").Model<import("@open-stock/stock-universal").IfileMeta, {}, {}, {}, import("mongoose").Document<unknown, {}, import("@open-stock/stock-universal").IfileMeta> & import("@open-stock/stock-universal").IfileMeta & Required<{
-        _id: string;
-    }>, any>;
+    model: import("mongoose").Model<import("@open-stock/stock-universal-server").TfileMeta, {}, {}, {}, import("mongoose").Document<unknown, {}, import("@open-stock/stock-universal-server").TfileMeta> & import("mongoose").Document<any, any, any> & import("@open-stock/stock-universal").IfileMeta & {
+        expireDocAfter: Date;
+    } & {
+        _id: import("mongoose").Types.ObjectId;
+    }, any>;
     transform: (doc: any) => {
         _id: any;
         url: any;
     };
 } | {
     path: string;
-    model: import("mongoose").Model<import("@open-stock/stock-universal").IfileMeta, {}, {}, {}, import("mongoose").Document<unknown, {}, import("@open-stock/stock-universal").IfileMeta> & import("@open-stock/stock-universal").IfileMeta & Required<{
-        _id: string;
-    }>, any>;
+    model: import("mongoose").Model<import("@open-stock/stock-universal-server").TfileMeta, {}, {}, {}, import("mongoose").Document<unknown, {}, import("@open-stock/stock-universal-server").TfileMeta> & import("mongoose").Document<any, any, any> & import("@open-stock/stock-universal").IfileMeta & {
+        expireDocAfter: Date;
+    } & {
+        _id: import("mongoose").Types.ObjectId;
+    }, any>;
     transform?: undefined;
 };
 /**
@@ -138,9 +150,11 @@ export declare const populateCompany: (returnActive?: boolean) => {
         }, any>;
         populate: {
             path: string;
-            model: import("mongoose").Model<import("@open-stock/stock-universal").IfileMeta, {}, {}, {}, import("mongoose").Document<unknown, {}, import("@open-stock/stock-universal").IfileMeta> & import("@open-stock/stock-universal").IfileMeta & Required<{
-                _id: string;
-            }>, any>;
+            model: import("mongoose").Model<import("@open-stock/stock-universal-server").TfileMeta, {}, {}, {}, import("mongoose").Document<unknown, {}, import("@open-stock/stock-universal-server").TfileMeta> & import("mongoose").Document<any, any, any> & import("@open-stock/stock-universal").IfileMeta & {
+                expireDocAfter: Date;
+            } & {
+                _id: import("mongoose").Types.ObjectId;
+            }, any>;
             transform: (doc: any) => {
                 _id: any;
                 url: any;
@@ -157,7 +171,7 @@ export declare const populateCompany: (returnActive?: boolean) => {
         _id: any;
         displayName: any;
         owner: any;
-    };
+    } | null;
 } | {
     path: string;
     model: import("mongoose").Model<import("../models/company.model").Tcompany, {}, {}, {}, import("mongoose").Document<unknown, {}, import("../models/company.model").Tcompany> & import("mongoose").Document<any, any, any> & import("@open-stock/stock-universal").Icompany & {
@@ -170,9 +184,11 @@ export declare const populateCompany: (returnActive?: boolean) => {
         }, any>;
         populate: {
             path: string;
-            model: import("mongoose").Model<import("@open-stock/stock-universal").IfileMeta, {}, {}, {}, import("mongoose").Document<unknown, {}, import("@open-stock/stock-universal").IfileMeta> & import("@open-stock/stock-universal").IfileMeta & Required<{
-                _id: string;
-            }>, any>;
+            model: import("mongoose").Model<import("@open-stock/stock-universal-server").TfileMeta, {}, {}, {}, import("mongoose").Document<unknown, {}, import("@open-stock/stock-universal-server").TfileMeta> & import("mongoose").Document<any, any, any> & import("@open-stock/stock-universal").IfileMeta & {
+                expireDocAfter: Date;
+            } & {
+                _id: import("mongoose").Types.ObjectId;
+            }, any>;
             transform: (doc: any) => {
                 _id: any;
                 url: any;
@@ -200,9 +216,11 @@ export declare const populateOwner: () => {
     }, any>;
     populate: {
         path: string;
-        model: import("mongoose").Model<import("@open-stock/stock-universal").IfileMeta, {}, {}, {}, import("mongoose").Document<unknown, {}, import("@open-stock/stock-universal").IfileMeta> & import("@open-stock/stock-universal").IfileMeta & Required<{
-            _id: string;
-        }>, any>;
+        model: import("mongoose").Model<import("@open-stock/stock-universal-server").TfileMeta, {}, {}, {}, import("mongoose").Document<unknown, {}, import("@open-stock/stock-universal-server").TfileMeta> & import("mongoose").Document<any, any, any> & import("@open-stock/stock-universal").IfileMeta & {
+            expireDocAfter: Date;
+        } & {
+            _id: import("mongoose").Types.ObjectId;
+        }, any>;
         transform: (doc: any) => {
             _id: any;
             url: any;

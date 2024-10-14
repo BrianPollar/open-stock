@@ -1,29 +1,4 @@
-import * as fs from 'fs';
-import * as path from 'path';
-import * as tracer from 'tracer';
-const adminLogger = tracer.colorConsole({
-    format: '{{timestamp}} [{{title}}] {{message}} (in {{file}}:{{line}})',
-    dateformat: 'HH:MM:ss.L',
-    transport(data) {
-        // eslint-disable-next-line no-console
-        console.log(data.output);
-        const logDir = path.join(process.cwd() + '/openstockLog/');
-        fs.mkdir(logDir, { recursive: true }, (err) => {
-            if (err) {
-                if (err) {
-                    // eslint-disable-next-line no-console
-                    console.log('data.output err ', err);
-                }
-            }
-        });
-        fs.appendFile(logDir + '/auth-server.log', data.rawoutput + '\n', err => {
-            if (err) {
-                // eslint-disable-next-line no-console
-                console.log('raw.output err ', err);
-            }
-        });
-    }
-});
+import { mainLogger } from '@open-stock/stock-universal-server';
 /**
  * Defines an admin object with the name "admin" and sets its admin permissions for various actions.
  * @returns An admin object with the name "admin" and admin permissions for various actions.
@@ -47,13 +22,13 @@ export const defineAdmin = () => {
  * @returns A promise that resolves to an admin login response object.
  */
 export const login = (password, adminServerPasswd) => new Promise(resolve => {
-    adminLogger.info('Admin login attempted');
+    mainLogger.info('Admin login attempted');
     if (password !== adminServerPasswd) {
-        adminLogger.error('Admin login err, wrong password');
+        mainLogger.error('Admin login err, wrong password');
         resolve({ success: false });
     }
     else if (password === adminServerPasswd) {
-        adminLogger.info('Admin login success');
+        mainLogger.info('Admin login success');
         resolve({
             success: true,
             user: defineAdmin()
@@ -72,7 +47,7 @@ export const login = (password, adminServerPasswd) => new Promise(resolve => {
  * @returns A promise that resolves to an admin login response object.
  */
 export const checkIfAdmin = async (emailPhone, password, processadminId, adminServerPasswd) => {
-    adminLogger.info('checking if admin');
+    mainLogger.info('checking if admin');
     let response;
     if (emailPhone !== processadminId) {
         response = { success: false };
@@ -83,7 +58,7 @@ export const checkIfAdmin = async (emailPhone, password, processadminId, adminSe
     else {
         response = { success: false };
     }
-    adminLogger.debug('response for checkIfAdmin', response);
+    mainLogger.debug('response for checkIfAdmin', response);
     return response;
 };
 //# sourceMappingURL=admin.js.map

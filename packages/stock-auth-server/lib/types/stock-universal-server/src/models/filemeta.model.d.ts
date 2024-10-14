@@ -1,3 +1,4 @@
+/// <reference types="mongoose/types/document" />
 /// <reference types="mongoose/types/models" />
 /// <reference types="mongoose/types/aggregate" />
 /// <reference types="mongoose/types/callback" />
@@ -24,15 +25,18 @@
 /// <reference types="mongoose/types/virtuals" />
 /// <reference types="mongoose/types/inferschematype" />
 import { IfileMeta } from '@open-stock/stock-universal';
-import { ConnectOptions, Model } from 'mongoose';
+import { ConnectOptions, Document, Model } from 'mongoose';
+export type TfileMeta = Document & IfileMeta & {
+    expireDocAfter: Date;
+};
 /**
  * Represents the fileMeta model.
  */
-export declare let fileMeta: Model<IfileMeta>;
+export declare let fileMeta: Model<TfileMeta>;
 /**
  * Represents the fileMetaLean variable.
  */
-export declare let fileMetaLean: Model<IfileMeta>;
+export declare let fileMetaLean: Model<TfileMeta>;
 /**
  * Creates an file meta model with the given database URL, main flag, and lean flag.
  * @param dbUrl The URL of the database to connect to.
