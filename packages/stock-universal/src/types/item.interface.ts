@@ -90,7 +90,7 @@ export interface Ireview {
 
 /*
 export interface Ioffer {
-  ammount: number;
+  amount: number;
   expiry: Date;
 } */
 

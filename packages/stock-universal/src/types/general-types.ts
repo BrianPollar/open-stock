@@ -639,7 +639,7 @@ export interface IsubscriptionFeature {
 export interface IsubscriptionPackage
 extends IdatabaseAuto, ItrackStamp {
   name: string;
-  ammount: number;
+  amount: number;
   duration: TsubscriptionDurVal; // in months
   active?: boolean;
   features: IsubscriptionFeature[];
@@ -648,7 +648,7 @@ extends IdatabaseAuto, ItrackStamp {
 export interface IcompanySubscription
 extends IdatabaseAuto, ItrackStamp, IcompanyId {
   name: string;
-  ammount: number;
+  amount: number;
   duration: TsubscriptionDurVal;
   active: boolean;
   subscriprionId: string;

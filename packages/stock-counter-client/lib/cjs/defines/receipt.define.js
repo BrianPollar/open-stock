@@ -48,7 +48,7 @@ class Receipt extends InvoiceRelated {
         super(data);
         this.urId = data.urId;
         this.companyId = data.companyId;
-        this.ammountRcievd = data.ammountRcievd;
+        this.amountRcievd = data.amountRcievd;
         this.paymentMode = data.paymentMode;
         this.type = data.type;
         this.date = data.toDate;

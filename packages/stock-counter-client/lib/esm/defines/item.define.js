@@ -4,8 +4,13 @@ import { StockCounterClient } from '../stock-counter-client';
 export class Item extends DatabaseAuto {
     constructor(data) {
         super(data);
-        this.photos = [];
+        this.photos = [] = [];
+        this.reviewCount = 0;
+        this.reviewWeight = 0;
+        this.likesCount = 0;
+        this.timesViewed = 0;
         this.orderedQty = 1;
+        this.reviewRatingsTotal = 0;
         this.soldCount = 0;
         this.appndPdctCtror(data);
     }

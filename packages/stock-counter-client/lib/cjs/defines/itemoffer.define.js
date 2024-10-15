@@ -15,7 +15,7 @@ class ItemOffer extends stock_universal_1.DatabaseAuto {
         this.type = data.type;
         this.header = data.header;
         this.subHeader = data.subHeader;
-        this.ammount = data.ammount;
+        this.amount = data.amount;
         this.currency = data.currency;
     }
     static async getAll(type, // TODO union here

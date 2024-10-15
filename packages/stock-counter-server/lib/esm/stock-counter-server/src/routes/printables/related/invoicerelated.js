@@ -29,14 +29,18 @@ export const updateInvoiceRelatedPayments = async (payment) => {
     if (!related) {
         return { success: false, err: 'invoice related not found' };
     }
+    const invoiceRel = {
+        ...related,
+        billingUserId: related.billingUserId.toString()
+    };
     const payments = related.payments || [];
     payments.push(payment._id);
     const total = await getPaymentsTotal(related.payments);
     // if is not yet paid update neccesary fields
     if (related.total && related.status !== 'paid' && total >= related.total) {
-        await updateItemsInventory(related);
+        await updateItemsInventory(invoiceRel);
         if (related.billingUserId) {
-            await updateCustomerDueAmount(related.billingUserId, related.total, true);
+            await updateCustomerDueAmount(invoiceRel.billingUserId, related.total, true);
         }
         related.status = 'paid';
         related.balanceDue = 0;
@@ -68,11 +72,15 @@ export const updateInvoiceRelated = async (res, invoiceRelated) => {
     if (!related) {
         return { success: false, err: 'invoice related not found' };
     }
+    const invoiceRel = {
+        ...related,
+        billingUserId: related.billingUserId.toString()
+    };
     // start with id
     if (typeof Number(related.billingUserId) !== 'number') {
-        related.billingUserId = invoiceRelated.billingUserId || related.billingUserId;
+        invoiceRel.billingUserId = invoiceRelated.billingUserId || related.billingUserId.toString();
     }
-    invoiceRelated = transFormInvoiceRelatedOnStatus(related, invoiceRelated);
+    invoiceRelated = transFormInvoiceRelatedOnStatus(invoiceRel, invoiceRelated);
     const oldTotal = related.total;
     const oldStatus = related.status;
     const updateRes = await invoiceRelatedMain.updateOne({
@@ -109,13 +117,17 @@ export const updateInvoiceRelated = async (res, invoiceRelated) => {
     if (!foundRelated || !foundRelated.billingUserId || !oldTotal) {
         return { success: false, err: 'invoice related not found' };
     }
-    if (oldStatus !== foundRelated.status && foundRelated.status === 'paid') {
-        await updateCustomerDueAmount(foundRelated.billingUserId, oldTotal, true);
-        await updateItemsInventory(foundRelated);
+    const foundInvoiceRel = {
+        ...related,
+        billingUserId: related.billingUserId.toString()
+    };
+    if (oldStatus !== foundInvoiceRel.status && foundInvoiceRel.status === 'paid') {
+        await updateCustomerDueAmount(foundInvoiceRel.billingUserId, oldTotal, true);
+        await updateItemsInventory(foundInvoiceRel);
     }
-    else if (foundRelated.status !== 'paid' && foundRelated.total) {
-        await updateCustomerDueAmount(foundRelated.billingUserId, oldTotal, true);
-        await updateCustomerDueAmount(foundRelated.billingUserId, foundRelated.total, false);
+    else if (foundInvoiceRel.status !== 'paid' && foundInvoiceRel.total) {
+        await updateCustomerDueAmount(foundInvoiceRel.billingUserId, oldTotal, true);
+        await updateCustomerDueAmount(foundInvoiceRel.billingUserId, foundInvoiceRel.total, false);
     }
     addParentToLocals(res, related._id, 'invoicerelateds', 'makeTrackEdit');
     return { success: true, _id: related._id };
@@ -145,7 +157,7 @@ export const relegateInvRelatedCreation = async (res, invoiceRelated, companyId,
         if (!newInvRelated.total) {
             return { success: false, err: 'total not found' };
         }
-        await updateCustomerDueAmount(newInvRelated.billingUserId, newInvRelated.total, false);
+        await updateCustomerDueAmount(newInvRelated.billingUserId.toString(), newInvRelated.total, false);
         mainLogger.error('AFTER SAVE');
         let route;
         let title = '';
@@ -279,6 +291,7 @@ export const makeInvoiceRelatedPdct = (invoiceRelated, user, createdAt, extras =
         ecommerceSalePercentage: invoiceRelated.ecommerceSalePercentage,
         currency: invoiceRelated.currency,
         updatedAt,
+        paymentMade: invoiceRelated.paymentMade,
         ...extras
     };
 };
@@ -473,7 +486,7 @@ export const canMakeReceipt = async (relatedId) => {
    */
 export const getPaymentsTotal = async (payments) => {
     const paymentsPromises = payments.map(async (payment) => {
-        const paymentDoc = await receiptMain.findOne({ _id: payment }).lean().select({ ammountRcievd: 1 });
+        const paymentDoc = await receiptMain.findOne({ _id: payment }).lean().select({ amountRcievd: 1 });
         if (!paymentDoc) {
             return null;
         }
@@ -482,7 +495,7 @@ export const getPaymentsTotal = async (payments) => {
     const allPromises = await Promise.all(paymentsPromises);
     return allPromises
         .filter(val => val !== null)
-        .reduce((total, payment) => total + payment.ammountRcievd, 0);
+        .reduce((total, payment) => total + payment.amountRcievd, 0);
 };
 /**
    * Updates the amountDue of a user by the given amount

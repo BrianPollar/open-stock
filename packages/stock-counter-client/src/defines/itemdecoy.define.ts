@@ -9,13 +9,13 @@ export class ItemDecoy
   extends DatabaseAuto {
   urId: string;
   companyId: string;
-  items: Item[];
+  items: Item[] = [];
 
   constructor(data: { urId: string; companyId: string; items: Iitem[] }) {
     super(data);
     this.urId = data.urId;
     this.companyId = data.companyId;
-    this.items = data.items.map(val => new Item(val));
+    this.items = data.items.map(val => new Item(val)) || [];
   }
 
   static async getAll(offset = 0, limit = 20) {

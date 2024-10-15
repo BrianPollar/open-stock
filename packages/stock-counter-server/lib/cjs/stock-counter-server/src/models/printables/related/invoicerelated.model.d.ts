@@ -1,4 +1,5 @@
 /// <reference types="mongoose/types/document" />
+/// <reference types="mongoose/types/schematypes" />
 /// <reference types="mongoose/types/models" />
 /// <reference types="mongoose/types/aggregate" />
 /// <reference types="mongoose/types/callback" />
@@ -15,7 +16,6 @@
 /// <reference types="mongoose/types/populate" />
 /// <reference types="mongoose/types/query" />
 /// <reference types="mongoose/types/schemaoptions" />
-/// <reference types="mongoose/types/schematypes" />
 /// <reference types="mongoose/types/session" />
 /// <reference types="mongoose/types/types" />
 /// <reference types="mongoose/types/utility" />
@@ -24,9 +24,11 @@
 /// <reference types="mongoose/types/inferschematype" />
 import { IinvoiceRelated } from '@open-stock/stock-universal';
 import { IcompanyIdAsObjectId } from '@open-stock/stock-universal-server';
-import { ConnectOptions, Document, Model } from 'mongoose';
+import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 /** model interface for invoiceRelated by */
-export type TinvoiceRelated = Document & IinvoiceRelated & IcompanyIdAsObjectId;
+export type TinvoiceRelated = Document & Omit<IinvoiceRelated, 'billingUserId'> & IcompanyIdAsObjectId & {
+    billingUserId: Schema.Types.ObjectId;
+};
 /**
  * Represents the main invoice related model.
  */

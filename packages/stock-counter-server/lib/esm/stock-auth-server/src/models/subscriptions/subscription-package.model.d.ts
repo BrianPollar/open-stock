@@ -38,7 +38,7 @@ export declare let subscriptionPackageLean: Model<TsubscriptionPackage>;
  */
 export declare const subscriptionPackageSelect: {
     name: number;
-    ammount: number;
+    amount: number;
     duration: number;
     active: number;
     features: number;

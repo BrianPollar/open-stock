@@ -13,7 +13,7 @@ export class ItemOffer extends DatabaseAuto {
   type: string;
   header: string;
   subHeader: string;
-  ammount: number;
+  amount: number;
   readonly currency: string;
 
   constructor(data) {
@@ -25,7 +25,7 @@ export class ItemOffer extends DatabaseAuto {
     this.type = data.type;
     this.header = data.header;
     this.subHeader = data.subHeader;
-    this.ammount = data.ammount;
+    this.amount = data.amount;
     this.currency = data.currency;
   }
 
@@ -66,7 +66,7 @@ export class ItemOffer extends DatabaseAuto {
       expireAt: Date;
       header: string;
       subHeader: string;
-      ammount: number;
+      amount: number;
     }): Promise<IsubscriptionFeatureState> {
     const observer$ = StockCounterClient.ehttp
       .makePost<IsubscriptionFeatureState>('/itemoffer/add', {

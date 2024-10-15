@@ -42,7 +42,7 @@ export declare const populateBillingUser: () => {
 export declare const populatePayments: () => {
     path: string;
     model: import("mongoose").Model<import("../models/printables/receipt.model").Treceipt, {}, {}, {}, import("mongoose").Document<unknown, {}, import("../models/printables/receipt.model").Treceipt> & import("mongoose").Document<any, any, any> & import("@open-stock/stock-universal").IinvoiceRelatedRef & {
-        ammountRcievd: number;
+        amountRcievd: number;
         paymentMode: string;
         type: import("@open-stock/stock-universal").TreceiptType;
         date: Date;
@@ -61,7 +61,9 @@ export declare const populatePayments: () => {
    */
 export declare const populateInvoiceRelated: (returnItemPhotos?: boolean) => {
     path: string;
-    model: import("mongoose").Model<import("../models/printables/related/invoicerelated.model").TinvoiceRelated, {}, {}, {}, import("mongoose").Document<unknown, {}, import("../models/printables/related/invoicerelated.model").TinvoiceRelated> & import("mongoose").Document<any, any, any> & import("@open-stock/stock-universal").IinvoiceRelated & import("@open-stock/stock-universal-server").IcompanyIdAsObjectId & {
+    model: import("mongoose").Model<import("../models/printables/related/invoicerelated.model").TinvoiceRelated, {}, {}, {}, import("mongoose").Document<unknown, {}, import("../models/printables/related/invoicerelated.model").TinvoiceRelated> & import("mongoose").Document<any, any, any> & Omit<import("@open-stock/stock-universal").IinvoiceRelated, "billingUserId"> & import("@open-stock/stock-universal-server").IcompanyIdAsObjectId & {
+        billingUserId: import("mongoose").Schema.Types.ObjectId;
+    } & {
         _id: import("mongoose").Types.ObjectId;
     }, any>;
     populate: ({
@@ -73,7 +75,7 @@ export declare const populateInvoiceRelated: (returnItemPhotos?: boolean) => {
     } | {
         path: string;
         model: import("mongoose").Model<import("../models/printables/receipt.model").Treceipt, {}, {}, {}, import("mongoose").Document<unknown, {}, import("../models/printables/receipt.model").Treceipt> & import("mongoose").Document<any, any, any> & import("@open-stock/stock-universal").IinvoiceRelatedRef & {
-            ammountRcievd: number;
+            amountRcievd: number;
             paymentMode: string;
             type: import("@open-stock/stock-universal").TreceiptType;
             date: Date;

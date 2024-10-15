@@ -1,6 +1,6 @@
 {
   "name": "@open-stock/stock-auth-client",
-  "version": "4.2.188",
+  "version": "4.2.189",
   "description": "> TODO: description",
   "main": "lib/cjs/index.js",
   "module": "lib/esm/index.js",

@@ -12,7 +12,7 @@ const companySubscriptionSchema = new mongoose_1.Schema({
         minlength: [3, 'alteat 3 charaters needed'],
         maxlength: [50, 'cannot be more than 50 characters']
     },
-    ammount: {
+    amount: {
         type: Number,
         required: [true, 'cannot be empty.'],
         min: [0, 'cannot be less than 0.']
@@ -46,7 +46,7 @@ function checkEndDate(value) {
 const companySubscriptionselect = {
     ...stock_universal_server_1.withCompanySelectObj,
     name: 1,
-    ammount: 1,
+    amount: 1,
     duration: 1,
     active: 1,
     subscriprionId: 1,

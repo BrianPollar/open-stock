@@ -44,7 +44,7 @@ export type TitemOffer = Document & ItrackStamp & IcurrencyProp & {
     /** The subheader of the offer. */
     subHeader: string;
     /** The amount of the offer. */
-    ammount: number;
+    amount: number;
 } & IcompanyIdAsObjectId;
 /**
  * Represents the main item offer model.
@@ -63,7 +63,7 @@ export declare const itemOfferSelect: {
     type: number;
     header: number;
     subHeader: number;
-    ammount: number;
+    amount: number;
     currency: number;
     urId: number;
     companyId: number;

@@ -1,7 +1,7 @@
 import { DatabaseAuto, IcompanySubscription, IdeleteOne, IfilterProps, IsubscriptionFeature, IsubscriptionPackage, Isuccess, TsubscriptionDurVal } from '@open-stock/stock-universal';
 export declare class CompanySubscription extends DatabaseAuto {
     name: string;
-    ammount: number;
+    amount: number;
     duration: TsubscriptionDurVal;
     subscriprionId: string;
     startDate: Date;

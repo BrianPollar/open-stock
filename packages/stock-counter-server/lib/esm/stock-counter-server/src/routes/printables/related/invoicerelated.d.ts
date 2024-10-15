@@ -1,4 +1,5 @@
 import { IinvoiceRelated, Ireceipt, Isuccess, Iuser, TestimateStage } from '@open-stock/stock-universal';
+import { TinvoiceRelated } from '../../../models/printables/related/invoicerelated.model';
 /**
  * Updates the payments related to an invoice.
  *
@@ -15,7 +16,7 @@ export declare const updateInvoiceRelated: (res: any, invoiceRelated: Required<I
 export declare const relegateInvRelatedCreation: (res: any, invoiceRelated: Required<IinvoiceRelated>, companyId: string, extraNotifDesc: string, bypassNotif?: boolean) => Promise<Isuccess & {
     _id?: string;
 }>;
-export declare const makeInvoiceRelatedPdct: (invoiceRelated: Required<IinvoiceRelated>, user: Iuser, createdAt?: Date, extras?: object) => IinvoiceRelated;
+export declare const makeInvoiceRelatedPdct: (invoiceRelated: Required<TinvoiceRelated | IinvoiceRelated>, user: Iuser, createdAt?: Date, extras?: object) => IinvoiceRelated;
 export declare const deleteManyInvoiceRelated: (_ids: string[], companyId: string) => Promise<{
     success: boolean;
     status: number;

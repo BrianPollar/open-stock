@@ -12,7 +12,9 @@ import { ConnectOptions, Document, Model, Schema } from 'mongoose';
 // const uniqueValidator = require('mongoose-unique-validator');
 
 /** model interface for invoiceRelated by */
-export type TinvoiceRelated = Document & IinvoiceRelated & IcompanyIdAsObjectId;
+export type TinvoiceRelated = Document & Omit<IinvoiceRelated, 'billingUserId'> & IcompanyIdAsObjectId & {
+  billingUserId: Schema.Types.ObjectId;
+};
 
 type TitemsSchema = Document & Omit<IinvoiceRelatedPdct, 'item'> & { item: Schema.Types.ObjectId };
 

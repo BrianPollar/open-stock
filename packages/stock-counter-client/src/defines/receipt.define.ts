@@ -82,7 +82,7 @@ export class Receipt
   extends InvoiceRelated {
   urId: string;
   companyId: string;
-  ammountRcievd: number;
+  amountRcievd: number;
   paymentMode: string;
   type: TreceiptType;
   paymentInstall: string;
@@ -93,7 +93,7 @@ export class Receipt
     super(data);
     this.urId = data.urId;
     this.companyId = data.companyId;
-    this.ammountRcievd = data.ammountRcievd;
+    this.amountRcievd = data.amountRcievd;
     this.paymentMode = data.paymentMode;
     this.type = data.type;
     this.date = data.toDate;

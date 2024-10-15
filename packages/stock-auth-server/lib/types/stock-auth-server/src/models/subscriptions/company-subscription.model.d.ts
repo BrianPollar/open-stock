@@ -41,7 +41,7 @@ export declare let companySubscriptionLean: Model<TcompanySubscription>;
  */
 export declare const companySubscriptionSelect: {
     name: number;
-    ammount: number;
+    amount: number;
     duration: number;
     active: number;
     subscriprionId: number;

@@ -49,7 +49,7 @@ const firePesapalRelegator = async(
   const payDetails = {
     id: savedSub._id.toString(),
     currency: 'USD',
-    amount: subctn.ammount,
+    amount: subctn.amount,
     description: 'Complete payments for subscription ,' + subctn.name,
     callback_url: pesapalPaymentInstance.config.pesapalCallbackUrl, // TODO add proper callback url,
     cancellation_url: '',
@@ -173,7 +173,7 @@ companySubscriptionRoutes.post(
 
     const companySubObj = {
       name: subscriptionPackage.name,
-      ammount: subscriptionPackage.ammount,
+      amount: subscriptionPackage.amount,
       duration: subscriptionPackage.duration,
 
       active: true,

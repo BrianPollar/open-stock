@@ -7,8 +7,13 @@ const stock_counter_client_1 = require("../stock-counter-client");
 class Item extends stock_universal_1.DatabaseAuto {
     constructor(data) {
         super(data);
-        this.photos = [];
+        this.photos = [] = [];
+        this.reviewCount = 0;
+        this.reviewWeight = 0;
+        this.likesCount = 0;
+        this.timesViewed = 0;
         this.orderedQty = 1;
+        this.reviewRatingsTotal = 0;
         this.soldCount = 0;
         this.appndPdctCtror(data);
     }

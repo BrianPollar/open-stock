@@ -30,20 +30,20 @@ export class Item extends DatabaseAuto {
   costMeta: IcostMeta;
   description?: string;
   inventoryMeta: IinventoryMeta[];
-  photos?: IfileMeta[] = [];
+  photos: IfileMeta[] = [] = [];
   video?: IfileMeta;
   anyKnownProblems?: string;
   numberBought?: number;
   sponsored?: Isponsored[];
   buyerGuarantee?: string;
   reviewedBy?: string[];
-  reviewCount?: number;
-  reviewWeight?: number;
+  reviewCount = 0;
+  reviewWeight = 0;
   likes?: string[];
-  likesCount?: number;
-  timesViewed?: number;
+  likesCount = 0;
+  timesViewed = 0;
   orderedQty = 1;
-  reviewRatingsTotal?;
+  reviewRatingsTotal = 0;
   ecomerceCompat: boolean;
   soldCount = 0;
 

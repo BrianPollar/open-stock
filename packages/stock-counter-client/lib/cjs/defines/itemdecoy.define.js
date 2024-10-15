@@ -8,9 +8,10 @@ const item_define_1 = require("./item.define");
 class ItemDecoy extends stock_universal_1.DatabaseAuto {
     constructor(data) {
         super(data);
+        this.items = [];
         this.urId = data.urId;
         this.companyId = data.companyId;
-        this.items = data.items.map(val => new item_define_1.Item(val));
+        this.items = data.items.map(val => new item_define_1.Item(val)) || [];
     }
     static async getAll(offset = 0, limit = 20) {
         const observer$ = stock_counter_client_1.StockCounterClient.ehttp

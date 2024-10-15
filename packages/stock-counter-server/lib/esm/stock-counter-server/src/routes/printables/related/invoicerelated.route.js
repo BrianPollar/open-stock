@@ -15,12 +15,12 @@ invoiceRelateRoutes.get('/one/:_id', requireAuth, requireActiveCompany, roleAuth
         .findOne({ _id, ...filter })
         .lean()
         .populate([populateBillingUser(), populatePayments(), populateTrackEdit(), populateTrackView()]);
-    let returned;
-    if (related) {
-        returned = makeInvoiceRelatedPdct(related, related
-            .billingUserId);
-        addParentToLocals(res, related._id, 'invoicerelateds', 'trackDataView');
+    if (!related) {
+        return res.status(404).send();
     }
+    const returned = makeInvoiceRelatedPdct(related, related
+        .billingUserId);
+    addParentToLocals(res, related._id, 'invoicerelateds', 'trackDataView');
     return res.status(200).send(returned);
 });
 invoiceRelateRoutes.get('/all/:offset/:limit', requireAuth, requireActiveCompany, roleAuthorisation('invoices', 'read'), async (req, res) => {
@@ -85,7 +85,7 @@ invoiceRelateRoutes.post('/filter', requireAuth, requireActiveCompany, roleAutho
     if (all) {
         const returned = all
             .filter(val => val)
-            .map(val => makeInvoiceRelatedPdct(val, val
+            .map(val => makeInvoiceRelatedPdct(val, (val)
             .billingUserId));
         response.data = returned;
         for (const val of all) {

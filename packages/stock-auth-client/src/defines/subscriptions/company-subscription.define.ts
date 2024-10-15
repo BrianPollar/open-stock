@@ -9,7 +9,7 @@ import { StockAuthClient } from '../../stock-auth-client';
 export class CompanySubscription
   extends DatabaseAuto {
   name: string;
-  ammount: number;
+  amount: number;
   duration: TsubscriptionDurVal;
   subscriprionId: string;
   startDate: Date;
@@ -19,7 +19,7 @@ export class CompanySubscription
   constructor(data: IcompanySubscription) {
     super(data);
     this.name = data.name;
-    this.ammount = data.ammount;
+    this.amount = data.amount;
     this.duration = data.duration;
     this.subscriprionId = data.subscriprionId;
     this.startDate = data.startDate;

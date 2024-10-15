@@ -4,7 +4,7 @@ const uniqueValidator = require('mongoose-unique-validator');
 const receiptSchema = new Schema({
     ...withUrIdAndCompanySchemaObj,
     invoiceRelated: { type: Schema.Types.ObjectId },
-    ammountRcievd: {
+    amountRcievd: {
         type: Number,
         min: [0, 'cannot be less than 0.']
     },
@@ -30,7 +30,7 @@ receiptSchema.plugin(uniqueValidator);
 const receiptselect = {
     ...withUrIdAndCompanySelectObj,
     invoiceRelated: 1,
-    ammountRcievd: 1,
+    amountRcievd: 1,
     paymentMode: 1,
     type: 1,
     amount: 1,

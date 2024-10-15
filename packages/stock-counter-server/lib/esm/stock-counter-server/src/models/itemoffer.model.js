@@ -16,7 +16,7 @@ const itemOfferSchema = new Schema({
         minLength: [1, 'cannot be less than 1.'],
         maxLength: [150, 'cannot be more than 150.']
     },
-    ammount: {
+    amount: {
         type: Number,
         min: [0, 'cannot be less than 0.']
     },
@@ -41,7 +41,7 @@ const itemOfferselect = {
     type: 1,
     header: 1,
     subHeader: 1,
-    ammount: 1,
+    amount: 1,
     currency: 1
 };
 /**

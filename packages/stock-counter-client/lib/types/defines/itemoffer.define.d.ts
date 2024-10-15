@@ -8,7 +8,7 @@ export declare class ItemOffer extends DatabaseAuto {
     type: string;
     header: string;
     subHeader: string;
-    ammount: number;
+    amount: number;
     readonly currency: string;
     constructor(data: any);
     static getAll(type: string, // TODO union here
@@ -26,7 +26,7 @@ export declare class ItemOffer extends DatabaseAuto {
         expireAt: Date;
         header: string;
         subHeader: string;
-        ammount: number;
+        amount: number;
     }): Promise<IsubscriptionFeatureState>;
     static removeMany(vals: IdeleteMany): Promise<Isuccess>;
     update(vals: any): Promise<Isuccess>;

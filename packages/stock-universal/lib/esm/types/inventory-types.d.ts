@@ -50,24 +50,24 @@ export interface Iquotation extends IdatabaseAuto, ItrackStamp, IcurrencyProp {
 export interface IinvoiceRelated extends IdatabaseAuto, ItrackStamp, IcurrencyProp, Partial<IcompanyId> {
     payType?: TpayType;
     invoiceRelated?: string;
-    creationType?: TinvoiceType;
+    creationType: TinvoiceType;
     estimateId?: number;
     invoiceId?: number;
-    billingUser?: string;
-    billingUserId?: string;
+    billingUser: string;
+    billingUserId: string;
     billingUserPhoto?: string;
     extraCompanyDetails?: string;
-    items?: IinvoiceRelatedPdct[];
-    fromDate?: Date;
-    toDate?: Date;
-    status?: TinvoiceStatus;
-    stage?: TestimateStage;
-    cost?: number;
-    paymentMade?: number;
+    items: IinvoiceRelatedPdct[];
+    fromDate: Date;
+    toDate: Date;
+    status: TinvoiceStatus;
+    stage: TestimateStage;
+    cost: number;
+    paymentMade: number;
     tax?: number;
-    balanceDue?: number;
-    subTotal?: number;
-    total?: number;
+    balanceDue: number;
+    subTotal: number;
+    total: number;
     payments?: string[] | Ireceipt[];
     ecommerceSale?: boolean;
     ecommerceSalePercentage?: number;
@@ -114,7 +114,7 @@ export interface Iestimate extends IinvoiceRelated, IurId, Partial<IcompanyId> {
 /** Represents a receipt. */
 export interface Ireceipt extends IurId, Partial<IcompanyId>, IinvoiceRelated {
     estimateId?: number;
-    ammountRcievd: number;
+    amountRcievd: number;
     paymentMode: string;
     type: TreceiptType;
     date: Date;

@@ -5,9 +5,10 @@ import { Item } from './item.define';
 export class ItemDecoy extends DatabaseAuto {
     constructor(data) {
         super(data);
+        this.items = [];
         this.urId = data.urId;
         this.companyId = data.companyId;
-        this.items = data.items.map(val => new Item(val));
+        this.items = data.items.map(val => new Item(val)) || [];
     }
     static async getAll(offset = 0, limit = 20) {
         const observer$ = StockCounterClient.ehttp

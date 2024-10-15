@@ -175,7 +175,7 @@ export const productState = [{
 export const subscriptionPackages = [
     {
         name: 'Basic',
-        ammount: 50,
+        amount: 50,
         duration: 1,
         features: [
             {
@@ -236,7 +236,7 @@ export const subscriptionPackages = [
     },
     {
         name: 'Standard',
-        ammount: 100,
+        amount: 100,
         duration: 1,
         features: [
             {
@@ -309,7 +309,7 @@ export const subscriptionPackages = [
     },
     {
         name: 'Advanced',
-        ammount: 300,
+        amount: 300,
         duration: 1,
         features: [
             {
@@ -382,7 +382,7 @@ export const subscriptionPackages = [
     },
     {
         name: 'Trial',
-        ammount: 10,
+        amount: 10,
         duration: 1,
         features: [
             {

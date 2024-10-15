@@ -32,7 +32,7 @@ export type Treceipt = Document & IinvoiceRelatedRef & {
     /**
      * The amount received.
      */
-    ammountRcievd: number;
+    amountRcievd: number;
     /**
      * The payment mode.
      */
@@ -63,7 +63,7 @@ export declare let receiptLean: Model<Treceipt>;
  */
 export declare const receiptSelect: {
     invoiceRelated: number;
-    ammountRcievd: number;
+    amountRcievd: number;
     paymentMode: number;
     type: number;
     amount: number;

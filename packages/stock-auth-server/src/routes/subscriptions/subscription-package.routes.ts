@@ -68,7 +68,7 @@ subscriptionPackageRoutes.put(
       _id: subscriptionPackage._id
     }, {
       name: subscriptionPackage.name || subPackage.name,
-      ammount: subscriptionPackage.ammount || subPackage.ammount,
+      amount: subscriptionPackage.amount || subPackage.amount,
       duration: subscriptionPackage.duration || subPackage.duration,
       active: subscriptionPackage.active || subPackage.active,
       features: subscriptionPackage.features || subPackage.features

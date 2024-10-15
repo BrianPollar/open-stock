@@ -19,12 +19,12 @@ exports.invoiceRelateRoutes.get('/one/:_id', stock_universal_server_1.requireAut
         .findOne({ _id, ...filter })
         .lean()
         .populate([(0, query_1.populateBillingUser)(), (0, query_1.populatePayments)(), (0, stock_auth_server_1.populateTrackEdit)(), (0, stock_auth_server_1.populateTrackView)()]);
-    let returned;
-    if (related) {
-        returned = (0, invoicerelated_1.makeInvoiceRelatedPdct)(related, related
-            .billingUserId);
-        (0, stock_universal_server_1.addParentToLocals)(res, related._id, 'invoicerelateds', 'trackDataView');
+    if (!related) {
+        return res.status(404).send();
     }
+    const returned = (0, invoicerelated_1.makeInvoiceRelatedPdct)(related, related
+        .billingUserId);
+    (0, stock_universal_server_1.addParentToLocals)(res, related._id, 'invoicerelateds', 'trackDataView');
     return res.status(200).send(returned);
 });
 exports.invoiceRelateRoutes.get('/all/:offset/:limit', stock_universal_server_1.requireAuth, stock_auth_server_1.requireActiveCompany, (0, stock_universal_server_1.roleAuthorisation)('invoices', 'read'), async (req, res) => {
@@ -89,7 +89,7 @@ exports.invoiceRelateRoutes.post('/filter', stock_universal_server_1.requireAuth
     if (all) {
         const returned = all
             .filter(val => val)
-            .map(val => (0, invoicerelated_1.makeInvoiceRelatedPdct)(val, val
+            .map(val => (0, invoicerelated_1.makeInvoiceRelatedPdct)(val, (val)
             .billingUserId));
         response.data = returned;
         for (const val of all) {

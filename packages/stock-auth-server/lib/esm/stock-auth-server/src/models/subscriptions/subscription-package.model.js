@@ -5,7 +5,7 @@ const uniqueValidator = require('mongoose-unique-validator');
 const subscriptionPackageSchema = new Schema({
     ...globalSchemaObj,
     name: { type: String, unique: true, required: [true, 'cannot be empty.'], index: true },
-    ammount: { type: Number, unique: true, required: [true, 'cannot be empty.'], index: true },
+    amount: { type: Number, unique: true, required: [true, 'cannot be empty.'], index: true },
     duration: { type: Number, required: [true, 'cannot be empty.'], index: true }, // in days
     active: { type: Boolean, required: [true, 'cannot be empty.'], index: true },
     features: []
@@ -16,7 +16,7 @@ subscriptionPackageSchema.plugin(uniqueValidator);
 const subscriptionPackageselect = {
     ...globalSelectObj,
     name: 1,
-    ammount: 1,
+    amount: 1,
     duration: 1,
     active: 1,
     features: 1

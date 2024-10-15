@@ -8,7 +8,7 @@ class CompanySubscription extends stock_universal_1.DatabaseAuto {
     constructor(data) {
         super(data);
         this.name = data.name;
-        this.ammount = data.ammount;
+        this.amount = data.amount;
         this.duration = data.duration;
         this.subscriprionId = data.subscriprionId;
         this.startDate = data.startDate;

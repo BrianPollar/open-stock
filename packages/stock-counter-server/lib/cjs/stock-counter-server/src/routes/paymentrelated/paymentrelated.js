@@ -321,7 +321,7 @@ const notifyAllOnDueDate = async () => {
             if (inv.billingUserId) {
                 const notification = {
                     actions,
-                    userId: inv.billingUserId,
+                    userId: inv.billingUserId.toString(),
                     title,
                     body: 'This is to remind you that, You are late on a product payment',
                     icon: '',

@@ -179,7 +179,7 @@ const signupFactorRelgator = async (req, res, next) => {
         const newSub = new company_subscription_model_1.companySubscriptionMain({
             companyId: company._id,
             name: freePkg.name,
-            ammount: freePkg.ammount,
+            amount: freePkg.amount,
             duration: freePkg.duration,
             active: freePkg.active,
             startDate,

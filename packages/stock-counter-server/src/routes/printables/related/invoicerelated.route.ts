@@ -10,7 +10,9 @@ import {
   addParentToLocals, constructFiltersFromBody,
   lookupBillingUser,
   lookupFacet,
-  lookupTrackEdit, lookupTrackView, makeCompanyBasedQuery, offsetLimitRelegator, requireAuth, roleAuthorisation, verifyObjectIds
+  lookupTrackEdit, lookupTrackView,
+  makeCompanyBasedQuery, offsetLimitRelegator,
+  requireAuth, roleAuthorisation, verifyObjectIds
 } from '@open-stock/stock-universal-server';
 import express from 'express';
 import { TinvoiceRelated, invoiceRelatedLean } from '../../../models/printables/related/invoicerelated.model';
@@ -35,17 +37,19 @@ invoiceRelateRoutes.get(
       .findOne({ _id, ...filter })
       .lean()
       .populate([populateBillingUser(), populatePayments(), populateTrackEdit(), populateTrackView()]);
-    let returned;
 
-    if (related) {
-      returned = makeInvoiceRelatedPdct(
-      related as Required<IinvoiceRelated>,
-        (related as unknown as IinvoiceRelated)
-          .billingUserId as unknown as Iuser
-      );
-
-      addParentToLocals(res, related._id, 'invoicerelateds', 'trackDataView');
+    if (!related) {
+      return res.status(404).send();
     }
+
+    const returned = makeInvoiceRelatedPdct(
+      related as Required<TinvoiceRelated>,
+        (related as unknown as TinvoiceRelated)
+          .billingUserId as unknown as Iuser
+    );
+
+    addParentToLocals(res, related._id, 'invoicerelateds', 'trackDataView');
+
 
     return res.status(200).send(returned);
   }
@@ -77,8 +81,8 @@ invoiceRelateRoutes.get(
       const returned = all[0]
         .filter(val => val)
         .map(val => makeInvoiceRelatedPdct(
-        val as Required<IinvoiceRelated>,
-        (val as IinvoiceRelated)
+        val as Required<TinvoiceRelated>,
+        (val as TinvoiceRelated)
           .billingUserId as unknown as Iuser
         ));
 
@@ -138,8 +142,8 @@ invoiceRelateRoutes.post(
       const returned = all
         .filter(val => val)
         .map(val => makeInvoiceRelatedPdct(
-        val as Required<IinvoiceRelated>,
-        (val as IinvoiceRelated)
+        val as Required<TinvoiceRelated>,
+        (val)
           .billingUserId as unknown as Iuser
         ));
 

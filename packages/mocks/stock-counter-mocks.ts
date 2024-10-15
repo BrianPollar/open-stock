@@ -593,7 +593,7 @@ export const createMockItemOffer = () => {
     type: 'string',
     header: faker.string.alphanumeric(20),
     subHeader: faker.string.alphanumeric(30),
-    ammount: faker.number.int()
+    amount: faker.number.int()
   };
 
   return offer;
@@ -712,7 +712,7 @@ export const createMockReceipt = () => {
   const receipt = {
     ...createMockDatabaseAuto(),
     urId: faker.string.uuid(),
-    ammountRcievd: faker.number.int(3),
+    amountRcievd: faker.number.int(3),
     paymentMode: faker.string.alphanumeric(4),
     type: 'ecomerce'
   } as Required<Ireceipt>;
@@ -825,7 +825,7 @@ export const createMockCompanySubscriptions = (length: number) => {
 
 export const createMockSubscriptionPackage = () => ({
   name: faker.string.alphanumeric(),
-  ammount: faker.number.int(),
+  amount: faker.number.int(),
   duration: faker.number.int(),
   active: true,
   features: ['feature1', 'feature2', 'feature3']

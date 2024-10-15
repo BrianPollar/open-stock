@@ -29,7 +29,7 @@ export declare class InvoiceRelated extends DatabaseAuto {
 export declare class Receipt extends InvoiceRelated {
     urId: string;
     companyId: string;
-    ammountRcievd: number;
+    amountRcievd: number;
     paymentMode: string;
     type: TreceiptType;
     paymentInstall: string;
